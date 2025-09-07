@@ -1,0 +1,452 @@
+# =====================================
+# BellClaims Configuration
+# Comprehensive configuration for claims and guild system
+# =====================================
+
+# =====================================
+# Core Claims Configuration
+# =====================================
+
+# Enable or disable the entire claims system
+# When disabled, all claim-related commands and features are unavailable
+claims_enabled: true
+
+# The amount of claims a player is allowed to create.
+claim_limit: 3
+
+# The amount of blocks a player's claims are allowed to occupy.
+claim_block_limit: 5000
+
+# The initial size of the claim that is created in a square. (Minimum value of 3)
+initial_claim_size: 7
+
+# The minimum size that a claim is allowed to occupy. (Minimum value of 3)
+minimum_partition_size: 3
+
+# The minimum distance there is allowed to be between claims.
+distance_between_claims: 1
+
+# The amount of time in seconds it takes for the visualiser to disappear when the claim tool is unequipped.
+visualiser_hide_delay_period: 2
+
+# The minimum amount of time in seconds the visualiser is allowed to be refreshed to prevent spam.
+visualiser_refresh_period: 1
+
+# Enable right-click harvesting of crops
+right_click_harvest: true
+
+# =====================================
+# Localization and UI
+# =====================================
+
+# The language of text elements.
+# EN - Original
+# Add more <?>.properties files in the override folder to support more languages
+plugin_language: EN
+
+# The id value for resource packs that change the model of the claim tool.
+custom_claim_tool_model_id: 732000
+
+# The id value for resource packs that change the model of the move tool.
+custom_move_tool_model_id: 732001
+
+# =====================================
+# Discord Integration Configuration
+# =====================================
+
+# Discord webhook URL for CSV file delivery
+# Create a webhook in your Discord server: Server Settings > Integrations > Webhooks
+# Leave empty to disable Discord integration (falls back to Minecraft books)
+discord_webhook_url: ""
+
+# Enable Discord CSV delivery (requires webhook URL above)
+discord_csv_delivery: false
+
+# =====================================
+# Guild System Configuration
+# =====================================
+
+guild:
+  # Guild Creation and Management
+  max_name_length: 32
+  min_name_length: 1
+  max_guild_count: 1000
+  create_guild_cost: 0
+  disband_refund_percent: 0.5
+  
+  # Mode Switching (Peaceful/Hostile)
+  peaceful_mode_enabled: true              # Enable peaceful/hostile mode switching
+  mode_switch_cooldown_days: 7             # Days between peaceful mode switches
+  hostile_mode_minimum_days: 7             # Minimum days in hostile mode before switching
+  peaceful_mode_claim_pvp_disabled: true   # Disable PVP in claims when in peaceful mode
+  peaceful_mode_prevent_wars: true         # Prevent war declarations when in peaceful mode
+  peaceful_guild_pvp_opt_in: false         # If true, peaceful guilds can opt-in to PvP; if false, PvP is forced off
+  
+  # Ranks and Members
+  max_custom_ranks: 10
+  max_rank_name_length: 16
+  max_members_per_guild: 50
+  
+  # Home System
+  home_teleport_cooldown_seconds: 5
+  home_set_cooldown_minutes: 10
+  home_teleport_warmup_seconds: 3
+  home_teleport_safety_check: true
+
+  # Banner System
+  banner_copy_enabled: true
+  banner_copy_cost: 100
+  banner_copy_charge_guild_bank: true  # If true, charges guild bank; if false, charges player balance
+  banner_copy_free: false  # If true, banner copies are free regardless of cost setting
+
+# =====================================
+# Guild Role Permissions Configuration
+# =====================================
+
+team_role_permissions:
+  # Cache invalidation delay in seconds when role changes occur
+  cache_invalidation_delay_seconds: 5
+  
+  # Default permissions for roles that don't have explicit mappings
+  default_permissions:
+    - "VIEW"
+  
+  # Role to permission mappings
+  # Each role can have multiple permissions
+  roles:
+    Owner:
+      - "BUILD"
+      - "HARVEST"
+      - "CONTAINER"
+      - "DISPLAY"
+      - "VEHICLE"
+      - "SIGN"
+      - "REDSTONE"
+      - "DOOR"
+      - "TRADE"
+      - "HUSBANDRY"
+      - "DETONATE"
+      - "EVENT"
+      - "SLEEP"
+      - "VIEW"
+    "Co-Owner":
+      - "BUILD"
+      - "HARVEST"
+      - "CONTAINER"
+      - "DISPLAY"
+      - "VEHICLE"
+      - "SIGN"
+      - "REDSTONE"
+      - "DOOR"
+      - "TRADE"
+      - "HUSBANDRY"
+      - "DETONATE"
+      - "EVENT"
+      - "SLEEP"
+      - "VIEW"
+    Admin:
+      - "BUILD"
+      - "HARVEST"
+      - "CONTAINER"
+      - "DISPLAY"
+      - "VEHICLE"
+      - "SIGN"
+      - "REDSTONE"
+      - "DOOR"
+      - "TRADE"
+      - "HUSBANDRY"
+      - "VIEW"
+    Mod:
+      - "BUILD"
+      - "HARVEST"
+      - "CONTAINER"
+      - "DISPLAY"
+      - "VEHICLE"
+      - "SIGN"
+      - "VIEW"
+    Member:
+      - "HARVEST"
+      - "CONTAINER"
+      - "VIEW"
+
+# =====================================
+# Bank System Configuration
+# =====================================
+
+bank:
+  # Transaction Limits
+  min_deposit_amount: 1
+  max_deposit_amount: 100000
+  max_withdrawal_percent: 0.5  # Maximum % of bank balance that can be withdrawn at once
+  daily_withdrawal_limit: 50000
+  
+  # Fees and Taxes
+  deposit_fee_percent: 0.01     # 1% deposit fee
+  withdrawal_fee_percent: 0.02  # 2% withdrawal fee
+  max_deposit_fee: 1000         # Maximum fee for deposits
+  max_withdrawal_fee: 2000      # Maximum fee for withdrawals
+  
+  # Interest and Growth
+  interest_rate_percent: 0.005   # 0.5% interest per compound period
+  interest_compound_period_hours: 24  # Interest calculated every 24 hours
+  max_bank_balance: 1000000
+  
+  # Audit and Security
+  audit_log_retention_days: 30
+  suspicious_transaction_threshold: 50000
+  auto_lock_suspicious_accounts: false
+
+# =====================================
+# Combat and War System Configuration
+# =====================================
+
+combat:
+  # Anti-farming
+  kill_cooldown_minutes: 5      # Prevent farming same player
+  same_player_kill_limit: 3     # Max kills of same player within cooldown
+  anti_griefing_enabled: true
+  
+  # War System
+  war_declaration_cooldown_hours: 24     # Cooldown between war declarations
+  war_duration_hours: 168                # 1 week war duration
+  war_end_grace_period_minutes: 30       # Grace period after war ends
+  max_simultaneous_wars: 3               # Max wars a guild can be in
+  
+  # Experience and Rewards
+  kill_experience: 10           # XP gained for kills
+  war_win_experience: 500       # XP gained for winning a war
+  war_lose_experience: 100      # XP gained for losing a war (participation)
+
+# =====================================
+# Chat System Configuration
+# =====================================
+
+chat:
+  # Rate Limiting
+  announce_cooldown_minutes: 30  # Cooldown for guild announcements
+  ping_cooldown_minutes: 5       # Cooldown for @everyone pings
+  max_message_length: 256
+  
+  # Channels
+  default_channel_visibility: true  # Default visibility of channels for new members
+  ally_chat_enabled: true
+  party_chat_enabled: true
+  guild_chat_enabled: true
+  
+  # Emojis and Formatting
+  enable_emojis: true
+  emoji_permission_prefix: "lumalyte.emoji"  # Permission prefix for emojis
+  max_emojis_per_message: 5
+  colored_chat_enabled: true
+
+# =====================================
+# Party System Configuration
+# =====================================
+
+party:
+  # Party Creation
+  max_party_name_length: 32
+  min_party_name_length: 1
+  default_party_duration_hours: 24
+  max_simultaneous_parties_per_guild: 3
+  allow_private_parties: true  # Allow creation of private guild-only parties
+
+  # Party Chat
+  party_chat_enabled: true
+  party_chat_priority: 100
+  party_chat_format: "[%bellclaims_party_name%] %bellclaims_rel_<player>_status% %bellclaims_guild_emoji%%bellclaims_guild_tag% %luckperms-suffix% %player_name% ⋙ <message>"
+  party_chat_prefix: "[PARTY]"
+  party_chat_suffix: ""
+  chat_input_listener_priority: "HIGHEST"  # HIGHEST, HIGH, NORMAL, LOW, LOWEST
+
+  # Role Restrictions
+  allow_role_restrictions: true
+  default_to_all_members: true
+
+# =====================================
+# Guild Progression System Configuration
+# =====================================
+
+progression:
+  # Experience values for different activities
+  bank_deposit_xp_per_100: 1         # XP per 100 coins deposited
+  member_joined_xp: 50                # XP when a new member joins
+  player_kill_xp: 25                  # XP for killing another player
+  mob_kill_xp: 2                      # XP for killing mobs
+  crop_break_xp: 1                    # XP for harvesting crops
+  block_break_xp: 1                   # XP for breaking blocks
+  block_place_xp: 1                   # XP for placing blocks
+  crafting_xp: 2                      # XP per item crafted
+  smelting_xp: 2                      # XP per item smelted
+  fishing_xp: 3                       # XP per fish caught
+  enchanting_xp: 10                   # XP per enchantment level spent
+  claim_created_xp: 100               # XP for creating a claim (if claims enabled)
+  war_won_xp: 500                     # XP for winning a war
+
+  # Rate limiting settings (prevents XP farming/spam)
+  xp_cooldown_ms: 5000                # Milliseconds between XP awards per source per player
+  max_xp_per_batch: 50                # Maximum XP accumulated before forced processing
+
+  # Leveling curve settings (balanced for competitive but fair progression)
+  base_xp: 800.0                      # Base XP requirement
+  level_exponent: 1.3                 # Exponential growth factor (gentler than 1.5)
+  linear_bonus_per_level: 200         # Linear bonus to prevent harsh walls
+
+# =====================================
+# UI and Menu Configuration
+# =====================================
+# Configure menu items with custom model data for resource pack integration
+
+ui:
+  # Main Menu Items (supports custom model data for resource packs)
+  guild_menu_item:
+    material: "BANNER"
+    name: "Guild"
+    custom_model_data: 732100
+    enchanted: false
+  
+  bank_menu_item:
+    material: "GOLD_INGOT"
+    name: "Bank"
+    custom_model_data: 732101
+    enchanted: false
+  
+  rank_menu_item:
+    material: "GOLDEN_HELMET"
+    name: "Ranks"
+    custom_model_data: 732102
+    enchanted: false
+  
+  relation_menu_item:
+    material: "COMPASS"
+    name: "Relations"
+    custom_model_data: 732103
+    enchanted: false
+  
+  war_menu_item:
+    material: "DIAMOND_SWORD"
+    name: "Wars"
+    custom_model_data: 732104
+    enchanted: true
+  
+  mode_menu_item:
+    material: "SHIELD"
+    name: "Mode"
+    custom_model_data: 732105
+    enchanted: false
+  
+  home_menu_item:
+    material: "BED"
+    name: "Home"
+    custom_model_data: 732106
+    enchanted: false
+  
+  leaderboard_menu_item:
+    material: "ITEM_FRAME"
+    name: "Leaderboards"
+    custom_model_data: 732107
+    enchanted: false
+  
+  chat_menu_item:
+    material: "WRITABLE_BOOK"
+    name: "Chat"
+    custom_model_data: 732108
+    enchanted: false
+  
+  party_menu_item:
+    material: "CAKE"
+    name: "Party"
+    custom_model_data: 732109
+    enchanted: false
+  
+  # Navigation Items
+  back_button:
+    material: "ARROW"
+    name: "Back"
+    custom_model_data: 732200
+    enchanted: false
+  
+  next_button:
+    material: "ARROW"
+    name: "Next"
+    custom_model_data: 732201
+    enchanted: false
+  
+  confirm_button:
+    material: "EMERALD"
+    name: "Confirm"
+    custom_model_data: 732202
+    enchanted: true
+  
+  cancel_button:
+    material: "REDSTONE"
+    name: "Cancel"
+    custom_model_data: 732203
+    enchanted: false
+  
+  close_button:
+    material: "BARRIER"
+    name: "Close"
+    custom_model_data: 732204
+    enchanted: false
+  
+  # Status Indicators
+  online_indicator:
+    material: "LIME_DYE"
+    name: "Online"
+    custom_model_data: 732300
+    enchanted: false
+  
+  offline_indicator:
+    material: "GRAY_DYE"
+    name: "Offline"
+    custom_model_data: 732301
+    enchanted: false
+  
+  peaceful_mode_indicator:
+    material: "WHITE_BANNER"
+    name: "Peaceful"
+    custom_model_data: 732302
+    enchanted: false
+  
+  hostile_mode_indicator:
+    material: "RED_BANNER"
+    name: "Hostile"
+    custom_model_data: 732303
+    enchanted: false
+  
+  # Rank Icons
+  owner_icon:
+    material: "GOLDEN_CROWN"
+    name: "Owner"
+    custom_model_data: 732400
+    enchanted: true
+  
+  co_owner_icon:
+    material: "GOLDEN_HELMET"
+    name: "Co-Owner"
+    custom_model_data: 732401
+    enchanted: true
+  
+  admin_icon:
+    material: "IRON_HELMET"
+    name: "Admin"
+    custom_model_data: 732402
+    enchanted: false
+  
+  mod_icon:
+    material: "LEATHER_HELMET"
+    name: "Mod"
+    custom_model_data: 732403
+    enchanted: false
+  
+  member_icon:
+    material: "PLAYER_HEAD"
+    name: "Member"
+    custom_model_data: 732404
+    enchanted: false
+  
+  # Menu Settings
+  menu_size: 54                     # Size of inventory menus (9, 18, 27, 36, 45, 54)
+  enable_menu_animations: true       # Enable animated menu items
+  menu_update_interval_ticks: 20     # How often menus update (20 ticks = 1 second)

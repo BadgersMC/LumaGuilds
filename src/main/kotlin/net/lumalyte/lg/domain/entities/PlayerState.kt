@@ -1,0 +1,30 @@
+package net.lumalyte.lg.domain.entities
+
+import net.lumalyte.lg.application.services.scheduling.Task
+import net.lumalyte.lg.domain.values.Position3D
+import java.time.Instant
+import java.util.UUID
+
+/**
+ * Holds temporary player state data mainly pertaining to claim editing.
+ *
+ * @property playerId The id of the player.
+ */
+class PlayerState(val playerId: UUID) {
+    var claimOverride = false
+    var claimToolMode = 0
+    var isHoldingClaimTool = false
+    var isVisualisingClaims = false
+    var isInClaimMenu: UUID? = null
+    var scheduledVisualiserHide: Task? = null
+    var lastVisualisationTime: Instant? = null
+
+    // Map claim id to block positions
+    var visualisedClaims: MutableMap<UUID, Set<Position3D>> = mutableMapOf()
+
+    // Map claim id to partition id to block positions
+    var visualisedPartitions: MutableMap<UUID, MutableMap<UUID, Set<Position3D>>> = mutableMapOf()
+
+    // Save the block the player has currently selected by the claim tool
+    var selectedBlock: Position3D? = null
+}
