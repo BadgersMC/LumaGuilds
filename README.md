@@ -6,7 +6,7 @@ LumaGuilds is a comprehensive Minecraft plugin that builds upon the BellClaims l
 
 ## About
 
-This project is a fork of [BellClaims](https://github.com/mizarc/bell-claims) by Kevin Rahardjo, with significant additions for guild functionality. The original BellClaims provides an intuitive land-claiming system, while LumaGuilds extends it with:
+This project is a fork of [BellClaims](https://github.com/mizarc/bell-claims) by Mizarc, with significant additions for guild functionality. The original BellClaims provides an intuitive land-claiming system, while LumaGuilds extends it with:
 
 ### Land Claiming Features (from BellClaims)
 - **Physically Grounded** - Claims are marked using Bells, yes the block. Manage your claim from here, or break it to destroy your whole claim.
