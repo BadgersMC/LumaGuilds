@@ -15,10 +15,23 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
     private val guildStats: MutableMap<UUID, GuildKillStats> = mutableMapOf()
     private val playerStats: MutableMap<UUID, PlayerKillStats> = mutableMapOf()
     private val antiFarmData: MutableMap<UUID, AntiFarmData> = mutableMapOf()
+    private var isInitialized = false
 
     init {
-        createKillTables()
-        preload()
+        // Defer table creation and preloading until first database access
+        // This prevents issues when the database file doesn't exist yet
+    }
+
+    private fun ensureInitialized() {
+        if (!isInitialized) {
+            try {
+                createKillTables()
+                preload()
+                isInitialized = true
+            } catch (e: SQLException) {
+                throw DatabaseOperationException("Failed to initialize kill database", e)
+            }
+        }
     }
 
     private fun createKillTables() {
@@ -242,6 +255,8 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
     }
 
     override fun recordKill(kill: Kill): Boolean {
+        ensureInitialized()
+
         val sql = """
             INSERT INTO kills (id, killer_id, victim_id, killer_guild_id, victim_guild_id, timestamp, weapon,
                               location_world, location_x, location_y, location_z)
@@ -272,6 +287,8 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
     }
 
     override fun getKillsByKiller(killerId: UUID, limit: Int): List<Kill> {
+        ensureInitialized()
+
         val sql = """
             SELECT id, killer_id, victim_id, killer_guild_id, victim_guild_id, timestamp, weapon,
                    location_world, location_x, location_y, location_z
@@ -290,6 +307,8 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
     }
 
     override fun getKillsByVictim(victimId: UUID, limit: Int): List<Kill> {
+        ensureInitialized()
+
         val sql = """
             SELECT id, killer_id, victim_id, killer_guild_id, victim_guild_id, timestamp, weapon,
                    location_world, location_x, location_y, location_z
@@ -308,6 +327,8 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
     }
 
     override fun getKillsForGuild(guildId: UUID, limit: Int): List<Kill> {
+        ensureInitialized()
+
         val sql = """
             SELECT id, killer_id, victim_id, killer_guild_id, victim_guild_id, timestamp, weapon,
                    location_world, location_x, location_y, location_z
@@ -347,6 +368,8 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
     }
 
     override fun getGuildKillStats(guildId: UUID): GuildKillStats {
+        ensureInitialized()
+
         return guildStats[guildId] ?: GuildKillStats(guildId)
     }
 
@@ -372,6 +395,8 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
     }
 
     override fun getPlayerKillStats(playerId: UUID): PlayerKillStats {
+        ensureInitialized()
+
         return playerStats[playerId] ?: PlayerKillStats(playerId)
     }
 
