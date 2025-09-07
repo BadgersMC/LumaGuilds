@@ -256,7 +256,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addTopKillersButton(pane: StaticPane, x: Int, y: Int) {
-        val topKillers = killService.getTopKillers(guild.id, 5)
+        val guildMembers = memberService.getGuildMembers(guild.id).map { it.playerId }
+        val topKillers = killService.getTopKillers(guildMembers, 5)
 
         val item = ItemStack(Material.TOTEM_OF_UNDYING)
             .name("§cTop Killers")

@@ -113,14 +113,24 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
         }
     }
 
-    override fun getTopKillers(guildId: UUID, limit: Int): List<Pair<UUID, PlayerKillStats>> {
-        // This is a simplified implementation
-        // In a real implementation, you'd query the database to get top killers for a guild
+    override fun getTopKillers(guildMembers: List<UUID>, limit: Int): List<Pair<UUID, PlayerKillStats>> {
         return try {
-            // For now, return empty list - this would need additional repository methods
-            emptyList()
+            // Get kill stats for all guild members and sort by total kills
+            val memberStats = guildMembers.mapNotNull { playerId ->
+                try {
+                    val stats = killRepository.getPlayerKillStats(playerId)
+                    playerId to stats
+                } catch (e: Exception) {
+                    logger.warn("Failed to get kill stats for player $playerId", e)
+                    null
+                }
+            }
+
+            // Sort by total kills (descending) and take the top limit
+            memberStats.sortedByDescending { (_, stats) -> stats.totalKills }
+                .take(limit)
         } catch (e: Exception) {
-            logger.error("Error getting top killers for guild: $guildId", e)
+            logger.error("Error getting top killers for guild members", e)
             emptyList()
         }
     }
