@@ -545,4 +545,40 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
             throw DatabaseOperationException("Failed to reset player kill stats", e)
         }
     }
+
+    override fun getAllPlayerStatsForGuild(guildId: UUID): Map<UUID, PlayerKillStats> {
+        ensureInitialized()
+
+        // Get all player stats from the database
+        val sql = """
+            SELECT player_id, guild_id, total_kills, total_deaths, streak, best_streak,
+                   last_kill_time, last_death_time
+            FROM player_kill_stats
+            WHERE guild_id = ?
+        """.trimIndent()
+
+        return try {
+            val results = storage.connection.getResults(sql, guildId.toString())
+            val statsMap = mutableMapOf<UUID, PlayerKillStats>()
+
+            for (result in results) {
+                val playerId = UUID.fromString(result.getString("player_id"))
+                val stats = PlayerKillStats(
+                    playerId = playerId,
+                    guildId = guildId,
+                    totalKills = result.getInt("total_kills"),
+                    totalDeaths = result.getInt("total_deaths"),
+                    streak = result.getInt("streak"),
+                    bestStreak = result.getInt("best_streak"),
+                    lastKillTime = result.getLong("last_kill_time")?.let { Instant.ofEpochMilli(it) },
+                    lastDeathTime = result.getLong("last_death_time")?.let { Instant.ofEpochMilli(it) }
+                )
+                statsMap[playerId] = stats
+            }
+
+            statsMap
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to get all player stats for guild", e)
+        }
+    }
 }
