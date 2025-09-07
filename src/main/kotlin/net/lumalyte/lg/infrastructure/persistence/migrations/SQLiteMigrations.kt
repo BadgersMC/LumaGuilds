@@ -1,18 +1,18 @@
 package net.lumalyte.lg.infrastructure.persistence.migrations
 
-import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger
 import org.bukkit.plugin.java.JavaPlugin
 import java.sql.Connection
 import java.sql.SQLException
 
 class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: Connection) {
-    private val miniMessage = MiniMessage.miniMessage()
+    private val componentLogger = plugin.getComponentLogger()
     fun migrate() {
         try {
             connection.autoCommit = false
             var currentDbVersion = getCurrentDatabaseVersion()
-            plugin.logger.info(/* msg = */ "Current database schema version: v$currentDbVersion")
+            componentLogger.info(Component.text("Current database schema version: v$currentDbVersion"))
 
             // Migrate sequentially
             if (currentDbVersion < 2) {
@@ -57,16 +57,15 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             }
             connection.commit() // Commit transaction
 
-            // Log migration completion
+            // Log migration completion quietly
             val finalVersion = getCurrentDatabaseVersion()
-            val migrationMsg = miniMessage.deserialize("<green><bold>✓</bold></green> <white>Database migrations completed successfully (v$finalVersion)</white>")
-            plugin.logger.info(PlainTextComponentSerializer.plainText().serialize(migrationMsg))
+            componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))
         } catch (e: SQLException) {
             plugin.logger.severe("Database migration failed: ${e.message}")
             e.printStackTrace()
             try {
                 connection.rollback() // Rollback on failure
-                plugin.logger.warning("Database migration transaction rolled back.")
+                componentLogger.warn(Component.text("Database migration transaction rolled back"))
             } catch (rb: SQLException) {
                 plugin.logger.severe("Failed to rollback database migration: ${rb.message}")
             }
@@ -97,7 +96,6 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
      * Contains all the provided SQL commands.
      */
     private fun migrateToVersion2() {
-        plugin.logger.info("Starting migration to database v2.")
         val sqlCommands = mutableListOf<String>() // Use mutable list
 
         // Check if this is a fresh database (no existing tables)
@@ -259,7 +257,6 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
      * Creates a fresh v2 schema for new databases.
      */
     private fun createFreshV2Schema() {
-        plugin.logger.info("Creating fresh v2 schema for new database.")
         
         // Create claims table
         executeSql("""
@@ -363,7 +360,6 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
      * Adds team_id to claims and creates guild-related tables.
      */
     private fun migrateToVersion3() {
-        plugin.logger.info("Starting migration to database v3.")
         val sqlCommands = mutableListOf<String>()
 
         // --- Step 1: Foreign Keys OFF ---
@@ -571,7 +567,6 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
      * Adds tag and emoji columns to guilds table for enhanced display customization.
      */
     private fun migrateToVersion4() {
-        plugin.logger.info("Starting migration to database v4.")
         val sqlCommands = mutableListOf<String>()
 
         // --- Step 1: Add tag column to guilds table (if not exists) ---
