@@ -4,6 +4,7 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.*
+import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -19,6 +20,8 @@ import org.koin.core.component.inject
 import java.text.DecimalFormat
 import java.time.LocalDate
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.*
 
 class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
@@ -598,13 +601,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
             // Group transactions by date and calculate balance progression
-            val dailyBalances = transactions
-                .sortedBy { it.timestamp }
-                .groupBy { it.timestamp.toLocalDate() }
-                .mapValues { (_, dayTransactions) ->
-                    dayTransactions.sumOf { it.amount }
-                }
-                .toList()
+            val dateToBalance = mutableMapOf<LocalDate, Int>()
+            for (transaction in transactions) {
+                val date = LocalDateTime.ofInstant(transaction.timestamp, ZoneId.systemDefault()).toLocalDate()
+                dateToBalance[date] = (dateToBalance[date] ?: 0) + transaction.amount
+            }
+
+            val dailyBalances = dateToBalance.toList()
                 .sortedBy { it.first }
                 .takeLast(30) // Last 30 days
                 .map { it.first.toString() to it.second }
