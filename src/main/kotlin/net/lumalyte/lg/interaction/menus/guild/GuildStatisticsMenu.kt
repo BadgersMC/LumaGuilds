@@ -17,6 +17,8 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.text.DecimalFormat
+import java.time.LocalDate
+import java.time.Instant
 import java.util.*
 
 class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
@@ -56,7 +58,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         // Row 3: Advanced Analytics
         addPeriodStatsButton(pane, 0, 2)
         addRivalryStatsButton(pane, 1, 2)
-        addActivityHeatmapButton(pane, 2, 2)
         addAchievementsButton(pane, 3, 2)
 
         // Row 4: Visualizations (Future)
@@ -67,8 +68,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         // Row 5: Navigation
         addRefreshStatsButton(pane, 0, 4)
-        addDetailedViewButton(pane, 1, 4)
-        addBackButton(pane, 8, 4)
+        addBackButton(pane, 7, 4)
 
         gui.show(player)
     }
@@ -364,18 +364,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         pane.addItem(guiItem, x, y)
     }
 
-    private fun addActivityHeatmapButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.MAP)
-            .name("§2Activity Heatmap")
-            .lore("§7Visual activity patterns")
-            .lore("§7Peak activity times")
-            .lore("§7Geographic kill zones")
-
-        val guiItem = GuiItem(item) {
-            openActivityHeatmap()
-        }
-        pane.addItem(guiItem, x, y)
-    }
 
     private fun addAchievementsButton(pane: StaticPane, x: Int, y: Int) {
         val killStats = killService.getGuildKillStats(guild.id)
@@ -446,18 +434,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         pane.addItem(guiItem, x, y)
     }
 
-    private fun addDetailedViewButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.SPYGLASS)
-            .name("§bDetailed View")
-            .lore("§7Advanced statistics")
-            .lore("§7In-depth analysis")
-            .lore("§7Raw data access")
-
-        val guiItem = GuiItem(item) {
-            openDetailedStatisticsView()
-        }
-        pane.addItem(guiItem, x, y)
-    }
 
     private fun getRankColor(rank: Int): String {
         return when (rank) {
@@ -589,9 +565,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         player.sendMessage("§e🏴 Rivalry statistics coming soon!")
     }
 
-    private fun openActivityHeatmap() {
-        player.sendMessage("§e🗺️ Activity heatmap coming soon!")
-    }
 
     private fun openAchievementsDetail() {
         player.sendMessage("§e🏅 Achievement details coming soon!")
@@ -605,9 +578,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         player.sendMessage("§e⚖️ Guild comparison coming soon!")
     }
 
-    private fun openDetailedStatisticsView() {
-        player.sendMessage("§e🔬 Detailed statistics view coming soon!")
-    }
 
     private fun exportGuildStatistics() {
         player.sendMessage("§e📊 Statistics export feature coming soon!")
@@ -619,20 +589,34 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         try {
             player.sendMessage("§e📊 Generating guild balance trend chart...")
 
-            // Create sample balance history data (in a real implementation, this would come from the database)
-            val balanceHistory = listOf(
-                "Jan" to 1000,
-                "Feb" to 1200,
-                "Mar" to 950,
-                "Apr" to 1350,
-                "May" to 1100,
-                "Jun" to 1400,
-                "Jul" to 1250
-            )
+            // Get real transaction history from the database
+            val transactions = bankService.getTransactionHistory(guild.id, 50)
+
+            if (transactions.isEmpty()) {
+                player.sendMessage("§c❌ No transaction history found for this guild.")
+                return
+            }
+
+            // Group transactions by date and calculate balance progression
+            val dailyBalances = transactions
+                .sortedBy { it.timestamp }
+                .groupBy { it.timestamp.toLocalDate() }
+                .mapValues { (_, dayTransactions) ->
+                    dayTransactions.sumOf { it.amount }
+                }
+                .toList()
+                .sortedBy { it.first }
+                .takeLast(30) // Last 30 days
+                .map { it.first.toString() to it.second }
+
+            if (dailyBalances.isEmpty()) {
+                player.sendMessage("§c❌ Unable to process transaction data.")
+                return
+            }
 
             val chart = mapRendererService.renderCustomChart(
                 title = "${guild.name} Balance Trend",
-                dataPoints = balanceHistory,
+                dataPoints = dailyBalances,
                 chartType = ChartType.LINE,
                 player = player
             )
@@ -654,20 +638,36 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         try {
             player.sendMessage("§e📊 Generating kill trend analysis chart...")
 
-            // Create sample kill trend data (in a real implementation, this would come from KillService)
-            val killTrends = listOf(
-                "Week 1" to 45,
-                "Week 2" to 52,
-                "Week 3" to 38,
-                "Week 4" to 67,
-                "Week 5" to 59,
-                "Week 6" to 71,
-                "Week 7" to 63
-            )
+            // Get real kill data for the past 7 weeks
+            val now = Instant.now()
+            val weekTrends = mutableListOf<Pair<String, Int>>()
+
+            for (weeksAgo in 6 downTo 0) {
+                val weekStart = now.minusSeconds(weeksAgo * 7L * 24L * 60L * 60L)
+                val weekEnd = weekStart.plusSeconds(7L * 24L * 60L * 60L)
+
+                try {
+                    val weekStats = killService.getKillStatsForPeriod(guild.id, weekStart, weekEnd)
+                    val weekLabel = if (weeksAgo == 0) "This Week" else "${weeksAgo}W ago"
+                    weekTrends.add(weekLabel to weekStats.totalKills)
+                } catch (e: Exception) {
+                    // If we can't get data for this week, use 0
+                    val weekLabel = if (weeksAgo == 0) "This Week" else "${weeksAgo}W ago"
+                    weekTrends.add(weekLabel to 0)
+                }
+            }
+
+            // Reverse to show chronological order
+            weekTrends.reverse()
+
+            if (weekTrends.all { it.second == 0 }) {
+                player.sendMessage("§c❌ No kill data found for this guild in the past 7 weeks.")
+                return
+            }
 
             val chart = mapRendererService.renderCustomChart(
                 title = "${guild.name} Kill Trends",
-                dataPoints = killTrends,
+                dataPoints = weekTrends,
                 chartType = ChartType.LINE,
                 player = player
             )
@@ -689,18 +689,29 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         try {
             player.sendMessage("§e📊 Generating member contributions chart...")
 
-            // Create sample member contribution data (in a real implementation, this would come from BankService)
-            val contributions = listOf(
-                "Player1" to 2500,
-                "Player2" to 1800,
-                "Player3" to 3200,
-                "Player4" to 950,
-                "Player5" to 2100
-            )
+            // Get real member contribution data from BankService
+            val contributions = bankService.getMemberContributions(guild.id)
+
+            if (contributions.isEmpty()) {
+                player.sendMessage("§c❌ No contribution data found for this guild.")
+                return
+            }
+
+            // Convert to chart data format with player names
+            val chartData = contributions
+                .filter { it.netContribution > 0 }
+                .sortedByDescending { it.netContribution }
+                .take(10) // Top 10 contributors
+                .map { (it.playerName ?: "Unknown") to it.netContribution }
+
+            if (chartData.isEmpty()) {
+                player.sendMessage("§c❌ No positive contributions found for this guild.")
+                return
+            }
 
             val chart = mapRendererService.renderCustomChart(
                 title = "${guild.name} Member Contributions",
-                dataPoints = contributions,
+                dataPoints = chartData,
                 chartType = ChartType.BAR,
                 player = player
             )
