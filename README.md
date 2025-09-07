@@ -90,7 +90,7 @@ Built .jar binary can be found in the `build/libs` folder.
 If you encounter any bugs, crashes, or unexpected behaviour, please open an issue in this repository.
 
 ## Attribution
-This project is a fork of [BellClaims](https://github.com/mizarc/bell-claims) by Kevin Rahardjo. The original BellClaims project provides the core land-claiming functionality, while LumaGuilds adds extensive guild management features.
+This project is a fork of [BellClaims](https://github.com/mizarc/bell-claims) by Mizarc. The original BellClaims project provides the core land-claiming functionality, while LumaGuilds adds extensive guild management features.
 
 ## License
 LumaGuilds is licensed under the permissive MIT license. Please view [LICENSE](LICENSE) for more info.
