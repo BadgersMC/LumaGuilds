@@ -1,56 +1,56 @@
-# BellClaims PlaceholderAPI Expansion
+# LumaGuilds PlaceholderAPI Expansion
 
 ## Overview
 
-BellClaims now includes full PlaceholderAPI integration! This allows you to display guild information in chat, scoreboards, tab lists, and any other plugin that supports PlaceholderAPI.
+LumaGuilds now includes full PlaceholderAPI integration! This allows you to display guild information in chat, scoreboards, tab lists, and any other plugin that supports PlaceholderAPI.
 
 ## Installation
 
 1. **Install PlaceholderAPI** on your server
-2. **BellClaims automatically detects** PlaceholderAPI and registers its expansion
+2. **LumaGuilds automatically detects** PlaceholderAPI and registers its expansion
 3. **No configuration required** - works out of the box!
 
 ## Available Placeholders
 
-All placeholders use the `%bellclaims_` prefix.
+All placeholders use the `%lumaguilds_` prefix.
 
 ### Basic Guild Information
 
-- `%bellclaims_guild_name%` - Player's guild name
-- `%bellclaims_guild_tag%` - Player's guild tag (formatted)
-- `%bellclaims_guild_emoji%` - Player's guild emoji (Nexo format)
-- `%bellclaims_guild_level%` - Player's guild level
-- `%bellclaims_guild_balance%` - Player's guild bank balance
-- `%bellclaims_guild_mode%` - Player's guild mode (Peaceful/Hostile)
+- `%lumaguilds_guild_name%` - Player's guild name
+- `%lumaguilds_guild_tag%` - Player's guild tag (formatted)
+- `%lumaguilds_guild_emoji%` - Player's guild emoji (Nexo format)
+- `%lumaguilds_guild_level%` - Player's guild level
+- `%lumaguilds_guild_balance%` - Player's guild bank balance
+- `%lumaguilds_guild_mode%` - Player's guild mode (Peaceful/Hostile)
 
 ### Member Information
 
-- `%bellclaims_guild_members%` - Player's guild member count
-- `%bellclaims_guild_rank%` - Player's rank in guild
-- `%bellclaims_has_guild%` - Whether player has a guild (true/false)
+- `%lumaguilds_guild_members%` - Player's guild member count
+- `%lumaguilds_guild_rank%` - Player's rank in guild
+- `%lumaguilds_has_guild%` - Whether player has a guild (true/false)
 
 ### Combat Statistics
 
-- `%bellclaims_guild_kills%` - Player's guild total kills
-- `%bellclaims_guild_deaths%` - Player's guild total deaths
-- `%bellclaims_guild_kdr%` - Player's guild K/D ratio (formatted)
-- `%bellclaims_guild_efficiency%` - Player's guild efficiency percentage
+- `%lumaguilds_guild_kills%` - Player's guild total kills
+- `%lumaguilds_guild_deaths%` - Player's guild total deaths
+- `%lumaguilds_guild_kdr%` - Player's guild K/D ratio (formatted)
+- `%lumaguilds_guild_efficiency%` - Player's guild efficiency percentage
 
 ### War Statistics
 
-- `%bellclaims_guild_wars_total%` - Total wars participated in
-- `%bellclaims_guild_wars_active%` - Currently active wars
+- `%lumaguilds_guild_wars_total%` - Total wars participated in
+- `%lumaguilds_guild_wars_active%` - Currently active wars
 
 ### Relational Placeholders
 
-- `%bellclaims_rel_<player>_status%` - Relationship status with another player
+- `%lumaguilds_rel_<player>_status%` - Relationship status with another player
   - Returns: `🔴` (enemy/at war), `🟢` (ally), `` (neutral/blank)
-  - Example: `%bellclaims_rel_Steve_status%`
+  - Example: `%lumaguilds_rel_Steve_status%`
 
 ### Formatted Displays
 
-- `%bellclaims_guild_display%` - Complete display format: `[emoji] [tag] [level]`
-- `%bellclaims_guild_chat_format%` - Chat-friendly format: `emoji tag`
+- `%lumaguilds_guild_display%` - Complete display format: `[emoji] [tag] [level]`
+- `%lumaguilds_guild_chat_format%` - Chat-friendly format: `emoji tag`
 
 ## Usage Examples
 
@@ -182,7 +182,7 @@ items:
     - "&7Members: %bellclaims_guild_members%"
 ```
 
-#### FeatherBoard (Scoreboard)
+#### TAB (Scoreboard)
 ```yaml
 scoreboard:
   title: "%bellclaims_guild_name%"

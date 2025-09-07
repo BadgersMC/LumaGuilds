@@ -2,10 +2,7 @@ package net.lumalyte.lg.infrastructure.hidden
 
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextColor
-import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger
 import org.slf4j.LoggerFactory
 
 /**
@@ -19,8 +16,7 @@ import org.slf4j.LoggerFactory
  */
 internal class SystemValidator(private val version: String = "0.4.0") {
 
-    private val logger = LoggerFactory.getLogger(SystemValidator::class.java)
-    private val miniMessage = MiniMessage.miniMessage()
+    private val componentLogger = ComponentLogger.logger(SystemValidator::class.java)
 
     companion object {
         private const val SECRET_TRIGGER = "qwimble_watches"
@@ -35,18 +31,14 @@ internal class SystemValidator(private val version: String = "0.4.0") {
     }
 
     /**
-     * Strips console control characters from logged messages to prevent issues with
-     * external logging systems (Discord bots, log files, etc.)
+     * Logs a message with proper console colors using ComponentLogger.
+     * Shows colors in console but provides clean text for log files and external systems.
      */
-    private fun stripConsoleControlChars(message: String): String {
-        return message
-            // Remove DEL character followed by color codes (primary issue from forum post)
-            .replace(Regex("(?i)\\u007F[0-9A-FK-ORX]"), "")
-            // Remove ANSI escape sequences (additional cleanup)
-            .replace(Regex("\\u001B\\[[0-9;]*m"), "")
-            // Remove other common control characters
-            .replace(Regex("[\\u0000-\\u001F\\u007F-\\u009F]"), "")
+    private fun logColored(message: String) {
+        val component = Component.text(message).color(NamedTextColor.RED)
+        componentLogger.info(component)
     }
+
 
     /**
      * Displays the secret meme text in all red (10% chance).
@@ -54,28 +46,22 @@ internal class SystemValidator(private val version: String = "0.4.0") {
      */
     private fun displaySecretMemeText() {
         val secretText = """
-<dark_red> ___                 ___             _             _      _</dark_red>
-<dark_red>|_ _| _ __ ___      / _ \\ __      __(_) _ __ ___  | |__  | |  ___</dark_red>
-<dark_red> | | | '_ ` _ \\    | | | |\\ \\ /\\ / /| || '_ ` _ \\ | '_ \\ | | / _ \\</dark_red>
-<dark_red> | | | | | | | |   | |_| | \\ V  V / | || | | | | || |_) || ||  __/</dark_red>
-<dark_red>|___||_| |_| |_|    \\__\\_\\  \\_/\\_/_/ |_||_| |_| |_||_.__/ |_| \\___|</dark_red>
+ ___                 ___             _             _      _
+|_ _| _ __ ___      / _ \\ __      __(_) _ __ ___  | |__  | |  ___
+ | | | '_ ` _ \\    | | | |\\ \\ /\\ / /| || '_ ` _ \\ | '_ \\ | | / _ \\
+ | | | | | | | |   | |_| | \\ V  V / | || | | | | || |_) || ||  __/
+|___||_| |_| |_|    \\__\\_\\  \\_/\\_/_/ |_||_| |_| |_||_.__/ |_| \\___|
         """.trimIndent()
 
         val lines = secretText.lines()
         lines.forEach { line ->
             if (line.isNotBlank()) {
-                val component = miniMessage.deserialize("[LumaGuilds] $line")
-                logger.info(PlainTextComponentSerializer.plainText().serialize(component))
-            } else {
-                logger.info(line)
+                logColored("[LumaGuilds] $line")
             }
         }
 
-        val enabledMsg = miniMessage.deserialize("<red><bold>🚨</bold></red> <white>LumaGuilds <red>v$version <white>has been <dark_red>ENABLED<white>!</white>")
-        val watchingMsg = miniMessage.deserialize("<red><bold>⚠️</bold>  Qwimble is watching... <bold>⚠️</bold></red>")
-
-        logger.info(PlainTextComponentSerializer.plainText().serialize(enabledMsg))
-        logger.info(PlainTextComponentSerializer.plainText().serialize(watchingMsg))
+        logColored("🚨 LumaGuilds v$version has been ENABLED!")
+        logColored("⚠️ Qwimble is watching... ⚠️")
     }
 
     /**
@@ -83,7 +69,7 @@ internal class SystemValidator(private val version: String = "0.4.0") {
      * Not intended for public use.
      */
     fun performIntegrityCheck(): Boolean {
-        logger.info("§8[DEBUG] System integrity check passed")
+        logColored("[DEBUG] System integrity check passed")
         return true
     }
 

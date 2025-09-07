@@ -96,7 +96,7 @@ class GuildBankMenu(
         refreshBalance()
 
         // Register event listener for custom input
-        Bukkit.getPluginManager().registerEvents(this, Bukkit.getPluginManager().getPlugin("BellClaims")!!)
+        Bukkit.getPluginManager().registerEvents(this, Bukkit.getPluginManager().getPlugin("LumaGuilds")!!)
 
         gui.show(player)
     }
@@ -408,9 +408,9 @@ class GuildBankMenu(
                             player.playSound(player.location, ERROR_SOUND, 1.0f, 0.8f)
                         }
                     }
-                }.runTask(Bukkit.getPluginManager().getPlugin("BellClaims")!!)
+                }.runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!)
             }
-        }.runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("BellClaims")!!)
+        }.runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!)
     }
 
     /**
@@ -626,7 +626,7 @@ class GuildBankMenu(
                 gui.update()
                 frameIndex++
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("BellClaims")!!, 0L, LOADING_SPINNER_INTERVAL).also {
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, 0L, LOADING_SPINNER_INTERVAL).also {
             animationTasks.add(it)
         }
     }
@@ -672,7 +672,7 @@ class GuildBankMenu(
                 gui.update()
                 currentStep++
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("BellClaims")!!, 0L, BALANCE_UPDATE_INTERVAL).also {
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, 0L, BALANCE_UPDATE_INTERVAL).also {
             animationTasks.add(it)
         }
     }
@@ -770,7 +770,7 @@ class GuildBankMenu(
                 override fun run() {
                     clickAction()
                 }
-            }.runTaskLater(Bukkit.getPluginManager().getPlugin("BellClaims")!!, 2L)
+            }.runTaskLater(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, 2L)
         }
     }
 
@@ -795,7 +795,7 @@ class GuildBankMenu(
                 updateBalanceDisplay()
                 gui.update()
             }
-        }.runTaskLater(Bukkit.getPluginManager().getPlugin("BellClaims")!!, 60L) // 3 seconds
+        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, 60L) // 3 seconds
     }
 
     /**
@@ -823,7 +823,7 @@ class GuildBankMenu(
                 updateBalanceDisplay()
                 gui.update()
             }
-        }.runTaskLater(Bukkit.getPluginManager().getPlugin("BellClaims")!!, 40L) // 2 seconds
+        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, 40L) // 2 seconds
     }
 
     /**
@@ -933,7 +933,7 @@ class GuildBankMenu(
                                 override fun run() {
                                     processCustomAmount(amount)
                                 }
-                            }.runTaskLater(Bukkit.getPluginManager().getPlugin("BellClaims")!!, 1L)
+                            }.runTaskLater(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, 1L)
                         } else {
                             player.sendMessage(Component.text("§cInvalid amount. Please enter a positive number."))
                             player.playSound(player.location, ERROR_SOUND, 1.0f, 0.8f)
@@ -961,7 +961,7 @@ class GuildBankMenu(
                 override fun run() {
                     open()
                 }
-            }.runTaskLater(Bukkit.getPluginManager().getPlugin("BellClaims")!!, 1L)
+            }.runTaskLater(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, 1L)
         }
     }
 

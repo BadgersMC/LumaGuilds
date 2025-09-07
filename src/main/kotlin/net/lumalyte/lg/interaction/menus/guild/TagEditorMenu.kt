@@ -36,29 +36,29 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     private var validationError: String? = null
 
     override fun open() {
-        println("[BellClaims] TagEditorMenu: Opening menu for player ${player.name}")
+        println("[LumaGuilds] TagEditorMenu: Opening menu for player ${player.name}")
 
         // Load current tag (only if not already loaded)
         if (currentTag == null) {
             currentTag = guildService.getTag(guild.id)
-            println("[BellClaims] TagEditorMenu: Loaded currentTag from database: '$currentTag'")
+            println("[LumaGuilds] TagEditorMenu: Loaded currentTag from database: '$currentTag'")
         } else {
-            println("[BellClaims] TagEditorMenu: Using existing currentTag: '$currentTag'")
+            println("[LumaGuilds] TagEditorMenu: Using existing currentTag: '$currentTag'")
         }
 
         // Initialize inputTag only if it's null (preserve user input)
         if (inputTag == null) {
             inputTag = currentTag
-            println("[BellClaims] TagEditorMenu: Initialized inputTag to currentTag: '$inputTag'")
+            println("[LumaGuilds] TagEditorMenu: Initialized inputTag to currentTag: '$inputTag'")
         } else {
-            println("[BellClaims] TagEditorMenu: Preserving existing inputTag: '$inputTag'")
+            println("[LumaGuilds] TagEditorMenu: Preserving existing inputTag: '$inputTag'")
         }
 
         // Initialize validation state
         val currentInput = inputTag
         if (currentInput != null) {
             validationError = validateTag(currentInput)
-            println("[BellClaims] TagEditorMenu: Validation result: ${validationError ?: "VALID"}")
+            println("[LumaGuilds] TagEditorMenu: Validation result: ${validationError ?: "VALID"}")
         }
 
         // Create 3x9 chest GUI
@@ -224,9 +224,9 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         val guiItem = GuiItem(saveItem) {
-            println("[BellClaims] TagEditorMenu: Save button clicked")
-            println("[BellClaims] TagEditorMenu: currentTag: '$currentTag', inputTag: '$inputTag'")
-            println("[BellClaims] TagEditorMenu: validationError: ${validationError ?: "NONE"}")
+            println("[LumaGuilds] TagEditorMenu: Save button clicked")
+            println("[LumaGuilds] TagEditorMenu: currentTag: '$currentTag', inputTag: '$inputTag'")
+            println("[LumaGuilds] TagEditorMenu: validationError: ${validationError ?: "NONE"}")
 
             if (validationError != null) {
                 player.sendMessage("§c❌ Cannot save: $validationError")
@@ -234,12 +234,12 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             }
 
             if (inputTag == currentTag) {
-                println("[BellClaims] TagEditorMenu: No changes detected - inputTag equals currentTag")
+                println("[LumaGuilds] TagEditorMenu: No changes detected - inputTag equals currentTag")
                 player.sendMessage("§7No changes to save.")
                 return@GuiItem
             }
 
-            println("[BellClaims] TagEditorMenu: Changes detected, proceeding with save...")
+            println("[LumaGuilds] TagEditorMenu: Changes detected, proceeding with save...")
 
             // Save the tag
             val success = guildService.setTag(guild.id, inputTag, player.uniqueId)
@@ -302,7 +302,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun startChatInput() {
-        println("[BellClaims] TagEditorMenu: Starting chat input for player ${player.name}")
+        println("[LumaGuilds] TagEditorMenu: Starting chat input for player ${player.name}")
 
 
         chatInputListener.startInputMode(player, this)
@@ -370,10 +370,10 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     fun setInputTag(tag: String?) {
-        println("[BellClaims] TagEditorMenu: setInputTag called with: '$tag'")
+        println("[LumaGuilds] TagEditorMenu: setInputTag called with: '$tag'")
         inputTag = tag
         validationError = if (tag != null) validateTag(tag) else null
-        println("[BellClaims] TagEditorMenu: Updated inputTag to: '$inputTag', validationError: ${validationError ?: "NONE"}")
+        println("[LumaGuilds] TagEditorMenu: Updated inputTag to: '$inputTag', validationError: ${validationError ?: "NONE"}")
     }
 
     fun getInputTag(): String? = inputTag
@@ -386,7 +386,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
     // ChatInputHandler interface methods
     override fun onChatInput(player: Player, input: String) {
-        println("[BellClaims] TagEditorMenu: Received tag input: '$input'")
+        println("[LumaGuilds] TagEditorMenu: Received tag input: '$input'")
 
         // Validate the input
         val error = validateTag(input)
@@ -399,7 +399,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         setInputTag(input)
 
         // Reopen the menu with the new input
-        val plugin = Bukkit.getPluginManager().getPlugin("BellClaims")!!
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")!!
         Bukkit.getScheduler().runTask(plugin, Runnable {
             open()
         })
@@ -409,13 +409,13 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     override fun onCancel(player: Player) {
-        println("[BellClaims] TagEditorMenu: Player cancelled tag input")
+        println("[LumaGuilds] TagEditorMenu: Player cancelled tag input")   
         player.sendMessage("§7Tag input cancelled.")
 
         // Reopen the menu without changes
-        val plugin = Bukkit.getPluginManager().getPlugin("BellClaims")!!
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")!!
         Bukkit.getScheduler().runTask(plugin, Runnable {
             open()
         })
-    }
+    }   
 }
