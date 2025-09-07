@@ -1,4 +1,3 @@
-![Banner](branding/banner.svg)
 
 # LumaGuilds
 
