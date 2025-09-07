@@ -84,11 +84,11 @@ interface KillService {
     /**
      * Gets the top killers for a guild.
      *
-     * @param guildId The ID of the guild.
+     * @param guildMembers List of player IDs who are members of the guild.
      * @param limit The maximum number of players to return.
      * @return List of top killers with their stats.
      */
-    fun getTopKillers(guildId: UUID, limit: Int = 10): List<Pair<UUID, PlayerKillStats>>
+    fun getTopKillers(guildMembers: List<UUID>, limit: Int = 10): List<Pair<UUID, PlayerKillStats>>
 
     /**
      * Gets kill statistics over a time period.

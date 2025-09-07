@@ -169,4 +169,12 @@ interface KillRepository {
      * @return true if successful, false otherwise.
      */
     fun resetPlayerKillStats(playerId: UUID): Boolean
+
+    /**
+     * Gets all player kill statistics for members of a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return Map of player IDs to their kill statistics.
+     */
+    fun getAllPlayerStatsForGuild(guildId: UUID): Map<UUID, PlayerKillStats>
 }
