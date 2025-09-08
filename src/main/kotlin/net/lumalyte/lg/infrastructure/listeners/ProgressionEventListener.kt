@@ -86,8 +86,9 @@ class ProgressionEventListener : Listener, KoinComponent {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockPlace(event: BlockPlaceEvent) {
         // Mark blocks as player-placed to prevent XP farming
-        event.block.setMetadata("player_placed", org.bukkit.metadata.FixedMetadataValue(
-            org.bukkit.Bukkit.getPluginManager().getPlugin("BellClaims")!!, true))
+        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            ?: return // Plugin not found, skip metadata setting
+        event.block.setMetadata("player_placed", org.bukkit.metadata.FixedMetadataValue(plugin, true))
         
         awardExperienceWithCooldown(event.player, getConfig().blockPlaceXp, ExperienceSource.BLOCK_PLACE)
     }

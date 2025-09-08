@@ -13,10 +13,23 @@ import java.util.UUID
 class RelationRepositorySQLite(private val storage: SQLiteStorage) : RelationRepository {
     
     private val relations: MutableMap<UUID, Relation> = mutableMapOf()
-    
+    private var isInitialized = false
+
     init {
-        createRelationTable()
-        preload()
+        // Defer table creation and preloading until first database access
+        // This prevents issues when the database file doesn't exist yet
+    }
+
+    private fun ensureInitialized() {
+        if (!isInitialized) {
+            try {
+                createRelationTable()
+                preload()
+                isInitialized = true
+            } catch (e: SQLException) {
+                throw DatabaseOperationException("Failed to initialize relation database", e)
+            }
+        }
     }
     
     private fun createRelationTable() {
@@ -73,6 +86,8 @@ class RelationRepositorySQLite(private val storage: SQLiteStorage) : RelationRep
     }
     
     override fun add(relation: Relation): Boolean {
+        ensureInitialized()
+
         val sql = """
             INSERT INTO relations (id, guild_a, guild_b, type, status, expires_at, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -161,6 +176,7 @@ class RelationRepositorySQLite(private val storage: SQLiteStorage) : RelationRep
     }
     
     override fun getByGuild(guildId: UUID): Set<Relation> {
+        ensureInitialized()
         return relations.values.filter { it.involves(guildId) }.toSet()
     }
     
