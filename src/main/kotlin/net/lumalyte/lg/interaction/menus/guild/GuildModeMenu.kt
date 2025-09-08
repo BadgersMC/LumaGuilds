@@ -64,7 +64,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                 .lore("§c⚠️ Cooldown: ${config.modeSwitchCooldownDays} days")
 
             val canSwitch = canSwitchToPeaceful(guild, config.modeSwitchCooldownDays)
-            val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive() }
+            val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
             val canSwitchConsideringWar = canSwitch && !hasActiveWar
 
             if (!canSwitchConsideringWar) {
@@ -81,7 +81,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
             }
 
             val peacefulGuiItem = GuiItem(peacefulItem) {
-                val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive() }
+                val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
                 if (canSwitchConsideringWar) {
                     val success = guildService.setMode(guild.id, GuildMode.PEACEFUL, player.uniqueId)
                     if (success) {
