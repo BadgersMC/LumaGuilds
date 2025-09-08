@@ -6,12 +6,15 @@ import net.lumalyte.lg.domain.entities.Relation
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.domain.entities.RelationStatus
 import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
 class RelationRepositorySQLite(private val storage: SQLiteStorage) : RelationRepository {
-    
+
+    private val logger = LoggerFactory.getLogger(RelationRepositorySQLite::class.java)
+
     private val relations: MutableMap<UUID, Relation> = mutableMapOf()
     private var isInitialized = false
 
@@ -22,12 +25,15 @@ class RelationRepositorySQLite(private val storage: SQLiteStorage) : RelationRep
 
     private fun ensureInitialized() {
         if (!isInitialized) {
+            logger.info("Initializing relation database...")
             try {
                 createRelationTable()
                 preload()
                 isInitialized = true
+                logger.info("Relation database initialized successfully")
             } catch (e: SQLException) {
-                throw DatabaseOperationException("Failed to initialize relation database", e)
+                logger.error("Failed to initialize relation database: ${e.message}", e)
+                throw DatabaseOperationException("Failed to initialize relation database: ${e.message}", e)
             }
         }
     }
@@ -47,11 +53,14 @@ class RelationRepositorySQLite(private val storage: SQLiteStorage) : RelationRep
                 CHECK(guild_a < guild_b)
             )
         """.trimIndent()
-        
+
         try {
+            logger.info("Creating relations table...")
             storage.connection.executeUpdate(sql)
+            logger.info("Successfully created relations table")
         } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to create relations table", e)
+            logger.error("Failed to create relations table: ${e.message}", e)
+            throw DatabaseOperationException("Failed to create relations table: ${e.message}", e)
         }
     }
     
@@ -60,15 +69,20 @@ class RelationRepositorySQLite(private val storage: SQLiteStorage) : RelationRep
             SELECT id, guild_a, guild_b, type, status, expires_at, created_at, updated_at
             FROM relations
         """.trimIndent()
-        
+
         try {
+            logger.debug("Preloading relations from database...")
             val results = storage.connection.getResults(sql)
+            var count = 0
             for (result in results) {
                 val relation = mapResultSetToRelation(result)
                 relations[relation.id] = relation
+                count++
             }
+            logger.info("Successfully preloaded $count relations from database")
         } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to preload relations", e)
+            logger.error("Failed to preload relations: ${e.message}", e)
+            throw DatabaseOperationException("Failed to preload relations: ${e.message}", e)
         }
     }
     
