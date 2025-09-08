@@ -468,4 +468,31 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val menuNavigator = MenuNavigator(player)
         menuNavigator.openMenu(GuildKickConfirmationMenu(menuNavigator, player, guild, targetMember))
     }
+
+    @Subcommand("war")
+    @CommandPermission("bellclaims.guild.war")
+    fun onWar(player: Player) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check if player has permission to manage wars (DECLARE_WAR permission)
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.DECLARE_WAR)) {
+            player.sendMessage("§cYou don't have permission to manage wars for your guild.")
+            player.sendMessage("§7You need the DECLARE_WAR permission to access war management.")
+            return
+        }
+
+        // Open the war management menu
+        val menuNavigator = MenuNavigator(player)
+        menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
+        player.sendMessage("§6⚔️ Opening war management menu...")
+    }
 }
