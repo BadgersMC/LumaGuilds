@@ -17,6 +17,7 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.slf4j.LoggerFactory
 import java.text.DecimalFormat
 import java.time.LocalDate
 import java.time.Instant
@@ -32,6 +33,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
     private val mapRendererService: MapRendererService by inject()
+    private val guildService: GuildService by inject()
+
+    private val logger = LoggerFactory.getLogger(GuildStatisticsMenu::class.java)
 
     private val decimalFormat = DecimalFormat("#.##")
 
@@ -247,7 +251,213 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun openWarStatsDetail() {
-        player.sendMessage("§e⚔️ Detailed war statistics coming soon!")
+        try {
+            val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
+            val warHistory = warService.getWarHistory(guild.id, 20)
+
+            val gui = ChestGui(6, "§4⚔️ ${guild.name} - War Details")
+            val pane = StaticPane(0, 0, 9, 6)
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
+                    guiEvent.isCancelled = true
+                }
+            }
+            gui.addPane(pane)
+
+            // Active Wars Section
+            addActiveWarsSection(pane)
+
+            // War History Section
+            addWarHistorySection(pane)
+
+            // War Statistics Section
+            addWarStatisticsSection(pane)
+
+            // Navigation
+            addBackButton(pane, 8, 5)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage("§c❌ Failed to load war statistics: ${e.message}")
+            logger.error("Error opening war stats detail for guild ${guild.id}", e)
+        }
+    }
+
+    private fun addActiveWarsSection(pane: StaticPane) {
+        val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
+
+        val activeWarsItem = ItemStack(Material.DIAMOND_SWORD)
+            .name("§4⚔️ ACTIVE WARS (${activeWars.size})")
+            .lore("§7Currently ongoing conflicts")
+
+        if (activeWars.isNotEmpty()) {
+            activeWarsItem.lore("")
+            activeWars.take(3).forEach { war ->
+                val enemyGuild = guildService.getGuild(
+                    if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
+                )
+                val enemyName = enemyGuild?.name ?: "Unknown Guild"
+                val status = if (war.declaringGuildId == guild.id) "Attacker" else "Defender"
+                val remainingTime = war.remainingDuration
+
+                activeWarsItem.lore("§c⚔️ vs $enemyName ($status)")
+                if (remainingTime != null) {
+                    val days = remainingTime.toDays()
+                    val hours = remainingTime.toHours() % 24
+                    activeWarsItem.lore("§7⏰ ${days}d ${hours}h remaining")
+                } else {
+                    activeWarsItem.lore("§7⏰ Time expired")
+                }
+            }
+
+            if (activeWars.size > 3) {
+                activeWarsItem.lore("§7... and ${activeWars.size - 3} more")
+            }
+        } else {
+            activeWarsItem.lore("§7No active wars")
+        }
+
+        pane.addItem(GuiItem(activeWarsItem), 1, 0)
+    }
+
+    private fun addWarHistorySection(pane: StaticPane) {
+        val warHistory = warService.getWarHistory(guild.id, 5)
+
+        val historyItem = ItemStack(Material.BOOK)
+            .name("§6📜 WAR HISTORY")
+            .lore("§7Recent completed wars")
+
+        if (warHistory.isNotEmpty()) {
+            historyItem.lore("")
+
+            warHistory.take(4).forEachIndexed { index, war ->
+                val enemyGuild = guildService.getGuild(
+                    if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
+                )
+                val enemyName = enemyGuild?.name ?: "Unknown Guild"
+
+                val result = when {
+                    war.winner == guild.id -> "§a✓ Won"
+                    war.winner != null -> "§c✗ Lost"
+                    else -> "§e⚖️ Draw"
+                }
+
+                historyItem.lore("§${index + 1}. vs $enemyName: $result")
+
+                // Show duration if available
+                val duration = war.startedAt?.let { start ->
+                    war.endedAt?.let { end ->
+                        java.time.Duration.between(start, end)
+                    }
+                }
+
+                if (duration != null) {
+                    val days = duration.toDays()
+                    val hours = duration.toHours() % 24
+                    historyItem.lore("§7   Duration: ${days}d ${hours}h")
+                }
+            }
+
+            if (warHistory.size > 4) {
+                historyItem.lore("§7... and ${warHistory.size - 4} more wars")
+            }
+        } else {
+            historyItem.lore("§7No war history available")
+        }
+
+        pane.addItem(GuiItem(historyItem), 3, 0)
+    }
+
+    private fun addWarStatisticsSection(pane: StaticPane) {
+        val warHistory = warService.getWarHistory(guild.id, 50)
+        val wins = warHistory.count { it.winner == guild.id }
+        val losses = warHistory.count { it.winner != null && it.winner != guild.id }
+        val draws = warHistory.count { it.winner == null }
+
+        val winRate = calculateWinRate(wins, warHistory.size)
+
+        val statsItem = ItemStack(Material.TOTEM_OF_UNDYING)
+            .name("§e📊 WAR STATISTICS")
+            .lore("§7Overall Performance")
+            .lore("")
+            .lore("§7Total Wars: §f${warHistory.size}")
+            .lore("§7Wins: §a$wins")
+            .lore("§7Losses: §c$losses")
+            .lore("§7Draws: §e$draws")
+            .lore("")
+            .lore("§7Win Rate: §e${String.format("%.1f", winRate)}%")
+
+        // Add current win streak
+        val recentWars = warHistory.take(10)
+        val currentStreak = calculateCurrentStreak(recentWars, guild.id)
+        if (currentStreak > 0) {
+            val streakType = if (recentWars.first().winner == guild.id) "§aWin" else "§cLoss"
+            statsItem.lore("§7Current Streak: ${streakType} §fx$currentStreak")
+        }
+
+        pane.addItem(GuiItem(statsItem), 5, 0)
+
+        // Kill Statistics During Wars
+        addWarKillStats(pane)
+    }
+
+    private fun addWarKillStats(pane: StaticPane) {
+        val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
+
+        if (activeWars.isNotEmpty()) {
+            val warKillStats = ItemStack(Material.IRON_SWORD)
+                .name("§c⚔️ CURRENT WAR KILLS")
+                .lore("§7Kill statistics in active wars")
+
+            // Get kill stats for each active war
+            activeWars.forEach { war ->
+                val enemyGuildId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
+                val enemyGuild = guildService.getGuild(enemyGuildId)
+
+                if (enemyGuild != null) {
+                    val killsBetween = killService.getKillsBetweenGuilds(guild.id, enemyGuildId, 100)
+
+                    val guildKills = killsBetween.count { it.killerGuildId == guild.id }
+                    val enemyKills = killsBetween.count { it.killerGuildId == enemyGuildId }
+
+                    warKillStats.lore("")
+                        .lore("§c⚔️ vs ${enemyGuild.name}:")
+                        .lore("§7   Your kills: §a$guildKills")
+                        .lore("§7   Enemy kills: §c$enemyKills")
+                        .lore("§7   Ratio: §e${calculateKillRatio(guildKills, enemyKills)}")
+                }
+            }
+
+            pane.addItem(GuiItem(warKillStats), 7, 0)
+        }
+    }
+
+    private fun calculateCurrentStreak(wars: List<War>, guildId: UUID): Int {
+        if (wars.isEmpty()) return 0
+
+        var streak = 0
+        val firstWarWinner = wars.first().winner
+
+        if (firstWarWinner == guildId || firstWarWinner == null) {
+            streak = 1
+            for (war in wars.drop(1)) {
+                if (war.winner == firstWarWinner) {
+                    streak++
+                } else {
+                    break
+                }
+            }
+        }
+
+        return streak
+    }
+
+    private fun calculateKillRatio(guildKills: Int, enemyKills: Int): String {
+        return when {
+            enemyKills == 0 -> if (guildKills > 0) "∞" else "0.00"
+            else -> String.format("%.2f", guildKills.toDouble() / enemyKills.toDouble())
+        }
     }
 
     private fun openMemberStatsDetail() {
