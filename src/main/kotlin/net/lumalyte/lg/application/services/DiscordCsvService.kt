@@ -37,7 +37,10 @@ class DiscordCsvService(
         guildName: String,
         callback: (Result<String>) -> Unit
     ) {
-        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            ?: return // Plugin not found, cannot schedule task
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
             try {
                 val csvContent = generateTransactionCsv(transactions)
                 val fileName = "guild_transactions_${guildName}_${System.currentTimeMillis()}.csv"
@@ -45,12 +48,12 @@ class DiscordCsvService(
                 val embed = createTransactionEmbed(player, transactions.size, guildName, csvContent.length)
                 val result = sendFileToDiscord(csvContent, fileName, embed)
 
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
                     callback(result)
                 })
 
             } catch (e: Exception) {
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
                     callback(Result.failure(e))
                 })
             }
@@ -66,7 +69,10 @@ class DiscordCsvService(
         guildName: String,
         callback: (Result<String>) -> Unit
     ) {
-        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            ?: return // Plugin not found, cannot schedule task
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
             try {
                 val csvContent = generateContributionsCsv(contributions)
                 val fileName = "guild_contributions_${guildName}_${System.currentTimeMillis()}.csv"
@@ -74,12 +80,12 @@ class DiscordCsvService(
                 val embed = createContributionsEmbed(player, contributions.size, guildName, csvContent.length)
                 val result = sendFileToDiscord(csvContent, fileName, embed)
 
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
                     callback(result)
                 })
 
             } catch (e: Exception) {
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
                     callback(Result.failure(e))
                 })
             }

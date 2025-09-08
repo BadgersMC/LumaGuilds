@@ -2,6 +2,7 @@ package net.lumalyte.lg.application.services
 
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.plugin.Plugin
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Files
@@ -11,6 +12,8 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.deleteIfExists
+import net.lumalyte.lg.domain.entities.BankTransaction
+import net.lumalyte.lg.domain.entities.MemberContribution
 
 /**
  * Secure file export manager with rate limiting and temporary file management.
@@ -45,136 +48,45 @@ class FileExportManager(
         val fileSize: Long
     )
 
+    sealed class ExportResult {
+        data class Success(val fileName: String, val fileSize: Int) : ExportResult()
+        data class DiscordSuccess(val message: String) : ExportResult()
+        data class Error(val message: String) : ExportResult()
+        data class RateLimited(val message: String) : ExportResult()
+        data class FileTooLarge(val message: String) : ExportResult()
+    }
+
     /**
      * Export transaction history to CSV file
      * Uses Discord if configured, otherwise falls back to Minecraft books
      */
     fun exportTransactionHistoryAsync(
         player: Player,
-        transactions: List<net.lumalyte.lg.domain.entities.BankTransaction>,
+        transactions: List<BankTransaction>,
         guildName: String,
         callback: (ExportResult) -> Unit
     ) {
-        // Try Discord delivery first if available
-        if (discordCsvService?.isConfigured() == true) {
-            exportViaDiscord(player, transactions, guildName, callback, true)
-            return
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            ?: return callback(ExportResult.Error("Plugin not found"))
+
+        if (!isConfigured()) {
+            return callback(ExportResult.Error("Export service not configured"))
         }
 
-        // Fall back to Minecraft books
-        exportViaBooks(player, transactions, guildName, callback, true)
-    }
-
-    /**
-     * Export member contributions
-     */
-    fun exportMemberContributionsAsync(
-        player: Player,
-        contributions: List<net.lumalyte.lg.domain.entities.MemberContribution>,
-        guildName: String,
-        callback: (ExportResult) -> Unit
-    ) {
-        // Try Discord delivery first if available
-        if (discordCsvService?.isConfigured() == true) {
-            exportViaDiscord(player, contributions, guildName, callback, false)
-            return
-        }
-
-        // Fall back to Minecraft books
-        exportViaBooks(player, contributions, guildName, callback, false)
-    }
-
-    /**
-     * Export via Discord webhook
-     */
-    private inline fun <reified T> exportViaDiscord(
-        player: Player,
-        data: List<T>,
-        guildName: String,
-        crossinline callback: (ExportResult) -> Unit,
-        isTransactions: Boolean
-    ) {
         if (!checkRateLimit(player.uniqueId)) {
-            callback(ExportResult.RateLimited("Too many exports. Please wait before requesting another export."))
-            return
+            return callback(ExportResult.RateLimited("Too many exports in the last hour. Try again later."))
         }
 
-        when (T::class) {
-            net.lumalyte.lg.domain.entities.BankTransaction::class -> {
-                discordCsvService?.sendTransactionCsvAsync(
-                    player,
-                    data as List<net.lumalyte.lg.domain.entities.BankTransaction>,
-                    guildName
-                ) { result ->
-                    result.fold(
-                        { successMessage -> callback(ExportResult.DiscordSuccess(successMessage)) },
-                        { error ->
-                            logger.error("Discord export failed, falling back to books", error)
-                            exportViaBooks(player, data, guildName, callback, isTransactions)
-                        }
-                    )
-                }
-            }
-            net.lumalyte.lg.domain.entities.MemberContribution::class -> {
-                discordCsvService?.sendContributionsCsvAsync(
-                    player,
-                    data as List<net.lumalyte.lg.domain.entities.MemberContribution>,
-                    guildName
-                ) { result ->
-                    result.fold(
-                        { successMessage -> callback(ExportResult.DiscordSuccess(successMessage)) },
-                        { error ->
-                            logger.error("Discord export failed, falling back to books", error)
-                            exportViaBooks(player, data, guildName, callback, isTransactions)
-                        }
-                    )
-                }
-            }
-        }
-    }
+        val csvContent = csvExportService.generateTransactionHistoryCsv(transactions)
 
-    /**
-     * Export via Minecraft books (fallback method)
-     */
-    private inline fun <reified T> exportViaBooks(
-        player: Player,
-        data: List<T>,
-        guildName: String,
-        crossinline callback: (ExportResult) -> Unit,
-        isTransactions: Boolean
-    ) {
-        if (!checkRateLimit(player.uniqueId)) {
-            callback(ExportResult.RateLimited("Too many exports. Please wait before requesting another export."))
-            return
+        if (csvContent.toByteArray().size > MAX_FILE_SIZE_BYTES) {
+            return callback(ExportResult.FileTooLarge("File too large (${csvContent.toByteArray().size} bytes). Maximum allowed: $MAX_FILE_SIZE_BYTES bytes."))
         }
 
-        // Generate CSV content
-        val csvContent = when (T::class) {
-            net.lumalyte.lg.domain.entities.BankTransaction::class ->
-                csvExportService.generateTransactionHistoryCsv(data as List<net.lumalyte.lg.domain.entities.BankTransaction>)
-            net.lumalyte.lg.domain.entities.MemberContribution::class ->
-                csvExportService.generateMemberContributionsCsv(data as List<net.lumalyte.lg.domain.entities.MemberContribution>)
-            else -> throw IllegalArgumentException("Unsupported data type for CSV export")
-        }
-
-        if (!csvExportService.validateCsvSize(csvContent, MAX_FILE_SIZE_BYTES)) {
-            callback(ExportResult.FileTooLarge("Export data too large. Please filter your data or contact an administrator."))
-            return
-        }
-
-        // Create unique filename
-        val fileName = when (T::class) {
-            net.lumalyte.lg.domain.entities.BankTransaction::class ->
-                "guild_transactions_${guildName}_${System.currentTimeMillis()}.csv"
-            net.lumalyte.lg.domain.entities.MemberContribution::class ->
-                "guild_contributions_${guildName}_${System.currentTimeMillis()}.csv"
-            else -> "guild_export_${guildName}_${System.currentTimeMillis()}.csv"
-        }
+        val fileName = "guild_transactions_${guildName}_${System.currentTimeMillis()}.csv"
         val tempFile = tempDir.toPath().resolve(fileName)
 
-        // Start async export
-        val jobId = UUID.randomUUID().toString()
-        activeExports[jobId] = ExportJob(
+        activeExports[fileName] = ExportJob(
             playerId = player.uniqueId,
             fileName = fileName,
             tempFile = tempFile,
@@ -183,51 +95,120 @@ class FileExportManager(
         )
 
         // Run file writing asynchronously
-        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
             try {
                 Files.write(tempFile, csvContent.toByteArray(), StandardOpenOption.CREATE, StandardOpenOption.WRITE)
-                val exportType = when (T::class) {
-                    net.lumalyte.lg.domain.entities.BankTransaction::class -> "transaction history"
-                    net.lumalyte.lg.domain.entities.MemberContribution::class -> "member contributions"
-                    else -> "data"
-                }
-                logger.info("Successfully exported $exportType for player ${player.name} to $fileName")
+                logger.info("Successfully exported transaction history for player ${player.name} to $fileName")
 
                 // Schedule cleanup
                 scheduleFileCleanup(tempFile)
 
-                // Run callback on main thread
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
-                    callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
-                })
+                // Try Discord first if available
+                if (discordCsvService != null) {
+                    discordCsvService.sendTransactionCsvAsync(player, transactions, guildName) { result ->
+                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                            // Discord service handles its own success/failure
+                            // If Discord fails, fall back to local file
+                            callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
+                        })
+                    }
+                } else {
+                    // Fall back to Minecraft book
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
+                    })
+                }
 
             } catch (e: Exception) {
-                val exportType = when (T::class) {
-                    net.lumalyte.lg.domain.entities.BankTransaction::class -> "transaction history"
-                    net.lumalyte.lg.domain.entities.MemberContribution::class -> "member contributions"
-                    else -> "data"
-                }
-                logger.error("Failed to export $exportType for player ${player.name}", e)
+                logger.error("Failed to export transaction history for player ${player.name}", e)
+                tempFile.toFile().delete()
+                activeExports.remove(fileName)
 
-                // Cleanup failed file
-                tempFile.deleteIfExists()
-
-                // Run callback on main thread
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
-                    callback(ExportResult.Error("Export failed due to server error. Please try again."))
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    callback(ExportResult.Error("Export failed: ${e.message}"))
                 })
-            } finally {
-                activeExports.remove(jobId)
             }
         })
     }
 
-    /**
-     * Check if player is within rate limits
-     */
+    fun exportMemberContributionsAsync(
+        player: Player,
+        contributions: List<MemberContribution>,
+        guildName: String,
+        callback: (ExportResult) -> Unit
+    ) {
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            ?: return callback(ExportResult.Error("Plugin not found"))
+
+        if (!isConfigured()) {
+            return callback(ExportResult.Error("Export service not configured"))
+        }
+
+        if (!checkRateLimit(player.uniqueId)) {
+            return callback(ExportResult.RateLimited("Too many exports in the last hour. Try again later."))
+        }
+
+        val csvContent = csvExportService.generateMemberContributionsCsv(contributions)
+
+        if (csvContent.toByteArray().size > MAX_FILE_SIZE_BYTES) {
+            return callback(ExportResult.FileTooLarge("File too large (${csvContent.toByteArray().size} bytes). Maximum allowed: $MAX_FILE_SIZE_BYTES bytes."))
+        }
+
+        val fileName = "guild_contributions_${guildName}_${System.currentTimeMillis()}.csv"
+        val tempFile = tempDir.toPath().resolve(fileName)
+
+        activeExports[fileName] = ExportJob(
+            playerId = player.uniqueId,
+            fileName = fileName,
+            tempFile = tempFile,
+            createdAt = System.currentTimeMillis(),
+            fileSize = csvContent.toByteArray().size.toLong()
+        )
+
+        // Run file writing asynchronously
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+            try {
+                Files.write(tempFile, csvContent.toByteArray(), StandardOpenOption.CREATE, StandardOpenOption.WRITE)
+                logger.info("Successfully exported contributions for player ${player.name} to $fileName")
+
+                // Schedule cleanup
+                scheduleFileCleanup(tempFile)
+
+                // Try Discord first if available
+                if (discordCsvService != null) {
+                    discordCsvService.sendContributionsCsvAsync(player, contributions, guildName) { result ->
+                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                            // Discord service handles its own success/failure
+                            // If Discord fails, fall back to local file
+                            callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
+                        })
+                    }
+                } else {
+                    // Fall back to Minecraft book
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
+                    })
+                }
+
+            } catch (e: Exception) {
+                logger.error("Failed to export contributions for player ${player.name}", e)
+                tempFile.toFile().delete()
+                activeExports.remove(fileName)
+
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    callback(ExportResult.Error("Export failed: ${e.message}"))
+                })
+            }
+        })
+    }
+
+    private fun isConfigured(): Boolean {
+        return csvExportService != null
+    }
+
     private fun checkRateLimit(playerId: UUID): Boolean {
         val now = System.currentTimeMillis()
-        val playerRequests = rateLimitMap.getOrPut(playerId) { mutableListOf() }
+        val playerRequests = rateLimitMap.computeIfAbsent(playerId) { mutableListOf() }
 
         // Remove old requests outside the time window
         playerRequests.removeIf { now - it > RATE_LIMIT_WINDOW_MS }
@@ -242,76 +223,53 @@ class FileExportManager(
         return true
     }
 
-    /**
-     * Schedule cleanup of temporary file
-     */
-    private fun scheduleFileCleanup(filePath: Path) {
-        Bukkit.getScheduler().runTaskLaterAsynchronously(
-            Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task,
-            Runnable {
-                try {
-                    filePath.deleteIfExists()
-                    logger.debug("Cleaned up temporary export file: $filePath")
-                } catch (e: Exception) {
-                    logger.warn("Failed to cleanup temporary export file: $filePath", e)
-                }
-            },
-            FILE_EXPIRY_MS / 50 // Convert to ticks (20 ticks = 1 second)
-        )
-    }
-
-    /**
-     * Clean up old temporary files on startup
-     */
-    fun cleanupOldFiles() {
-        try {
-            val now = System.currentTimeMillis()
-            tempDir.listFiles()?.forEach { file ->
-                if (now - file.lastModified() > FILE_EXPIRY_MS) {
-                    file.delete()
-                    logger.debug("Cleaned up old temporary file: ${file.name}")
-                }
-            }
-        } catch (e: Exception) {
-            logger.warn("Failed to cleanup old temporary files", e)
-        }
-    }
-
-    /**
-     * Get active exports for a player
-     */
     fun getActiveExports(playerId: UUID): List<String> {
         return activeExports.values
             .filter { it.playerId == playerId }
             .map { it.fileName }
     }
 
-    /**
-     * Cancel active export
-     */
     fun cancelExport(playerId: UUID, fileName: String): Boolean {
-        val job = activeExports.values.find { it.playerId == playerId && it.fileName == fileName }
-        return if (job != null) {
-            try {
-                job.tempFile.deleteIfExists()
-                activeExports.entries.removeIf { it.value == job }
-                true
-            } catch (e: Exception) {
-                false
-            }
-        } else {
-            false
-        }
+        val job = activeExports[fileName] ?: return false
+        if (job.playerId != playerId) return false // Only allow canceling own exports
+
+        activeExports.remove(fileName)
+        job.tempFile.toFile().delete()
+        return true
     }
 
-    /**
-     * Export result types
-     */
-    sealed class ExportResult {
-        data class Success(val fileName: String, val fileSize: Int) : ExportResult()
-        data class DiscordSuccess(val message: String) : ExportResult()
-        data class Error(val message: String) : ExportResult()
-        data class RateLimited(val message: String) : ExportResult()
-        data class FileTooLarge(val message: String) : ExportResult()
+    private fun scheduleFileCleanup(file: Path) {
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return
+
+        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+            try {
+                Files.deleteIfExists(file)
+                logger.info("Cleaned up expired export file: ${file.fileName}")
+            } catch (e: Exception) {
+                logger.warn("Failed to cleanup export file: ${file.fileName}", e)
+            }
+        }, (FILE_EXPIRY_MS / 50).toLong()) // Convert to ticks (20 ticks per second)
+    }
+
+    fun cleanupOldFiles() {
+        val now = System.currentTimeMillis()
+        val filesToRemove = mutableListOf<Path>()
+
+        // Find old files in temp directory
+        tempDir.listFiles()?.forEach { file ->
+            if (now - file.lastModified() > FILE_EXPIRY_MS) {
+                filesToRemove.add(file.toPath())
+            }
+        }
+
+        // Remove expired files
+        filesToRemove.forEach { file ->
+            try {
+                Files.deleteIfExists(file)
+                logger.info("Cleaned up expired file: ${file.fileName}")
+            } catch (e: Exception) {
+                logger.warn("Failed to cleanup file: ${file.fileName}", e)
+            }
+        }
     }
 }
