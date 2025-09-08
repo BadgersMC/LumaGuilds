@@ -3,8 +3,9 @@ package net.lumalyte.lg
 import co.aikar.commands.PaperCommandManager
 import net.lumalyte.lg.di.appModule
 import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
-import net.lumalyte.lg.infrastructure.placeholders.BellClaimsExpansion
+import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
 import net.lumalyte.lg.interaction.commands.*
+import net.lumalyte.lg.interaction.commands.LumaGuildsCommand
 import net.lumalyte.lg.application.services.FileExportManager
 import net.lumalyte.lg.interaction.listeners.*
 import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
@@ -332,7 +333,7 @@ class LumaGuilds : JavaPlugin() {
     private fun initialisePlaceholderAPI() {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             try {
-                val expansion = BellClaimsExpansion()
+                val expansion = LumaGuildsExpansion()
                 if (expansion.register()) {
                     logColored("✓ Successfully registered LumaGuilds PlaceholderAPI expansion!")
                     logColored("Available placeholders: %lumaguilds_guild_name%, %lumaguilds_guild_tag%, etc.")
@@ -378,8 +379,8 @@ class LumaGuilds : JavaPlugin() {
         commandManager.registerCommand(PartyChatCommand())
 
         // Register LumaGuilds admin command
-        getCommand("bellclaims")?.setExecutor(BellClaimsCommand())
-        getCommand("bellclaims")?.tabCompleter = BellClaimsCommand()
+        getCommand("bellclaims")?.setExecutor(LumaGuildsCommand())
+        getCommand("bellclaims")?.tabCompleter = LumaGuildsCommand()
         logColored("✓ Admin commands registered (/bellclaims)")
     }
 

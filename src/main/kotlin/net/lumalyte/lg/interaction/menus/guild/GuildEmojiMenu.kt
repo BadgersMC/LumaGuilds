@@ -41,38 +41,38 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     private var validationError: String? = null
 
     override fun open() {
-        println("[BellClaims] GuildEmojiMenu: Opening menu for player ${player.name}")
+        println("[LumaGuilds] GuildEmojiMenu: Opening menu for player ${player.name}")
 
         // Load current emoji (only if not already loaded)
         if (currentEmoji == null) {
             currentEmoji = guildService.getEmoji(guild.id)
-            println("[BellClaims] GuildEmojiMenu: Loaded currentEmoji from database: '$currentEmoji'")
+            println("[LumaGuilds] GuildEmojiMenu: Loaded currentEmoji from database: '$currentEmoji'")
         } else {
-            println("[BellClaims] GuildEmojiMenu: Using existing currentEmoji: '$currentEmoji'")
+            println("[LumaGuilds] GuildEmojiMenu: Using existing currentEmoji: '$currentEmoji'")
         }
 
         // Initialize inputEmoji only if it's null (preserve user input)
         if (inputEmoji == null) {
             inputEmoji = currentEmoji
-            println("[BellClaims] GuildEmojiMenu: Initialized inputEmoji to currentEmoji: '$inputEmoji'")
+            println("[LumaGuilds] GuildEmojiMenu: Initialized inputEmoji to currentEmoji: '$inputEmoji'")
         } else {
-            println("[BellClaims] GuildEmojiMenu: Preserving existing inputEmoji: '$inputEmoji'")
+            println("[LumaGuilds] GuildEmojiMenu: Preserving existing inputEmoji: '$inputEmoji'")
         }
 
         // Initialize validation state
         val currentInput = inputEmoji
-        println("[BellClaims] GuildEmojiMenu: Validating emoji: '$currentInput'")
+        println("[LumaGuilds] GuildEmojiMenu: Validating emoji: '$currentInput'")
         validationError = if (currentInput == null || currentInput.isBlank()) {
-            println("[BellClaims] GuildEmojiMenu: Empty/null emoji - treating as valid")
+            println("[LumaGuilds] GuildEmojiMenu: Empty/null emoji - treating as valid")
             null // Empty is valid (clears emoji)
         } else if (!nexoEmojiService.doesEmojiExist(currentInput)) {
-            println("[BellClaims] GuildEmojiMenu: Emoji validation FAILED - not found in registry")
+            println("[LumaGuilds] GuildEmojiMenu: Emoji validation FAILED - not found in registry")
             "Emoji not found in Nexo registry"
         } else {
-            println("[BellClaims] GuildEmojiMenu: Emoji validation PASSED")
+            println("[LumaGuilds] GuildEmojiMenu: Emoji validation PASSED")
             null // Valid
         }
-        println("[BellClaims] GuildEmojiMenu: Final validation result: ${validationError ?: "VALID"}")
+        println("[LumaGuilds] GuildEmojiMenu: Final validation result: ${validationError ?: "VALID"}")
 
         val gui = ChestGui(3, "§6Guild Emoji - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 3)
@@ -140,7 +140,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     }
 
     private fun addEmojiInputField(pane: StaticPane, x: Int, y: Int) {
-        println("[BellClaims] GuildEmojiMenu: Adding emoji input field with current input: '$inputEmoji'")
+        println("[LumaGuilds] GuildEmojiMenu: Adding emoji input field with current input: '$inputEmoji'")
         val inputItem = ItemStack(Material.WRITABLE_BOOK)
             .name("§f✏️ SET NEW EMOJI")
             .lore("§7Format: :emoji_name:")
@@ -157,7 +157,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
         inputItem.lore("§7Click to input emoji")
 
         val guiItem = GuiItem(inputItem) {
-            println("[BellClaims] GuildEmojiMenu: Emoji input field clicked - starting chat input")
+            println("[LumaGuilds] GuildEmojiMenu: Emoji input field clicked - starting chat input")
             // Start chat input mode for emoji
             chatInputListener.startInputMode(player, EmojiInputHandler(menuNavigator, player, guild, this))
             player.closeInventory()
@@ -171,7 +171,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addEmojiSelectorButton(pane: StaticPane, x: Int, y: Int) {
         val unlockedCount = nexoEmojiService.getPlayerUnlockedEmojis(player).size
-        println("[BellClaims] GuildEmojiMenu: Player ${player.name} has $unlockedCount unlocked emojis")
+        println("[LumaGuilds] GuildEmojiMenu: Player ${player.name} has $unlockedCount unlocked emojis")
         val selectorItem = ItemStack(Material.ENDER_CHEST)
             .name("§d🎨 SELECT FROM UNLOCKED")
             .lore("§7Browse emojis you have access to")
@@ -179,12 +179,12 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             .lore("§7Click to open emoji selector")
 
         val guiItem = GuiItem(selectorItem) {
-            println("[BellClaims] GuildEmojiMenu: Emoji selector button clicked")
+            println("[LumaGuilds] GuildEmojiMenu: Emoji selector button clicked")
             if (unlockedCount == 0) {
                 player.sendMessage("§cYou don't have any unlocked emojis!")
                 player.sendMessage("§7Contact an admin to get emoji permissions.")
             } else {
-                println("[BellClaims] GuildEmojiMenu: Opening emoji selection menu")
+                println("[LumaGuilds] GuildEmojiMenu: Opening emoji selection menu")
                 // Open emoji selection menu
                 menuNavigator.openMenu(EmojiSelectionMenu(menuNavigator, player, guild, this))
             }
@@ -232,9 +232,9 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
         }
 
         val guiItem = GuiItem(saveItem) {
-            println("[BellClaims] GuildEmojiMenu: Save button clicked")
-            println("[BellClaims] GuildEmojiMenu: currentEmoji: '$currentEmoji', inputEmoji: '$inputEmoji'")
-            println("[BellClaims] GuildEmojiMenu: validationError: ${validationError ?: "NONE"}")
+            println("[LumaGuilds] GuildEmojiMenu: Save button clicked")
+            println("[LumaGuilds] GuildEmojiMenu: currentEmoji: '$currentEmoji', inputEmoji: '$inputEmoji'")
+            println("[LumaGuilds] GuildEmojiMenu: validationError: ${validationError ?: "NONE"}")
 
             if (validationError != null) {
                 player.sendMessage("§c❌ Cannot save: $validationError")
@@ -242,12 +242,12 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             }
 
             if (inputEmoji == currentEmoji) {
-                println("[BellClaims] GuildEmojiMenu: No changes detected - inputEmoji equals currentEmoji")
+                println("[LumaGuilds] GuildEmojiMenu: No changes detected - inputEmoji equals currentEmoji")
                 player.sendMessage("§7No changes to save.")
                 return@GuiItem
             }
 
-            println("[BellClaims] GuildEmojiMenu: Changes detected, proceeding with save...")
+            println("[LumaGuilds] GuildEmojiMenu: Changes detected, proceeding with save...")
 
             // Save the emoji
             val success = guildService.setEmoji(guild.id, inputEmoji, player.uniqueId)
@@ -274,8 +274,8 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             .lore("§7Will use no emoji in chat")
 
         val guiItem = GuiItem(clearItem) {
-            println("[BellClaims] GuildEmojiMenu: Clear button clicked")
-            println("[BellClaims] GuildEmojiMenu: Setting inputEmoji to null")
+            println("[LumaGuilds] GuildEmojiMenu: Clear button clicked")
+            println("[LumaGuilds] GuildEmojiMenu: Setting inputEmoji to null")
 
             inputEmoji = null
             validationError = null
@@ -344,7 +344,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     }
 
     private fun setInputEmoji(emoji: String?) {
-        println("[BellClaims] GuildEmojiMenu: setInputEmoji called with: '$emoji'")
+        println("[LumaGuilds] GuildEmojiMenu: setInputEmoji called with: '$emoji'")
         inputEmoji = emoji
         validationError = if (emoji == null || emoji.isBlank()) {
             null // Empty is valid (clears emoji)
@@ -353,7 +353,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
         } else {
             null // Valid
         }
-        println("[BellClaims] GuildEmojiMenu: Updated inputEmoji to: '$inputEmoji', validationError: ${validationError ?: "NONE"}")
+        println("[LumaGuilds] GuildEmojiMenu: Updated inputEmoji to: '$inputEmoji', validationError: ${validationError ?: "NONE"}")
     }
 
     /**
@@ -397,7 +397,7 @@ private class EmojiInputHandler(
      * Called when the player enters emoji input via chat
      */
     override fun onChatInput(player: Player, input: String) {
-        println("[BellClaims] EmojiInputHandler: Received emoji input: '$input'")
+        println("[LumaGuilds] EmojiInputHandler: Received emoji input: '$input'")
 
         // Validate the input format
         if (!input.startsWith(":") || !input.endsWith(":")) {
@@ -410,7 +410,7 @@ private class EmojiInputHandler(
         emojiMenu.setEmojiInput(input)
 
         // Reopen the menu with the new input (reuse existing instance)
-        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("BellClaims")!!
+        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
         org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
             emojiMenu.open()
         })
@@ -423,11 +423,11 @@ private class EmojiInputHandler(
      * Called when the player cancels emoji input
      */
     override fun onCancel(player: Player) {
-        println("[BellClaims] EmojiInputHandler: Player cancelled emoji input")
+        println("[LumaGuilds] EmojiInputHandler: Player cancelled emoji input")
         player.sendMessage("§7Emoji input cancelled.")
 
         // Reopen the menu without changes (reuse existing instance)
-        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("BellClaims")!!
+        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
         org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
             emojiMenu.open()
         })
@@ -511,17 +511,17 @@ class EmojiSelectionMenu(
 
     private fun addEmojiItem(pane: StaticPane, emojiName: String, x: Int, y: Int) {
         val emojiPlaceholder = ":$emojiName:"
-        println("[BellClaims] GuildEmojiMenu: Adding emoji item: $emojiPlaceholder")
+        println("[LumaGuilds] GuildEmojiMenu: Adding emoji item: $emojiPlaceholder")
         val emojiItem = ItemStack(Material.PAPER)
             .name("§e$emojiPlaceholder")
             .lore("§7Click to select this emoji")
             .lore("§7This will become your guild emoji")
 
         val guiItem = GuiItem(emojiItem) {
-            println("[BellClaims] GuildEmojiMenu: Emoji item clicked: $emojiPlaceholder")
+            println("[LumaGuilds] GuildEmojiMenu: Emoji item clicked: $emojiPlaceholder")
             // Set the emoji in the parent menu and return to it
             parentMenu.setEmojiInput(emojiPlaceholder)
-            println("[BellClaims] GuildEmojiMenu: Set emoji input to: $emojiPlaceholder")
+            println("[LumaGuilds] GuildEmojiMenu: Set emoji input to: $emojiPlaceholder")
             menuNavigator.openMenu(parentMenu)
             player.sendMessage("§aSelected emoji: $emojiPlaceholder")
         }

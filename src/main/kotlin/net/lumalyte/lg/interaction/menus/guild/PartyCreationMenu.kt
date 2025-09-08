@@ -457,7 +457,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         }
 
         // Reopen the menu
-        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("BellClaims")!!
+        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
         org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
             open()
         })
@@ -468,7 +468,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         player.sendMessage("§7Input cancelled.")
 
         // Reopen the menu
-        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("BellClaims")!!
+        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
         org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
             open()
         })

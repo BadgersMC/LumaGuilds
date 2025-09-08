@@ -2,7 +2,7 @@ package net.lumalyte.lg.di
 
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.actions.claim.ConvertClaimToGuild
-import net.lumalyte.lg.infrastructure.placeholders.BellClaimsExpansion
+import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
 import net.lumalyte.lg.application.actions.claim.CreateClaim
 import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 import net.lumalyte.lg.application.actions.claim.IsNewClaimLocationValid
@@ -380,5 +380,5 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
     }
 
     // PlaceholderAPI Expansion
-    singleOf(::BellClaimsExpansion)
+    singleOf(::LumaGuildsExpansion)
 }

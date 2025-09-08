@@ -6,7 +6,7 @@ LumaGuilds is a comprehensive Minecraft plugin that builds upon the BellClaims l
 ## About
 <img width="500" height="500" alt="lumaguild_paul_allen_meme" src="https://github.com/user-attachments/assets/2f925067-2c2c-49f8-9bb0-4ce40a181136" />
 
-This project is a fork of [BellClaims](https://github.com/mizarc/bell-claims) by Mizarc, with significant additions for guild functionality. The original BellClaims provides an intuitive land-claiming system, while LumaGuilds extends it with:
+This project is a fork of [BellClaims](https://github.com/mizarc/bell-claims) by Mizarc, with significant additions for guild functionality. LumaGuilds extends the original BellClaims with comprehensive guild management features. The original BellClaims provides an intuitive land-claiming system, while LumaGuilds extends it with:
 
 ### Land Claiming Features (from BellClaims)
 - **Physically Grounded** - Claims are marked using Bells, yes the block. Manage your claim from here, or break it to destroy your whole claim.
@@ -91,7 +91,7 @@ Built .jar binary can be found in the `build/libs` folder.
 If you encounter any bugs, crashes, or unexpected behaviour, please open an issue in this repository.
 
 ## Attribution
-This project is a fork of [BellClaims](https://github.com/mizarc/bell-claims) by Mizarc. The original BellClaims project provides the core land-claiming functionality, while LumaGuilds adds extensive guild management features.
+This project is a fork of [BellClaims](https://github.com/mizarc/bell-claims) by Mizarc. The original BellClaims project provides the core land-claiming functionality, while LumaGuilds adds extensive guild management features including parties, wars, progression systems, and comprehensive statistics.
 
 ## License
 LumaGuilds is licensed under the permissive MIT license. Please view [LICENSE](LICENSE) for more info.

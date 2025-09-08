@@ -138,7 +138,7 @@ Balance: $%bellclaims_guild_balance%
 
 ### Placeholders not working?
 1. Ensure PlaceholderAPI is installed and running
-2. Check server logs for BellClaims expansion registration
+2. Check server logs for LumaGuilds expansion registration
 3. Verify player is actually in a guild
 4. Use `%bellclaims_has_guild%` to debug
 
@@ -150,7 +150,7 @@ Balance: $%bellclaims_guild_balance%
 
 ### Server Log Messages
 ```
-[INFO] Successfully registered BellClaims PlaceholderAPI expansion!
+[INFO] Successfully registered LumaGuilds PlaceholderAPI expansion!
 [INFO] Available placeholders: %bellclaims_guild_name%, %bellclaims_guild_tag%, etc.
 ```
 
@@ -218,4 +218,4 @@ Show different information based on guild status:
 
 ---
 
-**BellClaims PlaceholderAPI expansion provides seamless integration with your server's chat and display plugins!** 🎉🏷️
+**LumaGuilds PlaceholderAPI expansion provides seamless integration with your server's chat and display plugins!** 🎉🏷️

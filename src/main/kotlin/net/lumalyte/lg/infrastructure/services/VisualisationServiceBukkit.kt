@@ -224,9 +224,9 @@ class VisualisationServiceBukkit: VisualisationService {
             logger.info("[DEBUG] Switching to main thread for visualization at $mainThreadStartTime")
 
             // Apply the visualization on the main thread (Bukkit requirement)
-            val plugin = Bukkit.getPluginManager().getPlugin("BellClaims")
+            val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
             if (plugin == null) {
-                logger.severe("[ERROR] BellClaims plugin not found, cannot schedule main thread task")
+                logger.severe("[ERROR] LumaGuilds plugin not found, cannot schedule main thread task")
                 return@thenAcceptAsync
             }
 
@@ -308,9 +308,9 @@ class VisualisationServiceBukkit: VisualisationService {
                 logger.info("[DEBUG] Async clear operation started at $asyncStartTime")
 
                 // Clear positions on main thread (Bukkit requirement)
-                val plugin = Bukkit.getPluginManager().getPlugin("BellClaims")
+                val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
                 if (plugin == null) {
-                    logger.severe("[ERROR] BellClaims plugin not found, cannot schedule clear task")
+                    logger.severe("[ERROR] LumaGuilds plugin not found, cannot schedule clear task")
                     return@runAsync
                 }
 
