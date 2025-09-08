@@ -9,7 +9,7 @@ class SQLiteStorage(dataFolder: File): Storage<Database> {
     override val connection: Database
 
     init {
-        val options = DatabaseOptions.builder().sqlite("$dataFolder/claims.db").build()
+        val options = DatabaseOptions.builder().sqlite("$dataFolder/lumaguilds.db").build()
         connection = PooledDatabaseOptions.builder().options(options).createHikariDatabase()
     }
 }
