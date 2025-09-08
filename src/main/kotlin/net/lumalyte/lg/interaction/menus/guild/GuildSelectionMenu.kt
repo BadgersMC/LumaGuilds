@@ -63,7 +63,7 @@ class GuildSelectionMenu(
     }
 
     private fun updateGuildsDisplay() {
-        val allGuilds = guildService.getPlayerGuilds(player.uniqueId)
+        val allGuilds = guildService.getAllGuilds()
             .filter { it.id != currentGuild.id } // Exclude current guild
             .sortedBy { it.name }
 
@@ -139,7 +139,7 @@ class GuildSelectionMenu(
     }
 
     private fun addNavigationButtons(pane: StaticPane) {
-        val allGuilds = guildService.getPlayerGuilds(player.uniqueId)
+        val allGuilds = guildService.getAllGuilds()
             .filter { it.id != currentGuild.id }
         val totalPages = (allGuilds.size + itemsPerPage - 1) / itemsPerPage
 

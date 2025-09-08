@@ -179,4 +179,11 @@ interface GuildService {
      * @return The total count of guilds.
      */
     fun getGuildCount(): Int
+
+    /**
+     * Gets all guilds in the system.
+     *
+     * @return A set of all guilds.
+     */
+    fun getAllGuilds(): Set<Guild>
 }
