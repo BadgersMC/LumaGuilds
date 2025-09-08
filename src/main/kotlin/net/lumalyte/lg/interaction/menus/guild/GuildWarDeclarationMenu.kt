@@ -59,6 +59,14 @@ class GuildWarDeclarationMenu(
             return
         }
 
+        // Check if guild is in peaceful mode
+        if (guild.mode == GuildMode.PEACEFUL) {
+            player.sendMessage("§c❌ Peaceful guilds cannot declare war!")
+            player.sendMessage("§7Switch to Hostile mode first in guild settings.")
+            player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
         val gui = ChestGui(6, "§4⚔️ Declare War - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -228,7 +236,8 @@ class GuildWarDeclarationMenu(
     private fun addWarWagerSection(pane: StaticPane) {
         val guildBalance = guild.bankBalance
         val maxWager = guildBalance // No limits - high stakes gambling!
-        
+
+        // Main wager display
         val wagerItem = ItemStack(Material.GOLD_INGOT)
             .name("§6💰 War Wager")
             .lore("§7Current Wager: §6$wagerAmount coins")
@@ -251,6 +260,116 @@ class GuildWarDeclarationMenu(
             open() // Refresh menu
         }
         pane.addItem(guiItem, 5, 1)
+
+        // Add wager buttons if there's available balance
+        if (guildBalance > 0) {
+            // Add 10% button
+            val add10Percent = ItemStack(Material.GREEN_CONCRETE)
+                .name("§a➕ Add 10%")
+                .lore("§7Add 10% of guild bank")
+                .lore("§7Amount: §6${guildBalance / 10} coins")
+
+            val add10GuiItem = GuiItem(add10Percent) {
+                val amountToAdd = guildBalance / 10
+                if (amountToAdd > 0 && wagerAmount + amountToAdd <= guildBalance) {
+                    wagerAmount += amountToAdd
+                    player.sendMessage("§a✅ Added §6$amountToAdd coins §ato wager")
+                    player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f)
+                    open() // Refresh menu
+                } else {
+                    player.sendMessage("§c❌ Insufficient funds or would exceed bank balance!")
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                }
+            }
+            pane.addItem(add10GuiItem, 5, 2)
+
+            // Add 25% button
+            val add25Percent = ItemStack(Material.BLUE_CONCRETE)
+                .name("§9➕ Add 25%")
+                .lore("§7Add 25% of guild bank")
+                .lore("§7Amount: §6${guildBalance / 4} coins")
+
+            val add25GuiItem = GuiItem(add25Percent) {
+                val amountToAdd = guildBalance / 4
+                if (amountToAdd > 0 && wagerAmount + amountToAdd <= guildBalance) {
+                    wagerAmount += amountToAdd
+                    player.sendMessage("§a✅ Added §6$amountToAdd coins §ato wager")
+                    player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f)
+                    open() // Refresh menu
+                } else {
+                    player.sendMessage("§c❌ Insufficient funds or would exceed bank balance!")
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                }
+            }
+            pane.addItem(add25GuiItem, 6, 2)
+
+            // Wager All button
+            val wagerAllItem = ItemStack(Material.RED_CONCRETE)
+                .name("§c💰 WAGER ALL")
+                .lore("§7Wager entire guild bank!")
+                .lore("§7Amount: §6$guildBalance coins")
+                .lore("§7")
+                .lore("§c⚠️ HIGH RISK!")
+
+            val wagerAllGuiItem = GuiItem(wagerAllItem) {
+                if (guildBalance > 0) {
+                    wagerAmount = guildBalance
+                    player.sendMessage("§c💰 ALL IN! §6$guildBalance coins §cwagered!")
+                    player.playSound(player.location, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f)
+                    open() // Refresh menu
+                } else {
+                    player.sendMessage("§c❌ No funds available to wager!")
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                }
+            }
+            pane.addItem(wagerAllGuiItem, 7, 2)
+
+            // Wager Enemy Bank button (if enemy guild has funds)
+            val enemyBalance = targetGuild?.bankBalance ?: 0
+            if (enemyBalance > 0) {
+                val wagerEnemyItem = ItemStack(Material.PURPLE_CONCRETE)
+                    .name("§5🏦 MATCH ENEMY")
+                    .lore("§7Wager to match enemy bank!")
+                    .lore("§7Enemy Bank: §6$enemyBalance coins")
+                    .lore("§7You would wager: §6$enemyBalance coins")
+                    .lore("§7")
+                    .lore("§c⚠️ Must have sufficient funds!")
+
+                val wagerEnemyGuiItem = GuiItem(wagerEnemyItem) {
+                    if (enemyBalance > 0 && guildBalance >= enemyBalance) {
+                        wagerAmount = enemyBalance
+                        player.sendMessage("§5🏦 MATCHING ENEMY! §6$enemyBalance coins §5wagered!")
+                        player.playSound(player.location, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f)
+                        open() // Refresh menu
+                    } else if (enemyBalance > 0 && guildBalance < enemyBalance) {
+                        player.sendMessage("§c❌ Insufficient funds to match enemy wager!")
+                        player.sendMessage("§7Need: §6$enemyBalance coins, Have: §6$guildBalance coins")
+                        player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                    } else {
+                        player.sendMessage("§c❌ Enemy guild has no funds to match!")
+                        player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                    }
+                }
+                pane.addItem(wagerEnemyGuiItem, 7, 3)
+            }
+
+            // Remove wager button
+            if (wagerAmount > 0) {
+                val removeWager = ItemStack(Material.GRAY_CONCRETE)
+                    .name("§7➖ Remove All")
+                    .lore("§7Remove entire wager")
+                    .lore("§7Current: §6$wagerAmount coins")
+
+                val removeGuiItem = GuiItem(removeWager) {
+                    val removedAmount = wagerAmount
+                    wagerAmount = 0
+                    player.sendMessage("§7🗑️ Removed §6$removedAmount coins §7from wager")
+                    player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
+                    open() // Refresh menu
+                }
+                pane.addItem(removeGuiItem, 8, 2)
+            }
+        }
     }
 
     private fun addObjectivesSelection(pane: StaticPane) {
