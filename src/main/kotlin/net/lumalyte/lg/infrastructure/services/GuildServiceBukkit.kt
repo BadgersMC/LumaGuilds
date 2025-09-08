@@ -314,6 +314,8 @@ class GuildServiceBukkit(
     
     override fun getGuildCount(): Int = guildRepository.getCount()
 
+    override fun getAllGuilds(): Set<Guild> = guildRepository.getAll()
+
     /**
      * Counts visible characters in a tag, excluding formatting codes.
      * MiniMessage tags like <color>, <gradient>, etc. are excluded from the count.
