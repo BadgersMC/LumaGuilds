@@ -85,12 +85,24 @@ class ProgressionEventListener : Listener, KoinComponent {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockPlace(event: BlockPlaceEvent) {
-        // Mark blocks as player-placed to prevent XP farming
-        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")
-            ?: return // Plugin not found, skip metadata setting
-        event.block.setMetadata("player_placed", org.bukkit.metadata.FixedMetadataValue(plugin, true))
-        
-        awardExperienceWithCooldown(event.player, getConfig().blockPlaceXp, ExperienceSource.BLOCK_PLACE)
+        try {
+            // Mark blocks as player-placed to prevent XP farming
+            val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            if (plugin == null) {
+                logger.warn("LumaGuilds plugin not found during block place event")
+                return
+            }
+
+            if (event.block != null) {
+                event.block.setMetadata("player_placed", org.bukkit.metadata.FixedMetadataValue(plugin, true))
+            } else {
+                logger.warn("Block is null in BlockPlaceEvent for player ${event.player.name}")
+            }
+
+            awardExperienceWithCooldown(event.player, getConfig().blockPlaceXp, ExperienceSource.BLOCK_PLACE)
+        } catch (e: Exception) {
+            logger.error("Error in onBlockPlace for player ${event.player.name}", e)
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -125,17 +137,19 @@ class ProgressionEventListener : Listener, KoinComponent {
     private fun awardExperience(player: Player, amount: Int, source: ExperienceSource) {
         try {
             val guildIds = memberService.getPlayerGuilds(player.uniqueId)
-            logger.info("Player ${player.name} is in ${guildIds.size} guild(s): $guildIds")
+            logger.debug("Player ${player.name} (${player.uniqueId}) guild membership check for $source: found ${guildIds.size} guilds: $guildIds")
+
             if (guildIds.isEmpty()) {
-                logger.info("Player ${player.name} is not in any guild - no XP awarded")
+                logger.info("❌ BLOCKED: Player ${player.name} attempted to gain $amount XP from $source but is not in any guild")
                 return
             }
+
             guildIds.forEach { guildId ->
-                logger.info("Awarding $amount XP to guild $guildId for $source")
+                logger.info("✅ AWARDED: $amount XP to guild $guildId for player ${player.name} from $source")
                 progressionService.awardExperience(guildId, amount, source)
             }
         } catch (e: Exception) {
-            logger.warn("Failed to award experience to player ${player.name}", e)
+            logger.error("❌ ERROR: Failed to award $amount XP to player ${player.name} from $source", e)
         }
     }
 
