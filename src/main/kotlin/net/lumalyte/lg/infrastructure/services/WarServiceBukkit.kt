@@ -25,6 +25,8 @@ class WarServiceBukkit : WarService {
         actorId: UUID
     ): War? {
         return try {
+            // For now, create immediate war (legacy behavior)
+            // TODO: This should be updated to create WarDeclarations for proper acceptance flow
             val war = War.create(
                 declaringGuildId = declaringGuildId,
                 defendingGuildId = defendingGuildId,
@@ -37,6 +39,37 @@ class WarServiceBukkit : WarService {
             war
         } catch (e: Exception) {
             logger.error("Error declaring war between $declaringGuildId and $defendingGuildId", e)
+            null
+        }
+    }
+
+    /**
+     * Creates a war declaration that requires acceptance
+     */
+    fun createWarDeclaration(
+        declaringGuildId: UUID,
+        defendingGuildId: UUID,
+        duration: Duration,
+        objectives: Set<WarObjective>,
+        wagerAmount: Int = 0,
+        terms: String? = null,
+        actorId: UUID
+    ): WarDeclaration? {
+        return try {
+            val declaration = WarDeclaration(
+                declaringGuildId = declaringGuildId,
+                defendingGuildId = defendingGuildId,
+                proposedDuration = duration,
+                objectives = objectives,
+                terms = terms
+            )
+
+            warDeclarations[declaration.id] = declaration
+
+            logger.info("War declaration created by guild $declaringGuildId against guild $defendingGuildId with wager $wagerAmount")
+            declaration
+        } catch (e: Exception) {
+            logger.error("Error creating war declaration between $declaringGuildId and $defendingGuildId", e)
             null
         }
     }
