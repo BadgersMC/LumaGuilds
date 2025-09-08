@@ -5,6 +5,7 @@ import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.interaction.menus.Menu
@@ -25,6 +26,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
     private val guildService: GuildService by inject()
     private val configService: ConfigService by inject()
+    private val warService: WarService by inject()
 
     override fun open() {
         val gui = ChestGui(3, "§6Change Guild Mode")
@@ -62,17 +64,25 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                 .lore("§c⚠️ Cooldown: ${config.modeSwitchCooldownDays} days")
 
             val canSwitch = canSwitchToPeaceful(guild, config.modeSwitchCooldownDays)
-            if (!canSwitch) {
+            val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive() }
+            val canSwitchConsideringWar = canSwitch && !hasActiveWar
+
+            if (!canSwitchConsideringWar) {
                 peacefulItem.lore("§7")
                         .lore("§c❌ Cannot switch yet")
-                        .lore("§c${getCooldownMessage(guild, config.modeSwitchCooldownDays)}")
+                if (hasActiveWar) {
+                    peacefulItem.lore("§c⚔️ Active war in progress")
+                } else {
+                    peacefulItem.lore("§c${getCooldownMessage(guild, config.modeSwitchCooldownDays)}")
+                }
             } else {
                 peacefulItem.lore("§7")
                         .lore("§e✅ Click to switch to Peaceful")
             }
 
             val peacefulGuiItem = GuiItem(peacefulItem) {
-                if (canSwitch) {
+                val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive() }
+                if (canSwitchConsideringWar) {
                     val success = guildService.setMode(guild.id, GuildMode.PEACEFUL, player.uniqueId)
                     if (success) {
                         player.sendMessage("§a✅ Guild mode switched to PEACEFUL!")
@@ -83,7 +93,11 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                         player.sendMessage("§c❌ Failed to change guild mode. Check permissions.")
                     }
                 } else {
-                    player.sendMessage("§c❌ ${getCooldownMessage(guild, config.modeSwitchCooldownDays)}")
+                    if (hasActiveWar) {
+                        player.sendMessage("§c❌ Cannot switch to peaceful mode during active war!")
+                    } else {
+                        player.sendMessage("§c❌ ${getCooldownMessage(guild, config.modeSwitchCooldownDays)}")
+                    }
                 }
             }
             pane.addItem(peacefulGuiItem, 2, 1)
