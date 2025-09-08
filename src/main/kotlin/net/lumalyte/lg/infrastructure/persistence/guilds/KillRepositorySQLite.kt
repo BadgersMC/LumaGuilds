@@ -5,11 +5,14 @@ import net.lumalyte.lg.application.persistence.KillRepository
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.domain.values.Position3D
 import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
 class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository {
+
+    private val logger = LoggerFactory.getLogger(KillRepositorySQLite::class.java)
 
     private val kills: MutableMap<UUID, Kill> = mutableMapOf()
     private val guildStats: MutableMap<UUID, GuildKillStats> = mutableMapOf()
@@ -24,12 +27,15 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
 
     private fun ensureInitialized() {
         if (!isInitialized) {
+            logger.info("Initializing kill database...")
             try {
                 createKillTables()
                 preload()
                 isInitialized = true
+                logger.info("Kill database initialized successfully")
             } catch (e: SQLException) {
-                throw DatabaseOperationException("Failed to initialize kill database", e)
+                logger.error("Failed to initialize kill database: ${e.message}", e)
+                throw DatabaseOperationException("Failed to initialize kill database: ${e.message}", e)
             }
         }
     }
@@ -91,15 +97,25 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
         val killsPlayerIndexSql = "CREATE INDEX IF NOT EXISTS idx_kills_players ON kills(killer_id, victim_id)"
 
         try {
+            logger.info("Creating kill database tables...")
             storage.connection.executeUpdate(killsTableSql)
+            logger.debug("Created kills table")
             storage.connection.executeUpdate(guildStatsTableSql)
+            logger.debug("Created guild_kill_stats table")
             storage.connection.executeUpdate(playerStatsTableSql)
+            logger.debug("Created player_kill_stats table")
             storage.connection.executeUpdate(antiFarmTableSql)
+            logger.debug("Created anti_farm_data table")
             storage.connection.executeUpdate(killsIndexSql)
+            logger.debug("Created kills timestamp index")
             storage.connection.executeUpdate(killsGuildIndexSql)
+            logger.debug("Created kills guild index")
             storage.connection.executeUpdate(killsPlayerIndexSql)
+            logger.debug("Created kills player index")
+            logger.info("Successfully created all kill database tables")
         } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to create kill tables", e)
+            logger.error("Failed to create kill tables: ${e.message}", e)
+            throw DatabaseOperationException("Failed to create kill tables: ${e.message}", e)
         }
     }
 
