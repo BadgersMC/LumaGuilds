@@ -506,7 +506,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         }
 
         // Reopen the menu
-        val plugin = Bukkit.getPluginManager().getPlugin("BellClaims")!!
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
         Bukkit.getScheduler().runTask(plugin, Runnable {
             open()
         })
@@ -517,7 +517,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         player.sendMessage("§7Input cancelled.")
 
         // Reopen the menu
-        val plugin = Bukkit.getPluginManager().getPlugin("BellClaims")!!
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
         Bukkit.getScheduler().runTask(plugin, Runnable {
             open()
         })

@@ -25,7 +25,7 @@ import org.koin.core.component.inject
  * - %lumaguilds_guild_deaths% - Player's guild total deaths
  * - %lumaguilds_guild_kdr% - Player's guild K/D ratio
  */
-class BellClaimsExpansion : PlaceholderExpansion(), KoinComponent {
+class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()

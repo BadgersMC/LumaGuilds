@@ -6,6 +6,6 @@ softdepend: [Vault, PlaceholderAPI]
 
 commands:
   bellclaims:
-    description: BellClaims administrative commands
+    description: LumaGuilds administrative commands
     usage: /bellclaims <subcommand> [args]
     permission: bellclaims.admin

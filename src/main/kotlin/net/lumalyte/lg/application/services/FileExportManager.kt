@@ -183,7 +183,7 @@ class FileExportManager(
         )
 
         // Run file writing asynchronously
-        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("BellClaims")!!, Runnable {
+        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
             try {
                 Files.write(tempFile, csvContent.toByteArray(), StandardOpenOption.CREATE, StandardOpenOption.WRITE)
                 val exportType = when (T::class) {
@@ -197,7 +197,7 @@ class FileExportManager(
                 scheduleFileCleanup(tempFile)
 
                 // Run callback on main thread
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("BellClaims")!!, Runnable {
+                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
                     callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
                 })
 
@@ -213,7 +213,7 @@ class FileExportManager(
                 tempFile.deleteIfExists()
 
                 // Run callback on main thread
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("BellClaims")!!, Runnable {
+                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
                     callback(ExportResult.Error("Export failed due to server error. Please try again."))
                 })
             } finally {
@@ -247,7 +247,7 @@ class FileExportManager(
      */
     private fun scheduleFileCleanup(filePath: Path) {
         Bukkit.getScheduler().runTaskLaterAsynchronously(
-            Bukkit.getPluginManager().getPlugin("BellClaims")!!,
+            Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task,
             Runnable {
                 try {
                     filePath.deleteIfExists()

@@ -37,7 +37,7 @@ class DiscordCsvService(
         guildName: String,
         callback: (Result<String>) -> Unit
     ) {
-        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("BellClaims")!!, Runnable {
+        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
             try {
                 val csvContent = generateTransactionCsv(transactions)
                 val fileName = "guild_transactions_${guildName}_${System.currentTimeMillis()}.csv"
@@ -45,12 +45,12 @@ class DiscordCsvService(
                 val embed = createTransactionEmbed(player, transactions.size, guildName, csvContent.length)
                 val result = sendFileToDiscord(csvContent, fileName, embed)
 
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("BellClaims")!!, Runnable {
+                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
                     callback(result)
                 })
 
             } catch (e: Exception) {
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("BellClaims")!!, Runnable {
+                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
                     callback(Result.failure(e))
                 })
             }
@@ -66,7 +66,7 @@ class DiscordCsvService(
         guildName: String,
         callback: (Result<String>) -> Unit
     ) {
-        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("BellClaims")!!, Runnable {
+        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
             try {
                 val csvContent = generateContributionsCsv(contributions)
                 val fileName = "guild_contributions_${guildName}_${System.currentTimeMillis()}.csv"
@@ -74,12 +74,12 @@ class DiscordCsvService(
                 val embed = createContributionsEmbed(player, contributions.size, guildName, csvContent.length)
                 val result = sendFileToDiscord(csvContent, fileName, embed)
 
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("BellClaims")!!, Runnable {
+                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
                     callback(result)
                 })
 
             } catch (e: Exception) {
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("BellClaims")!!, Runnable {
+                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task, Runnable {
                     callback(Result.failure(e))
                 })
             }
@@ -183,7 +183,7 @@ class DiscordCsvService(
 
         // Footer with timestamp
         val footer = JSONObject()
-        footer.put("text", "BellClaims Export System • ${formatTimestamp(Instant.now())}")
+        footer.put("text", "LumaGuilds Export System • ${formatTimestamp(Instant.now())}")
         embed.put("footer", footer)
 
         return embed
@@ -226,7 +226,7 @@ class DiscordCsvService(
 
         // Footer with timestamp
         val footer = JSONObject()
-        footer.put("text", "BellClaims Export System • ${formatTimestamp(Instant.now())}")
+        footer.put("text", "LumaGuilds Export System • ${formatTimestamp(Instant.now())}")
         embed.put("footer", footer)
 
         return embed
@@ -257,7 +257,7 @@ class DiscordCsvService(
             val embeds = JSONArray()
             embeds.put(embed)
             payload.put("embeds", embeds)
-            payload.put("username", "BellClaims Export Bot")
+            payload.put("username", "LumaGuilds Export Bot")
             payload.put("avatar_url", "https://i.imgur.com/placeholder.png") // Could be customized
 
             bodyBuilder.append(payload.toString())

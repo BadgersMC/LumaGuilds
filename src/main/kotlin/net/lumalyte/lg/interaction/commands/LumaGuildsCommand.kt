@@ -14,7 +14,7 @@ import kotlin.io.path.exists
 /**
  * Main LumaGuilds command handler for administrative functions
  */
-class BellClaimsCommand : CommandExecutor, TabCompleter, KoinComponent {
+class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
     private val fileExportManager: FileExportManager by inject()
 

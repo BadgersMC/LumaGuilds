@@ -291,7 +291,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         session.countdownTask = countdownTask
-        countdownTask.runTaskTimer(Bukkit.getPluginManager().getPlugin("BellClaims")!!, 20L, 20L) // Every second
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            ?: return // Plugin not found, cannot schedule countdown
+        countdownTask.runTaskTimer(plugin, 20L, 20L) // Every second
     }
 
     private fun cancelTeleport(playerId: UUID) {
