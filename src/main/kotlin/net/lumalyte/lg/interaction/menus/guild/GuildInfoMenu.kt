@@ -21,6 +21,8 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.format.DateTimeFormatter
+import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 
 class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                    private var guild: Guild): Menu, KoinComponent {
@@ -71,7 +73,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         if (guild.description != null) {
-            overviewItem.lore("§7Description: §f${guild.description}")
+            overviewItem.lore("§7Description: §f${parseMiniMessageForDisplay(guild.description)}")
         }
 
         if (guild.tag != null) {
@@ -201,6 +203,18 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(backGuiItem, x, y)
     }
 
+
+    private fun parseMiniMessageForDisplay(description: String?): String? {
+        if (description == null) return null
+        return try {
+            val miniMessage = MiniMessage.miniMessage()
+            val component = miniMessage.deserialize(description)
+            val plainText = PlainTextComponentSerializer.plainText().serialize(component)
+            plainText
+        } catch (e: Exception) {
+            description // Fallback to raw text if parsing fails
+        }
+    }
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return

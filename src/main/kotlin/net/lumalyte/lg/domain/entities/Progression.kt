@@ -126,21 +126,45 @@ data class LevelPerkConfig(
 ) {
     companion object {
         /**
-         * Gets the default perk configuration for all levels.
+         * Gets the default perk configuration for all levels, conditionally replacing claim-related perks when claims are disabled.
+         */
+        fun getDefaultConfigs(claimsEnabled: Boolean = true): Map<Int, LevelPerkConfig> {
+            return if (claimsEnabled) {
+                // Default configs with claim perks
+                mapOf(
+                    1 to LevelPerkConfig(1, setOf(PerkType.CUSTOM_BANNER_COLORS, PerkType.ANIMATED_EMOJIS), bankBalanceLimit = 50000), // Always unlocked
+                    2 to LevelPerkConfig(2, setOf(PerkType.INCREASED_CLAIM_BLOCKS), claimBlockBonus = 100, bankBalanceLimit = 75000),
+                    3 to LevelPerkConfig(3, setOf(PerkType.FASTER_CLAIM_REGEN), claimBlockBonus = 200, bankBalanceLimit = 100000),
+                    5 to LevelPerkConfig(5, setOf(PerkType.BANK_INTEREST, PerkType.ANNOUNCEMENT_SOUND_EFFECTS), claimBlockBonus = 500, bankInterestRate = 0.01, bankBalanceLimit = 150000),
+                    7 to LevelPerkConfig(7, setOf(PerkType.REDUCED_WITHDRAWAL_FEES), claimBlockBonus = 1000, claimCountBonus = 1, bankBalanceLimit = 200000),
+                    10 to LevelPerkConfig(10, setOf(PerkType.SPECIAL_PARTICLES, PerkType.HOME_TELEPORT_SOUND_EFFECTS), claimBlockBonus = 2000, claimCountBonus = 2, bankInterestRate = 0.015, bankBalanceLimit = 300000),
+                    15 to LevelPerkConfig(15, setOf(PerkType.ADDITIONAL_HOMES), claimBlockBonus = 5000, claimCountBonus = 3, homeLimitBonus = 1, bankBalanceLimit = 500000),
+                    20 to LevelPerkConfig(20, setOf(PerkType.TELEPORT_COOLDOWN_REDUCTION, PerkType.WAR_DECLARATION_SOUND_EFFECTS), claimBlockBonus = 10000, claimCountBonus = 5, bankBalanceLimit = 750000),
+                    25 to LevelPerkConfig(25, setOf(PerkType.HIGHER_BANK_BALANCE), claimBlockBonus = 20000, claimCountBonus = 8, bankInterestRate = 0.02, bankBalanceLimit = 1000000),
+                    30 to LevelPerkConfig(30, setOf(PerkType.INCREASED_BANK_LIMIT), claimBlockBonus = 35000, claimCountBonus = 12, bankInterestRate = 0.025, bankBalanceLimit = 1500000, homeLimitBonus = 2)
+                )
+            } else {
+                // Alternative configs when claims are disabled - focus on bank, homes, and other features
+                mapOf(
+                    1 to LevelPerkConfig(1, setOf(PerkType.CUSTOM_BANNER_COLORS, PerkType.ANIMATED_EMOJIS), bankBalanceLimit = 50000), // Always unlocked
+                    2 to LevelPerkConfig(2, setOf(PerkType.HIGHER_BANK_BALANCE), bankBalanceLimit = 100000, bankInterestRate = 0.005), // Increased bank instead of claim blocks
+                    3 to LevelPerkConfig(3, setOf(PerkType.BANK_INTEREST), bankBalanceLimit = 150000, bankInterestRate = 0.01), // Earlier bank interest
+                    5 to LevelPerkConfig(5, setOf(PerkType.ANNOUNCEMENT_SOUND_EFFECTS, PerkType.SPECIAL_PARTICLES), bankBalanceLimit = 250000, bankInterestRate = 0.015), // Extra visual perks
+                    7 to LevelPerkConfig(7, setOf(PerkType.REDUCED_WITHDRAWAL_FEES, PerkType.ADDITIONAL_HOMES), bankBalanceLimit = 400000, homeLimitBonus = 1), // Home bonus instead of claims
+                    10 to LevelPerkConfig(10, setOf(PerkType.HOME_TELEPORT_SOUND_EFFECTS, PerkType.TELEPORT_COOLDOWN_REDUCTION), bankBalanceLimit = 600000, homeLimitBonus = 1), // Enhanced teleport perks
+                    15 to LevelPerkConfig(15, setOf(PerkType.INCREASED_BANK_LIMIT), bankBalanceLimit = 1000000, bankInterestRate = 0.02, homeLimitBonus = 2), // Bank focus
+                    20 to LevelPerkConfig(20, setOf(PerkType.WAR_DECLARATION_SOUND_EFFECTS), bankBalanceLimit = 1500000, bankInterestRate = 0.025, homeLimitBonus = 3), // War and home focus
+                    25 to LevelPerkConfig(25, setOf(PerkType.HIGHER_BANK_BALANCE), bankBalanceLimit = 2500000, bankInterestRate = 0.03, homeLimitBonus = 4), // Maximum bank
+                    30 to LevelPerkConfig(30, setOf(PerkType.INCREASED_BANK_LIMIT), bankBalanceLimit = 5000000, bankInterestRate = 0.035, homeLimitBonus = 5) // Ultimate bank limit
+                )
+            }
+        }
+
+        /**
+         * Legacy method for backward compatibility - assumes claims are enabled
          */
         fun getDefaultConfigs(): Map<Int, LevelPerkConfig> {
-            return mapOf(
-                1 to LevelPerkConfig(1, setOf(PerkType.CUSTOM_BANNER_COLORS, PerkType.ANIMATED_EMOJIS), bankBalanceLimit = 50000), // Always unlocked
-                2 to LevelPerkConfig(2, setOf(PerkType.INCREASED_CLAIM_BLOCKS), claimBlockBonus = 100, bankBalanceLimit = 75000),
-                3 to LevelPerkConfig(3, setOf(PerkType.FASTER_CLAIM_REGEN), claimBlockBonus = 200, bankBalanceLimit = 100000),
-                5 to LevelPerkConfig(5, setOf(PerkType.BANK_INTEREST, PerkType.ANNOUNCEMENT_SOUND_EFFECTS), claimBlockBonus = 500, bankInterestRate = 0.01, bankBalanceLimit = 150000),
-                7 to LevelPerkConfig(7, setOf(PerkType.REDUCED_WITHDRAWAL_FEES), claimBlockBonus = 1000, claimCountBonus = 1, bankBalanceLimit = 200000),
-                10 to LevelPerkConfig(10, setOf(PerkType.SPECIAL_PARTICLES, PerkType.HOME_TELEPORT_SOUND_EFFECTS), claimBlockBonus = 2000, claimCountBonus = 2, bankInterestRate = 0.015, bankBalanceLimit = 300000),
-                15 to LevelPerkConfig(15, setOf(PerkType.ADDITIONAL_HOMES), claimBlockBonus = 5000, claimCountBonus = 3, homeLimitBonus = 1, bankBalanceLimit = 500000),
-                20 to LevelPerkConfig(20, setOf(PerkType.TELEPORT_COOLDOWN_REDUCTION, PerkType.WAR_DECLARATION_SOUND_EFFECTS), claimBlockBonus = 10000, claimCountBonus = 5, bankBalanceLimit = 750000),
-                25 to LevelPerkConfig(25, setOf(PerkType.HIGHER_BANK_BALANCE), claimBlockBonus = 20000, claimCountBonus = 8, bankInterestRate = 0.02, bankBalanceLimit = 1000000),
-                30 to LevelPerkConfig(30, setOf(PerkType.INCREASED_BANK_LIMIT), claimBlockBonus = 35000, claimCountBonus = 12, bankInterestRate = 0.025, bankBalanceLimit = 1500000, homeLimitBonus = 2)
-            )
+            return getDefaultConfigs(true)
         }
     }
 }
