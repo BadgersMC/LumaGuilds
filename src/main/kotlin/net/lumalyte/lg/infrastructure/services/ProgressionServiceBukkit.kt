@@ -82,7 +82,7 @@ class ProgressionServiceBukkit(
                 return newLevel
             }
 
-            logger.debug("Guild $guildId gained $experience XP from $source (total: $newTotalExperience, level: $newLevel)")
+            // Debug logging removed - issue is solved
             return null
 
         } catch (e: Exception) {
