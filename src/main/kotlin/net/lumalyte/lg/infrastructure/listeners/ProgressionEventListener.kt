@@ -145,7 +145,7 @@ class ProgressionEventListener : Listener, KoinComponent {
             }
 
             guildIds.forEach { guildId ->
-                logger.info("✅ AWARDED: $amount XP to guild $guildId for player ${player.name} from $source")
+                // Debug logging removed - issue is solved
                 progressionService.awardExperience(guildId, amount, source)
             }
         } catch (e: Exception) {
