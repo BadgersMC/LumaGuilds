@@ -96,7 +96,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     
     @Subcommand("sethome")
     @CommandPermission("lumaguilds.guild.sethome")
-    fun onSetHome(player: Player, @Optional confirm: String?) {
+    fun onSetHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
         // Check if this is a confirmation for an unsafe location
         if (confirm?.lowercase() == "unsafe") {
             val pendingLocation = GuildHomeSafety.consumePending(player)
@@ -127,6 +127,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val guild = guilds.first()
         val location = player.location
+        val targetHomeName = homeName ?: "main"
 
         // Check if claims are enabled in config
         val config = configService.loadConfig()
@@ -182,12 +183,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Set the home
-        setGuildHomeCommand(player, guild, location)
+        setGuildHomeCommand(player, guild, location, targetHomeName)
     }
     
     @Subcommand("home")
     @CommandPermission("lumaguilds.guild.home")
-    fun onHome(player: Player, @Optional confirm: String?) {
+    fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
         // Check if this is a confirmation for an unsafe teleport
         if (confirm?.lowercase() == "confirm") {
             val pendingLocation = GuildHomeSafety.consumePending(player)
@@ -210,7 +211,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         val guild = guilds.first()
-        val home = guildService.getHome(guild.id)
+        val targetHomeName = homeName ?: "main"
+        val home = guildService.getHome(guild.id, targetHomeName)
 
         if (home != null) {
             // Check if player already has an active teleport
@@ -240,10 +242,56 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Start teleport countdown
             startTeleportCountdown(player, targetLocation)
         } else {
-            player.sendMessage("§cGuild home has not been set.")
+            // Check if the guild has any homes at all
+            val allHomes = guildService.getHomes(guild.id)
+            if (allHomes.hasHomes()) {
+                player.sendMessage("§cHome '$targetHomeName' has not been set.")
+                player.sendMessage("§7Available homes: §f${allHomes.homeNames.joinToString(", ")}")
+                player.sendMessage("§7Use §6/guild home <name> §7to teleport to a specific home.")
+            } else {
+                player.sendMessage("§cNo guild homes have been set.")
+                player.sendMessage("§7Use §6/guild sethome §7to set your first home.")
+            }
         }
     }
-    
+
+    @Subcommand("homes")
+    @CommandPermission("lumaguilds.guild.home")
+    fun onHomes(player: Player) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+        val allHomes = guildService.getHomes(guild.id)
+        val availableSlots = guildService.getAvailableHomeSlots(guild.id)
+
+        player.sendMessage("§6=== Guild Homes ===")
+        if (allHomes.hasHomes()) {
+            player.sendMessage("§7Your guild has §f${allHomes.size}§7/${availableSlots}§7 home slots:")
+            allHomes.homes.forEach { entry ->
+                val name = entry.key
+                val home = entry.value
+                val marker = if (name == "main") "§e[MAIN]" else ""
+                player.sendMessage("§7• §f$name $marker §7- §f${home.position.x}, ${home.position.y}, ${home.position.z}")
+            }
+            player.sendMessage("§7Use §6/guild home <name> §7to teleport to a home.")
+        } else {
+            player.sendMessage("§7No homes have been set yet.")
+        }
+
+        if (allHomes.size < availableSlots) {
+            player.sendMessage("§7Available slots: §f${availableSlots - allHomes.size}")
+            player.sendMessage("§7Use §6/guild sethome <name> §7to set additional homes.")
+        }
+        player.sendMessage("§6==================")
+    }
+
     @Subcommand("ranks")
     @CommandPermission("lumaguilds.guild.ranks")
     fun onRanks(player: Player) {
@@ -667,14 +715,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.sendMessage("§6⚔ Opening war management menu...")
     }
 
-    private fun setGuildHomeCommand(player: Player, guild: net.lumalyte.lg.domain.entities.Guild, location: org.bukkit.Location) {
+    private fun setGuildHomeCommand(player: Player, guild: net.lumalyte.lg.domain.entities.Guild, location: org.bukkit.Location, homeName: String = "main") {
         val home = GuildHome(
             worldId = location.world.uid,
             position = location.toPosition3D()
         )
 
+        val config = configService.loadConfig()
+
         // Check if location is safe (if safety check is enabled)
-        if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
+        if (config.guild.homeTeleportSafetyCheck) {
             val safetyResult = GuildHomeSafety.evaluateSafety(location)
             if (!safetyResult.safe) {
                 player.sendMessage("§e[Warning] §7That home looks unsafe: §c${safetyResult.reason}")
@@ -683,12 +733,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
         }
 
-        val success = guildService.setHome(guild.id, home, player.uniqueId)
+        val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
 
         if (success) {
-            player.sendMessage("§a✅ Guild home set successfully!")
+            val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
+            player.sendMessage("§a✅ Guild $homeLabel set successfully!")
             player.sendMessage("§7Location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
-            player.sendMessage("§7This location is within your guild's claim area.")
+            if (config.claimsEnabled) {
+                player.sendMessage("§7This location is within your guild's claim area.")
+            }
             player.sendMessage("§7Members can now use §6/guild home §7to teleport here.")
         } else {
             player.sendMessage("§c❌ Failed to set guild home. You may not have permission.")

@@ -269,16 +269,33 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
     private fun addLocationModeSection(pane: StaticPane) {
         // Guild Home
         val homeItem = ItemStack(Material.COMPASS)
-                .name("§f⌂ HOME LOCATION")
-            .lore("§7Status: §f${if (guild.home != null) "Set" else "§cNot set"}")
+                .name("§f🏠 HOME MANAGEMENT")
 
-        if (guild.home != null) {
-            homeItem.lore("§7World: §f${guild.home!!.worldId}")
-            homeItem.lore("§7Position: §f${guild.home!!.position.x.toInt()}, ${guild.home!!.position.y.toInt()}, ${guild.home!!.position.z.toInt()}")
+        val allHomes = guildService.getHomes(guild.id)
+        val availableSlots = guildService.getAvailableHomeSlots(guild.id)
+
+        homeItem.lore("§7Homes Set: §f${allHomes.size}§7/${availableSlots}")
+        homeItem.lore("§7")
+
+        if (allHomes.hasHomes()) {
+            allHomes.homes.entries.take(3).forEach { entry ->
+                val name = entry.key
+                val marker = if (name == "main") "§e[MAIN]" else ""
+                homeItem.lore("§7• §f$name $marker")
+            }
+            if (allHomes.size > 3) {
+                homeItem.lore("§7• §f... and ${allHomes.size - 3} more")
+            }
             homeItem.lore("§7")
-            homeItem.lore("§7Click to manage home")
+            homeItem.lore("§eClick to manage homes")
         } else {
-            homeItem.lore("§7Click to set home location")
+            homeItem.lore("§7No homes set yet")
+            homeItem.lore("§7")
+            homeItem.lore("§eClick to set first home")
+        }
+
+        if (allHomes.size < availableSlots) {
+            homeItem.lore("§aAvailable slots: §f${availableSlots - allHomes.size}")
         }
 
         val homeGuiItem = GuiItem(homeItem) {

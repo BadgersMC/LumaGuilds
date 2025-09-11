@@ -13,7 +13,7 @@ import java.util.UUID
  * @property emoji The Nexo emoji placeholder for the guild tag (e.g., ":catsmileysmile:").
  * @property tag The custom display tag for the guild (supports MiniMessage formatting).
  * @property description The description of the guild.
- * @property home The home location of the guild, if set.
+ * @property homes The home locations of the guild.
  * @property level The current level of the guild.
  * @property bankBalance The current bank balance of the guild.
  * @property mode The current mode of the guild (Peaceful or Hostile).
@@ -27,7 +27,7 @@ data class Guild(
     val emoji: String? = null,
     val tag: String? = null,
     val description: String? = null,
-    val home: GuildHome? = null,
+    val homes: GuildHomes = GuildHomes.EMPTY,
     val level: Int = 1,
     val bankBalance: Int = 0,
     val mode: GuildMode = GuildMode.HOSTILE,
@@ -53,6 +53,13 @@ data class Guild(
             }
         }
     }
+
+    /**
+     * Gets the default/main home for backward compatibility.
+     * @deprecated Use homes.defaultHome instead for new code.
+     */
+    val home: GuildHome?
+        get() = homes.defaultHome
 }
 
 /**
@@ -65,6 +72,65 @@ data class GuildHome(
     val worldId: UUID,
     val position: Position3D
 )
+
+/**
+ * Represents multiple home locations for a guild with names/identifiers.
+ *
+ * @property homes A map of home names to their locations.
+ */
+data class GuildHomes(
+    val homes: Map<String, GuildHome> = emptyMap()
+) {
+    /**
+     * Gets the default/main home (first one if no "main" exists).
+     */
+    val defaultHome: GuildHome?
+        get() = homes["main"] ?: homes.values.firstOrNull()
+
+    /**
+     * Gets all home names.
+     */
+    val homeNames: Set<String>
+        get() = homes.keys
+
+    /**
+     * Gets a specific home by name.
+     */
+    fun getHome(name: String): GuildHome? = homes[name]
+
+    /**
+     * Adds or updates a home.
+     */
+    fun withHome(name: String, home: GuildHome): GuildHomes {
+        val newHomes = homes.toMutableMap()
+        newHomes[name] = home
+        return GuildHomes(newHomes)
+    }
+
+    /**
+     * Removes a home by name.
+     */
+    fun withoutHome(name: String): GuildHomes {
+        val newHomes = homes.toMutableMap()
+        newHomes.remove(name)
+        return GuildHomes(newHomes)
+    }
+
+    /**
+     * Checks if the guild has any homes.
+     */
+    fun hasHomes(): Boolean = homes.isNotEmpty()
+
+    /**
+     * Gets the number of homes set.
+     */
+    val size: Int
+        get() = homes.size
+
+    companion object {
+        val EMPTY = GuildHomes(emptyMap())
+    }
+}
 
 /**
  * Represents the mode of a guild.

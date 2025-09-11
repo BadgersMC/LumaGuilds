@@ -2,6 +2,7 @@ package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
+import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
 import java.util.UUID
@@ -104,25 +105,61 @@ interface GuildService {
     fun getDescription(guildId: UUID): String?
 
     /**
-     * Sets the home location for a guild.
+     * Sets a home location for a guild with a specific name.
      *
      * @param guildId The ID of the guild.
+     * @param homeName The name of the home (e.g., "main", "base", "shop").
      * @param home The home location.
      * @param actorId The ID of the player performing the action.
      * @return true if successful, false otherwise.
      */
-    fun setHome(guildId: UUID, home: GuildHome, actorId: UUID): Boolean
+    fun setHome(guildId: UUID, homeName: String, home: GuildHome, actorId: UUID): Boolean
 
     /**
-     * Gets the home location for a guild.
+     * Gets the default/main home location for a guild.
      *
      * @param guildId The ID of the guild.
-     * @return The home location, or null if not set.
+     * @return The default home location, or null if not set.
      */
     fun getHome(guildId: UUID): GuildHome?
 
     /**
-     * Removes the home location for a guild.
+     * Gets a specific home location for a guild by name.
+     *
+     * @param guildId The ID of the guild.
+     * @param homeName The name of the home.
+     * @return The home location, or null if not found.
+     */
+    fun getHome(guildId: UUID, homeName: String): GuildHome?
+
+    /**
+     * Gets all homes for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return The guild's homes.
+     */
+    fun getHomes(guildId: UUID): GuildHomes
+
+    /**
+     * Gets the number of available home slots for a guild based on progression.
+     *
+     * @param guildId The ID of the guild.
+     * @return The number of available home slots.
+     */
+    fun getAvailableHomeSlots(guildId: UUID): Int
+
+    /**
+     * Removes a specific home location for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param homeName The name of the home to remove.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun removeHome(guildId: UUID, homeName: String, actorId: UUID): Boolean
+
+    /**
+     * Removes all home locations for a guild.
      *
      * @param guildId The ID of the guild.
      * @param actorId The ID of the player performing the action.
