@@ -156,7 +156,7 @@ class ProgressionServiceBukkit(
     }
 
     override fun getPerksForLevel(level: Int): List<PerkType> {
-        val configs = LevelPerkConfig.getDefaultConfigs()
+        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
         return configs[level]?.unlockedPerks?.toList() ?: emptyList()
     }
 
@@ -178,7 +178,7 @@ class ProgressionServiceBukkit(
 
     override fun getMaxClaimBlocks(guildId: UUID): Int {
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 0
-        val configs = LevelPerkConfig.getDefaultConfigs()
+        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
         
         var totalBonus = 0
         for (level in 1..progression.currentLevel) {
@@ -189,7 +189,7 @@ class ProgressionServiceBukkit(
 
     override fun getMaxClaimCount(guildId: UUID): Int {
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 0
-        val configs = LevelPerkConfig.getDefaultConfigs()
+        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
         
         var totalBonus = 0
         for (level in 1..progression.currentLevel) {
@@ -200,7 +200,7 @@ class ProgressionServiceBukkit(
 
     override fun getBankInterestRate(guildId: UUID): Double {
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 0.0
-        val configs = LevelPerkConfig.getDefaultConfigs()
+        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
         
         var maxRate = 0.0
         for (level in 1..progression.currentLevel) {
@@ -272,7 +272,7 @@ class ProgressionServiceBukkit(
 
     override fun getMaxHomes(guildId: UUID): Int {
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 1
-        val configs = LevelPerkConfig.getDefaultConfigs()
+        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
         
         var totalBonus = 0
         for (level in 1..progression.currentLevel) {

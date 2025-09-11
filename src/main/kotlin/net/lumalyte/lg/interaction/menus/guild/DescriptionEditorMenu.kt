@@ -84,7 +84,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     private fun addCurrentDescriptionDisplay(pane: StaticPane, x: Int, y: Int) {
         val displayItem = ItemStack(Material.BOOK)
             .name("§eCurrent Description")
-            .lore("§7${currentDescription ?: "§oNone set"}")
+            .lore("§7${parseMiniMessageForDisplay(currentDescription) ?: "§oNone set"}")
             .lore("")
             .lore("§7This is the description that")
             .lore("§7is currently displayed for your guild")
@@ -197,7 +197,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
         if (success) {
             player.sendMessage("§a✅ Guild description updated successfully!")
-            player.sendMessage("§7New description: §f${description ?: "§oCleared"}")
+            player.sendMessage("§7New description: §f${parseMiniMessageForDisplay(description) ?: "§oCleared"}")
 
             // Refresh guild data
             guild = guildService.getGuild(guild.id) ?: guild
@@ -259,6 +259,18 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     private fun setInputDescription(description: String?) {
         inputDescription = description
         validationError = validateDescription(description)
+    }
+
+    private fun parseMiniMessageForDisplay(description: String?): String? {
+        if (description == null) return null
+        return try {
+            val miniMessage = MiniMessage.miniMessage()
+            val component = miniMessage.deserialize(description)
+            val plainText = PlainTextComponentSerializer.plainText().serialize(component)
+            plainText
+        } catch (e: Exception) {
+            description // Fallback to raw text if parsing fails
+        }
     }
 
     override fun passData(data: Any?) {

@@ -164,10 +164,10 @@ class GuildMemberRankMenu(
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
             .name("§c⬅️ BACK")
-            .lore("§7Return to member management")
+            .lore("§7Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.goBack()
+            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, x, y)
     }
