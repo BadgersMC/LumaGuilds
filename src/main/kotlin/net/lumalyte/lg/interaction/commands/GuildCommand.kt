@@ -14,6 +14,7 @@ import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.guild.*
 import net.lumalyte.lg.utils.deserializeToItemStack
+import net.lumalyte.lg.utils.GuildHomeSafety
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -96,6 +97,25 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("sethome")
     @CommandPermission("lumaguilds.guild.sethome")
     fun onSetHome(player: Player, @Optional confirm: String?) {
+        // Check if this is a confirmation for an unsafe location
+        if (confirm?.lowercase() == "unsafe") {
+            val pendingLocation = GuildHomeSafety.consumePending(player)
+            if (pendingLocation != null) {
+                // Get player's guild
+                val playerId = player.uniqueId
+                val guilds = guildService.getPlayerGuilds(playerId)
+                if (guilds.isEmpty()) {
+                    player.sendMessage("§cYou are not in a guild.")
+                    return
+                }
+                val guild = guilds.first()
+                setGuildHomeCommand(player, guild, pendingLocation)
+                return
+            } else {
+                player.sendMessage("§cNo pending unsafe location to confirm, or confirmation expired.")
+                return
+            }
+        }
         val playerId = player.uniqueId
 
         // Find player's guild
@@ -143,9 +163,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
         }
 
-        // Check if guild already has a home
+        // Check if guild already has a home (separate from safety confirmation)
         val currentHome = guildService.getHome(guild.id)
-        if (currentHome != null && confirm?.lowercase() != "confirm") {
+        if (currentHome != null && confirm?.lowercase() != "confirm" && confirm?.lowercase() != "unsafe") {
             player.sendMessage("§c⚠️ Your guild already has a home set!")
             player.sendMessage("§7Current home: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}")
             player.sendMessage("§7New location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
@@ -154,13 +174,32 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Set the home (either new or confirmed replacement)
+        // Check safety and handle confirmation system
+        if (config.guild.homeTeleportSafetyCheck) {
+            if (!GuildHomeSafety.checkOrAskConfirm(player, location, "/guild sethome unsafe")) {
+                return
+            }
+        }
+
+        // Set the home
         setGuildHomeCommand(player, guild, location)
     }
     
     @Subcommand("home")
     @CommandPermission("lumaguilds.guild.home")
-    fun onHome(player: Player) {
+    fun onHome(player: Player, @Optional confirm: String?) {
+        // Check if this is a confirmation for an unsafe teleport
+        if (confirm?.lowercase() == "confirm") {
+            val pendingLocation = GuildHomeSafety.consumePending(player)
+            if (pendingLocation != null) {
+                startTeleportCountdown(player, pendingLocation)
+                return
+            } else {
+                player.sendMessage("§cNo pending unsafe teleport to confirm, or confirmation expired.")
+                return
+            }
+        }
+
         val playerId = player.uniqueId
 
         // Find player's guild
@@ -192,10 +231,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
             targetLocation.pitch = player.location.pitch
 
             // Check if target location is safe (if safety check is enabled)
-            if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(targetLocation)) {
-                player.sendMessage("§c❌ Guild home location is not safe to teleport to!")
-                player.sendMessage("§7Try setting your home on solid ground with space above you.")
-                return
+            if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
+                if (!GuildHomeSafety.checkOrAskConfirm(player, targetLocation, "/guild home confirm")) {
+                    return
+                }
             }
 
             // Start teleport countdown
@@ -635,10 +674,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
         )
 
         // Check if location is safe (if safety check is enabled)
-        if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(location)) {
-            player.sendMessage("§c❌ This location is not safe to set as guild home!")
-            player.sendMessage("§7Try setting your home on solid ground with space above you.")
-            return
+        if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
+            val safetyResult = GuildHomeSafety.evaluateSafety(location)
+            if (!safetyResult.safe) {
+                player.sendMessage("§e[Warning] §7That home looks unsafe: §c${safetyResult.reason}")
+                player.sendMessage("§7Use §6/guild sethome confirm §7within 10s to set anyway.")
+                return
+            }
         }
 
         val success = guildService.setHome(guild.id, home, player.uniqueId)
@@ -725,41 +767,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
 
     private fun isLocationSafe(location: org.bukkit.Location): Boolean {
-        val block = location.block
-        val blockBelow = location.clone().subtract(0.0, 1.0, 0.0).block
-        val blockAbove = location.clone().add(0.0, 1.0, 0.0).block
-
-        // Define dangerous materials that should prevent teleportation
-        val dangerousMaterials = setOf(
-            org.bukkit.Material.LAVA,
-            org.bukkit.Material.FIRE,
-            org.bukkit.Material.SOUL_FIRE,
-            org.bukkit.Material.CACTUS,
-            org.bukkit.Material.SWEET_BERRY_BUSH,
-            org.bukkit.Material.POINTED_DRIPSTONE,
-            org.bukkit.Material.MAGMA_BLOCK
-        )
-
-        // Check if location has safe ground and space to stand
-        val hasSafeGround = blockBelow.type.isSolid || blockBelow.type == org.bukkit.Material.GRASS_BLOCK ||
-                           blockBelow.type == org.bukkit.Material.DIRT || blockBelow.type == org.bukkit.Material.COARSE_DIRT ||
-                           blockBelow.type == org.bukkit.Material.PODZOL || blockBelow.type == org.bukkit.Material.SAND ||
-                           blockBelow.type == org.bukkit.Material.RED_SAND || blockBelow.type == org.bukkit.Material.GRAVEL ||
-                           blockBelow.type == org.bukkit.Material.STONE || blockBelow.type == org.bukkit.Material.COBBLESTONE
-
-        val hasSpaceToStand = !block.type.isSolid || block.type == org.bukkit.Material.SHORT_GRASS ||
-                             block.type == org.bukkit.Material.TALL_GRASS || block.type == org.bukkit.Material.FERN ||
-                             block.type == org.bukkit.Material.LARGE_FERN
-
-        val hasHeadSpace = !blockAbove.type.isSolid || blockAbove.type == org.bukkit.Material.SHORT_GRASS ||
-                          blockAbove.type == org.bukkit.Material.TALL_GRASS || blockAbove.type == org.bukkit.Material.FERN ||
-                          blockAbove.type == org.bukkit.Material.LARGE_FERN
-
-        val noDangerousBlocks = !dangerousMaterials.contains(blockBelow.type) &&
-                               !dangerousMaterials.contains(block.type) &&
-                               !dangerousMaterials.contains(blockAbove.type)
-
-        return hasSafeGround && hasSpaceToStand && hasHeadSpace && noDangerousBlocks
+        return GuildHomeSafety.evaluateSafety(location).safe
     }
 
 }
