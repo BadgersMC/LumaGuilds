@@ -3,6 +3,7 @@ package net.lumalyte.lg.config
 data class MainConfig(
     // Core Claims Configuration
     var claimsEnabled: Boolean = true,
+    var partiesEnabled: Boolean = true,
     var claimLimit: Int = 0,
     var claimBlockLimit: Int = 0,
     var initialClaimSize: Int = 0,
@@ -39,12 +40,13 @@ data class GuildConfig(
     
     // Mode Switching
     var peacefulModeEnabled: Boolean = true,
+    var modeSwitchingEnabled: Boolean = true, // If false, guilds cannot switch between peaceful/hostile modes
     var modeSwitchCooldownDays: Int = 7,
     var hostileModeMinimumDays: Int = 7,
     var peacefulModeClaimPvpDisabled: Boolean = true,
     var peacefulModePreventWars: Boolean = true,
     var peacefulGuildPvpOptIn: Boolean = false, // If true, peaceful guilds can opt-in to PvP; if false, PvP is forced off
-    
+
     // Ranks and Members
     var maxCustomRanks: Int = 10,
     var maxRankNameLength: Int = 16,
@@ -61,7 +63,19 @@ data class GuildConfig(
     var bannerCopyCost: Int = 100,
     var bannerCopyChargeGuildBank: Boolean = true,
     // If true, banner copies are free regardless of cost setting
-    var bannerCopyFree: Boolean = false 
+    var bannerCopyFree: Boolean = false,
+
+    // Item-based cost system for banner copies
+    var bannerCopyUseItemCost: Boolean = false, // If true, use item cost instead of coin cost
+    var bannerCopyItemMaterial: String = "DIAMOND", // Material name for item cost
+    var bannerCopyItemAmount: Int = 1, // Amount of items required
+    var bannerCopyItemCustomModelData: Int? = null, // Custom model data for the item
+
+    // War & Combat
+    var peaceAgreementSystemEnabled: Boolean = false, // If true, replaces default war ending with peace agreements
+    var dailyWarExpCost: Int = 10, // EXP lost per day during war
+    var dailyWarMoneyCost: Int = 100, // Money lost per day during war
+    var warFarmingCooldownHours: Int = 24 // Hours before guild can earn EXP after war ends
 )
 
 data class BankConfig(

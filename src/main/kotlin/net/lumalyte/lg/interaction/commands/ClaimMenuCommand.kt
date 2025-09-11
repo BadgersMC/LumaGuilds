@@ -12,7 +12,7 @@ import net.lumalyte.lg.interaction.menus.misc.ClaimListMenu
 class ClaimMenuCommand: BaseCommand() {
 
     @Default
-    @CommandPermission("bellclaims.command.claimmenu")
+    @CommandPermission("lumaguilds.command.claimmenu")
     fun onClaimMenu(player: Player) {
         val menuNavigator = MenuNavigator(player)
         menuNavigator.openMenu(ClaimListMenu(menuNavigator, player))

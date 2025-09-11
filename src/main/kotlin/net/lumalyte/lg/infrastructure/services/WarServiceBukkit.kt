@@ -16,6 +16,8 @@ class WarServiceBukkit : WarService {
     private val warDeclarations = mutableMapOf<UUID, WarDeclaration>()
     private val warStats = mutableMapOf<UUID, WarStats>()
     private val warWagers = mutableMapOf<UUID, WarWager>()
+    private val peaceAgreements = mutableMapOf<UUID, PeaceAgreement>()
+    private val warFarmingCooldowns = mutableMapOf<UUID, Instant>()
 
     override fun declareWar(
         declaringGuildId: UUID,
@@ -125,6 +127,10 @@ class WarServiceBukkit : WarService {
                 peaceTerms = peaceTerms
             )
             wars[warId] = endedWar
+
+            // Apply war farming cooldown to the winner
+            applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, winnerGuildId)
+
             logger.info("War ended: $warId, winner: $winnerGuildId")
             true
         } catch (e: Exception) {
@@ -370,5 +376,162 @@ class WarServiceBukkit : WarService {
 
     override fun getWager(warId: UUID): WarWager? {
         return warWagers[warId]
+    }
+
+    // Peace Agreement Methods
+    override fun proposePeaceAgreement(
+        warId: UUID,
+        proposingGuildId: UUID,
+        peaceTerms: String,
+        offering: PeaceOffering?
+    ): PeaceAgreement? {
+        return try {
+            val war = wars[warId]
+            if (war == null || !war.isActive) {
+                logger.warn("Cannot propose peace for inactive or non-existent war $warId")
+                return null
+            }
+
+            // Determine the target guild (the one that didn't propose)
+            val targetGuildId = if (war.declaringGuildId == proposingGuildId) {
+                war.defendingGuildId
+            } else {
+                war.declaringGuildId
+            }
+
+            val agreement = PeaceAgreement(
+                warId = warId,
+                proposingGuildId = proposingGuildId,
+                targetGuildId = targetGuildId,
+                peaceTerms = peaceTerms,
+                offering = offering
+            )
+
+            peaceAgreements[agreement.id] = agreement
+            logger.info("Peace agreement ${agreement.id} proposed for war $warId")
+            agreement
+        } catch (e: Exception) {
+            logger.error("Error proposing peace agreement", e)
+            null
+        }
+    }
+
+    override fun acceptPeaceAgreement(agreementId: UUID, acceptingGuildId: UUID): War? {
+        return try {
+            val agreement = peaceAgreements[agreementId]
+            if (agreement == null || !agreement.isValid || agreement.targetGuildId != acceptingGuildId) {
+                logger.warn("Cannot accept invalid peace agreement $agreementId")
+                return null
+            }
+
+            val war = wars[agreement.warId]
+            if (war == null || !war.isActive) {
+                logger.warn("Cannot accept peace for inactive war ${agreement.warId}")
+                return null
+            }
+
+            // End the war
+            val endedWar = war.copy(
+                status = WarStatus.ENDED,
+                endedAt = Instant.now(),
+                peaceTerms = agreement.peaceTerms
+            )
+
+            wars[war.id] = endedWar
+            peaceAgreements[agreementId] = agreement.copy(accepted = true, acceptedAt = Instant.now())
+
+            // Apply war farming cooldown to the winner
+            applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, war.winner)
+
+            logger.info("Peace agreement accepted, war ${war.id} ended")
+            endedWar
+        } catch (e: Exception) {
+            logger.error("Error accepting peace agreement", e)
+            null
+        }
+    }
+
+    override fun rejectPeaceAgreement(agreementId: UUID, rejectingGuildId: UUID): Boolean {
+        return try {
+            val agreement = peaceAgreements[agreementId]
+            if (agreement == null || !agreement.isValid || agreement.targetGuildId != rejectingGuildId) {
+                logger.warn("Cannot reject invalid peace agreement $agreementId")
+                return false
+            }
+
+            peaceAgreements[agreementId] = agreement.copy(rejected = true)
+            logger.info("Peace agreement $agreementId rejected")
+            true
+        } catch (e: Exception) {
+            logger.error("Error rejecting peace agreement", e)
+            false
+        }
+    }
+
+    override fun getPeaceAgreementsForWar(warId: UUID): List<PeaceAgreement> {
+        return peaceAgreements.values.filter { it.warId == warId }
+    }
+
+    override fun getPendingPeaceAgreementsForGuild(guildId: UUID): List<PeaceAgreement> {
+        return peaceAgreements.values.filter { it.targetGuildId == guildId && it.isValid }
+    }
+
+    // Daily War Costs
+    override fun applyDailyWarCosts(): Int {
+        return try {
+            val activeWars = wars.values.filter { it.isActive }
+            val affectedGuilds = mutableSetOf<UUID>()
+
+            for (war in activeWars) {
+                affectedGuilds.add(war.declaringGuildId)
+                affectedGuilds.add(war.defendingGuildId)
+            }
+
+            // TODO: Implement actual EXP and money deduction from guilds
+            // This would require integration with GuildService and BankService
+            logger.info("Applied daily war costs to ${affectedGuilds.size} guilds")
+
+            affectedGuilds.size
+        } catch (e: Exception) {
+            logger.error("Error applying daily war costs", e)
+            0
+        }
+    }
+
+    // War Farming Cooldown Methods
+    private fun applyWarFarmingCooldown(declaringGuildId: UUID, defendingGuildId: UUID, winnerGuildId: UUID?) {
+        if (winnerGuildId == null) return // No winner for draw
+
+        // Apply cooldown to the winning guild
+        val cooldownEnd = Instant.now().plusSeconds(getWarFarmingCooldownSeconds())
+        warFarmingCooldowns[winnerGuildId] = cooldownEnd
+
+        logger.info("Applied war farming cooldown to guild $winnerGuildId until $cooldownEnd")
+    }
+
+    private fun getWarFarmingCooldownSeconds(): Long {
+        // Convert hours from config to seconds
+        return 60 * 60L // Default 1 hour in seconds if config not available
+        // TODO: Get actual config value when ConfigService is injected
+    }
+
+    override fun isGuildInWarFarmingCooldown(guildId: UUID): Boolean {
+        val cooldownEnd = warFarmingCooldowns[guildId]
+        return cooldownEnd != null && Instant.now().isBefore(cooldownEnd)
+    }
+
+    override fun getGuildWarFarmingCooldownEnd(guildId: UUID): java.time.Instant? {
+        return warFarmingCooldowns[guildId]
+    }
+
+    override fun updateGuildWarFarmingCooldown(guildId: UUID, endTime: java.time.Instant): Boolean {
+        return try {
+            warFarmingCooldowns[guildId] = endTime
+            logger.info("Updated war farming cooldown for guild $guildId until $endTime")
+            true
+        } catch (e: Exception) {
+            logger.error("Error updating war farming cooldown", e)
+            false
+        }
     }
 }

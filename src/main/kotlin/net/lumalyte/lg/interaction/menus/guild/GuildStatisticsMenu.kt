@@ -115,7 +115,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .lore("§7Losses: §c$losses")
                 .lore("§7Draws: §e$draws")
                 .lore("")
-                .lore("§7Win Rate: §e${calculateWinRate(wins, warHistory.size)}%")
+                .lore("§7Win Rate: §e${decimalFormat.format(calculateWinRate(wins, warHistory.size))}%")
 
             val guiItem = GuiItem(item) {
                 openWarStatsDetail()
@@ -210,8 +210,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     // Helper functions for calculations and ratings
-    private fun calculateWinRate(wins: Int, totalWars: Int): String {
-        return if (totalWars > 0) decimalFormat.format((wins.toDouble() / totalWars) * 100) else "0"
+    private fun calculateWinRate(wins: Int, totalWars: Int): Double {
+        return if (totalWars > 0) (wins.toDouble() / totalWars) * 100 else 0.0
     }
 
     private fun calculateActivityRate(totalMembers: Int, onlineMembers: Int): String {

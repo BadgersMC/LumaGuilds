@@ -12,6 +12,7 @@ import java.util.UUID
  * @property banner The banner ItemStack data serialized as string for the guild.
  * @property emoji The Nexo emoji placeholder for the guild tag (e.g., ":catsmileysmile:").
  * @property tag The custom display tag for the guild (supports MiniMessage formatting).
+ * @property description The description of the guild.
  * @property home The home location of the guild, if set.
  * @property level The current level of the guild.
  * @property bankBalance The current bank balance of the guild.
@@ -25,6 +26,7 @@ data class Guild(
     val banner: String? = null,
     val emoji: String? = null,
     val tag: String? = null,
+    val description: String? = null,
     val home: GuildHome? = null,
     val level: Int = 1,
     val bankBalance: Int = 0,
@@ -41,6 +43,13 @@ data class Guild(
         emoji?.let { emojiValue ->
             require(emojiValue.startsWith(":") && emojiValue.endsWith(":") && emojiValue.length > 2) {
                 "Guild emoji must be a valid Nexo placeholder format (e.g., ':catsmileysmile:')"
+            }
+        }
+
+        // Validate description length if provided
+        description?.let { descValue ->
+            require(descValue.length <= 100) {
+                "Guild description must be 100 characters or less."
             }
         }
     }

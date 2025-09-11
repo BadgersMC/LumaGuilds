@@ -19,7 +19,7 @@ class ClaimListCommand : BaseCommand(), KoinComponent {
     private val getClaimBlockCount: GetClaimBlockCount by inject()
 
     @Default
-    @CommandPermission("bellclaims.command.claimlist")
+    @CommandPermission("lumaguilds.command.claimlist")
     @CommandCompletion("@nothing @players")
     @Syntax("[count] [player]")
     fun onClaimList(player: Player, @Default("1") page: Int) {

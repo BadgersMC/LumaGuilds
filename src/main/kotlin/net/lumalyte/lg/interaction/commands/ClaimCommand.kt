@@ -10,6 +10,8 @@ import net.lumalyte.lg.application.actions.claim.partition.GetPartitionByPositio
 import net.lumalyte.lg.application.actions.player.tool.GivePlayerClaimTool
 import net.lumalyte.lg.application.results.player.DoesPlayerHaveClaimOverrideResult
 import net.lumalyte.lg.application.results.player.tool.GivePlayerClaimToolResult
+import org.bukkit.command.Command
+import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.entities.Partition
 import net.lumalyte.lg.domain.values.LocalizationKeys
@@ -26,7 +28,7 @@ open class ClaimCommand : BaseCommand(), KoinComponent {
     private val givePlayerClaimTool: GivePlayerClaimTool by inject()
 
     @CommandAlias("claim")
-    @CommandPermission("bellclaims.command.claim")
+    @CommandPermission("lumaguilds.command.claim")
     @Syntax("claim")
     fun onClaim(player: Player) {
         when (givePlayerClaimTool.execute(player.uniqueId)) {
@@ -66,4 +68,5 @@ open class ClaimCommand : BaseCommand(), KoinComponent {
         }
         return true
     }
+
 }

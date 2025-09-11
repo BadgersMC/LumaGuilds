@@ -6,11 +6,15 @@ import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.persistence.PartyRepository
 import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import net.lumalyte.lg.domain.entities.Party
 import net.lumalyte.lg.domain.entities.PlayerPartyPreference
 import net.lumalyte.lg.domain.values.ChatChannel
+import org.bukkit.Bukkit
+import org.bukkit.command.Command
+import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -25,17 +29,30 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
     private val memberService: MemberService by inject()
     private val partyRepository: PartyRepository by inject()
     private val preferenceRepository: PlayerPartyPreferenceRepository by inject()
+    private val configService: ConfigService by inject()
+
+    private fun checkPartiesEnabled(player: Player): Boolean {
+        if (!configService.loadConfig().partiesEnabled) {
+            player.sendMessage("§c❌ Parties are disabled on this server!")
+            return false
+        }
+        return true
+    }
 
     @Default
-    @CommandPermission("bellclaims.partychat")
+    @CommandPermission("lumaguilds.partychat")
     fun onPartyChat(player: Player) {
+        if (!checkPartiesEnabled(player)) return
+
         // No arguments - show current party info
         showCurrentPartyInfo(player)
     }
 
     @Default
-    @CommandPermission("bellclaims.partychat")
+    @CommandPermission("lumaguilds.partychat")
     fun onPartyChat(player: Player, firstArg: String) {
+        if (!checkPartiesEnabled(player)) return
+
         val playerId = player.uniqueId
 
         // Try to find a party with this name first
@@ -51,7 +68,7 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
     }
 
     @Default
-    @CommandPermission("bellclaims.partychat")
+    @CommandPermission("lumaguilds.partychat")
     fun onPartyChat(player: Player, firstArg: String, vararg restArgs: String) {
         val playerId = player.uniqueId
         val fullMessage = (arrayOf(firstArg) + restArgs).joinToString(" ")
@@ -69,8 +86,11 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("toggle")
-    @CommandPermission("bellclaims.partychat")
+    @CommandPermission("lumaguilds.partychat")
+    @CommandCompletion("")
     fun onToggle(player: Player) {
+        if (!checkPartiesEnabled(player)) return
+
         val playerId = player.uniqueId
         val currentParty = getCurrentActiveParty(playerId)
 
@@ -92,8 +112,11 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("help")
-    @CommandPermission("bellclaims.partychat")
+    @CommandPermission("lumaguilds.partychat")
+    @CommandCompletion("")
     fun onHelp(player: Player) {
+        if (!checkPartiesEnabled(player)) return
+
         player.sendMessage("§6=== Party Chat Commands ===")
         player.sendMessage("§f/pc §7- Show current party info")
         player.sendMessage("§f/pc <message> §7- Send message to current party")
@@ -106,7 +129,8 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("clear")
-    @CommandPermission("bellclaims.partychat")
+    @CommandPermission("lumaguilds.partychat")
+    @CommandCompletion("")
     fun onClear(player: Player) {
         val playerId = player.uniqueId
         val hadActiveParty = preferenceRepository.getByPlayerId(playerId) != null
@@ -276,4 +300,5 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
             // Could log this for debugging
         }
     }
+
 }

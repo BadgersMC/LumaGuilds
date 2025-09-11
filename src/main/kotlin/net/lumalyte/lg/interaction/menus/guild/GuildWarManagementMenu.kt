@@ -152,6 +152,17 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
             openWarHistoryMenu()
         }
         pane.addItem(warHistoryGuiItem, 4, 2)
+
+        // Peace agreements
+        val peaceItem = ItemStack(Material.WHITE_WOOL)
+            .name("§a☮ Peace Agreements")
+            .lore("§7Propose peace to end wars")
+            .lore("§7Negotiate terms and offerings")
+
+        val peaceGuiItem = GuiItem(peaceItem) {
+            openPeaceAgreementsMenu()
+        }
+        pane.addItem(peaceGuiItem, 6, 2)
     }
 
     private fun addWarStatsSection(pane: StaticPane) {
@@ -219,6 +230,10 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     private fun openDetailedStatsMenu() {
         player.sendMessage("§eDetailed statistics menu coming soon!")
         player.sendMessage("§7This would show comprehensive war statistics and analytics.")
+    }
+
+    private fun openPeaceAgreementsMenu() {
+        menuNavigator.openMenu(PeaceAgreementMenu(menuNavigator, player, guild))
     }
 
     override fun passData(data: Any?) {

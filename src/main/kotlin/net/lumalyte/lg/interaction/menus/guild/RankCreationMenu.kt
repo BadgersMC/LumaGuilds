@@ -382,10 +382,10 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     private fun groupPermissionsByCategory(permissions: Set<RankPermission>): Map<String, List<RankPermission>> {
         return permissions.groupBy { permission ->
             when (permission) {
-                RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS, 
+                RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS,
                 RankPermission.MANAGE_BANNER, RankPermission.MANAGE_EMOJI,
-                RankPermission.MANAGE_HOME, RankPermission.MANAGE_MODE, 
-                RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"
+                RankPermission.MANAGE_DESCRIPTION, RankPermission.MANAGE_HOME,
+                RankPermission.MANAGE_MODE, RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"
                 
                 RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
                 RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,

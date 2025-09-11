@@ -23,7 +23,7 @@ class TrustListCommand : ClaimCommand(), KoinComponent {
     private val getClaimPlayerPermissions: GetClaimPlayerPermissions by inject()
 
     @Subcommand("trustlist")
-    @CommandPermission("bellclaims.command.claim.trustlist")
+    @CommandPermission("lumaguilds.command.claim.trustlist")
     fun onTrustList(player: Player, @Default("1") page: Int) {
         // Gets the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return

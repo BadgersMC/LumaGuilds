@@ -20,7 +20,7 @@ class DescriptionCommand : ClaimCommand(), KoinComponent {
     private val getClaimDetails: GetClaimDetails by inject()
 
     @Subcommand("description")
-    @CommandPermission("bellclaims.command.claim.description")
+    @CommandPermission("lumaguilds.command.claim.description")
     fun onDescription(player: Player, description: String) {
         // Gets the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return

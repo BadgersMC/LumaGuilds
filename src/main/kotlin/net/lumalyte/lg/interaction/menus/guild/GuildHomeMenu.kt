@@ -4,6 +4,7 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.interaction.menus.Menu
@@ -26,6 +27,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                    private var guild: Guild): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
+    private val configService: ConfigService by inject()
 
     // Teleportation tracking
     private data class TeleportSession(
@@ -93,24 +95,22 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             .lore("§7Allows §6/guild home §7teleportation")
 
         val guiItem = GuiItem(setHomeItem) {
-            val location = player.location
-            val home = GuildHome(
-                worldId = location.world.uid,
-                position = net.lumalyte.lg.domain.values.Position3D(
-                    location.x.toInt(), location.y.toInt(), location.z.toInt()
+            val currentHome = guildService.getHome(guild.id)
+
+            if (currentHome != null) {
+                // Show confirmation if home already exists
+                val confirmationMenu = ConfirmationMenu(
+                    menuNavigator = menuNavigator,
+                    player = player,
+                    title = "§c⚠️ Replace Guild Home?",
+                    callbackAction = {
+                        setGuildHome()
+                    }
                 )
-            )
-
-            val success = guildService.setHome(guild.id, home, player.uniqueId)
-            if (success) {
-                player.sendMessage("§a✅ Guild home set to your current location!")
-                player.sendMessage("§7Members can now use §6/guild home §7to teleport here.")
-
-                // Refresh the guild data and reopen menu
-                guild = guildService.getGuild(guild.id) ?: guild
-                open()
+                menuNavigator.openMenu(confirmationMenu)
             } else {
-                player.sendMessage("§c❌ Failed to set guild home. Please try again.")
+                // No existing home, set directly
+                setGuildHome()
             }
         }
         pane.addItem(guiItem, x, y)
@@ -214,6 +214,38 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
     }
 
+    private fun setGuildHome() {
+        val location = player.location
+        val home = GuildHome(
+            worldId = location.world.uid,
+            position = net.lumalyte.lg.domain.values.Position3D(
+                location.x.toInt(), location.y.toInt(), location.z.toInt()
+            )
+        )
+
+        // Check if location is safe (if safety check is enabled)
+        if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(location)) {
+            player.sendMessage("§c❌ This location is not safe to set as guild home!")
+            player.sendMessage("§7Try setting your home on solid ground with space above you.")
+            open() // Reopen menu to show current state
+            return
+        }
+
+        val success = guildService.setHome(guild.id, home, player.uniqueId)
+        if (success) {
+            player.sendMessage("§a✅ Guild home set to your current location!")
+            player.sendMessage("§7Members can now use §6/guild home §7to teleport here.")
+            player.sendMessage("§7Location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
+
+            // Refresh the guild data and reopen menu
+            guild = guildService.getGuild(guild.id) ?: guild
+            open()
+        } else {
+            player.sendMessage("§c❌ Failed to set guild home. Please try again.")
+            open() // Reopen menu to show current state
+        }
+    }
+
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
             .name("§eBack to Control Panel")
@@ -241,9 +273,10 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             player.location.pitch
         )
 
-        // Check if target location is safe
-        if (!isLocationSafe(targetLocation)) {
+        // Check if target location is safe (if safety check is enabled)
+        if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(targetLocation)) {
             player.sendMessage("§c❌ Guild home location is not safe to teleport to!")
+            player.sendMessage("§7Try setting your home on solid ground with space above you.")
             return
         }
 
@@ -319,12 +352,37 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val blockBelow = location.clone().subtract(0.0, 1.0, 0.0).block
         val blockAbove = location.clone().add(0.0, 1.0, 0.0).block
 
-        // Check if location has solid ground and space to stand
-        return blockBelow.type.isSolid &&
-               !block.type.isSolid &&
-               !blockAbove.type.isSolid &&
-               !blockBelow.type.toString().contains("LAVA") &&
-               !blockBelow.type.toString().contains("FIRE")
+        // Define dangerous materials that should prevent teleportation
+        val dangerousMaterials = setOf(
+            org.bukkit.Material.LAVA,
+            org.bukkit.Material.FIRE,
+            org.bukkit.Material.SOUL_FIRE,
+            org.bukkit.Material.CACTUS,
+            org.bukkit.Material.SWEET_BERRY_BUSH,
+            org.bukkit.Material.POINTED_DRIPSTONE,
+            org.bukkit.Material.MAGMA_BLOCK
+        )
+
+        // Check if location has safe ground and space to stand
+        val hasSafeGround = blockBelow.type.isSolid || blockBelow.type == org.bukkit.Material.GRASS_BLOCK ||
+                           blockBelow.type == org.bukkit.Material.DIRT || blockBelow.type == org.bukkit.Material.COARSE_DIRT ||
+                           blockBelow.type == org.bukkit.Material.PODZOL || blockBelow.type == org.bukkit.Material.SAND ||
+                           blockBelow.type == org.bukkit.Material.RED_SAND || blockBelow.type == org.bukkit.Material.GRAVEL ||
+                           blockBelow.type == org.bukkit.Material.STONE || blockBelow.type == org.bukkit.Material.COBBLESTONE
+
+        val hasSpaceToStand = !block.type.isSolid || block.type == org.bukkit.Material.SHORT_GRASS ||
+                             block.type == org.bukkit.Material.TALL_GRASS || block.type == org.bukkit.Material.FERN ||
+                             block.type == org.bukkit.Material.LARGE_FERN
+
+        val hasHeadSpace = !blockAbove.type.isSolid || blockAbove.type == org.bukkit.Material.SHORT_GRASS ||
+                          blockAbove.type == org.bukkit.Material.TALL_GRASS || blockAbove.type == org.bukkit.Material.FERN ||
+                          blockAbove.type == org.bukkit.Material.LARGE_FERN
+
+        val noDangerousBlocks = !dangerousMaterials.contains(blockBelow.type) &&
+                               !dangerousMaterials.contains(block.type) &&
+                               !dangerousMaterials.contains(blockAbove.type)
+
+        return hasSafeGround && hasSpaceToStand && hasHeadSpace && noDangerousBlocks
     }
 
     override fun passData(data: Any?) {

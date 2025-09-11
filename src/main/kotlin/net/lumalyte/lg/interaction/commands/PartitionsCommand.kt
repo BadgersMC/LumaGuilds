@@ -21,7 +21,7 @@ class PartitionsCommand : ClaimCommand(), KoinComponent {
     private val getClaimDetails: GetClaimDetails by inject()
 
     @Subcommand("partitions")
-    @CommandPermission("bellclaims.command.claim.partitions")
+    @CommandPermission("lumaguilds.command.claim.partitions")
     fun onPartitions(player: Player, @Default("1") page: Int) {
         // Get the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return
