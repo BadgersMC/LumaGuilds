@@ -41,8 +41,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private val activeTeleports = mutableMapOf<UUID, TeleportSession>()
 
     override fun open() {
-        val gui = ChestGui(3, "§6Guild Home - ${guild.name}")
-        val pane = StaticPane(0, 0, 9, 3)
+        val gui = ChestGui(6, "§6Guild Homes - ${guild.name}")
+        val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -51,170 +51,226 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
         gui.addPane(pane)
 
-        // Current home status
-        addCurrentHomeDisplay(pane, 0, 0)
+        // Home slots and status
+        addHomeSlotsDisplay(pane, 0, 0)
 
-        // Set home button
-        addSetHomeButton(pane, 2, 0)
+        // Set home buttons
+        addSetHomeButtons(pane, 0, 2)
 
-        // Teleport to home button
-        addTeleportHomeButton(pane, 4, 0)
-
-        // Remove home button
-        addRemoveHomeButton(pane, 6, 0)
+        // Teleport buttons
+        addTeleportButtons(pane, 0, 4)
 
         // Back button
-        addBackButton(pane, 4, 2)
+        addBackButton(pane, 4, 5)
 
         gui.show(player)
     }
 
-    private fun addCurrentHomeDisplay(pane: StaticPane, x: Int, y: Int) {
-        val currentHome = guildService.getHome(guild.id)
-        val homeItem = ItemStack(if (currentHome != null) Material.COMPASS else Material.BARRIER)
-            .name("§eCurrent Guild Home")
-            .lore(if (currentHome != null) {
-                listOf(
-                    "§7World: §f${Bukkit.getWorld(currentHome.worldId)?.name ?: "Unknown"}",
-                    "§7Location: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}",
-                    "§7Status: §aSet"
-                )
-            } else {
-                listOf("§7Status: §cNot Set")
-            })
+    private fun addHomeSlotsDisplay(pane: StaticPane, x: Int, y: Int) {
+        val allHomes = guildService.getHomes(guild.id)
+        val availableSlots = guildService.getAvailableHomeSlots(guild.id)
 
-        val guiItem = GuiItem(homeItem)
-        pane.addItem(guiItem, x, y)
-    }
+        val slotsItem = ItemStack(Material.BOOK)
+            .name("§e🏠 Guild Home Slots")
+            .lore("§7Homes Set: §f${allHomes.size}§7/${availableSlots}")
+            .lore("§7")
 
-    private fun addSetHomeButton(pane: StaticPane, x: Int, y: Int) {
-        val setHomeItem = ItemStack(Material.GREEN_WOOL)
-            .name("§aSet Guild Home")
-            .lore("§7Set your current location")
-            .lore("§7as the guild's home point")
-            .lore("§7Allows §6/guild home §7teleportation")
-
-        val guiItem = GuiItem(setHomeItem) {
-            val currentHome = guildService.getHome(guild.id)
-
-            if (currentHome != null) {
-                // Show confirmation if home already exists
-                val confirmationMenu = ConfirmationMenu(
-                    menuNavigator = menuNavigator,
-                    player = player,
-                    title = "§c⚠️ Replace Guild Home?",
-                    callbackAction = {
-                        setGuildHome()
-                    }
-                )
-                menuNavigator.openMenu(confirmationMenu)
-            } else {
-                // No existing home, set directly
-                setGuildHome()
+        if (allHomes.hasHomes()) {
+            allHomes.homes.forEach { entry ->
+                val name = entry.key
+                val home = entry.value
+                val marker = if (name == "main") "§e[MAIN]" else ""
+                val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
+                slotsItem.lore("§7• §f$name $marker §7- §f$worldName")
             }
+        } else {
+            slotsItem.lore("§7No homes set yet")
         }
+
+        slotsItem.lore("§7")
+        if (allHomes.size < availableSlots) {
+            slotsItem.lore("§aClick to set additional homes")
+        } else {
+            slotsItem.lore("§cMaximum slots reached")
+        }
+
+        val guiItem = GuiItem(slotsItem)
         pane.addItem(guiItem, x, y)
     }
 
-    private fun addTeleportHomeButton(pane: StaticPane, x: Int, y: Int) {
-        val currentHome = guildService.getHome(guild.id)
+    private fun addSetHomeButtons(pane: StaticPane, x: Int, y: Int) {
+        val allHomes = guildService.getHomes(guild.id)
+        val availableSlots = guildService.getAvailableHomeSlots(guild.id)
+
+        // Set Main Home button
+        if (!allHomes.homes.containsKey("main")) {
+            val setMainItem = ItemStack(Material.GREEN_WOOL)
+                .name("§aSet Main Home")
+                .lore("§7Set your current location as main home")
+                .lore("§7Allows §6/guild home §7teleportation")
+
+            val mainGuiItem = GuiItem(setMainItem) {
+                setGuildHome("main")
+            }
+            pane.addItem(mainGuiItem, x, y)
+        }
+
+        // Set Additional Home button (if slots available)
+        if (allHomes.size < availableSlots) {
+            val setAdditionalItem = ItemStack(Material.LIME_WOOL)
+                .name("§eSet Additional Home")
+                .lore("§7Set a named home location")
+                .lore("§7Allows §6/guild home <name> §7teleportation")
+                .lore("§7Available slots: §f${availableSlots - allHomes.size}")
+
+            val additionalGuiItem = GuiItem(setAdditionalItem) {
+                // This would open a menu to input home name, but for now let's use a simple approach
+                player.sendMessage("§6Use §e/guild sethome <name> §6to set additional homes")
+                player.sendMessage("§7Example: §e/guild sethome shop")
+            }
+            pane.addItem(additionalGuiItem, x + 2, y)
+        }
+
+        // Remove Homes button
+        if (allHomes.hasHomes()) {
+            val removeItem = ItemStack(Material.RED_WOOL)
+                .name("§cRemove Homes")
+                .lore("§7Remove guild home locations")
+
+            val removeGuiItem = GuiItem(removeItem) {
+                showRemoveHomesMenu()
+            }
+            pane.addItem(removeGuiItem, x + 4, y)
+        }
+    }
+
+    private fun addTeleportButtons(pane: StaticPane, x: Int, y: Int) {
+        val allHomes = guildService.getHomes(guild.id)
         val hasActiveTeleport = activeTeleports.containsKey(player.uniqueId)
 
-        val teleportItem = ItemStack(
-            when {
-                hasActiveTeleport -> Material.CLOCK
-                currentHome != null -> Material.ENDER_PEARL
-                else -> Material.GRAY_DYE
-            }
-        ).name(
-            when {
-                hasActiveTeleport -> "§eTeleporting... (${activeTeleports[player.uniqueId]?.remainingSeconds ?: 0}s)"
-                currentHome != null -> "§bTeleport to Home"
-                else -> "§7Teleport to Home"
-            }
-        ).lore(
-            when {
-                hasActiveTeleport -> listOf(
-                    "§7Teleportation in progress...",
-                    "§7Don't move or teleportation will cancel",
-                    "§7Remaining: §f${activeTeleports[player.uniqueId]?.remainingSeconds ?: 0} seconds"
-                )
-                currentHome != null -> listOf(
-                    "§7Click to start teleportation countdown",
-                    "§7World: §f${Bukkit.getWorld(currentHome.worldId)?.name ?: "Unknown"}",
-                    "§7Location: §f${currentHome.position.x.toInt()}, ${currentHome.position.y.toInt()}, ${currentHome.position.z.toInt()}",
-                    "§7Countdown: §f5 seconds §7(don't move!)"
-                )
-                else -> listOf("§7No home set to teleport to")
-            }
-        )
+        if (hasActiveTeleport) {
+            // Show cancel teleport button
+            val cancelItem = ItemStack(Material.CLOCK)
+                .name("§eCancel Teleport")
+                .lore("§7Teleportation in progress...")
+                .lore("§7Remaining: §f${activeTeleports[player.uniqueId]?.remainingSeconds ?: 0} seconds")
 
-        val guiItem = GuiItem(teleportItem) {
-            val home = guildService.getHome(guild.id)
-            if (home != null) {
-                if (activeTeleports.containsKey(player.uniqueId)) {
-                    // Cancel existing teleport
-                    cancelTeleport(player.uniqueId)
-                    player.sendMessage("§c❌ Teleportation canceled!")
-                    open() // Refresh menu
-                } else {
-                    // Start new teleport
-                    startTeleportCountdown(home)
+            val cancelGuiItem = GuiItem(cancelItem) {
+                cancelTeleport(player.uniqueId)
+                player.sendMessage("§c❌ Teleportation canceled!")
+                open() // Refresh menu
+            }
+            pane.addItem(cancelGuiItem, x, y)
+        } else if (allHomes.hasHomes()) {
+            // Show teleport to main home button
+            val mainHome = allHomes.defaultHome
+            if (mainHome != null) {
+                val teleportItem = ItemStack(Material.ENDER_PEARL)
+                    .name("§bTeleport to Main Home")
+                    .lore("§7Click to start teleportation countdown")
+                    .lore("§7World: §f${Bukkit.getWorld(mainHome.worldId)?.name ?: "Unknown"}")
+                    .lore("§7Countdown: §f5 seconds §7(don't move!)")
+
+                val teleportGuiItem = GuiItem(teleportItem) {
+                    startTeleportCountdown(mainHome)
                 }
-            } else {
-                player.sendMessage("§c❌ No guild home is set.")
+                pane.addItem(teleportGuiItem, x, y)
             }
-        }
-        pane.addItem(guiItem, x, y)
-    }
 
-    private fun addRemoveHomeButton(pane: StaticPane, x: Int, y: Int) {
-        val currentHome = guildService.getHome(guild.id)
-        val removeItem = ItemStack(if (currentHome != null) Material.BARRIER else Material.GRAY_DYE)
-            .name("§cRemove Guild Home")
-            .lore(if (currentHome != null) {
-                listOf(
-                    "§7Click to remove the guild home",
-                    "§7This will prevent §6/guild home §7teleportation",
-                    "§7until a new home is set"
-                )
-            } else {
-                listOf("§7No home set to remove")
-            })
+            // Show list homes button if there are multiple homes
+            if (allHomes.size > 1) {
+                val listItem = ItemStack(Material.COMPASS)
+                    .name("§eList All Homes")
+                    .lore("§7View all available homes")
+                    .lore("§7Use §6/guild home <name> §7to teleport")
 
-        val guiItem = GuiItem(removeItem) {
-            if (currentHome != null) {
-                val confirmationMenu = ConfirmationMenu(
-                    menuNavigator = menuNavigator,
-                    player = player,
-                    title = "§cConfirm Remove Guild Home",
-                    callbackAction = {
-                        removeGuildHome()
-                    }
-                )
-                menuNavigator.openMenu(confirmationMenu)
-            } else {
-                player.sendMessage("§c❌ No guild home is set to remove.")
+                val listGuiItem = GuiItem(listItem) {
+                    showHomesList()
+                }
+                pane.addItem(listGuiItem, x + 2, y)
             }
-        }
-        pane.addItem(guiItem, x, y)
-    }
-
-    private fun removeGuildHome() {
-        val success = guildService.removeHome(guild.id, player.uniqueId)
-        if (success) {
-            player.sendMessage("§a✅ Guild home removed!")
-            player.sendMessage("§7Members can no longer use §6/guild home §7until a new home is set.")
-
-            // Refresh the guild data and reopen menu
-            guild = guildService.getGuild(guild.id) ?: guild
-            open()
         } else {
-            player.sendMessage("§c❌ Failed to remove guild home. Please try again.")
+            // No homes set
+            val noHomeItem = ItemStack(Material.GRAY_DYE)
+                .name("§7No Homes Set")
+                .lore("§7Set a home location first")
+
+            pane.addItem(GuiItem(noHomeItem), x, y)
         }
     }
 
-    private fun setGuildHome() {
+    private fun showRemoveHomesMenu() {
+        val allHomes = guildService.getHomes(guild.id)
+        if (!allHomes.hasHomes()) {
+            player.sendMessage("§c❌ No homes to remove.")
+            return
+        }
+
+        // Create a simple removal menu
+        val gui = ChestGui(4, "§cRemove Guild Homes")
+        val pane = StaticPane(0, 0, 9, 4)
+
+        // List homes for removal
+        var slot = 0
+        allHomes.homes.forEach { entry ->
+            val name = entry.key
+            val home = entry.value
+            if (slot < 27) { // Max 27 slots
+                val removeItem = ItemStack(Material.RED_WOOL)
+                    .name("§cRemove '$name'")
+                    .lore("§7World: §f${Bukkit.getWorld(home.worldId)?.name ?: "Unknown"}")
+                    .lore("§7Location: §f${home.position.x}, ${home.position.y}, ${home.position.z}")
+                    .lore("§7")
+                    .lore("§eClick to remove this home")
+
+                val removeGuiItem = GuiItem(removeItem) {
+                    val success = guildService.removeHome(guild.id, name, player.uniqueId)
+                    if (success) {
+                        player.sendMessage("§a✅ Home '$name' removed!")
+                        showRemoveHomesMenu() // Refresh menu
+                    } else {
+                        player.sendMessage("§c❌ Failed to remove home '$name'.")
+                    }
+                }
+                pane.addItem(removeGuiItem, slot % 9, slot / 9)
+                slot++
+            }
+        }
+
+        // Back button
+        val backItem = ItemStack(Material.ARROW)
+            .name("§eBack to Home Menu")
+            .lore("§7Return to home management")
+
+        val backGuiItem = GuiItem(backItem) {
+            open() // Return to main home menu
+        }
+        pane.addItem(backGuiItem, 4, 3)
+
+        gui.addPane(pane)
+        gui.show(player)
+    }
+
+    private fun showHomesList() {
+        val allHomes = guildService.getHomes(guild.id)
+        if (!allHomes.hasHomes()) {
+            player.sendMessage("§c❌ No homes set.")
+            return
+        }
+
+        player.sendMessage("§6=== Guild Homes ===")
+        allHomes.homes.forEach { entry ->
+            val name = entry.key
+            val home = entry.value
+            val marker = if (name == "main") "§e[MAIN]" else ""
+            val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
+            player.sendMessage("§7• §f$name $marker §7- §f$worldName (${home.position.x.toInt()}, ${home.position.y.toInt()}, ${home.position.z.toInt()})")
+        }
+        player.sendMessage("§7Use §6/guild home <name> §7to teleport")
+        player.sendMessage("§6==================")
+    }
+
+    private fun setGuildHome(homeName: String = "main") {
         val location = player.location
         val home = GuildHome(
             worldId = location.world.uid,
@@ -231,10 +287,11 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             return
         }
 
-        val success = guildService.setHome(guild.id, home, player.uniqueId)
+        val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
         if (success) {
-            player.sendMessage("§a✅ Guild home set to your current location!")
-            player.sendMessage("§7Members can now use §6/guild home §7to teleport here.")
+            val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
+            player.sendMessage("§a✅ Guild $homeLabel set to your current location!")
+            player.sendMessage("§7Members can now use §6/guild home ${if (homeName == "main") "" else homeName}§7to teleport here.")
             player.sendMessage("§7Location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
 
             // Refresh the guild data and reopen menu

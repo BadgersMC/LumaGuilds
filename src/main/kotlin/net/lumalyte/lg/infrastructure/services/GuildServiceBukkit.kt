@@ -6,6 +6,7 @@ import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
+import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.utils.serializeToString
 import net.lumalyte.lg.domain.entities.RankPermission
@@ -44,7 +45,7 @@ class GuildServiceBukkit(
             id = guildId,
             name = name,
             banner = banner,
-            home = null,
+            homes = GuildHomes.EMPTY,
             level = 1,
             bankBalance = 0,
             mode = GuildMode.HOSTILE,
@@ -255,48 +256,126 @@ class GuildServiceBukkit(
         return guildRepository.getById(guildId)?.description
     }
     
-    override fun setHome(guildId: UUID, home: GuildHome, actorId: UUID): Boolean {
-        val guild = guildRepository.getById(guildId) ?: return false
-        
-        // Check if actor has permission to set home
-        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
-            logger.warn("Player $actorId attempted to set home for guild $guildId without permission")
+    override fun setHome(guildId: UUID, homeName: String, home: GuildHome, actorId: UUID): Boolean {
+        try {
+            val guild = guildRepository.getById(guildId) ?: return false
+
+            // Check if actor has permission to set home
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+                logger.warn("Player $actorId attempted to set home for guild $guildId without permission")
+                return false
+            }
+
+            // Check if the guild has available home slots
+            val availableSlots = getAvailableHomeSlots(guildId)
+            val currentHomes = guild.homes.size
+            if (currentHomes >= availableSlots && !guild.homes.homes.containsKey(homeName)) {
+                logger.warn("Player $actorId attempted to set home for guild $guildId but maximum slots ($availableSlots) reached")
+                return false
+            }
+
+            val updatedHomes = guild.homes.withHome(homeName, home)
+            val updatedGuild = guild.copy(homes = updatedHomes)
+            val result = guildRepository.update(updatedGuild)
+            if (result) {
+                logger.info("Guild $guildId home '$homeName' set to ${home.position} in world ${home.worldId} by $actorId")
+            }
+            return result
+        } catch (e: Exception) {
+            logger.error("Error setting home for guild $guildId", e)
             return false
         }
-        
-        val updatedGuild = guild.copy(home = home)
-        val result = guildRepository.update(updatedGuild)
-        if (result) {
-            logger.info("Guild $guildId home set to ${home.position} in world ${home.worldId} by $actorId")
-        }
-        return result
     }
     
     override fun getHome(guildId: UUID): GuildHome? {
-        return guildRepository.getById(guildId)?.home
+        return guildRepository.getById(guildId)?.homes?.defaultHome
+    }
+
+    override fun getHome(guildId: UUID, homeName: String): GuildHome? {
+        return guildRepository.getById(guildId)?.homes?.getHome(homeName)
+    }
+
+    override fun getHomes(guildId: UUID): GuildHomes {
+        return guildRepository.getById(guildId)?.homes ?: GuildHomes.EMPTY
+    }
+
+    override fun getAvailableHomeSlots(guildId: UUID): Int {
+        try {
+            val guild = guildRepository.getById(guildId) ?: return 1 // Default to 1 slot if guild not found
+
+            // Get progression service to check for ADDITIONAL_HOMES perk
+            // For now, use a simple calculation based on guild level
+            // This can be enhanced later to use the actual perk system
+            val baseSlots = 1
+            val additionalSlots = when {
+                guild.level >= 30 -> 5  // Level 30: 5 additional homes
+                guild.level >= 20 -> 3  // Level 20: 3 additional homes
+                guild.level >= 15 -> 2  // Level 15: 2 additional homes
+                guild.level >= 7 -> 1   // Level 7: 1 additional home
+                else -> 0
+            }
+            return baseSlots + additionalSlots
+        } catch (e: Exception) {
+            logger.error("Error calculating available home slots for guild $guildId", e)
+            return 1 // Default fallback
+        }
+    }
+
+    override fun removeHome(guildId: UUID, homeName: String, actorId: UUID): Boolean {
+        try {
+            val guild = guildRepository.getById(guildId) ?: return false
+
+            // Check if actor has permission to remove home
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+                logger.warn("Player $actorId attempted to remove home for guild $guildId without permission")
+                return false
+            }
+
+            // Check if the specific home exists
+            if (!guild.homes.homes.containsKey(homeName)) {
+                logger.warn("Player $actorId attempted to remove home '$homeName' for guild $guildId but it doesn't exist")
+                return false
+            }
+
+            val updatedHomes = guild.homes.withoutHome(homeName)
+            val updatedGuild = guild.copy(homes = updatedHomes)
+            val result = guildRepository.update(updatedGuild)
+            if (result) {
+                logger.info("Guild $guildId home '$homeName' removed by $actorId")
+            }
+            return result
+        } catch (e: Exception) {
+            logger.error("Error removing home for guild $guildId", e)
+            return false
+        }
     }
 
     override fun removeHome(guildId: UUID, actorId: UUID): Boolean {
-        val guild = guildRepository.getById(guildId) ?: return false
+        try {
+            val guild = guildRepository.getById(guildId) ?: return false
 
-        // Check if actor has permission to remove home
-        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
-            logger.warn("Player $actorId attempted to remove home for guild $guildId without permission")
+            // Check if actor has permission to remove home
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+                logger.warn("Player $actorId attempted to remove home for guild $guildId without permission")
+                return false
+            }
+
+            // Check if any homes exist
+            if (!guild.homes.hasHomes()) {
+                logger.warn("Player $actorId attempted to remove homes for guild $guildId but no homes were set")
+                return false
+            }
+
+            val updatedGuild = guild.copy(homes = GuildHomes.EMPTY)
+            val result = guildRepository.update(updatedGuild)
+            if (result) {
+                logger.info("Guild $guildId all homes removed by $actorId")
+            }
+            return result
+        } catch (e: Exception) {
+            logger.error("Error removing all homes for guild $guildId", e)
             return false
         }
-
-        // Check if home exists
-        if (guild.home == null) {
-            logger.warn("Player $actorId attempted to remove home for guild $guildId but no home was set")
-            return false
-        }
-
-        val updatedGuild = guild.copy(home = null)
-        val result = guildRepository.update(updatedGuild)
-        if (result) {
-            logger.info("Guild $guildId home removed by $actorId")
-        }
-        return result
     }
     
     override fun setMode(guildId: UUID, mode: GuildMode, actorId: UUID): Boolean {

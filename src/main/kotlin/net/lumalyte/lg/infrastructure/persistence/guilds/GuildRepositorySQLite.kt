@@ -4,6 +4,7 @@ import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
+import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
 import java.sql.SQLException
@@ -72,13 +73,16 @@ class GuildRepositorySQLite(private val storage: SQLiteStorage) : GuildRepositor
         val modeChangedAt = rs.getString("mode_changed_at")?.let { Instant.parse(it) }
         val createdAt = Instant.parse(rs.getString("created_at"))
 
-        val home = if (rs.getString("home_world") != null) {
+        val homes = if (rs.getString("home_world") != null) {
             val worldId = UUID.fromString(rs.getString("home_world"))
             val x = rs.getInt("home_x")
             val y = rs.getInt("home_y")
             val z = rs.getInt("home_z")
-            GuildHome(worldId, net.lumalyte.lg.domain.values.Position3D(x, y, z))
-        } else null
+            val mainHome = GuildHome(worldId, net.lumalyte.lg.domain.values.Position3D(x, y, z))
+            GuildHomes(mapOf("main" to mainHome))
+        } else {
+            GuildHomes.EMPTY
+        }
 
         return Guild(
             id = id,
@@ -86,7 +90,7 @@ class GuildRepositorySQLite(private val storage: SQLiteStorage) : GuildRepositor
             banner = banner,
             emoji = emoji,
             tag = tag,
-            home = home,
+            homes = homes,
             level = level,
             bankBalance = bankBalance,
             mode = mode,
@@ -115,16 +119,19 @@ class GuildRepositorySQLite(private val storage: SQLiteStorage) : GuildRepositor
         """.trimIndent()
 
         return try {
+            // Extract main home for backward compatibility with existing schema
+            val mainHome = guild.homes.defaultHome
+
             val rowsAffected = storage.connection.executeUpdate(sql,
                 guild.id.toString(),
                 guild.name,
                 guild.banner,
                 guild.emoji,
                 guild.tag,
-                guild.home?.worldId?.toString(),
-                guild.home?.position?.x,
-                guild.home?.position?.y,
-                guild.home?.position?.z,
+                mainHome?.worldId?.toString(),
+                mainHome?.position?.x,
+                mainHome?.position?.y,
+                mainHome?.position?.z,
                 guild.level,
                 guild.bankBalance,
                 guild.mode.name.lowercase(),
@@ -146,15 +153,18 @@ class GuildRepositorySQLite(private val storage: SQLiteStorage) : GuildRepositor
         """.trimIndent()
 
         return try {
+            // Extract main home for backward compatibility with existing schema
+            val mainHome = guild.homes.defaultHome
+
             val rowsAffected = storage.connection.executeUpdate(sql,
                 guild.name,
                 guild.banner,
                 guild.emoji,
                 guild.tag,
-                guild.home?.worldId?.toString(),
-                guild.home?.position?.x,
-                guild.home?.position?.y,
-                guild.home?.position?.z,
+                mainHome?.worldId?.toString(),
+                mainHome?.position?.x,
+                mainHome?.position?.y,
+                mainHome?.position?.z,
                 guild.level,
                 guild.bankBalance,
                 guild.mode.name.lowercase(),
