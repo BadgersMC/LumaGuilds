@@ -5,6 +5,7 @@ import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
@@ -15,6 +16,8 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.entities.War
 import net.lumalyte.lg.domain.entities.WarDeclaration
 import net.lumalyte.lg.domain.entities.WarObjective
+import net.lumalyte.lg.interaction.listeners.ChatInputHandler
+import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.deserializeToItemStack
@@ -34,22 +37,25 @@ import java.time.Duration
 import java.util.*
 
 class GuildWarDeclarationMenu(
-    private val menuNavigator: MenuNavigator, 
+    private val menuNavigator: MenuNavigator,
     private val player: Player,
     private var guild: Guild,
     private var targetGuild: Guild? = null
-) : Menu, KoinComponent {
+) : Menu, KoinComponent, ChatInputHandler {
 
     private val warService: WarService by inject()
     private val guildService: GuildService by inject()
     private val guildRepository: GuildRepository by inject()
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
+    private val configService: ConfigService by inject()
+    private val chatInputListener: ChatInputListener by inject()
     
     // War configuration state
     private var selectedDuration: Duration = Duration.ofDays(7) // Default 7 days
     private var selectedObjectives: MutableSet<WarObjective> = mutableSetOf()
     private var warTerms: String? = null
+    private var inputMode: String? = null // Track what input mode we're in ("war_terms")
     private var wagerAmount: Int = 0 // War pot amount
 
     override fun open() {
@@ -68,7 +74,7 @@ class GuildWarDeclarationMenu(
             return
         }
 
-        val gui = ChestGui(6, "§4⚔️ Declare War - ${guild.name}")
+        val gui = ChestGui(6, "§4⚔ Declare War - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -95,7 +101,7 @@ class GuildWarDeclarationMenu(
     private fun addGuildSelectionSection(pane: StaticPane) {
         // Title
         val titleItem = ItemStack(Material.DIAMOND_SWORD)
-            .name("§4⚔️ SELECT TARGET GUILD")
+            .name("§4⚔ SELECT TARGET GUILD")
             .lore("§7Choose which guild to declare war against")
             .lore("§7")
             .lore("§cWarning: This action cannot be undone!")
@@ -165,7 +171,7 @@ class GuildWarDeclarationMenu(
 
         // Add guild mode indicator
         val modeColor = if (targetGuild.mode == GuildMode.HOSTILE) "§c" else "§a"
-        val modeIcon = if (targetGuild.mode == GuildMode.HOSTILE) "⚔️" else "🕊️"
+        val modeIcon = if (targetGuild.mode == GuildMode.HOSTILE) "⚔" else "☮"
 
         return bannerItem
             .name("$modeColor$modeIcon ${targetGuild.name}")
@@ -217,7 +223,7 @@ class GuildWarDeclarationMenu(
 
     private fun addDurationSelection(pane: StaticPane) {
         val durationItem = ItemStack(Material.CLOCK)
-            .name("§6⏰ War Duration")
+            .name("§6◷ War Duration")
             .lore("§7Current: §f${selectedDuration.toDays()} days")
             .lore("§7")
             .lore("§7Available durations:")
@@ -240,7 +246,7 @@ class GuildWarDeclarationMenu(
 
         // Main wager display
         val wagerItem = ItemStack(Material.GOLD_INGOT)
-            .name("§6💰 War Wager")
+            .name("§6$ War Wager")
             .lore("§7Current Wager: §6$wagerAmount coins")
             .lore("§7Guild Bank: §6$guildBalance coins")
             .lore("§7Max Wager: §6$maxWager coins §c(ALL IN!)")
@@ -306,16 +312,16 @@ class GuildWarDeclarationMenu(
 
             // Wager All button
             val wagerAllItem = ItemStack(Material.RED_CONCRETE)
-                .name("§c💰 WAGER ALL")
+                .name("§c$ WAGER ALL")
                 .lore("§7Wager entire guild bank!")
                 .lore("§7Amount: §6$guildBalance coins")
                 .lore("§7")
-                .lore("§c⚠️ HIGH RISK!")
+                .lore("§c⚠︎ HIGH RISK!")
 
             val wagerAllGuiItem = GuiItem(wagerAllItem) {
                 if (guildBalance > 0) {
                     wagerAmount = guildBalance
-                    player.sendMessage("§c💰 ALL IN! §6$guildBalance coins §cwagered!")
+                    player.sendMessage("§c$ ALL IN! §6$guildBalance coins §cwagered!")
                     player.playSound(player.location, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f)
                     open() // Refresh menu
                 } else {
@@ -329,17 +335,17 @@ class GuildWarDeclarationMenu(
             val enemyBalance = targetGuild?.bankBalance ?: 0
             if (enemyBalance > 0) {
                 val wagerEnemyItem = ItemStack(Material.PURPLE_CONCRETE)
-                    .name("§5🏦 MATCH ENEMY")
+                    .name("§5∩ MATCH ENEMY")
                     .lore("§7Wager to match enemy bank!")
                     .lore("§7Enemy Bank: §6$enemyBalance coins")
                     .lore("§7You would wager: §6$enemyBalance coins")
                     .lore("§7")
-                    .lore("§c⚠️ Must have sufficient funds!")
+                    .lore("§c⚠︎ Must have sufficient funds!")
 
                 val wagerEnemyGuiItem = GuiItem(wagerEnemyItem) {
                     if (enemyBalance > 0 && guildBalance >= enemyBalance) {
                         wagerAmount = enemyBalance
-                        player.sendMessage("§5🏦 MATCHING ENEMY! §6$enemyBalance coins §5wagered!")
+                        player.sendMessage("§5∩ MATCHING ENEMY! §6$enemyBalance coins §5wagered!")
                         player.playSound(player.location, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f)
                         open() // Refresh menu
                     } else if (enemyBalance > 0 && guildBalance < enemyBalance) {
@@ -385,7 +391,7 @@ class GuildWarDeclarationMenu(
 
         val killObjective = selectedObjectives.first()
         val objectivesItem = ItemStack(Material.DIAMOND_SWORD)
-            .name("§c⚔️ War Objective: KILLS")
+            .name("§c⚔ War Objective: KILLS")
             .lore("§7Target: §f${killObjective.targetValue} enemy kills")
             .lore("§7")
             .lore("§7The first guild to reach the kill target wins!")
@@ -408,7 +414,7 @@ class GuildWarDeclarationMenu(
 
     private fun addWarTermsSection(pane: StaticPane) {
         val termsItem = ItemStack(Material.WRITABLE_BOOK)
-            .name("§e📜 War Terms")
+            .name("§e§ War Terms")
             .lore(if (warTerms != null) "§7Terms: §f$warTerms" else "§7No terms set")
             .lore("§7")
             .lore("§7Optional message to the defending guild")
@@ -418,8 +424,9 @@ class GuildWarDeclarationMenu(
 
         val guiItem = GuiItem(termsItem) {
             player.sendMessage("§e💬 Type your war terms in chat (or 'cancel' to skip):")
+            inputMode = "war_terms"
+            chatInputListener.startInputMode(player, this@GuildWarDeclarationMenu)
             player.closeInventory()
-            // TODO: Implement chat input handler for war terms
         }
         pane.addItem(guiItem, 7, 1)
     }
@@ -433,7 +440,7 @@ class GuildWarDeclarationMenu(
 
         val declareItem = if (canDeclare && !hasActiveWar) {
             ItemStack(Material.DIAMOND_SWORD)
-                .name("§4⚔️ DECLARE WAR!")
+                .name("§4⚔ DECLARE WAR!")
                 .lore("§7Target: §f${target.name}")
                 .lore("§7Duration: §f${selectedDuration.toDays()} days")
                 .lore("§7Objectives: §f${selectedObjectives.size}")
@@ -443,11 +450,11 @@ class GuildWarDeclarationMenu(
                     "§7Wager: §7None (honor only)"
                 })
                 .lore("§7")
-                .lore("§c⚠️ This will notify all members")
-                .lore("§c⚠️ of both guilds!")
+                .lore("§c⚠︎ This will notify all members")
+                .lore("§c⚠︎ of both guilds!")
                 .also { item ->
                     if (wagerAmount > 0) {
-                        item.lore("§c⚠️ Funds will be held in escrow!")
+                        item.lore("§c⚠︎ Funds will be held in escrow!")
                     }
                 }
                 .lore("§7")
@@ -523,7 +530,7 @@ class GuildWarDeclarationMenu(
                 )
 
                 if (war != null) {
-                    player.sendMessage("§a⚔️ WAR STARTED against ${target.name}!")
+                    player.sendMessage("§a⚔ WAR STARTED against ${target.name}!")
                     player.sendMessage("§7Hostile guild auto-accepted - battle begins now!")
                     player.sendMessage("§7Duration: §f${selectedDuration.toDays()} days")
                     if (selectedObjectives.isNotEmpty()) {
@@ -558,7 +565,7 @@ class GuildWarDeclarationMenu(
                 )
 
                 if (declaration != null) {
-                    player.sendMessage("§6⚔️ WAR DECLARATION SENT to ${target.name}!")
+                    player.sendMessage("§6⚔ WAR DECLARATION SENT to ${target.name}!")
                     player.sendMessage("§7Duration: §f${selectedDuration.toDays()} days")
                     if (selectedObjectives.isNotEmpty()) {
                         player.sendMessage("§7Objectives: §f${selectedObjectives.size} set")
@@ -641,10 +648,17 @@ class GuildWarDeclarationMenu(
     }
 
     private fun openObjectivesMenu() {
+        val claimsEnabled = configService.loadConfig().claimsEnabled
+
         player.sendMessage("§eObjectives menu coming soon!")
         player.sendMessage("§7This will allow you to set custom war objectives like:")
         player.sendMessage("§7• Kill X enemy players")
-        player.sendMessage("§7• Capture X claims")  
+
+        // Only show claim-related objectives if claims are enabled
+        if (claimsEnabled) {
+            player.sendMessage("§7• Capture X claims")
+        }
+
         player.sendMessage("§7• Survive for X hours")
         // TODO: Implement objectives menu
     }
@@ -674,14 +688,14 @@ class GuildWarDeclarationMenu(
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     // Title and subtitle
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§4⚔️ WAR DECLARED! ⚔️"),
+                        Component.text("§4⚔ WAR DECLARED! ⚔"),
                         Component.text("§7Against §c${defendingGuild.name}"),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(3), JavaDuration.ofSeconds(1))
                     ))
                     
                     // Chat messages
                     onlinePlayer.sendMessage("§8§l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-                    onlinePlayer.sendMessage("§4⚔️ §lWAR DECLARED! §4⚔️")
+                    onlinePlayer.sendMessage("§4⚔ §lWAR DECLARED! §4⚔")
                     onlinePlayer.sendMessage("")
                     onlinePlayer.sendMessage("§7Your guild §f${declaringGuild.name} §7has declared war on §c${defendingGuild.name}§7!")
                     onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
@@ -707,14 +721,14 @@ class GuildWarDeclarationMenu(
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     // Title and subtitle
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§c⚠️ UNDER ATTACK! ⚠️"),
+                        Component.text("§c⚠︎ UNDER ATTACK! ⚠︎"),
                         Component.text("§7War declared by §4${declaringGuild.name}"),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(3), JavaDuration.ofSeconds(1))
                     ))
                     
                     // Chat messages
                     onlinePlayer.sendMessage("§8§l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-                    onlinePlayer.sendMessage("§c⚠️ §lWAR DECLARED AGAINST YOU! §c⚠️")
+                    onlinePlayer.sendMessage("§c⚠︎ §lWAR DECLARED AGAINST YOU! §c⚠︎")
                     onlinePlayer.sendMessage("")
                     onlinePlayer.sendMessage("§c${declaringGuild.name} §7has declared war on your guild §f${defendingGuild.name}§7!")
                     onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
@@ -726,7 +740,7 @@ class GuildWarDeclarationMenu(
                         onlinePlayer.sendMessage("§7You must match this wager to accept!")
                     }
                     onlinePlayer.sendMessage("")
-                    onlinePlayer.sendMessage("§e🛡️ Defend your guild! Rally your members and fight back!")
+                    onlinePlayer.sendMessage("§e▊ Defend your guild! Rally your members and fight back!")
                     onlinePlayer.sendMessage("§7Use §f/guild war §7to manage the conflict")
                     onlinePlayer.sendMessage("§8§l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
                     
@@ -770,7 +784,7 @@ class GuildWarDeclarationMenu(
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     // Send title
                     onlinePlayer.showTitle(net.kyori.adventure.title.Title.title(
-                        net.kyori.adventure.text.Component.text("§c⚠️ WAR DECLARATION! ⚠️"),
+                        net.kyori.adventure.text.Component.text("§c⚠︎ WAR DECLARATION! ⚠︎"),
                         net.kyori.adventure.text.Component.text("§7${declaringGuild.name} challenges you!"),
                         net.kyori.adventure.title.Title.Times.times(
                             java.time.Duration.ofMillis(500),
@@ -781,7 +795,7 @@ class GuildWarDeclarationMenu(
 
                     // Send chat messages
                     onlinePlayer.sendMessage("§c═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§c⚠️ WAR DECLARATION RECEIVED! ⚠️")
+                    onlinePlayer.sendMessage("§c⚠︎ WAR DECLARATION RECEIVED! ⚠︎")
                     onlinePlayer.sendMessage("§7From: §f${declaringGuild.name}")
                     onlinePlayer.sendMessage("§7Duration: §f${declaration.proposedDuration.toDays()} days")
                     onlinePlayer.sendMessage("§7Objectives: §f${declaration.objectives.size}")
@@ -810,7 +824,7 @@ class GuildWarDeclarationMenu(
 
                 val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    onlinePlayer.sendMessage("§6⚔️ War declaration sent to ${defendingGuild.name}!")
+                    onlinePlayer.sendMessage("§6⚔ War declaration sent to ${defendingGuild.name}!")
                     onlinePlayer.sendMessage("§7Duration: §f${declaration.proposedDuration.toDays()} days")
                     if (wagerAmount > 0) {
                         onlinePlayer.sendMessage("§7Wager: §6$wagerAmount coins")
@@ -827,5 +841,37 @@ class GuildWarDeclarationMenu(
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
+    }
+
+    // ChatInputHandler implementation
+    override fun onChatInput(player: Player, input: String) {
+        if (inputMode == "war_terms") {
+            if (input.lowercase() == "cancel") {
+                player.sendMessage("§7War terms input cancelled")
+                inputMode = null
+                open() // Reopen menu
+                return
+            }
+
+            // Validate terms length
+            if (input.length > 200) {
+                player.sendMessage("§c❌ War terms too long! Maximum 200 characters.")
+                player.sendMessage("§7Please try again or type 'cancel' to skip:")
+                return
+            }
+
+            warTerms = input
+            inputMode = null
+            player.sendMessage("§a✅ War terms set: §f\"$input\"")
+            open() // Reopen menu with updated terms
+        }
+    }
+
+    override fun onCancel(player: Player) {
+        if (inputMode == "war_terms") {
+            player.sendMessage("§7War terms input cancelled")
+            inputMode = null
+            open() // Reopen menu
+        }
     }
 }

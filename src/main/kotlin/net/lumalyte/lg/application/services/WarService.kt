@@ -2,6 +2,7 @@ package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.domain.entities.*
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -233,4 +234,86 @@ interface WarService {
      * @return The win/loss ratio.
      */
     fun getWinLossRatio(guildId: UUID): Double
+
+    /**
+     * Proposes a peace agreement to end a war.
+     *
+     * @param warId The ID of the war.
+     * @param proposingGuildId The guild proposing peace.
+     * @param peaceTerms The terms of the peace agreement.
+     * @param offering Optional offering to sweeten the deal.
+     * @return The peace agreement if successful, null otherwise.
+     */
+    fun proposePeaceAgreement(
+        warId: UUID,
+        proposingGuildId: UUID,
+        peaceTerms: String,
+        offering: PeaceOffering? = null
+    ): PeaceAgreement?
+
+    /**
+     * Accepts a peace agreement.
+     *
+     * @param agreementId The ID of the peace agreement.
+     * @param acceptingGuildId The guild accepting the agreement.
+     * @return The war if successfully ended, null otherwise.
+     */
+    fun acceptPeaceAgreement(agreementId: UUID, acceptingGuildId: UUID): War?
+
+    /**
+     * Rejects a peace agreement.
+     *
+     * @param agreementId The ID of the peace agreement.
+     * @param rejectingGuildId The guild rejecting the agreement.
+     * @return true if successful, false otherwise.
+     */
+    fun rejectPeaceAgreement(agreementId: UUID, rejectingGuildId: UUID): Boolean
+
+    /**
+     * Gets peace agreements for a war.
+     *
+     * @param warId The ID of the war.
+     * @return List of peace agreements for the war.
+     */
+    fun getPeaceAgreementsForWar(warId: UUID): List<PeaceAgreement>
+
+    /**
+     * Gets pending peace agreements for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return List of pending peace agreements that the guild can respond to.
+     */
+    fun getPendingPeaceAgreementsForGuild(guildId: UUID): List<PeaceAgreement>
+
+    /**
+     * Applies daily war costs to guilds in active wars.
+     *
+     * @return The number of guilds affected.
+     */
+    fun applyDailyWarCosts(): Int
+
+    /**
+     * Checks if a guild is in war farming cooldown.
+     *
+     * @param guildId The ID of the guild.
+     * @return true if the guild is in cooldown, false otherwise.
+     */
+    fun isGuildInWarFarmingCooldown(guildId: UUID): Boolean
+
+    /**
+     * Gets the war farming cooldown end time for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return The cooldown end time, or null if not in cooldown.
+     */
+    fun getGuildWarFarmingCooldownEnd(guildId: UUID): Instant?
+
+    /**
+     * Updates war farming cooldown for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param endTime The cooldown end time.
+     * @return true if successful, false otherwise.
+     */
+    fun updateGuildWarFarmingCooldown(guildId: UUID, endTime: Instant): Boolean
 }

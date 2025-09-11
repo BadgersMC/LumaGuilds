@@ -8,6 +8,7 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
     override fun loadConfig(): MainConfig {
         return MainConfig(
             claimsEnabled = config.getBoolean("claims_enabled", true),
+            partiesEnabled = config.getBoolean("parties_enabled", true),
             claimLimit = config.getInt("claim_limit"),
             claimBlockLimit = config.getInt("claim_block_limit"),
             initialClaimSize = config.getInt("initial_claim_size"),
@@ -53,7 +54,19 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             bannerCopyEnabled = config.getBoolean("guild.banner_copy_enabled", true),
             bannerCopyCost = config.getInt("guild.banner_copy_cost", 100),
             bannerCopyChargeGuildBank = config.getBoolean("guild.banner_copy_charge_guild_bank", true),
-            bannerCopyFree = config.getBoolean("guild.banner_copy_free", false)
+            bannerCopyFree = config.getBoolean("guild.banner_copy_free", false),
+            bannerCopyUseItemCost = config.getBoolean("guild.banner_copy_use_item_cost", false),
+            bannerCopyItemMaterial = config.getString("guild.banner_copy_item_material", "DIAMOND") ?: "DIAMOND",
+            bannerCopyItemAmount = config.getInt("guild.banner_copy_item_amount", 1),
+            bannerCopyItemCustomModelData = if (config.contains("guild.banner_copy_item_custom_model_data")) {
+                config.getInt("guild.banner_copy_item_custom_model_data")
+            } else null,
+
+            // War & Combat settings
+            peaceAgreementSystemEnabled = config.getBoolean("guild.peace_agreement_system_enabled", false),
+            dailyWarExpCost = config.getInt("guild.daily_war_exp_cost", 10),
+            dailyWarMoneyCost = config.getInt("guild.daily_war_money_cost", 100),
+            warFarmingCooldownHours = config.getInt("guild.war_farming_cooldown_hours", 24)
         )
     }
     

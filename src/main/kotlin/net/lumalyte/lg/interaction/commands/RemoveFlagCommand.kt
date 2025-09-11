@@ -20,7 +20,7 @@ class RemoveFlagCommand : ClaimCommand(), KoinComponent {
     private val getClaimDetails: GetClaimDetails by inject()
 
     @Subcommand("removeflag")
-    @CommandPermission("bellclaims.command.claim.removeflag")
+    @CommandPermission("lumaguilds.command.claim.removeflag")
     fun onRemoveFlag(player: Player, flag: Flag) {
         // Get the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return

@@ -140,7 +140,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
                 chatInputListener.stopInputMode(player)
                 player.sendMessage("§7Invite input cancelled.")
             }
-            menuNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, x, y)
     }

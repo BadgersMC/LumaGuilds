@@ -90,7 +90,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         // Add owner protection warning if editing own owner rank
         if (isEditingOwnOwnerRank()) {
             infoItem.lore("§7")
-                .lore("§c⚠️ OWNER RANK PROTECTION ACTIVE")
+                .lore("§c⚠︎ OWNER RANK PROTECTION ACTIVE")
                 .lore("§7Permission changes are blocked")
                 .lore("§7to prevent guild owner lockout")
         }
@@ -228,7 +228,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             .lore("§cClick to cancel")
 
         val cancelGuiItem = GuiItem(cancelItem) {
-            player.sendMessage("§e⚠️ Permission changes discarded!")
+            player.sendMessage("§e⚠︎ Permission changes discarded!")
             menuNavigator.openMenu(
                 net.lumalyte.lg.interaction.menus.guild.RankEditMenu(
                     menuNavigator,
@@ -290,6 +290,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             RankPermission.MANAGE_MEMBERS -> "§7Invite, kick, and promote members"
             RankPermission.MANAGE_BANNER -> "§7Change guild banner and appearance"
             RankPermission.MANAGE_EMOJI -> "§7Set guild emoji and icons"
+            RankPermission.MANAGE_DESCRIPTION -> "§7Set and edit guild description"
             RankPermission.MANAGE_HOME -> "§7Set and manage guild home location"
             RankPermission.MANAGE_MODE -> "§7Change guild mode (Peaceful/Hostile)"
             RankPermission.MANAGE_GUILD_SETTINGS -> "§7Access general guild settings"

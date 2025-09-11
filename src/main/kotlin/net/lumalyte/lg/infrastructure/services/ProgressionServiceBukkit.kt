@@ -14,13 +14,28 @@ import kotlin.math.pow
 class ProgressionServiceBukkit(
     private val progressionRepository: ProgressionRepository,
     private val guildService: GuildService,
-    private val configService: ConfigService
+    private val configService: ConfigService,
+    private val warService: WarService
 ) : ProgressionService {
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
 
     override fun awardExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? {
         try {
+            // Check for war farming cooldown
+            if (warService.isGuildInWarFarmingCooldown(guildId)) {
+                logger.info("Blocked EXP award for guild $guildId due to war farming cooldown")
+                return null // Don't award EXP if guild is in cooldown
+            }
+
+            // Check if claims are enabled for claim-related sources
+            val mainConfig = configService.loadConfig()
+            if ((source == ExperienceSource.CLAIM_CREATED || source == ExperienceSource.CLAIM_DESTROYED)
+                && !mainConfig.claimsEnabled) {
+                logger.info("Blocked EXP award for guild $guildId due to claims being disabled (source: $source)")
+                return null // Don't award EXP for claim sources if claims are disabled
+            }
+
             // Get or create guild progression
             val progression = progressionRepository.getGuildProgression(guildId) 
                 ?: GuildProgression.create(guildId)
@@ -202,12 +217,15 @@ class ProgressionServiceBukkit(
         
         // Calculate weighted score based on different activities
         var score = 0
+        val mainConfig = configService.loadConfig()
         for (transaction in transactions) {
             score += when (transaction.source) {
                 ExperienceSource.MEMBER_JOINED -> transaction.amount * 2 // High value activity
                 ExperienceSource.WAR_WON -> transaction.amount * 3 // Very high value
                 ExperienceSource.BANK_DEPOSIT -> transaction.amount * 1 // Standard value
-                ExperienceSource.CLAIM_CREATED -> transaction.amount * 2 // High value
+                ExperienceSource.CLAIM_CREATED -> {
+                    if (mainConfig.claimsEnabled) transaction.amount * 2 else 0 // High value, but only if claims enabled
+                }
                 else -> transaction.amount // Standard value
             }
         }

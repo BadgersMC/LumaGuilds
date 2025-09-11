@@ -86,6 +86,24 @@ interface GuildService {
     fun getTag(guildId: UUID): String?
 
     /**
+     * Sets the description for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param description The description for the guild.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun setDescription(guildId: UUID, description: String?, actorId: UUID): Boolean
+
+    /**
+     * Gets the description for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return The description, or null if not set.
+     */
+    fun getDescription(guildId: UUID): String?
+
+    /**
      * Sets the home location for a guild.
      *
      * @param guildId The ID of the guild.

@@ -117,7 +117,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         // Add owner protection warning if editing own owner rank
         if (isEditingOwnOwnerRank()) {
             infoItem.lore("§7")
-                .lore("§c⚠️ OWNER RANK PROTECTION")
+                .lore("§c⚠︎ OWNER RANK PROTECTION")
                 .lore("§7Permission changes are blocked")
                 .lore("§7to prevent self-lockout")
         }
@@ -186,8 +186,8 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             "Guild Management" to listOf(
                 RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS,
                 RankPermission.MANAGE_BANNER, RankPermission.MANAGE_EMOJI,
-                RankPermission.MANAGE_HOME, RankPermission.MANAGE_MODE,
-                RankPermission.MANAGE_GUILD_SETTINGS
+                RankPermission.MANAGE_DESCRIPTION, RankPermission.MANAGE_HOME,
+                RankPermission.MANAGE_MODE, RankPermission.MANAGE_GUILD_SETTINGS
             ),
             "Banking" to listOf(
                 RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK,

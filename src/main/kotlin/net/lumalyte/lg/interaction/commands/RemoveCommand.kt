@@ -20,7 +20,7 @@ class RemoveCommand : ClaimCommand(), KoinComponent {
     private val getClaimDetails: GetClaimDetails by inject()
 
     @Subcommand("remove")
-    @CommandPermission("bellclaims.command.claim.remove")
+    @CommandPermission("lumaguilds.command.claim.remove")
     fun onRemove(player: Player) {
         // Get the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return

@@ -9,6 +9,7 @@ import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.MenuItemBuilder
@@ -67,14 +68,38 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
         pane.addItem(GuiItem(nameItem), 0, 0)
 
-        // Guild description (placeholder for now)
+        // Guild description
+        val hasDescriptionPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_DESCRIPTION)
+        val currentDescription = guild.description
+
         val descItem = ItemStack(Material.WRITABLE_BOOK)
             .name("§f📝 DESCRIPTION")
-            .lore("§7Status: §cNot set")
-            .lore("§7")
-            .lore("§7Description editing coming soon")
 
-        pane.addItem(GuiItem(descItem), 1, 0)
+        if (currentDescription != null) {
+            descItem.lore("§7Status: §aSet")
+                .lore("§7Current: §f\"$currentDescription\"")
+        } else {
+            descItem.lore("§7Status: §cNot set")
+        }
+
+        descItem.lore("")
+
+        if (hasDescriptionPermission) {
+            descItem.lore("§eClick to edit description")
+        } else {
+            descItem.lore("§cRequires MANAGE_DESCRIPTION permission")
+        }
+
+        val guiItem = GuiItem(descItem) {
+            if (hasDescriptionPermission) {
+                menuNavigator.openMenu(DescriptionEditorMenu(menuNavigator, player, guild))
+            } else {
+                player.sendMessage("§c❌ You don't have permission to manage guild description")
+                player.sendMessage("§7You need the MANAGE_DESCRIPTION permission")
+            }
+        }
+
+        pane.addItem(guiItem, 1, 0)
 
         // Guild creation date
         val localDateTime = guild.createdAt.atZone(ZoneId.systemDefault())
@@ -82,7 +107,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
         val createdItem = ItemStack(Material.CLOCK)
-            .name("§f⏰ CREATED")
+            .name("§f◷ CREATED")
             .lore("§7Date: §f${localDateTime.format(dateFormatter)}")
             .lore("§7Time: §f${localDateTime.format(timeFormatter)}")
 
@@ -95,7 +120,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
     private fun createLevelingInfoItem(): ItemStack {
         val levelingItem = ItemStack(Material.EXPERIENCE_BOTTLE)
-            .name("§b⭐ GUILD PROGRESSION")
+            .name("§b☆ GUILD PROGRESSION")
 
         // Check if claims are enabled in config
         val configService = getKoin().get<ConfigService>()
@@ -132,11 +157,11 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         levelingItem.lore("§7• §f⚔️ War victories")
         
         // Player activities
-        levelingItem.lore("§7• §f🗡️ Player & mob kills")
-        levelingItem.lore("§7• §f🌾 Farming & fishing")
-        levelingItem.lore("§7• §f⛏️ Mining & building")
-        levelingItem.lore("§7• §f🔨 Crafting & smelting")
-        levelingItem.lore("§7• §f✨ Enchanting")
+        levelingItem.lore("§7• §f⚔ Player & mob kills")
+        levelingItem.lore("§7• §f♣ Farming & fishing")
+        levelingItem.lore("§7• §f⛏ Mining & building")
+        levelingItem.lore("§7• §f⚒ Crafting & smelting")
+        levelingItem.lore("§7• §f✦ Enchanting")
 
         // Only show claim-related XP if claims are enabled
         if (claimsEnabled) {
@@ -151,12 +176,12 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         levelingItem.lore("§7• §e💳 Reduced withdrawal fees")
         
         // Home rewards
-        levelingItem.lore("§7• §e🏠 Additional home locations")
+        levelingItem.lore("§7• §e⌂ Additional home locations")
         levelingItem.lore("§7• §e⚡ Faster teleport cooldowns")
-        
+
         // Audio/Visual rewards
-        levelingItem.lore("§7• §e✨ Special particle effects")
-        levelingItem.lore("§7• §e🔊 Sound effects & announcements")
+        levelingItem.lore("§7• §e✦ Special particle effects")
+        levelingItem.lore("§7• §e♪ Sound effects & announcements")
         
         // No system rewards currently
 
@@ -206,7 +231,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Guild Emoji
         val emojiItem = ItemStack(Material.FIREWORK_STAR)
-            .name("§f⭐ EMOJI")
+            .name("§f☆ EMOJI")
             .lore("§7Current: §f${guild.emoji ?: "§cNot set"}")
             .lore("§7")
             .lore("§7Click to manage guild emoji")
@@ -242,7 +267,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
     private fun addLocationModeSection(pane: StaticPane) {
         // Guild Home
         val homeItem = ItemStack(Material.COMPASS)
-            .name("§f🏠 HOME LOCATION")
+                .name("§f⌂ HOME LOCATION")
             .lore("§7Status: §f${if (guild.home != null) "Set" else "§cNot set"}")
 
         if (guild.home != null) {
@@ -277,7 +302,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                 if (guild.mode == GuildMode.PEACEFUL)
                     Material.GREEN_WOOL else Material.RED_WOOL
             )
-                .name("§f⚔️ GUILD MODE")
+                .name("§f⚔ GUILD MODE")
                 .lore("§7Current: §f${guild.mode.name}")
                 .lore("§7")
                 .lore("§7Peaceful: No PvP, safe trading")
@@ -294,7 +319,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                         val days = remaining.toDays()
                         val hours = remaining.toHours() % 24
                         modeItem.lore("§7")
-                                .lore("§c⏰ Cannot switch to Hostile: ${days}d ${hours}h remaining")
+                                .lore("§c◷ Cannot switch to Hostile: ${days}d ${hours}h remaining")
                     }
                 } else {
                     // Show peaceful switch cooldown
@@ -304,7 +329,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                         val days = remaining.toDays()
                         val hours = remaining.toHours() % 24
                         modeItem.lore("§7")
-                                .lore("§c⏰ Cannot switch to Peaceful: ${days}d ${hours}h remaining")
+                                .lore("§c◷ Cannot switch to Peaceful: ${days}d ${hours}h remaining")
                     }
                 }
             }
@@ -319,7 +344,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         } else {
             // Show disabled mode indicator
             val modeItem = ItemStack(Material.GRAY_WOOL)
-                .name("§f⚔️ GUILD MODE")
+                .name("§f⚔ GUILD MODE")
                 .lore("§7Current: §fHOSTILE")
                 .lore("§7")
                 .lore("§cMode switching disabled")

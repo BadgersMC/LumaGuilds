@@ -18,7 +18,7 @@ class UntrustAllCommand : ClaimCommand(), KoinComponent {
     private val getClaimDetails: GetClaimDetails by inject()
 
     @Subcommand("untrustall")
-    @CommandPermission("bellclaims.command.claim.untrustall")
+    @CommandPermission("lumaguilds.command.claim.untrustall")
     fun onUntrustAll(player: Player, permission: ClaimPermission) {
         // Gets the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return

@@ -6,6 +6,7 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Party
 import net.lumalyte.lg.domain.entities.RankPermission
@@ -28,8 +29,16 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     private val partyService: PartyService by inject()
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val configService: ConfigService by inject()
 
     override fun open() {
+        // Check if parties are enabled
+        val mainConfig = configService.loadConfig()
+        if (!mainConfig.partiesEnabled) {
+            player.sendMessage("§c❌ Parties are disabled on this server!")
+            return
+        }
+
         val gui = ChestGui(6, "§6Party Management - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -183,11 +192,11 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         // Party permissions info
         val permissionsItem = ItemStack(Material.BOOK)
             .name("§eParty Permissions")
-            .lore("§7📋 View Invites: §fAll members")
-            .lore("§7✅ Accept Invites: §fAdmin+ only")
-            .lore("§7📤 Send Invites: §fAdmin+ only")
-            .lore("§7⚙️ Manage Settings: §fAdmin+ only")
-            .lore("§7🎯 Join Parties: §fAll members (or restricted ranks)")
+            .lore("§7□ View Invites: §fAll members")
+            .lore("§7✓ Accept Invites: §fAdmin+ only")
+            .lore("§7✉ Send Invites: §fAdmin+ only")
+            .lore("§7§ Manage Settings: §fAdmin+ only")
+            .lore("§7∩ Join Parties: §fAll members (or restricted ranks)")
 
         pane.addItem(GuiItem(permissionsItem), 2, 3)
 
@@ -224,13 +233,157 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     }
 
     private fun openIncomingRequestsMenu() {
-        player.sendMessage("§eIncoming requests menu coming soon!")
-        player.sendMessage("§7This would show party invitations your guild has received.")
+        val incomingRequests = partyService.getPendingRequestsForGuild(guild.id)
+        if (incomingRequests.isEmpty()) {
+            player.sendMessage("§eNo incoming party requests!")
+            player.sendMessage("§7Your guild hasn't received any party invitations.")
+            return
+        }
+
+        // Create incoming requests menu
+        val gui = ChestGui(6, "§aIncoming Party Requests")
+        val pane = StaticPane(0, 0, 9, 6)
+        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+        gui.setOnBottomClick { guiEvent ->
+            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
+                guiEvent.isCancelled = true
+            }
+        }
+
+        var row = 0
+        var col = 0
+
+        incomingRequests.forEach { request ->
+            val fromGuild = guildService.getGuild(request.fromGuildId)
+            if (fromGuild != null) {
+                val requestItem = ItemStack(Material.PAPER)
+                    .name("§a✉ Invitation from §f${fromGuild.name}")
+                    .lore("§7Message: §f${request.message ?: "No message"}")
+                    .lore("")
+                    .lore("§eClick to accept")
+                    .lore("§cShift+Click to decline")
+
+                val guiItem = GuiItem(requestItem) { event ->
+                    when (event.click) {
+                        ClickType.LEFT -> {
+                            // Accept request
+                            val party = partyService.acceptPartyRequest(request.id, guild.id, player.uniqueId)
+                            if (party != null) {
+                                player.sendMessage("§a✅ Party invitation accepted!")
+                                player.sendMessage("§7Your guild has joined the party.")
+                                open() // Refresh menu
+                            } else {
+                                player.sendMessage("§c❌ Failed to accept party invitation")
+                            }
+                        }
+                        ClickType.SHIFT_LEFT, ClickType.SHIFT_RIGHT -> {
+                            // Reject request
+                            val success = partyService.rejectPartyRequest(request.id, guild.id, player.uniqueId)
+                            if (success) {
+                                player.sendMessage("§c❌ Party invitation rejected")
+                                open() // Refresh menu
+                            } else {
+                                player.sendMessage("§c❌ Failed to reject party invitation")
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+
+                pane.addItem(guiItem, col, row)
+
+                col++
+                if (col >= 9) {
+                    col = 0
+                    row++
+                    if (row >= 5) return@forEach // Limit to prevent overflow
+                }
+            }
+        }
+
+        // Back button
+        val backItem = ItemStack(Material.ARROW)
+            .name("§c⬅️ Back")
+            .lore("§7Return to party management")
+
+        val backGuiItem = GuiItem(backItem) {
+            open() // Return to main party management menu
+        }
+        pane.addItem(backGuiItem, 4, 5)
+
+        gui.addPane(pane)
+        gui.show(player)
     }
 
     private fun openOutgoingRequestsMenu() {
-        player.sendMessage("§eOutgoing requests menu coming soon!")
-        player.sendMessage("§7This would show party invitations your guild has sent.")
+        val outgoingRequests = partyService.getPendingRequestsFromGuild(guild.id)
+        if (outgoingRequests.isEmpty()) {
+            player.sendMessage("§eNo outgoing party requests!")
+            player.sendMessage("§7Your guild hasn't sent any party invitations.")
+            return
+        }
+
+        // Create outgoing requests menu
+        val gui = ChestGui(6, "§eOutgoing Party Requests")
+        val pane = StaticPane(0, 0, 9, 6)
+        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+        gui.setOnBottomClick { guiEvent ->
+            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
+                guiEvent.isCancelled = true
+            }
+        }
+
+        var row = 0
+        var col = 0
+
+        outgoingRequests.forEach { request ->
+            val toGuild = guildService.getGuild(request.toGuildId)
+            if (toGuild != null) {
+                val requestItem = ItemStack(Material.WRITABLE_BOOK)
+                    .name("§e✉ Invitation to §f${toGuild.name}")
+                    .lore("§7Message: §f${request.message ?: "No message"}")
+                    .lore("")
+                    .lore("§cShift+Click to cancel")
+
+                val guiItem = GuiItem(requestItem) { event ->
+                    when (event.click) {
+                        ClickType.SHIFT_LEFT, ClickType.SHIFT_RIGHT -> {
+                            // Cancel request
+                            val success = partyService.cancelPartyRequest(request.id, guild.id, player.uniqueId)
+                            if (success) {
+                                player.sendMessage("§c❌ Party invitation cancelled")
+                                open() // Refresh menu
+                            } else {
+                                player.sendMessage("§c❌ Failed to cancel party invitation")
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+
+                pane.addItem(guiItem, col, row)
+
+                col++
+                if (col >= 9) {
+                    col = 0
+                    row++
+                    if (row >= 5) return@forEach // Limit to prevent overflow
+                }
+            }
+        }
+
+        // Back button
+        val backItem = ItemStack(Material.ARROW)
+            .name("§c⬅️ Back")
+            .lore("§7Return to party management")
+
+        val backGuiItem = GuiItem(backItem) {
+            open() // Return to main party management menu
+        }
+        pane.addItem(backGuiItem, 4, 5)
+
+        gui.addPane(pane)
+        gui.show(player)
     }
 
     private fun openSendPartyRequestMenu() {

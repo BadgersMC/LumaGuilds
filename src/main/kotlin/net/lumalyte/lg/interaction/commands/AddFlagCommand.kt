@@ -20,7 +20,7 @@ class AddFlagCommand : ClaimCommand(), KoinComponent {
     private val getClaimDetails: GetClaimDetails by inject()
 
     @Subcommand("addflag")
-    @CommandPermission("bellclaims.command.claim.addflag")
+    @CommandPermission("lumaguilds.command.claim.addflag")
     fun onAddFlag(player: Player, flag: Flag) {
         // Gets the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return

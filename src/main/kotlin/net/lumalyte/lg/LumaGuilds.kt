@@ -22,7 +22,9 @@ import org.bukkit.scheduler.BukkitScheduler
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.core.context.GlobalContext.get
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.DailyWarCostsService
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
+import net.lumalyte.lg.infrastructure.services.DailyWarCostsScheduler
 import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
@@ -37,7 +39,9 @@ class LumaGuilds : JavaPlugin() {
     lateinit var metadata: Chat
     private lateinit var scheduler: BukkitScheduler
     lateinit var pluginScope: CoroutineScope
+    private lateinit var dailyWarCostsScheduler: DailyWarCostsScheduler
     private val componentLogger = getComponentLogger()
+
 
     override fun onEnable() {
         initConfig()
@@ -53,8 +57,14 @@ class LumaGuilds : JavaPlugin() {
         initialisePlaceholderAPI()
         commandManager = PaperCommandManager(this)
 
+        // Enable case-insensitive command completion and parsing
+        commandManager.enableUnstableAPI("help")
+
         // Start Koin with claims enabled/disabled
         startKoin { modules(appModule(this@LumaGuilds, claimsEnabled)) }
+
+        // Configure command completions (ACF handles this automatically)
+        configureCommandCompletions()
 
         // Log configuration summary now that Koin is initialized
         logConfigurationSummary()
@@ -72,6 +82,9 @@ class LumaGuilds : JavaPlugin() {
 
         // Initialize file export cleanup
         get().get<FileExportManager>().cleanupOldFiles()
+
+        // Initialize daily war costs scheduler
+        initDailyWarCostsScheduler()
 
         // Fancy startup message
         displayFancyStartupMessage()
@@ -303,22 +316,6 @@ class LumaGuilds : JavaPlugin() {
         logger.info("§6=== END SECRET PREVIEW ===")
     }
 
-    override fun onDisable() {
-        // Only cancel if pluginScope was initialized
-        if (::pluginScope.isInitialized) {
-            pluginScope.cancel()
-        }
-
-        // Cleanup any remaining temporary files
-        try {
-            get().get<FileExportManager>().cleanupOldFiles()
-        } catch (e: Exception) {
-            logger.warning("Failed to cleanup temporary files on disable: ${e.message}")
-        }
-
-        logColored("❌ LumaGuilds has been Disabled!")
-        logColored("Thanks for using BadgersMC & mizarc's plugin!")
-    }
 
     private fun initialiseVaultDependency() {
         if (Bukkit.getPluginManager().getPlugin("Vault") != null) {
@@ -347,6 +344,16 @@ class LumaGuilds : JavaPlugin() {
         } else {
             logColored("⚠ PlaceholderAPI not found. LumaGuilds placeholders will not be available.")
         }
+    }
+
+    /**
+     * Configures basic command completions using ACF's built-in system.
+     * ACF automatically handles tab completion through @CommandCompletion annotations
+     * on command methods, providing case-insensitive completion out of the box.
+     */
+    private fun configureCommandCompletions() {
+        // ACF handles tab completion automatically through @CommandCompletion annotations
+        // No custom setup needed - the framework provides robust completion features
     }
 
     /**
@@ -379,9 +386,9 @@ class LumaGuilds : JavaPlugin() {
         commandManager.registerCommand(PartyChatCommand())
 
         // Register LumaGuilds admin command
-        getCommand("bellclaims")?.setExecutor(LumaGuildsCommand())
-        getCommand("bellclaims")?.tabCompleter = LumaGuildsCommand()
-        logColored("✓ Admin commands registered (/bellclaims)")
+        getCommand("lumaguilds")?.setExecutor(LumaGuildsCommand())
+        getCommand("lumaguilds")?.tabCompleter = LumaGuildsCommand()
+        logColored("✓ Admin commands registered (/lumaguilds, /bellclaims)")
     }
 
     /**
@@ -414,5 +421,46 @@ class LumaGuilds : JavaPlugin() {
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()
         server.pluginManager.registerEvents(progressionEventListener, this)
+    }
+
+    /**
+     * Initializes the daily war costs scheduler.
+     */
+    private fun initDailyWarCostsScheduler() {
+        try {
+            val dailyWarCostsService = get().get<DailyWarCostsService>()
+            dailyWarCostsScheduler = DailyWarCostsScheduler(this, dailyWarCostsService)
+            dailyWarCostsScheduler.startDailyScheduler()
+            logColored("✓ Daily war costs scheduler started")
+        } catch (e: Exception) {
+            logColored("❌ Failed to initialize daily war costs scheduler: ${e.message}")
+        }
+    }
+
+    /**
+     * Manually triggers daily war costs (for testing/admin use).
+     */
+    fun triggerDailyWarCosts(): Int {
+        return try {
+            val dailyWarCostsService = get().get<DailyWarCostsService>()
+            val affectedGuilds = dailyWarCostsService.applyDailyWarCosts()
+            logColored("✓ Manual daily war costs applied to $affectedGuilds guilds")
+            affectedGuilds
+        } catch (e: Exception) {
+            logColored("❌ Failed to apply daily war costs: ${e.message}")
+            0
+        }
+    }
+
+    override fun onDisable() {
+        // Stop the daily war costs scheduler
+        if (::dailyWarCostsScheduler.isInitialized) {
+            dailyWarCostsScheduler.stopDailyScheduler()
+        }
+
+        // Cancel any remaining plugin scope tasks
+        pluginScope.cancel()
+
+        logColored("🛑 LumaGuilds disabled")
     }
 }

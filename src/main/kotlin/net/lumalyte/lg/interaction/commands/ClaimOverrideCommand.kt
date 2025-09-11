@@ -18,7 +18,7 @@ class ClaimOverrideCommand: BaseCommand(), KoinComponent {
     private val toggleClaimOverride: ToggleClaimOverride by inject()
 
     @Default
-    @CommandPermission("bellclaims.command.claimoverride")
+    @CommandPermission("lumaguilds.command.claimoverride")
     fun onClaimOverride(player: Player) {
         val result = toggleClaimOverride.execute(player.uniqueId)
 

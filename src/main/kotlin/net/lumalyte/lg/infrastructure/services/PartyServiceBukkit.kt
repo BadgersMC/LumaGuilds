@@ -14,7 +14,8 @@ import java.util.UUID
 class PartyServiceBukkit(
     private val partyRepository: PartyRepository,
     private val partyRequestRepository: PartyRequestRepository,
-    private val memberService: MemberService
+    private val memberService: MemberService,
+    private val guildService: net.lumalyte.lg.application.services.GuildService
 ) : PartyService {
     
     private val logger = LoggerFactory.getLogger(PartyServiceBukkit::class.java)
@@ -52,6 +53,27 @@ class PartyServiceBukkit(
             // Create the party
             return if (partyRepository.add(party)) {
                 logger.info("Party ${party.id} created with ${party.guildIds.size} guilds by player ${party.leaderId}")
+
+                // Broadcast party creation message
+                val leaderPlayer = Bukkit.getServer().getPlayer(party.leaderId)
+                val leaderName = leaderPlayer?.name ?: "Unknown"
+
+                // Get guild names for the message
+                val guildNames = party.guildIds.mapNotNull { guildId ->
+                    guildService.getGuild(guildId)?.name
+                }
+
+                if (guildNames.isNotEmpty()) {
+                    val partyMessage = if (guildNames.size == 1) {
+                        "§6★ §eA party has been created: §6${guildNames.first()} §eby §6$leaderName§e!"
+                    } else {
+                        "§6★ §eA party has been created with guilds: §6${guildNames.joinToString(", ")} §eby §6$leaderName§e!"
+                    }
+
+                    // Send to all online players using ChatUtils for emoji sanitization
+                    net.lumalyte.lg.utils.ChatUtils.broadcastMessage(partyMessage)
+                }
+
                 party
             } else {
                 logger.error("Failed to create party ${party.id}")
@@ -90,6 +112,20 @@ class PartyServiceBukkit(
             
             return if (partyRequestRepository.add(request)) {
                 logger.info("Party request sent from guild $fromGuildId to guild $toGuildId by player $requesterId")
+
+                // Send invitation message to all online players
+                val fromGuild = guildService.getGuild(fromGuildId)
+                val toGuild = guildService.getGuild(toGuildId)
+                val requesterPlayer = Bukkit.getServer().getPlayer(requesterId)
+
+                if (fromGuild != null && toGuild != null) {
+                    val requesterName = requesterPlayer?.name ?: "Unknown"
+                    val inviteMessage = "§6∩ §eGuild §6${fromGuild.name} §ehas invited §6${toGuild.name} §eto join a party!"
+
+                    // Send to all online players using ChatUtils for emoji sanitization
+                    net.lumalyte.lg.utils.ChatUtils.broadcastMessage(inviteMessage)
+                }
+
                 request
             } else {
                 logger.error("Failed to save party request")

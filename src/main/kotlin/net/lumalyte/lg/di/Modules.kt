@@ -243,14 +243,17 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
     single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
     single<MemberService> { MemberServiceBukkit(get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get()) }
-    single<PartyService> { PartyServiceBukkit(get(), get(), get()) }
+    single<PartyService> { PartyServiceBukkit(get(), get(), get(), get()) }
     single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get()) }
     single<KillService> { KillServiceBukkit(get()) }
     single<WarService> { WarServiceBukkit() }
+    single<net.lumalyte.lg.application.services.DailyWarCostsService> {
+        net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get())
+    }
     single<ModeService> { ModeServiceBukkit(get(), get(), get(), get()) }
     single<CombatService> { CombatServiceBukkit(get()) }
-    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get()) }
+    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get()) }
     single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get()) }
     
     // Guild Banner System

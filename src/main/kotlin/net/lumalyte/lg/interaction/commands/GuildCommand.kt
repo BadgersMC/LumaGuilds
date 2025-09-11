@@ -5,6 +5,7 @@ import co.aikar.commands.annotation.*
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildMode
@@ -13,7 +14,12 @@ import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.guild.*
 import net.lumalyte.lg.utils.deserializeToItemStack
+import org.bukkit.Bukkit
+import org.bukkit.command.Command
+import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import org.bukkit.scheduler.BukkitRunnable
+import net.kyori.adventure.text.Component
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -24,9 +30,21 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val rankService: RankService by inject()
     private val memberService: MemberService by inject()
     private val getClaimAtPosition: GetClaimAtPosition by inject()
+    private val configService: ConfigService by inject()
+
+    // Teleportation tracking for command-based teleports
+    private data class TeleportSession(
+        val player: Player,
+        val targetLocation: org.bukkit.Location,
+        val startLocation: org.bukkit.Location,
+        var countdownTask: BukkitRunnable? = null,
+        var remainingSeconds: Int = 5
+    )
+
+    private val activeTeleports = mutableMapOf<java.util.UUID, TeleportSession>()
     
     @Subcommand("create")
-    @CommandPermission("bellclaims.guild.create")
+    @CommandPermission("lumaguilds.guild.create")
     fun onCreate(player: Player, name: String, @Optional banner: String?) {
         val playerId = player.uniqueId
         
@@ -41,13 +59,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (guild != null) {
             player.sendMessage("§aGuild '$name' created successfully!")
             player.sendMessage("§7You are now the Owner of the guild.")
+
+            // Broadcast guild creation to all online players
+            val creationMessage = "§6⌂ §eA new guild has been founded: §6$name §eby §6${player.name}§e!"
+            net.lumalyte.lg.utils.ChatUtils.broadcastMessage(creationMessage, player)
+
+            // Log the guild creation
+            player.server.logger.info("Guild '${name}' created by ${player.name} (${player.uniqueId})")
         } else {
             player.sendMessage("§cFailed to create guild. The name may already be taken.")
         }
     }
     
     @Subcommand("rename")
-    @CommandPermission("bellclaims.guild.rename")
+    @CommandPermission("lumaguilds.guild.rename")
     fun onRename(player: Player, newName: String) {
         val playerId = player.uniqueId
         
@@ -69,8 +94,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
     
     @Subcommand("sethome")
-    @CommandPermission("bellclaims.guild.sethome")
-    fun onSetHome(player: Player) {
+    @CommandPermission("lumaguilds.guild.sethome")
+    fun onSetHome(player: Player, @Optional confirm: String?) {
         val playerId = player.uniqueId
 
         // Find player's guild
@@ -103,21 +128,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
                     return
                 }
 
-                // Player is in their guild's claim, proceed with setting home
-                val home = GuildHome(
-                    worldId = location.world.uid,
-                    position = location.toPosition3D()
-                )
-
-                val success = guildService.setHome(guild.id, home, playerId)
-
-                if (success) {
-                    player.sendMessage("§aGuild home set successfully!")
-                    player.sendMessage("§7Location: ${location.blockX}, ${location.blockY}, ${location.blockZ}")
-                    player.sendMessage("§7This location is within your guild's claim area.")
-                } else {
-                    player.sendMessage("§cFailed to set guild home. You may not have permission.")
+                // Check if guild already has a home
+                val currentHome = guildService.getHome(guild.id)
+                if (currentHome != null && confirm?.lowercase() != "confirm") {
+                    player.sendMessage("§c⚠️ Your guild already has a home set!")
+                    player.sendMessage("§7Current home: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}")
+                    player.sendMessage("§7New location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
+                    player.sendMessage("§7Use §6/guild sethome confirm §7to replace the current home")
+                    player.sendMessage("§7Or use the guild menu for a confirmation dialog.")
+                    return
                 }
+
+                // Set the home (either new or confirmed replacement)
+                setGuildHomeCommand(player, guild, location)
             }
             is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.NoClaimFound -> {
                 player.sendMessage("§cYou must be standing in a guild-owned claim to set guild home.")
@@ -132,40 +155,54 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
     
     @Subcommand("home")
-    @CommandPermission("bellclaims.guild.home")
+    @CommandPermission("lumaguilds.guild.home")
     fun onHome(player: Player) {
         val playerId = player.uniqueId
-        
+
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
             player.sendMessage("§cYou are not in a guild.")
             return
         }
-        
+
         val guild = guilds.first()
         val home = guildService.getHome(guild.id)
-        
+
         if (home != null) {
-            // Teleport to guild home
-            val world = player.server.getWorld(home.worldId)
-            if (world != null) {
-                val location = world.getBlockAt(home.position.x, home.position.y, home.position.z).location
-                location.yaw = player.location.yaw
-                location.pitch = player.location.pitch
-                
-                player.teleport(location)
-                player.sendMessage("§aWelcome to your guild home!")
-            } else {
-                player.sendMessage("§cGuild home world is not available.")
+            // Check if player already has an active teleport
+            if (activeTeleports.containsKey(playerId)) {
+                player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")
+                return
             }
+
+            // Get target location
+            val world = player.server.getWorld(home.worldId)
+            if (world == null) {
+                player.sendMessage("§cGuild home world is not available.")
+                return
+            }
+
+            val targetLocation = world.getBlockAt(home.position.x, home.position.y, home.position.z).location
+            targetLocation.yaw = player.location.yaw
+            targetLocation.pitch = player.location.pitch
+
+            // Check if target location is safe (if safety check is enabled)
+            if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(targetLocation)) {
+                player.sendMessage("§c❌ Guild home location is not safe to teleport to!")
+                player.sendMessage("§7Try setting your home on solid ground with space above you.")
+                return
+            }
+
+            // Start teleport countdown
+            startTeleportCountdown(player, targetLocation)
         } else {
             player.sendMessage("§cGuild home has not been set.")
         }
     }
     
     @Subcommand("ranks")
-    @CommandPermission("bellclaims.guild.ranks")
+    @CommandPermission("lumaguilds.guild.ranks")
     fun onRanks(player: Player) {
         val playerId = player.uniqueId
         
@@ -197,7 +234,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
     
     @Subcommand("emoji")
-    @CommandPermission("bellclaims.guild.emoji")
+    @CommandPermission("lumaguilds.guild.emoji")
     fun onEmoji(player: Player) {
         val playerId = player.uniqueId
 
@@ -234,83 +271,76 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("mode")
-    @CommandPermission("bellclaims.guild.mode")
+    @CommandPermission("lumaguilds.guild.mode")
+    @CommandCompletion("peaceful|hostile")
     fun onMode(player: Player, mode: String) {
         val playerId = player.uniqueId
-        
+
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
             player.sendMessage("§cYou are not in a guild.")
             return
         }
-        
+
         val guild = guilds.first()
+
+        // Check if mode switching is enabled in config
+        val mainConfig = configService.loadConfig()
+        if (!mainConfig.guild.modeSwitchingEnabled) {
+            player.sendMessage("§c❌ Guild mode switching is disabled by server configuration.")
+            player.sendMessage("§7Guilds cannot change between Peaceful and Hostile modes.")
+            return
+        }
+
         val guildMode = try {
             GuildMode.valueOf(mode.uppercase())
         } catch (e: IllegalArgumentException) {
             player.sendMessage("§cInvalid mode. Use 'peaceful' or 'hostile'.")
             return
         }
-        
+
         val success = guildService.setMode(guild.id, guildMode, playerId)
-        
+
         if (success) {
-            player.sendMessage("§aGuild mode changed to ${guildMode.name.lowercase().replaceFirstChar { it.uppercase() }}!")
+            player.sendMessage("§a✅ Guild mode changed to ${guildMode.name.lowercase().replaceFirstChar { it.uppercase() }}!")
         } else {
-            player.sendMessage("§cFailed to change guild mode. You may not have permission.")
+            player.sendMessage("§c❌ Failed to change guild mode. You may not have permission.")
         }
     }
     
     @Subcommand("info")
-    @CommandPermission("bellclaims.guild.info")
-    fun onInfo(player: Player, @Optional targetPlayer: String?) {
-        val playerId = player.uniqueId
-        
-        if (targetPlayer != null) {
-            // Show info about another player's guild
-            // This would require additional implementation to find players by name
-            player.sendMessage("§cPlayer lookup not yet implemented.")
-            return
-        }
-        
-        // Find player's guild
-        val guilds = guildService.getPlayerGuilds(playerId)
-        if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
-            return
-        }
-        
-        val guild = guilds.first()
-        val memberCount = memberService.getMemberCount(guild.id)
-        val playerRank = rankService.getPlayerRank(playerId, guild.id)
-        
-        player.sendMessage("§6=== Guild Information ===")
-        player.sendMessage("§7Name: §f${guild.name}")
-        player.sendMessage("§7Level: §f${guild.level}")
-        player.sendMessage("§7Members: §f$memberCount")
-        player.sendMessage("§7Mode: §f${guild.mode.name.lowercase().replaceFirstChar { it.uppercase() }}")
-        player.sendMessage("§7Your Rank: §f${playerRank?.name ?: "Unknown"}")
-        
-        if (guild.banner != null) {
-            val bannerItem = guild.banner.deserializeToItemStack()
-            val bannerDisplay = if (bannerItem != null) {
-                bannerItem.type.name.lowercase().replace("_", " ")
-            } else {
-                "Error loading banner"
+    @CommandCompletion("@guilds")
+    fun onInfo(player: Player, @Optional targetGuild: String?) {
+        val menuNavigator = MenuNavigator(player)
+
+        if (targetGuild != null) {
+            // Show info about another guild by name
+            val guilds = guildService.getAllGuilds()
+            val targetGuildObj = guilds.find { it.name.equals(targetGuild, ignoreCase = true) }
+
+            if (targetGuildObj == null) {
+                player.sendMessage("§cGuild '$targetGuild' not found.")
+                return
             }
-            player.sendMessage("§7Banner: §f$bannerDisplay")
+
+            // Open the target guild's info menu (no permission restrictions)
+            menuNavigator.openMenu(GuildInfoMenu(menuNavigator, player, targetGuildObj))
+        } else {
+            // Show player's own guild info
+            val guilds = guildService.getPlayerGuilds(player.uniqueId)
+            if (guilds.isEmpty()) {
+                player.sendMessage("§cYou are not in a guild.")
+                return
+            }
+
+            val guild = guilds.first()
+            menuNavigator.openMenu(GuildInfoMenu(menuNavigator, player, guild))
         }
-        
-        if (guild.home != null) {
-            player.sendMessage("§7Home: §f${guild.home.position.x}, ${guild.home.position.y}, ${guild.home.position.z}")
-        }
-        
-        player.sendMessage("§7Created: §f${guild.createdAt}")
     }
     
     @Subcommand("disband")
-    @CommandPermission("bellclaims.guild.disband")
+    @CommandPermission("lumaguilds.guild.disband")
     fun onDisband(player: Player) {
         val playerId = player.uniqueId
         
@@ -342,7 +372,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("menu")
-    @CommandPermission("bellclaims.guild.menu")
+    @CommandPermission("lumaguilds.guild.menu")
     fun onMenu(player: Player) {
         val playerId = player.uniqueId
 
@@ -383,7 +413,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("invite")
-    @CommandPermission("bellclaims.guild.invite")
+    @CommandPermission("lumaguilds.guild.invite")
+    @CommandCompletion("@players @guilds")
     fun onInvite(player: Player, targetPlayerName: String) {
         val playerId = player.uniqueId
 
@@ -426,7 +457,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("kick")
-    @CommandPermission("bellclaims.guild.kick")
+    @CommandPermission("lumaguilds.guild.kick")
+    @CommandCompletion("@guildmembers")
     fun onKick(player: Player, targetPlayerName: String) {
         val playerId = player.uniqueId
 
@@ -469,8 +501,104 @@ class GuildCommand : BaseCommand(), KoinComponent {
         menuNavigator.openMenu(GuildKickConfirmationMenu(menuNavigator, player, guild, targetMember))
     }
 
+    @Subcommand("tag")
+    @CommandPermission("lumaguilds.guild.tag")
+    fun onTag(player: Player, @Optional tag: String?) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check if player has permission to manage guild settings
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_BANNER)) {
+            player.sendMessage("§cYou don't have permission to manage guild tag.")
+            player.sendMessage("§7You need the MANAGE_BANNER permission to change the guild tag.")
+            return
+        }
+
+        if (tag == null) {
+            // Open tag edit menu directly if player has permission
+            val menuNavigator = MenuNavigator(player)
+            menuNavigator.openMenu(TagEditorMenu(menuNavigator, player, guild))
+            return
+        }
+
+        // Validate tag length and format
+        if (tag.length > 5) {
+            player.sendMessage("§cGuild tag must be 5 characters or less.")
+            return
+        }
+
+        if (!tag.matches(Regex("^[A-Z0-9]+$"))) {
+            player.sendMessage("§cGuild tag can only contain uppercase letters and numbers.")
+            return
+        }
+
+        // Set the tag
+        val success = guildService.setTag(guild.id, tag, playerId)
+
+        if (success) {
+            player.sendMessage("§a✅ Guild tag set to: §f[$tag]")
+            player.sendMessage("§7This will be displayed next to guild member names.")
+        } else {
+            player.sendMessage("§c❌ Failed to set guild tag. The tag may already be taken.")
+        }
+    }
+
+    @Subcommand("description|desc")
+    @CommandPermission("lumaguilds.guild.description")
+    fun onDescription(player: Player, @Optional description: String?) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check if player has permission to manage guild settings
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_DESCRIPTION)) {
+            player.sendMessage("§cYou don't have permission to manage guild description.")
+            player.sendMessage("§7You need the MANAGE_DESCRIPTION permission to change the guild description.")
+            return
+        }
+
+        if (description == null) {
+            // Open description edit menu directly if player has permission
+            val menuNavigator = MenuNavigator(player)
+            menuNavigator.openMenu(DescriptionEditorMenu(menuNavigator, player, guild))
+            return
+        }
+
+        // Validate description length
+        if (description.length > 100) {
+            player.sendMessage("§cGuild description must be 100 characters or less.")
+            player.sendMessage("§7Your description is ${description.length} characters long.")
+            return
+        }
+
+        // Set the description
+        val success = guildService.setDescription(guild.id, description, playerId)
+
+        if (success) {
+            player.sendMessage("§a✅ Guild description set!")
+            player.sendMessage("§7New description: §f\"$description\"")
+        } else {
+            player.sendMessage("§c❌ Failed to set guild description.")
+        }
+    }
+
     @Subcommand("war")
-    @CommandPermission("bellclaims.guild.war")
+    @CommandPermission("lumaguilds.guild.war")
     fun onWar(player: Player) {
         val playerId = player.uniqueId
 
@@ -493,6 +621,141 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Open the war management menu
         val menuNavigator = MenuNavigator(player)
         menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
-        player.sendMessage("§6⚔️ Opening war management menu...")
+        player.sendMessage("§6⚔ Opening war management menu...")
     }
+
+    private fun setGuildHomeCommand(player: Player, guild: net.lumalyte.lg.domain.entities.Guild, location: org.bukkit.Location) {
+        val home = GuildHome(
+            worldId = location.world.uid,
+            position = location.toPosition3D()
+        )
+
+        // Check if location is safe (if safety check is enabled)
+        if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(location)) {
+            player.sendMessage("§c❌ This location is not safe to set as guild home!")
+            player.sendMessage("§7Try setting your home on solid ground with space above you.")
+            return
+        }
+
+        val success = guildService.setHome(guild.id, home, player.uniqueId)
+
+        if (success) {
+            player.sendMessage("§a✅ Guild home set successfully!")
+            player.sendMessage("§7Location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
+            player.sendMessage("§7This location is within your guild's claim area.")
+            player.sendMessage("§7Members can now use §6/guild home §7to teleport here.")
+        } else {
+            player.sendMessage("§c❌ Failed to set guild home. You may not have permission.")
+        }
+    }
+
+    // Teleport countdown helper methods
+    private fun startTeleportCountdown(player: Player, targetLocation: org.bukkit.Location) {
+        val playerId = player.uniqueId
+
+        // Cancel any existing teleport
+        cancelTeleport(playerId)
+
+        val session = TeleportSession(
+            player = player,
+            targetLocation = targetLocation,
+            startLocation = player.location.clone(),
+            remainingSeconds = 5
+        )
+
+        activeTeleports[playerId] = session
+
+        player.sendMessage("§e◷ Teleportation countdown started! Don't move for 5 seconds...")
+        player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
+
+        val countdownTask = object : BukkitRunnable() {
+            override fun run() {
+                val currentSession = activeTeleports[playerId] ?: return
+
+                // Check if player moved
+                if (hasPlayerMoved(currentSession)) {
+                    cancelTeleport(playerId)
+                    player.sendMessage("§c❌ Teleportation canceled - you moved!")
+                    return
+                }
+
+                currentSession.remainingSeconds--
+
+                if (currentSession.remainingSeconds <= 0) {
+                    // Teleport the player
+                    player.teleport(currentSession.targetLocation)
+                    player.sendMessage("§a✅ Welcome to your guild home!")
+                    player.sendActionBar(Component.text("§aTeleported to guild home!"))
+
+                    // Clean up
+                    activeTeleports.remove(playerId)
+                } else {
+                    // Update action bar
+                    player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
+                }
+            }
+        }
+
+        session.countdownTask = countdownTask
+        val plugin = player.server.pluginManager.getPlugin("LumaGuilds")
+            ?: return // Plugin not found, cannot schedule countdown
+        countdownTask.runTaskTimer(plugin, 20L, 20L) // Every second
+    }
+
+    private fun cancelTeleport(playerId: java.util.UUID) {
+        val session = activeTeleports[playerId] ?: return
+
+        session.countdownTask?.cancel()
+        activeTeleports.remove(playerId)
+    }
+
+    private fun hasPlayerMoved(session: TeleportSession): Boolean {
+        val currentLocation = session.player.location
+        val startLocation = session.startLocation
+
+        // Check if player moved more than 0.1 blocks in any direction
+        return Math.abs(currentLocation.x - startLocation.x) > 0.1 ||
+               Math.abs(currentLocation.y - startLocation.y) > 0.1 ||
+               Math.abs(currentLocation.z - startLocation.z) > 0.1 ||
+               currentLocation.world != startLocation.world
+    }
+
+    private fun isLocationSafe(location: org.bukkit.Location): Boolean {
+        val block = location.block
+        val blockBelow = location.clone().subtract(0.0, 1.0, 0.0).block
+        val blockAbove = location.clone().add(0.0, 1.0, 0.0).block
+
+        // Define dangerous materials that should prevent teleportation
+        val dangerousMaterials = setOf(
+            org.bukkit.Material.LAVA,
+            org.bukkit.Material.FIRE,
+            org.bukkit.Material.SOUL_FIRE,
+            org.bukkit.Material.CACTUS,
+            org.bukkit.Material.SWEET_BERRY_BUSH,
+            org.bukkit.Material.POINTED_DRIPSTONE,
+            org.bukkit.Material.MAGMA_BLOCK
+        )
+
+        // Check if location has safe ground and space to stand
+        val hasSafeGround = blockBelow.type.isSolid || blockBelow.type == org.bukkit.Material.GRASS_BLOCK ||
+                           blockBelow.type == org.bukkit.Material.DIRT || blockBelow.type == org.bukkit.Material.COARSE_DIRT ||
+                           blockBelow.type == org.bukkit.Material.PODZOL || blockBelow.type == org.bukkit.Material.SAND ||
+                           blockBelow.type == org.bukkit.Material.RED_SAND || blockBelow.type == org.bukkit.Material.GRAVEL ||
+                           blockBelow.type == org.bukkit.Material.STONE || blockBelow.type == org.bukkit.Material.COBBLESTONE
+
+        val hasSpaceToStand = !block.type.isSolid || block.type == org.bukkit.Material.SHORT_GRASS ||
+                             block.type == org.bukkit.Material.TALL_GRASS || block.type == org.bukkit.Material.FERN ||
+                             block.type == org.bukkit.Material.LARGE_FERN
+
+        val hasHeadSpace = !blockAbove.type.isSolid || blockAbove.type == org.bukkit.Material.SHORT_GRASS ||
+                          blockAbove.type == org.bukkit.Material.TALL_GRASS || blockAbove.type == org.bukkit.Material.FERN ||
+                          blockAbove.type == org.bukkit.Material.LARGE_FERN
+
+        val noDangerousBlocks = !dangerousMaterials.contains(blockBelow.type) &&
+                               !dangerousMaterials.contains(block.type) &&
+                               !dangerousMaterials.contains(blockAbove.type)
+
+        return hasSafeGround && hasSpaceToStand && hasHeadSpace && noDangerousBlocks
+    }
+
 }

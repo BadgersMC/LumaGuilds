@@ -116,6 +116,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_MEMBERS,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANNER,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_EMOJI,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_DESCRIPTION,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_MODE,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"

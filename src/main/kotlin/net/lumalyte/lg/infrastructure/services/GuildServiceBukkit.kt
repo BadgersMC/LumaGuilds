@@ -225,6 +225,35 @@ class GuildServiceBukkit(
     override fun getTag(guildId: UUID): String? {
         return guildRepository.getById(guildId)?.tag
     }
+
+    override fun setDescription(guildId: UUID, description: String?, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        // Check if actor has permission to set description
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_EMOJI)) { // Reuse emoji permission for description
+            logger.warn("Player $actorId attempted to set description for guild $guildId without permission")
+            return false
+        }
+
+        // Validate description length if provided
+        description?.let { descValue ->
+            if (descValue.length > 100) {
+                logger.warn("Description too long: ${descValue.length} characters (max 100)")
+                return false
+            }
+        }
+
+        val updatedGuild = guild.copy(description = description)
+        val result = guildRepository.update(updatedGuild)
+        if (result) {
+            logger.info("Guild $guildId description set by $actorId")
+        }
+        return result
+    }
+
+    override fun getDescription(guildId: UUID): String? {
+        return guildRepository.getById(guildId)?.description
+    }
     
     override fun setHome(guildId: UUID, home: GuildHome, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false

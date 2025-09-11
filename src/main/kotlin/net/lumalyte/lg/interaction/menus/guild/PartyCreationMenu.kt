@@ -34,6 +34,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
     private val rankService: RankService by inject()
     private val memberService: MemberService by inject()
     private val chatInputListener: ChatInputListener by inject()
+    private val configService: ConfigService by inject()
 
     // Creation state
     private var partyName: String = ""
@@ -44,6 +45,13 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
     private var isPrivateParty: Boolean = false // Whether this is a private guild-only party
 
     override fun open() {
+        // Check if parties are enabled
+        val mainConfig = configService.loadConfig()
+        if (!mainConfig.partiesEnabled) {
+            player.sendMessage("§c❌ Parties are disabled on this server!")
+            return
+        }
+
         val gui = ChestGui(6, "§6Create New Party - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -413,7 +421,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             val invitedGuild = guildService.getGuild(guildId)
             if (invitedGuild != null) {
                 // Send invite notification (you could implement a proper invite system here)
-                player.sendMessage("§7📨 Invite sent to §f${invitedGuild.name}")
+                player.sendMessage("§7✉ Invite sent to §f${invitedGuild.name}")
 
                 // TODO: Implement proper guild invite system with accept/decline
                 // For now, just notify the player that invites were sent

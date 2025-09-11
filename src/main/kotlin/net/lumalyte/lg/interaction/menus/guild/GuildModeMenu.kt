@@ -29,6 +29,16 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
     private val warService: WarService by inject()
 
     override fun open() {
+        val mainConfig = configService.loadConfig()
+        val config = mainConfig.guild
+
+        // Check if mode switching is enabled
+        if (!config.modeSwitchingEnabled) {
+            // Mode switching is disabled - show informational menu
+            showDisabledModeMenu()
+            return
+        }
+
         val gui = ChestGui(3, "§6Change Guild Mode")
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -48,20 +58,56 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         gui.show(player)
     }
 
+    private fun showDisabledModeMenu() {
+        val gui = ChestGui(3, "§6Guild Mode - Disabled")
+        val pane = StaticPane(0, 0, 9, 3)
+        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+        gui.setOnBottomClick { guiEvent ->
+            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
+                guiEvent.isCancelled = true
+            }
+        }
+
+        // Current mode display
+        val currentModeItem = ItemStack(
+            if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
+        )
+            .name("§f📊 CURRENT MODE")
+            .lore("§7Mode: §f${guild.mode.name}")
+            .lore("§7")
+            .lore("§7Changed: §f${guild.modeChangedAt?.let { formatTimeAgo(it) } ?: "Never"}")
+            .lore("§7")
+            .lore("§c❌ Mode switching is disabled by server configuration")
+            .lore("§7Guilds cannot change between Peaceful and Hostile modes")
+
+        pane.addItem(GuiItem(currentModeItem), 4, 1)
+
+        // Add back button
+        addBackButton(pane)
+
+        gui.addPane(pane)
+        gui.show(player)
+    }
+
     private fun addModeOptions(pane: StaticPane) {
         val mainConfig = configService.loadConfig()
         val config = mainConfig.guild
+        val claimsEnabled = mainConfig.claimsEnabled
 
         // Peaceful Mode Option
         if (guild.mode != GuildMode.PEACEFUL) {
             val peacefulItem = ItemStack(Material.GREEN_WOOL)
-                .name("§a🕊️ SWITCH TO PEACEFUL")
+                .name("§a☮ SWITCH TO PEACEFUL")
                 .lore("§7Peaceful mode benefits:")
-                .lore("§7• No PvP in guild claims")
-                .lore("§7• Safe trading environment")
+
+            // Only show claim-related PvP benefit if claims are enabled
+            if (claimsEnabled) {
+                peacefulItem.lore("§7• No PvP in guild claims")
+            }
+            peacefulItem.lore("§7• Safe trading environment")
                 .lore("§7• Prevents war declarations")
                 .lore("§7")
-                .lore("§c⚠️ Cooldown: ${config.modeSwitchCooldownDays} days")
+                .lore("§c⚠︎ Cooldown: ${config.modeSwitchCooldownDays} days")
 
             val canSwitch = canSwitchToPeaceful(guild, config.modeSwitchCooldownDays)
             val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
@@ -71,7 +117,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                 peacefulItem.lore("§7")
                         .lore("§c❌ Cannot switch yet")
                 if (hasActiveWar) {
-                    peacefulItem.lore("§c⚔️ Active war in progress")
+                    peacefulItem.lore("§c⚔ Active war in progress")
                 } else {
                     peacefulItem.lore("§c${getCooldownMessage(guild, config.modeSwitchCooldownDays)}")
                 }
@@ -106,13 +152,17 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         // Hostile Mode Option
         if (guild.mode != GuildMode.HOSTILE) {
             val hostileItem = ItemStack(Material.RED_WOOL)
-                .name("§c⚔️ SWITCH TO HOSTILE")
+                .name("§c⚔ SWITCH TO HOSTILE")
                 .lore("§7Hostile mode benefits:")
-                .lore("§7• PvP enabled in claims")
-                .lore("§7• Can declare wars")
+
+            // Only show claim-related PvP benefit if claims are enabled
+            if (claimsEnabled) {
+                hostileItem.lore("§7• PvP enabled in claims")
+            }
+            hostileItem.lore("§7• Can declare wars")
                 .lore("§7• Competitive gameplay")
                 .lore("§7")
-                .lore("§c⚠️ Lock: ${config.hostileModeMinimumDays} days")
+                .lore("§c⚠︎ Lock: ${config.hostileModeMinimumDays} days")
 
             val canSwitch = canSwitchToHostile(guild, config.hostileModeMinimumDays)
             if (!canSwitch) {

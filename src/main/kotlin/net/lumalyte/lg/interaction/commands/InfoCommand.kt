@@ -32,7 +32,7 @@ class InfoCommand : ClaimCommand(), KoinComponent {
     private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
 
     @Subcommand("info")
-    @CommandPermission("bellclaims.command.claim.info")
+    @CommandPermission("lumaguilds.command.claim.info")
     fun onInfo(player: Player) {
         // Get partition at current location with associated claim
         val partition = getPartitionAtPlayer(player) ?: return

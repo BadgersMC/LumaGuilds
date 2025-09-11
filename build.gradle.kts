@@ -52,7 +52,7 @@ dependencies {
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
     }
-    compileOnly("me.clip:placeholderapi:2.11.6")
+    compileOnly("com.github.placeholderapi:placeholderapi:2.11.6")
     testImplementation("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
     }

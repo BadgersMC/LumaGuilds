@@ -281,7 +281,10 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         val bannerCopyCost = config.bannerCopyCost
         val chargeGuildBank = config.bannerCopyChargeGuildBank
         val bannerCopyFree = config.bannerCopyFree
-
+        val useItemCost = config.bannerCopyUseItemCost
+        val itemMaterial = config.bannerCopyItemMaterial
+        val itemAmount = config.bannerCopyItemAmount
+        val itemCustomModelData = config.bannerCopyItemCustomModelData
 
         val copyItem = ItemStack(Material.WRITABLE_BOOK)
             .name("§e📋 GET BANNER COPY")
@@ -289,7 +292,17 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
         if (bannerCopyFree) {
             copyItem.lore("§7Cost: §aFREE")
+        } else if (useItemCost) {
+            // Item-based cost
+            try {
+                val material = Material.valueOf(itemMaterial.uppercase())
+                copyItem.lore("§7Cost: §6$itemAmount x ${material.name.lowercase().replace("_", " ")}")
+                copyItem.lore("§7Taken from your inventory")
+            } catch (e: IllegalArgumentException) {
+                copyItem.lore("§c❌ Invalid item material configured")
+            }
         } else {
+            // Coin-based cost
             copyItem.lore("§7Cost: §6$bannerCopyCost coins")
             copyItem.lore("§7Charged from: §6${if (chargeGuildBank) "Guild Bank" else "Personal Balance"}")
 
@@ -324,26 +337,58 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 return@GuiItem
             }
 
-            val cost = bannerCopyCost
             val success = if (bannerCopyFree) {
                 // Free banner copy - no payment needed
                 true
+            } else if (useItemCost) {
+                // Item-based payment
+                try {
+                    val material = Material.valueOf(itemMaterial.uppercase())
+                    val requiredItem = ItemStack(material, itemAmount)
+
+                    // Apply custom model data if specified
+                    if (itemCustomModelData != null) {
+                        val meta = requiredItem.itemMeta
+                        if (meta != null) {
+                            meta.setCustomModelData(itemCustomModelData)
+                            requiredItem.itemMeta = meta
+                        }
+                    }
+
+                    // Check if player has enough items
+                    val playerInventory = player.inventory
+                    val hasEnough = playerInventory.containsAtLeast(requiredItem, itemAmount)
+
+                    if (!hasEnough) {
+                        player.sendMessage("§c❌ You don't have enough items! (Need: §6$itemAmount x ${material.name.lowercase().replace("_", " ")}§c)")
+                        return@GuiItem
+                    }
+
+                    // Remove items from player inventory
+                    playerInventory.removeItem(requiredItem)
+                    player.sendMessage("§a✅ Paid §6$itemAmount x ${material.name.lowercase().replace("_", " ")} §afor banner copy!")
+
+                    true
+                } catch (e: IllegalArgumentException) {
+                    player.sendMessage("§c❌ Invalid item material configured for banner cost!")
+                    false
+                }
             } else if (chargeGuildBank) {
-                // Withdraw from guild bank to pay for banner copy
+                // Coin-based payment from guild bank
+                val cost = bannerCopyCost
                 val guildBalance = bankService.getBalance(guild.id)
                 val fee = bankService.calculateWithdrawalFee(guild.id, cost)
                 val totalCost = cost + fee
-                
-                player.sendMessage("§7[DEBUG] Guild balance: $guildBalance, Total cost: $totalCost (cost: $cost + fee: $fee)")
-                
+
                 if (guildBalance < totalCost) {
                     player.sendMessage("§c❌ Guild bank has insufficient funds! (Need: §6$totalCost§c, Have: §6$guildBalance§c)")
                     return@GuiItem
                 }
-                
+
                 bankService.deductFromGuildBank(guild.id, totalCost, "Banner copy purchase")
             } else {
-                // Charge player balance
+                // Coin-based payment from player balance
+                val cost = bannerCopyCost
                 val playerBalance = bankService.getPlayerBalance(player.uniqueId)
                 if (playerBalance < cost.toInt()) {
                     player.sendMessage("§c❌ You don't have enough coins! (Need: §6$cost§c, Have: §6$playerBalance§c)")
@@ -369,7 +414,11 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
             if (bannerCopyFree) {
                 player.sendMessage("§a✅ Free banner copy received!")
+            } else if (useItemCost) {
+                // Item cost message already sent above
+                player.sendMessage("§a✅ Banner copy received!")
             } else {
+                val cost = bannerCopyCost
                 player.sendMessage("§a✅ Banner copy purchased for §6$cost §acoins!")
             }
             player.sendMessage("§7💡 The banner has been added to your inventory")
