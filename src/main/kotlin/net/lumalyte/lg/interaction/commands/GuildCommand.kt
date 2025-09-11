@@ -108,50 +108,54 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val guild = guilds.first()
         val location = player.location
 
-        // Check if player is standing in a claim
-        val claimResult = getClaimAtPosition.execute(location.world.uid, location.toPosition3D())
-        when (claimResult) {
-            is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.Success -> {
-                val claim = claimResult.claim
+        // Check if claims are enabled in config
+        val config = configService.loadConfig()
+        if (config.claimsEnabled) {
+            // Check if player is standing in a claim
+            val claimResult = getClaimAtPosition.execute(location.world.uid, location.toPosition3D())
+            when (claimResult) {
+                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.Success -> {
+                    val claim = claimResult.claim
 
-                // Check if the claim is guild-owned
-                if (claim.teamId == null) {
-                    player.sendMessage("§cYou can only set guild home in a guild-owned claim.")
-                    player.sendMessage("§7Use the bell menu to convert this personal claim to a guild claim first.")
+                    // Check if the claim is guild-owned
+                    if (claim.teamId == null) {
+                        player.sendMessage("§cYou can only set guild home in a guild-owned claim.")
+                        player.sendMessage("§7Use the bell menu to convert this personal claim to a guild claim first.")
+                        return
+                    }
+
+                    // Check if the claim belongs to the player's guild
+                    if (claim.teamId != guild.id) {
+                        player.sendMessage("§cYou can only set guild home in your own guild's claims.")
+                        player.sendMessage("§7This claim belongs to a different guild.")
+                        return
+                    }
+                }
+                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.NoClaimFound -> {
+                    player.sendMessage("§cYou must be standing in a guild-owned claim to set guild home.")
+                    player.sendMessage("§7Place a bell and convert it to a guild claim first.")
                     return
                 }
-
-                // Check if the claim belongs to the player's guild
-                if (claim.teamId != guild.id) {
-                    player.sendMessage("§cYou can only set guild home in your own guild's claims.")
-                    player.sendMessage("§7This claim belongs to a different guild.")
+                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.StorageError -> {
+                    player.sendMessage("§cAn error occurred while checking your location.")
                     return
                 }
-
-                // Check if guild already has a home
-                val currentHome = guildService.getHome(guild.id)
-                if (currentHome != null && confirm?.lowercase() != "confirm") {
-                    player.sendMessage("§c⚠️ Your guild already has a home set!")
-                    player.sendMessage("§7Current home: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}")
-                    player.sendMessage("§7New location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
-                    player.sendMessage("§7Use §6/guild sethome confirm §7to replace the current home")
-                    player.sendMessage("§7Or use the guild menu for a confirmation dialog.")
-                    return
-                }
-
-                // Set the home (either new or confirmed replacement)
-                setGuildHomeCommand(player, guild, location)
-            }
-            is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.NoClaimFound -> {
-                player.sendMessage("§cYou must be standing in a guild-owned claim to set guild home.")
-                player.sendMessage("§7Place a bell and convert it to a guild claim first.")
-                return
-            }
-            is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.StorageError -> {
-                player.sendMessage("§cAn error occurred while checking your location.")
-                return
             }
         }
+
+        // Check if guild already has a home
+        val currentHome = guildService.getHome(guild.id)
+        if (currentHome != null && confirm?.lowercase() != "confirm") {
+            player.sendMessage("§c⚠️ Your guild already has a home set!")
+            player.sendMessage("§7Current home: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}")
+            player.sendMessage("§7New location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
+            player.sendMessage("§7Use §6/guild sethome confirm §7to replace the current home")
+            player.sendMessage("§7Or use the guild menu for a confirmation dialog.")
+            return
+        }
+
+        // Set the home (either new or confirmed replacement)
+        setGuildHomeCommand(player, guild, location)
     }
     
     @Subcommand("home")
