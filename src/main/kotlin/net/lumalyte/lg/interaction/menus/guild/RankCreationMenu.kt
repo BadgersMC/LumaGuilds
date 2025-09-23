@@ -32,6 +32,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     private val rankService: RankService by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val configService: ConfigService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     
     // Creation state
     private var rankName: String = ""
@@ -337,7 +338,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                     player.sendMessage("§c❌ Failed to create rank!")
                 }
 
-                menuNavigator.openMenu(GuildRankManagementMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
             } else {
                 player.sendMessage("§c❌ Cannot create rank - missing requirements!")
             }
@@ -527,3 +528,4 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         guild = data as? Guild ?: return
     }
 }
+

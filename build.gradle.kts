@@ -28,6 +28,14 @@ repositories {
         name = "codemc-snapshots"
         url = uri("https://repo.codemc.io/repository/maven-snapshots/")
     }
+    maven {
+        name = "opencollab-snapshot"
+        url = uri("https://repo.opencollab.dev/main/")
+    }
+    maven {
+        name = "spigotmc-repo"
+        url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    }
 
 }
 
@@ -53,6 +61,15 @@ dependencies {
         exclude(group = "org.bukkit", module = "bukkit")
     }
     compileOnly("com.github.placeholderapi:placeholderapi:2.11.6")
+
+    // Bedrock menu system dependencies - using local JARs from libs/
+    compileOnly(files("libs/geyser-api-2.7.0-SNAPSHOT.jar"))
+    compileOnly(files("libs/floodgate-api-2.2.4-SNAPSHOT.jar"))
+    // Use compileOnly so we link against Floodgate's Cumulus at runtime to avoid classloader conflicts
+    compileOnly(files("libs/cumulus-2.0.0-SNAPSHOT.jar"))
+    compileOnly(files("libs/events-1.1-SNAPSHOT.jar"))
+    compileOnly(files("libs/base-api-1.0.1.jar"))
+    compileOnly(files("libs/common-2.2.1-SNAPSHOT.jar"))
     testImplementation("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
     }

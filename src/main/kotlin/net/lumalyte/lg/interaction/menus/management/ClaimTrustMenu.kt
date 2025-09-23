@@ -23,14 +23,20 @@ import java.util.UUID
 import kotlin.math.ceil
 
 class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                     private val claim: Claim): Menu, KoinComponent {
+                     private val claim: Claim?): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
     private val getClaimPlayerPermissions: GetClaimPlayerPermissions by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     private var page = 1
 
     override fun open() {
+        if (claim == null) {
+            player.sendMessage("§cError: No claim available")
+            return
+        }
+
         // Create trust menu
         val playerId = player.uniqueId
         val gui = ChestGui(6, localizationProvider.get(playerId, LocalizationKeys.MENU_TRUSTED_PLAYERS_TITLE))
@@ -50,7 +56,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
             .lore(localizationProvider.get(playerId,
                 LocalizationKeys.MENU_TRUSTED_PLAYERS_ITEM_DEFAULT_PERMISSIONS_LORE))
         val guiDefaultPermsItem = GuiItem(defaultPermsItem) {
-            menuNavigator.openMenu(ClaimWidePermissionsMenu(menuNavigator, player, claim)) }
+            menuNavigator.openMenu(menuFactory.createClaimWidePermissionsMenu(menuNavigator, player, claim)) }
         controlsPane.addItem(guiDefaultPermsItem, 2, 0)
 
         // Add all players menu
@@ -58,7 +64,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_TRUSTED_PLAYERS_ITEM_ALL_PLAYERS_NAME))
             .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_TRUSTED_PLAYERS_ITEM_ALL_PLAYERS_LORE))
         val guiAllPlayersItem = GuiItem(allPlayersItem) {
-            menuNavigator.openMenu(ClaimPlayerMenu(menuNavigator, player, claim)) }
+            menuNavigator.openMenu(menuFactory.createClaimPlayerMenu(menuNavigator, player, claim)) }
         controlsPane.addItem(guiAllPlayersItem, 4, 0)
 
         // Add list of players
@@ -74,7 +80,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
                 .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_TRUSTED_PLAYERS_ITEM_HAS_PERMISSION_LORE,
                     playerPermissions.count()))
             val guiWarpItem = GuiItem(warpItem) {
-                menuNavigator.openMenu(ClaimPlayerPermissionsMenu(menuNavigator, player, claim, targetPlayer)) }
+                menuNavigator.openMenu(menuFactory.createClaimPlayerPermissionsMenu(menuNavigator, player, claim, targetPlayer)) }
             warpsPane.addItem(guiWarpItem, xSlot, ySlot)
 
             // Increment slot

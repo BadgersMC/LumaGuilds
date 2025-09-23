@@ -226,6 +226,9 @@ world/
 world_nether/
 world_the_end/
 
+# Temporary study directories
+temp-cumulus-study/
+
 # Server configuration that shouldn't be shared
 server.properties
 banned-players.json

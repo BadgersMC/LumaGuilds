@@ -24,6 +24,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     private val warService: WarService by inject()
     private val guildService: GuildService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         val gui = ChestGui(6, "§4War Management - ${guild.name}")
@@ -188,7 +189,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
             .lore("§7Return to guild management")
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -214,7 +215,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     private fun openDeclareWarMenu() {
-        menuNavigator.openMenu(GuildWarDeclarationMenu(menuNavigator, player, guild))
+        menuNavigator.openMenu(menuFactory.createGuildWarDeclarationMenu(menuNavigator, player, guild))
     }
 
     private fun openWarStatsMenu() {
@@ -233,10 +234,11 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     private fun openPeaceAgreementsMenu() {
-        menuNavigator.openMenu(PeaceAgreementMenu(menuNavigator, player, guild))
+        menuNavigator.openMenu(menuFactory.createPeaceAgreementMenu(menuNavigator, player, guild))
     }
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
 }
+

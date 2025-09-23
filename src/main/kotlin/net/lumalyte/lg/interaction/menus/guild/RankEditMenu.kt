@@ -34,6 +34,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     private val memberService: MemberService by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val configService: ConfigService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     
     // Edit state
     private var inputMode: String = "" // "name" or "icon"
@@ -301,7 +302,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 player.sendMessage("§c❌ Failed to save rank changes!")
             }
 
-            menuNavigator.openMenu(GuildRankManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(saveGuiItem, 1, 5)
 
@@ -340,7 +341,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             .lore("§7Return to rank management")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildRankManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, 7, 5)
     }
@@ -486,3 +487,4 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         }
     }
 }
+

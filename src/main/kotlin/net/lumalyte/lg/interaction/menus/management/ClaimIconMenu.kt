@@ -20,11 +20,16 @@ import org.koin.core.component.inject
 import kotlin.concurrent.thread
 
 class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuNavigator,
-                    private val claim: Claim): Menu, KoinComponent {
+                    private val claim: Claim?): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val updateClaimIcon: UpdateClaimIcon by inject()
 
     override fun open() {
+        if (claim == null) {
+            player.sendMessage("§cError: No claim available")
+            return
+        }
+
         val playerId = player.uniqueId
         val gui = FurnaceGui(localizationProvider.get(playerId, LocalizationKeys.MENU_ICON_TITLE))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }

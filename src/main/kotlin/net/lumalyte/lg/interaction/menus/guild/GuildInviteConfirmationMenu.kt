@@ -24,6 +24,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         // Create 3x9 chest GUI
@@ -101,7 +102,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
             .lore("§7No invitation will be sent")
 
         val cancelGuiItem = GuiItem(cancelItem) {
-            menuNavigator.openMenu(GuildInviteMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
         }
         pane.addItem(cancelGuiItem, x, y)
     }
@@ -110,7 +111,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         // Check if player is already in a guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
             player.sendMessage("§c❌ ${targetPlayer.name} is already in your guild!")
-            menuNavigator.openMenu(GuildInviteMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
             return
         }
 
@@ -125,10 +126,11 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         // For now, just show the message
 
         // Return to member management menu
-        menuNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+        menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
     }
 
     override fun passData(data: Any?) {
         // No data passing needed for confirmation menu
     }
 }
+

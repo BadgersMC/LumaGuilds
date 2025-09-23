@@ -23,7 +23,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                    private val claim: Claim): Menu, KoinComponent {
+                    private val claim: Claim?): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val getClaimFlags: GetClaimFlags by inject()
     private val enableClaimFlag: EnableClaimFlag by inject()
@@ -33,6 +33,11 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
 
 
     override fun open() {
+        if (claim == null) {
+            player.sendMessage("§cError: No claim available")
+            return
+        }
+
         // Create claim flags menu
         val playerId = player.uniqueId
         val gui = ChestGui(6, localizationProvider.get(playerId, LocalizationKeys.MENU_FLAGS_TITLE))
@@ -135,3 +140,4 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
         gui.show(player)
     }
 }
+

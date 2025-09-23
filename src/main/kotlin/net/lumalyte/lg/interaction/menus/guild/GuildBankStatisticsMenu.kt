@@ -36,6 +36,7 @@ class GuildBankStatisticsMenu(
 
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -120,7 +121,7 @@ class GuildBankStatisticsMenu(
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(backGuiItem, 0, 0)
 
@@ -132,7 +133,7 @@ class GuildBankStatisticsMenu(
         )
         val historyGuiItem = GuiItem(historyItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankTransactionHistoryMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankTransactionHistoryMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(historyGuiItem, 1, 0)
 
@@ -163,7 +164,7 @@ class GuildBankStatisticsMenu(
         )
         val securityGuiItem = GuiItem(securityItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankSecurityMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankSecurityMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(securityGuiItem, 6, 0)
 
@@ -179,7 +180,7 @@ class GuildBankStatisticsMenu(
         )
         val automationGuiItem = GuiItem(automationItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankAutomationMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankAutomationMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(automationGuiItem, 5, 0)
 
@@ -337,7 +338,7 @@ class GuildBankStatisticsMenu(
         )
         val budgetGuiItem = GuiItem(budgetItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankBudgetMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankBudgetMenu(menuNavigator, player, guild))
         }
         trendsPane.addItem(budgetGuiItem, 3, 0)
     }
@@ -541,3 +542,4 @@ class GuildBankStatisticsMenu(
         return localizationProvider.get(player.uniqueId, key, *params)
     }
 }
+

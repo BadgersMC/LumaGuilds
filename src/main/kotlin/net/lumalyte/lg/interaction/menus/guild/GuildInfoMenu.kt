@@ -31,6 +31,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
     private val relationService: RelationService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         val gui = ChestGui(6, "§6Guild Info - ${guild.name}")
@@ -93,7 +94,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             .lore("§7Click to view member list")
 
         val membersGuiItem = GuiItem(membersItem) {
-            menuNavigator.openMenu(GuildMemberListMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildMemberListMenu(menuNavigator, player, guild))
         }
         pane.addItem(membersGuiItem, x, y)
 
@@ -220,3 +221,4 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         guild = data as? Guild ?: return
     }
 }
+

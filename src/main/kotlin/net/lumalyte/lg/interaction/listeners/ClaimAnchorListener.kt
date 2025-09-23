@@ -33,6 +33,7 @@ class ClaimAnchorListener(): Listener, KoinComponent {
     private val createClaim: CreateClaim by inject()
     private val doesPlayerHaveTransferRequest: DoesPlayerHaveTransferRequest by inject()
     private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     @EventHandler
     fun onPlayerClaimHubInteract(event: PlayerInteractEvent) {
@@ -86,19 +87,19 @@ class ClaimAnchorListener(): Listener, KoinComponent {
             // Open transfer request menu if pending
             if (playerHasTransferRequest) {
                 val menuNavigator = MenuNavigator(event.player)
-                menuNavigator.openMenu(ClaimTransferMenu(menuNavigator, claim, event.player))
+                menuNavigator.openMenu(menuFactory.createClaimTransferMenu(menuNavigator, claim, event.player))
                 return
             }
 
             val menuNavigator = MenuNavigator(event.player)
-            menuNavigator.openMenu(ClaimManagementMenu(menuNavigator, event.player, claim))
+            menuNavigator.openMenu(menuFactory.createClaimManagementMenu(menuNavigator, event.player, claim))
             return
         }
 
         // Open the menu
         event.isCancelled = true
         val menuNavigator = MenuNavigator(event.player)
-        menuNavigator.openMenu(ClaimCreationMenu(event.player, menuNavigator, clickedBlock.location))
+        menuNavigator.openMenu(menuFactory.createClaimCreationMenu(event.player, menuNavigator, clickedBlock.location))
     }
 
     @EventHandler

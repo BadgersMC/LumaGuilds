@@ -20,7 +20,7 @@ import org.koin.core.component.inject
 import kotlin.getValue
 
 class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                        private val claim: Claim): Menu, KoinComponent {
+                        private val claim: Claim?): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val updateClaimName: UpdateClaimName by inject()
 
@@ -28,6 +28,11 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
     private var isConfirming = false
 
     override fun open() {
+        if (claim == null) {
+            player.sendMessage("§cError: No claim available")
+            return
+        }
+
         // Create homes menu
         val playerId = player.uniqueId
         val gui = AnvilGui(localizationProvider.get(playerId, LocalizationKeys.MENU_RENAMING_TITLE))
@@ -102,3 +107,4 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
         gui.show(player)
     }
 }
+

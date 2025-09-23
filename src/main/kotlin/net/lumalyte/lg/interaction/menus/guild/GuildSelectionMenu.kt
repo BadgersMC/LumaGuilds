@@ -29,6 +29,7 @@ class GuildSelectionMenu(
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     private lateinit var guildsPane: PaginatedPane
     private var currentPage = 0
@@ -194,7 +195,7 @@ class GuildSelectionMenu(
 
         val backGuiItem = GuiItem(backItem) {
             // Pass back the selected guilds to the party creation menu
-            menuNavigator.openMenu(PartyCreationMenu(menuNavigator, player, currentGuild).apply {
+            menuNavigator.openMenu(menuFactory.createPartyCreationMenu(menuNavigator, player, currentGuild).apply {
                 passData(mapOf(
                     "selectedGuilds" to selectedGuilds.toSet(),
                     "partyName" to "", // Will be handled by the creation menu
@@ -209,3 +210,4 @@ class GuildSelectionMenu(
         // Handle data passed back from sub-menus if needed
     }
 }
+

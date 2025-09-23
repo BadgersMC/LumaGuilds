@@ -44,6 +44,7 @@ class GuildBankMenu(
 
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -295,7 +296,7 @@ class GuildBankMenu(
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankStatisticsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankStatisticsMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(statsGuiItem, 7, 3)
 
@@ -307,7 +308,7 @@ class GuildBankMenu(
         )
         val contributionsGuiItem = GuiItem(contributionsItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildMemberContributionsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildMemberContributionsMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(contributionsGuiItem, 6, 3)
 
@@ -319,7 +320,7 @@ class GuildBankMenu(
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(backGuiItem, 8, 3)
     }
@@ -981,3 +982,4 @@ class GuildBankMenu(
         }
     }
 }
+

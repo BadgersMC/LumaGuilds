@@ -23,7 +23,7 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private val claim: Claim,
+class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private val claim: Claim?,
                               private val player: Player): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val acceptTransferRequest: AcceptTransferRequest by inject()
@@ -33,6 +33,11 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
     var previousResult: AcceptTransferRequestResult? = null
 
     override fun open() {
+        if (claim == null) {
+            player.sendMessage("§cError: No claim available")
+            return
+        }
+
         // Create transfer naming menu
         val playerId = player.uniqueId
         val gui = AnvilGui(localizationProvider.get(playerId, LocalizationKeys.MENU_NAMING_TITLE))

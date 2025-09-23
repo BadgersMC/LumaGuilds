@@ -39,6 +39,7 @@ class GuildWarAcceptanceMenu(
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         // Check permissions first
@@ -189,7 +190,7 @@ class GuildWarAcceptanceMenu(
                 
                 // Close menu and return to war management
                 player.closeInventory()
-                menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
                 
                 // Notify both guilds of war acceptance
                 notifyGuildsOfWarAcceptance(war)
@@ -214,7 +215,7 @@ class GuildWarAcceptanceMenu(
                 
                 // Close menu and return to war management
                 player.closeInventory()
-                menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
                 
                 // Notify declaring guild of rejection
                 notifyGuildOfWarRejection(warDeclaration.declaringGuildId)
@@ -235,7 +236,7 @@ class GuildWarAcceptanceMenu(
             .lore("§7Return to war management")
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -339,3 +340,4 @@ class GuildWarAcceptanceMenu(
         guild = data as? Guild ?: return
     }
 }
+

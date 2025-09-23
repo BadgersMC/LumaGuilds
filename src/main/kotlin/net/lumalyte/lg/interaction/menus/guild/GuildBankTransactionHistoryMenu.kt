@@ -42,6 +42,7 @@ class GuildBankTransactionHistoryMenu(
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val csvExportService: CsvExportService by inject()
     private val fileExportManager: FileExportManager by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -113,7 +114,7 @@ class GuildBankTransactionHistoryMenu(
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(backGuiItem, 0, 0)
 
@@ -125,7 +126,7 @@ class GuildBankTransactionHistoryMenu(
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankStatisticsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankStatisticsMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(statsGuiItem, 1, 0)
 
@@ -137,7 +138,7 @@ class GuildBankTransactionHistoryMenu(
         )
         val contributionsGuiItem = GuiItem(contributionsItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildMemberContributionsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildMemberContributionsMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(contributionsGuiItem, 2, 0)
 
@@ -509,3 +510,4 @@ data class TransactionFilter(
     val dateRange: String? = null,
     val searchQuery: String? = null
 )
+

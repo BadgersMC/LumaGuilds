@@ -8,6 +8,7 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
@@ -25,6 +26,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     private lateinit var memberPane: StaticPane
     private var currentPage = 0
@@ -120,7 +122,8 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun kickMember(member: Member) {
         // Show confirmation menu instead of directly kicking
-        menuNavigator.openMenu(GuildKickConfirmationMenu(menuNavigator, player, guild, member))
+        val menuFactory = MenuFactory()
+        menuNavigator.openMenu(menuFactory.createGuildKickConfirmationMenu(menuNavigator, player, guild, member))
     }
 
     private fun addNavigationButtons(pane: StaticPane) {
@@ -168,7 +171,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
             .lore("§7Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, x, y)
     }
@@ -177,3 +180,4 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
         guild = data as? Guild ?: return
     }
 }
+

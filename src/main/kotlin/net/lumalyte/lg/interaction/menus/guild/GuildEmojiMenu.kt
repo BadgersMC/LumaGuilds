@@ -27,6 +27,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     private val menuItemBuilder: MenuItemBuilder by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
     private val chatInputListener: ChatInputListener by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     init {
         // Run validation test on initialization (for development/testing)
@@ -186,7 +187,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             } else {
                 println("[LumaGuilds] GuildEmojiMenu: Opening emoji selection menu")
                 // Open emoji selection menu
-                menuNavigator.openMenu(EmojiSelectionMenu(menuNavigator, player, guild, this))
+                menuNavigator.openMenu(menuFactory.createEmojiSelectionMenu(menuNavigator, player, guild, this))
             }
         }
         pane.addItem(guiItem, x, y)
@@ -295,7 +296,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
         val guiItem = GuiItem(cancelItem) {
             // Close menu without saving
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -306,7 +307,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             .lore("§7Return to guild settings")
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -453,6 +454,7 @@ class EmojiSelectionMenu(
 
     private val nexoEmojiService: NexoEmojiService by inject()
     private val menuItemBuilder: MenuItemBuilder by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // Pagination state
     private var currentPage = 0
@@ -633,3 +635,4 @@ private fun validateEmojiFormat(emoji: String?): ValidationResult {
 
     return ValidationResult.Valid
 }
+

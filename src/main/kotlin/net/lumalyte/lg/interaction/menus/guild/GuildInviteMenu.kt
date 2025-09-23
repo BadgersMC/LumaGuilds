@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
@@ -26,6 +27,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val chatInputListener: ChatInputListener by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     private var inputMode = false
 
@@ -100,7 +102,8 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
                 .lore("§7They will receive an invitation")
 
             val playerGuiItem = GuiItem(playerHead) {
-                menuNavigator.openMenu(GuildInviteConfirmationMenu(menuNavigator, player, guild, onlinePlayer))
+                val menuFactory = MenuFactory()
+                menuNavigator.openMenu(menuFactory.createGuildInviteConfirmationMenu(menuNavigator, player, guild, onlinePlayer))
             }
             pane.addItem(playerGuiItem, x + index, y)
         }
@@ -140,14 +143,15 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
                 chatInputListener.stopInputMode(player)
                 player.sendMessage("§7Invite input cancelled.")
             }
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, x, y)
     }
 
     private fun invitePlayer(targetPlayer: Player) {
         // Use confirmation menu instead of directly inviting
-        menuNavigator.openMenu(GuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer))
+        val menuFactory = MenuFactory()
+        menuNavigator.openMenu(menuFactory.createGuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer))
     }
 
     private fun startChatInput() {
@@ -199,3 +203,4 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
         guild = data as? Guild ?: return
     }
 }
+

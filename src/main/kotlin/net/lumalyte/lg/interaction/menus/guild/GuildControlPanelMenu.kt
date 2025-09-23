@@ -8,6 +8,7 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.lore
@@ -30,6 +31,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
     private val relationService: RelationService by inject()
     private val bankService: BankService by inject()
     private val killService: KillService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         val playerId = player.uniqueId
@@ -82,7 +84,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Manage basic guild information")
             .lore("§7Name, description, and general settings")
         val guiItem = GuiItem(settingsItem) {
-            menuNavigator.openMenu(GuildSettingsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -94,7 +96,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Current: ${emoji ?: "§cNot set"}")
             .lore("§7Set your guild's emoji for chat")
         val guiItem = GuiItem(emojiItem) {
-            menuNavigator.openMenu(GuildEmojiMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -123,7 +125,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
                 .lore("§7Choose your guild's banner")
         }
         val guiItem = GuiItem(bannerItem) {
-            menuNavigator.openMenu(GuildBannerMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBannerMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -138,7 +140,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Peaceful = Cannot be attacked")
             .lore("§7Hostile = Can engage in wars")
         val guiItem = GuiItem(modeItem) {
-            menuNavigator.openMenu(GuildModeMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildModeMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -150,7 +152,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore(if (home != null) "§7Set at: ${home.position.x}, ${home.position.y}, ${home.position.z}" else "§cNot set")
             .lore("§7Teleport point for /guild home")
         val guiItem = GuiItem(homeItem) {
-            menuNavigator.openMenu(GuildHomeMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -162,7 +164,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Manage guild ranks and permissions")
             .lore("§7Current ranks: §f$rankCount")
         val guiItem = GuiItem(rankItem) {
-            menuNavigator.openMenu(GuildRankManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -174,7 +176,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Manage guild members and ranks")
             .lore("§7Current members: §f$memberCount")
         val guiItem = GuiItem(memberItem) {
-            menuNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -185,7 +187,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Start parties and coordinate with allies")
             .lore("§7Invite other guilds to events")
         val guiItem = GuiItem(partyItem) {
-            menuNavigator.openMenu(GuildPartyManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -196,7 +198,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Declare wars and manage conflicts")
             .lore("§7Propose truces and alliances")
         val guiItem = GuiItem(warItem) {
-            menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -207,7 +209,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7View alliances and rivalries")
             .lore("§7Manage diplomatic relations")
         val guiItem = GuiItem(relationItem) {
-            menuNavigator.openMenu(GuildRelationsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -218,7 +220,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Manage guild treasury")
             .lore("§7View transactions and balance")
         val guiItem = GuiItem(bankItem) {
-            menuNavigator.openMenu(GuildBankMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -229,7 +231,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7View guild performance metrics")
             .lore("§7Kills, deaths, wins, losses")
         val guiItem = GuiItem(statsItem) {
-            menuNavigator.openMenu(GuildStatisticsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildStatisticsMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -261,7 +263,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .name("§aInvite Player")
             .lore("§7Send guild invitation to a player")
         val guiItem = GuiItem(inviteItem) {
-            menuNavigator.openMenu(GuildInviteMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -271,7 +273,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .name("§cKick Player")
             .lore("§7Remove a player from the guild")
         val guiItem = GuiItem(kickItem) {
-            menuNavigator.openMenu(GuildKickMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -281,7 +283,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .name("§6Promote/Demote")
             .lore("§7Change member ranks")
         val guiItem = GuiItem(promoteItem) {
-            menuNavigator.openMenu(GuildPromotionMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildPromotionMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -291,7 +293,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .name("§9Guild Info")
             .lore("§7Detailed information about your guild")
         val guiItem = GuiItem(infoItem) {
-            menuNavigator.openMenu(GuildInfoMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -303,7 +305,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7View all guild members")
             .lore("§7Total: §f$memberCount members")
         val guiItem = GuiItem(listItem) {
-            menuNavigator.openMenu(GuildMemberListMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildMemberListMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -315,7 +317,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7View all guild ranks")
             .lore("§7Total: §f$rankCount ranks")
         val guiItem = GuiItem(listItem) {
-            menuNavigator.openMenu(GuildRankListMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildRankListMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -327,7 +329,8 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7This will delete the guild forever")
             .lore("§7All members will be removed")
         val guiItem = GuiItem(disbandItem) {
-            menuNavigator.openMenu(GuildDisbandConfirmationMenu(menuNavigator, player, guild))
+            val menuFactory = MenuFactory()
+            menuNavigator.openMenu(menuFactory.createGuildDisbandConfirmationMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -338,7 +341,8 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Leave the guild")
             .lore("§7You can rejoin later if invited")
         val guiItem = GuiItem(leaveItem) {
-            menuNavigator.openMenu(GuildLeaveConfirmationMenu(menuNavigator, player, guild))
+            val menuFactory = MenuFactory()
+            menuNavigator.openMenu(menuFactory.createGuildLeaveConfirmationMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -435,3 +439,4 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
         guild = data as? Guild ?: return
     }
 }
+

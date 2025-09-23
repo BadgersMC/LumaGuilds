@@ -30,6 +30,10 @@ commands:
     usage: /lumaguilds <subcommand> [args]
     permission: lumaguilds.admin
     aliases: [bellclaims]
+  bedrockcachestats:
+    description: View Bedrock form cache statistics
+    usage: /bedrockcachestats [stats|clear|help]
+    permission: lumaguilds.bedrock.cache.stats
 
 permissions:
   # Guild Management Permissions
@@ -184,4 +188,12 @@ permissions:
   # Administrative Permissions
   lumaguilds.admin:
     description: Administrative access to LumaGuilds
+    default: op
+
+  # Bedrock Cache Permissions
+  lumaguilds.bedrock.cache.stats:
+    description: View Bedrock form cache statistics
+    default: op
+  lumaguilds.bedrock.cache.clear:
+    description: Clear Bedrock form cache
     default: op

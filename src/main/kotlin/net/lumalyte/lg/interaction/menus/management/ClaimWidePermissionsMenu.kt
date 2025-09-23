@@ -24,7 +24,7 @@ import org.koin.core.component.inject
 import java.util.UUID
 
 class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                               private val claim: Claim): Menu, KoinComponent {
+                               private val claim: Claim?): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val grantAllClaimWidePermissions : GrantAllClaimWidePermissions by inject()
     private val revokeAllClaimWidePermissions: RevokeAllClaimWidePermissions by inject()
@@ -33,6 +33,11 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
     private val revokeClaimWidePermission: RevokeClaimWidePermission by inject()
 
     override fun open() {
+        if (claim == null) {
+            player.sendMessage("§cError: No claim available")
+            return
+        }
+
         // Create player permissions menu
         val playerId = player.uniqueId
         val gui = ChestGui(6, localizationProvider.get(playerId, LocalizationKeys.MENU_CLAIM_WIDE_PERMISSIONS_TITLE))
@@ -161,3 +166,4 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
         controlsPane.addItem(guiSelectItem, 6, 0)
     }
 }
+

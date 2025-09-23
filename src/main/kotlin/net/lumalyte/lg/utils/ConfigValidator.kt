@@ -284,12 +284,61 @@ object ConfigValidator {
      */
     fun logConfigSummary(config: MainConfig) {
         logger.info("Configuration loaded successfully:")
-        logger.info("- Claims: limit=${config.claimLimit}, blocks=${config.claimBlockLimit}")
-        logger.info("- Guild: max members=${config.guild.maxMembersPerGuild}, mode cooldown=${config.guild.modeSwitchCooldownDays} days")
-        logger.info("- Bank: fee=${(config.bank.withdrawalFeePercent * 100).toInt()}%, daily limit=${config.bank.dailyWithdrawalLimit}")
-        logger.info("- Combat: kill cooldown=${config.combat.killCooldownMinutes}min, max wars=${config.combat.maxSimultaneousWars}")
-        logger.info("- Chat: announce cooldown=${config.chat.announceCooldownMinutes}min, emojis=${config.chat.enableEmojis}")
-        logger.info("- UI: menu size=${config.ui.menuSize}, animations=${config.ui.enableMenuAnimations}")
-        logger.info("- Roles: ${config.teamRolePermissions.roleMappings.size} configured")
+
+        // Claims config
+        logger.info(buildString {
+            append("- Claims: limit=")
+            append(config.claimLimit)
+            append(", blocks=")
+            append(config.claimBlockLimit)
+        })
+
+        // Guild config
+        logger.info(buildString {
+            append("- Guild: max members=")
+            append(config.guild.maxMembersPerGuild)
+            append(", mode cooldown=")
+            append(config.guild.modeSwitchCooldownDays)
+            append(" days")
+        })
+
+        // Bank config
+        logger.info(buildString {
+            append("- Bank: fee=")
+            append((config.bank.withdrawalFeePercent * 100).toInt())
+            append("%, daily limit=")
+            append(config.bank.dailyWithdrawalLimit)
+        })
+
+        // Combat config
+        logger.info(buildString {
+            append("- Combat: kill cooldown=")
+            append(config.combat.killCooldownMinutes)
+            append("min, max wars=")
+            append(config.combat.maxSimultaneousWars)
+        })
+
+        // Chat config
+        logger.info(buildString {
+            append("- Chat: announce cooldown=")
+            append(config.chat.announceCooldownMinutes)
+            append("min, emojis=")
+            append(config.chat.enableEmojis)
+        })
+
+        // UI config
+        logger.info(buildString {
+            append("- UI: menu size=")
+            append(config.ui.menuSize)
+            append(", animations=")
+            append(config.ui.enableMenuAnimations)
+        })
+
+        // Roles config
+        logger.info(buildString {
+            append("- Roles: ")
+            append(config.teamRolePermissions.roleMappings.size)
+            append(" configured")
+        })
     }
 }
