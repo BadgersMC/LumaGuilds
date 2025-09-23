@@ -9,6 +9,7 @@ import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
@@ -32,6 +33,7 @@ class GuildMemberRankMenu(
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         val gui = ChestGui(4, "§6Rank Management")
@@ -116,7 +118,8 @@ class GuildMemberRankMenu(
                     player.sendMessage("§7This is already their current rank!")
                 } else {
                     // Open confirmation menu
-                    menuNavigator.openMenu(GuildMemberRankConfirmationMenu(
+                    val menuFactory = MenuFactory()
+                    menuNavigator.openMenu(menuFactory.createGuildMemberRankConfirmationMenu(
                         menuNavigator, player, guild, targetMember, rank
                     ))
                 }
@@ -167,7 +170,7 @@ class GuildMemberRankMenu(
             .lore("§7Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, x, y)
     }
@@ -176,3 +179,4 @@ class GuildMemberRankMenu(
         // Handle data passed back from sub-menus if needed
     }
 }
+

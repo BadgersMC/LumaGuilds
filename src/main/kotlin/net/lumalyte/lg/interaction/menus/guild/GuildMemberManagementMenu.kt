@@ -27,6 +27,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     private lateinit var memberPane: StaticPane
     private var currentPage = 0
@@ -169,7 +170,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         val inviteGuiItem = GuiItem(inviteItem) {
             if (memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
-                menuNavigator.openMenu(GuildInviteMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
             } else {
                 player.sendMessage("§c❌ You don't have permission to invite players!")
             }
@@ -201,7 +202,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         }
 
         // Open member rank management menu
-        menuNavigator.openMenu(GuildMemberRankMenu(menuNavigator, player, guild, member))
+        menuNavigator.openMenu(menuFactory.createGuildMemberRankMenu(menuNavigator, player, guild, member))
     }
 
     private fun addKickButton(pane: StaticPane, x: Int, y: Int) {
@@ -212,7 +213,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         val kickGuiItem = GuiItem(kickItem) {
             if (memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
-                menuNavigator.openMenu(GuildKickMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
             } else {
                 player.sendMessage("§c❌ You don't have permission to kick players!")
             }
@@ -226,7 +227,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
             .lore("§7Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, x, y)
     }
@@ -235,3 +236,4 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         guild = data as? Guild ?: return
     }
 }
+

@@ -26,6 +26,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     private val guildService: GuildService by inject()
     private val bankService: BankService by inject()
     private val configService: ConfigService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // Custom inventory holder for secure identification
     class BannerMenuHolder(val guildName: String) : org.bukkit.inventory.InventoryHolder {
@@ -266,7 +267,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
             .lore("§7Return to settings menu")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildSettingsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
         }
 
         pane.addItem(backGuiItem, x, y)
@@ -431,3 +432,4 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         guild = data as? Guild ?: return
     }
 }
+

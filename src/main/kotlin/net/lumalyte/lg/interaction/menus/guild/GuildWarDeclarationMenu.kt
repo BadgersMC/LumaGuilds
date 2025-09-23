@@ -50,6 +50,7 @@ class GuildWarDeclarationMenu(
     private val bankService: BankService by inject()
     private val configService: ConfigService by inject()
     private val chatInputListener: ChatInputListener by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     
     // War configuration state
     private var selectedDuration: Duration = Duration.ofDays(7) // Default 7 days
@@ -540,7 +541,7 @@ class GuildWarDeclarationMenu(
 
                     // Close menu and return to war management
                     player.closeInventory()
-                    menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
+                    menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
 
                     // Notify both guilds
                     notifyGuildsOfWarDeclaration(war)
@@ -578,7 +579,7 @@ class GuildWarDeclarationMenu(
 
                     // Close menu and return to war management
                     player.closeInventory()
-                    menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
+                    menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
 
                     // Notify defending guild of the declaration
                     notifyGuildOfWarDeclaration(declaration)
@@ -764,7 +765,7 @@ class GuildWarDeclarationMenu(
             .lore("§7Return to war management")
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -875,3 +876,4 @@ class GuildWarDeclarationMenu(
         }
     }
 }
+

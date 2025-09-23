@@ -36,6 +36,7 @@ class GuildMemberContributionsMenu(
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val csvExportService: CsvExportService by inject()
     private val fileExportManager: FileExportManager by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -104,7 +105,7 @@ class GuildMemberContributionsMenu(
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankTransactionHistoryMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankTransactionHistoryMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(backGuiItem, 0, 0)
 
@@ -483,3 +484,4 @@ class GuildMemberContributionsMenu(
         LAST_TRANSACTION_ASC
     }
 }
+

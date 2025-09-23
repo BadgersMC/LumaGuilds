@@ -30,6 +30,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val configService: ConfigService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         // Check if parties are enabled
@@ -162,7 +163,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         val createPartyGuiItem = GuiItem(createPartyItem) {
             if (canManageParties) {
-                menuNavigator.openMenu(PartyCreationMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(menuFactory.createPartyCreationMenu(menuNavigator, player, guild))
             } else {
                 player.sendMessage("§c❌ You need Admin+ permission to create parties!")
             }
@@ -217,7 +218,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             .lore("§7Return to guild management")
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -406,3 +407,4 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         guild = data as? Guild ?: return
     }
 }
+

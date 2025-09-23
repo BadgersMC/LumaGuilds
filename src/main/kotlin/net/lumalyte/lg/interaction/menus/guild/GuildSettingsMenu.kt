@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.MenuItemBuilder
 import net.lumalyte.lg.utils.deserializeToItemStack
@@ -34,6 +35,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
     private val guildService: GuildService by inject()
     private val menuItemBuilder: MenuItemBuilder by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         // Create 6x9 double chest GUI
@@ -94,7 +96,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
         val guiItem = GuiItem(descItem) {
             if (hasDescriptionPermission) {
-                menuNavigator.openMenu(DescriptionEditorMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(menuFactory.createDescriptionEditorMenu(menuNavigator, player, guild))
             } else {
                 player.sendMessage("§c❌ You don't have permission to manage guild description")
                 player.sendMessage("§7You need the MANAGE_DESCRIPTION permission")
@@ -227,7 +229,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         }
 
         val bannerGuiItem = GuiItem(bannerItem) {
-            menuNavigator.openMenu(GuildBannerMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBannerMenu(menuNavigator, player, guild))
         }
         pane.addItem(bannerGuiItem, 0, 2)
 
@@ -239,7 +241,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
             .lore("§7Click to manage guild emoji")
 
         val emojiGuiItem = GuiItem(emojiItem) {
-            menuNavigator.openMenu(GuildEmojiMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
         }
         pane.addItem(emojiGuiItem, 1, 2)
 
@@ -252,7 +254,8 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
             .lore("§7Supports MiniMessage formatting")
 
         val tagGuiItem = GuiItem(tagItem) {
-            menuNavigator.openMenu(TagEditorMenu(menuNavigator, player, guild))
+            val menuFactory = MenuFactory()
+            menuNavigator.openMenu(menuFactory.createTagEditorMenu(menuNavigator, player, guild))
         }
         pane.addItem(tagGuiItem, 2, 2)
 
@@ -299,7 +302,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         }
 
         val homeGuiItem = GuiItem(homeItem) {
-            menuNavigator.openMenu(GuildHomeMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
         }
         pane.addItem(homeGuiItem, 0, 4)
 
@@ -310,7 +313,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
             .lore("§7View member list with pagination")
 
         val membersGuiItem = GuiItem(membersItem) {
-            menuNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(membersGuiItem, 2, 4)
 
@@ -357,7 +360,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                     .lore("§eClick to change mode")
 
             val modeGuiItem = GuiItem(modeItem) {
-                menuNavigator.openMenu(GuildModeMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(menuFactory.createGuildModeMenu(menuNavigator, player, guild))
             }
             pane.addItem(modeGuiItem, 1, 4)
         } else {
@@ -378,7 +381,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
             .lore("§7Return to control panel")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, 4, 5)
     }
@@ -399,3 +402,4 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         guild = data as? Guild ?: return
     }
 }
+

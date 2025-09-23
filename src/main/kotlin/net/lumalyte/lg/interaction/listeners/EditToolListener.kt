@@ -57,6 +57,7 @@ class EditToolListener: Listener, KoinComponent {
     private val resizePartition: ResizePartition by inject()
     private val isItemClaimTool: IsItemClaimTool by inject()
     private val coroutineScope: CoroutineScope by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val schedulerService: SchedulerService by inject()
     private val displaySelectionVisualisation: DisplaySelectionVisualisation by inject()
     private val clearSelectionVisualisation: ClearSelectionVisualisation by inject()
@@ -80,7 +81,7 @@ class EditToolListener: Listener, KoinComponent {
             val location = event.clickedBlock?.location ?: return
             val partition = getPartitionByPosition.execute(location.toPosition2D(), location.world.uid)
             val menuNavigator = MenuNavigator(event.player)
-            menuNavigator.openMenu(EditToolMenu(menuNavigator, event.player, partition))
+            menuNavigator.openMenu(menuFactory.createEditToolMenu(menuNavigator, event.player, partition))
             return
         }
 

@@ -22,6 +22,7 @@ import net.lumalyte.lg.domain.entities.Partition
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import net.lumalyte.lg.utils.lore
@@ -47,6 +48,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
     private val registerClaimMenuOpening: RegisterClaimMenuOpening by inject()
     private val canRemovePartition: CanRemovePartition by inject()
     private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
+    private val menuFactory: MenuFactory by inject()
 
     override fun open() {
         val title = localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_TITLE)
@@ -181,7 +183,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
                     player.closeInventory()
                 }
                 val guiDeleteItem = GuiItem(deleteItem) {
-                    menuNavigator.openMenu(ConfirmationMenu(menuNavigator, player, deleteTitle, confirmAction)) }
+                    menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, deleteTitle, confirmAction)) }
                 pane.addItem(guiDeleteItem, 7, 0)
             }
             else -> {
@@ -200,3 +202,4 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         gui.show(player)
     }
 }
+

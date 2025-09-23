@@ -3,14 +3,19 @@ package net.lumalyte.lg.interaction.menus.guild
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import org.bukkit.entity.Player
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 class GuildPromotionMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                        private var guild: Guild): Menu {
+                        private var guild: Guild): Menu, KoinComponent {
+
+    private val menuFactory: MenuFactory by inject()
 
     override fun open() {
         player.sendMessage("§ePromotion/Demotion menu coming soon!")
-        menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+        menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
     }
 
     override fun passData(data: Any?) {

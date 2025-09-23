@@ -27,7 +27,8 @@ data class MainConfig(
     var progression: ProgressionConfig = ProgressionConfig(),
     var ui: UIConfig = UIConfig(),
     var discord: DiscordConfig = DiscordConfig(),
-    var party: PartyConfig = PartyConfig()
+    var party: PartyConfig = PartyConfig(),
+    var bedrock: BedrockConfig = BedrockConfig()
 )
 
 data class GuildConfig(
@@ -243,13 +244,77 @@ data class ProgressionConfig(
     var enchantingXp: Int = 10,
     var claimCreatedXp: Int = 100,
     var warWonXp: Int = 500,
-    
+
     // Rate limiting settings
     var xpCooldownMs: Long = 5000L,
     var maxXpPerBatch: Int = 50,
-    
+
     // Leveling curve settings
     var baseXp: Double = 800.0,
     var levelExponent: Double = 1.3,
     var linearBonusPerLevel: Int = 200
 )
+
+data class BedrockConfig(
+    // Enable/Disable Bedrock menu system
+    var bedrockMenusEnabled: Boolean = true,
+    var forceBedrockMenus: Boolean = false, // If true, Java players also get Bedrock menus
+
+    // Fallback behavior
+    var fallbackToJavaMenus: Boolean = true, // If Bedrock menus fail, fallback to Java
+    var fallbackOnFloodgateUnavailable: Boolean = true,
+    var fallbackOnCumulusUnavailable: Boolean = true,
+
+    // Performance tuning
+    var formCacheEnabled: Boolean = true,
+    var formCacheSize: Int = 100,
+    var formCacheExpirationMinutes: Int = 30,
+    var maxFormButtons: Int = 8, // Maximum buttons per SimpleForm page
+    var formTimeoutSeconds: Int = 300, // 5 minutes
+
+    // Menu-specific settings
+    var enableBedrockConfirmations: Boolean = true,
+    var enableBedrockSelections: Boolean = true,
+    var enableBedrockCustomForms: Boolean = true,
+
+    // Image configuration
+    var imageSource: ImageSource = ImageSource.URL, // URL or RESOURCE_PACK
+    var defaultButtonImageUrl: String = "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=ICON",
+    var defaultButtonImagePath: String = "textures/ui/icon.png",
+
+    // Guild-specific images
+    var guildMembersIconUrl: String = "https://via.placeholder.com/64x64/2196F3/FFFFFF?text=MEMBERS",
+    var guildMembersIconPath: String = "textures/ui/members.png",
+    var guildSettingsIconUrl: String = "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=SETTINGS",
+    var guildSettingsIconPath: String = "textures/ui/settings.png",
+    var guildBankIconUrl: String = "https://via.placeholder.com/64x64/FFC107/FFFFFF?text=BANK",
+    var guildBankIconPath: String = "textures/ui/bank.png",
+    var guildWarsIconUrl: String = "https://via.placeholder.com/64x64/F44336/FFFFFF?text=WARS",
+    var guildWarsIconPath: String = "textures/ui/wars.png",
+    var guildHomeIconUrl: String = "https://via.placeholder.com/64x64/9C27B0/FFFFFF?text=HOME",
+    var guildHomeIconPath: String = "textures/ui/home.png",
+    var guildTagIconUrl: String = "https://via.placeholder.com/64x64/607D8B/FFFFFF?text=TAG",
+    var guildTagIconPath: String = "textures/ui/tag.png",
+
+    // Action-specific images
+    var confirmIconUrl: String = "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=CONFIRM",
+    var confirmIconPath: String = "textures/ui/confirm.png",
+    var cancelIconUrl: String = "https://via.placeholder.com/64x64/F44336/FFFFFF?text=CANCEL",
+    var cancelIconPath: String = "textures/ui/cancel.png",
+    var backIconUrl: String = "https://via.placeholder.com/64x64/757575/FFFFFF?text=BACK",
+    var backIconPath: String = "textures/ui/back.png",
+    var closeIconUrl: String = "https://via.placeholder.com/64x64/000000/FFFFFF?text=CLOSE",
+    var closeIconPath: String = "textures/ui/close.png",
+    var editIconUrl: String = "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=EDIT",
+    var editIconPath: String = "textures/ui/edit.png",
+    var deleteIconUrl: String = "https://via.placeholder.com/64x64/F44336/FFFFFF?text=DELETE",
+    var deleteIconPath: String = "textures/ui/delete.png",
+
+    // Debug and logging
+    var debugBedrockMenus: Boolean = false,
+    var logFormInteractions: Boolean = false
+)
+
+enum class ImageSource {
+    URL, RESOURCE_PACK
+}

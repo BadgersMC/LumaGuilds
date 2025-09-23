@@ -28,6 +28,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
     private val guildService: GuildService by inject()
     private val configService: ConfigService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // Teleportation tracking
     private data class TeleportSession(
@@ -309,7 +310,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             .lore("§7Return to guild management")
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -446,3 +447,4 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         guild = data as? Guild ?: return
     }
 }
+

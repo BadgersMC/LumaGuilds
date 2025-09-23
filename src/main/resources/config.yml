@@ -452,3 +452,35 @@ ui:
   menu_size: 54                     # Size of inventory menus (9, 18, 27, 36, 45, 54)
   enable_menu_animations: true       # Enable animated menu items
   menu_update_interval_ticks: 20     # How often menus update (20 ticks = 1 second)
+
+# =====================================
+# Bedrock Menu Configuration
+# =====================================
+
+bedrock:
+  # Enable/Disable Bedrock menu system
+  bedrock_menus_enabled: true
+
+  # Force all players to use Bedrock menus (overrides platform detection)
+  force_bedrock_menus: false
+
+  # Fallback behavior when Bedrock menus fail
+  fallback_to_java_menus: true
+  fallback_on_floodgate_unavailable: true
+  fallback_on_cumulus_unavailable: true
+
+  # Performance tuning
+  form_cache_enabled: true
+  form_cache_size: 100
+  form_cache_expiration_minutes: 30
+  max_form_buttons: 8
+  form_timeout_seconds: 300
+
+  # Menu-specific settings
+  enable_bedrock_confirmations: true
+  enable_bedrock_selections: true
+  enable_bedrock_custom_forms: true
+
+  # Debug and logging
+  debug_bedrock_menus: false
+  log_form_interactions: false

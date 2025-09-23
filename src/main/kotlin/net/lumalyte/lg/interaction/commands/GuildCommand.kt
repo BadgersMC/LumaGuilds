@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.guild.*
 import net.lumalyte.lg.utils.deserializeToItemStack
@@ -26,12 +27,13 @@ import org.koin.core.component.inject
 
 @CommandAlias("guild|g")
 class GuildCommand : BaseCommand(), KoinComponent {
-    
+
     private val guildService: GuildService by inject()
     private val rankService: RankService by inject()
     private val memberService: MemberService by inject()
     private val getClaimAtPosition: GetClaimAtPosition by inject()
     private val configService: ConfigService by inject()
+    private val menuFactory: MenuFactory by inject()
 
     // Teleportation tracking for command-based teleports
     private data class TeleportSession(
@@ -97,25 +99,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("sethome")
     @CommandPermission("lumaguilds.guild.sethome")
     fun onSetHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
-        // Check if this is a confirmation for an unsafe location
-        if (confirm?.lowercase() == "unsafe") {
-            val pendingLocation = GuildHomeSafety.consumePending(player)
-            if (pendingLocation != null) {
-                // Get player's guild
-                val playerId = player.uniqueId
-                val guilds = guildService.getPlayerGuilds(playerId)
-                if (guilds.isEmpty()) {
-                    player.sendMessage("§cYou are not in a guild.")
-                    return
-                }
-                val guild = guilds.first()
-                setGuildHomeCommand(player, guild, pendingLocation)
-                return
-            } else {
-                player.sendMessage("§cNo pending unsafe location to confirm, or confirmation expired.")
-                return
-            }
-        }
         val playerId = player.uniqueId
 
         // Find player's guild
@@ -127,7 +110,24 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val guild = guilds.first()
         val location = player.location
-        val targetHomeName = homeName ?: "main"
+
+        // Handle the case where user types "/guild sethome confirm" - treat "confirm" as confirmation, not home name
+        val adjustedHomeName = if (homeName?.lowercase() == "confirm") null else homeName
+        val adjustedConfirm = if (homeName?.lowercase() == "confirm") "confirm" else confirm
+
+        val targetHomeName = adjustedHomeName ?: "main"
+
+        // Check if this is a confirmation for an unsafe location
+        if (adjustedConfirm?.lowercase() == "unsafe") {
+            val pendingLocation = GuildHomeSafety.consumePending(player)
+            if (pendingLocation != null) {
+                setGuildHomeCommand(player, guild, pendingLocation, targetHomeName)
+                return
+            } else {
+                player.sendMessage("§cNo pending unsafe location to confirm, or confirmation expired.")
+                return
+            }
+        }
 
         // Check if claims are enabled in config
         val config = configService.loadConfig()
@@ -166,7 +166,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if guild already has a home (separate from safety confirmation)
         val currentHome = guildService.getHome(guild.id)
-        if (currentHome != null && confirm?.lowercase() != "confirm" && confirm?.lowercase() != "unsafe") {
+        if (currentHome != null && adjustedConfirm?.lowercase() != "confirm" && adjustedConfirm?.lowercase() != "unsafe") {
             player.sendMessage("§c⚠️ Your guild already has a home set!")
             player.sendMessage("§7Current home: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}")
             player.sendMessage("§7New location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
@@ -358,7 +358,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Open emoji menu
         val menuNavigator = MenuNavigator(player)
-        menuNavigator.openMenu(GuildEmojiMenu(menuNavigator, player, guild))
+        menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
     }
 
     @Subcommand("mode")
@@ -416,7 +416,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
 
             // Open the target guild's info menu (no permission restrictions)
-            menuNavigator.openMenu(GuildInfoMenu(menuNavigator, player, targetGuildObj))
+            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, targetGuildObj))
         } else {
             // Show player's own guild info
             val guilds = guildService.getPlayerGuilds(player.uniqueId)
@@ -426,7 +426,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
 
             val guild = guilds.first()
-            menuNavigator.openMenu(GuildInfoMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
         }
     }
     
@@ -500,7 +500,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Open the guild control panel
         val menuNavigator = MenuNavigator(player)
-        menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+        menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
     }
 
     @Subcommand("invite")
@@ -544,7 +544,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Open confirmation menu
         val menuNavigator = MenuNavigator(player)
-        menuNavigator.openMenu(GuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer))
+        val menuFactory = MenuFactory()
+        menuNavigator.openMenu(menuFactory.createGuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer))
     }
 
     @Subcommand("kick")
@@ -589,7 +590,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Open confirmation menu
         val menuNavigator = MenuNavigator(player)
-        menuNavigator.openMenu(GuildKickConfirmationMenu(menuNavigator, player, guild, targetMember))
+        val menuFactory = MenuFactory()
+        menuNavigator.openMenu(menuFactory.createGuildKickConfirmationMenu(menuNavigator, player, guild, targetMember))
     }
 
     @Subcommand("tag")
@@ -614,9 +616,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         if (tag == null) {
-            // Open tag edit menu directly if player has permission
-            val menuNavigator = MenuNavigator(player)
-            menuNavigator.openMenu(TagEditorMenu(menuNavigator, player, guild))
+        // Open tag edit menu directly if player has permission
+        val menuNavigator = MenuNavigator(player)
+        val menuFactory = MenuFactory()
+        menuNavigator.openMenu(menuFactory.createTagEditorMenu(menuNavigator, player, guild))
             return
         }
 
@@ -666,7 +669,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (description == null) {
             // Open description edit menu directly if player has permission
             val menuNavigator = MenuNavigator(player)
-            menuNavigator.openMenu(DescriptionEditorMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createDescriptionEditorMenu(menuNavigator, player, guild))
             return
         }
 
@@ -711,7 +714,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Open the war management menu
         val menuNavigator = MenuNavigator(player)
-        menuNavigator.openMenu(GuildWarManagementMenu(menuNavigator, player, guild))
+        menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         player.sendMessage("§6⚔ Opening war management menu...")
     }
 

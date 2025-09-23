@@ -18,6 +18,7 @@ import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.domain.values.ClaimPermission
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import net.lumalyte.lg.utils.createHead
@@ -34,7 +35,7 @@ import org.koin.core.component.inject
 import java.util.UUID
 
 class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                                 private val claim: Claim, private val targetPlayer: OfflinePlayer
+                                 private val claim: Claim?, private val targetPlayer: OfflinePlayer?
 ): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val getPlayerClaimPermissions: GetClaimPlayerPermissions by inject()
@@ -46,8 +47,14 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
     private val doesPlayerHaveTransferRequest: DoesPlayerHaveTransferRequest by inject()
     private val offerPlayerTransferRequest: OfferPlayerTransferRequest by inject()
     private val withdrawPlayerTransferRequest: WithdrawPlayerTransferRequest by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
+        if (claim == null || targetPlayer == null) {
+            player.sendMessage("§cError: No claim or target player available")
+            return
+        }
+
         // Create player permissions menu
         val playerId = player.uniqueId
         val gui = ChestGui(6, localizationProvider.get(playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_TITLE,
@@ -206,28 +213,28 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
                 .lore(localizationProvider.get(playerId,
                     LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANCEL_TRANSFER_LORE))
             guiTransferRequestItem = GuiItem(transferClaimItem) {
-                withdrawPlayerTransferRequest.execute(claim.id, targetPlayer.uniqueId)
+                withdrawPlayerTransferRequest.execute(claim!!.id, targetPlayer!!.uniqueId)
                 open()
             }
         } else {
             // Send the transfer request if there is none pending
             val transferClaimAction: () -> Unit = {
                 val confirmAction: () -> Unit = {
-                    offerPlayerTransferRequest.execute(claim.id, targetPlayer.uniqueId)
+                    offerPlayerTransferRequest.execute(claim!!.id, targetPlayer!!.uniqueId)
                     open()
                 }
 
-                menuNavigator.openMenu(ConfirmationMenu(menuNavigator, player, localizationProvider.get(
+                menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, localizationProvider.get(
                     player.uniqueId, LocalizationKeys.MENU_TRANSFER_SEND_TITLE), confirmAction))
             }
-            when (canPlayerReceiveTransferRequest.execute(claim.id, targetPlayer.uniqueId)) {
+            when (canPlayerReceiveTransferRequest.execute(claim!!.id, targetPlayer!!.uniqueId)) {
                 CanPlayerReceiveTransferRequestResult.Success -> {
                     val transferClaimItem = ItemStack(Material.BELL)
                         .name(localizationProvider.get(
                             playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_TRANSFER_NAME))
                         .lore(localizationProvider.get(
                             playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_TRANSFER_LORE,
-                            targetPlayer.name))
+                            targetPlayer!!.name))
                     guiTransferRequestItem = GuiItem(transferClaimItem) { transferClaimAction() }
                 }
                 CanPlayerReceiveTransferRequestResult.ClaimLimitExceeded -> {
@@ -269,3 +276,4 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         return guiTransferRequestItem
     }
 }
+

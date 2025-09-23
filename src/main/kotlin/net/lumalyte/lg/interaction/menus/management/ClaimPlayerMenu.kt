@@ -22,13 +22,18 @@ import java.util.UUID
 import kotlin.math.ceil
 
 class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                      private val claim: Claim): Menu, KoinComponent {
+                      private val claim: Claim?): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
 
     private var page = 0
 
     override fun open() {
+        if (claim == null) {
+            player.sendMessage("§cError: No claim available")
+            return
+        }
+
         // Create trust menu
         val playerId = player.uniqueId
         val gui = ChestGui(6, localizationProvider.get(playerId, LocalizationKeys.MENU_ALL_PLAYERS_TITLE))
@@ -121,3 +126,4 @@ class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val play
         controlsPane.addItem(guiNextItem, 8, 0)
     }
 }
+

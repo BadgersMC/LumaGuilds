@@ -24,6 +24,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
     private val relationService: RelationService by inject()
     private val guildService: GuildService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         val gui = ChestGui(6, "§bDiplomatic Relations - ${guild.name}")
@@ -209,7 +210,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .lore("§7Return to guild management")
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -273,3 +274,4 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         guild = data as? Guild ?: return
     }
 }
+

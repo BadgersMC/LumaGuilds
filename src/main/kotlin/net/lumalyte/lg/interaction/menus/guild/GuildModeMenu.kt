@@ -27,6 +27,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
     private val guildService: GuildService by inject()
     private val configService: ConfigService by inject()
     private val warService: WarService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         val mainConfig = configService.loadConfig()
@@ -134,7 +135,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                         player.sendMessage("§a✅ Guild mode switched to PEACEFUL!")
                         // Refresh guild data and return to settings
                         guild = guildService.getGuild(guild.id) ?: guild
-                        menuNavigator.openMenu(GuildSettingsMenu(menuNavigator, player, guild))
+                        menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
                     } else {
                         player.sendMessage("§c❌ Failed to change guild mode. Check permissions.")
                     }
@@ -181,7 +182,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                         player.sendMessage("§a✅ Guild mode switched to HOSTILE!")
                         // Refresh guild data and return to settings
                         guild = guildService.getGuild(guild.id) ?: guild
-                        menuNavigator.openMenu(GuildSettingsMenu(menuNavigator, player, guild))
+                        menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
                     } else {
                         player.sendMessage("§c❌ Failed to change guild mode. Check permissions.")
                     }
@@ -210,7 +211,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
             .lore("§7Return to settings")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildSettingsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, 4, 2)
     }
@@ -274,3 +275,4 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         guild = data as? Guild ?: return
     }
 }
+

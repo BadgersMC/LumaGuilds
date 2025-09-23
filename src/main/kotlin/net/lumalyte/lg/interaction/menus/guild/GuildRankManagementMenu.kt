@@ -23,6 +23,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                               private var guild: Guild): Menu, KoinComponent {
 
     private val rankService: RankService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         val gui = ChestGui(4, "§6Rank Management - ${guild.name}")
@@ -48,7 +49,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
             .lore("§7Add a new rank to your guild")
             .lore("§7Maximum 10 ranks per guild")
         val guiCreateItem = GuiItem(createRankItem) {
-            menuNavigator.openMenu(RankCreationMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createRankCreationMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiCreateItem, 4, 3)
 
@@ -56,7 +57,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         val backItem = ItemStack(Material.ARROW)
             .name("§7← Back to Control Panel")
         val guiBackItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiBackItem, 8, 3)
 
@@ -158,10 +159,11 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
     }
 
     private fun openRankEditMenu(rank: Rank) {
-        menuNavigator.openMenu(RankEditMenu(menuNavigator, player, guild, rank))
+        menuNavigator.openMenu(menuFactory.createRankEditMenu(menuNavigator, player, guild, rank))
     }
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
 }
+

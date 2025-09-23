@@ -40,6 +40,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
     private val registerClaimMenuOpening: RegisterClaimMenuOpening by inject()
     private val givePlayerClaimTool: GivePlayerClaimTool by inject()
     private val givePlayerMoveTool: GivePlayerMoveTool by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         val playerId = player.uniqueId
@@ -67,7 +68,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_ICON_NAME))
             .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_ICON_LORE))
         val guiIconEditorItem = GuiItem(iconEditorItem) {
-            menuNavigator.openMenu(ClaimIconMenu(player, menuNavigator, claim)) }
+            menuNavigator.openMenu(menuFactory.createClaimIconMenu(player, menuNavigator, claim)) }
         pane.addItem(guiIconEditorItem, 2, 0)
 
         // Add a claim renaming button
@@ -83,7 +84,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_PERMISSIONS_NAME))
             .lore("${getPlayersWithPermissionInClaim.execute(claim.id).count()}")
         val guiPlayerTrustItem = GuiItem(playerTrustItem) {
-            menuNavigator.openMenu(ClaimTrustMenu(menuNavigator, player, claim)) }
+            menuNavigator.openMenu(menuFactory.createClaimTrustMenu(menuNavigator, player, claim)) }
         pane.addItem(guiPlayerTrustItem, 5, 0)
 
         // Add a convert to guild claim button (only for personal claims)
@@ -142,7 +143,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_FLAGS_NAME))
             .lore("${getClaimFlags.execute(claim.id).count()}")
         val guiClaimFlagsItem = GuiItem(claimFlagsItem) {
-            menuNavigator.openMenu(ClaimFlagMenu(menuNavigator, player, claim)) }
+            menuNavigator.openMenu(menuFactory.createClaimFlagMenu(menuNavigator, player, claim)) }
         pane.addItem(guiClaimFlagsItem, 7, 0)
 
         // Add a claim move button
@@ -164,3 +165,4 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
         claim = data as? Claim ?: return
     }
 }
+

@@ -14,6 +14,7 @@ import net.lumalyte.lg.domain.entities.PartyStatus
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
@@ -35,6 +36,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
     private val memberService: MemberService by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val configService: ConfigService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // Creation state
     private var partyName: String = ""
@@ -194,7 +196,8 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             .lore("§7when the party is created")
 
         val inviteGuiItem = GuiItem(inviteItem) {
-            menuNavigator.openMenu(GuildSelectionMenu(menuNavigator, player, guild, selectedGuilds))
+            val menuFactory = MenuFactory()
+            menuNavigator.openMenu(menuFactory.createGuildSelectionMenu(menuNavigator, player, guild, selectedGuilds))
         }
         pane.addItem(inviteGuiItem, 3, 1)
 
@@ -348,7 +351,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             .lore("§7Return to party management")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(GuildPartyManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, 7, 5)
     }
@@ -404,7 +407,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
                 }
 
                 // Return to party management
-                menuNavigator.openMenu(GuildPartyManagementMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
             } else {
                 player.sendMessage("§c❌ Failed to create party!")
             }
@@ -512,3 +515,4 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         }
     }
 }
+

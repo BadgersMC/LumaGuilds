@@ -388,7 +388,12 @@ class LumaGuilds : JavaPlugin() {
         // Register LumaGuilds admin command
         getCommand("lumaguilds")?.setExecutor(LumaGuildsCommand())
         getCommand("lumaguilds")?.tabCompleter = LumaGuildsCommand()
+
+        // Register Bedrock cache stats command
+        getCommand("bedrockcachestats")?.setExecutor(BedrockCacheStatsCommand())
+
         logColored("✓ Admin commands registered (/lumaguilds, /bellclaims)")
+        logColored("✓ Bedrock cache stats command registered (/bedrockcachestats)")
     }
 
     /**

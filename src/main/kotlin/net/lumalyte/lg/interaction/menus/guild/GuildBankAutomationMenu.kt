@@ -30,6 +30,7 @@ class GuildBankAutomationMenu(
 
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -149,7 +150,7 @@ class GuildBankAutomationMenu(
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(backGuiItem, 0, 0)
 
@@ -161,7 +162,7 @@ class GuildBankAutomationMenu(
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankStatisticsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildBankStatisticsMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(statsGuiItem, 1, 0)
 

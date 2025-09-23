@@ -1,1 +1,1 @@
-﻿rootProject.name = "LumaGuilds"
+rootProject.name = "LumaGuilds"

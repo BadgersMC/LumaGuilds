@@ -25,6 +25,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         // Create 3x9 chest GUI
@@ -115,7 +116,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
             .lore("§7No changes will be made")
 
         val cancelGuiItem = GuiItem(cancelItem) {
-            menuNavigator.openMenu(GuildKickMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
         }
         pane.addItem(cancelGuiItem, x, y)
     }
@@ -136,10 +137,10 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
             }
 
             // Return to member management menu
-            menuNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
         } else {
             player.sendMessage("§c❌ Failed to kick $targetName. Check permissions.")
-            menuNavigator.openMenu(GuildKickMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
         }
     }
 
@@ -147,3 +148,4 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
         // No data passing needed for confirmation menu
     }
 }
+

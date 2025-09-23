@@ -34,6 +34,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private val bankService: BankService by inject()
     private val mapRendererService: MapRendererService by inject()
     private val guildService: GuildService by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     private val logger = LoggerFactory.getLogger(GuildStatisticsMenu::class.java)
 
@@ -204,7 +205,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .lore("§7Return to guild management")
 
         val guiItem = GuiItem(item) {
-            menuNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -946,3 +947,4 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         guild = data as? Guild ?: return
     }
 }
+

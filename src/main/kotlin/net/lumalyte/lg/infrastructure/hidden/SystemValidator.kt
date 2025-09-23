@@ -42,7 +42,7 @@ internal class SystemValidator(private val version: String = "0.4.0") {
 
     /**
      * Displays the secret meme text in all red (10% chance).
-     * This is the hidden easter egg that only appears randomly.
+     * This is a hidden easter egg that only appears randomly.
      */
     private fun displaySecretMemeText() {
         val secretText = """

@@ -27,6 +27,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
     private val playerMetadataService: PlayerMetadataService by inject()
     private val listPlayerClaims: ListPlayerClaims by inject()
     private val isNewClaimLocationValid: IsNewClaimLocationValid by inject()
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
         val playerId = player.uniqueId
@@ -59,7 +60,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
                     .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CREATE_LORE_REMAINING,
                         playerMetadataService.getPlayerClaimLimit(playerId) - playerClaimCount))
                 val guiIconEditorItem = GuiItem(iconEditorItem) {
-                    menuNavigator.openMenu(ClaimNamingMenu(player, menuNavigator, location))
+                    menuNavigator.openMenu(menuFactory.createClaimNamingMenu(player, menuNavigator, location))
                 }
                 pane.addItem(guiIconEditorItem, 4, 0)
                 gui.show(player)
@@ -90,3 +91,4 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
         }
     }
 }
+

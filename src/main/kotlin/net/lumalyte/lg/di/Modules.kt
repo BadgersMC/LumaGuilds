@@ -77,6 +77,8 @@ import net.lumalyte.lg.application.persistence.PlayerStateRepository
 import net.lumalyte.lg.application.services.ConfigService
 
 import net.lumalyte.lg.application.services.PlayerLocaleService
+import net.lumalyte.lg.application.services.BedrockLocalizationService
+import net.lumalyte.lg.application.services.FormCacheService
 import net.lumalyte.lg.application.services.PlayerMetadataService
 import net.lumalyte.lg.application.services.ToolItemService
 import net.lumalyte.lg.application.services.VisualisationService
@@ -131,6 +133,12 @@ import net.lumalyte.lg.infrastructure.services.AuditServiceBukkit
 import net.lumalyte.lg.infrastructure.services.KillServiceBukkit
 import net.lumalyte.lg.infrastructure.services.MapRendererServiceBukkit
 import net.lumalyte.lg.infrastructure.services.WarServiceBukkit
+import net.lumalyte.lg.infrastructure.services.FloodgatePlatformDetectionService
+import net.lumalyte.lg.application.services.PlatformDetectionService
+import net.lumalyte.lg.infrastructure.services.BedrockLocalizationServiceFloodgate
+import net.lumalyte.lg.infrastructure.services.FormCacheServiceGuava
+import net.lumalyte.lg.infrastructure.services.FormValidationServiceImpl
+import net.lumalyte.lg.application.services.FormValidationService
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
 import net.lumalyte.lg.infrastructure.persistence.guilds.GuildRepositorySQLite
@@ -255,6 +263,9 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
     single<CombatService> { CombatServiceBukkit(get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get()) }
     single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get()) }
+
+    // Platform detection service for Bedrock menu system
+    single<PlatformDetectionService> { FloodgatePlatformDetectionService(get<LumaGuilds>().logger) }
     
     // Guild Banner System
     single<GuildBannerRepository> { GuildBannerRepositorySQLite(get()) }
@@ -266,6 +277,22 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
 
     // Utilities
     single<net.lumalyte.lg.application.utilities.LocalizationProvider> { LocalizationProviderProperties(get(), get(), get()) }
+    single<BedrockLocalizationService> { BedrockLocalizationServiceFloodgate(get<LumaGuilds>().dataFolder, get(), get()) }
+    single<FormCacheService> {
+        val config = get<ConfigService>().loadConfig()
+        FormCacheServiceGuava(
+            maxCacheSize = config.bedrock.formCacheSize,
+            cacheExpirationMinutes = config.bedrock.formCacheExpirationMinutes,
+            logger = get()
+        )
+    }
+    single<FormValidationService> { FormValidationServiceImpl(get()) }
+
+    // Menu Factory
+    single<net.lumalyte.lg.interaction.menus.MenuFactory> { net.lumalyte.lg.interaction.menus.MenuFactory() }
+
+    // Logger (for dependency injection)
+    single<java.util.logging.Logger> { get<LumaGuilds>().logger }
 
     // CSV Export System
     single<CsvExportService> { CsvExportService() }
