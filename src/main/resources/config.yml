@@ -481,6 +481,42 @@ bedrock:
   enable_bedrock_selections: true
   enable_bedrock_custom_forms: true
 
+  # Image configuration for Bedrock menu icons
+  # Set image_source to "URL" for web-hosted images or "RESOURCE_PACK" for resource pack images
+  image_source: "URL"
+
+  # Default button images (fallback for buttons without specific icons)
+  default_button_image_url: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=ICON"
+  default_button_image_path: "textures/ui/icon.png"
+
+  # Guild-specific menu icons
+  guild_members_icon_url: "https://via.placeholder.com/64x64/2196F3/FFFFFF?text=MEMBERS"
+  guild_members_icon_path: "textures/ui/members.png"
+  guild_settings_icon_url: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=SETTINGS"
+  guild_settings_icon_path: "textures/ui/settings.png"
+  guild_bank_icon_url: "https://via.placeholder.com/64x64/FFC107/FFFFFF?text=BANK"
+  guild_bank_icon_path: "textures/ui/bank.png"
+  guild_wars_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=WARS"
+  guild_wars_icon_path: "textures/ui/wars.png"
+  guild_home_icon_url: "https://via.placeholder.com/64x64/9C27B0/FFFFFF?text=HOME"
+  guild_home_icon_path: "textures/ui/home.png"
+  guild_tag_icon_url: "https://via.placeholder.com/64x64/607D8B/FFFFFF?text=TAG"
+  guild_tag_icon_path: "textures/ui/tag.png"
+
+  # Action-specific menu icons
+  confirm_icon_url: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=✓"
+  confirm_icon_path: "textures/ui/confirm.png"
+  cancel_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=✗"
+  cancel_icon_path: "textures/ui/cancel.png"
+  back_icon_url: "https://via.placeholder.com/64x64/757575/FFFFFF?text=←"
+  back_icon_path: "textures/ui/back.png"
+  close_icon_url: "https://via.placeholder.com/64x64/000000/FFFFFF?text=✕"
+  close_icon_path: "textures/ui/close.png"
+  edit_icon_url: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=EDIT"
+  edit_icon_path: "textures/ui/edit.png"
+  delete_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=DEL"
+  delete_icon_path: "textures/ui/delete.png"
+
   # Debug and logging
   debug_bedrock_menus: false
   log_form_interactions: false
