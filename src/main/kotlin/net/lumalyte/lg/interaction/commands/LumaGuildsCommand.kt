@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.FileExportManager
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -33,6 +34,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             "download" -> handleDownload(sender, args)
             "exports" -> handleListExports(sender)
             "cancel" -> handleCancelExport(sender, args)
+            "reload" -> handleReload(sender)
             "help" -> showHelp(sender)
             else -> {
                 sender.sendMessage("§cUnknown subcommand: ${args[0]}")
@@ -137,6 +139,44 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     }
 
     /**
+     * Handle plugin reload (for development)
+     */
+    private fun handleReload(sender: CommandSender) {
+        // Check permissions - only console or ops can reload
+        if (sender is Player && !sender.isOp) {
+            sender.sendMessage("§c❌ You don't have permission to reload the plugin!")
+            return
+        }
+
+        try {
+            // Get the plugin instance
+            val plugin = sender.server.pluginManager.getPlugin("LumaGuilds") as? LumaGuilds
+            if (plugin == null) {
+                sender.sendMessage("§c❌ LumaGuilds plugin not found!")
+                return
+            }
+
+            // Reload the configuration
+            plugin.reloadConfig()
+            sender.sendMessage("§e🔄 Reloading LumaGuilds configuration...")
+
+            // Reinitialize config and services
+            plugin.initConfig()
+
+            // Note: We don't reinitialize the entire plugin as that would require
+            // stopping and restarting schedulers, recreating Koin context, etc.
+            // For development, config reload should be sufficient.
+
+            sender.sendMessage("§a✅ LumaGuilds configuration reloaded successfully!")
+            sender.sendMessage("§7💡 Some changes may require a full server restart to take effect.")
+
+        } catch (e: Exception) {
+            sender.sendMessage("§c❌ Failed to reload plugin: ${e.message}")
+            sender.sendMessage("§7💡 You may need to restart the server for changes to take effect.")
+        }
+    }
+
+    /**
      * Show help message
      */
     private fun showHelp(sender: CommandSender) {
@@ -144,8 +184,10 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage("§e/bellclaims download <filename> §7- Download an exported CSV file")
         sender.sendMessage("§e/bellclaims exports §7- List your active exports")
         sender.sendMessage("§e/bellclaims cancel <filename> §7- Cancel an active export")
+        sender.sendMessage("§e/bellclaims reload §7- Reload plugin configuration (OP only)")
         sender.sendMessage("§e/bellclaims help §7- Show this help")
         sender.sendMessage("§7💡 Export files are available for 15 minutes")
+        sender.sendMessage("§7🔧 Reload command is for development - some changes require server restart")
     }
 
     /**
@@ -225,7 +267,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         if (sender !is Player) return mutableListOf()
 
         return when (args.size) {
-            1 -> mutableListOf("download", "exports", "cancel", "help").filter { it.startsWith(args[0]) }.toMutableList()
+            1 -> mutableListOf("download", "exports", "cancel", "reload", "help").filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "download", "cancel" -> {
                     fileExportManager.getActiveExports(sender.uniqueId)
