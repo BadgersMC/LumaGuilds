@@ -10,6 +10,7 @@ import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.MenuItemBuilder
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
@@ -19,9 +20,13 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                    private var guild: Guild): Menu, KoinComponent {
+                    private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val menuItemBuilder: MenuItemBuilder by inject()
@@ -32,7 +37,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     init {
         // Run validation test on initialization (for development/testing)
         if (System.getProperty("bellclaims.emoji.test") == "true") {
-            testEmojiValidation()
+            testEmojiValidation(messageService)
         }
     }
 
@@ -75,7 +80,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
         }
         println("[LumaGuilds] GuildEmojiMenu: Final validation result: ${validationError ?: "VALID"}")
 
-        val gui = ChestGui(3, "§6Guild Emoji - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Guild Emoji - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
@@ -101,12 +106,12 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     }
 
     private fun addCurrentEmojiDisplay(pane: StaticPane, x: Int, y: Int) {
-        val currentEmojiText = currentEmoji ?: "§cNot set"
+        val currentEmojiText = currentEmoji ?: "<red>Not set"
         val displayItem = ItemStack(Material.NAME_TAG)
-            .name("§e🎨 CURRENT EMOJI")
-            .lore("§7$currentEmojiText")
-            .lore("§7")
-            .lore("§7This emoji appears in guild chat")
+            .setAdventureName(player, messageService, "<yellow>🎨 CURRENT EMOJI")
+            .addAdventureLore(player, messageService, "<gray>$currentEmojiText")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>This emoji appears in guild chat")
 
         val guiItem = GuiItem(displayItem) {
             // Display only - no click action needed
@@ -120,22 +125,22 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
         val statusItem = if (isNexoAvailable) {
             ItemStack(Material.LIME_WOOL)
-                .name("§a✅ NEXO: Available")
-                .lore("§7Nexo plugin detected")
-                .lore("§7Full emoji validation active")
-                .lore("§7Emojis must be configured in Nexo")
+                .setAdventureName(player, messageService, "<green>✅ NEXO: Available")
+                .addAdventureLore(player, messageService, "<gray>Nexo plugin detected")
+                .addAdventureLore(player, messageService, "<gray>Full emoji validation active")
+                .addAdventureLore(player, messageService, "<gray>Emojis must be configured in Nexo")
         } else {
             ItemStack(Material.RED_WOOL)
-                .name("§c❌ NEXO: Unavailable")
-                .lore("§7Nexo plugin not found")
-                .lore("§7Format-only validation active")
-                .lore("§7Contact admin to install Nexo")
-                .lore("§7for full emoji functionality")
+                .setAdventureName(player, messageService, "<red>❌ NEXO: Unavailable")
+                .addAdventureLore(player, messageService, "<gray>Nexo plugin not found")
+                .addAdventureLore(player, messageService, "<gray>Format-only validation active")
+                .addAdventureLore(player, messageService, "<gray>Contact admin to install Nexo")
+                .addAdventureLore(player, messageService, "<gray>for full emoji functionality")
         }
 
         val guiItem = GuiItem(statusItem) {
             // Status display only
-            player.sendMessage("§7$statusText")
+            AdventureMenuHelper.sendMessage(player, messageService, "<gray>$statusText")
         }
         pane.addItem(guiItem, x, y)
     }
@@ -143,29 +148,29 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     private fun addEmojiInputField(pane: StaticPane, x: Int, y: Int) {
         println("[LumaGuilds] GuildEmojiMenu: Adding emoji input field with current input: '$inputEmoji'")
         val inputItem = ItemStack(Material.WRITABLE_BOOK)
-            .name("§f✏️ SET NEW EMOJI")
-            .lore("§7Format: :emoji_name:")
-            .lore("§7Example: :cat:")
-            .lore("§7Current input: ${inputEmoji ?: "§c(none)"}")
+            .setAdventureName(player, messageService, "<white>✏️ SET NEW EMOJI")
+            .addAdventureLore(player, messageService, "<gray>Format: :emoji_name:")
+            .addAdventureLore(player, messageService, "<gray>Example: :cat:")
+            .lore("<gray>Current input: ${inputEmoji ?: "§c(none)"}")
 
         // Add validation status
         if (validationError != null) {
-            inputItem.lore("§c❌ $validationError")
+            inputItem.addAdventureLore(player, messageService, "<red>❌ $validationError")
         } else if (inputEmoji != null) {
-            inputItem.lore("§a✅ Format valid")
+            inputItem.addAdventureLore(player, messageService, "<green>✅ Format valid")
         }
 
-        inputItem.lore("§7Click to input emoji")
+        inputItem.addAdventureLore(player, messageService, "<gray>Click to input emoji")
 
         val guiItem = GuiItem(inputItem) {
             println("[LumaGuilds] GuildEmojiMenu: Emoji input field clicked - starting chat input")
             // Start chat input mode for emoji
-            chatInputListener.startInputMode(player, EmojiInputHandler(menuNavigator, player, guild, this))
+            chatInputListener.startInputMode(player, EmojiInputHandler(menuNavigator, player, guild, this, messageService))
             player.closeInventory()
 
-            player.sendMessage("§e✏️ Enter your guild emoji:")
-            player.sendMessage("§7Format: §f:emoji_name: §7(e.g., §f:cat:§7)")
-            player.sendMessage("§7Type §c'cancel' §7to cancel")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>✏️ Enter your guild emoji:")
+            AdventureMenuHelper.sendMessage(player, messageService, "<gray>Format: <white>:emoji_name: <gray>(e.g., <white>:cat:<gray>)")
+            AdventureMenuHelper.sendMessage(player, messageService, "<gray>Type <red>'cancel' <gray>to cancel")
         }
         pane.addItem(guiItem, x, y)
     }
@@ -174,16 +179,16 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
         val unlockedCount = nexoEmojiService.getPlayerUnlockedEmojis(player).size
         println("[LumaGuilds] GuildEmojiMenu: Player ${player.name} has $unlockedCount unlocked emojis")
         val selectorItem = ItemStack(Material.ENDER_CHEST)
-            .name("§d🎨 SELECT FROM UNLOCKED")
-            .lore("§7Browse emojis you have access to")
-            .lore("§7Unlocked emojis: §f$unlockedCount")
-            .lore("§7Click to open emoji selector")
+            .setAdventureName(player, messageService, "<light_purple>🎨 SELECT FROM UNLOCKED")
+            .addAdventureLore(player, messageService, "<gray>Browse emojis you have access to")
+            .addAdventureLore(player, messageService, "<gray>Unlocked emojis: <white>$unlockedCount")
+            .addAdventureLore(player, messageService, "<gray>Click to open emoji selector")
 
         val guiItem = GuiItem(selectorItem) {
             println("[LumaGuilds] GuildEmojiMenu: Emoji selector button clicked")
             if (unlockedCount == 0) {
-                player.sendMessage("§cYou don't have any unlocked emojis!")
-                player.sendMessage("§7Contact an admin to get emoji permissions.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>You don't have any unlocked emojis!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>Contact an admin to get emoji permissions.")
             } else {
                 println("[LumaGuilds] GuildEmojiMenu: Opening emoji selection menu")
                 // Open emoji selection menu
@@ -196,19 +201,19 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     private fun addPreviewSection(pane: StaticPane, x: Int, y: Int) {
         val previewEmoji = inputEmoji ?: ":cat:" // Default preview
         val previewItem = ItemStack(Material.PAPER)
-            .name("§a🔍 PREVIEW")
-            .lore("§7Guild Chat:")
+            .setAdventureName(player, messageService, "<green>🔍 PREVIEW")
+            .addAdventureLore(player, messageService, "<gray>Guild Chat:")
 
         if (validationError != null) {
-            previewItem.lore("§7[${player.name}] §c$previewEmoji §7Hello!")
-                .lore("§c⚠️ Preview shows validation error")
+            previewItem.addAdventureLore(player, messageService, "<gray>[${player.name}] <red>$previewEmoji <gray>Hello!")
+                .addAdventureLore(player, messageService, "<red>⚠️ Preview shows validation error")
         } else {
-            previewItem.lore("§7[${player.name}] $previewEmoji §7Hello!")
-                .lore("§a✅ Preview shows valid format")
+            previewItem.addAdventureLore(player, messageService, "<gray>[${player.name}] $previewEmoji <gray>Hello!")
+                .addAdventureLore(player, messageService, "<green>✅ Preview shows valid format")
         }
 
-        previewItem.lore("§7")
-            .lore("§7How it will appear in chat")
+        previewItem.addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>How it will appear in chat")
 
         val guiItem = GuiItem(previewItem) {
             // Preview only - no click action needed
@@ -218,18 +223,18 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addSaveButton(pane: StaticPane, x: Int, y: Int) {
         val saveItem = ItemStack(Material.LIME_WOOL)
-            .name("§a✅ SAVE CHANGES")
-            .lore("§7Apply the new emoji")
+            .setAdventureName(player, messageService, "<green>✅ SAVE CHANGES")
+            .addAdventureLore(player, messageService, "<gray>Apply the new emoji")
 
         // Disable save if there are validation errors or no changes
         if (validationError != null) {
-            saveItem.name("§c❌ CANNOT SAVE")
-                .lore("§cFix validation errors first")
+            saveItem.setAdventureName(player, messageService, "<red>❌ CANNOT SAVE")
+                .addAdventureLore(player, messageService, "<red>Fix validation errors first")
         } else if (inputEmoji == currentEmoji) {
-            saveItem.name("§7📝 NO CHANGES")
-                .lore("§7Emoji unchanged")
+            saveItem.setAdventureName(player, messageService, "<gray>📝 NO CHANGES")
+                .addAdventureLore(player, messageService, "<gray>Emoji unchanged")
         } else {
-            saveItem.lore("§7Click to save changes")
+            saveItem.addAdventureLore(player, messageService, "<gray>Click to save changes")
         }
 
         val guiItem = GuiItem(saveItem) {
@@ -238,13 +243,13 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             println("[LumaGuilds] GuildEmojiMenu: validationError: ${validationError ?: "NONE"}")
 
             if (validationError != null) {
-                player.sendMessage("§c❌ Cannot save: $validationError")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Cannot save: $validationError")
                 return@GuiItem
             }
 
             if (inputEmoji == currentEmoji) {
                 println("[LumaGuilds] GuildEmojiMenu: No changes detected - inputEmoji equals currentEmoji")
-                player.sendMessage("§7No changes to save.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>No changes to save.")
                 return@GuiItem
             }
 
@@ -256,13 +261,13 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
                 // Update local guild object
                 currentEmoji = inputEmoji
 
-                player.sendMessage("§a✅ Guild emoji updated successfully!")
-                player.sendMessage("§7New emoji: ${inputEmoji ?: "§c(cleared)"}")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Guild emoji updated successfully!")
+                player.sendMessage("<gray>New emoji: ${inputEmoji ?: "§c(cleared)"}")
 
                 // Refresh the menu to show updated state
                 open()
             } else {
-                player.sendMessage("§c❌ Failed to save emoji. Check permissions.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to save emoji. Check permissions.")
             }
         }
         pane.addItem(guiItem, x, y)
@@ -270,9 +275,9 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addClearButton(pane: StaticPane, x: Int, y: Int) {
         val clearItem = ItemStack(Material.ORANGE_WOOL)
-            .name("§6🗑️ CLEAR EMOJI")
-            .lore("§7Remove guild emoji")
-            .lore("§7Will use no emoji in chat")
+            .setAdventureName(player, messageService, "<gold>🗑️ CLEAR EMOJI")
+            .addAdventureLore(player, messageService, "<gray>Remove guild emoji")
+            .addAdventureLore(player, messageService, "<gray>Will use no emoji in chat")
 
         val guiItem = GuiItem(clearItem) {
             println("[LumaGuilds] GuildEmojiMenu: Clear button clicked")
@@ -281,7 +286,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             inputEmoji = null
             validationError = null
 
-            player.sendMessage("§7Emoji cleared. Will use no emoji in chat.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<gray>Emoji cleared. Will use no emoji in chat.")
 
             // Refresh the menu to show updated state
             open()
@@ -291,8 +296,8 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack(Material.RED_WOOL)
-            .name("§c❌ CANCEL")
-            .lore("§7Discard changes")
+            .setAdventureName(player, messageService, "<red>❌ CANCEL")
+            .addAdventureLore(player, messageService, "<gray>Discard changes")
 
         val guiItem = GuiItem(cancelItem) {
             // Close menu without saving
@@ -303,8 +308,8 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
-            .name("§e⬅️ BACK")
-            .lore("§7Return to guild settings")
+            .setAdventureName(player, messageService, "<yellow>⬅️ BACK")
+            .addAdventureLore(player, messageService, "<gray>Return to guild settings")
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -377,12 +382,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
      * Check if the current input is valid
      * @return true if valid, false otherwise
      */
-    fun isInputValid(): Boolean = validationError == null
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    fun isInputValid(): Boolean = validationError == null}
 
 /**
  * Handler for emoji chat input, similar to TagEditorMenu's approach
@@ -391,7 +391,8 @@ private class EmojiInputHandler(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild,
-    private val emojiMenu: GuildEmojiMenu
+    private val emojiMenu: GuildEmojiMenu,
+    private val messageService: MessageService
 ) : ChatInputHandler {
 
     /**
@@ -402,8 +403,8 @@ private class EmojiInputHandler(
 
         // Validate the input format
         if (!input.startsWith(":") || !input.endsWith(":")) {
-            player.sendMessage("§c❌ Invalid format! Emoji must be in format :emoji_name:")
-            player.sendMessage("§7Example: §f:cat:")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Invalid format! Emoji must be in format :emoji_name:")
+            AdventureMenuHelper.sendMessage(player, messageService, "<gray>Example: <white>:cat:")
             return
         }
 
@@ -416,8 +417,8 @@ private class EmojiInputHandler(
             emojiMenu.open()
         })
 
-        player.sendMessage("§a✅ Emoji set to: $input")
-        player.sendMessage("§7Click save to apply the changes.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Emoji set to: $input")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Click save to apply the changes.")
     }
 
     /**
@@ -425,7 +426,7 @@ private class EmojiInputHandler(
      */
     override fun onCancel(player: Player) {
         println("[LumaGuilds] EmojiInputHandler: Player cancelled emoji input")
-        player.sendMessage("§7Emoji input cancelled.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Emoji input cancelled.")
 
         // Reopen the menu without changes (reuse existing instance)
         val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
@@ -449,7 +450,8 @@ class EmojiSelectionMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild,
-    private val parentMenu: GuildEmojiMenu
+    private val parentMenu: GuildEmojiMenu,
+    private val messageService: MessageService
 ) : Menu, KoinComponent {
 
     private val nexoEmojiService: NexoEmojiService by inject()
@@ -466,7 +468,7 @@ class EmojiSelectionMenu(
         unlockedEmojis = nexoEmojiService.getPlayerUnlockedEmojis(player)
 
         if (unlockedEmojis.isEmpty()) {
-            player.sendMessage("§cYou don't have any unlocked emojis!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>You don't have any unlocked emojis!")
             menuNavigator.openMenu(parentMenu)
             return
         }
@@ -475,14 +477,10 @@ class EmojiSelectionMenu(
         val totalPages = (unlockedEmojis.size + itemsPerPage - 1) / itemsPerPage
 
         // Create double chest GUI (6 rows x 9 columns = 54 slots)
-        val gui = ChestGui(6, "§6Select Emoji - Page ${currentPage + 1}/$totalPages")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Select Emoji - Page ${currentPage + 1}/$totalPages"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Add emoji items (5 rows of 9 items each)
@@ -515,9 +513,9 @@ class EmojiSelectionMenu(
         val emojiPlaceholder = ":$emojiName:"
         println("[LumaGuilds] GuildEmojiMenu: Adding emoji item: $emojiPlaceholder")
         val emojiItem = ItemStack(Material.PAPER)
-            .name("§e$emojiPlaceholder")
-            .lore("§7Click to select this emoji")
-            .lore("§7This will become your guild emoji")
+            .setAdventureName(player, messageService, "<yellow>$emojiPlaceholder")
+            .addAdventureLore(player, messageService, "<gray>Click to select this emoji")
+            .addAdventureLore(player, messageService, "<gray>This will become your guild emoji")
 
         val guiItem = GuiItem(emojiItem) {
             println("[LumaGuilds] GuildEmojiMenu: Emoji item clicked: $emojiPlaceholder")
@@ -525,15 +523,15 @@ class EmojiSelectionMenu(
             parentMenu.setEmojiInput(emojiPlaceholder)
             println("[LumaGuilds] GuildEmojiMenu: Set emoji input to: $emojiPlaceholder")
             menuNavigator.openMenu(parentMenu)
-            player.sendMessage("§aSelected emoji: $emojiPlaceholder")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>Selected emoji: $emojiPlaceholder")
         }
         pane.addItem(guiItem, x, y)
     }
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {
         val prevItem = ItemStack(Material.ARROW)
-            .name("§e⬅️ Previous Page")
-            .lore("§7Go to previous page")
+            .setAdventureName(player, messageService, "<yellow>⬅️ Previous Page")
+            .addAdventureLore(player, messageService, "<gray>Go to previous page")
 
         val guiItem = GuiItem(prevItem) {
             currentPage--
@@ -544,8 +542,8 @@ class EmojiSelectionMenu(
 
     private fun addNextPageButton(pane: StaticPane, x: Int, y: Int) {
         val nextItem = ItemStack(Material.ARROW)
-            .name("§eNext Page ➡️")
-            .lore("§7Go to next page")
+            .setAdventureName(player, messageService, "<yellow>Next Page ➡️")
+            .addAdventureLore(player, messageService, "<gray>Go to next page")
 
         val guiItem = GuiItem(nextItem) {
             currentPage++
@@ -556,20 +554,13 @@ class EmojiSelectionMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ Back to Emoji Menu")
-            .lore("§7Return to emoji settings")
+            .setAdventureName(player, messageService, "<red>⬅️ Back to Emoji Menu")
+            .addAdventureLore(player, messageService, "<gray>Return to emoji settings")
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(parentMenu)
         }
         pane.addItem(guiItem, x, y)
-    }
-
-    override fun passData(data: Any?) {
-        // Handle page navigation data if needed
-        when (data) {
-            is Int -> currentPage = data
-        }
     }
 }
 
@@ -577,7 +568,7 @@ class EmojiSelectionMenu(
  * Test function to demonstrate validation functionality
  * This can be removed once proper testing is implemented
  */
-fun testEmojiValidation() {
+fun testEmojiValidation(messageService: MessageService) {
     val testCases = listOf(
         ":cat:" to "Valid emoji",
         "cat" to "Missing colons",

@@ -33,10 +33,14 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.UUID
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                                  private val claim: Claim?, private val targetPlayer: OfflinePlayer?
-): Menu, KoinComponent {
+, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val getPlayerClaimPermissions: GetClaimPlayerPermissions by inject()
     private val grantAllPlayerClaimPermissions: GrantAllPlayerClaimPermissions by inject()
@@ -51,7 +55,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
 
     override fun open() {
         if (claim == null || targetPlayer == null) {
-            player.sendMessage("§cError: No claim or target player available")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Error: No claim or target player available")
             return
         }
 
@@ -102,7 +106,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         controlsPane.addItem(guiTransferRequestItem, 8, 0)
 
         // Add vertical divider
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).setAdventureName(player, messageService, " ")
         val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
         val verticalDividerPane = StaticPane(4, 2, 1, 6)
         gui.addPane(verticalDividerPane)
@@ -165,7 +169,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         // Add divider
         val dividerPane = StaticPane(0, 1, 9, 1)
         gui.addPane(dividerPane)
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).setAdventureName(player, messageService, " ")
         for (slot in 0..8) {
             val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
             dividerPane.addItem(guiDividerItem, slot, 0)
@@ -225,7 +229,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
                 }
 
                 menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, localizationProvider.get(
-                    player.uniqueId, LocalizationKeys.MENU_TRANSFER_SEND_TITLE), confirmAction))
+                    player.uniqueId, LocalizationKeys.MENU_TRANSFER_SEND_TITLE), messageService, confirmAction))
             }
             when (canPlayerReceiveTransferRequest.execute(claim!!.id, targetPlayer!!.uniqueId)) {
                 CanPlayerReceiveTransferRequestResult.Success -> {

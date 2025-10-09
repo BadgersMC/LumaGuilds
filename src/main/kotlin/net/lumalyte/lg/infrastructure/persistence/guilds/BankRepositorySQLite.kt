@@ -148,23 +148,11 @@ class BankRepositorySQLite(private val storage: SQLiteStorage) : BankRepository 
     private fun mapResultSetToAudit(rs: co.aikar.idb.DbRow): BankAudit {
         return BankAudit(
             id = UUID.fromString(rs.getString("id")),
-            transactionId = rs.getString("transaction_id")?.let { UUID.fromString(it) },
             guildId = UUID.fromString(rs.getString("guild_id")),
-            actorId = UUID.fromString(rs.getString("actor_id")),
+            playerId = UUID.fromString(rs.getString("actor_id")), // Map actor_id to playerId
             action = AuditAction.valueOf(rs.getString("action")),
-            details = rs.getString("details"),
-            oldBalance = when (val value = rs.get<Any?>("old_balance")) {
-                null -> 0
-                is Int -> value
-                is String -> value.toIntOrNull() ?: 0
-                else -> value.toString().toIntOrNull() ?: 0
-            },
-            newBalance = when (val value = rs.get<Any?>("new_balance")) {
-                null -> 0
-                is Int -> value
-                is String -> value.toIntOrNull() ?: 0
-                else -> value.toString().toIntOrNull() ?: 0
-            },
+            amount = rs.getInt("amount"),
+            description = rs.getString("details"), // Map details to description
             timestamp = Instant.parse(rs.getString("timestamp"))
         )
     }
@@ -271,13 +259,13 @@ class BankRepositorySQLite(private val storage: SQLiteStorage) : BankRepository 
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql,
                 audit.id.toString(),
-                audit.transactionId?.toString(),
+                null,  // transactionId - not in BankAudit
                 audit.guildId.toString(),
-                audit.actorId.toString(),
+                audit.playerId.toString(),  // actorId is playerId in BankAudit
                 audit.action.name,
-                audit.details,
-                audit.oldBalance,
-                audit.newBalance,
+                audit.description,  // details is description in BankAudit
+                null,  // oldBalance - not in BankAudit
+                null,  // newBalance - not in BankAudit
                 audit.timestamp.toString()
             )
 
@@ -405,5 +393,21 @@ class BankRepositorySQLite(private val storage: SQLiteStorage) : BankRepository 
 
     private fun updateCachedBalance(guildId: UUID) {
         calculateGuildBalance(guildId)
+    }
+
+    override fun getTransactionsByPlayerId(playerId: UUID): List<BankTransaction> {
+        val sql = """
+            SELECT id, guild_id, actor_id, type, amount, description, fee, timestamp
+            FROM bank_transactions
+            WHERE actor_id = ?
+            ORDER BY timestamp DESC
+        """.trimIndent()
+
+        return try {
+            val results = storage.connection.getResults(sql, playerId.toString())
+            results.map { mapResultSetToTransaction(it) }
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to get transactions for player $playerId", e)
+        }
     }
 }

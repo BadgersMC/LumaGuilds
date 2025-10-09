@@ -4,6 +4,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Manages form state persistence and timeout handling for multi-step workflows

@@ -28,7 +28,9 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             progression = loadProgressionConfig(),
             ui = loadUIConfig(),
             discord = loadDiscordConfig(),
-            party = loadPartyConfig()
+            party = loadPartyConfig(),
+            itemBanking = loadItemBankingConfig(),
+            bedrock = loadBedrockConfig()
         )
     }
     
@@ -237,5 +239,121 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             allowRoleRestrictions = config.getBoolean("party.allow_role_restrictions", true),
             defaultToAllMembers = config.getBoolean("party.default_to_all_members", true)
         )
+    }
+
+    private fun loadItemBankingConfig(): ItemBankingConfig {
+        return ItemBankingConfig(
+            enabled = config.getBoolean("item_banking.enabled", true),
+            allowDualBanking = config.getBoolean("item_banking.allow_dual_banking", true),
+            defaultChestSize = config.getInt("item_banking.default_chest_size", 54),
+            maxChestSize = config.getInt("item_banking.max_chest_size", 270),
+            chestBreakConfirmation = config.getBoolean("item_banking.chest_break_confirmation", true),
+            chestBreakMessage = config.getString("item_banking.chest_break_message") ?: "§cWarning: Breaking this guild chest will drop all items! Break again to confirm.",
+            worldGuardIntegration = config.getBoolean("item_banking.worldguard_integration", true),
+            worldGuardDenyRegions = config.getStringList("item_banking.worldguard_deny_regions").toSet().takeIf { it.isNotEmpty() } ?: setOf("spawn", "pvp", "shop"),
+            unlockLevels = loadUnlockLevels(),
+            defaultCurrencyItem = config.getString("item_banking.default_currency_item") ?: "DIAMOND",
+            currencyItems = loadCurrencyItems(),
+            autoEnemyOnChestBreak = config.getBoolean("item_banking.auto_enemy_on_chest_break", true),
+            autoEnemyDurationHours = config.getInt("item_banking.auto_enemy_duration_hours", 24),
+            autoEnemyReason = config.getString("item_banking.auto_enemy_reason") ?: "Guild chest was destroyed by member of this guild",
+            requireClaimsForChestProtection = config.getBoolean("item_banking.require_claims_for_chest_protection", false),
+            chestExplosionRequired = config.getBoolean("item_banking.chest_explosion_required", true),
+            logChestBreakAttempts = config.getBoolean("item_banking.log_chest_break_attempts", true),
+            allowPhysicalAccess = config.getBoolean("item_banking.allow_physical_access", true),
+            allowGuiAccess = config.getBoolean("item_banking.allow_gui_access", true),
+            requirePermissionForAccess = config.getBoolean("item_banking.require_permission_for_access", false),
+            accessPermission = config.getString("item_banking.access_permission") ?: "lumaguilds.chest.access"
+        )
+    }
+
+    private fun loadBedrockConfig(): BedrockConfig {
+        return BedrockConfig(
+            bedrockMenusEnabled = config.getBoolean("bedrock.bedrock_menus_enabled", true),
+            forceBedrockMenus = config.getBoolean("bedrock.force_bedrock_menus", false),
+            fallbackToJavaMenus = config.getBoolean("bedrock.fallback_to_java_menus", true),
+            fallbackOnFloodgateUnavailable = config.getBoolean("bedrock.fallback_on_floodgate_unavailable", true),
+            fallbackOnCumulusUnavailable = config.getBoolean("bedrock.fallback_on_cumulus_unavailable", true),
+            formCacheEnabled = config.getBoolean("bedrock.form_cache_enabled", true),
+            formCacheSize = config.getInt("bedrock.form_cache_size", 100),
+            formCacheExpirationMinutes = config.getInt("bedrock.form_cache_expiration_minutes", 30),
+            maxFormButtons = config.getInt("bedrock.max_form_buttons", 8),
+            formTimeoutSeconds = config.getInt("bedrock.form_timeout_seconds", 300),
+            enableBedrockConfirmations = config.getBoolean("bedrock.enable_bedrock_confirmations", true),
+            enableBedrockSelections = config.getBoolean("bedrock.enable_bedrock_selections", true),
+            enableBedrockCustomForms = config.getBoolean("bedrock.enable_bedrock_custom_forms", true),
+            imageSource = ImageSource.valueOf(config.getString("bedrock.image_source") ?: "URL"),
+            defaultButtonImageUrl = config.getString("bedrock.default_button_image_url") ?: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=ICON",
+            defaultButtonImagePath = config.getString("bedrock.default_button_image_path") ?: "textures/ui/icon.png",
+            guildMembersIconUrl = config.getString("bedrock.guild_members_icon_url") ?: "https://via.placeholder.com/64x64/2196F3/FFFFFF?text=MEMBERS",
+            guildMembersIconPath = config.getString("bedrock.guild_members_icon_path") ?: "textures/ui/members.png",
+            guildSettingsIconUrl = config.getString("bedrock.guild_settings_icon_url") ?: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=SETTINGS",
+            guildSettingsIconPath = config.getString("bedrock.guild_settings_icon_path") ?: "textures/ui/settings.png",
+            guildBankIconUrl = config.getString("bedrock.guild_bank_icon_url") ?: "https://via.placeholder.com/64x64/FFC107/FFFFFF?text=BANK",
+            guildBankIconPath = config.getString("bedrock.guild_bank_icon_path") ?: "textures/ui/bank.png",
+            guildWarsIconUrl = config.getString("bedrock.guild_wars_icon_url") ?: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=WARS",
+            guildWarsIconPath = config.getString("bedrock.guild_wars_icon_path") ?: "textures/ui/wars.png",
+            guildHomeIconUrl = config.getString("bedrock.guild_home_icon_url") ?: "https://via.placeholder.com/64x64/9C27B0/FFFFFF?text=HOME",
+            guildHomeIconPath = config.getString("bedrock.guild_home_icon_path") ?: "textures/ui/home.png",
+            guildTagIconUrl = config.getString("bedrock.guild_tag_icon_url") ?: "https://via.placeholder.com/64x64/607D8B/FFFFFF?text=TAG",
+            guildTagIconPath = config.getString("bedrock.guild_tag_icon_path") ?: "textures/ui/tag.png",
+            confirmIconUrl = config.getString("bedrock.confirm_icon_url") ?: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=CONFIRM",
+            confirmIconPath = config.getString("bedrock.confirm_icon_path") ?: "textures/ui/confirm.png",
+            cancelIconUrl = config.getString("bedrock.cancel_icon_url") ?: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=CANCEL",
+            cancelIconPath = config.getString("bedrock.cancel_icon_path") ?: "textures/ui/cancel.png",
+            backIconUrl = config.getString("bedrock.back_icon_url") ?: "https://via.placeholder.com/64x64/757575/FFFFFF?text=BACK",
+            backIconPath = config.getString("bedrock.back_icon_path") ?: "textures/ui/back.png",
+            closeIconUrl = config.getString("bedrock.close_icon_url") ?: "https://via.placeholder.com/64x64/000000/FFFFFF?text=CLOSE",
+            closeIconPath = config.getString("bedrock.close_icon_path") ?: "textures/ui/close.png",
+            editIconUrl = config.getString("bedrock.edit_icon_url") ?: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=EDIT",
+            editIconPath = config.getString("bedrock.edit_icon_path") ?: "textures/ui/edit.png",
+            deleteIconUrl = config.getString("bedrock.delete_icon_url") ?: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=DELETE",
+            deleteIconPath = config.getString("bedrock.delete_icon_path") ?: "textures/ui/delete.png",
+            debugBedrockMenus = config.getBoolean("bedrock.debug_bedrock_menus", false),
+            logFormInteractions = config.getBoolean("bedrock.log_form_interactions", false)
+        )
+    }
+
+    private fun loadUnlockLevels(): Map<Int, Int> {
+        val levelsSection = config.getConfigurationSection("item_banking.unlock_levels")
+        if (levelsSection == null) {
+            return mapOf(
+                5 to 9, 10 to 18, 15 to 27, 20 to 36, 25 to 45, 30 to 54
+            )
+        }
+        return levelsSection.getKeys(false).associate { key ->
+            key.toIntOrNull() to levelsSection.getInt(key)
+        }.filterKeys { it != null } as Map<Int, Int>
+    }
+
+    private fun loadCurrencyItems(): Map<String, Double> {
+        val currencySection = config.getConfigurationSection("item_banking.currency_items")
+        if (currencySection == null) {
+            return mapOf(
+                "DIAMOND" to 1.0,
+                "EMERALD" to 0.5,
+                "GOLD_INGOT" to 0.25,
+                "IRON_INGOT" to 0.1,
+                "COAL" to 0.05
+            )
+        }
+        return currencySection.getKeys(false).associateWith { key ->
+            currencySection.getDouble(key)
+        }
+    }
+
+    private fun loadChestUpgradeCosts(): Map<String, Int> {
+        val upgradeSection = config.getConfigurationSection("item_banking.chest_upgrade_costs")
+        if (upgradeSection == null) {
+            return mapOf(
+                "SIZE_UPGRADE" to 1000,
+                "SECURITY_UPGRADE" to 2000,
+                "CAPACITY_UPGRADE" to 1500,
+                "PROTECTION_UPGRADE" to 3000
+            )
+        }
+        return upgradeSection.getKeys(false).associateWith { key ->
+            upgradeSection.getInt(key)
+        }
     }
 }

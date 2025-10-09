@@ -16,6 +16,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
 import java.util.UUID
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild member list menu using Cumulus SimpleForm
@@ -25,8 +29,9 @@ class BedrockGuildMemberListMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -101,12 +106,12 @@ class BedrockGuildMemberListMenu(
             val playerName = getPlayerName(m)
             val onlineStatus = if (isPlayerOnline(m)) "[ONLINE]" else "[OFFLINE]"
             val rank = rankService.getRank(m.rankId)?.name ?: "Unknown"
-            "$onlineStatus §f$playerName §7($rank)"
+            "$onlineStatus <white>$playerName <gray>($rank)"
         }
 
         val text = memberTexts.joinToString("\n")
         return if (members.size > 10) {
-            "$text\n§7... and ${members.size - 10} more"
+            "$text\n<gray>... and ${members.size - 10} more"
         } else {
             text
         }
@@ -129,14 +134,14 @@ class BedrockGuildMemberListMenu(
 
         } catch (e: Exception) {
             logger.warning("Error processing guild member list form response: ${e.message}")
-            player.sendMessage("§c[ERROR] ${bedrockLocalization.getBedrockString(player, "form.error.processing")}")
+            player.sendMessage("<red>[ERROR] ${bedrockLocalization.getBedrockString(player, "form.error.processing")}")
             navigateBack()
         }
     }
 
     private fun handleMemberSelection(members: List<Member>) {
         if (members.isEmpty()) {
-            player.sendMessage("§7${bedrockLocalization.getBedrockString(player, "guild.members.title")}")
+            player.sendMessage("<gray>${bedrockLocalization.getBedrockString(player, "guild.members.title")}")
             navigateBack()
             return
         }
@@ -154,12 +159,12 @@ class BedrockGuildMemberListMenu(
     private fun handleInvitePlayer() {
         // Check permissions
         if (!guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
-            player.sendMessage("§c[ERROR] Permission denied")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>[ERROR] Permission denied")
             return
         }
 
         // TODO: Implement invite player functionality
-        player.sendMessage("§eInvite feature coming soon")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Invite feature coming soon")
         navigateBack()
     }
 
@@ -196,3 +201,4 @@ class BedrockGuildMemberListMenu(
         onFormResponseReceived()
     }
 }
+

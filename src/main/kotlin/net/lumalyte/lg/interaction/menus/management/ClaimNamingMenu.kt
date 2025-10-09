@@ -20,9 +20,13 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.getValue
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimNamingMenu(private val player: Player, private val menuNavigator: MenuNavigator,
-                        private val location: Location): Menu, KoinComponent {
+                        private val location: Location, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val createClaim: CreateClaim by inject()
     private var name = ""
@@ -47,7 +51,7 @@ class ClaimNamingMenu(private val player: Player, private val menuNavigator: Men
         val firstPane = StaticPane(0, 0, 1, 1)
         val bellItem = ItemStack(Material.BELL)
             .name("")
-            .lore("${location.blockX}, ${location.blockY}, ${location.blockZ}")
+            .addAdventureLore(player, messageService, "${location.blockX}, ${location.blockY}, ${location.blockZ}")
         val guiItem = GuiItem(bellItem) { guiEvent -> guiEvent.isCancelled = true }
         firstPane.addItem(guiItem, 0, 0)
         gui.firstItemComponent.addPane(firstPane)
@@ -71,7 +75,7 @@ class ClaimNamingMenu(private val player: Player, private val menuNavigator: Men
                         1.0f,
                         1.0f
                     )
-                    menuNavigator.openMenu(ClaimManagementMenu(menuNavigator, player, result.claim))
+                    menuNavigator.openMenu(ClaimManagementMenu(menuNavigator, player, result.claim, messageService))
                 }
 
                 is net.lumalyte.lg.application.results.claim.CreateClaimResult.LimitExceeded -> {

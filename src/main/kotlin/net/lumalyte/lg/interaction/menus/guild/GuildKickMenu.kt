@@ -10,6 +10,7 @@ import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -20,9 +21,13 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                   private var guild: Guild): Menu, KoinComponent {
+                   private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -34,14 +39,10 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
     override fun open() {
         // Create 6x9 double chest GUI
-        val gui = ChestGui(6, "§6Kick Member - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Kick Member - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Initialize member display pane
         memberPane = StaticPane(0, 0, 9, 5)
@@ -112,12 +113,12 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         head.itemMeta = meta
 
-        return head.name("§c👤 $playerName")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Joined: §f${member.joinedAt}")
-            .lore("§7")
-            .lore("§cClick to kick from guild")
-            .lore("§c⚠️ This cannot be undone!")
+        return head.setAdventureName(player, messageService, "<red>👤 $playerName")
+            .addAdventureLore(player, messageService, "<gray>Player: <white>$playerName")
+            .addAdventureLore(player, messageService, "<gray>Joined: <white>${member.joinedAt}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<red>Click to kick from guild")
+            .addAdventureLore(player, messageService, "<red>⚠️ This cannot be undone!")
     }
 
     private fun kickMember(member: Member) {
@@ -133,8 +134,8 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Previous page button
         val prevItem = ItemStack(Material.ARROW)
-            .name("§f⬅️ PREVIOUS PAGE")
-            .lore("§7Go to previous page")
+            .setAdventureName(player, messageService, "<white>⬅️ PREVIOUS PAGE")
+            .addAdventureLore(player, messageService, "<gray>Go to previous page")
 
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
@@ -146,8 +147,8 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Next page button
         val nextItem = ItemStack(Material.ARROW)
-            .name("§fNEXT PAGE ➡️")
-            .lore("§7Go to next page")
+            .setAdventureName(player, messageService, "<white>NEXT PAGE ➡️")
+            .addAdventureLore(player, messageService, "<gray>Go to next page")
 
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {
@@ -159,25 +160,20 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Page indicator
         val pageItem = ItemStack(Material.PAPER)
-            .name("§f📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
-            .lore("§7Current page indicator")
+            .setAdventureName(player, messageService, "<white>📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
+            .addAdventureLore(player, messageService, "<gray>Current page indicator")
 
         pane.addItem(GuiItem(pageItem), 2, 5)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
-            .lore("§7Return to guild control panel")
+            .setAdventureName(player, messageService, "<red>⬅️ BACK")
+            .addAdventureLore(player, messageService, "<gray>Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, x, y)
-    }
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    }}
 

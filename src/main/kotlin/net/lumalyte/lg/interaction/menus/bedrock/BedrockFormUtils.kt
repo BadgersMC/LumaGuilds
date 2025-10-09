@@ -11,6 +11,10 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.response.CustomFormResponse
 import org.geysermc.cumulus.util.FormImage
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Adds a button with image to a SimpleForm using Cumulus FormImage API
@@ -399,25 +403,25 @@ object BedrockFormUtils {
      * Creates a section header with consistent formatting
      */
     fun createSectionHeader(title: String): LabelComponent {
-        return LabelComponent.of("§e§l$title")
+        return LabelComponent.of("<yellow><bold>$title")
     }
 
     /**
      * Creates an error message label
      */
     fun createErrorLabel(message: String): LabelComponent {
-        return LabelComponent.of("§c[ERROR] $message")
+        return LabelComponent.of("<red>[ERROR] $message")
     }
 
     /**
      * Creates a success message label
      */
     fun createSuccessLabel(message: String): LabelComponent {
-        return LabelComponent.of("§a[SUCCESS] $message")
+        return LabelComponent.of("<green>[SUCCESS] $message")
     }
 
     fun createInfoLabel(message: String): LabelComponent {
-        return LabelComponent.of("§b[i] $message")
+        return LabelComponent.of("<aqua>[i] $message")
     }
 
     /**
@@ -906,15 +910,15 @@ object BedrockFormUtils {
         return when (direction) {
             TextDirection.RTL -> {
                 // For RTL, add RTL marker and use right-aligned formatting
-                LabelComponent.of("§e§l${BedrockLocalizationServiceFloodgate.RTL_MARKER}$title")
+                LabelComponent.of("<yellow><bold>${BedrockLocalizationServiceFloodgate.RTL_MARKER}$title")
             }
             TextDirection.LTR -> {
                 // For LTR, use standard formatting
-                LabelComponent.of("§e§l$title")
+                LabelComponent.of("<yellow><bold>$title")
             }
             else -> {
                 // Default to LTR
-                LabelComponent.of("§e§l$title")
+                LabelComponent.of("<yellow><bold>$title")
             }
         }
     }

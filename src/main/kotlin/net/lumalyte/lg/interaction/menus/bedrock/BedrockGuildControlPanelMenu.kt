@@ -6,6 +6,10 @@ import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.Form
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild control panel menu - demonstrates Bedrock UI is working
@@ -14,8 +18,9 @@ class BedrockGuildControlPanelMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -148,58 +153,58 @@ class BedrockGuildControlPanelMenu(
 
                 when (clickedButton) {
                     0 -> { // Members
-                        bedrockNavigator.openMenu(BedrockGuildMemberListMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildMemberListMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     1 -> { // Settings
-                        bedrockNavigator.openMenu(BedrockGuildSettingsMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildSettingsMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     2 -> { // Bank
-                        bedrockNavigator.openMenu(BedrockGuildBankMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildBankMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     3 -> { // Rank Management
-                        bedrockNavigator.openMenu(BedrockGuildRankManagementMenu(menuNavigator, player, guild, null, logger))
+                        bedrockNavigator.openMenu(BedrockGuildRankManagementMenu(menuNavigator, player, guild, null, logger, messageService))
                     }
                     4 -> { // Tag Editor
-                        bedrockNavigator.openMenu(BedrockTagEditorMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockTagEditorMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     5 -> { // Statistics
-                        bedrockNavigator.openMenu(BedrockGuildStatisticsMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildStatisticsMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     6 -> { // Guild Info
-                        bedrockNavigator.openMenu(BedrockGuildInfoMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildInfoMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     7 -> { // Guild Mode
-                        bedrockNavigator.openMenu(BedrockGuildModeMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildModeMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     8 -> { // Rank List
-                        bedrockNavigator.openMenu(BedrockGuildRankListMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildRankListMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     9 -> { // Invite Player
-                        bedrockNavigator.openMenu(BedrockGuildInviteMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildInviteMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     10 -> { // Kick Member
-                        bedrockNavigator.openMenu(BedrockGuildKickMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildKickMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     11 -> { // Promote Member
-                        bedrockNavigator.openMenu(BedrockGuildPromotionMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildPromotionMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     12 -> { // Progression
-                        bedrockNavigator.openMenu(BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     13 -> { // Homes
-                        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     14 -> { // Emoji
-                        bedrockNavigator.openMenu(BedrockGuildEmojiMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildEmojiMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     15 -> { // Parties
-                        bedrockNavigator.openMenu(BedrockGuildPartyManagementMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildPartyManagementMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     16 -> { // Wars
-                        bedrockNavigator.openMenu(BedrockGuildWarManagementMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildWarManagementMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     17 -> { // Relations
-                        bedrockNavigator.openMenu(BedrockGuildRelationsMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildRelationsMenu(menuNavigator, player, guild, logger, messageService))
                     }
                     18 -> { // Close
                         bedrockNavigator.goBack()
@@ -233,3 +238,4 @@ class BedrockGuildControlPanelMenu(
         }
     }
 }
+

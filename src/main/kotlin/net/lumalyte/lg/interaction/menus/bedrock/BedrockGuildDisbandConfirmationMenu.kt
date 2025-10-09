@@ -10,6 +10,10 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild disband confirmation menu using Cumulus SimpleForm
@@ -18,8 +22,9 @@ class BedrockGuildDisbandConfirmationMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
 
@@ -56,7 +61,7 @@ class BedrockGuildDisbandConfirmationMenu(
             clearMenuStack()
         } else {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.failed"))
-            bedrockNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild, messageService))
         }
     }
 
@@ -65,4 +70,5 @@ class BedrockGuildDisbandConfirmationMenu(
         // This method is kept for interface compatibility
     }
 }
+
 

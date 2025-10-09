@@ -16,6 +16,10 @@ import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild settings menu using Cumulus CustomForm
@@ -25,8 +29,9 @@ class BedrockGuildSettingsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
     private val configService: ConfigService by inject()
@@ -156,7 +161,7 @@ class BedrockGuildSettingsMenu(
 
         } catch (e: Exception) {
             logger.warning("Error processing guild settings form response: ${e.message}")
-            player.sendMessage("§c[ERROR] ${localize("form.error.processing")}")
+            player.sendMessage("<red>[ERROR] ${localize("form.error.processing")}")
             navigateBack()
         }
     }
@@ -211,10 +216,10 @@ class BedrockGuildSettingsMenu(
         val errorMessage = errors.joinToString("\n") { "• $it" }
 
         // Send error message and reopen form
-        player.sendMessage("§c[ERROR] ${localize("form.validation.errors.title")}")
-        player.sendMessage("§7$errorMessage")
-        player.sendMessage("§e${localize("form.button.retry")}")
-        player.sendMessage("§c${localize("form.button.cancel")}")
+        player.sendMessage("<red>[ERROR] ${localize("form.validation.errors.title")}")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>$errorMessage")
+        player.sendMessage("<yellow>${localize("form.button.retry")}")
+        player.sendMessage("<red>${localize("form.button.cancel")}")
 
         // Reopen the form for retry
         reopen()
@@ -239,7 +244,7 @@ class BedrockGuildSettingsMenu(
                 changes.add(localize("guild.settings.change.name", newName))
             } else {
                 allSuccessful = false
-                player.sendMessage("§c[ERROR] ${localize("guild.settings.error.name.save.failed")}")
+                player.sendMessage("<red>[ERROR] ${localize("guild.settings.error.name.save.failed")}")
             }
         }
 
@@ -250,7 +255,7 @@ class BedrockGuildSettingsMenu(
                 changes.add(localize("guild.settings.change.description"))
             } else {
                 allSuccessful = false
-                player.sendMessage("§c[ERROR] ${localize("guild.settings.error.description.save.failed")}")
+                player.sendMessage("<red>[ERROR] ${localize("guild.settings.error.description.save.failed")}")
             }
         }
 
@@ -261,7 +266,7 @@ class BedrockGuildSettingsMenu(
                 changes.add(localize("guild.settings.change.mode", newMode.name))
             } else {
                 allSuccessful = false
-                player.sendMessage("§c[ERROR] ${localize("guild.settings.error.mode.save.failed")}")
+                player.sendMessage("<red>[ERROR] ${localize("guild.settings.error.mode.save.failed")}")
             }
         }
 
@@ -274,13 +279,13 @@ class BedrockGuildSettingsMenu(
         // Show results
         if (changes.isNotEmpty()) {
             if (allSuccessful) {
-                player.sendMessage("§a✅ ${localize("guild.settings.success.title")}")
-                changes.forEach { player.sendMessage("§7• $it") }
+                player.sendMessage("<green>✅ ${localize("guild.settings.success.title")}")
+                changes.forEach { AdventureMenuHelper.sendMessage(player, messageService, "<gray>• $it") }
             } else {
-                player.sendMessage("§e[WARNING] ${localize("guild.settings.partial.success")}")
+                player.sendMessage("<yellow>[WARNING] ${localize("guild.settings.partial.success")}")
             }
         } else {
-            player.sendMessage("§7${localize("guild.settings.no.changes")}")
+            player.sendMessage("<gray>${localize("guild.settings.no.changes")}")
         }
 
         navigateBack()
@@ -298,3 +303,4 @@ class BedrockGuildSettingsMenu(
         onFormResponseReceived()
     }
 }
+

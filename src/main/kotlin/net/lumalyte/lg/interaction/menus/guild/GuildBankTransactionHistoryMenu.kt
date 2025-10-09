@@ -14,6 +14,9 @@ import net.lumalyte.lg.domain.entities.TransactionType
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
+import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.lore
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -27,6 +30,10 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Guild Bank Transaction History menu with pagination, filtering, and search
@@ -35,8 +42,10 @@ class GuildBankTransactionHistoryMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild,
-    private var filter: TransactionFilter = TransactionFilter()
+    private val messageService: MessageService
 ) : Menu, KoinComponent {
+    
+    private var filter: TransactionFilter = TransactionFilter()
 
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
@@ -68,22 +77,13 @@ class GuildBankTransactionHistoryMenu(
         gui.show(player)
     }
 
-    override fun passData(data: Any?) {
-        // Handle filter updates
-        if (data is TransactionFilter) {
-            filter = data
-            loadTransactions()
-            updateTransactionDisplay()
-            gui.update()
-        }
-    }
-
     /**
      * Initialize the GUI structure
      */
     private fun initializeGui() {
         gui = ChestGui(6, getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_TITLE, guild.name))
-        gui.setOnGlobalClick { event -> event.isCancelled = true }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Create main pane for navigation and filters
         mainPane = StaticPane(0, 0, 9, 1, Pane.Priority.NORMAL)
@@ -191,7 +191,7 @@ class GuildBankTransactionHistoryMenu(
         )
         val memberFilterGuiItem = GuiItem(memberFilterItem) { event ->
             event.isCancelled = true
-            openMemberFilterMenu()
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Member filtering coming soon!")
         }
         filterPane.addItem(memberFilterGuiItem, 1, 0)
 
@@ -199,7 +199,7 @@ class GuildBankTransactionHistoryMenu(
         val dateFilterItem = createMenuItem(
             Material.CLOCK,
             getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_DATE),
-            listOf("Current: ${filter.dateRange ?: "All"}", "Click to change")
+            listOf("Current: All", "Click to change")
         )
         val dateFilterGuiItem = GuiItem(dateFilterItem) { event ->
             event.isCancelled = true
@@ -207,18 +207,20 @@ class GuildBankTransactionHistoryMenu(
         }
         filterPane.addItem(dateFilterGuiItem, 2, 0)
 
-        // Search filter
-        val searchItem = createMenuItem(
-            Material.COMPASS,
-            "Search Transactions",
-            listOf("Click to search")
+        // Advanced filters
+        val advancedFiltersItem = createMenuItem(
+            Material.ENCHANTED_BOOK,
+            "Advanced Filters",
+            listOf(
+                "Date range, amount range, search",
+                "Current filters: ${getActiveFilterCount()} active"
+            )
         )
-        val searchGuiItem = GuiItem(searchItem) { event ->
+        val advancedFiltersGuiItem = GuiItem(advancedFiltersItem) { event ->
             event.isCancelled = true
-            // TODO: Open search dialog
-            player.sendMessage("§eSearch functionality coming soon!")
+            openAdvancedFiltersMenu()
         }
-        filterPane.addItem(searchGuiItem, 3, 0)
+        filterPane.addItem(advancedFiltersGuiItem, 3, 0)
 
         // Clear filters
         val clearItem = createMenuItem(
@@ -261,9 +263,40 @@ class GuildBankTransactionHistoryMenu(
             // }
         }
 
-        // For now, show a placeholder message
-        player.sendMessage("§eTransaction history display coming soon!")
+        // Display transaction items in the main pane
+        displayTransactionsInMainPane(mainPane)
     }
+
+    /**
+     * Display transactions in the main pane
+     */
+    private fun displayTransactionsInMainPane(mainPane: StaticPane) {
+        val startIndex = currentPage * itemsPerPage
+        val endIndex = minOf(startIndex + itemsPerPage, filteredTransactions.size)
+
+        for (i in startIndex until endIndex) {
+            val transaction = filteredTransactions[i]
+            val x = (i - startIndex) % 9
+            val y = (i - startIndex) / 9
+
+            val transactionItem = createTransactionItem(transaction)
+            mainPane.addItem(GuiItem(transactionItem), x, y)
+        }
+
+        // Fill remaining slots with empty items
+        for (i in endIndex - startIndex until itemsPerPage) {
+            val x = i % 9
+            val y = i / 9
+
+            val emptyItem = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
+                .setAdventureName(player, messageService, "<gray>No Transaction")
+            mainPane.addItem(GuiItem(emptyItem), x, y)
+        }
+    }
+
+    /**
+     * Create an item representing a bank transaction
+     */
 
     /**
      * Update page navigation controls
@@ -365,20 +398,75 @@ class GuildBankTransactionHistoryMenu(
                 return@filter false
             }
 
-            // Member filter
+            // Member filter (search by player name)
             if (filter.memberFilter != null) {
                 val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name
-                if (actorName != filter.memberFilter) {
+                if (actorName == null || !actorName.contains(filter.memberFilter!!, ignoreCase = true)) {
                     return@filter false
                 }
             }
 
             // Date range filter
-            if (filter.dateRange != null) {
-                // TODO: Implement date range filtering
+            if (filter.dateFrom != null && transaction.timestamp.isBefore(filter.dateFrom)) {
+                return@filter false
+            }
+            if (filter.dateTo != null && transaction.timestamp.isAfter(filter.dateTo)) {
+                return@filter false
+            }
+
+            // Amount range filter
+            val minAmount = filter.amountMin
+            val maxAmount = filter.amountMax
+            if (minAmount != null && transaction.amount < minAmount) {
+                return@filter false
+            }
+            if (maxAmount != null && transaction.amount > maxAmount) {
+                return@filter false
+            }
+
+            // Search query filter (search in description or actor name)
+            if (filter.searchQuery != null) {
+                val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: ""
+                val description = transaction.description ?: ""
+                val searchText = (actorName + " " + description).lowercase()
+                if (!searchText.contains(filter.searchQuery!!.lowercase())) {
+                    return@filter false
+                }
             }
 
             true
+        }
+
+        // Apply sorting
+        filteredTransactions = when (filter.sortBy) {
+            SortField.TIMESTAMP -> {
+                if (filter.sortOrder == SortOrder.ASCENDING) {
+                    filteredTransactions.sortedBy { it.timestamp }
+                } else {
+                    filteredTransactions.sortedByDescending { it.timestamp }
+                }
+            }
+            SortField.AMOUNT -> {
+                if (filter.sortOrder == SortOrder.ASCENDING) {
+                    filteredTransactions.sortedBy { it.amount }
+                } else {
+                    filteredTransactions.sortedByDescending { it.amount }
+                }
+            }
+            SortField.TYPE -> {
+                if (filter.sortOrder == SortOrder.ASCENDING) {
+                    filteredTransactions.sortedBy { it.type.name }
+                } else {
+                    filteredTransactions.sortedByDescending { it.type.name }
+                }
+            }
+            SortField.ACTOR -> {
+                if (filter.sortOrder == SortOrder.ASCENDING) {
+                    filteredTransactions.sortedBy { Bukkit.getOfflinePlayer(it.actorId).name ?: "" }
+                } else {
+                    filteredTransactions.sortedByDescending { Bukkit.getOfflinePlayer(it.actorId).name ?: "" }
+                }
+            }
         }
 
         // Reset to first page
@@ -390,7 +478,7 @@ class GuildBankTransactionHistoryMenu(
      */
     private fun handleExport() {
         // Show loading message
-        player.sendMessage("§e🔄 Generating CSV export... This may take a moment for large datasets.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>🔄 Generating CSV export... This may take a moment for large datasets.")
 
         // Get current filtered transactions
         val transactionsToExport = if (filteredTransactions.isEmpty()) {
@@ -401,7 +489,7 @@ class GuildBankTransactionHistoryMenu(
         }
 
         if (transactionsToExport.isEmpty()) {
-            player.sendMessage("§c❌ No transactions to export!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ No transactions to export!")
             return
         }
 
@@ -410,28 +498,28 @@ class GuildBankTransactionHistoryMenu(
             when (result) {
                 is FileExportManager.ExportResult.Success -> {
                     val fileSizeKB = result.fileSize / 1024.0
-                    player.sendMessage("§a✅ Export successful!")
-                    player.sendMessage("§a📄 File: ${result.fileName}")
-                    player.sendMessage("§a📏 Size: ${String.format("%.1f", fileSizeKB)} KB")
-                    player.sendMessage("§e💡 Use §6/bellclaims download ${result.fileName} §eto get the file")
-                    player.sendMessage("§7📝 File will be available for 15 minutes")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Export successful!")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>📄 File: ${result.fileName}")
+                    player.sendMessage("<green>📏 Size: ${String.format("%.1f", fileSizeKB)} KB")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<yellow>💡 Use <gold>/bellclaims download ${result.fileName} <yellow>to get the file")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>📝 File will be available for 15 minutes")
                 }
                 is FileExportManager.ExportResult.DiscordSuccess -> {
-                    player.sendMessage("§a✅ CSV sent to Discord!")
-                    player.sendMessage("§a📄 ${result.message}")
-                    player.sendMessage("§e💡 Check your Discord server for the file attachment")
-                    player.sendMessage("§7📝 Files are uploaded instantly to your configured channel")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ CSV sent to Discord!")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>📄 ${result.message}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<yellow>💡 Check your Discord server for the file attachment")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>📝 Files are uploaded instantly to your configured channel")
                 }
                 is FileExportManager.ExportResult.Error -> {
-                    player.sendMessage("§c❌ Export failed: ${result.message}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Export failed: ${result.message}")
                 }
                 is FileExportManager.ExportResult.RateLimited -> {
-                    player.sendMessage("§c⏰ ${result.message}")
-                    player.sendMessage("§7You can export up to 5 files per hour for security.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>⏰ ${result.message}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>You can export up to 5 files per hour for security.")
                 }
                 is FileExportManager.ExportResult.FileTooLarge -> {
-                    player.sendMessage("§c📏 ${result.message}")
-                    player.sendMessage("§7Try filtering your data to reduce file size.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>📏 ${result.message}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Try filtering your data to reduce file size.")
                 }
             }
         }
@@ -441,16 +529,195 @@ class GuildBankTransactionHistoryMenu(
      * Open transaction type filter menu
      */
     private fun openTypeFilterMenu() {
-        // TODO: Create filter selection menu
-        player.sendMessage("§eType filter menu coming soon!")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "Filter by Transaction Type"))
+
+        val pane = StaticPane(0, 0, 9, 3)
+        AntiDupeUtil.protect(gui)
+
+        // All types option
+        val allItem = createMenuItem(
+            Material.CHEST,
+            "All Types",
+            listOf("Show all transaction types", "Currently: ${if (filter.typeFilter == null) "Selected" else "Not selected"}")
+        )
+        val allGuiItem = GuiItem(allItem) { event ->
+            event.isCancelled = true
+            filter = filter.copy(typeFilter = null); open()
+        }
+        pane.addItem(allGuiItem, 0, 0)
+
+        // Deposit option
+        val depositItem = createMenuItem(
+            Material.GREEN_WOOL,
+            "Deposits Only",
+            listOf("Show only deposits", "Currently: ${if (filter.typeFilter == TransactionType.DEPOSIT) "Selected" else "Not selected"}")
+        )
+        val depositGuiItem = GuiItem(depositItem) { event ->
+            event.isCancelled = true
+            filter = filter.copy(typeFilter = TransactionType.DEPOSIT); open()
+        }
+        pane.addItem(depositGuiItem, 2, 0)
+
+        // Withdrawal option
+        val withdrawalItem = createMenuItem(
+            Material.RED_WOOL,
+            "Withdrawals Only",
+            listOf("Show only withdrawals", "Currently: ${if (filter.typeFilter == TransactionType.WITHDRAWAL) "Selected" else "Not selected"}")
+        )
+        val withdrawalGuiItem = GuiItem(withdrawalItem) { event ->
+            event.isCancelled = true
+            filter = filter.copy(typeFilter = TransactionType.WITHDRAWAL); open()
+        }
+        pane.addItem(withdrawalGuiItem, 4, 0)
+
+        // Deduction option
+        val deductionItem = createMenuItem(
+            Material.ORANGE_WOOL,
+            "Deductions Only",
+            listOf("Show only deductions", "Currently: ${if (filter.typeFilter == TransactionType.DEDUCTION) "Selected" else "Not selected"}")
+        )
+        val deductionGuiItem = GuiItem(deductionItem) { event ->
+            event.isCancelled = true
+            filter = filter.copy(typeFilter = TransactionType.DEDUCTION); open()
+        }
+        pane.addItem(deductionGuiItem, 6, 0)
+
+        // Back button
+        val backItem = createMenuItem(
+            Material.ARROW,
+            "Back to History",
+            listOf("Return to transaction history")
+        )
+        val backGuiItem = GuiItem(backItem) { event ->
+            event.isCancelled = true
+            open()
+        }
+        pane.addItem(backGuiItem, 8, 2)
+
+        gui.addPane(pane)
+        gui.show(player)
     }
 
     /**
-     * Open member filter menu
+     * Open advanced filters menu
      */
-    private fun openMemberFilterMenu() {
-        // TODO: Create member selection menu
-        player.sendMessage("§eMember filter menu coming soon!")
+    private fun openAdvancedFiltersMenu() {
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "Advanced Filters"))
+
+        val pane = StaticPane(0, 0, 9, 4)
+        AntiDupeUtil.protect(gui)
+
+        var currentRow = 0
+
+        // Date range filter
+        val dateRangeItem = createMenuItem(
+            Material.CLOCK,
+            "Date Range",
+            listOf(
+                "From: ${filter.dateFrom?.let { formatDate(it) } ?: "Not set"}",
+                "To: ${filter.dateTo?.let { formatDate(it) } ?: "Not set"}",
+                "Click to set date range"
+            )
+        )
+        val dateRangeGuiItem = GuiItem(dateRangeItem) { event ->
+            event.isCancelled = true
+            // TODO: Open date range picker
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Date range picker coming soon!")
+        }
+        pane.addItem(dateRangeGuiItem, 0, currentRow++)
+        pane.addItem(dateRangeGuiItem, 1, currentRow++)
+
+        // Amount range filter
+        val amountRangeItem = createMenuItem(
+            Material.GOLD_INGOT,
+            "Amount Range",
+            listOf(
+                "Min: ${filter.amountMin ?: "Not set"}",
+                "Max: ${filter.amountMax ?: "Not set"}",
+                "Click to set amount range"
+            )
+        )
+        val amountRangeGuiItem = GuiItem(amountRangeItem) { event ->
+            event.isCancelled = true
+            // TODO: Open amount range picker
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Amount range picker coming soon!")
+        }
+        pane.addItem(amountRangeGuiItem, 2, currentRow++)
+        pane.addItem(amountRangeGuiItem, 3, currentRow++)
+
+        // Search query filter
+        val searchItem = createMenuItem(
+            Material.BOOK,
+            "Search Query",
+            listOf(
+                "Query: ${filter.searchQuery ?: "Not set"}",
+                "Searches in player names and descriptions",
+                "Click to set search query"
+            )
+        )
+        val searchGuiItem = GuiItem(searchItem) { event ->
+            event.isCancelled = true
+            // TODO: Open search query input
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Search query input coming soon!")
+        }
+        pane.addItem(searchGuiItem, 4, currentRow++)
+        pane.addItem(searchGuiItem, 5, currentRow++)
+
+        // Sort options
+        val sortItem = createMenuItem(
+            Material.HOPPER,
+            "Sort Options",
+            listOf(
+                "Sort by: ${filter.sortBy.name}",
+                "Order: ${filter.sortOrder.name}",
+                "Click to change sorting"
+            )
+        )
+        val sortGuiItem = GuiItem(sortItem) { event ->
+            event.isCancelled = true
+            // TODO: Open sort options menu
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Sort options menu coming soon!")
+        }
+        pane.addItem(sortGuiItem, 6, currentRow++)
+        pane.addItem(sortGuiItem, 7, currentRow++)
+
+        // Back button
+        val backItem = createMenuItem(
+            Material.ARROW,
+            "Back to History",
+            listOf("Return to transaction history")
+        )
+        val backGuiItem = GuiItem(backItem) { event ->
+            event.isCancelled = true
+            open()
+        }
+        pane.addItem(backGuiItem, 8, 3)
+
+        gui.addPane(pane)
+        gui.show(player)
+    }
+
+    /**
+     * Format instant to readable date string
+     */
+    private fun formatDate(instant: Instant): String {
+        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+    }
+
+    /**
+     * Get count of active filters
+     */
+    private fun getActiveFilterCount(): Int {
+        var count = 0
+        if (filter.typeFilter != null) count++
+        if (filter.memberFilter != null) count++
+        if (filter.dateFrom != null) count++
+        if (filter.dateTo != null) count++
+        if (filter.amountMin != null) count++
+        if (filter.amountMax != null) count++
+        if (filter.searchQuery != null) count++
+        return count
     }
 
     /**
@@ -458,7 +725,7 @@ class GuildBankTransactionHistoryMenu(
      */
     private fun openDateFilterMenu() {
         // TODO: Create date range selection menu
-        player.sendMessage("§eDate filter menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Date filter menu coming soon!")
     }
 
     /**
@@ -507,7 +774,20 @@ class GuildBankTransactionHistoryMenu(
 data class TransactionFilter(
     val typeFilter: TransactionType? = null,
     val memberFilter: String? = null,
-    val dateRange: String? = null,
-    val searchQuery: String? = null
+    val dateFrom: Instant? = null,
+    val dateTo: Instant? = null,
+    val amountMin: Int? = null,
+    val amountMax: Int? = null,
+    val searchQuery: String? = null,
+    val sortBy: SortField = SortField.TIMESTAMP,
+    val sortOrder: SortOrder = SortOrder.DESCENDING
 )
+
+enum class SortField {
+    TIMESTAMP, AMOUNT, TYPE, ACTOR
+}
+
+enum class SortOrder {
+    ASCENDING, DESCENDING
+}
 

@@ -2,6 +2,7 @@ package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.entities.RankInheritance
 import java.util.UUID
 
 /**
@@ -105,6 +106,39 @@ interface RankService {
     fun getRank(rankId: UUID): Rank?
 
     /**
+     * Gets a rank by ID with guild validation.
+     *
+     * @param guildId The ID of the guild for validation.
+     * @param rankId The ID of the rank.
+     * @return The rank, or null if not found or doesn't belong to guild.
+     */
+    fun getRankById(guildId: UUID, rankId: UUID): Rank?
+
+    /**
+     * Gets a rank by ID (alias for backward compatibility).
+     *
+     * @param rankId The ID of the rank.
+     * @return The rank, or null if not found.
+     */
+    fun getRankById(rankId: UUID): Rank?
+
+    /**
+     * Gets all ranks for a guild (alias for listRanks).
+     *
+     * @param guildId The ID of the guild.
+     * @return A set of ranks belonging to the guild.
+     */
+    fun getGuildRanks(guildId: UUID): Set<Rank>
+
+    /**
+     * Gets all ranks by guild ID (alias for listRanks).
+     *
+     * @param guildId The ID of the guild.
+     * @return A set of ranks belonging to the guild.
+     */
+    fun getRanksByGuild(guildId: UUID): Set<Rank>
+
+    /**
      * Gets a rank by name within a guild.
      *
      * @param guildId The ID of the guild.
@@ -163,4 +197,55 @@ interface RankService {
      * @return true if successful, false otherwise.
      */
     fun createDefaultRanks(guildId: UUID, ownerId: UUID): Boolean
+
+    /**
+     * Gets the inheritance information for a rank.
+     *
+     * @param rankId The ID of the rank.
+     * @return The inheritance information, or null if not found.
+     */
+    fun getRankInheritance(rankId: UUID): RankInheritance?
+
+    /**
+     * Adds inheritance from a parent rank to a child rank.
+     *
+     * @param childRankId The ID of the child rank.
+     * @param parentRankId The ID of the parent rank.
+     * @return true if successful, false otherwise.
+     */
+    fun addRankInheritance(childRankId: UUID, parentRankId: UUID): Boolean
+
+    /**
+     * Removes inheritance from a parent rank to a child rank.
+     *
+     * @param childRankId The ID of the child rank.
+     * @param parentRankId The ID of the parent rank.
+     * @return true if successful, false otherwise.
+     */
+    fun removeRankInheritance(childRankId: UUID, parentRankId: UUID): Boolean
+
+    /**
+     * Gets all child ranks for a given parent rank.
+     *
+     * @param parentRankId The ID of the parent rank.
+     * @return A set of child ranks.
+     */
+    fun getChildRanks(parentRankId: UUID): Set<Rank>
+
+    /**
+     * Gets all parent ranks for a given child rank.
+     *
+     * @param childRankId The ID of the child rank.
+     * @return A set of parent ranks.
+     */
+    fun getParentRanks(childRankId: UUID): Set<Rank>
+
+    /**
+     * Validates that adding inheritance won't create circular dependencies.
+     *
+     * @param childRankId The ID of the child rank.
+     * @param parentRankId The ID of the parent rank.
+     * @return true if inheritance is valid, false if it would create circular dependency.
+     */
+    fun validateInheritance(childRankId: UUID, parentRankId: UUID): Boolean
 }

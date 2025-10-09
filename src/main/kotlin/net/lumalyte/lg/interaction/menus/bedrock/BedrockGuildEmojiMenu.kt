@@ -9,6 +9,10 @@ import org.geysermc.cumulus.form.Form
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild emoji customization menu using Cumulus CustomForm
@@ -18,8 +22,9 @@ class BedrockGuildEmojiMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
 
@@ -97,7 +102,7 @@ class BedrockGuildEmojiMenu(
                 else -> {
                     // Show validation error and reopen menu
                     player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.save.failed"))
-                    bedrockNavigator.openMenu(BedrockGuildEmojiMenu(menuNavigator, player, guild, logger))
+                    bedrockNavigator.openMenu(BedrockGuildEmojiMenu(menuNavigator, player, guild, logger, messageService))
                 }
             }
         } catch (e: Exception) {
@@ -132,7 +137,7 @@ class BedrockGuildEmojiMenu(
         val success = guildService.setEmoji(guild.id, emojiFormat, player.uniqueId)
         if (success) {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.save.success"))
-            player.sendMessage("New emoji: $emojiFormat")
+            AdventureMenuHelper.sendMessage(player, messageService, "New emoji: $emojiFormat")
         } else {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.save.failed"))
         }
@@ -156,3 +161,4 @@ class BedrockGuildEmojiMenu(
         onFormResponseReceived()
     }
 }
+

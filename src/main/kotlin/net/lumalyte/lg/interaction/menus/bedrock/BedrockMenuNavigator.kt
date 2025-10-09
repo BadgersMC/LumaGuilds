@@ -4,6 +4,10 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import org.bukkit.entity.Player
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Helper class for Bedrock menu navigation patterns
@@ -12,7 +16,8 @@ import org.bukkit.entity.Player
 class BedrockMenuNavigator(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val menuFactory: MenuFactory
+    private val menuFactory: MenuFactory,
+    private val messageService: MessageService
 ) {
 
     /**
@@ -117,7 +122,7 @@ class BedrockMenuNavigator(
      */
     fun createConfirmationHandler(title: String, callback: () -> Unit): Runnable {
         return Runnable {
-            val confirmationMenu = menuFactory.createConfirmationMenu(menuNavigator, player, title, callback)
+            val confirmationMenu = menuFactory.createConfirmationMenu(menuNavigator, player, title, messageService, callback)
             openMenu(confirmationMenu)
         }
     }
@@ -147,7 +152,7 @@ class BedrockMenuNavigator(
             customHandler?.invoke()
             clearMenuStack()
             // Send cancellation message
-            player.sendMessage("§eWorkflow cancelled. All progress has been cleared.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Workflow cancelled. All progress has been cleared.")
         }
     }
 
@@ -160,7 +165,7 @@ class BedrockMenuNavigator(
     fun createRecoveryHandler(recoveryMenu: Menu, stateKey: String = "timeout_recovery"): Runnable {
         return Runnable {
             // Send recovery message
-            player.sendMessage("§aRestoring previous session...")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>Restoring previous session...")
             openMenu(recoveryMenu)
         }
     }

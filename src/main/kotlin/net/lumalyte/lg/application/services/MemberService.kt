@@ -2,6 +2,8 @@ package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.entities.RankChangeRecord
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -135,4 +137,155 @@ interface MemberService {
      * @return true if successful, false otherwise.
      */
     fun demoteMember(playerId: UUID, guildId: UUID, actorId: UUID): Boolean
+
+    // === ADVANCED MEMBER SEARCH ===
+
+    /**
+     * Searches for members in a guild using advanced filters.
+     *
+     * @param guildId The ID of the guild.
+     * @param filter The search filter criteria.
+     * @return List of matching members.
+     */
+    fun searchMembers(guildId: UUID, filter: MemberSearchFilter): List<Member>
+
+    /**
+     * Gets member activity statistics.
+     *
+     * @param guildId The ID of the guild.
+     * @param memberId The ID of the member.
+     * @param periodDays Number of days to analyze.
+     * @return Member activity statistics.
+     */
+    fun getMemberActivityStats(guildId: UUID, memberId: UUID, periodDays: Int = 30): MemberActivityStats
+
+    /**
+     * Gets members by activity level.
+     *
+     * @param guildId The ID of the guild.
+     * @param activityLevel The activity level to filter by.
+     * @return List of members matching the activity level.
+     */
+    fun getMembersByActivityLevel(guildId: UUID, activityLevel: ActivityLevel): List<Member>
+
+    // === BULK MEMBER OPERATIONS ===
+
+    /**
+     * Performs bulk rank changes on multiple members.
+     *
+     * @param guildId The ID of the guild.
+     * @param memberIds List of member IDs to update.
+     * @param newRankId The new rank ID to assign.
+     * @param actorId The ID of the player performing the action.
+     * @return Number of members successfully updated.
+     */
+    fun bulkChangeRank(guildId: UUID, memberIds: List<UUID>, newRankId: UUID, actorId: UUID): Int
+
+    /**
+     * Sends a message to multiple members.
+     *
+     * @param guildId The ID of the guild.
+     * @param memberIds List of member IDs to message.
+     * @param message The message to send.
+     * @param senderId The ID of the player sending the message.
+     * @return Number of members successfully messaged.
+     */
+    fun bulkMessageMembers(guildId: UUID, memberIds: List<UUID>, message: String, senderId: UUID): Int
+
+    /**
+     * Gets members grouped by rank.
+     *
+     * @param guildId The ID of the guild.
+     * @return Map of rank ID to list of members.
+     */
+    fun getMembersGroupedByRank(guildId: UUID): Map<UUID, List<Member>>
+
+    /**
+     * Gets inactive members (no activity for specified days).
+     *
+     * @param guildId The ID of the guild.
+     * @param inactiveDays Number of days without activity.
+     * @return List of inactive members.
+     */
+    fun getInactiveMembers(guildId: UUID, inactiveDays: Int = 30): List<Member>
+
+    /**
+     * Gets online members of a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return A set of online members.
+     */
+    fun getOnlineMembers(guildId: UUID): Set<Member>
+
+    /**
+     * Gets notes for a member.
+     *
+     * @param playerId The ID of the player.
+     * @param guildId The ID of the guild.
+     * @return The member notes, or empty string if none exist.
+     */
+    fun getMemberNotes(playerId: UUID, guildId: UUID): String
+
+    /**
+     * Sets notes for a member.
+     *
+     * @param playerId The ID of the player.
+     * @param guildId The ID of the guild.
+     * @param notes The notes to set.
+     * @param actorId The ID of the player setting the notes.
+     * @return true if successful, false otherwise.
+     */
+    fun setMemberNotes(playerId: UUID, guildId: UUID, notes: String, actorId: UUID): Boolean
+
+    /**
+     * Gets rank change history for a member.
+     *
+     * @param playerId The ID of the player.
+     * @param guildId The ID of the guild.
+     * @return List of rank change records, ordered by most recent first.
+     */
+    fun getRankChangeHistory(playerId: UUID, guildId: UUID): List<net.lumalyte.lg.domain.entities.RankChangeRecord>
 }
+
+/**
+ * Filter criteria for advanced member search.
+ */
+data class MemberSearchFilter(
+    val nameQuery: String? = null,
+    val rankFilter: Set<UUID>? = null,
+    val onlineOnly: Boolean = false,
+    val joinDateAfter: Instant? = null,
+    val joinDateBefore: Instant? = null,
+    val activityLevel: ActivityLevel? = null,
+    val minContributions: Int? = null,
+    val maxContributions: Int? = null
+)
+
+/**
+ * Activity levels for member classification.
+ */
+enum class ActivityLevel {
+    HIGH,
+    MEDIUM,
+    LOW,
+    INACTIVE
+}
+
+/**
+ * Member activity statistics for a given period.
+ */
+data class MemberActivityStats(
+    val memberId: UUID,
+    val guildId: UUID,
+    val periodStart: Instant,
+    val periodEnd: Instant,
+    val totalContributions: Int,
+    val totalWithdrawals: Int,
+    val netContribution: Int,
+    val transactionCount: Int,
+    val averageTransactionAmount: Double,
+    val lastActivityDate: Instant?,
+    val activityLevel: ActivityLevel,
+    val rankChanges: Int,
+    val daysActive: Int
+)

@@ -14,6 +14,10 @@ import java.util.logging.Logger
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild tag editor using Cumulus CustomForm
@@ -23,11 +27,11 @@ class BedrockTagEditorMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
-
     override fun getForm(): Form {
         val currentTag = guildService.getTag(guild.id)
         val config = getBedrockConfig()
@@ -82,7 +86,7 @@ class BedrockTagEditorMenu(
 
                     // Check if there are actual changes
                     if (tagInput == currentTag) {
-                        player.sendMessage("§7${localize("guild.tag.no.changes")}")
+                        player.sendMessage("<gray>${localize("guild.tag.no.changes")}")
                         bedrockNavigator.goBack()
                         return@validResultHandler
                     }
@@ -96,12 +100,12 @@ class BedrockTagEditorMenu(
 
                 } catch (e: Exception) {
                     logger.warning("Error processing tag editor form: ${e.message}")
-                    player.sendMessage("§c[ERROR] ${localize("form.error.processing")}")
+                    player.sendMessage("<red>[ERROR] ${localize("form.error.processing")}")
                     bedrockNavigator.goBack()
                 }
             }
             .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
-                player.sendMessage("§7Tag editing cancelled.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>Tag editing cancelled.")
             })
             .build()
     }
@@ -146,6 +150,7 @@ class BedrockTagEditorMenu(
             player = player,
             title = title,
             message = message,
+            messageService = messageService,
             callback = onConfirm
         )
         menuNavigator.openMenu(confirmationMenu)
@@ -154,9 +159,9 @@ class BedrockTagEditorMenu(
     private fun confirmClearTag() {
         val success = guildService.setTag(guild.id, "", player.uniqueId)
         if (success) {
-            player.sendMessage("§a[SUCCESS] ${localize("guild.tag.cleared")}")
+            player.sendMessage("<green>[SUCCESS] ${localize("guild.tag.cleared")}")
         } else {
-            player.sendMessage("§c[ERROR] ${localize("guild.tag.save.failed")}")
+            player.sendMessage("<red>[ERROR] ${localize("guild.tag.save.failed")}")
         }
         bedrockNavigator.goBack()
     }
@@ -164,15 +169,15 @@ class BedrockTagEditorMenu(
     private fun saveTagChange(tagInput: String) {
         val success = guildService.setTag(guild.id, tagInput, player.uniqueId)
         if (success) {
-            player.sendMessage("§a[SUCCESS] ${localize("guild.tag.updated.success")}")
+            player.sendMessage("<green>[SUCCESS] ${localize("guild.tag.updated.success")}")
             if (tagInput.isNotEmpty()) {
                 val formattedTag = renderFormattedTag(tagInput)
-                player.sendMessage("§7${localize("guild.tag.new.preview", formattedTag)}")
-                player.sendMessage("§7${localize("guild.tag.chat.preview", player.name, formattedTag)}")
+                player.sendMessage("<gray>${localize("guild.tag.new.preview", formattedTag)}")
+                player.sendMessage("<gray>${localize("guild.tag.chat.preview", player.name, formattedTag)}")
             }
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage("§c[ERROR] ${localize("guild.tag.save.failed")}")
+            player.sendMessage("<red>[ERROR] ${localize("guild.tag.save.failed")}")
             bedrockNavigator.goBack()
         }
     }
@@ -252,5 +257,6 @@ class BedrockTagEditorMenu(
         }
     }
 }
+
 
 

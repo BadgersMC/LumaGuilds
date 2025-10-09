@@ -16,6 +16,10 @@ import org.koin.core.component.inject
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild party management menu using Cumulus SimpleForm and CustomForm
@@ -25,8 +29,9 @@ class BedrockGuildPartyManagementMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val partyService: PartyService by inject()
     private val guildService: GuildService by inject()
@@ -164,7 +169,7 @@ class BedrockGuildPartyManagementMenu(
                 getForm() // Back to main menu
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
             override fun getForm(): Form = form.build()
             override fun handleResponse(player: Player, response: Any?) {
                 // Response handling is done in the form builder's validResultHandler
@@ -221,7 +226,7 @@ class BedrockGuildPartyManagementMenu(
                 getForm() // Back to main menu
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
             override fun getForm(): Form = form.build()
             override fun handleResponse(player: Player, response: Any?) {
                 // Response handling is done in the form builder's validResultHandler
@@ -259,7 +264,7 @@ class BedrockGuildPartyManagementMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
             override fun getForm(): Form = form
             override fun handleResponse(player: Player, response: Any?) {
                 // Response handling is done in the form builder's validResultHandler
@@ -297,7 +302,7 @@ class BedrockGuildPartyManagementMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
             override fun getForm(): Form = form
             override fun handleResponse(player: Player, response: Any?) {
                 // Response handling is done in the form builder's validResultHandler
@@ -356,7 +361,7 @@ class BedrockGuildPartyManagementMenu(
                 getForm() // Back to main menu
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
             override fun getForm(): Form = form.build()
             override fun handleResponse(player: Player, response: Any?) {
                 // Response handling is done in the form builder's validResultHandler
@@ -368,7 +373,7 @@ class BedrockGuildPartyManagementMenu(
 
     // Helper methods for handling responses and opening sub-menus
     private fun openPartyDetailsMenu(party: Party) {
-        player.sendMessage("§e${bedrockLocalization.getBedrockString(player, "guild.party.management.party.details.coming.soon")}")
+        player.sendMessage("<yellow>${bedrockLocalization.getBedrockString(player, "guild.party.management.party.details.coming.soon")}")
     }
 
     private fun openIncomingRequestsMenu() {
@@ -412,7 +417,7 @@ class BedrockGuildPartyManagementMenu(
                 openPartyRequestsMenu() // Back to requests menu
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
             override fun getForm(): Form = form.build()
             override fun handleResponse(player: Player, response: Any?) {
                 // Response handling is done in the form builder's validResultHandler
@@ -463,7 +468,7 @@ class BedrockGuildPartyManagementMenu(
                 openPartyRequestsMenu() // Back to requests menu
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
             override fun getForm(): Form = form.build()
             override fun handleResponse(player: Player, response: Any?) {
                 // Response handling is done in the form builder's validResultHandler
@@ -544,7 +549,7 @@ class BedrockGuildPartyManagementMenu(
                 openPartyRequestsMenu() // Back to requests menu
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
             override fun getForm(): Form = form.build()
             override fun handleResponse(player: Player, response: Any?) {
                 // Response handling is done in the form builder's validResultHandler
@@ -614,7 +619,7 @@ class BedrockGuildPartyManagementMenu(
     }
 
     private fun openPartyPermissionsMenu() {
-        player.sendMessage("§e${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.permissions.coming.soon")}")
+        player.sendMessage("<yellow>${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.permissions.coming.soon")}")
     }
 
     private fun openPartyInfoMenu() {
@@ -645,7 +650,7 @@ class BedrockGuildPartyManagementMenu(
                 openPartySettingsMenu()
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
             override fun getForm(): Form = form.build()
             override fun handleResponse(player: Player, response: Any?) {
                 // Response handling is done in the form builder's validResultHandler
@@ -661,3 +666,4 @@ class BedrockGuildPartyManagementMenu(
         onFormResponseReceived()
     }
 }
+

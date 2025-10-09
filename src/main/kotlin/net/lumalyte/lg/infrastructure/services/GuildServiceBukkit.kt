@@ -44,6 +44,8 @@ class GuildServiceBukkit(
         val guild = Guild(
             id = guildId,
             name = name,
+            ownerId = ownerId,
+            ownerName = Bukkit.getOfflinePlayer(ownerId).name ?: "Unknown",
             banner = banner,
             homes = GuildHomes.EMPTY,
             level = 1,
@@ -100,33 +102,186 @@ class GuildServiceBukkit(
     
     override fun renameGuild(guildId: UUID, newName: String, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
-        
+
         // Check if actor has permission to rename guild
-        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_RANKS)) {
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_NAME)) {
             logger.warn("Player $actorId attempted to rename guild $guildId without permission")
             return false
         }
-        
+
         // Validate new name
         if (newName.isBlank() || newName.length > 32) {
             logger.warn("Invalid guild name: $newName")
             return false
         }
-        
-        // Check if new name is already taken
+
+        // Check if name is appropriate
+        if (!isGuildNameAppropriate(newName)) {
+            logger.warn("Inappropriate guild name: $newName")
+            return false
+        }
+
+        // Check if new name is already taken (exact match)
         if (guildRepository.isNameTaken(newName)) {
             logger.warn("Guild name already taken: $newName")
             return false
         }
-        
+
+        // Check for name tag copying (similar names ignoring color/formatting)
+        if (isNameTagCopy(guildId, newName)) {
+            logger.warn("Guild name tag copy detected: $newName")
+            return false
+        }
+
+        val oldName = guild.name
         val updatedGuild = guild.copy(name = newName)
         val result = guildRepository.update(updatedGuild)
         if (result) {
-            logger.info("Guild $guildId renamed to '$newName' by $actorId")
+            // Audit the name change
+            // TODO: Integrate with AuditService when available
+            // auditService?.logGuildAction(guildId, actorId, "GUILD_RENAMED",
+            //     "Guild renamed from '$oldName' to '$newName'")
+
+            logger.info("Guild $guildId renamed from '$oldName' to '$newName' by $actorId")
+
+            // Send notification to all guild members
+            val onlineMembers = memberRepository.getByGuild(guildId)
+                .mapNotNull { Bukkit.getPlayer(it.playerId) }
+            onlineMembers.forEach { member ->
+                member.sendMessage("§6§lGUILD NOTICE: §fYour guild has been renamed to §6$newName")
+            }
         }
         return result
     }
-    
+
+    /**
+     * Check if a guild name is a copy of another guild's name tag,
+     * ignoring color codes and minimessage formatting.
+     */
+    private fun isNameTagCopy(guildId: UUID, newName: String): Boolean {
+        val allGuilds = guildRepository.getAll()
+        val normalizedNewName = stripFormatting(newName)
+
+        for (existingGuild in allGuilds) {
+            if (existingGuild.id == guildId) continue // Skip current guild
+
+            val existingNormalizedName = stripFormatting(existingGuild.name)
+
+            // Check for exact match or very similar names
+            if (existingNormalizedName.equals(normalizedNewName, ignoreCase = true) ||
+                areNamesSimilar(existingNormalizedName, normalizedNewName)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Strip all formatting from a guild name (color codes, minimessage, etc.)
+     */
+    private fun stripFormatting(name: String): String {
+        // Remove Minecraft color codes (§x)
+        var cleaned = name.replace(Regex("§[0-9a-fk-or]"), "")
+
+        // Remove minimessage formatting (basic patterns)
+        cleaned = cleaned.replace(Regex("<[^>]+>"), "")
+
+        // Remove common formatting artifacts
+        cleaned = cleaned.replace(Regex("[*_`~]"), "")
+
+        return cleaned.trim()
+    }
+
+    /**
+     * Check if two names are similar (for anti-copy protection)
+     */
+    private fun areNamesSimilar(name1: String, name2: String): Boolean {
+        if (name1.length != name2.length) return false
+
+        // Allow minor differences (1-2 characters)
+        val differences = name1.zip(name2).count { (a, b) -> a != b }
+        return differences <= 2
+    }
+
+    override fun isGuildNameAppropriate(name: String): Boolean {
+        // Check for inappropriate content
+        val inappropriateWords = listOf(
+            "nigger", "nigga", "faggot", "fag", "retard", "retarded",
+            "autist", "autistic", "cancer", "kill", "die", "hate",
+            "rape", "molest", "pedo", "child", "minor", "underage",
+            "suicide", "self-harm", "cutting", "depression",
+            "terrorist", "terrorism", "bomb", "gun", "weapon",
+            "drug", "cocaine", "heroin", "meth", "weed", "marijuana",
+            "alcohol", "beer", "wine", "liquor", "drunk",
+            "sex", "sexual", "porn", "xxx", "adult", "mature",
+            "gore", "blood", "violence", "murder", "death",
+            "hell", "damn", "fuck", "shit", "ass", "bitch", "cunt",
+            "dick", "cock", "pussy", "tits", "boobs", "breasts",
+            "nude", "naked", "strip", "escort", "prostitute",
+            "racist", "racism", "bigot", "bigotry", "prejudice",
+            "discrimination", "segregation", "supremacy",
+            "nazi", "kkk", "aryan", "white power", "black power",
+            "jew", "jewish", "muslim", "islam", "christian", "catholic",
+            "protestant", "buddhist", "hindu", "atheist", "agnostic",
+            "satan", "devil", "demon", "evil", "sin", "damnation",
+            "genocide", "holocaust", "concentration", "gas chamber",
+            "slave", "slavery", "master", "servant", "indentured",
+            "communist", "communism", "socialist", "socialism",
+            "capitalist", "capitalism", "fascist", "fascism",
+            "anarchist", "anarchy", "terror", "terrorism",
+            "dictator", "dictatorship", "monarchy", "democracy",
+            "republic", "constitution", "law", "court", "judge",
+            "police", "cop", "officer", "detective", "investigator",
+            "suspect", "criminal", "felon", "misdemeanor", "felony",
+            "jail", "prison", "correctional", "penitentiary", "reformatory"
+        )
+
+        val lowercaseName = name.lowercase()
+
+        // Check for inappropriate words
+        for (word in inappropriateWords) {
+            if (lowercaseName.contains(word)) {
+                return false
+            }
+        }
+
+        // Check for excessive profanity indicators
+        val profanityIndicators = listOf("!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+", "=", "{", "}", "|", ":", ";", "\"", "'", "\\", "/", "?", ".", ">", "<", ",", "`", "~")
+        val indicatorCount = name.count { it.toString() in profanityIndicators }
+        if (indicatorCount > 3) {
+            return false
+        }
+
+        // Check for excessive repetition
+        val repeatedChars = mutableMapOf<Char, Int>()
+        for (char in name) {
+            repeatedChars[char] = repeatedChars.getOrDefault(char, 0) + 1
+        }
+        if (repeatedChars.values.any { it > 5 }) {
+            return false
+        }
+
+        return true
+    }
+
+    override fun isGuildDescriptionAppropriate(description: String): Boolean {
+        // Similar validation as name but more lenient for descriptions
+        val inappropriateWords = listOf(
+            "nigger", "nigga", "faggot", "fag", "retard", "retarded",
+            "cancer", "kill", "die", "hate", "rape", "molest", "pedo"
+        )
+
+        val lowercaseDescription = description.lowercase()
+
+        for (word in inappropriateWords) {
+            if (lowercaseDescription.contains(word)) {
+                return false
+            }
+        }
+
+        return true
+    }
+
     override fun setBanner(guildId: UUID, banner: org.bukkit.inventory.ItemStack?, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 
@@ -409,6 +564,10 @@ class GuildServiceBukkit(
     override fun getPlayerGuilds(playerId: UUID): Set<Guild> {
         val guildIds = memberRepository.getGuildsByPlayer(playerId)
         return guildIds.mapNotNull { guildRepository.getById(it) }.toSet()
+    }
+
+    override fun getPlayerGuildIds(playerId: UUID): Set<UUID> {
+        return memberRepository.getGuildsByPlayer(playerId)
     }
     
     override fun isPlayerInGuild(playerId: UUID, guildId: UUID): Boolean = 

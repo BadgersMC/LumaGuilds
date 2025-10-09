@@ -10,6 +10,10 @@ import org.geysermc.cumulus.form.Form
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild invite menu using Cumulus CustomForm
@@ -19,8 +23,9 @@ class BedrockGuildInviteMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val memberService: MemberService by inject()
 
@@ -98,7 +103,8 @@ class BedrockGuildInviteMenu(
             player,
             guild,
             targetPlayer,
-            logger
+            logger,
+            messageService
         ))
     }
 
@@ -107,3 +113,4 @@ class BedrockGuildInviteMenu(
         onFormResponseReceived()
     }
 }
+

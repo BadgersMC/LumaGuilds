@@ -22,9 +22,13 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private val claim: Claim?,
-                              private val player: Player): Menu, KoinComponent {
+                              private val player: Player, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val acceptTransferRequest: AcceptTransferRequest by inject()
     private val isPlayerInClaimMenu: IsPlayerInClaimMenu by inject()
@@ -34,7 +38,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
 
     override fun open() {
         if (claim == null) {
-            player.sendMessage("§cError: No claim available")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Error: No claim available")
             return
         }
 
@@ -49,7 +53,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
         val firstPane = StaticPane(0, 0, 1, 1)
         val lodestoneItem = ItemStack(Material.BELL)
             .name(name)
-            .lore("${claim.position.x}, ${claim.position.y}, ${claim.position.z}")
+            .addAdventureLore(player, messageService, "${claim.position.x}, ${claim.position.y}, ${claim.position.z}")
         val guiItem = GuiItem(lodestoneItem) { guiEvent -> guiEvent.isCancelled = true }
         firstPane.addItem(guiItem, 0, 0)
         gui.firstItemComponent.addPane(firstPane)
@@ -131,7 +135,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
                     }
 
                     // Navigate to next menu
-                    ClaimManagementMenu(menuNavigator, player, claim).open()
+                    ClaimManagementMenu(menuNavigator, player, claim, messageService).open()
                 }
                 else -> {
                     open()

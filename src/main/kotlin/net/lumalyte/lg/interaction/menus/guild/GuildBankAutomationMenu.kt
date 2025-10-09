@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -18,6 +19,10 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.LocalDateTime
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Guild Bank Automation menu with scheduled tasks, rewards, and alerts
@@ -26,7 +31,7 @@ class GuildBankAutomationMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild
-) : Menu, KoinComponent {
+, private val messageService: MessageService) : Menu, KoinComponent {
 
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
@@ -57,26 +62,6 @@ class GuildBankAutomationMenu(
     override fun open() {
         updateAutomationDisplay()
         gui.show(player)
-    }
-
-    override fun passData(data: Any?) {
-        // Handle automation setting updates
-        if (data is Map<*, *>) {
-            @Suppress("UNCHECKED_CAST")
-            val updates = data as Map<String, Any>
-            updates.forEach { (setting, value) ->
-                when (setting) {
-                    "scheduledDeposits" -> scheduledDepositsEnabled = value as Boolean
-                    "autoRewards" -> autoRewardsEnabled = value as Boolean
-                    "budgetAlerts" -> budgetAlertsEnabled = value as Boolean
-                    "recurringPayments" -> recurringPaymentsEnabled = value as Boolean
-                    "interestRate" -> interestRate = value as Double
-                }
-            }
-            checkActiveAutomations()
-            updateAutomationDisplay()
-            gui.update()
-        }
     }
 
     /**
@@ -118,8 +103,9 @@ class GuildBankAutomationMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, "Automation & Rewards - ${guild.name}")
-        gui.setOnGlobalClick { event -> event.isCancelled = true }
+        gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "Automation & Rewards - ${guild.name}"))
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Create main navigation pane
         mainPane = StaticPane(0, 0, 9, 1, Pane.Priority.NORMAL)
@@ -175,7 +161,7 @@ class GuildBankAutomationMenu(
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
             saveAutomationSettings()
-            player.sendMessage("§aAutomation settings saved!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>Automation settings saved!")
         }
         mainPane.addItem(saveGuiItem, 7, 0)
 
@@ -285,7 +271,7 @@ class GuildBankAutomationMenu(
         val interestGuiItem = GuiItem(interestItem) { event ->
             event.isCancelled = true
             // TODO: Open interest rate input
-            player.sendMessage("§eInterest rate configuration coming soon!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Interest rate configuration coming soon!")
         }
         automationPane.addItem(interestGuiItem, 4, 0)
 
@@ -310,7 +296,7 @@ class GuildBankAutomationMenu(
         val rewardSetupGuiItem = GuiItem(rewardSetupItem) { event ->
             event.isCancelled = true
             // TODO: Open reward setup menu
-            player.sendMessage("§eReward distribution setup coming soon!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Reward distribution setup coming soon!")
         }
         rewardsPane.addItem(rewardSetupGuiItem, 0, 0)
 
@@ -327,7 +313,7 @@ class GuildBankAutomationMenu(
         val alertConfigGuiItem = GuiItem(alertConfigItem) { event ->
             event.isCancelled = true
             // TODO: Open alert configuration menu
-            player.sendMessage("§eAlert configuration coming soon!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Alert configuration coming soon!")
         }
         rewardsPane.addItem(alertConfigGuiItem, 1, 0)
 
@@ -344,7 +330,7 @@ class GuildBankAutomationMenu(
         val paymentSetupGuiItem = GuiItem(paymentSetupItem) { event ->
             event.isCancelled = true
             // TODO: Open recurring payment setup
-            player.sendMessage("§eRecurring payment setup coming soon!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Recurring payment setup coming soon!")
         }
         rewardsPane.addItem(paymentSetupGuiItem, 2, 0)
 
@@ -375,7 +361,7 @@ class GuildBankAutomationMenu(
         val countGuiItem = GuiItem(countItem) { event ->
             event.isCancelled = true
             // TODO: Show detailed automation list
-            player.sendMessage("§eActive automations: ${activeAutomations.joinToString(", ")}")
+            player.sendMessage("<yellow>Active automations: ${activeAutomations.joinToString(", ")}")
         }
         automationPane.addItem(countGuiItem, 7, 0)
     }
@@ -439,7 +425,7 @@ class GuildBankAutomationMenu(
      */
     private fun saveAutomationSettings() {
         // TODO: Save to database/configuration
-        player.sendMessage("§aAutomation settings would be saved to database")
+        AdventureMenuHelper.sendMessage(player, messageService, "<green>Automation settings would be saved to database")
     }
 
     /**

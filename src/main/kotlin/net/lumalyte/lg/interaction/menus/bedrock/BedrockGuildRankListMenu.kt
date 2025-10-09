@@ -11,6 +11,10 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild rank list menu using Cumulus SimpleForm
@@ -20,8 +24,9 @@ class BedrockGuildRankListMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val rankService: RankService by inject()
 
@@ -85,7 +90,7 @@ class BedrockGuildRankListMenu(
             .button(bedrockLocalization.getBedrockString(player, "guild.rank.details.back"))
             .validResultHandler { _ ->
                 // Re-show the rank list
-                bedrockNavigator.openMenu(BedrockGuildRankListMenu(menuNavigator, player, guild, logger))
+                bedrockNavigator.openMenu(BedrockGuildRankListMenu(menuNavigator, player, guild, logger, messageService))
             }
             .closedOrInvalidResultHandler { _, _ ->
                 bedrockNavigator.goBack()
@@ -123,6 +128,12 @@ class BedrockGuildRankListMenu(
             RankPermission.MANAGE_MEMBERS -> "Manage Members"
             RankPermission.MANAGE_BANNER -> "Manage Banner"
             RankPermission.MANAGE_EMOJI -> "Manage Emoji"
+            RankPermission.MANAGE_GUILD_NAME -> "Manage Guild Name"
+            RankPermission.MANAGE_BANK_SECURITY -> "Manage Bank Security"
+            RankPermission.ACTIVATE_EMERGENCY_FREEZE -> "Activate Emergency Freeze"
+            RankPermission.DEACTIVATE_EMERGENCY_FREEZE -> "Deactivate Emergency Freeze"
+            RankPermission.VIEW_SECURITY_AUDITS -> "View Security Audits"
+            RankPermission.MANAGE_BUDGETS -> "Manage Budgets"
             RankPermission.MANAGE_DESCRIPTION -> "Manage Description"
             RankPermission.MANAGE_HOME -> "Manage Home"
             RankPermission.MANAGE_MODE -> "Manage Mode"
@@ -160,28 +171,45 @@ class BedrockGuildRankListMenu(
             RankPermission.BYPASS_RESTRICTIONS -> "Bypass Restrictions"
             RankPermission.VIEW_AUDIT_LOGS -> "View Audit Logs"
             RankPermission.MANAGE_INTEGRATIONS -> "Manage Integrations"
+            
+            // Additional permissions
+            RankPermission.DEPOSIT_MONEY -> "Deposit Money"
+            RankPermission.WITHDRAW_MONEY -> "Withdraw Money" 
+            RankPermission.VIEW_BANK_HISTORY -> "View Bank History"
+            RankPermission.USE_CHAT -> "Use Chat"
+            RankPermission.MANAGE_CHAT_SETTINGS -> "Manage Chat Settings"
+            RankPermission.CLAIM_LAND -> "Claim Land"
+            RankPermission.UNCLAIM_LAND -> "Unclaim Land"
+            
+            // Security
+            RankPermission.OVERRIDE_PROTECTION -> "Override Protection"
+            RankPermission.BYPASS_COOLDOWNS -> "Bypass Cooldowns"
+            RankPermission.MANAGE_SECURITY -> "Manage Security"
+
+            // Fallback for any unhandled permissions
+            else -> permission.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
         }
     }
 
     private fun showRankDetailsInChat(rank: Rank) {
         val title = bedrockLocalization.getBedrockString(player, "guild.rank.details.title")
-        player.sendMessage("§6$title: §f${rank.name}")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gold>$title: <white>${rank.name}")
 
         val name = bedrockLocalization.getBedrockString(player, "guild.rank.details.name")
-        player.sendMessage("§7$name: §f${rank.name}")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>$name: <white>${rank.name}")
 
         val priority = bedrockLocalization.getBedrockString(player, "guild.rank.details.priority")
-        player.sendMessage("§7$priority: §f${rank.priority}")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>$priority: <white>${rank.priority}")
 
         val permissions = bedrockLocalization.getBedrockString(player, "guild.rank.details.permissions")
-        player.sendMessage("§7$permissions:")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>$permissions:")
 
         if (rank.permissions.isEmpty()) {
             val noPermissions = bedrockLocalization.getBedrockString(player, "guild.rank.details.no.permissions")
-            player.sendMessage("§7• §f$noPermissions")
+            AdventureMenuHelper.sendMessage(player, messageService, "<gray>• <white>$noPermissions")
         } else {
             rank.permissions.forEach { permission ->
-                player.sendMessage("§7• §f${getLocalizedPermissionName(permission)}")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>• <white>${getLocalizedPermissionName(permission)}")
             }
         }
     }
@@ -191,3 +219,4 @@ class BedrockGuildRankListMenu(
         onFormResponseReceived()
     }
 }
+

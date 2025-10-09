@@ -6,6 +6,10 @@ import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.ModalForm
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Enhanced Bedrock Edition confirmation menu using Cumulus ModalForm
@@ -16,10 +20,11 @@ class BedrockConfirmationMenu(
     player: Player,
     private val title: String,
     message: String?,
-    private val callback: () -> Unit,
+    private val callback: (messageService: MessageService) -> Unit,
     private val cancelCallback: (() -> Unit)?,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val message: String = message ?: bedrockLocalization.getBedrockString(player, "menu.confirmation.default_message")
 
@@ -29,8 +34,9 @@ class BedrockConfirmationMenu(
         player: Player,
         title: String,
         callback: () -> Unit,
-        logger: Logger
-    ) : this(menuNavigator, player, title, null, callback, null, logger)
+        logger: Logger,
+        messageService: MessageService
+    ) : this(menuNavigator, player, title, null, { _ -> callback() }, null, logger, messageService)
 
     override fun getForm(): Form {
         return try {
@@ -44,7 +50,7 @@ class BedrockConfirmationMenu(
                     // Handle response
                     if (response.clickedButtonId() == 0) { // Confirm button (Yes)
                         try {
-                            callback()
+                            callback(messageService)
                         } catch (e: Exception) {
                             logger.warning("Error executing confirmation callback: ${e.message}")
                             player.sendMessage(bedrockLocalization.getBedrockString(player, "general.error"))
@@ -82,31 +88,6 @@ class BedrockConfirmationMenu(
         // Response handling is now done in the form builder's response handlers
         // This method is kept for interface compatibility but the actual handling
         // happens in the validResultHandler and closedOrInvalidResultHandler
-    }
-
-    override fun passData(data: Any?) {
-        // Handle data passed from other menus
-        if (data is Boolean) {
-            // If data is a boolean, treat it as a direct response
-            if (data) {
-                try {
-                    callback()
-                } catch (e: Exception) {
-                    logger.warning("Error executing confirmation callback from passData: ${e.message}")
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "general.error"))
-                }
-            } else {
-                try {
-                    cancelCallback?.invoke()
-                } catch (e: Exception) {
-                    logger.warning("Error executing cancel callback from passData: ${e.message}")
-                }
-            }
-
-            bedrockNavigator.goBack()
-        } else {
-            super.passData(data)
-        }
     }
 
 }

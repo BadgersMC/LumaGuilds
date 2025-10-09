@@ -1,7 +1,10 @@
 package net.lumalyte.lg.application.services
 
 import org.bukkit.Bukkit
+import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.BookMeta
 import org.bukkit.plugin.Plugin
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -13,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.deleteIfExists
 import net.lumalyte.lg.domain.entities.BankTransaction
+import net.lumalyte.lg.domain.entities.GuildChest
+import net.lumalyte.lg.domain.entities.GuildChestAccessLog
 import net.lumalyte.lg.domain.entities.MemberContribution
 
 /**
@@ -54,6 +59,74 @@ class FileExportManager(
         data class Error(val message: String) : ExportResult()
         data class RateLimited(val message: String) : ExportResult()
         data class FileTooLarge(val message: String) : ExportResult()
+    }
+
+    /**
+     * Export item banking data to CSV file
+     * Uses Discord if configured, otherwise falls back to Minecraft books
+     */
+    fun exportItemBankingDataAsync(
+        player: Player,
+        guildId: UUID,
+        guildName: String,
+        chests: List<GuildChest>,
+        accessLogs: List<GuildChestAccessLog>,
+        totalItems: Int,
+        totalValue: Double,
+        callback: (ExportResult) -> Unit
+    ) {
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            ?: return callback(ExportResult.Error("Plugin not found"))
+
+        if (!isConfigured()) {
+            return callback(ExportResult.Error("Export service not configured"))
+        }
+
+        if (!checkRateLimit(player.uniqueId)) {
+            return callback(ExportResult.RateLimited("Too many exports in the last hour. Try again later."))
+        }
+
+        val csvContent = csvExportService.generateItemBankingReportCsv(
+            guildId = guildId,
+            guildName = guildName,
+            chests = chests,
+            accessLogs = accessLogs,
+            totalItems = totalItems,
+            totalValue = totalValue
+        )
+
+        if (csvContent.toByteArray().size > MAX_FILE_SIZE_BYTES) {
+            return callback(ExportResult.FileTooLarge("File too large (${csvContent.toByteArray().size} bytes). Maximum allowed: $MAX_FILE_SIZE_BYTES bytes."))
+        }
+
+        val fileName = "guild_item_banking_${guildName}_${System.currentTimeMillis()}.csv"
+        val tempFile = tempDir.toPath().resolve(fileName)
+
+        activeExports[fileName] = ExportJob(
+            playerId = player.uniqueId,
+            fileName = fileName,
+            tempFile = tempFile,
+            createdAt = System.currentTimeMillis(),
+            fileSize = csvContent.toByteArray().size.toLong()
+        )
+
+        // Run file writing asynchronously
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+            try {
+                Files.write(tempFile, csvContent.toByteArray(), StandardOpenOption.CREATE_NEW)
+
+                // Use Minecraft book export
+                sendToMinecraftBook(player, csvContent, "Item Banking Report - $guildName")
+                tempFile.deleteIfExists()
+                activeExports.remove(fileName)
+                callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
+            } catch (e: Exception) {
+                logger.error("Failed to export item banking data", e)
+                tempFile.deleteIfExists()
+                activeExports.remove(fileName)
+                callback(ExportResult.Error("Failed to export item banking data: ${e.message}"))
+            }
+        })
     }
 
     /**
@@ -270,6 +343,49 @@ class FileExportManager(
             } catch (e: Exception) {
                 logger.warn("Failed to cleanup file: ${file.fileName}", e)
             }
+        }
+    }
+
+    /**
+     * Send CSV content to a Minecraft book for the player
+     */
+    private fun sendToMinecraftBook(player: Player, csvContent: String, title: String) {
+        try {
+            // Split CSV into pages (approximately 14 lines per page for a book)
+            val lines = csvContent.lines()
+            val pages = mutableListOf<String>()
+
+            var currentPage = ""
+            for (line in lines) {
+                if (currentPage.split("\n").size >= 13) { // Leave room for page number
+                    pages.add(currentPage)
+                    currentPage = ""
+                }
+                currentPage += line + "\n"
+            }
+            if (currentPage.isNotEmpty()) {
+                pages.add(currentPage)
+            }
+
+            // Create a written book
+            val book = ItemStack(Material.WRITTEN_BOOK)
+            val meta = book.itemMeta as BookMeta
+
+            meta.title = title.take(32) // Book titles are limited to 32 characters
+            meta.author = player.name
+
+            // Add pages
+            pages.take(50).forEach { page -> // Books are limited to 50 pages
+                meta.addPage(page)
+            }
+
+            book.itemMeta = meta
+
+            // Give the book to the player
+            player.inventory.addItem(book)
+
+        } catch (e: Exception) {
+            logger.error("Failed to send CSV to Minecraft book for player ${player.name}", e)
         }
     }
 }

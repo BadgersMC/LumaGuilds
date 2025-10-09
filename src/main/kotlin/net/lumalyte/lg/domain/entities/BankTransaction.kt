@@ -99,31 +99,3 @@ enum class TransactionType {
     DEDUCTION
 }
 
-/**
- * Represents an audit entry for bank transactions.
- */
-data class BankAudit(
-    val id: UUID = UUID.randomUUID(),
-    val transactionId: UUID? = null,
-    val guildId: UUID,
-    val actorId: UUID,
-    val action: AuditAction,
-    val details: String,
-    val oldBalance: Int? = null,
-    val newBalance: Int? = null,
-    val timestamp: Instant = Instant.now()
-)
-
-/**
- * Types of audit actions.
- */
-enum class AuditAction {
-    DEPOSIT,
-    WITHDRAWAL,
-    BALANCE_CHECK,
-    PERMISSION_DENIED,
-    INSUFFICIENT_FUNDS,
-    FEE_CHARGED,
-    BANK_CREATED,
-    BANK_RESET
-}

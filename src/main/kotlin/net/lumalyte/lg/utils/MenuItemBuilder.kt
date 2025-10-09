@@ -66,30 +66,8 @@ class MenuItemBuilder(
         if (meta != null) {
             // Set custom model data if specified
             itemConfig.customModelData?.let { modelData ->
-                // Modern Paper API: Use CustomModelDataComponent for non-deprecated API
-                try {
-                    // Get the CustomModelDataComponent (modern Paper API)
-                    val customModelDataComponent = meta.customModelDataComponent
-
-                    // Set the integer value directly (Paper API supports both floats and integers)
-                    // The old API used integers, the new component API supports various data types
-                    // For backward compatibility, we use the integer value as-is
-
-                    // Try to set as integer first (some Paper versions support direct integer setting)
-                    try {
-                        // Check if there's a setInts method
-                        val setIntsMethod = customModelDataComponent.javaClass.getMethod("setInts", java.util.List::class.java)
-                        setIntsMethod.invoke(customModelDataComponent, listOf(modelData))
-                    } catch (e: NoSuchMethodException) {
-                        // Fallback: set as float (standard Paper API approach)
-                        customModelDataComponent.setFloats(listOf(modelData.toFloat()))
-                    }
-
-                    // Apply the component to the item meta
-                    meta.setCustomModelDataComponent(customModelDataComponent)
-                } catch (e: Exception) {
-                    println("Failed to set custom model data using modern API: ${e.message}")
-                }
+                @Suppress("DEPRECATION")
+                meta.setCustomModelData(modelData)
             }
             
             // Add enchantment glow if specified

@@ -17,9 +17,13 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.getValue
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimPlayerSearchMenu(private val menuNavigator: MenuNavigator, private val claim: Claim,
-                            private val player: Player): Menu, KoinComponent {
+                            private val player: Player, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
 
     var playerDoesNotExist: Boolean = false

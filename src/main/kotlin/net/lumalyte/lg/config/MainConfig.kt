@@ -28,6 +28,7 @@ data class MainConfig(
     var ui: UIConfig = UIConfig(),
     var discord: DiscordConfig = DiscordConfig(),
     var party: PartyConfig = PartyConfig(),
+    var itemBanking: ItemBankingConfig = ItemBankingConfig(),
     var bedrock: BedrockConfig = BedrockConfig()
 )
 
@@ -227,6 +228,58 @@ data class PartyConfig(
     // Role Restrictions
     var allowRoleRestrictions: Boolean = true,
     var defaultToAllMembers: Boolean = true
+)
+
+data class ItemBankingConfig(
+    // Core Settings
+    var enabled: Boolean = true,
+    var allowDualBanking: Boolean = true, // Allow both monetary and item banking
+
+    // Guild Chest Settings
+    var defaultChestSize: Int = 54, // 6 rows of 9 slots
+    var maxChestSize: Int = 270, // Maximum expandable size
+    var chestBreakConfirmation: Boolean = true,
+    var chestBreakMessage: String = "§cWarning: Breaking this guild chest will drop all items! Break again to confirm.",
+
+    // WorldGuard Integration
+    var worldGuardIntegration: Boolean = true,
+    var worldGuardDenyRegions: Set<String> = setOf("spawn", "pvp", "shop"),
+
+    // Guild Level Unlocks
+    var unlockLevels: Map<Int, Int> = mapOf( // Level -> Additional slots
+        5 to 9,   // Level 5: +9 slots (63 total)
+        10 to 18, // Level 10: +18 slots (81 total)
+        15 to 27, // Level 15: +27 slots (108 total)
+        20 to 36, // Level 20: +36 slots (144 total)
+        25 to 45, // Level 25: +45 slots (189 total)
+        30 to 54, // Level 30: +54 slots (243 total)
+    ),
+
+    // Currency Settings
+    var defaultCurrencyItem: String = "DIAMOND",
+    var currencyItems: Map<String, Double> = mapOf( // Item -> Value in monetary units
+        "DIAMOND" to 1.0,
+        "EMERALD" to 0.5,
+        "GOLD_INGOT" to 0.25,
+        "IRON_INGOT" to 0.1,
+        "COAL" to 0.05
+    ),
+
+    // Auto-Enemy Settings
+    var autoEnemyOnChestBreak: Boolean = true,
+    var autoEnemyDurationHours: Int = 24,
+    var autoEnemyReason: String = "Guild chest was destroyed by member of this guild",
+
+    // Security Settings
+    var requireClaimsForChestProtection: Boolean = false,
+    var chestExplosionRequired: Boolean = true, // Require explosions to break chests when claims disabled
+    var logChestBreakAttempts: Boolean = true,
+
+    // Access Settings
+    var allowPhysicalAccess: Boolean = true,
+    var allowGuiAccess: Boolean = true,
+    var requirePermissionForAccess: Boolean = false,
+    var accessPermission: String = "lumaguilds.chest.access"
 )
 
 data class ProgressionConfig(

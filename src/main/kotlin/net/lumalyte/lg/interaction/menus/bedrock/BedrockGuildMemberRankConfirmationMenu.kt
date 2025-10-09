@@ -16,6 +16,10 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild member rank change confirmation menu using Cumulus SimpleForm
@@ -26,8 +30,9 @@ class BedrockGuildMemberRankConfirmationMenu(
     private val guild: Guild,
     private val targetMember: Member,
     private val newRank: Rank,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -57,12 +62,12 @@ class BedrockGuildMemberRankConfirmationMenu(
                 when (response.clickedButtonId()) {
                     0 -> changeRank()
                     1 -> bedrockNavigator.createBackHandler {
-                        player.sendMessage("§c❌ Rank change cancelled.")
+                        AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Rank change cancelled.")
                     }.run()
                 }
             }
             .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
-                player.sendMessage("§c❌ Rank change cancelled.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Rank change cancelled.")
             })
             .build()
     }
@@ -84,18 +89,18 @@ class BedrockGuildMemberRankConfirmationMenu(
         val success = memberService.changeMemberRank(targetMember.playerId, guild.id, newRank.id, player.uniqueId)
 
         if (success) {
-            player.sendMessage("§a✅ Successfully changed $targetName's rank to ${newRank.name}!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Successfully changed $targetName's rank to ${newRank.name}!")
 
             // Notify the target player if they're online
             if (targetPlayer != null) {
-                targetPlayer.sendMessage("§6⚡ Your rank in ${guild.name} has been changed to ${newRank.name}")
+                targetPlayer.sendMessage("<gold>⚡ Your rank in ${guild.name} has been changed to ${newRank.name}")
             }
 
             // Return to member management menu
-            bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild, messageService))
         } else {
-            player.sendMessage("§c❌ Failed to change rank. Check permissions.")
-            bedrockNavigator.openMenu(GuildMemberRankMenu(menuNavigator, player, guild, targetMember))
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to change rank. Check permissions.")
+            bedrockNavigator.openMenu(GuildMemberRankMenu(menuNavigator, player, guild, targetMember, messageService))
         }
     }
 
@@ -104,5 +109,6 @@ class BedrockGuildMemberRankConfirmationMenu(
         // This method is kept for interface compatibility
     }
 }
+
 
 

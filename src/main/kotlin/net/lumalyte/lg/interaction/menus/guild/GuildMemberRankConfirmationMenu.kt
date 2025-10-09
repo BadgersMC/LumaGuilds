@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -23,6 +24,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildMemberRankConfirmationMenu(
     private val menuNavigator: MenuNavigator,
@@ -30,7 +35,7 @@ class GuildMemberRankConfirmationMenu(
     private val guild: Guild,
     private val targetMember: Member,
     private val newRank: Rank
-) : Menu, KoinComponent {
+, private val messageService: MessageService) : Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -39,14 +44,10 @@ class GuildMemberRankConfirmationMenu(
     private val logger = LoggerFactory.getLogger(GuildMemberRankConfirmationMenu::class.java)
 
     override fun open() {
-        val gui = ChestGui(3, "§6Confirm Rank Change")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Confirm Rank Change"))
         val pane = StaticPane(0, 0, 9, 3)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Add member info
         addMemberInfo(pane)
@@ -69,9 +70,9 @@ class GuildMemberRankConfirmationMenu(
         // Member info
         val playerName = Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown Player"
         val infoItem = ItemStack(Material.PAPER)
-            .name("§f👤 Member Details")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Guild: §f${guild.name}")
+            .setAdventureName(player, messageService, "<white>👤 Member Details")
+            .addAdventureLore(player, messageService, "<gray>Player: <white>$playerName")
+            .addAdventureLore(player, messageService, "<gray>Guild: <white>${guild.name}")
 
         pane.addItem(GuiItem(infoItem), 1, 0)
     }
@@ -82,35 +83,35 @@ class GuildMemberRankConfirmationMenu(
         // Current rank
         val currentRankItem = if (currentRank != null) {
             ItemStack(Material.RED_CONCRETE)
-                .name("§c⬇️ Current Rank")
-                .lore("§7Rank: §f${currentRank.name}")
-                .lore("§7Priority: §f${currentRank.priority}")
+                .setAdventureName(player, messageService, "<red>⬇️ Current Rank")
+                .addAdventureLore(player, messageService, "<gray>Rank: <white>${currentRank.name}")
+                .addAdventureLore(player, messageService, "<gray>Priority: <white>${currentRank.priority}")
         } else {
             ItemStack(Material.BARRIER)
-                .name("§c❌ Current Rank Error")
+                .setAdventureName(player, messageService, "<red>❌ Current Rank Error")
         }
 
         // New rank
         val newRankItem = ItemStack(Material.GREEN_CONCRETE)
-            .name("§a⬆️ New Rank")
-            .lore("§7Rank: §f${newRank.name}")
-            .lore("§7Priority: §f${newRank.priority}")
+            .setAdventureName(player, messageService, "<green>⬆️ New Rank")
+            .addAdventureLore(player, messageService, "<gray>Rank: <white>${newRank.name}")
+            .addAdventureLore(player, messageService, "<gray>Priority: <white>${newRank.priority}")
 
         // Change direction indicator
         val changeDirection = if (newRank.priority < (currentRank?.priority ?: 0)) {
-            "§a⬆️ PROMOTION"
+            "<green>⬆️ PROMOTION"
         } else {
-            "§c⬇️ DEMOTION"
+            "<red>⬇️ DEMOTION"
         }
 
         val summaryItem = ItemStack(Material.BOOK)
-            .name("§6📋 Rank Change Summary")
-            .lore("§7$changeDirection")
-            .lore("§7From: §f${currentRank?.name ?: "Unknown"}")
-            .lore("§7To: §f${newRank.name}")
-            .lore("§7Priority change: §f${(currentRank?.priority ?: 0) - newRank.priority}")
-            .lore("§7")
-            .lore("§7New permissions: §f${newRank.permissions.size}")
+            .setAdventureName(player, messageService, "<gold>📋 Rank Change Summary")
+            .addAdventureLore(player, messageService, "<gray>$changeDirection")
+            .lore("<gray>From: <white>${currentRank?.name ?: "Unknown"}")
+            .addAdventureLore(player, messageService, "<gray>To: <white>${newRank.name}")
+            .addAdventureLore(player, messageService, "<gray>Priority change: <white>${(currentRank?.priority ?: 0) - newRank.priority}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>New permissions: <white>${newRank.permissions.size}")
 
         pane.addItem(GuiItem(currentRankItem), 3, 0)
         pane.addItem(GuiItem(summaryItem), 4, 0)
@@ -120,9 +121,9 @@ class GuildMemberRankConfirmationMenu(
     private fun addConfirmationButtons(pane: StaticPane) {
         // Confirm button
         val confirmItem = ItemStack(Material.GREEN_WOOL)
-            .name("§a✅ CONFIRM CHANGE")
-            .lore("§7Change ${Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown"}'s rank")
-            .lore("§7to ${newRank.name}")
+            .setAdventureName(player, messageService, "<green>✅ CONFIRM CHANGE")
+            .lore("<gray>Change ${Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown"}'s rank")
+            .addAdventureLore(player, messageService, "<gray>to ${newRank.name}")
 
         val confirmGuiItem = GuiItem(confirmItem) {
             performRankChange()
@@ -131,8 +132,8 @@ class GuildMemberRankConfirmationMenu(
 
         // Cancel button
         val cancelItem = ItemStack(Material.RED_WOOL)
-            .name("§c❌ CANCEL")
-            .lore("§7Return without making changes")
+            .setAdventureName(player, messageService, "<red>❌ CANCEL")
+            .addAdventureLore(player, messageService, "<gray>Return without making changes")
 
         val cancelGuiItem = GuiItem(cancelItem) {
             menuNavigator.goBack()
@@ -159,23 +160,23 @@ class GuildMemberRankConfirmationMenu(
                     "demoted"
                 }
 
-                player.sendMessage("§a✅ Successfully $changeType $targetName")
-                player.sendMessage("§7New rank: §f${newRank.name}")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Successfully $changeType $targetName")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>New rank: <white>${newRank.name}")
 
                 // Notify the target player if they're online
                 val targetPlayer = Bukkit.getPlayer(targetMember.playerId)
                 if (targetPlayer != null && targetPlayer.isOnline) {
-                    targetPlayer.sendMessage("§6🏆 Your rank in ${guild.name} has been changed!")
-                    targetPlayer.sendMessage("§7New rank: §f${newRank.name}")
+                    targetPlayer.sendMessage("<gold>🏆 Your rank in ${guild.name} has been changed!")
+                    targetPlayer.sendMessage("<gray>New rank: <white>${newRank.name}")
                 }
 
                 // Return to member management menu
                 menuNavigator.goBack()
             } else {
-                player.sendMessage("§c❌ Failed to change member rank!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to change member rank!")
             }
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Error changing member rank: ${e.message}")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Error changing member rank: ${e.message}")
             logger.error("Error changing member rank", e)
         }
     }
@@ -199,12 +200,7 @@ class GuildMemberRankConfirmationMenu(
 
         head.itemMeta = meta
 
-        return head.name("§f👤 $playerName")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Confirming rank change")
-    }
-
-    override fun passData(data: Any?) {
-        // Handle data passed back from sub-menus if needed
-    }
-}
+        return head.setAdventureName(player, messageService, "<white>👤 $playerName")
+            .addAdventureLore(player, messageService, "<gray>Player: <white>$playerName")
+            .addAdventureLore(player, messageService, "<gray>Confirming rank change")
+    }}

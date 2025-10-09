@@ -12,6 +12,10 @@ import org.koin.core.component.inject
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild progression info menu using Cumulus CustomForm
@@ -21,8 +25,9 @@ class BedrockGuildProgressionInfoMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val progressionService: ProgressionService by inject()
     private val progressionRepository: ProgressionRepository by inject()
@@ -56,7 +61,7 @@ class BedrockGuildProgressionInfoMenu(
     }
 
     private fun createSectionHeader(title: String): String {
-        return "§e§l$title"
+        return "<yellow><bold>$title"
     }
 
     private fun createLevelAndExperienceSection(): String {
@@ -162,3 +167,4 @@ class BedrockGuildProgressionInfoMenu(
         onFormResponseReceived()
     }
 }
+

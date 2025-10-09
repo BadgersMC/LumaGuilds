@@ -27,6 +27,14 @@ interface BankRepository {
     fun getTransactionsForGuild(guildId: UUID, limit: Int? = null): List<BankTransaction>
 
     /**
+     * Gets all transactions for a specific player across all guilds.
+     *
+     * @param playerId The ID of the player.
+     * @return List of transactions for the player.
+     */
+    fun getTransactionsByPlayerId(playerId: UUID): List<BankTransaction>
+
+    /**
      * Gets the current balance for a guild.
      *
      * @param guildId The ID of the guild.

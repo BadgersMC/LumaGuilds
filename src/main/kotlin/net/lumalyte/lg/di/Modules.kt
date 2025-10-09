@@ -107,6 +107,10 @@ import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ModeService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.services.GuildBannerService
+import net.lumalyte.lg.application.services.ClaimService
+import net.lumalyte.lg.application.services.ClaimServiceStub
+import net.lumalyte.lg.application.services.PlayerService
+import net.lumalyte.lg.application.services.PlayerServiceStub
 import net.lumalyte.lg.application.persistence.GuildBannerRepository
 import net.lumalyte.lg.application.services.AuditService
 import net.lumalyte.lg.application.persistence.AuditRepository
@@ -115,6 +119,9 @@ import net.lumalyte.lg.application.services.VisualisationPerformanceService
 import net.lumalyte.lg.application.services.KillService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.application.persistence.KillRepository
+import net.lumalyte.lg.application.persistence.WarRepository
+import net.lumalyte.lg.application.persistence.WarWagerRepository
+import net.lumalyte.lg.application.persistence.PeaceAgreementRepository
 
 import net.lumalyte.lg.infrastructure.services.GuildServiceBukkit
 import net.lumalyte.lg.infrastructure.services.RankServiceBukkit
@@ -154,6 +161,9 @@ import net.lumalyte.lg.infrastructure.persistence.guilds.ProgressionRepositorySQ
 import net.lumalyte.lg.infrastructure.persistence.guilds.GuildBannerRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.AuditRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.KillRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.guilds.WarRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.guilds.WarWagerRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.guilds.PeaceAgreementRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimFlagRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimPermissionRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimRepositorySQLite
@@ -245,6 +255,41 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
     single<BankRepository> { BankRepositorySQLite(get()) }
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get()) }
+    single<WarRepository> { WarRepositorySQLite(get()) }
+    single<WarWagerRepository> { WarWagerRepositorySQLite(get()) }
+    single<PeaceAgreementRepository> { PeaceAgreementRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.DiplomaticRelationRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.DiplomaticRelationRepositorySQLite(get())
+    }
+    single<net.lumalyte.lg.application.persistence.DiplomaticRequestRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.DiplomaticRequestRepositorySQLite(get())
+    }
+        single<net.lumalyte.lg.application.persistence.DiplomaticHistoryRepository> {
+            net.lumalyte.lg.infrastructure.persistence.guilds.DiplomaticHistoryRepositorySQLite(get())
+        }
+        single<net.lumalyte.lg.application.persistence.BankSecuritySettingsRepository> {
+            net.lumalyte.lg.infrastructure.persistence.guilds.BankSecuritySettingsRepositorySQLite(get())
+        }
+        single<net.lumalyte.lg.application.persistence.GuildBudgetRepository> {
+            net.lumalyte.lg.infrastructure.persistence.guilds.GuildBudgetRepositorySQLite(get())
+        }
+        single<net.lumalyte.lg.application.services.AdminModerationService> {
+            net.lumalyte.lg.infrastructure.services.AdminModerationServiceBukkit(
+                get(), get(), get(), get(), get(), get(), get()
+            )
+        }
+        single<net.lumalyte.lg.application.services.MessageService> {
+            net.lumalyte.lg.application.services.MessageService()
+        }
+        // Stub services for Brigadier command migration
+        single<ClaimService> { ClaimServiceStub() }
+        single<PlayerService> { PlayerServiceStub() }
+    single<net.lumalyte.lg.application.persistence.GuildChestRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildChestRepositorySQLite(get())
+    }
+    single<net.lumalyte.lg.application.persistence.GuildChestAccessLogRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildChestAccessLogRepositorySQLite(get())
+    }
 
     single<NexoEmojiService> { NexoEmojiService() }
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get()) }
@@ -253,9 +298,18 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
     single<RelationService> { RelationServiceBukkit(get(), get()) }
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get()) }
     single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
-    single<BankService> { BankServiceBukkit(get(), get(), get(), get()) }
+    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get()) }
     single<KillService> { KillServiceBukkit(get()) }
-    single<WarService> { WarServiceBukkit() }
+    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.services.DiplomacyService> {
+        net.lumalyte.lg.application.services.DiplomacyServiceImpl(get(), get(), get())
+    }
+    single<net.lumalyte.lg.application.services.ItemBankingService> {
+        net.lumalyte.lg.infrastructure.services.ItemBankingServiceBukkit(get(), get(), get(), get(), get(), get())
+    }
+    single<net.lumalyte.lg.infrastructure.listeners.GuildChestListener> {
+        net.lumalyte.lg.infrastructure.listeners.GuildChestListener()
+    }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
         net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get())
     }
@@ -263,6 +317,8 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
     single<CombatService> { CombatServiceBukkit(get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get()) }
     single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get()) }
+
+    // Command registration system (Paper Brigadier)
 
     // Platform detection service for Bedrock menu system
     single<PlatformDetectionService> { FloodgatePlatformDetectionService(get<LumaGuilds>().logger) }

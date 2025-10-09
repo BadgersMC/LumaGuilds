@@ -12,6 +12,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Base class for Bedrock Edition menus using Cumulus forms
@@ -19,7 +23,8 @@ import java.util.logging.Logger
 abstract class BaseBedrockMenu(
     protected val menuNavigator: MenuNavigator,
     protected val player: Player,
-    protected val logger: Logger
+    protected val logger: Logger,
+    protected val messageService: MessageService
 ) : Menu, BedrockMenu, KoinComponent {
 
     companion object {
@@ -111,7 +116,7 @@ abstract class BaseBedrockMenu(
         } catch (e: IllegalArgumentException) {
             // Handle invalid player UUID or form data
             logger.warning("Invalid arguments for Bedrock menu ${this::class.simpleName}: ${e.message}")
-            player.sendMessage("§cUnable to open menu due to invalid data. Please contact an administrator.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Unable to open menu due to invalid data. Please contact an administrator.")
 
         } catch (e: Exception) {
             // Generic error handling
@@ -125,13 +130,7 @@ abstract class BaseBedrockMenu(
 
     /**
      * Default implementation for data passing - can be overridden by subclasses
-     */
-    override fun passData(data: Any?) {
-        // Default implementation does nothing
-        // Subclasses can override this to handle data passed from other menus
-    }
-
-    /**
+     *//**
      * Called when a form response is received - cancels any pending timeout
      */
     protected fun onFormResponseReceived() {
@@ -161,6 +160,11 @@ abstract class BaseBedrockMenu(
      * Public getter for menuNavigator (used by FormTimeoutTask)
      */
     fun getMenuNavigatorInstance(): MenuNavigator = menuNavigator
+    
+    /**
+     * Public getter for messageService (used by FormTimeoutTask)
+     */
+    fun getMessageServiceInstance(): MessageService = messageService
 
     /**
      * Template method for creating form response handlers
@@ -175,7 +179,7 @@ abstract class BaseBedrockMenu(
     /**
      * Bedrock-specific navigation helper
      */
-    protected val bedrockNavigator = BedrockMenuNavigator(menuNavigator, player, menuFactory)
+    protected val bedrockNavigator = BedrockMenuNavigator(menuNavigator, player, menuFactory, messageService)
 
     /**
      * Helper method to handle navigation back to previous menu
@@ -281,9 +285,9 @@ abstract class BaseBedrockMenu(
         val stateKey = "${this::class.simpleName}:last"
         val lastState = restoreFormState(stateKey)
         if (lastState.isNotEmpty()) {
-            navigateBackWithData(lastState)
+            menuNavigator.goBackWithData(lastState)
         } else {
-            navigateBack()
+            menuNavigator.goBack()
         }
     }
 
@@ -293,7 +297,7 @@ abstract class BaseBedrockMenu(
     protected fun navigateForwardWithState(menu: Menu) {
         val currentState = getCurrentFormState()
         saveFormState("${this::class.simpleName}:forward", currentState)
-        openMenu(menu)
+        menuNavigator.openMenu(menu)
     }
 
     /**
@@ -301,8 +305,8 @@ abstract class BaseBedrockMenu(
      */
     protected fun cancelWorkflow() {
         clearWorkflow()
-        clearMenuStack()
-        player.sendMessage("§eWorkflow cancelled. All progress cleared.")
+        menuNavigator.clearMenuStack()
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Workflow cancelled. All progress cleared.")
     }
 
     /**
@@ -360,7 +364,7 @@ abstract class BaseBedrockMenu(
      * Public method to reopen the menu (used by form response handlers)
      */
     fun reopen() {
-        openMenu()
+        open()
     }
 
     /**
@@ -388,7 +392,7 @@ abstract class BaseBedrockMenu(
         } catch (e: IllegalArgumentException) {
             // Handle invalid player UUID or form data
             logger.warning("Invalid arguments for Bedrock menu ${this::class.simpleName}: ${e.message}")
-            player.sendMessage("§cUnable to open menu due to invalid data. Please contact an administrator.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Unable to open menu due to invalid data. Please contact an administrator.")
 
         } catch (e: Exception) {
             // Generic error handling
@@ -424,7 +428,7 @@ abstract class BaseBedrockMenu(
      */
     private fun openAsync() {
         // Show loading message
-        player.sendMessage("§eLoading menu...")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Loading menu...")
 
         // Build form asynchronously
         val cacheKey = if (shouldCacheForm()) createCacheKey() else null
@@ -453,16 +457,16 @@ abstract class BaseBedrockMenu(
                 registerFormTimeout(player.uniqueId.toString(), config.formTimeoutSeconds)
 
                 // Clear loading message and show success
-                player.sendMessage("§aMenu loaded successfully!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>Menu loaded successfully!")
                 logger.fine("Opened Bedrock form asynchronously ${this::class.simpleName} for player ${player.name}")
 
             } catch (e: Exception) {
                 logger.warning("Error sending async form ${this::class.simpleName} to player ${player.name}: ${e.message}")
-                player.sendMessage("§cFailed to load menu. Please try again.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to load menu. Please try again.")
             }
         }.exceptionally { throwable ->
             logger.warning("Async form building failed for ${this::class.simpleName}: ${throwable.message}")
-            player.sendMessage("§cFailed to load menu. Please try again.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to load menu. Please try again.")
             null
         }
     }
@@ -534,19 +538,19 @@ abstract class BaseBedrockMenu(
                 // Try to create equivalent Java menu
                 val javaMenu = createFallbackJavaMenu()
                 if (javaMenu != null) {
-                    player.sendMessage("§eBedrock menu unavailable. Opening Java version...")
-                    openMenu(javaMenu)
+                    AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Bedrock menu unavailable. Opening Java version...")
+                    menuNavigator.openMenu(javaMenu)
                     return
                 }
             }
 
             // If no fallback available or disabled, show error message
-            player.sendMessage("§cBedrock menus are currently unavailable. Please try again later or contact an administrator.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Bedrock menus are currently unavailable. Please try again later or contact an administrator.")
             logger.warning("Bedrock menu ${this::class.simpleName} failed for player ${player.name} - no fallback available")
 
         } catch (e: Exception) {
             logger.warning("Error during Bedrock fallback handling: ${e.message}")
-            player.sendMessage("§cAn error occurred. Please contact an administrator.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>An error occurred. Please contact an administrator.")
         }
     }
 
@@ -592,8 +596,8 @@ class FormTimeoutTask(
             }
 
             // Send timeout message
-            player.sendMessage("§eMenu timed out after $timeoutSeconds seconds.")
-            player.sendMessage("§7You can continue where you left off by reopening the menu.")
+            AdventureMenuHelper.sendMessage(player, menu.getMessageServiceInstance(), "<yellow>Menu timed out after $timeoutSeconds seconds.")
+            AdventureMenuHelper.sendMessage(player, menu.getMessageServiceInstance(), "<gray>You can continue where you left off by reopening the menu.")
 
             menu.getLoggerInstance().info("Form timeout for player ${player.name} after $timeoutSeconds seconds")
 
@@ -603,12 +607,14 @@ class FormTimeoutTask(
                 menu.saveFormState("timeout_recovery", currentState)
             }
 
+            // Clean up the timeout tracking
+            BaseBedrockMenu.cancelFormTimeout(playerId)
+
             // Try to go back to previous menu
             menu.getMenuNavigatorInstance().goBack()
 
         } catch (e: Exception) {
             menu.getLoggerInstance().warning("Error handling form timeout: ${e.message}")
-        } finally {
             // Always clean up the timeout tracking
             BaseBedrockMenu.cancelFormTimeout(playerId)
         }

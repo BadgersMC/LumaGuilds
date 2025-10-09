@@ -15,6 +15,10 @@ import org.koin.core.component.inject
 import java.time.Duration
 import java.time.Instant
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild mode selection menu using Cumulus SimpleForm
@@ -24,8 +28,9 @@ class BedrockGuildModeMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
     private val configService: ConfigService by inject()
@@ -41,10 +46,10 @@ class BedrockGuildModeMenu(
             .apply {
                 // Add switch buttons based on current mode and restrictions
                 if (guild.mode != GuildMode.PEACEFUL) {
-                    addPeacefulButton(guildConfig)
+                    addPeacefulButton(guildConfig, messageService)
                 }
                 if (guild.mode != GuildMode.HOSTILE) {
-                    addHostileButton(guildConfig)
+                    addHostileButton(guildConfig, messageService)
                 }
             }
             .validResultHandler { response ->
@@ -86,7 +91,7 @@ class BedrockGuildModeMenu(
         """.trimMargin()
     }
 
-    private fun SimpleForm.Builder.addPeacefulButton(guildConfig: GuildConfig) {
+    private fun SimpleForm.Builder.addPeacefulButton(guildConfig: GuildConfig, messageService: MessageService) {
         val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
         val canSwitch = canSwitchToPeaceful(guild, guildConfig.modeSwitchCooldownDays) && !hasActiveWar
 
@@ -99,7 +104,7 @@ class BedrockGuildModeMenu(
         button(buttonText)
     }
 
-    private fun SimpleForm.Builder.addHostileButton(guildConfig: GuildConfig) {
+    private fun SimpleForm.Builder.addHostileButton(guildConfig: GuildConfig, messageService: MessageService) {
         val canSwitch = canSwitchToHostile(guild, guildConfig.hostileModeMinimumDays)
 
         val buttonText = if (canSwitch) {
@@ -243,3 +248,4 @@ class BedrockGuildModeMenu(
         onFormResponseReceived()
     }
 }
+

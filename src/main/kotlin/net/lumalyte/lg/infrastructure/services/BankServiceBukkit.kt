@@ -1,6 +1,8 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.BankRepository
+import net.lumalyte.lg.application.persistence.BankSecuritySettingsRepository
+import net.lumalyte.lg.application.persistence.GuildBudgetRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.BankStats
 import net.lumalyte.lg.application.services.ConfigService
@@ -8,11 +10,16 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.services.ExperienceSource
 import net.lumalyte.lg.domain.entities.BankAudit
+import net.lumalyte.lg.domain.entities.BankSecuritySettings
 import net.lumalyte.lg.domain.entities.BankTransaction
+import net.lumalyte.lg.domain.entities.BudgetAnalytics
+import net.lumalyte.lg.domain.entities.BudgetCategory
+import net.lumalyte.lg.domain.entities.BudgetStatus
+import net.lumalyte.lg.domain.entities.GuildBudget
 import net.lumalyte.lg.domain.entities.MemberContribution
 import net.lumalyte.lg.domain.entities.TransactionType
-import net.lumalyte.lg.domain.entities.AuditAction
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.entities.AuditAction
 import net.milkbowl.vault.economy.Economy
 import org.bukkit.Bukkit
 import org.bukkit.plugin.RegisteredServiceProvider
@@ -24,7 +31,9 @@ class BankServiceBukkit(
     private val bankRepository: BankRepository,
     private val memberService: MemberService,
     private val configService: ConfigService,
-    private val progressionService: ProgressionService
+    private val progressionService: ProgressionService,
+    private val securitySettingsRepository: BankSecuritySettingsRepository,
+    private val budgetRepository: GuildBudgetRepository
 ) : BankService {
 
     private val logger = LoggerFactory.getLogger(BankServiceBukkit::class.java)
@@ -103,10 +112,11 @@ class BankServiceBukkit(
             if (!canDeposit(playerId, guildId)) {
                 logger.warn("Player $playerId cannot deposit to guild $guildId")
                 recordAudit(BankAudit(
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.PERMISSION_DENIED,
-                    details = "Deposit permission denied"
+                    description = "Deposit permission denied"
                 ))
                 return null
             }
@@ -115,10 +125,11 @@ class BankServiceBukkit(
             if (!isValidAmount(amount)) {
                 logger.warn("Invalid deposit amount: $amount by player $playerId")
                 recordAudit(BankAudit(
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.PERMISSION_DENIED,
-                    details = "Invalid deposit amount: $amount"
+                    description = "Invalid deposit amount: $amount"
                 ))
                 return null
             }
@@ -127,10 +138,12 @@ class BankServiceBukkit(
             if (!economy.has(player, amount.toDouble())) {
                 logger.warn("Player $playerId has insufficient funds for deposit of $amount")
                 recordAudit(BankAudit(
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.INSUFFICIENT_FUNDS,
-                    details = "Player has insufficient funds: $amount required"
+                    amount = amount,
+                    description = "Player has insufficient funds: $amount required"
                 ))
                 return null
             }
@@ -140,10 +153,12 @@ class BankServiceBukkit(
             if (!withdrawResult.transactionSuccess()) {
                 logger.error("Failed to withdraw $amount from player $playerId")
                 recordAudit(BankAudit(
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.PERMISSION_DENIED,
-                    details = "Failed to withdraw money from player account"
+                    amount = amount,
+                    description = "Failed to withdraw money from player account"
                 ))
                 return null
             }
@@ -157,12 +172,12 @@ class BankServiceBukkit(
             if (success) {
                 val newBalance = bankRepository.getGuildBalance(guildId)
                 recordAudit(BankAudit(
-                    transactionId = transaction.id,
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.DEPOSIT,
-                    details = "Deposit of $amount",
-                    newBalance = newBalance
+                    amount = amount,
+                    description = "Deposit of $amount"
                 ))
 
                 logger.info("Player $playerId deposited $amount to guild $guildId (balance: $newBalance)")
@@ -213,10 +228,12 @@ class BankServiceBukkit(
             if (!canWithdraw(playerId, guildId)) {
                 logger.warn("Player $playerId cannot withdraw from guild $guildId")
                 recordAudit(BankAudit(
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.PERMISSION_DENIED,
-                    details = "Withdrawal permission denied"
+                    amount = amount,
+                    description = "Withdrawal permission denied"
                 ))
                 return null
             }
@@ -225,10 +242,12 @@ class BankServiceBukkit(
             if (!isValidAmount(amount)) {
                 logger.warn("Invalid withdrawal amount: $amount by player $playerId")
                 recordAudit(BankAudit(
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.PERMISSION_DENIED,
-                    details = "Invalid withdrawal amount: $amount"
+                    amount = amount,
+                    description = "Invalid withdrawal amount: $amount"
                 ))
                 return null
             }
@@ -238,10 +257,12 @@ class BankServiceBukkit(
             if (!hasSufficientFunds(guildId, amount, true)) {
                 logger.warn("Insufficient funds for withdrawal of $amount (+$fee fee) from guild $guildId")
                 recordAudit(BankAudit(
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.INSUFFICIENT_FUNDS,
-                    details = "Insufficient funds for withdrawal of $amount (+$fee fee)"
+                    amount = amount,
+                    description = "Insufficient funds for withdrawal of $amount (+$fee fee)"
                 ))
                 return null
             }
@@ -254,10 +275,12 @@ class BankServiceBukkit(
             if (!depositResult.transactionSuccess()) {
                 logger.error("Failed to deposit $finalAmount to player $playerId")
                 recordAudit(BankAudit(
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.PERMISSION_DENIED,
-                    details = "Failed to deposit money to player account"
+                    amount = finalAmount,
+                    description = "Failed to deposit money to player account"
                 ))
                 return null
             }
@@ -271,32 +294,34 @@ class BankServiceBukkit(
             if (success) {
                 val newBalance = bankRepository.getGuildBalance(guildId)
                 recordAudit(BankAudit(
-                    transactionId = transaction.id,
+                    id = UUID.randomUUID(),
                     guildId = guildId,
-                    actorId = playerId,
+                    playerId = playerId,
                     action = AuditAction.WITHDRAWAL,
-                    details = "Withdrawal of $amount (fee: $fee)",
-                    newBalance = newBalance
+                    amount = amount,
+                    description = "Withdrawal of $amount (fee: $fee)"
                 ))
 
                 // Record fee if applicable
                 if (fee > 0) {
                     val feeTransaction = BankTransaction(
+                        id = UUID.randomUUID(),
                         guildId = guildId,
                         actorId = playerId,
                         type = TransactionType.FEE,
                         amount = fee,
-                        description = "Withdrawal fee"
+                        description = "Withdrawal fee",
+                        timestamp = java.time.Instant.now()
                     )
                     bankRepository.recordTransaction(feeTransaction)
 
                     recordAudit(BankAudit(
-                        transactionId = feeTransaction.id,
+                        id = UUID.randomUUID(),
                         guildId = guildId,
-                        actorId = playerId,
+                        playerId = playerId,
                         action = AuditAction.FEE_CHARGED,
-                        details = "Fee charged: $fee",
-                        newBalance = newBalance
+                        amount = fee,
+                        description = "Fee charged: $fee"
                     ))
                 }
 
@@ -458,7 +483,7 @@ class BankServiceBukkit(
         return amount >= getMinDepositAmount() && amount <= getMaxDepositAmount()
     }
 
-    private fun recordAudit(audit: BankAudit): Boolean {
+    override fun recordAudit(audit: BankAudit): Boolean {
         return try {
             bankRepository.recordAudit(audit)
         } catch (e: Exception) {
@@ -506,11 +531,13 @@ class BankServiceBukkit(
 
             // Record the transaction as a deduction (no player involved)
             val transaction = BankTransaction(
+                id = UUID.randomUUID(),
                 guildId = guildId,
                 actorId = UUID.randomUUID(), // Use random UUID for system deductions
                 type = TransactionType.DEDUCTION,
                 amount = amount, // Positive amount (will be negated in balance calculation)
-                description = reason ?: "Guild bank deduction"
+                description = reason ?: "Guild bank deduction",
+                timestamp = java.time.Instant.now()
             )
 
             return bankRepository.recordTransaction(transaction)
@@ -545,6 +572,335 @@ class BankServiceBukkit(
         } catch (e: Exception) {
             logger.error("Error depositing $amount coins to player $playerId", e)
             return false
+        }
+    }
+
+    // === SECURITY ENHANCEMENTS IMPLEMENTATION ===
+
+    override fun getSecuritySettings(guildId: UUID): BankSecuritySettings? {
+        return securitySettingsRepository.findByGuildId(guildId)
+    }
+
+    override fun updateSecuritySettings(guildId: UUID, settings: BankSecuritySettings): Boolean {
+        try {
+            // Validate settings
+            if (settings.dualAuthThreshold < 0) {
+                logger.warn("Invalid dual authorization threshold: ${settings.dualAuthThreshold}")
+                return false
+            }
+
+            if (settings.multiSignatureCount < 1) {
+                logger.warn("Invalid multi-signature count: ${settings.multiSignatureCount}")
+                return false
+            }
+
+            val updated = securitySettingsRepository.save(settings.copy(updatedAt = java.time.Instant.now()))
+
+            if (updated) {
+                logSecurityEvent(guildId, settings.id, AuditAction.SECURITY_SETTING_CHANGE,
+                    description = "Security settings updated")
+                logger.info("Updated security settings for guild $guildId")
+            }
+
+            return updated
+        } catch (e: Exception) {
+            logger.error("Error updating security settings for guild $guildId", e)
+            return false
+        }
+    }
+
+    override fun requiresDualAuth(guildId: UUID, amount: Int): Boolean {
+        val settings = getSecuritySettings(guildId) ?: return false
+        return settings.requiresDualAuth(amount)
+    }
+
+    override fun requiresMultiSignature(guildId: UUID, amount: Int): Boolean {
+        val settings = getSecuritySettings(guildId) ?: return false
+        return settings.requiresMultiSignature(amount)
+    }
+
+    override fun logSecurityEvent(guildId: UUID, playerId: UUID, action: AuditAction, amount: Int?, description: String?): BankAudit? {
+        try {
+            val audit = BankAudit(
+                id = UUID.randomUUID(),
+                guildId = guildId,
+                playerId = playerId,
+                action = action,
+                amount = amount,
+                description = description,
+                timestamp = java.time.Instant.now()
+            )
+
+            val saved = bankRepository.recordAudit(audit)
+            if (saved) {
+                logger.debug("Recorded security audit event: ${action.name} for guild $guildId by player $playerId")
+                return audit
+            }
+
+            return null
+        } catch (e: Exception) {
+            logger.error("Error logging security event for guild $guildId", e)
+            return null
+        }
+    }
+
+    override fun detectSuspiciousActivity(guildId: UUID): List<String> {
+        val alerts = mutableListOf<String>()
+
+        try {
+            val settings = getSecuritySettings(guildId)
+            if (settings == null || !settings.fraudDetectionEnabled) {
+                return alerts
+            }
+
+            val auditLog = getAuditLog(guildId, 50)
+            val transactions = getTransactionHistory(guildId, null)
+
+            // Check for unusual patterns
+            val recentAudits = auditLog.filter {
+                it.timestamp.isAfter(java.time.Instant.now().minus(1, java.time.temporal.ChronoUnit.HOURS))
+            }
+
+            val failedAuths = recentAudits.count { it.action == AuditAction.PERMISSION_DENIED }
+            if (failedAuths >= settings.suspiciousActivityThreshold) {
+                alerts.add("High number of authentication failures")
+            }
+
+            // Check for large transactions
+            val balance = getBalance(guildId)
+            val largeTransactions = transactions.filter {
+                it.type == TransactionType.WITHDRAWAL && it.amount > balance * 0.8
+            }
+
+            if (largeTransactions.isNotEmpty()) {
+                alerts.add("Large withdrawal detected (${largeTransactions.last().amount} coins)")
+            }
+
+            // Check for rapid transactions
+            val recentWithdrawals = transactions.filter {
+                it.type == TransactionType.WITHDRAWAL &&
+                it.timestamp.isAfter(java.time.Instant.now().minus(10, java.time.temporal.ChronoUnit.MINUTES))
+            }
+
+            if (recentWithdrawals.size >= 5) {
+                alerts.add("Rapid withdrawal pattern detected")
+            }
+
+        } catch (e: Exception) {
+            logger.error("Error detecting suspicious activity for guild $guildId", e)
+        }
+
+        return alerts
+    }
+
+    override fun activateEmergencyFreeze(guildId: UUID, activatedBy: UUID, reason: String): Boolean {
+        try {
+            val settings = getSecuritySettings(guildId)
+                ?: BankSecuritySettings(
+                    id = UUID.randomUUID(),
+                    guildId = guildId,
+                    emergencyFreeze = true
+                )
+
+            val updatedSettings = settings.copy(
+                emergencyFreeze = true,
+                updatedAt = java.time.Instant.now()
+            )
+
+            val updated = securitySettingsRepository.save(updatedSettings)
+
+            if (updated) {
+                logSecurityEvent(guildId, activatedBy, AuditAction.EMERGENCY_FREEZE_ACTIVATED,
+                    description = reason)
+                logger.warn("Emergency freeze activated for guild $guildId by $activatedBy: $reason")
+            }
+
+            return updated
+        } catch (e: Exception) {
+            logger.error("Error activating emergency freeze for guild $guildId", e)
+            return false
+        }
+    }
+
+    override fun deactivateEmergencyFreeze(guildId: UUID, deactivatedBy: UUID): Boolean {
+        try {
+            val settings = getSecuritySettings(guildId) ?: return false
+
+            val updatedSettings = settings.copy(
+                emergencyFreeze = false,
+                updatedAt = java.time.Instant.now()
+            )
+
+            val updated = securitySettingsRepository.save(updatedSettings)
+
+            if (updated) {
+                logSecurityEvent(guildId, deactivatedBy, AuditAction.EMERGENCY_FREEZE_DEACTIVATED)
+                logger.info("Emergency freeze deactivated for guild $guildId by $deactivatedBy")
+            }
+
+            return updated
+        } catch (e: Exception) {
+            logger.error("Error deactivating emergency freeze for guild $guildId", e)
+            return false
+        }
+    }
+
+    // === BUDGET MANAGEMENT IMPLEMENTATION ===
+
+    override fun getGuildBudgets(guildId: UUID): List<GuildBudget> {
+        try {
+            return budgetRepository.findByGuildId(guildId)
+        } catch (e: Exception) {
+            logger.error("Error getting budgets for guild $guildId", e)
+            return emptyList()
+        }
+    }
+
+    override fun getBudgetByCategory(guildId: UUID, category: BudgetCategory): GuildBudget? {
+        try {
+            return budgetRepository.findByGuildIdAndCategory(guildId, category)
+        } catch (e: Exception) {
+            logger.error("Error getting budget for guild $guildId, category $category", e)
+            return null
+        }
+    }
+
+    override fun setBudget(guildId: UUID, category: BudgetCategory, allocatedAmount: Int, periodStart: java.time.Instant, periodEnd: java.time.Instant): GuildBudget? {
+        try {
+            if (allocatedAmount < 0) {
+                logger.warn("Invalid budget allocation amount: $allocatedAmount")
+                return null
+            }
+
+            val existingBudget = budgetRepository.findByGuildIdAndCategory(guildId, category)
+
+            val budget = if (existingBudget != null) {
+                existingBudget.copy(
+                    allocatedAmount = allocatedAmount,
+                    periodStart = periodStart,
+                    periodEnd = periodEnd,
+                    updatedAt = java.time.Instant.now()
+                )
+            } else {
+                GuildBudget(
+                    id = UUID.randomUUID(),
+                    guildId = guildId,
+                    category = category,
+                    allocatedAmount = allocatedAmount,
+                    periodStart = periodStart,
+                    periodEnd = periodEnd
+                )
+            }
+
+            val saved = budgetRepository.save(budget)
+            if (saved) {
+                logger.info("Set budget for guild $guildId, category $category: $allocatedAmount coins")
+                return budget
+            }
+
+            return null
+        } catch (e: Exception) {
+            logger.error("Error setting budget for guild $guildId, category $category", e)
+            return null
+        }
+    }
+
+    override fun updateBudgetSpent(guildId: UUID, category: BudgetCategory, amount: Int): Boolean {
+        try {
+            val budget = budgetRepository.findByGuildIdAndCategory(guildId, category)
+                ?: return false
+
+            val newSpentAmount = budget.spentAmount + amount
+            if (newSpentAmount < 0) {
+                logger.warn("Budget spent amount would be negative: $newSpentAmount")
+                return false
+            }
+
+            return budgetRepository.updateSpentAmount(guildId, category, newSpentAmount)
+        } catch (e: Exception) {
+            logger.error("Error updating budget spent for guild $guildId, category $category", e)
+            return false
+        }
+    }
+
+    override fun getBudgetAnalytics(guildId: UUID, periodDays: Int): Map<BudgetCategory, BudgetAnalytics> {
+        try {
+            val endDate = java.time.Instant.now()
+            val startDate = endDate.minus(periodDays.toLong(), java.time.temporal.ChronoUnit.DAYS)
+
+            val analyticsData = budgetRepository.getBudgetAnalytics(guildId, startDate, endDate)
+            val analytics = mutableMapOf<BudgetCategory, BudgetAnalytics>()
+
+            for ((category, data) in analyticsData) {
+                val budget = budgetRepository.findByGuildIdAndCategory(guildId, category)
+                    ?: continue
+
+                analytics[category] = BudgetAnalytics(
+                    category = category,
+                    allocatedAmount = budget.allocatedAmount,
+                    spentAmount = data.spentAmount,
+                    remainingAmount = budget.allocatedAmount - data.spentAmount,
+                    usagePercentage = if (budget.allocatedAmount > 0) (data.spentAmount.toDouble() / budget.allocatedAmount) * 100 else 0.0,
+                    status = budget.getStatus(),
+                    periodStart = budget.periodStart,
+                    periodEnd = budget.periodEnd,
+                    transactionCount = data.transactionCount,
+                    averageTransactionAmount = data.averageTransactionAmount,
+                    alertsTriggered = emptyList() // TODO: Fix based on actual data type
+                )
+            }
+
+            return analytics
+        } catch (e: Exception) {
+            logger.error("Error getting budget analytics for guild $guildId", e)
+            return emptyMap()
+        }
+    }
+
+    override fun isWithinBudget(guildId: UUID, category: BudgetCategory, amount: Int): Boolean {
+        try {
+            val budget = budgetRepository.findByGuildIdAndCategory(guildId, category)
+                ?: return true // No budget set, allow transaction
+
+            return (budget.spentAmount + amount) <= budget.allocatedAmount
+        } catch (e: Exception) {
+            logger.error("Error checking budget for guild $guildId, category $category", e)
+            return true // Default to allowing transaction on error
+        }
+    }
+
+    override fun getTransactionsByPlayerId(playerId: UUID): List<BankTransaction> {
+        try {
+            return bankRepository.getTransactionsByPlayerId(playerId)
+        } catch (e: Exception) {
+            logger.error("Error getting transactions for player $playerId", e)
+            return emptyList()
+        }
+    }
+
+    override fun getBalanceAtTime(guildId: UUID, timestamp: java.time.Instant): Int? {
+        try {
+            // Get all transactions for the guild up to the specified time
+            val transactions = bankRepository.getTransactionsForGuild(guildId)
+                .filter { it.timestamp <= timestamp }
+                .sortedBy { it.timestamp }
+
+            // Calculate balance at the specified time
+            var balance = 0
+            for (transaction in transactions) {
+                when (transaction.type) {
+                    TransactionType.DEPOSIT -> balance += transaction.amount
+                    TransactionType.WITHDRAWAL -> balance -= (transaction.amount + transaction.fee)
+                    TransactionType.FEE -> balance -= transaction.amount
+                    TransactionType.DEDUCTION -> balance -= transaction.amount
+                    else -> { /* Handle other transaction types if needed */ }
+                }
+            }
+
+            return balance
+        } catch (e: Exception) {
+            logger.error("Error getting balance at time for guild $guildId", e)
+            return null
         }
     }
 

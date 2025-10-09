@@ -22,6 +22,14 @@ interface GuildService {
     fun createGuild(name: String, ownerId: UUID, banner: String? = null): Guild?
 
     /**
+     * Gets all guild IDs that a player is a member of.
+     *
+     * @param playerId The ID of the player.
+     * @return A set of guild IDs the player is a member of.
+     */
+    fun getPlayerGuildIds(playerId: UUID): Set<UUID>
+
+    /**
      * Disbands a guild.
      *
      * @param guildId The ID of the guild to disband.
@@ -39,6 +47,22 @@ interface GuildService {
      * @return true if successful, false otherwise.
      */
     fun renameGuild(guildId: UUID, newName: String, actorId: UUID): Boolean
+
+    /**
+     * Validates if a guild name is appropriate (no inappropriate content).
+     *
+     * @param name The name to validate.
+     * @return true if appropriate, false if contains inappropriate content.
+     */
+    fun isGuildNameAppropriate(name: String): Boolean
+
+    /**
+     * Validates if a guild description is appropriate (no inappropriate content).
+     *
+     * @param description The description to validate.
+     * @return true if appropriate, false if contains inappropriate content.
+     */
+    fun isGuildDescriptionAppropriate(description: String): Boolean
 
     /**
      * Sets the banner for a guild.

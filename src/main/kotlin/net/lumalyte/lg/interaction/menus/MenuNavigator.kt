@@ -1,9 +1,19 @@
 package net.lumalyte.lg.interaction.menus
 
 import org.bukkit.entity.Player
+import java.util.concurrent.ConcurrentHashMap
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
-class MenuNavigator(private val player: Player) {
+class MenuNavigator(private val player: Player, private val messageService: MessageService) {
     private val menuStack = ArrayDeque<Menu>()
+
+    init {
+        // Register this navigator instance for the player
+        activeNavigators[player.uniqueId] = this
+    }
 
     /**
      * Opens the provided menu for the target player.
@@ -59,7 +69,29 @@ class MenuNavigator(private val player: Player) {
                 menuStack.first().passData(data)
                 menuStack.first().open()
             } else {
+                // Unregister when menu stack is empty
+                activeNavigators.remove(player.uniqueId)
                 player.closeInventory()
+            }
+        }
+    }
+
+    companion object {
+        // Registry to track active navigators by player UUID
+        private val activeNavigators = ConcurrentHashMap<java.util.UUID, MenuNavigator>()
+
+        /**
+         * Clears cached menus for a specific player.
+         * This removes all menu instances from the navigation stack to prevent
+         * memory leaks and continued exploit attempts after menu closure.
+         *
+         * @param player The player whose menu cache should be cleared
+         */
+        fun clearMenuCache(player: Player) {
+            val navigator = activeNavigators[player.uniqueId]
+            if (navigator != null) {
+                navigator.clearMenuStack()
+                activeNavigators.remove(player.uniqueId)
             }
         }
     }

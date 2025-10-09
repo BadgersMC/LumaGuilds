@@ -316,4 +316,31 @@ interface WarService {
      * @return true if successful, false otherwise.
      */
     fun updateGuildWarFarmingCooldown(guildId: UUID, endTime: Instant): Boolean
+
+    /**
+     * Tracks block destruction for war objectives.
+     *
+     * @param playerId The ID of the player destroying the block.
+     * @param block The block being destroyed.
+     * @param guildId The ID of the player's guild.
+     * @return true if tracked successfully, false otherwise.
+     */
+    fun trackBlockDestruction(playerId: UUID, block: org.bukkit.block.Block, guildId: UUID): Boolean
+
+    /**
+     * Tracks TNT explosions for war objectives.
+     *
+     * @param igniterId The ID of the player who ignited the TNT.
+     * @param explodedBlocks List of blocks destroyed by the explosion.
+     * @return true if tracked successfully, false otherwise.
+     */
+    fun trackTNTExplosion(igniterId: UUID, explodedBlocks: List<org.bukkit.block.Block>): Boolean
+
+    /**
+     * Gets wars by guild ID.
+     *
+     * @param guildId The ID of the guild.
+     * @return List of wars involving the guild.
+     */
+    fun getWarsByGuildId(guildId: UUID): List<War>
 }

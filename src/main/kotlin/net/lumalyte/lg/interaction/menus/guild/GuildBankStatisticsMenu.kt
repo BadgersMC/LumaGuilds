@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.entities.TransactionType
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -24,6 +25,10 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Guild Bank Statistics and Analytics menu with financial insights and trends
@@ -32,7 +37,7 @@ class GuildBankStatisticsMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild
-) : Menu, KoinComponent {
+, private val messageService: MessageService) : Menu, KoinComponent {
 
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
@@ -61,15 +66,6 @@ class GuildBankStatisticsMenu(
         gui.show(player)
     }
 
-    override fun passData(data: Any?) {
-        // Handle refresh requests
-        if (data == "refresh") {
-            loadAnalyticsData()
-            updateAnalyticsDisplay()
-            gui.update()
-        }
-    }
-
     /**
      * Load all analytics data
      */
@@ -85,7 +81,8 @@ class GuildBankStatisticsMenu(
      */
     private fun initializeGui() {
         gui = ChestGui(6, getLocalizedString(LocalizationKeys.MENU_BANK_STATS_TITLE, guild.name))
-        gui.setOnGlobalClick { event -> event.isCancelled = true }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Create main navigation pane
         mainPane = StaticPane(0, 0, 9, 1, Pane.Priority.NORMAL)
@@ -148,7 +145,7 @@ class GuildBankStatisticsMenu(
             loadAnalyticsData()
             updateAnalyticsDisplay()
             gui.update()
-            player.sendMessage("§aStatistics refreshed!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>Statistics refreshed!")
         }
         mainPane.addItem(refreshGuiItem, 7, 0)
 

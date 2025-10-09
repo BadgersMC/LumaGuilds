@@ -10,15 +10,19 @@ import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.getValue
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimTransferMenu(private val menuNavigator: MenuNavigator, private val claim: Claim?,
-                        private val player: Player): Menu, KoinComponent {
+                        private val player: Player, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val menuFactory: MenuFactory by inject()
 
     override fun open() {
         if (claim == null) {
-            player.sendMessage("§cError: No claim available")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Error: No claim available")
             return
         }
 
@@ -27,6 +31,6 @@ class ClaimTransferMenu(private val menuNavigator: MenuNavigator, private val cl
             menuNavigator.openMenu(menuFactory.createClaimTransferNamingMenu(menuNavigator, claim, player))
         }
         menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player,
-            localizationProvider.get(playerId, LocalizationKeys.MENU_TRANSFER_TITLE), confirmAction))
+            localizationProvider.get(playerId, LocalizationKeys.MENU_TRANSFER_TITLE), messageService, confirmAction))
     }
 }

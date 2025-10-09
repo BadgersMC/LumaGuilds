@@ -10,6 +10,7 @@ import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -21,9 +22,13 @@ import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                                private var guild: Guild): Menu, KoinComponent {
+                                private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -35,14 +40,10 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     override fun open() {
         // Create 6x9 double chest GUI
-        val gui = ChestGui(6, "§6Member Management - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Member Management - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Initialize member display pane
         memberPane = StaticPane(0, 0, 9, 5)
@@ -52,10 +53,11 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         addNavigationButtons(pane)
 
         // Add action buttons
-        addInviteButton(pane, 1, 5)
-        addPromoteDemoteButton(pane, 3, 5)
-        addKickButton(pane, 5, 5)
-        addBackButton(pane, 7, 5)
+        addInviteButton(pane, 0, 5)
+        addPromoteDemoteButton(pane, 2, 5)
+        addKickButton(pane, 4, 5)
+        addBulkOperationsButton(pane, 6, 5)
+        addBackButton(pane, 8, 5)
 
         gui.addPane(memberPane)
         gui.addPane(pane)
@@ -117,11 +119,11 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         head.itemMeta = meta
 
-        return head.name("§f👤 $playerName")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Joined: §f${member.joinedAt}")
-            .lore("§7")
-            .lore("§eClick to view options")
+        return head.setAdventureName(player, messageService, "<white>👤 $playerName")
+            .addAdventureLore(player, messageService, "<gray>Player: <white>$playerName")
+            .addAdventureLore(player, messageService, "<gray>Joined: <white>${member.joinedAt}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click to view options")
     }
 
     private fun addNavigationButtons(pane: StaticPane) {
@@ -130,8 +132,8 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Previous page button
         val prevItem = ItemStack(Material.ARROW)
-            .name("§f⬅️ PREVIOUS PAGE")
-            .lore("§7Go to previous page")
+            .setAdventureName(player, messageService, "<white>⬅️ PREVIOUS PAGE")
+            .addAdventureLore(player, messageService, "<gray>Go to previous page")
 
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
@@ -143,8 +145,8 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Next page button
         val nextItem = ItemStack(Material.ARROW)
-            .name("§fNEXT PAGE ➡️")
-            .lore("§7Go to next page")
+            .setAdventureName(player, messageService, "<white>NEXT PAGE ➡️")
+            .addAdventureLore(player, messageService, "<gray>Go to next page")
 
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {
@@ -156,23 +158,23 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Page indicator
         val pageItem = ItemStack(Material.PAPER)
-            .name("§f📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
-            .lore("§7Current page indicator")
+            .setAdventureName(player, messageService, "<white>📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
+            .addAdventureLore(player, messageService, "<gray>Current page indicator")
 
         pane.addItem(GuiItem(pageItem), 4, 5)
     }
 
     private fun addInviteButton(pane: StaticPane, x: Int, y: Int) {
         val inviteItem = ItemStack(Material.GREEN_WOOL)
-            .name("§a➕ INVITE PLAYER")
-            .lore("§7Invite a new player to the guild")
-            .lore("§7Requires INVITE_MEMBERS permission")
+            .setAdventureName(player, messageService, "<green>➕ INVITE PLAYER")
+            .addAdventureLore(player, messageService, "<gray>Invite a new player to the guild")
+            .addAdventureLore(player, messageService, "<gray>Requires INVITE_MEMBERS permission")
 
         val inviteGuiItem = GuiItem(inviteItem) {
             if (memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
                 menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
             } else {
-                player.sendMessage("§c❌ You don't have permission to invite players!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to invite players!")
             }
         }
         pane.addItem(inviteGuiItem, x, y)
@@ -180,16 +182,16 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addPromoteDemoteButton(pane: StaticPane, x: Int, y: Int) {
         val promoteItem = ItemStack(Material.GOLDEN_APPLE)
-            .name("§6⬆️ PROMOTE/DEMOTE")
-            .lore("§7Change member ranks")
-            .lore("§7Requires MANAGE_MEMBERS permission")
+            .setAdventureName(player, messageService, "<gold>⬆️ PROMOTE/DEMOTE")
+            .addAdventureLore(player, messageService, "<gray>Change member ranks")
+            .addAdventureLore(player, messageService, "<gray>Requires MANAGE_MEMBERS permission")
 
         val promoteGuiItem = GuiItem(promoteItem) {
             if (memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
-                player.sendMessage("§a✅ Click on a member head to promote/demote them")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Click on a member head to promote/demote them")
                 // The member heads will handle the click events
             } else {
-                player.sendMessage("§c❌ You don't have permission to manage member ranks!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to manage member ranks!")
             }
         }
         pane.addItem(promoteGuiItem, x, y)
@@ -197,43 +199,49 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun openMemberDetails(member: Member) {
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
-            player.sendMessage("§c❌ You don't have permission to manage member ranks!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to manage member ranks!")
             return
         }
 
-        // Open member rank management menu
-        menuNavigator.openMenu(menuFactory.createGuildMemberRankMenu(menuNavigator, player, guild, member))
+        // Open individual member management menu
+        menuNavigator.openMenu(IndividualMemberManagementMenu(menuNavigator, player, guild, member, messageService))
     }
 
     private fun addKickButton(pane: StaticPane, x: Int, y: Int) {
         val kickItem = ItemStack(Material.RED_WOOL)
-            .name("§c➖ KICK PLAYER")
-            .lore("§7Remove a player from the guild")
-            .lore("§7Requires KICK_MEMBERS permission")
+            .setAdventureName(player, messageService, "<red>➖ KICK PLAYER")
+            .addAdventureLore(player, messageService, "<gray>Remove a player from the guild")
+            .addAdventureLore(player, messageService, "<gray>Requires KICK_MEMBERS permission")
 
         val kickGuiItem = GuiItem(kickItem) {
             if (memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
                 menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
             } else {
-                player.sendMessage("§c❌ You don't have permission to kick players!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to kick players!")
             }
         }
         pane.addItem(kickGuiItem, x, y)
     }
 
+    private fun addBulkOperationsButton(pane: StaticPane, x: Int, y: Int) {
+        val bulkItem = ItemStack(Material.BOOKSHELF)
+            .setAdventureName(player, messageService, "<gold>📊 BULK OPERATIONS")
+            .addAdventureLore(player, messageService, "<gray>Mass rank changes, messaging, and more")
+
+        val bulkGuiItem = GuiItem(bulkItem) {
+            menuNavigator.openMenu(GuildBulkMemberOperationsMenu(menuNavigator, player, guild, messageService))
+        }
+        pane.addItem(bulkGuiItem, x, y)
+    }
+
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
-            .lore("§7Return to guild control panel")
+            .setAdventureName(player, messageService, "<red>⬅️ BACK")
+            .addAdventureLore(player, messageService, "<gray>Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, x, y)
-    }
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    }}
 

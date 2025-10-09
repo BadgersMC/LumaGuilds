@@ -13,6 +13,8 @@ import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
+import net.lumalyte.lg.utils.MenuUtils
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import net.kyori.adventure.text.Component
@@ -26,9 +28,13 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class RankEditMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                  private var guild: Guild, private var rank: Rank): Menu, KoinComponent, ChatInputHandler {
+                  private var guild: Guild, private var rank: Rank, private val messageService: MessageService): Menu, KoinComponent, ChatInputHandler {
 
     private val rankService: RankService by inject()
     private val memberService: MemberService by inject()
@@ -39,6 +45,17 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     // Edit state
     private var inputMode: String = "" // "name" or "icon"
     private var selectedIcon: Material = loadRankIcon() // Track selected icon
+    private var inheritanceMode: Boolean = false // Track inheritance settings
+
+    // Cached properties for performance
+    private val isOwnerRank: Boolean
+        get() = rank.id == rankService.getHighestRank(guild.id)?.id
+
+    private val isEditingOwnOwnerRank: Boolean
+        get() = isOwnerRank && isGuildOwner()
+
+    private val memberCount: Int
+        get() = memberService.getMembersByRank(guild.id, rank.id).size
     
     // Check if the current player is the guild owner
     private fun isGuildOwner(): Boolean {
@@ -47,16 +64,6 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         return playerRank?.id == ownerRank?.id
     }
     
-    // Check if the rank being edited is the owner rank
-    private fun isOwnerRank(): Boolean {
-        val ownerRank = rankService.getHighestRank(guild.id)
-        return rank.id == ownerRank?.id
-    }
-    
-    // Check if the player is editing their own owner rank
-    private fun isEditingOwnOwnerRank(): Boolean {
-        return isGuildOwner() && isOwnerRank()
-    }
 
     // Load the current rank's icon or default to AIR
     private fun loadRankIcon(): Material {
@@ -85,14 +92,10 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     }
 
     override fun open() {
-        val gui = ChestGui(6, "§6Edit Rank: ${rank.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Edit Rank: ${rank.name}"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Row 0: Rank Information
@@ -100,6 +103,9 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Row 1-4: Permission Categories
         addPermissionCategories(pane)
+
+        // Row 4: Advanced features
+        addAdvancedFeatures(pane)
 
         // Row 5: Actions
         addActionButtons(pane)
@@ -110,34 +116,34 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     private fun addRankInfoSection(pane: StaticPane) {
         // Rank name and basic info
         val infoItem = ItemStack(Material.NAME_TAG)
-            .name("§6📝 Rank Information")
-            .lore("§7Name: §f${rank.name}")
-            .lore("§7Priority: §f${rank.priority}")
-            .lore("§7Members: §f${getMemberCount()} players")
+            .setAdventureName(player, messageService, "<gold>📝 Rank Information")
+            .addAdventureLore(player, messageService, "<gray>Name: <white>${rank.name}")
+            .addAdventureLore(player, messageService, "<gray>Priority: <white>${rank.priority}")
+            .addAdventureLore(player, messageService, "<gray>Members: <white>${memberCount} players")
             
         // Add owner protection warning if editing own owner rank
-        if (isEditingOwnOwnerRank()) {
-            infoItem.lore("§7")
-                .lore("§c⚠︎ OWNER RANK PROTECTION")
-                .lore("§7Permission changes are blocked")
-                .lore("§7to prevent self-lockout")
+        if (isEditingOwnOwnerRank) {
+            infoItem.addAdventureLore(player, messageService, "<gray>")
+                .addAdventureLore(player, messageService, "<red>⚠︎ OWNER RANK PROTECTION")
+                .addAdventureLore(player, messageService, "<gray>Permission changes are blocked")
+                .addAdventureLore(player, messageService, "<gray>to prevent self-lockout")
         }
         
-        infoItem.lore("§7")
+        infoItem.addAdventureLore(player, messageService, "<gray>")
 
         if (inputMode == "name") {
-            infoItem.name("§e⏳ WAITING FOR NAME INPUT...")
-                .lore("§7Type the new rank name in chat")
-                .lore("§7Or click cancel to stop")
+            infoItem.setAdventureName(player, messageService, "<yellow>⏳ WAITING FOR NAME INPUT...")
+                .addAdventureLore(player, messageService, "<gray>Type the new rank name in chat")
+                .addAdventureLore(player, messageService, "<gray>Or click cancel to stop")
         } else {
-            infoItem.lore("§eClick to rename rank")
+            infoItem.addAdventureLore(player, messageService, "<yellow>Click to rename rank")
         }
 
         val infoGuiItem = GuiItem(infoItem) {
             if (inputMode != "name") {
                 startNameInput()
             } else {
-                player.sendMessage("§eAlready waiting for name input. Type the name or click cancel.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Already waiting for name input. Type the name or click cancel.")
             }
         }
         pane.addItem(infoGuiItem, 1, 0)
@@ -145,39 +151,39 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         // Rank icon selection
         val displayIcon = if (selectedIcon == Material.AIR) Material.DIAMOND_SWORD else selectedIcon
         val iconItem = ItemStack(displayIcon)
-            .name("§6🎨 Rank Icon")
-            .lore("§7Current: §f${if (selectedIcon == Material.AIR) "Not set" else selectedIcon.name}")
-            .lore("§7")
-            .lore("§7Examples:")
-            .lore("§7• diamond, gold_ingot, emerald")
-            .lore("§7• diamond_sword, golden_apple")
-            .lore("§7")
-            .lore("§e📖 Clickable link in chat")
+            .setAdventureName(player, messageService, "<gold>🎨 Rank Icon")
+            .lore("<gray>Current: <white>${if (selectedIcon == Material.AIR) "Not set" else selectedIcon.name}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Examples:")
+            .addAdventureLore(player, messageService, "<gray>• diamond, gold_ingot, emerald")
+            .addAdventureLore(player, messageService, "<gray>• diamond_sword, golden_apple")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>📖 Clickable link in chat")
 
         if (inputMode == "icon") {
-            iconItem.name("§e⏳ WAITING FOR ICON INPUT...")
-                .lore("§7Type the material name in chat")
-                .lore("§7Examples: diamond, gold_ingot, etc.")
-                .lore("§7Or click cancel to stop")
+            iconItem.setAdventureName(player, messageService, "<yellow>⏳ WAITING FOR ICON INPUT...")
+                .addAdventureLore(player, messageService, "<gray>Type the material name in chat")
+                .addAdventureLore(player, messageService, "<gray>Examples: diamond, gold_ingot, etc.")
+                .addAdventureLore(player, messageService, "<gray>Or click cancel to stop")
         } else {
-            iconItem.lore("§eClick to change rank icon")
+            iconItem.addAdventureLore(player, messageService, "<yellow>Click to change rank icon")
         }
 
         val iconGuiItem = GuiItem(iconItem) {
             if (inputMode != "icon") {
                 startIconInput()
             } else {
-                player.sendMessage("§eAlready waiting for icon input. Type the material name or click cancel.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Already waiting for icon input. Type the material name or click cancel.")
             }
         }
         pane.addItem(iconGuiItem, 3, 0)
 
         // Permission count
         val permCountItem = ItemStack(Material.BOOK)
-            .name("§6📊 Permission Summary")
-            .lore("§7Total Permissions: §f${rank.permissions.size}")
-            .lore("§7")
-            .lore("§7Manage permissions below")
+            .setAdventureName(player, messageService, "<gold>📊 Permission Summary")
+            .addAdventureLore(player, messageService, "<gray>Total Permissions: <white>${rank.permissions.size}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Manage permissions below")
 
         pane.addItem(GuiItem(permCountItem), 7, 0)
     }
@@ -238,35 +244,35 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                     "Administrative" -> Material.COMMAND_BLOCK
                     else -> Material.PAPER
                 }
-            ).name("§6🔧 $categoryName")
+            ).setAdventureName(player, messageService, "<gold>🔧 $categoryName")
 
-            categoryItem.lore("§7Permissions in this category:")
+            categoryItem.addAdventureLore(player, messageService, "<gray>Permissions in this category:")
             permissions.forEach { permission ->
                 val hasPermission = rank.permissions.contains(permission)
                 val displayName = permission.name.replace("_", " ").lowercase()
                     .split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
-                categoryItem.lore("§7• ${if (hasPermission) "§a✓" else "§c✗"} §f$displayName")
+                categoryItem.lore("<gray>• ${if (hasPermission) "§a✓" else "<red>✗"} §f$displayName")
             }
 
-            categoryItem.lore("§7")
+            categoryItem.addAdventureLore(player, messageService, "<gray>")
             when {
-                hasAllPermissions -> categoryItem.lore("§a✅ All permissions enabled")
-                hasAnyPermission -> categoryItem.lore("§e⚠️ Some permissions enabled")
-                else -> categoryItem.lore("§c❌ No permissions enabled")
+                hasAllPermissions -> categoryItem.addAdventureLore(player, messageService, "<green>✅ All permissions enabled")
+                hasAnyPermission -> categoryItem.addAdventureLore(player, messageService, "<yellow>⚠️ Some permissions enabled")
+                else -> categoryItem.addAdventureLore(player, messageService, "<red>❌ No permissions enabled")
             }
-            categoryItem.lore("§7")
-            categoryItem.lore("§eClick to manage permissions")
+            categoryItem.addAdventureLore(player, messageService, "<gray>")
+            categoryItem.addAdventureLore(player, messageService, "<yellow>Click to manage permissions")
 
             val categoryGuiItem = GuiItem(categoryItem) {
                 // Prevent owner from removing their own permissions
-                if (isEditingOwnOwnerRank()) {
-                    player.sendMessage("§c❌ You cannot modify your own owner rank permissions!")
-                    player.sendMessage("§7This prevents you from locking yourself out of guild management.")
+                if (isEditingOwnOwnerRank) {
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You cannot modify your own owner rank permissions!")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>This prevents you from locking yourself out of guild management.")
                     return@GuiItem
                 }
                 // Prevent opening Claims category when claims are disabled
                 if (categoryName == "Claims" && !areClaimsEnabled()) {
-                    player.sendMessage("§c❌ Claims system is disabled - claim permissions are not available.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Claims system is disabled - claim permissions are not available.")
                     return@GuiItem
                 }
                 openPermissionCategoryMenu(categoryName, permissions)
@@ -275,13 +281,393 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         }
     }
 
+    /**
+     * Add advanced features section (rank reset, deletion, inheritance)
+     */
+    private fun addAdvancedFeatures(pane: StaticPane) {
+        // Rank reset button
+        val resetItem = ItemStack(Material.REDSTONE)
+            .setAdventureName(player, messageService, "<red>🔄 Reset Permissions")
+            .addAdventureLore(player, messageService, "<gray>Clear all permissions from this rank")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>⚠️ This will remove ALL permissions!")
+            .addAdventureLore(player, messageService, "<gray>Members will lose access to features")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click to reset permissions")
+
+        val resetGuiItem = GuiItem(resetItem) { event ->
+            event.isCancelled = true
+            openResetConfirmationMenu()
+        }
+        pane.addItem(resetGuiItem, 0, 4)
+
+        // Rank deletion button (only for non-owner ranks)
+        if (!isOwnerRank) {
+            val deleteItem = ItemStack(Material.BARRIER)
+                .setAdventureName(player, messageService, "<red>🗑️ Delete Rank")
+                .addAdventureLore(player, messageService, "<gray>Permanently delete this rank")
+                .addAdventureLore(player, messageService, "<gray>")
+                .addAdventureLore(player, messageService, "<gray>⚠️ This action cannot be undone!")
+                .addAdventureLore(player, messageService, "<gray>All members will need reassignment")
+                .addAdventureLore(player, messageService, "<gray>")
+                .addAdventureLore(player, messageService, "<yellow>Click to delete rank")
+
+            val deleteGuiItem = GuiItem(deleteItem) { event ->
+                event.isCancelled = true
+                openDeleteConfirmationMenu()
+            }
+            pane.addItem(deleteGuiItem, 1, 4)
+        } else {
+            val cannotDeleteItem = ItemStack(Material.GRAY_WOOL)
+                .setAdventureName(player, messageService, "<gray>Cannot Delete Owner Rank")
+                .addAdventureLore(player, messageService, "<gray>Owner ranks cannot be deleted")
+                .addAdventureLore(player, messageService, "<gray>This prevents guild lockout")
+            pane.addItem(GuiItem(cannotDeleteItem), 1, 4)
+        }
+
+        // Inheritance configuration
+        val inheritanceItem = ItemStack(Material.CHAIN)
+            .setAdventureName(player, messageService, "<gold>🔗 Permission Inheritance")
+            .addAdventureLore(player, messageService, "<gray>Configure which ranks this rank inherits from")
+            .addAdventureLore(player, messageService, "<gray>")
+            .lore("<gray>Current: ${if (inheritanceMode) "§aEnabled" else "<gray>Disabled"}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click to configure inheritance")
+
+        val inheritanceGuiItem = GuiItem(inheritanceItem) { event ->
+            event.isCancelled = true
+            openInheritanceMenu()
+        }
+        pane.addItem(inheritanceGuiItem, 2, 4)
+
+        // Bulk permission operations
+        val bulkItem = ItemStack(Material.DIAMOND_SWORD)
+            .setAdventureName(player, messageService, "<gold>⚔️ Bulk Operations")
+            .addAdventureLore(player, messageService, "<gray>Apply operations to all permissions")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>• Select/Deselect all")
+            .addAdventureLore(player, messageService, "<gray>• Smart selection")
+            .addAdventureLore(player, messageService, "<gray>• Category operations")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click for bulk operations")
+
+        val bulkGuiItem = GuiItem(bulkItem) { event ->
+            event.isCancelled = true
+            openBulkOperationsMenu()
+        }
+        pane.addItem(bulkGuiItem, 3, 4)
+    }
+
+    /**
+     * Open rank reset confirmation menu
+     */
+    private fun openResetConfirmationMenu() {
+        val confirmationMenu = object : Menu {
+            override fun open() {
+                val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<red><red>Confirm Permission Reset"))
+                AntiDupeUtil.protect(gui)
+
+                val pane = StaticPane(0, 0, 9, 3)
+                gui.addPane(pane)
+
+                // Warning message
+                val warningItem = ItemStack(Material.RED_WOOL)
+                    .setAdventureName(player, messageService, "<red>⚠️ CONFIRM PERMISSION RESET")
+                    .addAdventureLore(player, messageService, "<gray>This will remove ALL permissions from:")
+                    .addAdventureLore(player, messageService, "<white>${rank.name}")
+                    .addAdventureLore(player, messageService, "<gray>")
+                    .addAdventureLore(player, messageService, "<gray>Affected members: ${memberCount}")
+                    .addAdventureLore(player, messageService, "<gray>")
+                    .addAdventureLore(player, messageService, "<red>This action cannot be undone!")
+                    .addAdventureLore(player, messageService, "<gray>Members may lose access to features")
+
+                pane.addItem(GuiItem(warningItem), 4, 0)
+
+                // Confirm button
+                val confirmItem = ItemStack(Material.GREEN_WOOL)
+                    .setAdventureName(player, messageService, "<green>CONFIRM RESET")
+                    .addAdventureLore(player, messageService, "<gray>Reset all permissions")
+
+                val confirmGuiItem = GuiItem(confirmItem) { event ->
+                    event.isCancelled = true
+                    val success = resetRankPermissions()
+                    if (success) {
+                        AdventureMenuHelper.sendMessage(player, messageService, "<green>Successfully reset all permissions for ${rank.name}!")
+                        menuNavigator.openMenu(this@RankEditMenu)
+                    } else {
+                        AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to reset permissions!")
+                    }
+                }
+                pane.addItem(confirmGuiItem, 3, 2)
+
+                // Cancel button
+                val cancelItem = ItemStack(Material.RED_WOOL)
+                    .setAdventureName(player, messageService, "<red>CANCEL")
+                    .addAdventureLore(player, messageService, "<gray>Cancel the reset")
+
+                val cancelGuiItem = GuiItem(cancelItem) { event ->
+                    event.isCancelled = true
+                    menuNavigator.openMenu(this@RankEditMenu)
+                }
+                pane.addItem(cancelGuiItem, 5, 2)
+
+                gui.show(player)
+            }
+
+            override fun passData(data: Any?) = Unit
+        }
+
+        menuNavigator.openMenu(confirmationMenu)
+    }
+
+    /**
+     * Open rank deletion confirmation menu
+     */
+    private fun openDeleteConfirmationMenu() {
+        val confirmationMenu = object : Menu {
+            override fun open() {
+                val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<red><red>Confirm Rank Deletion"))
+                AntiDupeUtil.protect(gui)
+
+                val pane = StaticPane(0, 0, 9, 4)
+                gui.addPane(pane)
+
+                // Warning message
+                val warningItem = ItemStack(Material.RED_WOOL)
+                    .setAdventureName(player, messageService, "<red>⚠️ CONFIRM RANK DELETION")
+                    .addAdventureLore(player, messageService, "<gray>This will permanently delete:")
+                    .addAdventureLore(player, messageService, "<white>${rank.name}")
+                    .addAdventureLore(player, messageService, "<gray>")
+                    .addAdventureLore(player, messageService, "<gray>Affected members: ${memberCount}")
+                    .addAdventureLore(player, messageService, "<gray>Members will need reassignment")
+                    .addAdventureLore(player, messageService, "<gray>")
+                    .addAdventureLore(player, messageService, "<red>This action cannot be undone!")
+
+                pane.addItem(GuiItem(warningItem), 4, 0)
+
+                // Reassignment options
+                val reassignLabel = ItemStack(Material.PAPER)
+                    .setAdventureName(player, messageService, "<gold>Member Reassignment")
+                    .addAdventureLore(player, messageService, "<gray>Select a rank to move members to:")
+
+                pane.addItem(GuiItem(reassignLabel), 4, 1)
+
+                // Get available ranks for reassignment
+                val availableRanks = rankService.getRanksByGuild(guild.id)
+                    .filter { it.id != rank.id } // Don't include the rank being deleted
+
+                if (availableRanks.isNotEmpty()) {
+                    availableRanks.toList().take(5).forEachIndexed { index: Int, targetRank: Rank ->
+                        val rankItem = ItemStack(Material.BOOK)
+                            .setAdventureName(player, messageService, "<white>${targetRank.name}")
+                            .addAdventureLore(player, messageService, "<gray>Priority: ${targetRank.priority}")
+                            .addAdventureLore(player, messageService, "<gray>Click to select for reassignment")
+
+                        val rankGuiItem = GuiItem(rankItem) { event ->
+                            event.isCancelled = true
+                            val success = deleteRankWithReassignment(targetRank)
+                            if (success) {
+                                AdventureMenuHelper.sendMessage(player, messageService, "<green>Successfully deleted ${rank.name} and reassigned ${memberCount} members to ${targetRank.name}!")
+                                player.closeInventory()
+                            } else {
+                                AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to delete rank!")
+                            }
+                        }
+                        pane.addItem(rankGuiItem, index * 2, 2)
+                    }
+                } else {
+                    val noRanksItem = ItemStack(Material.BARRIER)
+                        .setAdventureName(player, messageService, "<red>No Other Ranks Available")
+                        .addAdventureLore(player, messageService, "<gray>Cannot delete the only rank")
+                    pane.addItem(GuiItem(noRanksItem), 4, 2)
+                }
+
+                // Cancel button
+                val cancelItem = ItemStack(Material.RED_WOOL)
+                    .setAdventureName(player, messageService, "<red>CANCEL")
+                    .addAdventureLore(player, messageService, "<gray>Cancel the deletion")
+
+                val cancelGuiItem = GuiItem(cancelItem) { event ->
+                    event.isCancelled = true
+                    menuNavigator.openMenu(this@RankEditMenu)
+                }
+                pane.addItem(cancelGuiItem, 8, 3)
+
+                gui.show(player)
+            }
+
+            override fun passData(data: Any?) = Unit
+        }
+
+        menuNavigator.openMenu(confirmationMenu)
+    }
+
+    /**
+     * Open inheritance configuration menu
+     */
+    private fun openInheritanceMenu() {
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<blue><blue>Rank Inheritance Configuration"))
+
+        val mainPane = StaticPane(0, 0, 9, 5)
+        val navigationPane = StaticPane(0, 5, 9, 1)
+
+        // Get all ranks for this guild
+        val allRanks = rankService.listRanks(guild.id)
+
+        // Current inheritance info
+        val currentInheritance = rankService.getRankInheritance(rank.id)
+
+        var slot = 0
+        // Show current parent ranks
+        mainPane.addItem(GuiItem(ItemStack(Material.GREEN_WOOL).setAdventureName(player, messageService, "<green>Parent Ranks").addAdventureLore(player, messageService, "<gray>Ranks this rank inherits from")), 0, 0)
+
+        val parents = currentInheritance?.parents ?: emptySet()
+        if (parents.isEmpty()) {
+            mainPane.addItem(GuiItem(ItemStack(Material.GRAY_STAINED_GLASS_PANE).setAdventureName(player, messageService, "<gray>No Parent Ranks").addAdventureLore(player, messageService, "<gray>Click to add inheritance")), 1, 0)
+        } else {
+            var slot = 0
+            parents.forEach { parentRank ->
+                val parentItem = ItemStack(Material.LIME_WOOL)
+                    .setAdventureName(player, messageService, "<green>${parentRank.name}")
+                    .addAdventureLore(player, messageService, "<gray>Inherits permissions from this rank")
+                    .addAdventureLore(player, messageService, "<red>Click to remove inheritance")
+
+                val parentGuiItem = GuiItem(parentItem) { event ->
+                    event.isCancelled = true
+                    if (rankService.removeRankInheritance(rank.id, parentRank.id)) {
+                        AdventureMenuHelper.sendMessage(player, messageService, "<green>Removed inheritance from ${parentRank.name}")
+                        openInheritanceMenu() // Refresh
+                    } else {
+                        AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to remove inheritance")
+                    }
+                }
+                mainPane.addItem(parentGuiItem, slot % 7 + 1, slot / 7)
+                slot++
+            }
+        }
+
+        // Show available ranks to inherit from (excluding current rank and its children)
+        val availableParents = allRanks.filter { it.id != rank.id && !isChildRank(it.id, rank.id) }
+        if (availableParents.isNotEmpty()) {
+            slot = 0
+            mainPane.addItem(GuiItem(ItemStack(Material.BLUE_WOOL).setAdventureName(player, messageService, "<blue>Available Parent Ranks").addAdventureLore(player, messageService, "<gray>Ranks this rank can inherit from")), 0, 2)
+
+            availableParents.forEach { availableRank ->
+                val availableItem = ItemStack(Material.BLUE_WOOL)
+                    .setAdventureName(player, messageService, "<blue>${availableRank.name}")
+                    .addAdventureLore(player, messageService, "<gray>Click to add inheritance")
+
+                val availableGuiItem = GuiItem(availableItem) { event ->
+                    event.isCancelled = true
+                    if (rankService.addRankInheritance(rank.id, availableRank.id)) {
+                        AdventureMenuHelper.sendMessage(player, messageService, "<green>Added inheritance from ${availableRank.name}")
+                        openInheritanceMenu() // Refresh
+                    } else {
+                        AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to add inheritance")
+                    }
+                }
+
+                val x = slot % 7 + 1
+                val y = slot / 7 + 2
+                if (y < 5) { // Keep within bounds
+                    mainPane.addItem(availableGuiItem, x, y)
+                    slot++
+                }
+            }
+        }
+
+        // Show child ranks (ranks that inherit from this rank)
+        val childRanks = allRanks.filter { isChildRank(rank.id, it.id) }
+        if (childRanks.isNotEmpty()) {
+            slot = 0
+            mainPane.addItem(GuiItem(ItemStack(Material.ORANGE_WOOL).setAdventureName(player, messageService, "<gold>Child Ranks").addAdventureLore(player, messageService, "<gray>Ranks that inherit from this rank")), 0, 4)
+
+            childRanks.forEach { childRank ->
+                val childItem = ItemStack(Material.ORANGE_WOOL)
+                    .setAdventureName(player, messageService, "<gold>${childRank.name}")
+                    .addAdventureLore(player, messageService, "<gray>Inherits permissions from this rank")
+
+                mainPane.addItem(GuiItem(childItem), slot % 7 + 1, slot / 7 + 4)
+                slot++
+            }
+        }
+
+        // Navigation
+        val backItem = ItemStack(Material.ARROW).setAdventureName(player, messageService, "<red>Back").addAdventureLore(player, messageService, "<gray>Return to rank editing")
+        val backGuiItem = GuiItem(backItem) {
+            open() // Return to main edit menu
+        }
+        navigationPane.addItem(backGuiItem, 0, 0)
+
+        val infoItem = ItemStack(Material.BOOK).setAdventureName(player, messageService, "<yellow>Inheritance Info").lore(
+            "<gray>Parent ranks provide permissions to this rank",
+            "<gray>Child ranks receive permissions from this rank",
+            "<gray>Inheritance creates a hierarchy of permissions"
+        )
+        navigationPane.addItem(GuiItem(infoItem), 4, 0)
+
+        gui.addPane(mainPane)
+        gui.addPane(navigationPane)
+        gui.show(player)
+    }
+
+    /**
+     * Check if rankA is a child of rankB (rankA inherits from rankB)
+     */
+    private fun isChildRank(parentRankId: java.util.UUID, childRankId: java.util.UUID): Boolean {
+        val childInheritance = rankService.getRankInheritance(childRankId) ?: return false
+        return childInheritance.parents.any { it.id == parentRankId }
+    }
+
+    /**
+     * Open bulk operations menu
+     */
+    private fun openBulkOperationsMenu() {
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Bulk operations coming soon!")
+    }
+
+    /**
+     * Reset all permissions for this rank
+     */
+    private fun resetRankPermissions(): Boolean {
+        return try {
+            val updatedRank = rank.copy(permissions = emptySet())
+            rankService.updateRank(updatedRank)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Delete rank with member reassignment
+     */
+    private fun deleteRankWithReassignment(targetRank: Rank): Boolean {
+        return try {
+            // Reassign all members of this rank to the target rank
+            val members = memberService.getMembersByRank(guild.id, rank.id)
+            var successCount = 0
+
+            members.forEach { member ->
+                if (memberService.changeMemberRank(member.playerId, guild.id, targetRank.id, player.uniqueId)) {
+                    successCount++
+                }
+            }
+
+            // Delete the rank
+            rankService.deleteRank(rank.id, player.uniqueId)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+
     private fun addActionButtons(pane: StaticPane) {
         // Save changes
         val saveItem = ItemStack(Material.EMERALD_BLOCK)
-            .name("§a💾 Save Changes")
-            .lore("§7Apply all permission changes")
-            .lore("§7")
-            .lore("§aClick to save")
+            .setAdventureName(player, messageService, "<green>💾 Save Changes")
+            .addAdventureLore(player, messageService, "<gray>Apply all permission changes")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<green>Click to save")
 
         val saveGuiItem = GuiItem(saveItem) {
             // Create updated rank with current permissions and new icon
@@ -295,11 +681,11 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             val success = rankService.updateRank(updatedRank)
 
             if (success) {
-                player.sendMessage("§a✅ Rank changes saved!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Rank changes saved!")
                 // Update local rank reference
                 rank = updatedRank
             } else {
-                player.sendMessage("§c❌ Failed to save rank changes!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to save rank changes!")
             }
 
             menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
@@ -308,37 +694,37 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Reset to defaults
         val resetItem = ItemStack(Material.BARRIER)
-            .name("§c🔄 Reset Permissions")
-            .lore("§7Clear all permissions")
-            .lore("§7This cannot be undone")
-            .lore("§7")
-            .lore("§cClick to reset")
+            .setAdventureName(player, messageService, "<red>🔄 Reset Permissions")
+            .addAdventureLore(player, messageService, "<gray>Clear all permissions")
+            .addAdventureLore(player, messageService, "<gray>This cannot be undone")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<red>Click to reset")
 
         val resetGuiItem = GuiItem(resetItem) {
-            player.sendMessage("§eReset functionality coming soon!")
-            player.sendMessage("§7This will clear all permissions for this rank.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Reset functionality coming soon!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<gray>This will clear all permissions for this rank.")
         }
         pane.addItem(resetGuiItem, 3, 5)
 
         // Delete rank
         val deleteItem = ItemStack(Material.TNT)
-            .name("§4🗑️ Delete Rank")
-            .lore("§7Permanently remove this rank")
-            .lore("§7Members will be unassigned")
-            .lore("§7")
-            .lore("§4⚠️ DESTRUCTIVE ACTION")
-            .lore("§cClick to delete")
+            .setAdventureName(player, messageService, "<dark_red>🗑️ Delete Rank")
+            .addAdventureLore(player, messageService, "<gray>Permanently remove this rank")
+            .addAdventureLore(player, messageService, "<gray>Members will be unassigned")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<dark_red>⚠️ DESTRUCTIVE ACTION")
+            .addAdventureLore(player, messageService, "<red>Click to delete")
 
         val deleteGuiItem = GuiItem(deleteItem) {
-            player.sendMessage("§eRank deletion coming soon!")
-            player.sendMessage("§7This will show a confirmation menu.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Rank deletion coming soon!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<gray>This will show a confirmation menu.")
         }
         pane.addItem(deleteGuiItem, 5, 5)
 
         // Back to rank management
         val backItem = ItemStack(Material.ARROW)
-            .name("§7⬅️ Back")
-            .lore("§7Return to rank management")
+            .setAdventureName(player, messageService, "<gray>⬅️ Back")
+            .addAdventureLore(player, messageService, "<gray>Return to rank management")
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
@@ -354,29 +740,26 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 guild,
                 rank,
                 categoryName,
-                permissions
+                permissions,
+                messageService
             )
         )
     }
 
-    private fun getMemberCount(): Int {
-        // TODO: Get actual member count from MemberService
-        return 0
-    }
 
     private fun startNameInput() {
         inputMode = "name"
         chatInputListener.startInputMode(player, this)
         player.closeInventory()
 
-        player.sendMessage("§6=== RANK NAME EDIT ===")
-        player.sendMessage("§7Type the new rank name in chat.")
-        player.sendMessage("§7Current name: §f${rank.name}")
-        player.sendMessage("§7Requirements:")
-        player.sendMessage("§7• 1-24 characters")
-        player.sendMessage("§7• No special characters")
-        player.sendMessage("§7Type 'cancel' to stop input mode")
-        player.sendMessage("§6=======================")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gold>=== RANK NAME EDIT ===")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Type the new rank name in chat.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Current name: <white>${rank.name}")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Requirements:")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>• 1-24 characters")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>• No special characters")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Type 'cancel' to stop input mode")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gold>=======================")
     }
 
     private fun startIconInput() {
@@ -384,15 +767,15 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         chatInputListener.startInputMode(player, this)
         player.closeInventory()
 
-        player.sendMessage("§6=== RANK ICON EDIT ===")
-        player.sendMessage("§7Type the material name in chat.")
-        player.sendMessage("§7Examples:")
-        player.sendMessage("§7  diamond, gold_ingot, emerald")
-        player.sendMessage("§7  diamond_sword, golden_apple")
-        player.sendMessage("§7  iron_block, netherite_ingot")
-        player.sendMessage("§7")
-        player.sendMessage("§7Must be a valid Bukkit Material enum")
-        player.sendMessage("§7")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gold>=== RANK ICON EDIT ===")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Type the material name in chat.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Examples:")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>  diamond, gold_ingot, emerald")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>  diamond_sword, golden_apple")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>  iron_block, netherite_ingot")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Must be a valid Bukkit Material enum")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>")
         
         // Create clickable link using Adventure API
         val linkText = Component.text("📖 Full material list: ")
@@ -405,9 +788,9 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             )
         player.sendMessage(linkText)
         
-        player.sendMessage("§7")
-        player.sendMessage("§7Type 'cancel' to stop input mode")
-        player.sendMessage("§6=======================")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Type 'cancel' to stop input mode")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gold>=======================")
     }
 
     private fun validateRankName(name: String): String? {
@@ -435,28 +818,28 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             "name" -> {
                 val error = validateRankName(input)
                 if (error != null) {
-                    player.sendMessage("§c❌ Invalid name: $error")
-                    player.sendMessage("§7Please try again or type 'cancel' to stop.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Invalid name: $error")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Please try again or type 'cancel' to stop.")
                     // Keep input mode active and reopen menu for retry
                 } else {
                     // TODO: Update rank name in database
-                    player.sendMessage("§a✅ Rank name updated to: '$input'")
-                    player.sendMessage("§7Changes will be saved when you apply them.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Rank name updated to: '$input'")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Changes will be saved when you apply them.")
                     inputMode = ""
                 }
             }
             "icon" -> {
                 val material = validateMaterial(input)
                 if (material == null) {
-                    player.sendMessage("§c❌ Invalid material: '$input'")
-                    player.sendMessage("§7Examples: diamond, gold_ingot, emerald_block")
-                    player.sendMessage("§7Please try again or type 'cancel' to stop.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Invalid material: '$input'")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Examples: diamond, gold_ingot, emerald_block")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Please try again or type 'cancel' to stop.")
                     // Keep input mode active and reopen menu for retry
                 } else {
                     selectedIcon = material
                     // TODO: Update rank icon in database
-                    player.sendMessage("§a✅ Rank icon updated to: ${material.name}")
-                    player.sendMessage("§7Changes will be saved when you apply them.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Rank icon updated to: ${material.name}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Changes will be saved when you apply them.")
                     inputMode = ""
                 }
             }
@@ -471,20 +854,13 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
     override fun onCancel(player: Player) {
         inputMode = ""
-        player.sendMessage("§7Input cancelled.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Input cancelled.")
 
         // Reopen the menu
         val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
         Bukkit.getScheduler().runTask(plugin, Runnable {
             open()
         })
-    }
-
-    override fun passData(data: Any?) {
-        when (data) {
-            is Guild -> guild = data
-            is Rank -> rank = data
-        }
     }
 }
 

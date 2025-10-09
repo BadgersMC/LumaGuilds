@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -18,23 +19,23 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                        private var guild: Guild): Menu, KoinComponent {
+                        private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val relationService: RelationService by inject()
     private val guildService: GuildService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
-        val gui = ChestGui(6, "§bDiplomatic Relations - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<aqua><aqua>Diplomatic Relations - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Row 1: Current Relations Overview
@@ -65,10 +66,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Allies
         val alliesItem = ItemStack(if (allies > 0) Material.DIAMOND else Material.GRAY_DYE)
-            .name("§aAllies")
-            .lore("§7Guilds you are allied with")
-            .lore("§7Count: §f$allies")
-            .lore("§7Can coordinate and support each other")
+            .setAdventureName(player, messageService, "<green>Allies")
+            .addAdventureLore(player, messageService, "<gray>Guilds you are allied with")
+            .addAdventureLore(player, messageService, "<gray>Count: <white>$allies")
+            .addAdventureLore(player, messageService, "<gray>Can coordinate and support each other")
 
         val alliesGuiItem = GuiItem(alliesItem) {
             openAlliesListMenu()
@@ -77,10 +78,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Enemies
         val enemiesItem = ItemStack(if (enemies > 0) Material.REDSTONE else Material.GRAY_DYE)
-            .name("§cEnemies")
-            .lore("§7Guilds you are at war with")
-            .lore("§7Count: §f$enemies")
-            .lore("§7Can engage in warfare")
+            .setAdventureName(player, messageService, "<red>Enemies")
+            .addAdventureLore(player, messageService, "<gray>Guilds you are at war with")
+            .addAdventureLore(player, messageService, "<gray>Count: <white>$enemies")
+            .addAdventureLore(player, messageService, "<gray>Can engage in warfare")
 
         val enemiesGuiItem = GuiItem(enemiesItem) {
             openEnemiesListMenu()
@@ -89,10 +90,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Truces
         val trucesItem = ItemStack(if (truces > 0) Material.CLOCK else Material.GRAY_DYE)
-            .name("§eTruces")
-            .lore("§7Temporary ceasefires")
-            .lore("§7Count: §f$truces")
-            .lore("§7Peace agreements with expiration")
+            .setAdventureName(player, messageService, "<yellow>Truces")
+            .addAdventureLore(player, messageService, "<gray>Temporary ceasefires")
+            .addAdventureLore(player, messageService, "<gray>Count: <white>$truces")
+            .addAdventureLore(player, messageService, "<gray>Peace agreements with expiration")
 
         val trucesGuiItem = GuiItem(trucesItem) {
             openTrucesListMenu()
@@ -101,9 +102,9 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Diplomatic Status
         val statusItem = ItemStack(Material.BOOK)
-            .name("§bDiplomatic Status")
-            .lore("§7Your guild's diplomatic standing")
-            .lore("§7Allies: §a$allies §7| Enemies: §c$enemies §7| Truces: §e$truces")
+            .setAdventureName(player, messageService, "<aqua>Diplomatic Status")
+            .addAdventureLore(player, messageService, "<gray>Your guild's diplomatic standing")
+            .addAdventureLore(player, messageService, "<gray>Allies: <green>$allies <gray>| Enemies: <red>$enemies <gray>| Truces: <yellow>$truces")
 
         val statusGuiItem = GuiItem(statusItem) {
             openDiplomaticStatusMenu()
@@ -117,10 +118,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Incoming requests
         val incomingItem = ItemStack(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
-            .name("§aIncoming Requests")
-            .lore("§7Diplomatic requests from other guilds")
-            .lore("§7Count: §f${incomingRequests.size}")
-            .lore("§7Alliance and truce proposals")
+            .setAdventureName(player, messageService, "<green>Incoming Requests")
+            .addAdventureLore(player, messageService, "<gray>Diplomatic requests from other guilds")
+            .addAdventureLore(player, messageService, "<gray>Count: <white>${incomingRequests.size}")
+            .addAdventureLore(player, messageService, "<gray>Alliance and truce proposals")
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingRequestsMenu()
@@ -129,10 +130,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Outgoing requests
         val outgoingItem = ItemStack(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
-            .name("§eOutgoing Requests")
-            .lore("§7Your guild's pending requests")
-            .lore("§7Count: §f${outgoingRequests.size}")
-            .lore("§7Awaiting other guild responses")
+            .setAdventureName(player, messageService, "<yellow>Outgoing Requests")
+            .addAdventureLore(player, messageService, "<gray>Your guild's pending requests")
+            .addAdventureLore(player, messageService, "<gray>Count: <white>${outgoingRequests.size}")
+            .addAdventureLore(player, messageService, "<gray>Awaiting other guild responses")
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingRequestsMenu()
@@ -143,10 +144,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     private fun addDiplomaticActionsSection(pane: StaticPane) {
         // Request Alliance
         val allianceItem = ItemStack(Material.GOLDEN_APPLE)
-            .name("§6Request Alliance")
-            .lore("§7Propose an alliance with another guild")
-            .lore("§7Must be accepted by the target guild")
-            .lore("§7Allows coordination and support")
+            .setAdventureName(player, messageService, "<gold>Request Alliance")
+            .addAdventureLore(player, messageService, "<gray>Propose an alliance with another guild")
+            .addAdventureLore(player, messageService, "<gray>Must be accepted by the target guild")
+            .addAdventureLore(player, messageService, "<gray>Allows coordination and support")
 
         val allianceGuiItem = GuiItem(allianceItem) {
             openRequestAllianceMenu()
@@ -155,10 +156,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Request Truce
         val truceItem = ItemStack(Material.WHITE_BANNER)
-            .name("§fRequest Truce")
-            .lore("§7Propose a ceasefire with an enemy")
-            .lore("§7Temporary peace agreement")
-            .lore("§7Must be accepted by the target guild")
+            .setAdventureName(player, messageService, "<white>Request Truce")
+            .addAdventureLore(player, messageService, "<gray>Propose a ceasefire with an enemy")
+            .addAdventureLore(player, messageService, "<gray>Temporary peace agreement")
+            .addAdventureLore(player, messageService, "<gray>Must be accepted by the target guild")
 
         val truceGuiItem = GuiItem(truceItem) {
             openRequestTruceMenu()
@@ -167,10 +168,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Declare War
         val warItem = ItemStack(Material.IRON_SWORD)
-            .name("§4Declare War")
-            .lore("§7Immediately declare war on another guild")
-            .lore("§7No acceptance required")
-            .lore("§7Enables warfare between guilds")
+            .setAdventureName(player, messageService, "<dark_red>Declare War")
+            .addAdventureLore(player, messageService, "<gray>Immediately declare war on another guild")
+            .addAdventureLore(player, messageService, "<gray>No acceptance required")
+            .addAdventureLore(player, messageService, "<gray>Enables warfare between guilds")
 
         val warGuiItem = GuiItem(warItem) {
             openDeclareWarMenu()
@@ -181,10 +182,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     private fun addRelationDetailsSection(pane: StaticPane) {
         // Diplomatic History
         val historyItem = ItemStack(Material.KNOWLEDGE_BOOK)
-            .name("§9Diplomatic History")
-            .lore("§7View past relations and changes")
-            .lore("§7Track diplomatic developments")
-            .lore("§7Learn from past interactions")
+            .setAdventureName(player, messageService, "<blue>Diplomatic History")
+            .addAdventureLore(player, messageService, "<gray>View past relations and changes")
+            .addAdventureLore(player, messageService, "<gray>Track diplomatic developments")
+            .addAdventureLore(player, messageService, "<gray>Learn from past interactions")
 
         val historyGuiItem = GuiItem(historyItem) {
             openDiplomaticHistoryMenu()
@@ -193,10 +194,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Neutral Guilds
         val neutralItem = ItemStack(Material.BOOKSHELF)
-            .name("§7Neutral Guilds")
-            .lore("§7Guilds with no special relations")
-            .lore("§7Browse available diplomatic partners")
-            .lore("§7Potential allies or rivals")
+            .setAdventureName(player, messageService, "<gray>Neutral Guilds")
+            .addAdventureLore(player, messageService, "<gray>Guilds with no special relations")
+            .addAdventureLore(player, messageService, "<gray>Browse available diplomatic partners")
+            .addAdventureLore(player, messageService, "<gray>Potential allies or rivals")
 
         val neutralGuiItem = GuiItem(neutralItem) {
             openNeutralGuildsMenu()
@@ -206,8 +207,8 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
-            .name("§eBack to Control Panel")
-            .lore("§7Return to guild management")
+            .setAdventureName(player, messageService, "<yellow>Back to Control Panel")
+            .addAdventureLore(player, messageService, "<gray>Return to guild management")
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -216,62 +217,57 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     }
 
     private fun openAlliesListMenu() {
-        player.sendMessage("§eAllies list menu coming soon!")
-        player.sendMessage("§7This would show all guilds your guild is allied with.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Allies list menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>This would show all guilds your guild is allied with.")
     }
 
     private fun openEnemiesListMenu() {
-        player.sendMessage("§eEnemies list menu coming soon!")
-        player.sendMessage("§7This would show all guilds your guild is at war with.")
+        val enemiesMenu = GuildEnemiesListMenu(menuNavigator, player, guild)
+        enemiesMenu.open()
     }
 
     private fun openTrucesListMenu() {
-        player.sendMessage("§eTruces list menu coming soon!")
-        player.sendMessage("§7This would show all active truce agreements.")
+        val trucesMenu = GuildTrucesListMenu(menuNavigator, player, guild, messageService)
+        trucesMenu.open()
     }
 
     private fun openDiplomaticStatusMenu() {
-        player.sendMessage("§eDiplomatic status menu coming soon!")
-        player.sendMessage("§7This would show comprehensive diplomatic information.")
+        val statusMenu = GuildDiplomaticStatusMenu(menuNavigator, player, guild, messageService)
+        statusMenu.open()
     }
 
     private fun openIncomingRequestsMenu() {
-        player.sendMessage("§eIncoming requests menu coming soon!")
-        player.sendMessage("§7This would show diplomatic requests you can accept or reject.")
+        val incomingMenu = GuildIncomingRequestsMenu(menuNavigator, player, guild, messageService)
+        incomingMenu.open()
     }
 
     private fun openOutgoingRequestsMenu() {
-        player.sendMessage("§eOutgoing requests menu coming soon!")
-        player.sendMessage("§7This would show requests your guild has sent.")
+        val outgoingMenu = GuildOutgoingRequestsMenu(menuNavigator, player, guild, messageService)
+        outgoingMenu.open()
     }
 
     private fun openRequestAllianceMenu() {
-        player.sendMessage("§eRequest alliance menu coming soon!")
-        player.sendMessage("§7This would allow you to request alliances with other guilds.")
+        val allianceMenu = GuildRequestAllianceMenu(menuNavigator, player, guild, messageService)
+        allianceMenu.open()
     }
 
     private fun openRequestTruceMenu() {
-        player.sendMessage("§eRequest truce menu coming soon!")
-        player.sendMessage("§7This would allow you to request truces with enemy guilds.")
+        val truceMenu = GuildRequestTruceMenu(menuNavigator, player, guild, messageService)
+        truceMenu.open()
     }
 
     private fun openDeclareWarMenu() {
-        player.sendMessage("§eDeclare war menu coming soon!")
-        player.sendMessage("§7This would allow you to declare war on other guilds.")
+        val warMenu = GuildDeclareWarMenu(menuNavigator, player, guild, messageService)
+        warMenu.open()
     }
 
     private fun openDiplomaticHistoryMenu() {
-        player.sendMessage("§eDiplomatic history menu coming soon!")
-        player.sendMessage("§7This would show the history of diplomatic relations.")
+        val historyMenu = net.lumalyte.lg.interaction.menus.guild.GuildDiplomaticHistoryMenu(menuNavigator, player, guild, messageService)
+        historyMenu.open()
     }
 
     private fun openNeutralGuildsMenu() {
-        player.sendMessage("§eNeutral guilds menu coming soon!")
-        player.sendMessage("§7This would show guilds with no special relations to your guild.")
-    }
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Neutral guilds menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>This would show guilds with no special relations to your guild.")
+    }}
 

@@ -20,9 +20,13 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimCreationMenu(private val player: Player, private val menuNavigator: MenuNavigator,
-                        private val location: Location): Menu, KoinComponent {
+                        private val location: Location, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val playerMetadataService: PlayerMetadataService by inject()
     private val listPlayerClaims: ListPlayerClaims by inject()

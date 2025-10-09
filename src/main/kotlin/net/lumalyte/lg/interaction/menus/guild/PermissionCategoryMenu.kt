@@ -10,6 +10,7 @@ import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -18,11 +19,15 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                             private var guild: Guild, private var rank: Rank,
                             private val categoryName: String, 
-                            private val categoryPermissions: List<RankPermission>): Menu, KoinComponent {
+                            private val categoryPermissions: List<RankPermission>, private val messageService: MessageService): Menu, KoinComponent {
 
     private val rankService: RankService by inject()
     private val configService: ConfigService by inject()
@@ -47,14 +52,10 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     override fun open() {
-        val gui = ChestGui(6, "§6$categoryName - ${rank.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>$categoryName - ${rank.name}"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Row 0: Category info and bulk actions
@@ -82,61 +83,61 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         }
 
         val infoItem = ItemStack(categoryIcon)
-            .name("§6🔧 $categoryName")
-            .lore("§7Managing permissions for: §f${rank.name}")
-            .lore("§7Category: §f$categoryName")
-            .lore("§7Total permissions: §f${categoryPermissions.size}")
+            .setAdventureName(player, messageService, "<gold>🔧 $categoryName")
+            .addAdventureLore(player, messageService, "<gray>Managing permissions for: <white>${rank.name}")
+            .addAdventureLore(player, messageService, "<gray>Category: <white>$categoryName")
+            .addAdventureLore(player, messageService, "<gray>Total permissions: <white>${categoryPermissions.size}")
             
         // Add owner protection warning if editing own owner rank
         if (isEditingOwnOwnerRank()) {
-            infoItem.lore("§7")
-                .lore("§c⚠︎ OWNER RANK PROTECTION ACTIVE")
-                .lore("§7Permission changes are blocked")
-                .lore("§7to prevent guild owner lockout")
+            infoItem.addAdventureLore(player, messageService, "<gray>")
+                .addAdventureLore(player, messageService, "<red>⚠︎ OWNER RANK PROTECTION ACTIVE")
+                .addAdventureLore(player, messageService, "<gray>Permission changes are blocked")
+                .addAdventureLore(player, messageService, "<gray>to prevent guild owner lockout")
         }
 
         pane.addItem(GuiItem(infoItem), 1, 0)
 
         // Enable all button
         val enableAllItem = ItemStack(Material.LIME_CONCRETE)
-            .name("§a✅ Enable All")
-            .lore("§7Grant all $categoryName permissions")
-            .lore("§7to this rank")
-            .lore("§7")
-            .lore("§aClick to enable all")
+            .setAdventureName(player, messageService, "<green>✅ Enable All")
+            .addAdventureLore(player, messageService, "<gray>Grant all $categoryName permissions")
+            .addAdventureLore(player, messageService, "<gray>to this rank")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<green>Click to enable all")
 
         val enableAllGuiItem = GuiItem(enableAllItem) {
             if (isEditingOwnOwnerRank()) {
-                player.sendMessage("§c❌ You cannot modify your own owner rank permissions!")
-                player.sendMessage("§7This prevents you from locking yourself out of guild management.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You cannot modify your own owner rank permissions!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>This prevents you from locking yourself out of guild management.")
                 return@GuiItem
             }
             categoryPermissions.forEach { permission ->
                 modifiedPermissions.add(permission)
             }
-            player.sendMessage("§a✅ Enabled all $categoryName permissions!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Enabled all $categoryName permissions!")
             open() // Refresh the menu
         }
         pane.addItem(enableAllGuiItem, 3, 0)
 
         // Disable all button
         val disableAllItem = ItemStack(Material.RED_CONCRETE)
-            .name("§c❌ Disable All")
-            .lore("§7Remove all $categoryName permissions")
-            .lore("§7from this rank")
-            .lore("§7")
-            .lore("§cClick to disable all")
+            .setAdventureName(player, messageService, "<red>❌ Disable All")
+            .addAdventureLore(player, messageService, "<gray>Remove all $categoryName permissions")
+            .addAdventureLore(player, messageService, "<gray>from this rank")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<red>Click to disable all")
 
         val disableAllGuiItem = GuiItem(disableAllItem) {
             if (isEditingOwnOwnerRank()) {
-                player.sendMessage("§c❌ You cannot modify your own owner rank permissions!")
-                player.sendMessage("§7This prevents you from locking yourself out of guild management.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You cannot modify your own owner rank permissions!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>This prevents you from locking yourself out of guild management.")
                 return@GuiItem
             }
             categoryPermissions.forEach { permission ->
                 modifiedPermissions.remove(permission)
             }
-            player.sendMessage("§c❌ Disabled all $categoryName permissions!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Disabled all $categoryName permissions!")
             open() // Refresh the menu
         }
         pane.addItem(disableAllGuiItem, 5, 0)
@@ -144,10 +145,10 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         // Permission count
         val enabledCount = categoryPermissions.count { modifiedPermissions.contains(it) }
         val countItem = ItemStack(Material.BOOK)
-            .name("§6📊 Permission Status")
-            .lore("§7Enabled: §a$enabledCount§7/§f${categoryPermissions.size}")
-            .lore("§7")
-            .lore("§7Click individual permissions below")
+            .setAdventureName(player, messageService, "<gold>📊 Permission Status")
+            .addAdventureLore(player, messageService, "<gray>Enabled: <green>$enabledCount<gray>/<white>${categoryPermissions.size}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Click individual permissions below")
 
         pane.addItem(GuiItem(countItem), 7, 0)
     }
@@ -160,34 +161,36 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             if (row > 4) return@forEachIndexed // Don't overflow into action row
 
             val hasPermission = modifiedPermissions.contains(permission)
-            val displayName = permission.name.replace("_", " ").lowercase()
-                .split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+            val displayName = permission.name.replace("_", " ")
+                .lowercase()
+                .split(" ")
+                .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
 
             val permissionItem = ItemStack(
                 if (hasPermission) Material.LIME_CONCRETE_POWDER else Material.RED_CONCRETE_POWDER
             )
-                .name("${if (hasPermission) "§a✓" else "§c✗"} §f$displayName")
-                .lore("§7Permission: §f${permission.name}")
-                .lore("§7Status: ${if (hasPermission) "§aEnabled" else "§cDisabled"}")
-                .lore("§7")
+                .name("${if (hasPermission) "<green>✓" else "<red>✗"} §f$displayName")
+                .addAdventureLore(player, messageService, "<gray>Permission: <white>${permission.name}")
+                .lore("<gray>Status: ${if (hasPermission) "§aEnabled" else "<red>Disabled"}")
+                .addAdventureLore(player, messageService, "<gray>")
 
             // Add description based on permission
             permissionItem.lore(getPermissionDescription(permission))
-            permissionItem.lore("§7")
-            permissionItem.lore(if (hasPermission) "§cClick to disable" else "§aClick to enable")
+            permissionItem.addAdventureLore(player, messageService, "<gray>")
+            permissionItem.lore(if (hasPermission) "<red>Click to disable" else "<green>Click to enable")
 
             val permissionGuiItem = GuiItem(permissionItem) {
                 if (isEditingOwnOwnerRank()) {
-                    player.sendMessage("§c❌ You cannot modify your own owner rank permissions!")
-                    player.sendMessage("§7This prevents you from locking yourself out of guild management.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You cannot modify your own owner rank permissions!")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>This prevents you from locking yourself out of guild management.")
                     return@GuiItem
                 }
                 if (hasPermission) {
                     modifiedPermissions.remove(permission)
-                    player.sendMessage("§c❌ Disabled $displayName for ${rank.name}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Disabled $displayName for ${rank.name}")
                 } else {
                     modifiedPermissions.add(permission)
-                    player.sendMessage("§a✅ Enabled $displayName for ${rank.name}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Enabled $displayName for ${rank.name}")
                 }
                 open() // Refresh the menu
             }
@@ -198,22 +201,23 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     private fun addActionButtons(pane: StaticPane) {
         // Save changes
         val saveItem = ItemStack(Material.EMERALD_BLOCK)
-            .name("§a💾 Save Changes")
-            .lore("§7Apply permission changes")
-            .lore("§7")
-            .lore("§aClick to save and return")
+            .setAdventureName(player, messageService, "<green>💾 Save Changes")
+            .addAdventureLore(player, messageService, "<gray>Apply permission changes")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<green>Click to save and return")
 
         val saveGuiItem = GuiItem(saveItem) {
             // Update the rank with modified permissions
             val updatedRank = rank.copy(permissions = modifiedPermissions)
             // TODO: Save to RankService
-            player.sendMessage("§a✅ Permission changes saved for ${rank.name}!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Permission changes saved for ${rank.name}!")
             menuNavigator.openMenu(
                 net.lumalyte.lg.interaction.menus.guild.RankEditMenu(
                     menuNavigator,
                     player,
                     guild,
-                    updatedRank
+                    updatedRank,
+                    messageService
                 )
             )
         }
@@ -221,20 +225,21 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         // Cancel changes
         val cancelItem = ItemStack(Material.BARRIER)
-            .name("§c❌ Cancel Changes")
-            .lore("§7Discard all changes")
-            .lore("§7Return to rank editing")
-            .lore("§7")
-            .lore("§cClick to cancel")
+            .setAdventureName(player, messageService, "<red>❌ Cancel Changes")
+            .addAdventureLore(player, messageService, "<gray>Discard all changes")
+            .addAdventureLore(player, messageService, "<gray>Return to rank editing")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<red>Click to cancel")
 
         val cancelGuiItem = GuiItem(cancelItem) {
-            player.sendMessage("§e⚠︎ Permission changes discarded!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>⚠︎ Permission changes discarded!")
             menuNavigator.openMenu(
                 net.lumalyte.lg.interaction.menus.guild.RankEditMenu(
                     menuNavigator,
                     player,
                     guild,
-                    rank
+                    rank,
+                    messageService
                 )
             )
         }
@@ -242,11 +247,11 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         // Reset to original
         val resetItem = ItemStack(Material.YELLOW_CONCRETE)
-            .name("§e🔄 Reset to Original")
-            .lore("§7Restore original permissions")
-            .lore("§7for this category")
-            .lore("§7")
-            .lore("§eClick to reset")
+            .setAdventureName(player, messageService, "<yellow>🔄 Reset to Original")
+            .addAdventureLore(player, messageService, "<gray>Restore original permissions")
+            .addAdventureLore(player, messageService, "<gray>for this category")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click to reset")
 
         val resetGuiItem = GuiItem(resetItem) {
             // Reset modified permissions to original for this category
@@ -257,16 +262,16 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
                     modifiedPermissions.remove(permission)
                 }
             }
-            player.sendMessage("§e🔄 Reset $categoryName permissions to original state!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>🔄 Reset $categoryName permissions to original state!")
             open() // Refresh the menu
         }
         pane.addItem(resetGuiItem, 5, 5)
 
         // Back to rank edit
         val backItem = ItemStack(Material.ARROW)
-            .name("§7⬅️ Back")
-            .lore("§7Return to rank editing")
-            .lore("§7(changes will be saved)")
+            .setAdventureName(player, messageService, "<gray>⬅️ Back")
+            .addAdventureLore(player, messageService, "<gray>Return to rank editing")
+            .addAdventureLore(player, messageService, "<gray>(changes will be saved)")
 
         val backGuiItem = GuiItem(backItem) {
             // Update the rank with modified permissions before going back
@@ -276,7 +281,8 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
                     menuNavigator,
                     player,
                     guild,
-                    updatedRank
+                    updatedRank,
+                    messageService
                 )
             )
         }
@@ -286,54 +292,74 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     private fun getPermissionDescription(permission: RankPermission): String {
         return when (permission) {
             // Guild Management
-            RankPermission.MANAGE_RANKS -> "§7Create, edit, and delete guild ranks"
-            RankPermission.MANAGE_MEMBERS -> "§7Invite, kick, and promote members"
-            RankPermission.MANAGE_BANNER -> "§7Change guild banner and appearance"
-            RankPermission.MANAGE_EMOJI -> "§7Set guild emoji and icons"
-            RankPermission.MANAGE_DESCRIPTION -> "§7Set and edit guild description"
-            RankPermission.MANAGE_HOME -> "§7Set and manage guild home location"
-            RankPermission.MANAGE_MODE -> "§7Change guild mode (Peaceful/Hostile)"
-            RankPermission.MANAGE_GUILD_SETTINGS -> "§7Access general guild settings"
+            RankPermission.MANAGE_RANKS -> "<gray>Create, edit, and delete guild ranks"
+            RankPermission.MANAGE_MEMBERS -> "<gray>Invite, kick, and promote members"
+            RankPermission.MANAGE_BANNER -> "<gray>Change guild banner and appearance"
+            RankPermission.MANAGE_EMOJI -> "<gray>Set guild emoji and icons"
+            RankPermission.MANAGE_DESCRIPTION -> "<gray>Set and edit guild description"
+            RankPermission.MANAGE_HOME -> "<gray>Set and manage guild home location"
+            RankPermission.MANAGE_MODE -> "<gray>Change guild mode (Peaceful/Hostile)"
+            RankPermission.MANAGE_GUILD_SETTINGS -> "<gray>Access general guild settings"
+            RankPermission.MANAGE_GUILD_NAME -> "<gray>Rename the guild"
 
             // Banking
-            RankPermission.DEPOSIT_TO_BANK -> "§7Add money to the guild bank"
-            RankPermission.WITHDRAW_FROM_BANK -> "§7Take money from guild bank"
-            RankPermission.VIEW_BANK_TRANSACTIONS -> "§7View bank transaction history"
-            RankPermission.EXPORT_BANK_DATA -> "§7Export bank data as CSV files"
-            RankPermission.MANAGE_BANK_SETTINGS -> "§7Configure bank settings and fees"
+            RankPermission.DEPOSIT_TO_BANK -> "<gray>Add money to the guild bank"
+            RankPermission.WITHDRAW_FROM_BANK -> "<gray>Take money from guild bank"
+            RankPermission.VIEW_BANK_TRANSACTIONS -> "<gray>View bank transaction history"
+            RankPermission.EXPORT_BANK_DATA -> "<gray>Export bank data as CSV files"
+            RankPermission.MANAGE_BANK_SETTINGS -> "<gray>Configure bank security settings"
+            RankPermission.MANAGE_BANK_SECURITY -> "<gray>Manage advanced bank security"
+            RankPermission.MANAGE_BUDGETS -> "<gray>Set and manage guild budgets"
 
             // Diplomacy
-            RankPermission.MANAGE_RELATIONS -> "§7Manage guild relationships"
-            RankPermission.DECLARE_WAR -> "§7Declare war on other guilds"
-            RankPermission.ACCEPT_ALLIANCES -> "§7Accept alliance requests"
-            RankPermission.MANAGE_PARTIES -> "§7Create and manage guild parties"
-            RankPermission.SEND_PARTY_REQUESTS -> "§7Send party invitations"
-            RankPermission.ACCEPT_PARTY_INVITES -> "§7Accept party invitations"
+            RankPermission.MANAGE_RELATIONS -> "<gray>Manage guild relationships"
+            RankPermission.DECLARE_WAR -> "<gray>Declare war on other guilds"
+            RankPermission.ACCEPT_ALLIANCES -> "<gray>Accept alliance requests"
+            RankPermission.MANAGE_PARTIES -> "<gray>Create and manage guild parties"
+            RankPermission.SEND_PARTY_REQUESTS -> "<gray>Send party invitations"
+            RankPermission.ACCEPT_PARTY_INVITES -> "<gray>Accept party invitations"
 
             // Claims
-            RankPermission.MANAGE_CLAIMS -> "§7Manage existing guild claims"
-            RankPermission.MANAGE_FLAGS -> "§7Configure claim flags and rules"
-            RankPermission.MANAGE_PERMISSIONS -> "§7Set claim permissions"
-            RankPermission.CREATE_CLAIMS -> "§7Create new territory claims"
-            RankPermission.DELETE_CLAIMS -> "§7Remove territory claims"
+            RankPermission.MANAGE_CLAIMS -> "<gray>Manage existing guild claims"
+            RankPermission.MANAGE_FLAGS -> "<gray>Configure claim flags and rules"
+            RankPermission.MANAGE_PERMISSIONS -> "<gray>Set claim permissions"
+            RankPermission.CREATE_CLAIMS -> "<gray>Create new territory claims"
+            RankPermission.DELETE_CLAIMS -> "<gray>Remove territory claims"
 
             // Communication
-            RankPermission.SEND_ANNOUNCEMENTS -> "§7Send guild-wide announcements"
-            RankPermission.SEND_PINGS -> "§7Send notification pings"
-            RankPermission.MODERATE_CHAT -> "§7Moderate guild chat channels"
+            RankPermission.SEND_ANNOUNCEMENTS -> "<gray>Send guild-wide announcements"
+            RankPermission.SEND_PINGS -> "<gray>Send notification pings"
+            RankPermission.MODERATE_CHAT -> "<gray>Moderate guild chat channels"
 
             // Administrative
-            RankPermission.ACCESS_ADMIN_COMMANDS -> "§7Use administrative commands"
-            RankPermission.BYPASS_RESTRICTIONS -> "§7Bypass certain guild restrictions"
-            RankPermission.VIEW_AUDIT_LOGS -> "§7View guild activity logs"
-            RankPermission.MANAGE_INTEGRATIONS -> "§7Manage external integrations"
-        }
-    }
-
-    override fun passData(data: Any?) {
-        when (data) {
-            is Guild -> guild = data
-            is Rank -> rank = data
+            RankPermission.ACCESS_ADMIN_COMMANDS -> "<gray>Use administrative commands"
+            RankPermission.BYPASS_RESTRICTIONS -> "<gray>Bypass certain guild restrictions"
+            RankPermission.VIEW_AUDIT_LOGS -> "<gray>View guild activity logs"
+            RankPermission.MANAGE_INTEGRATIONS -> "<gray>Manage external integrations"
+            
+            // Additional Banking
+            RankPermission.DEPOSIT_MONEY -> "<gray>Deposit money to guild funds"
+            RankPermission.WITHDRAW_MONEY -> "<gray>Withdraw money from guild funds" 
+            RankPermission.VIEW_BANK_HISTORY -> "<gray>View banking transaction history"
+            
+            // Chat Management
+            RankPermission.USE_CHAT -> "<gray>Use guild chat channels"
+            RankPermission.MANAGE_CHAT_SETTINGS -> "<gray>Configure chat settings"
+            
+            // Land Management
+            RankPermission.CLAIM_LAND -> "<gray>Claim new territory for guild"
+            RankPermission.UNCLAIM_LAND -> "<gray>Remove guild claims from territory"
+            
+            // Security & Emergency
+            RankPermission.ACTIVATE_EMERGENCY_FREEZE -> "<gray>Activate emergency freeze mode"
+            RankPermission.DEACTIVATE_EMERGENCY_FREEZE -> "<gray>Deactivate emergency freeze mode"
+            RankPermission.VIEW_SECURITY_AUDITS -> "<gray>View security audit logs"
+            RankPermission.OVERRIDE_PROTECTION -> "<gray>Override claim protection"
+            RankPermission.BYPASS_COOLDOWNS -> "<gray>Bypass guild cooldowns"
+            RankPermission.MANAGE_SECURITY -> "<gray>Manage guild security"
+            
+            // Fallback for unhandled permissions
+            else -> "<gray>${permission.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }}"
         }
     }
 }

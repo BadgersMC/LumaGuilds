@@ -12,6 +12,10 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild home management menu using Cumulus SimpleForm
@@ -21,8 +25,9 @@ class BedrockGuildHomeMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
 
@@ -162,7 +167,7 @@ class BedrockGuildHomeMenu(
         }
 
         // Reopen menu to refresh
-        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, messageService))
     }
 
     private fun showRemoveHomeMenu(homes: net.lumalyte.lg.domain.entities.GuildHomes) {
@@ -183,7 +188,7 @@ class BedrockGuildHomeMenu(
                 }
             }
             .closedOrInvalidResultHandler { _, _ ->
-                bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, messageService))
             }
             .build()
 
@@ -204,7 +209,7 @@ class BedrockGuildHomeMenu(
         }
 
         // Reopen menu to refresh
-        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, messageService))
     }
 
     override fun handleResponse(player: Player, response: Any?) {
@@ -212,3 +217,4 @@ class BedrockGuildHomeMenu(
         onFormResponseReceived()
     }
 }
+

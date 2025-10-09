@@ -9,6 +9,7 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import net.lumalyte.lg.utils.deserializeToItemStack
@@ -19,13 +20,17 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildSelectionMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val currentGuild: Guild,
     private val selectedGuilds: MutableSet<UUID>
-) : Menu, KoinComponent {
+, private val messageService: MessageService) : Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -36,14 +41,10 @@ class GuildSelectionMenu(
     private val itemsPerPage = 45 // 9x5 grid
 
     override fun open() {
-        val gui = ChestGui(6, "§6Select Guilds to Invite")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Select Guilds to Invite"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Initialize guilds display pane
         guildsPane = PaginatedPane(0, 0, 9, 5)
@@ -117,22 +118,22 @@ class GuildSelectionMenu(
         }
 
         return bannerItem
-            .name("${if (isSelected) "§a✅" else "§7❌"} ${guild.name}")
-            .lore("§7Members: §f${memberService.getGuildMembers(guild.id).size}")
-            .lore(if (isSelected) "§7Status: §aAlready invited" else "§7Status: §7Available")
-            .lore("§7")
-            .lore(if (isSelected) "§cClick to remove invitation" else "§aClick to invite")
+            .name("${if (isSelected) "<green>✅" else "<gray>❌"} ${guild.name}")
+            .addAdventureLore(player, messageService, "<gray>Members: <white>${memberService.getGuildMembers(guild.id).size}")
+            .lore(if (isSelected) "<gray>Status: <green>Already invited" else "<gray>Status: <gray>Available")
+            .addAdventureLore(player, messageService, "<gray>")
+            .lore(if (isSelected) "<red>Click to remove invitation" else "<green>Click to invite")
     }
 
     private fun inviteGuild(guild: Guild) {
         if (selectedGuilds.contains(guild.id)) {
             // Remove from selection
             selectedGuilds.remove(guild.id)
-            player.sendMessage("§c❌ Removed ${guild.name} from party invitation")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Removed ${guild.name} from party invitation")
         } else {
             // Add to selection
             selectedGuilds.add(guild.id)
-            player.sendMessage("§a✅ Added ${guild.name} to party invitation")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Added ${guild.name} to party invitation")
         }
 
         // Refresh the menu
@@ -146,8 +147,8 @@ class GuildSelectionMenu(
 
         // Previous page button
         val prevItem = ItemStack(Material.ARROW)
-            .name("§f⬅️ PREVIOUS PAGE")
-            .lore("§7Go to previous page")
+            .setAdventureName(player, messageService, "<white>⬅️ PREVIOUS PAGE")
+            .addAdventureLore(player, messageService, "<gray>Go to previous page")
 
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
@@ -159,8 +160,8 @@ class GuildSelectionMenu(
 
         // Next page button
         val nextItem = ItemStack(Material.ARROW)
-            .name("§fNEXT PAGE ➡️")
-            .lore("§7Go to next page")
+            .setAdventureName(player, messageService, "<white>NEXT PAGE ➡️")
+            .addAdventureLore(player, messageService, "<gray>Go to next page")
 
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {
@@ -172,8 +173,8 @@ class GuildSelectionMenu(
 
         // Page indicator
         val pageItem = ItemStack(Material.PAPER)
-            .name("§f📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
-            .lore("§7Current page indicator")
+            .setAdventureName(player, messageService, "<white>📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
+            .addAdventureLore(player, messageService, "<gray>Current page indicator")
 
         pane.addItem(GuiItem(pageItem), 2, 5)
     }
@@ -181,17 +182,17 @@ class GuildSelectionMenu(
     private fun addSelectedSummary(pane: StaticPane, x: Int, y: Int) {
         val selectedCount = selectedGuilds.size
         val summaryItem = ItemStack(Material.BOOK)
-            .name("§6📋 Selected Guilds: $selectedCount")
-            .lore("§7Selected guilds will be invited")
-            .lore("§7to the party when created")
+            .setAdventureName(player, messageService, "<gold>📋 Selected Guilds: $selectedCount")
+            .addAdventureLore(player, messageService, "<gray>Selected guilds will be invited")
+            .addAdventureLore(player, messageService, "<gray>to the party when created")
 
         pane.addItem(GuiItem(summaryItem), x, y)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK TO CREATION")
-            .lore("§7Return to party creation menu")
+            .setAdventureName(player, messageService, "<red>⬅️ BACK TO CREATION")
+            .addAdventureLore(player, messageService, "<gray>Return to party creation menu")
 
         val backGuiItem = GuiItem(backItem) {
             // Pass back the selected guilds to the party creation menu
@@ -204,10 +205,5 @@ class GuildSelectionMenu(
             })
         }
         pane.addItem(backGuiItem, x, y)
-    }
-
-    override fun passData(data: Any?) {
-        // Handle data passed back from sub-menus if needed
-    }
-}
+    }}
 

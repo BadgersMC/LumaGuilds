@@ -12,6 +12,10 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild leave confirmation menu using Cumulus SimpleForm
@@ -20,8 +24,9 @@ class BedrockGuildLeaveConfirmationMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -57,7 +62,7 @@ class BedrockGuildLeaveConfirmationMenu(
             // If owner is leaving, we need special handling
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.owner.warning"))
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.owner.message"))
-            bedrockNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild, messageService))
             return
         }
 
@@ -72,7 +77,7 @@ class BedrockGuildLeaveConfirmationMenu(
             clearMenuStack()
         } else {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.failed"))
-            bedrockNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild, messageService))
         }
     }
 
@@ -97,5 +102,6 @@ class BedrockGuildLeaveConfirmationMenu(
         }
     }
 }
+
 
 

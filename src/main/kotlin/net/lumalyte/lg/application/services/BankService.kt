@@ -1,7 +1,11 @@
 package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.domain.entities.BankAudit
+import net.lumalyte.lg.domain.entities.BankSecuritySettings
 import net.lumalyte.lg.domain.entities.BankTransaction
+import net.lumalyte.lg.domain.entities.BudgetAnalytics
+import net.lumalyte.lg.domain.entities.BudgetCategory
+import net.lumalyte.lg.domain.entities.GuildBudget
 import net.lumalyte.lg.domain.entities.MemberContribution
 import java.util.UUID
 
@@ -115,6 +119,31 @@ interface BankService {
     fun getAuditLog(guildId: UUID, limit: Int? = null): List<BankAudit>
 
     /**
+     * Gets transactions by player ID.
+     *
+     * @param playerId The ID of the player.
+     * @return List of transactions for the player.
+     */
+    fun getTransactionsByPlayerId(playerId: UUID): List<BankTransaction>
+
+    /**
+     * Records a bank audit entry.
+     *
+     * @param audit The audit entry to record.
+     * @return true if successful, false otherwise.
+     */
+    fun recordAudit(audit: BankAudit): Boolean
+
+    /**
+     * Gets the balance at a specific time.
+     *
+     * @param guildId The ID of the guild.
+     * @param timestamp The timestamp to check balance at.
+     * @return The balance at that time, or null if not found.
+     */
+    fun getBalanceAtTime(guildId: UUID, timestamp: java.time.Instant): Int?
+
+    /**
      * Gets the member contributions summary for a guild.
      * Shows each member's net contribution (deposits - withdrawals).
      *
@@ -205,6 +234,142 @@ interface BankService {
      * @return true if valid, false otherwise.
      */
     fun isValidAmount(amount: Int): Boolean
+
+    // === SECURITY ENHANCEMENTS ===
+
+    /**
+     * Gets the security settings for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return The security settings, or null if not found.
+     */
+    fun getSecuritySettings(guildId: UUID): BankSecuritySettings?
+
+    /**
+     * Updates the security settings for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param settings The updated security settings.
+     * @return true if successful, false otherwise.
+     */
+    fun updateSecuritySettings(guildId: UUID, settings: BankSecuritySettings): Boolean
+
+    /**
+     * Checks if a transaction requires dual authorization.
+     *
+     * @param guildId The ID of the guild.
+     * @param amount The transaction amount.
+     * @return true if dual authorization is required.
+     */
+    fun requiresDualAuth(guildId: UUID, amount: Int): Boolean
+
+    /**
+     * Checks if a transaction requires multi-signature approval.
+     *
+     * @param guildId The ID of the guild.
+     * @param amount The transaction amount.
+     * @return true if multi-signature is required.
+     */
+    fun requiresMultiSignature(guildId: UUID, amount: Int): Boolean
+
+    /**
+     * Logs a security audit event.
+     *
+     * @param guildId The ID of the guild.
+     * @param playerId The ID of the player.
+     * @param action The audit action.
+     * @param amount The transaction amount (optional).
+     * @param description Additional description (optional).
+     * @return The created audit entry.
+     */
+    fun logSecurityEvent(guildId: UUID, playerId: UUID, action: net.lumalyte.lg.domain.entities.AuditAction, amount: Int? = null, description: String? = null): BankAudit?
+
+    /**
+     * Checks for suspicious activity in a guild's bank.
+     *
+     * @param guildId The ID of the guild.
+     * @return List of suspicious activities detected.
+     */
+    fun detectSuspiciousActivity(guildId: UUID): List<String>
+
+    /**
+     * Activates emergency freeze for a guild's bank.
+     *
+     * @param guildId The ID of the guild.
+     * @param activatedBy The ID of the player activating the freeze.
+     * @param reason The reason for the freeze.
+     * @return true if successful, false otherwise.
+     */
+    fun activateEmergencyFreeze(guildId: UUID, activatedBy: UUID, reason: String): Boolean
+
+    /**
+     * Deactivates emergency freeze for a guild's bank.
+     *
+     * @param guildId The ID of the guild.
+     * @param deactivatedBy The ID of the player deactivating the freeze.
+     * @return true if successful, false otherwise.
+     */
+    fun deactivateEmergencyFreeze(guildId: UUID, deactivatedBy: UUID): Boolean
+
+    // === BUDGET MANAGEMENT ===
+
+    /**
+     * Gets all budgets for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return List of guild budgets.
+     */
+    fun getGuildBudgets(guildId: UUID): List<GuildBudget>
+
+    /**
+     * Gets a specific budget by category.
+     *
+     * @param guildId The ID of the guild.
+     * @param category The budget category.
+     * @return The budget, or null if not found.
+     */
+    fun getBudgetByCategory(guildId: UUID, category: BudgetCategory): GuildBudget?
+
+    /**
+     * Creates or updates a budget for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param category The budget category.
+     * @param allocatedAmount The allocated amount.
+     * @param periodStart The start of the budget period.
+     * @param periodEnd The end of the budget period.
+     * @return The created/updated budget, or null if failed.
+     */
+    fun setBudget(guildId: UUID, category: BudgetCategory, allocatedAmount: Int, periodStart: java.time.Instant, periodEnd: java.time.Instant): GuildBudget?
+
+    /**
+     * Updates the spent amount for a budget category.
+     *
+     * @param guildId The ID of the guild.
+     * @param category The budget category.
+     * @param amount The amount spent.
+     * @return true if successful, false otherwise.
+     */
+    fun updateBudgetSpent(guildId: UUID, category: BudgetCategory, amount: Int): Boolean
+
+    /**
+     * Gets budget analytics for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param periodDays Number of days to analyze.
+     * @return Budget analytics data.
+     */
+    fun getBudgetAnalytics(guildId: UUID, periodDays: Int = 30): Map<BudgetCategory, BudgetAnalytics>
+
+    /**
+     * Checks if a transaction would exceed budget limits.
+     *
+     * @param guildId The ID of the guild.
+     * @param category The budget category.
+     * @param amount The transaction amount.
+     * @return true if within budget, false if would exceed.
+     */
+    fun isWithinBudget(guildId: UUID, category: BudgetCategory, amount: Int): Boolean
 }
 
 /**
@@ -216,4 +381,21 @@ data class BankStats(
     val totalWithdrawals: Int,
     val totalTransactions: Int,
     val transactionVolume: Int
+)
+
+/**
+ * Data class for budget analytics.
+ */
+data class BudgetAnalytics(
+    val category: BudgetCategory,
+    val allocatedAmount: Int,
+    val spentAmount: Int,
+    val remainingAmount: Int,
+    val usagePercentage: Double,
+    val status: net.lumalyte.lg.domain.entities.BudgetStatus,
+    val periodStart: java.time.Instant,
+    val periodEnd: java.time.Instant,
+    val transactionCount: Int,
+    val averageTransactionAmount: Double,
+    val alertsTriggered: Int
 )

@@ -14,6 +14,7 @@ import net.lumalyte.lg.domain.entities.TransactionType
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -32,6 +33,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.math.max
 import kotlin.math.min
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Guild Bank menu allowing players to deposit, withdraw, and view transaction history
@@ -40,7 +45,7 @@ class GuildBankMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private var guild: Guild
-) : Menu, KoinComponent, Listener {
+, private val messageService: MessageService) : Menu, KoinComponent, Listener {
 
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
@@ -84,10 +89,10 @@ class GuildBankMenu(
         // Check Vault availability on menu open
         if (!isEconomyAvailable()) {
             // Show error message and don't open the menu
-            player.sendMessage("§c⚠ Guild Bank Unavailable")
-            player.sendMessage("§cVault economy system not found!")
-            player.sendMessage("§cPlease install Vault and an economy plugin (Essentials, iConomy, etc.)")
-            player.sendMessage("§cContact your server administrator for assistance.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>⚠ Guild Bank Unavailable")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Vault economy system not found!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Please install Vault and an economy plugin (Essentials, iConomy, etc.)")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Contact your server administrator for assistance.")
 
             // Play error sound
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
@@ -100,23 +105,13 @@ class GuildBankMenu(
         Bukkit.getPluginManager().registerEvents(this, Bukkit.getPluginManager().getPlugin("LumaGuilds")!!)
 
         gui.show(player)
-    }
-
-    override fun passData(data: Any?) {
-        // Cleanup any running animations before changing data
-        cleanup()
-
-        guild = data as? Guild ?: return
-        refreshBalance()
-        gui.update()
-    }
-
-    /**
+    }/**
      * Initialize the GUI structure
      */
     private fun initializeGui() {
         gui = ChestGui(6, getLocalizedTitle())
-        gui.setOnGlobalClick { event -> event.isCancelled = true }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Create main pane for balance and quick actions
         mainPane = StaticPane(0, 0, 9, 4, Priority.NORMAL)
@@ -280,7 +275,7 @@ class GuildBankMenu(
      * Open the detailed transaction history menu
      */
     private fun openTransactionHistory() {
-        val historyMenu = GuildBankTransactionHistoryMenu(menuNavigator, player, guild)
+        val historyMenu = GuildBankTransactionHistoryMenu(menuNavigator, player, guild, messageService)
         menuNavigator.openMenu(historyMenu)
     }
 
@@ -437,7 +432,7 @@ class GuildBankMenu(
             }
         } catch (e: Exception) {
             val errorMessage = "An error occurred during deposit."
-            player.sendMessage(Component.text("§c$errorMessage"))
+            player.sendMessage(Component.text("<red>$errorMessage"))
             showErrorFeedback(errorMessage)
             false
         }
@@ -466,7 +461,7 @@ class GuildBankMenu(
             }
         } catch (e: Exception) {
             val errorMessage = "An error occurred during withdrawal."
-            player.sendMessage(Component.text("§c$errorMessage"))
+            player.sendMessage(Component.text("<red>$errorMessage"))
             showErrorFeedback(errorMessage)
             false
         }
@@ -861,8 +856,8 @@ class GuildBankMenu(
         // Open the anvil GUI
         player.openInventory(anvilGui)
 
-        player.sendMessage(Component.text("§aEnter the amount you want to ${if (type == TransactionType.DEPOSIT) "deposit" else "withdraw"} in the anvil."))
-        player.sendMessage(Component.text("§7Use numbers only (e.g., 5000, 10000)"))
+        player.sendMessage(Component.text("<green>Enter the amount you want to ${if (type == TransactionType.DEPOSIT) "deposit" else "withdraw"} in the anvil."))
+        player.sendMessage(Component.text("<gray>Use numbers only (e.g., 5000, 10000)"))
     }
 
     /**
@@ -881,12 +876,12 @@ class GuildBankMenu(
                 }
                 TransactionType.FEE -> {
                     // Fees are not manually entered by players
-                    player.sendMessage(Component.text("§cCannot manually enter fees."))
+                    player.sendMessage(Component.text("<red>Cannot manually enter fees."))
                     return
                 }
                 TransactionType.DEDUCTION -> {
                     // Deductions are not manually entered by players
-                    player.sendMessage(Component.text("§cCannot manually enter deductions."))
+                    player.sendMessage(Component.text("<red>Cannot manually enter deductions."))
                     return
                 }
                 null -> {
@@ -898,7 +893,7 @@ class GuildBankMenu(
             // Play success sound
             player.playSound(player.location, SUCCESS_SOUND, 1.0f, 1.0f)
         } catch (e: Exception) {
-            player.sendMessage(Component.text("§cError processing transaction: ${e.message}"))
+            player.sendMessage(Component.text("<red>Error processing transaction: ${e.message}"))
             player.playSound(player.location, ERROR_SOUND, 1.0f, 0.8f)
         } finally {
             customAmountType = null
@@ -910,7 +905,7 @@ class GuildBankMenu(
      * Handle inventory click events for anvil GUI
      */
     @EventHandler
-    fun onInventoryClick(event: InventoryClickEvent) {
+    fun onInventoryClick(event: InventoryClickEvent, messageService: MessageService) {
         if (event.whoClicked != player || !awaitingCustomAmount) return
 
         if (event.inventory.type == InventoryType.ANVIL && event.slot == 2) {
@@ -936,11 +931,11 @@ class GuildBankMenu(
                                 }
                             }.runTaskLater(Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, 1L)
                         } else {
-                            player.sendMessage(Component.text("§cInvalid amount. Please enter a positive number."))
+                            player.sendMessage(Component.text("<red>Invalid amount. Please enter a positive number."))
                             player.playSound(player.location, ERROR_SOUND, 1.0f, 0.8f)
                         }
                     } catch (e: Exception) {
-                        player.sendMessage(Component.text("§cError reading amount. Please try again."))
+                        player.sendMessage(Component.text("<red>Error reading amount. Please try again."))
                         player.playSound(player.location, ERROR_SOUND, 1.0f, 0.8f)
                     }
                 }
@@ -952,7 +947,7 @@ class GuildBankMenu(
      * Handle inventory close events
      */
     @EventHandler
-    fun onInventoryClose(event: InventoryCloseEvent) {
+    fun onInventoryClose(event: InventoryCloseEvent, messageService: MessageService) {
         if (event.player == player && awaitingCustomAmount) {
             awaitingCustomAmount = false
             customAmountType = null

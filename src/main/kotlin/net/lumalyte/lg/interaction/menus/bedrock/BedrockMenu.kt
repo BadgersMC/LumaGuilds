@@ -3,6 +3,10 @@ package net.lumalyte.lg.interaction.menus.bedrock
 import net.lumalyte.lg.interaction.menus.Menu
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Interface for Bedrock Edition menus using Cumulus forms

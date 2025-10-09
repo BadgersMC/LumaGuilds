@@ -21,9 +21,13 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                    private val claim: Claim?): Menu, KoinComponent {
+                    private val claim: Claim?, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val getClaimFlags: GetClaimFlags by inject()
     private val enableClaimFlag: EnableClaimFlag by inject()
@@ -34,7 +38,7 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
 
     override fun open() {
         if (claim == null) {
-            player.sendMessage("§cError: No claim available")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Error: No claim available")
             return
         }
 
@@ -74,7 +78,7 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
         controlsPane.addItem(guiSelectItem, 6, 0)
 
         // Add horizontal divider
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).setAdventureName(player, messageService, " ")
         val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
         val horizontalDividerPane = StaticPane(0, 1, 9, 1)
         gui.addPane(horizontalDividerPane)

@@ -83,7 +83,7 @@ enum class WarStatus {
  */
 data class WarObjective(
     val id: UUID = UUID.randomUUID(),
-    val type: ObjectiveType,
+    val type: WarObjectiveType,
     val targetValue: Int,
     val currentValue: Int = 0,
     val description: String,
@@ -110,13 +110,13 @@ data class WarObjective(
 /**
  * Types of war objectives.
  */
-enum class ObjectiveType {
-    KILLS,           // Kill X enemy players
+enum class WarObjectiveType {
+    KILL_PLAYERS,    // Kill X enemy players
     DEATHS,          // Lose X players
-    CLAIMS_CAPTURED, // Capture X enemy claims
+    CAPTURE_CLAIMS,  // Capture X enemy claims
     CLAIMS_LOST,     // Lose X own claims
-    TIME_SURVIVAL,   // Survive for X hours
-    RESOURCE_THEFT   // Steal X resources
+    SURVIVE_TIME,    // Survive for X hours
+    DESTROY_STRUCTURES // Destroy X structures
 }
 
 /**

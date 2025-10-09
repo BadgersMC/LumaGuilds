@@ -18,9 +18,13 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.getValue
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                        private val claim: Claim?): Menu, KoinComponent {
+                        private val claim: Claim?, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val updateClaimName: UpdateClaimName by inject()
 
@@ -29,7 +33,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
 
     override fun open() {
         if (claim == null) {
-            player.sendMessage("§cError: No claim available")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Error: No claim available")
             return
         }
 
@@ -51,7 +55,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
         val firstPane = StaticPane(0, 0, 1, 1)
         val lodestoneItem = ItemStack(Material.BELL)
             .name(claim.name)
-            .lore("${claim.position.x}, ${claim.position.y}, ${claim.position.z}")
+            .addAdventureLore(player, messageService, "${claim.position.x}, ${claim.position.y}, ${claim.position.z}")
         val guiItem = GuiItem(lodestoneItem) { guiEvent -> guiEvent.isCancelled = true }
         firstPane.addItem(guiItem, 0, 0)
         gui.firstItemComponent.addPane(firstPane)

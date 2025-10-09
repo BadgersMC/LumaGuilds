@@ -6,6 +6,7 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.ProgressionService
+import net.lumalyte.lg.application.services.MessageService
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
@@ -13,10 +14,12 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.MenuItemBuilder
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.AdventureMenuHelper
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -29,24 +32,22 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                       private var guild: Guild): Menu, KoinComponent {
+                       private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val menuItemBuilder: MenuItemBuilder by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-
     override fun open() {
-        // Create 6x9 double chest GUI
-        val gui = ChestGui(6, "§6Guild Settings - ${guild.name}")
+        // Create 6x9 double chest GUI with Adventure Components
+        val title = AdventureMenuHelper.createMenuTitle(player, messageService, "<gold>Guild Settings - ${guild.name}")
+        val gui = ChestGui(6, title)
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Row 0-1: Guild Information Section
@@ -62,44 +63,58 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
     }
 
     private fun addGuildInfoSection(pane: StaticPane) {
-        // Guild name display (placeholder for now)
-        val nameItem = ItemStack(Material.BOOK)
-            .name("§f📖 GUILD NAME")
-            .lore("§7Current: §f${guild.name}")
-            .lore("§7")
-            .lore("§7Name editing coming soon")
-            .lore("§7Contact admin to change name")
+        // Guild name editing
+        val hasNamePermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_GUILD_NAME)
 
-        pane.addItem(GuiItem(nameItem), 0, 0)
+        val nameItem = ItemStack(Material.BOOK)
+            .setAdventureName(player, messageService, "<white>📖 GUILD NAME")
+            .addAdventureLore(player, messageService, "<gray>Current: <white>${guild.name}")
+            .addAdventureLore(player, messageService, "")
+
+        if (hasNamePermission) {
+            nameItem.addAdventureLore(player, messageService, "<yellow>Click to rename guild")
+        } else {
+            nameItem.addAdventureLore(player, messageService, "<red>Requires MANAGE_GUILD_NAME permission")
+        }
+
+        val nameGuiItem = GuiItem(nameItem) {
+            if (hasNamePermission) {
+                openGuildNameEditor()
+            } else {
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to rename the guild")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>You need the MANAGE_GUILD_NAME permission")
+            }
+        }
+        pane.addItem(nameGuiItem, 0, 0)
 
         // Guild description
         val hasDescriptionPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_DESCRIPTION)
         val currentDescription = guild.description
 
         val descItem = ItemStack(Material.WRITABLE_BOOK)
-            .name("§f📝 DESCRIPTION")
+            .setAdventureName(player, messageService, "<white>📝 DESCRIPTION")
 
         if (currentDescription != null) {
-            descItem.lore("§7Status: §aSet")
-                .lore("§7Current: §f\"${parseMiniMessageForDisplay(currentDescription)}\"")
+            descItem.addAdventureLore(player, messageService, "<gray>Status: <green>Set")
+            descItem.addAdventureLore(player, messageService, "<gray>Current: <white>\"${parseMiniMessageForDisplay(currentDescription)}\"")
         } else {
-            descItem.lore("§7Status: §cNot set")
+            descItem.addAdventureLore(player, messageService, "<gray>Status: <red>Not set")
         }
 
-        descItem.lore("")
+        descItem.addAdventureLore(player, messageService, "")
 
         if (hasDescriptionPermission) {
-            descItem.lore("§eClick to edit description")
+            descItem.addAdventureLore(player, messageService, "<yellow>Click to edit description")
         } else {
-            descItem.lore("§cRequires MANAGE_DESCRIPTION permission")
+            descItem.addAdventureLore(player, messageService, "<red>Requires MANAGE_DESCRIPTION permission")
         }
 
         val guiItem = GuiItem(descItem) {
             if (hasDescriptionPermission) {
                 menuNavigator.openMenu(menuFactory.createDescriptionEditorMenu(menuNavigator, player, guild))
             } else {
-                player.sendMessage("§c❌ You don't have permission to manage guild description")
-                player.sendMessage("§7You need the MANAGE_DESCRIPTION permission")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to manage guild description")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>You need the MANAGE_DESCRIPTION permission")
             }
         }
 
@@ -111,9 +126,9 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
         val createdItem = ItemStack(Material.CLOCK)
-            .name("§f◷ CREATED")
-            .lore("§7Date: §f${localDateTime.format(dateFormatter)}")
-            .lore("§7Time: §f${localDateTime.format(timeFormatter)}")
+            .setAdventureName(player, messageService, "<white>◷ CREATED")
+            .addAdventureLore(player, messageService, "<gray>Date: <white>${localDateTime.format(dateFormatter)}")
+            .addAdventureLore(player, messageService, "<gray>Time: <white>${localDateTime.format(timeFormatter)}")
 
         pane.addItem(GuiItem(createdItem), 2, 0)
 
@@ -124,7 +139,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
     private fun createLevelingInfoItem(): ItemStack {
         val levelingItem = ItemStack(Material.EXPERIENCE_BOTTLE)
-            .name("§b☆ GUILD PROGRESSION")
+            .setAdventureName(player, messageService, "<aqua>☆ GUILD PROGRESSION")
 
         // Check if claims are enabled in config
         val configService = getKoin().get<ConfigService>()
@@ -141,61 +156,61 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                 ((experienceThisLevel.toDouble() / experienceForNextLevel.toDouble()) * 100).toInt()
             } else 100
             
-            levelingItem.lore("§7Level: §e${progression.currentLevel}")
-            levelingItem.lore("§7XP Progress: §e$experienceThisLevel§7/§e$experienceForNextLevel §7(§a$progressPercent%§7)")
+            levelingItem.addAdventureLore(player, messageService, "<gray>Level: <yellow>${progression.currentLevel}")
+            levelingItem.addAdventureLore(player, messageService, "<gray>XP Progress: <yellow>$experienceThisLevel<gray>/<yellow>$experienceForNextLevel <gray>(<green>$progressPercent%<gray>)")
             
             // Show unlocked perks count
             val unlockedPerks = progressionService.getUnlockedPerks(guild.id)
-            levelingItem.lore("§7Unlocked Perks: §a${unlockedPerks.size}")
+            levelingItem.addAdventureLore(player, messageService, "<gray>Unlocked Perks: <green>${unlockedPerks.size}")
         } else {
-            levelingItem.lore("§7Level: §e1 §7(Starting Level)")
-            levelingItem.lore("§7XP Progress: §e0§7/§e800 §7(§a0%§7)")
-            levelingItem.lore("§7Unlocked Perks: §a2 §7(Basic perks)")
+            levelingItem.addAdventureLore(player, messageService, "<gray>Level: <yellow>1 <gray>(Starting Level)")
+            levelingItem.addAdventureLore(player, messageService, "<gray>XP Progress: <yellow>0<gray>/<yellow>800 <gray>(<green>0%<gray>)")
+            levelingItem.addAdventureLore(player, messageService, "<gray>Unlocked Perks: <green>2 <gray>(Basic perks)")
         }
-        levelingItem.lore("§7")
-        levelingItem.lore("§6📈 Earn Experience Points:")
+        levelingItem.addAdventureLore(player, messageService, "<gray>")
+        levelingItem.addAdventureLore(player, messageService, "<gold>📈 Earn Experience Points:")
 
         // Guild activities
-        levelingItem.lore("§7• §f💰 Bank deposits")
-        levelingItem.lore("§7• §f👥 Guild member joins")
-        levelingItem.lore("§7• §f⚔️ War victories")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>💰 Bank deposits")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>👥 Guild member joins")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>⚔️ War victories")
         
         // Player activities
-        levelingItem.lore("§7• §f⚔ Player & mob kills")
-        levelingItem.lore("§7• §f♣ Farming & fishing")
-        levelingItem.lore("§7• §f⛏ Mining & building")
-        levelingItem.lore("§7• §f⚒ Crafting & smelting")
-        levelingItem.lore("§7• §f✦ Enchanting")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>⚔ Player & mob kills")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>♣ Farming & fishing")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>⛏ Mining & building")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>⚒ Crafting & smelting")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>✦ Enchanting")
 
         // Only show claim-related XP if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore("§7• §f🏞️ Claiming land")
+            levelingItem.addAdventureLore(player, messageService, "<gray>• <white>🏞️ Claiming land")
         }
-        levelingItem.lore("§7")
-        levelingItem.lore("§a🎁 Level Up Rewards:")
+        levelingItem.addAdventureLore(player, messageService, "<gray>")
+        levelingItem.addAdventureLore(player, messageService, "<green>🎁 Level Up Rewards:")
 
         // Bank rewards
-        levelingItem.lore("§7• §e💰 Higher bank balance limits")
-        levelingItem.lore("§7• §e💸 Better interest rates")
-        levelingItem.lore("§7• §e💳 Reduced withdrawal fees")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>💰 Higher bank balance limits")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>💸 Better interest rates")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>💳 Reduced withdrawal fees")
         
         // Home rewards
-        levelingItem.lore("§7• §e⌂ Additional home locations")
-        levelingItem.lore("§7• §e⚡ Faster teleport cooldowns")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>⌂ Additional home locations")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>⚡ Faster teleport cooldowns")
 
         // Audio/Visual rewards
-        levelingItem.lore("§7• §e✦ Special particle effects")
-        levelingItem.lore("§7• §e♪ Sound effects & announcements")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>✦ Special particle effects")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>♪ Sound effects & announcements")
         
         // No system rewards currently
 
         // Only show claim-related rewards if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore("§7• §e📦 More claim blocks")
-            levelingItem.lore("§7• §e⚡ Faster claim regeneration")
+            levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>📦 More claim blocks")
+            levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>⚡ Faster claim regeneration")
         }
-        levelingItem.lore("§7")
-        levelingItem.lore("§7Higher levels = §aBetter perks!")
+        levelingItem.addAdventureLore(player, messageService, "<gray>")
+        levelingItem.addAdventureLore(player, messageService, "<gray>Higher levels = <green>Better perks!")
 
         return levelingItem
     }
@@ -208,24 +223,24 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
             val bannerStack = bannerData.deserializeToItemStack()
             if (bannerStack != null) {
                 bannerStack.clone()
-                    .name("§f🏴 BANNER")
-                    .lore("§7Status: §aSet")
-                    .lore("§7Type: §f${bannerStack.type.name.lowercase().replace("_", " ")}")
-                    .lore("§7")
-                    .lore("§7Click to manage banner")
+                    .setAdventureName(player, messageService, "<white>🏴 BANNER")
+                    .addAdventureLore(player, messageService, "<gray>Status: <green>Set")
+                    .addAdventureLore(player, messageService, "<gray>Type: <white>${bannerStack.type.name.lowercase().replace("_", " ")}")
+                    .addAdventureLore(player, messageService, "<gray>")
+                    .addAdventureLore(player, messageService, "<gray>Click to manage banner")
             } else {
                 ItemStack(Material.WHITE_BANNER)
-                    .name("§f🏴 BANNER")
-                    .lore("§7Status: §cError loading banner")
-                    .lore("§7")
-                    .lore("§7Click to manage banner")
+                    .setAdventureName(player, messageService, "<white>🏴 BANNER")
+                    .addAdventureLore(player, messageService, "<gray>Status: <red>Error loading banner")
+                    .addAdventureLore(player, messageService, "<gray>")
+                    .addAdventureLore(player, messageService, "<gray>Click to manage banner")
             }
         } else {
             ItemStack(Material.WHITE_BANNER)
-                .name("§f🏴 BANNER")
-                .lore("§7Status: §cNot set")
-                .lore("§7")
-                .lore("§7Click to manage banner")
+                .setAdventureName(player, messageService, "<white>🏴 BANNER")
+                .addAdventureLore(player, messageService, "<gray>Status: <red>Not set")
+                .addAdventureLore(player, messageService, "<gray>")
+                .addAdventureLore(player, messageService, "<gray>Click to manage banner")
         }
 
         val bannerGuiItem = GuiItem(bannerItem) {
@@ -235,10 +250,10 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Guild Emoji
         val emojiItem = ItemStack(Material.FIREWORK_STAR)
-            .name("§f☆ EMOJI")
-            .lore("§7Current: §f${guild.emoji ?: "§cNot set"}")
-            .lore("§7")
-            .lore("§7Click to manage guild emoji")
+            .setAdventureName(player, messageService, "<white>☆ EMOJI")
+            .addAdventureLore(player, messageService, "<gray>Current: <white>${guild.emoji ?: "<red>Not set"}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Click to manage guild emoji")
 
         val emojiGuiItem = GuiItem(emojiItem) {
             menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
@@ -247,11 +262,11 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Guild Tag - NEW FEATURE
         val tagItem = ItemStack(Material.NAME_TAG)
-            .name("§f🏷️ GUILD TAG")
-            .lore("§7Current: §f${guild.tag ?: "§cNot set"}")
-            .lore("§7")
-            .lore("§7Click to edit guild tag")
-            .lore("§7Supports MiniMessage formatting")
+            .setAdventureName(player, messageService, "<white>🏷️ GUILD TAG")
+            .addAdventureLore(player, messageService, "<gray>Current: <white>${guild.tag ?: "<red>Not set"}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Click to edit guild tag")
+            .addAdventureLore(player, messageService, "<gray>Supports MiniMessage formatting")
 
         val tagGuiItem = GuiItem(tagItem) {
             val menuFactory = MenuFactory()
@@ -262,9 +277,9 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         // Preview section
         val currentTag = guild.tag ?: guild.name
         val previewItem = ItemStack(Material.PAPER)
-            .name("§a🔍 PREVIEW")
-            .lore("§7Chat appearance:")
-            .lore("§7[${player.name}] $currentTag §7Hello!")
+            .setAdventureName(player, messageService, "<green>🔍 PREVIEW")
+            .addAdventureLore(player, messageService, "<gray>Chat appearance:")
+            .addAdventureLore(player, messageService, "<gray>[${player.name}] $currentTag <gray>Hello!")
 
         pane.addItem(GuiItem(previewItem), 4, 2)
     }
@@ -272,33 +287,33 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
     private fun addLocationModeSection(pane: StaticPane) {
         // Guild Home
         val homeItem = ItemStack(Material.COMPASS)
-                .name("§f🏠 HOME MANAGEMENT")
+                .setAdventureName(player, messageService, "<white>🏠 HOME MANAGEMENT")
 
         val allHomes = guildService.getHomes(guild.id)
         val availableSlots = guildService.getAvailableHomeSlots(guild.id)
 
-        homeItem.lore("§7Homes Set: §f${allHomes.size}§7/${availableSlots}")
-        homeItem.lore("§7")
+        homeItem.addAdventureLore(player, messageService, "<gray>Homes Set: <white>${allHomes.size}<gray>/${availableSlots}")
+        homeItem.addAdventureLore(player, messageService, "<gray>")
 
         if (allHomes.hasHomes()) {
             allHomes.homes.entries.take(3).forEach { entry ->
                 val name = entry.key
-                val marker = if (name == "main") "§e[MAIN]" else ""
-                homeItem.lore("§7• §f$name $marker")
+                val marker = if (name == "main") "<yellow>[MAIN]" else ""
+                homeItem.addAdventureLore(player, messageService, "<gray>• <white>$name $marker")
             }
             if (allHomes.size > 3) {
-                homeItem.lore("§7• §f... and ${allHomes.size - 3} more")
+                homeItem.addAdventureLore(player, messageService, "<gray>• <white>... and ${allHomes.size - 3} more")
             }
-            homeItem.lore("§7")
-            homeItem.lore("§eClick to manage homes")
+            homeItem.addAdventureLore(player, messageService, "<gray>")
+            homeItem.addAdventureLore(player, messageService, "<yellow>Click to manage homes")
         } else {
-            homeItem.lore("§7No homes set yet")
-            homeItem.lore("§7")
-            homeItem.lore("§eClick to set first home")
+            homeItem.addAdventureLore(player, messageService, "<gray>No homes set yet")
+            homeItem.addAdventureLore(player, messageService, "<gray>")
+            homeItem.addAdventureLore(player, messageService, "<yellow>Click to set first home")
         }
 
         if (allHomes.size < availableSlots) {
-            homeItem.lore("§aAvailable slots: §f${availableSlots - allHomes.size}")
+            homeItem.addAdventureLore(player, messageService, "<green>Available slots: <white>${availableSlots - allHomes.size}")
         }
 
         val homeGuiItem = GuiItem(homeItem) {
@@ -308,9 +323,9 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Guild Members
         val membersItem = ItemStack(Material.PLAYER_HEAD)
-            .name("§f👥 MANAGE MEMBERS")
-            .lore("§7Invite and kick guild members")
-            .lore("§7View member list with pagination")
+            .setAdventureName(player, messageService, "<white>👥 MANAGE MEMBERS")
+            .addAdventureLore(player, messageService, "<gray>Invite and kick guild members")
+            .addAdventureLore(player, messageService, "<gray>View member list with pagination")
 
         val membersGuiItem = GuiItem(membersItem) {
             menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
@@ -324,11 +339,11 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                 if (guild.mode == GuildMode.PEACEFUL)
                     Material.GREEN_WOOL else Material.RED_WOOL
             )
-                .name("§f⚔ GUILD MODE")
-                .lore("§7Current: §f${guild.mode.name}")
-                .lore("§7")
-                .lore("§7Peaceful: No PvP, safe trading")
-                .lore("§7Hostile: PvP enabled, competitive")
+                .setAdventureName(player, messageService, "<white>⚔ GUILD MODE")
+                .addAdventureLore(player, messageService, "<gray>Current: <white>${guild.mode.name}")
+                .addAdventureLore(player, messageService, "<gray>")
+                .addAdventureLore(player, messageService, "<gray>Peaceful: No PvP, safe trading")
+                .addAdventureLore(player, messageService, "<gray>Hostile: PvP enabled, competitive")
 
             // Add cooldown information
             val modeChangedAt = guild.modeChangedAt
@@ -340,8 +355,8 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                         val remaining = Duration.between(Instant.now(), hostileCooldownEnd)
                         val days = remaining.toDays()
                         val hours = remaining.toHours() % 24
-                        modeItem.lore("§7")
-                                .lore("§c◷ Cannot switch to Hostile: ${days}d ${hours}h remaining")
+                        modeItem.addAdventureLore(player, messageService, "<gray>")
+                                .addAdventureLore(player, messageService, "<red>◷ Cannot switch to Hostile: ${days}d ${hours}h remaining")
                     }
                 } else {
                     // Show peaceful switch cooldown
@@ -350,14 +365,14 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                         val remaining = Duration.between(Instant.now(), peacefulCooldownEnd)
                         val days = remaining.toDays()
                         val hours = remaining.toHours() % 24
-                        modeItem.lore("§7")
-                                .lore("§c◷ Cannot switch to Peaceful: ${days}d ${hours}h remaining")
+                        modeItem.addAdventureLore(player, messageService, "<gray>")
+                                .addAdventureLore(player, messageService, "<red>◷ Cannot switch to Peaceful: ${days}d ${hours}h remaining")
                     }
                 }
             }
 
-            modeItem.lore("§7")
-                    .lore("§eClick to change mode")
+            modeItem.addAdventureLore(player, messageService, "<gray>")
+                    .addAdventureLore(player, messageService, "<yellow>Click to change mode")
 
             val modeGuiItem = GuiItem(modeItem) {
                 menuNavigator.openMenu(menuFactory.createGuildModeMenu(menuNavigator, player, guild))
@@ -366,19 +381,19 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         } else {
             // Show disabled mode indicator
             val modeItem = ItemStack(Material.GRAY_WOOL)
-                .name("§f⚔ GUILD MODE")
-                .lore("§7Current: §fHOSTILE")
-                .lore("§7")
-                .lore("§cMode switching disabled")
-                .lore("§7All guilds are hostile by default")
+                .setAdventureName(player, messageService, "<white>⚔ GUILD MODE")
+                .addAdventureLore(player, messageService, "<gray>Current: <white>HOSTILE")
+                .addAdventureLore(player, messageService, "<gray>")
+                .addAdventureLore(player, messageService, "<red>Mode switching disabled")
+                .addAdventureLore(player, messageService, "<gray>All guilds are hostile by default")
 
             pane.addItem(GuiItem(modeItem), 1, 4)
         }
 
         // Back button
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
-            .lore("§7Return to control panel")
+            .setAdventureName(player, messageService, "<red>⬅️ BACK")
+            .addAdventureLore(player, messageService, "<gray>Return to control panel")
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -398,8 +413,74 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         }
     }
 
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    /**
+     * Open guild name editor menu
+     */
+    private fun openGuildNameEditor() {
+        val confirmationMenu = object : Menu {
+            override fun open() {
+                val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Rename Guild"))
+                AntiDupeUtil.protect(gui)
+
+                val pane = StaticPane(0, 0, 9, 4)
+                gui.addPane(pane)
+
+                // Current name display
+                val currentNameItem = ItemStack(Material.BOOK)
+                    .setAdventureName(player, messageService, "<gold>Current Guild Name")
+                    .addAdventureLore(player, messageService, "<gray>${guild.name}")
+                    .addAdventureLore(player, messageService, "<gray>")
+                    .addAdventureLore(player, messageService, "<gray>Type the new name in chat")
+                    .addAdventureLore(player, messageService, "<gray>Requirements:")
+                    .addAdventureLore(player, messageService, "<gray>• 1-32 characters")
+                    .addAdventureLore(player, messageService, "<gray>• No inappropriate content")
+                    .addAdventureLore(player, messageService, "<gray>• Cannot copy other guild names")
+
+                pane.addItem(GuiItem(currentNameItem), 4, 0)
+
+                // Warning about name copying
+                val warningItem = ItemStack(Material.REDSTONE)
+                    .setAdventureName(player, messageService, "<red>⚠️ Name Tag Protection")
+                    .addAdventureLore(player, messageService, "<gray>Names cannot be copied from other guilds")
+                    .addAdventureLore(player, messageService, "<gray>Even with different colors/formatting")
+                    .addAdventureLore(player, messageService, "<gray>")
+                    .addAdventureLore(player, messageService, "<gray>Examples of blocked names:")
+                    .addAdventureLore(player, messageService, "<gray>• <red>Dawgz<white> (if <green>Dawgz<white> exists)")
+                    .addAdventureLore(player, messageService, "<gray>• <gold><bold>ELITE<white> (if <green>Elite<white> exists)")
+
+                pane.addItem(GuiItem(warningItem), 4, 1)
+
+                // Confirm button (placeholder for now)
+                val confirmItem = ItemStack(Material.GREEN_WOOL)
+                    .setAdventureName(player, messageService, "<green>Enter New Name")
+                    .addAdventureLore(player, messageService, "<gray>Type the new guild name in chat")
+                    .addAdventureLore(player, messageService, "<gray>Then click this button to confirm")
+
+                val confirmGuiItem = GuiItem(confirmItem) { event ->
+                    event.isCancelled = true
+                    AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Type the new guild name in chat...")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Requirements: 1-32 characters, no copying other guild names")
+                    // This would trigger chat input handling
+                }
+                pane.addItem(confirmGuiItem, 3, 3)
+
+                // Cancel button
+                val cancelItem = ItemStack(Material.RED_WOOL)
+                    .setAdventureName(player, messageService, "<red>Cancel")
+                    .addAdventureLore(player, messageService, "<gray>Cancel name change")
+
+                val cancelGuiItem = GuiItem(cancelItem) { event ->
+                    event.isCancelled = true
+                    menuNavigator.openMenu(this@GuildSettingsMenu)
+                }
+                pane.addItem(cancelGuiItem, 5, 3)
+
+                gui.show(player)
+            }
+
+            override fun passData(data: Any?) = Unit
+        }
+
+        menuNavigator.openMenu(confirmationMenu)
+    }}
 

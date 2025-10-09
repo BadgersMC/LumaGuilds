@@ -13,6 +13,11 @@
 # When disabled, all claim-related commands and features are unavailable
 claims_enabled: true
 
+# Enable or disable the new Brigadier command system
+# When enabled, commands use Paper's Brigadier API for better tab completion and error messages
+# When disabled, falls back to legacy command registration
+brigadier_enabled: true
+
 # The amount of claims a player is allowed to create.
 claim_limit: 3
 
@@ -518,5 +523,176 @@ bedrock:
   delete_icon_path: "textures/ui/delete.png"
 
   # Debug and logging
+  debug_bedrock_menus: false
+  log_form_interactions: false
+
+# =====================================
+# Item Banking System Configuration
+# =====================================
+
+item_banking:
+  # Core Settings
+  enabled: true
+  allow_dual_banking: true  # Allow both monetary and item banking
+
+  # Guild Chest Settings
+  default_chest_size: 54    # 6 rows of 9 slots
+  max_chest_size: 270       # Maximum expandable size
+  chest_break_confirmation: true
+  chest_break_message: "§cWarning: Breaking this guild chest will drop all items! Break again to confirm."
+
+  # WorldGuard Integration
+  worldguard_integration: true
+  worldguard_deny_regions:
+    - "spawn"
+    - "pvp"
+    - "shop"
+
+  # Guild Level Unlocks (Level -> Additional slots)
+  unlock_levels:
+    5: 9      # Level 5: +9 slots (63 total)
+    10: 18    # Level 10: +18 slots (81 total)
+    15: 27    # Level 15: +27 slots (108 total)
+    20: 36    # Level 20: +36 slots (144 total)
+    25: 45    # Level 25: +45 slots (189 total)
+    30: 54    # Level 30: +54 slots (243 total)
+
+  # Currency Settings
+  default_currency_item: "DIAMOND"
+  currency_items:
+    DIAMOND: 1.0
+    EMERALD: 0.5
+    GOLD_INGOT: 0.25
+    IRON_INGOT: 0.1
+    COAL: 0.05
+
+  # Auto-Enemy Settings
+  auto_enemy_on_chest_break: true
+  auto_enemy_duration_hours: 72
+  auto_enemy_reason: "Guild chest was destroyed by member of this guild"
+
+  # Security Settings
+  require_claims_for_chest_protection: false
+  chest_explosion_required: true  # Require explosions to break chests when claims disabled
+  log_chest_break_attempts: true
+
+  # Access Settings
+  allow_physical_access: true
+  allow_gui_access: true
+  require_permission_for_access: false
+  access_permission: "lumaguilds.chest.access"
+
+  # Chest Management
+  max_chests_per_guild: 5
+  chest_placement_cooldown_minutes: 5
+  allow_cross_world_chests: false
+  chest_protection_radius: 5
+
+  # Chest Upgrade Costs
+  chest_upgrade_costs:
+    SIZE_UPGRADE: 1000
+    SECURITY_UPGRADE: 2000
+    CAPACITY_UPGRADE: 1500
+    PROTECTION_UPGRADE: 3000
+
+  # Chest Sharing
+  allow_chest_sharing: false
+  chest_sharing_permission: "lumaguilds.chest.share"
+  chest_sharing_cooldown_minutes: 60
+  max_shared_chests: 3
+
+  # Chest Locking
+  allow_chest_locking: true
+  chest_lock_duration_hours: 24
+  chest_lock_permission: "lumaguilds.chest.lock"
+
+  # Chest Encryption
+  allow_chest_encryption: false
+  chest_encryption_permission: "lumaguilds.chest.encrypt"
+  chest_encryption_cost: 1000
+  chest_encryption_duration_hours: 168
+
+  # Chest Tracking
+  allow_chest_tracking: true
+  chest_tracking_permission: "lumaguilds.chest.track"
+  chest_tracking_cooldown_minutes: 30
+  max_tracked_chests: 10
+
+  # Chest Alerts
+  allow_chest_alerts: true
+  chest_alert_permission: "lumaguilds.chest.alert"
+  chest_alert_cooldown_minutes: 15
+  max_chest_alerts: 5
+
+  # Chest Backups
+  allow_chest_backups: true
+  chest_backup_permission: "lumaguilds.chest.backup"
+  chest_backup_cooldown_minutes: 120
+  max_chest_backups: 3
+
+  # Chest Restore
+  allow_chest_restore: true
+  chest_restore_permission: "lumaguilds.chest.restore"
+  chest_restore_cooldown_minutes: 240
+  max_chest_restores: 1
+
+# =====================================
+# Bedrock Player Configuration
+# =====================================
+
+bedrock:
+  # Core Settings
+  bedrock_menus_enabled: true
+  force_bedrock_menus: false  # If true, Java players also get Bedrock menus
+  fallback_to_java_menus: true  # If Bedrock menus fail, fallback to Java
+  fallback_on_floodgate_unavailable: true
+  fallback_on_cumulus_unavailable: true
+
+  # Performance Tuning
+  form_cache_enabled: true
+  form_cache_size: 100
+  form_cache_expiration_minutes: 30
+  max_form_buttons: 8  # Maximum buttons per SimpleForm page
+  form_timeout_seconds: 300  # 5 minutes
+
+  # Menu-specific Settings
+  enable_bedrock_confirmations: true
+  enable_bedrock_selections: true
+  enable_bedrock_custom_forms: true
+
+  # Image Configuration
+  image_source: "URL"  # URL or RESOURCE_PACK
+  default_button_image_url: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=ICON"
+  default_button_image_path: "textures/ui/icon.png"
+
+  # Guild-specific Images
+  guild_members_icon_url: "https://via.placeholder.com/64x64/2196F3/FFFFFF?text=MEMBERS"
+  guild_members_icon_path: "textures/ui/members.png"
+  guild_settings_icon_url: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=SETTINGS"
+  guild_settings_icon_path: "textures/ui/settings.png"
+  guild_bank_icon_url: "https://via.placeholder.com/64x64/FFC107/FFFFFF?text=BANK"
+  guild_bank_icon_path: "textures/ui/bank.png"
+  guild_wars_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=WARS"
+  guild_wars_icon_path: "textures/ui/wars.png"
+  guild_home_icon_url: "https://via.placeholder.com/64x64/9C27B0/FFFFFF?text=HOME"
+  guild_home_icon_path: "textures/ui/home.png"
+  guild_tag_icon_url: "https://via.placeholder.com/64x64/607D8B/FFFFFF?text=TAG"
+  guild_tag_icon_path: "textures/ui/tag.png"
+
+  # Action-specific Images
+  confirm_icon_url: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=CONFIRM"
+  confirm_icon_path: "textures/ui/confirm.png"
+  cancel_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=CANCEL"
+  cancel_icon_path: "textures/ui/cancel.png"
+  back_icon_url: "https://via.placeholder.com/64x64/757575/FFFFFF?text=BACK"
+  back_icon_path: "textures/ui/back.png"
+  close_icon_url: "https://via.placeholder.com/64x64/000000/FFFFFF?text=CLOSE"
+  close_icon_path: "textures/ui/close.png"
+  edit_icon_url: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=EDIT"
+  edit_icon_path: "textures/ui/edit.png"
+  delete_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=DELETE"
+  delete_icon_path: "textures/ui/delete.png"
+
+  # Debug and Logging
   debug_bedrock_menus: false
   log_form_interactions: false

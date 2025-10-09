@@ -5,10 +5,13 @@ import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.Pane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -19,6 +22,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Guild Bank Budget Management menu with spending limits and alerts
@@ -26,10 +33,12 @@ import java.time.temporal.ChronoUnit
 class GuildBankBudgetMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val guild: Guild
+    private val guild: Guild,
+    private val messageService: MessageService
 ) : Menu, KoinComponent {
 
     private val bankService: BankService by inject()
+    private val memberService: MemberService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
@@ -52,36 +61,31 @@ class GuildBankBudgetMenu(
     }
 
     override fun open() {
+        // Check if player has permission to access budget management
+        if (!hasBudgetManagementPermission()) {
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to access budget management!")
+            return
+        }
+
         updateBudgetDisplay()
         gui.show(player)
     }
 
-    override fun passData(data: Any?) {
-        // Handle budget updates
-        if (data is Map<*, *>) {
-            @Suppress("UNCHECKED_CAST")
-            val updates = data as Map<String, Int>
-            updates.forEach { (period, amount) ->
-                when (period) {
-                    "monthly" -> monthlyBudget = amount
-                    "weekly" -> weeklyBudget = amount
-                    "daily" -> dailyBudget = amount
-                }
-            }
-            calculateAlerts()
-            updateBudgetDisplay()
-            gui.update()
-        }
-    }
-
     /**
-     * Load budget settings (placeholder for now)
+     * Load budget settings from database
      */
     private fun loadBudgetSettings() {
-        // TODO: Load from database/configuration
-        monthlyBudget = 10000
-        weeklyBudget = 2500
-        dailyBudget = 500
+        val monthly = bankService.getBudgetByCategory(guild.id, net.lumalyte.lg.domain.entities.BudgetCategory.GENERAL_EXPENSES)
+        if (monthly != null) {
+            monthlyBudget = monthly.allocatedAmount
+        } else {
+            monthlyBudget = 10000
+        }
+
+        // For simplicity, using the same budget for all categories initially
+        // In a full implementation, you'd have separate budgets for different categories
+        weeklyBudget = monthlyBudget / 4
+        dailyBudget = weeklyBudget / 7
     }
 
     /**
@@ -128,8 +132,9 @@ class GuildBankBudgetMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, "Budget Management - ${guild.name}")
-        gui.setOnGlobalClick { event -> event.isCancelled = true }
+        gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "Budget Management - ${guild.name}"))
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Create main navigation pane
         mainPane = StaticPane(0, 0, 9, 1, Pane.Priority.NORMAL)
@@ -185,7 +190,7 @@ class GuildBankBudgetMenu(
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
             saveBudgetSettings()
-            player.sendMessage("§aBudget settings saved!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>Budget settings saved!")
         }
         mainPane.addItem(saveGuiItem, 7, 0)
 
@@ -213,13 +218,18 @@ class GuildBankBudgetMenu(
             listOf(
                 "Current: ${monthlyBudget} coins",
                 "Click to set monthly spending limit",
-                "Tracks spending over 30 days"
+                "Tracks spending over 30 days",
+                if (hasBudgetManagementPermission()) "" else "<red>⚠️ Requires MANAGE_BUDGETS permission"
             )
         )
         val monthlyGuiItem = GuiItem(monthlyItem) { event ->
             event.isCancelled = true
-            // TODO: Open amount input for monthly budget
-            player.sendMessage("§eMonthly budget setting coming soon!")
+            if (hasBudgetManagementPermission()) {
+                // TODO: Open amount input for monthly budget
+                AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Monthly budget setting coming soon!")
+            } else {
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to manage budgets!")
+            }
         }
         budgetPane.addItem(monthlyGuiItem, 0, 0)
 
@@ -230,13 +240,18 @@ class GuildBankBudgetMenu(
             listOf(
                 "Current: ${weeklyBudget} coins",
                 "Click to set weekly spending limit",
-                "Tracks spending over 7 days"
+                "Tracks spending over 7 days",
+                if (hasBudgetManagementPermission()) "" else "<red>⚠️ Requires MANAGE_BUDGETS permission"
             )
         )
         val weeklyGuiItem = GuiItem(weeklyItem) { event ->
             event.isCancelled = true
-            // TODO: Open amount input for weekly budget
-            player.sendMessage("§eWeekly budget setting coming soon!")
+            if (hasBudgetManagementPermission()) {
+                // TODO: Open amount input for weekly budget
+                AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Weekly budget setting coming soon!")
+            } else {
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to manage budgets!")
+            }
         }
         budgetPane.addItem(weeklyGuiItem, 1, 0)
 
@@ -247,13 +262,18 @@ class GuildBankBudgetMenu(
             listOf(
                 "Current: ${dailyBudget} coins",
                 "Click to set daily spending limit",
-                "Tracks spending over 24 hours"
+                "Tracks spending over 24 hours",
+                if (hasBudgetManagementPermission()) "" else "<red>⚠️ Requires MANAGE_BUDGETS permission"
             )
         )
         val dailyGuiItem = GuiItem(dailyItem) { event ->
             event.isCancelled = true
-            // TODO: Open amount input for daily budget
-            player.sendMessage("§eDaily budget setting coming soon!")
+            if (hasBudgetManagementPermission()) {
+                // TODO: Open amount input for daily budget
+                AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Daily budget setting coming soon!")
+            } else {
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to manage budgets!")
+            }
         }
         budgetPane.addItem(dailyGuiItem, 2, 0)
 
@@ -373,11 +393,29 @@ class GuildBankBudgetMenu(
     }
 
     /**
-     * Save budget settings
+     * Save budget settings to database
      */
     private fun saveBudgetSettings() {
-        // TODO: Save to database/configuration
-        player.sendMessage("§aBudget settings would be saved to database")
+        try {
+            val now = java.time.Instant.now()
+            val monthEnd = now.plus(30, java.time.temporal.ChronoUnit.DAYS)
+
+            val saved = bankService.setBudget(
+                guild.id,
+                net.lumalyte.lg.domain.entities.BudgetCategory.GENERAL_EXPENSES,
+                monthlyBudget,
+                now,
+                monthEnd
+            )
+
+            if (saved != null) {
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>Budget settings saved successfully!")
+            } else {
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to save budget settings!")
+            }
+        } catch (e: Exception) {
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Error saving budget settings: ${e.message}")
+        }
     }
 
     /**
@@ -409,5 +447,12 @@ class GuildBankBudgetMenu(
      */
     private fun getLocalizedString(key: String, vararg params: Any?): String {
         return localizationProvider.get(player.uniqueId, key, *params)
+    }
+
+    /**
+     * Check if player has permission to access budget management
+     */
+    private fun hasBudgetManagementPermission(): Boolean {
+        return memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_BUDGETS)
     }
 }

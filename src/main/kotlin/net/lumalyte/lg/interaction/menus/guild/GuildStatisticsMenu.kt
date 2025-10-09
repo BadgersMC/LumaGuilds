@@ -6,8 +6,10 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.*
+import net.lumalyte.lg.domain.entities.War
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -24,14 +26,19 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                         private var guild: Guild): Menu, KoinComponent {
+                         private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val killService: KillService by inject()
     private val warService: WarService by inject()
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
+    private val analyticsService: AnalyticsService by inject()
     private val mapRendererService: MapRendererService by inject()
     private val guildService: GuildService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
@@ -41,12 +48,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private val decimalFormat = DecimalFormat("#.##")
 
     override fun open() {
-        val gui = ChestGui(6, "§6${guild.name} - Statistics")
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
-                guiEvent.isCancelled = true
-        }
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold>${guild.name} - Statistics"))
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         val pane = StaticPane(0, 0, 9, 6)
         gui.addPane(pane)
@@ -63,12 +67,21 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         addKillDeathRatiosButton(pane, 2, 1)
         addRecentActivityButton(pane, 3, 1)
 
+        // Row 2.5: Analytics Dashboard
+        addAnalyticsDashboardButton(pane, 4, 1)
+
+        // Row 3: Enhanced Analytics
+        addGuildPerformanceButton(pane, 5, 2)
+        addMemberAnalyticsButton(pane, 6, 2)
+        addBankAnalyticsButton(pane, 7, 2)
+        addWarAnalyticsButton(pane, 8, 2)
+
         // Row 3: Advanced Analytics
         addPeriodStatsButton(pane, 0, 2)
         addRivalryStatsButton(pane, 1, 2)
         addAchievementsButton(pane, 3, 2)
 
-        // Row 4: Visualizations (Future)
+        // Row 4: Visualizations
         addGraphPlaceholderButton(pane, 0, 3)
         addTrendAnalysisButton(pane, 1, 3)
         addComparisonButton(pane, 2, 3)
@@ -85,13 +98,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val killStats = killService.getGuildKillStats(guild.id)
 
         val item = ItemStack(Material.DIAMOND_SWORD)
-            .name("§4Kill Statistics")
-            .lore("§7Total Kills: §f${killStats.totalKills}")
-            .lore("§7Total Deaths: §f${killStats.totalDeaths}")
-            .lore("§7Net Kills: §${if (killStats.netKills >= 0) "a" else "c"}${killStats.netKills}")
-            .lore("§7K/D Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
+            .setAdventureName(player, messageService, "<dark_red>Kill Statistics")
+            .addAdventureLore(player, messageService, "<gray>Total Kills: <white>${killStats.totalKills}")
+            .addAdventureLore(player, messageService, "<gray>Total Deaths: <white>${killStats.totalDeaths}")
+            .lore("<gray>Net Kills: §${if (killStats.netKills >= 0) "a" else "c"}${killStats.netKills}")
+            .addAdventureLore(player, messageService, "<gray>K/D Ratio: <yellow>${decimalFormat.format(killStats.killDeathRatio)}")
             .lore("")
-            .lore("§7Click for detailed breakdown")
+            .addAdventureLore(player, messageService, "<gray>Click for detailed breakdown")
 
         val guiItem = GuiItem(item) {
             openKillStatsDetail()
@@ -101,22 +114,23 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addWarStatsButton(pane: StaticPane, x: Int, y: Int) {
         try {
-            val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
-            val warHistory = warService.getWarHistory(guild.id, 50)
+            val wars: List<War> = warService.getWarsForGuild(guild.id)
+            val activeWars = wars.filter { war: War -> war.isActive }
+            val warHistory: List<War> = warService.getWarHistory(guild.id, 50)
 
-            val wins = warHistory.count { it.winner == guild.id }
-            val losses = warHistory.count { it.winner != null && it.winner != guild.id }
-            val draws = warHistory.count { it.winner == null }
+            val wins = warHistory.count { war: War -> war.winner == guild.id }
+            val losses = warHistory.count { war: War -> war.winner != null && war.winner != guild.id }
+            val draws = warHistory.count { war: War -> war.winner == null }
 
             val item = ItemStack(Material.WHITE_BANNER)
-                .name("§4War Statistics")
-                .lore("§7Active Wars: §f${activeWars.size}")
-                .lore("§7Total Wars: §f${warHistory.size}")
-                .lore("§7Wins: §a$wins")
-                .lore("§7Losses: §c$losses")
-                .lore("§7Draws: §e$draws")
+                .setAdventureName(player, messageService, "<dark_red>War Statistics")
+                .addAdventureLore(player, messageService, "<gray>Active Wars: <white>${activeWars.size}")
+                .addAdventureLore(player, messageService, "<gray>Total Wars: <white>${warHistory.size}")
+                .addAdventureLore(player, messageService, "<gray>Wins: <green>$wins")
+                .addAdventureLore(player, messageService, "<gray>Losses: <red>$losses")
+                .addAdventureLore(player, messageService, "<gray>Draws: <yellow>$draws")
                 .lore("")
-                .lore("§7Win Rate: §e${decimalFormat.format(calculateWinRate(wins, warHistory.size))}%")
+                .addAdventureLore(player, messageService, "<gray>Win Rate: <yellow>${decimalFormat.format(calculateWinRate(wins, warHistory.size))}%")
 
             val guiItem = GuiItem(item) {
                 openWarStatsDetail()
@@ -125,15 +139,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         } catch (e: Exception) {
             // Fallback to placeholder if war service fails
             val item = ItemStack(Material.WHITE_BANNER)
-                .name("§4War Statistics")
-                .lore("§7Active Wars: §f0")
-                .lore("§7Total Wars: §f0")
-                .lore("§7Wins: §a0")
-                .lore("§7Losses: §c0")
-                .lore("§7Draws: §e0")
+                .setAdventureName(player, messageService, "<dark_red>War Statistics")
+                .addAdventureLore(player, messageService, "<gray>Active Wars: <white>0")
+                .addAdventureLore(player, messageService, "<gray>Total Wars: <white>0")
+                .addAdventureLore(player, messageService, "<gray>Wins: <green>0")
+                .addAdventureLore(player, messageService, "<gray>Losses: <red>0")
+                .addAdventureLore(player, messageService, "<gray>Draws: <yellow>0")
                 .lore("")
-                .lore("§7Win Rate: §e0.0%")
-                .lore("§cWar system not available")
+                .addAdventureLore(player, messageService, "<gray>Win Rate: <yellow>0.0%")
+                .addAdventureLore(player, messageService, "<red>War system not available")
 
             val guiItem = GuiItem(item) {
                 openWarStatsDetail()
@@ -144,17 +158,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addMemberStatsButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
-        // Placeholder for online members until MemberService is extended
-        val onlineMembers = 0 // memberService.getOnlineMembers(guild.id).size
+        val onlineMembers = memberService.getOnlineMembers(guild.id).size
 
         val item = ItemStack(Material.PLAYER_HEAD)
-            .name("§bMember Statistics")
-            .lore("§7Total Members: §f$memberCount")
-            .lore("§7Online Now: §a$onlineMembers")
-            .lore("§7Offline: §7${memberCount - onlineMembers}")
+            .setAdventureName(player, messageService, "<aqua>Member Statistics")
+            .addAdventureLore(player, messageService, "<gray>Total Members: <white>$memberCount")
+            .addAdventureLore(player, messageService, "<gray>Online Now: <green>$onlineMembers")
+            .addAdventureLore(player, messageService, "<gray>Offline: <gray>${memberCount - onlineMembers}")
             .lore("")
-            .lore("§7Activity Rate: §e${calculateActivityRate(memberCount, onlineMembers)}%")
-            .lore("§cOnline tracking coming soon!")
+            .addAdventureLore(player, messageService, "<gray>Activity Rate: <yellow>${calculateActivityRate(memberCount, onlineMembers)}%")
 
         val guiItem = GuiItem(item) {
             openMemberStatsDetail()
@@ -170,12 +182,12 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val avgDeathsPerMember = if (memberCount > 0) killStats.totalDeaths.toDouble() / memberCount else 0.0
 
         val item = ItemStack(Material.EXPERIENCE_BOTTLE)
-            .name("§ePerformance Metrics")
-            .lore("§7Avg Kills/Member: §f${decimalFormat.format(avgKillsPerMember)}")
-            .lore("§7Avg Deaths/Member: §f${decimalFormat.format(avgDeathsPerMember)}")
-            .lore("§7Kill Efficiency: §e${calculateEfficiency(killStats)}%")
+            .setAdventureName(player, messageService, "<yellow>Performance Metrics")
+            .addAdventureLore(player, messageService, "<gray>Avg Kills/Member: <white>${decimalFormat.format(avgKillsPerMember)}")
+            .addAdventureLore(player, messageService, "<gray>Avg Deaths/Member: <white>${decimalFormat.format(avgDeathsPerMember)}")
+            .addAdventureLore(player, messageService, "<gray>Kill Efficiency: <yellow>${calculateEfficiency(killStats)}%")
             .lore("")
-            .lore("§7Overall Rating: §${getPerformanceColor(killStats, memberCount)}${getPerformanceRating(killStats, memberCount)}")
+            .addAdventureLore(player, messageService, "<gray>Overall Rating: §${getPerformanceColor(killStats, memberCount)}${getPerformanceRating(killStats, memberCount)}")
 
         val guiItem = GuiItem(item) {
             openPerformanceDetail()
@@ -185,13 +197,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addGraphPlaceholderButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack(Material.FILLED_MAP)
-            .name("§5📊 Visual Charts")
-            .lore("§7Interactive charts & graphs")
-            .lore("§7Kill trends over time")
-            .lore("§7Performance visualizations")
+            .setAdventureName(player, messageService, "<dark_purple>📊 Visual Charts")
+            .addAdventureLore(player, messageService, "<gray>Interactive charts & graphs")
+            .addAdventureLore(player, messageService, "<gray>Kill trends over time")
+            .addAdventureLore(player, messageService, "<gray>Performance visualizations")
             .lore("")
-            .lore("§eClick to view guild balance chart")
-            .lore("§7Advanced map-based rendering")
+            .addAdventureLore(player, messageService, "<yellow>Click to view guild balance chart")
+            .addAdventureLore(player, messageService, "<gray>Advanced map-based rendering")
 
         val guiItem = GuiItem(item) {
             renderGuildBalanceChart()
@@ -201,8 +213,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack(Material.ARROW)
-            .name("§cBack to Control Panel")
-            .lore("§7Return to guild management")
+            .setAdventureName(player, messageService, "<red>Back to Control Panel")
+            .addAdventureLore(player, messageService, "<gray>Return to guild management")
 
         val guiItem = GuiItem(item) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -248,7 +260,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     // Detail view functions (placeholders for now)
     private fun openKillStatsDetail() {
-        player.sendMessage("§e🔪 Detailed kill statistics coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>🔪 Detailed kill statistics coming soon!")
     }
 
     private fun openWarStatsDetail() {
@@ -256,7 +268,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
             val warHistory = warService.getWarHistory(guild.id, 20)
 
-            val gui = ChestGui(6, "§4⚔️ ${guild.name} - War Details")
+            val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<dark_red>⚔️ ${guild.name} - War Details"))
             val pane = StaticPane(0, 0, 9, 6)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
@@ -280,7 +292,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load war statistics: ${e.message}")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to load war statistics: ${e.message}")
             logger.error("Error opening war stats detail for guild ${guild.id}", e)
         }
     }
@@ -289,8 +301,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
         val activeWarsItem = ItemStack(Material.DIAMOND_SWORD)
-            .name("§4⚔️ ACTIVE WARS (${activeWars.size})")
-            .lore("§7Currently ongoing conflicts")
+            .setAdventureName(player, messageService, "<dark_red>⚔️ ACTIVE WARS (${activeWars.size})")
+            .addAdventureLore(player, messageService, "<gray>Currently ongoing conflicts")
 
         if (activeWars.isNotEmpty()) {
             activeWarsItem.lore("")
@@ -302,21 +314,21 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 val status = if (war.declaringGuildId == guild.id) "Attacker" else "Defender"
                 val remainingTime = war.remainingDuration
 
-                activeWarsItem.lore("§c⚔️ vs $enemyName ($status)")
+                activeWarsItem.addAdventureLore(player, messageService, "<red>⚔️ vs $enemyName ($status)")
                 if (remainingTime != null) {
                     val days = remainingTime.toDays()
                     val hours = remainingTime.toHours() % 24
-                    activeWarsItem.lore("§7⏰ ${days}d ${hours}h remaining")
+                    activeWarsItem.addAdventureLore(player, messageService, "<gray>⏰ ${days}d ${hours}h remaining")
                 } else {
-                    activeWarsItem.lore("§7⏰ Time expired")
+                    activeWarsItem.addAdventureLore(player, messageService, "<gray>⏰ Time expired")
                 }
             }
 
             if (activeWars.size > 3) {
-                activeWarsItem.lore("§7... and ${activeWars.size - 3} more")
+                activeWarsItem.addAdventureLore(player, messageService, "<gray>... and ${activeWars.size - 3} more")
             }
         } else {
-            activeWarsItem.lore("§7No active wars")
+            activeWarsItem.addAdventureLore(player, messageService, "<gray>No active wars")
         }
 
         pane.addItem(GuiItem(activeWarsItem), 1, 0)
@@ -326,8 +338,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val warHistory = warService.getWarHistory(guild.id, 5)
 
         val historyItem = ItemStack(Material.BOOK)
-            .name("§6📜 WAR HISTORY")
-            .lore("§7Recent completed wars")
+            .setAdventureName(player, messageService, "<gold>📜 WAR HISTORY")
+            .addAdventureLore(player, messageService, "<gray>Recent completed wars")
 
         if (warHistory.isNotEmpty()) {
             historyItem.lore("")
@@ -339,12 +351,12 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 val enemyName = enemyGuild?.name ?: "Unknown Guild"
 
                 val result = when {
-                    war.winner == guild.id -> "§a✓ Won"
-                    war.winner != null -> "§c✗ Lost"
-                    else -> "§e⚖️ Draw"
+                    war.winner == guild.id -> "<green>✓ Won"
+                    war.winner != null -> "<red>✗ Lost"
+                    else -> "<yellow>⚖️ Draw"
                 }
 
-                historyItem.lore("§${index + 1}. vs $enemyName: $result")
+                historyItem.addAdventureLore(player, messageService, "§${index + 1}. vs $enemyName: $result")
 
                 // Show duration if available
                 val duration = war.startedAt?.let { start ->
@@ -356,15 +368,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 if (duration != null) {
                     val days = duration.toDays()
                     val hours = duration.toHours() % 24
-                    historyItem.lore("§7   Duration: ${days}d ${hours}h")
+                    historyItem.addAdventureLore(player, messageService, "<gray>   Duration: ${days}d ${hours}h")
                 }
             }
 
             if (warHistory.size > 4) {
-                historyItem.lore("§7... and ${warHistory.size - 4} more wars")
+                historyItem.addAdventureLore(player, messageService, "<gray>... and ${warHistory.size - 4} more wars")
             }
         } else {
-            historyItem.lore("§7No war history available")
+            historyItem.addAdventureLore(player, messageService, "<gray>No war history available")
         }
 
         pane.addItem(GuiItem(historyItem), 3, 0)
@@ -379,22 +391,22 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val winRate = calculateWinRate(wins, warHistory.size)
 
         val statsItem = ItemStack(Material.TOTEM_OF_UNDYING)
-            .name("§e📊 WAR STATISTICS")
-            .lore("§7Overall Performance")
+            .setAdventureName(player, messageService, "<yellow>📊 WAR STATISTICS")
+            .addAdventureLore(player, messageService, "<gray>Overall Performance")
             .lore("")
-            .lore("§7Total Wars: §f${warHistory.size}")
-            .lore("§7Wins: §a$wins")
-            .lore("§7Losses: §c$losses")
-            .lore("§7Draws: §e$draws")
+            .addAdventureLore(player, messageService, "<gray>Total Wars: <white>${warHistory.size}")
+            .addAdventureLore(player, messageService, "<gray>Wins: <green>$wins")
+            .addAdventureLore(player, messageService, "<gray>Losses: <red>$losses")
+            .addAdventureLore(player, messageService, "<gray>Draws: <yellow>$draws")
             .lore("")
-            .lore("§7Win Rate: §e${String.format("%.1f", winRate)}%")
+            .lore("<gray>Win Rate: <yellow>${String.format("%.1f", winRate)}%")
 
         // Add current win streak
         val recentWars = warHistory.take(10)
         val currentStreak = calculateCurrentStreak(recentWars, guild.id)
         if (currentStreak > 0) {
-            val streakType = if (recentWars.first().winner == guild.id) "§aWin" else "§cLoss"
-            statsItem.lore("§7Current Streak: ${streakType} §fx$currentStreak")
+            val streakType = if (recentWars.first().winner == guild.id) "<green>Win" else "<red>Loss"
+            statsItem.addAdventureLore(player, messageService, "<gray>Current Streak: ${streakType} <white>x$currentStreak")
         }
 
         pane.addItem(GuiItem(statsItem), 5, 0)
@@ -408,8 +420,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         if (activeWars.isNotEmpty()) {
             val warKillStats = ItemStack(Material.IRON_SWORD)
-                .name("§c⚔️ CURRENT WAR KILLS")
-                .lore("§7Kill statistics in active wars")
+                .setAdventureName(player, messageService, "<red>⚔️ CURRENT WAR KILLS")
+                .addAdventureLore(player, messageService, "<gray>Kill statistics in active wars")
 
             // Get kill stats for each active war
             activeWars.forEach { war ->
@@ -423,10 +435,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                     val enemyKills = killsBetween.count { it.killerGuildId == enemyGuildId }
 
                     warKillStats.lore("")
-                        .lore("§c⚔️ vs ${enemyGuild.name}:")
-                        .lore("§7   Your kills: §a$guildKills")
-                        .lore("§7   Enemy kills: §c$enemyKills")
-                        .lore("§7   Ratio: §e${calculateKillRatio(guildKills, enemyKills)}")
+                        .addAdventureLore(player, messageService, "<red>⚔️ vs ${enemyGuild.name}:")
+                        .addAdventureLore(player, messageService, "<gray>   Your kills: <green>$guildKills")
+                        .addAdventureLore(player, messageService, "<gray>   Enemy kills: <red>$enemyKills")
+                        .addAdventureLore(player, messageService, "<gray>   Ratio: <yellow>${calculateKillRatio(guildKills, enemyKills)}")
                 }
             }
 
@@ -462,11 +474,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun openMemberStatsDetail() {
-        player.sendMessage("§e👥 Detailed member statistics coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>👥 Detailed member statistics coming soon!")
     }
 
     private fun openPerformanceDetail() {
-        player.sendMessage("§e📊 Detailed performance analysis coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>📊 Detailed performance analysis coming soon!")
     }
 
     private fun addTopKillersButton(pane: StaticPane, x: Int, y: Int) {
@@ -474,17 +486,17 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val topKillers = killService.getTopKillers(guildMembers, 5)
 
         val item = ItemStack(Material.TOTEM_OF_UNDYING)
-            .name("§cTop Killers")
-            .lore("§7Guild's elite warriors")
+            .setAdventureName(player, messageService, "<red>Top Killers")
+            .addAdventureLore(player, messageService, "<gray>Guild's elite warriors")
 
         if (topKillers.isNotEmpty()) {
             item.lore("")
             topKillers.take(3).forEachIndexed { index, (playerId, stats) ->
                 val playerName = Bukkit.getPlayer(playerId)?.name ?: "Unknown"
-                item.lore("§${getRankColor(index + 1)}${index + 1}. $playerName: §f${stats.totalKills} kills")
+                item.addAdventureLore(player, messageService, "§${getRankColor(index + 1)}${index + 1}. $playerName: <white>${stats.totalKills} kills")
             }
         } else {
-            item.lore("§7No kill data available")
+            item.addAdventureLore(player, messageService, "<gray>No kill data available")
         }
 
         val guiItem = GuiItem(item) {
@@ -501,17 +513,17 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .take(3)
 
         val item = ItemStack(Material.GOLD_BLOCK)
-            .name("§6Top Contributors")
-            .lore("§7Most generous members")
+            .setAdventureName(player, messageService, "<gold>Top Contributors")
+            .addAdventureLore(player, messageService, "<gray>Most generous members")
 
         if (topContributors.isNotEmpty()) {
             item.lore("")
             topContributors.forEachIndexed { index, contribution ->
                 val playerName = contribution.playerName ?: "Unknown"
-                item.lore("§${getRankColor(index + 1)}${index + 1}. $playerName: §f$${contribution.netContribution}")
+                item.addAdventureLore(player, messageService, "§${getRankColor(index + 1)}${index + 1}. $playerName: <white>$${contribution.netContribution}")
             }
         } else {
-            item.lore("§7No contribution data")
+            item.addAdventureLore(player, messageService, "<gray>No contribution data")
         }
 
         val guiItem = GuiItem(item) {
@@ -524,11 +536,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val killStats = killService.getGuildKillStats(guild.id)
 
         val item = ItemStack(Material.COMPARATOR)
-            .name("§dK/D Analysis")
-            .lore("§7Kill/Death Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
-            .lore("§7Performance Grade: §${getKDRatingColor(killStats.killDeathRatio)}${getKDRating(killStats.killDeathRatio)}")
+            .setAdventureName(player, messageService, "<light_purple>K/D Analysis")
+            .addAdventureLore(player, messageService, "<gray>Kill/Death Ratio: <yellow>${decimalFormat.format(killStats.killDeathRatio)}")
+            .addAdventureLore(player, messageService, "<gray>Performance Grade: §${getKDRatingColor(killStats.killDeathRatio)}${getKDRating(killStats.killDeathRatio)}")
             .lore("")
-            .lore("§7Efficiency Score: §f${calculateEfficiencyScore(killStats)}/100")
+            .addAdventureLore(player, messageService, "<gray>Efficiency Score: <white>${calculateEfficiencyScore(killStats)}/100")
 
         val guiItem = GuiItem(item) {
             openKDAnalysisDetail()
@@ -541,10 +553,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val recentActivity = recentKills.size
 
         val item = ItemStack(Material.CLOCK)
-            .name("§fRecent Activity")
-            .lore("§7Last 24 hours")
-            .lore("§7Kills: §f$recentActivity")
-            .lore("§7Activity Level: §${getActivityColor(recentActivity)}${getActivityLevel(recentActivity)}")
+            .setAdventureName(player, messageService, "<white>Recent Activity")
+            .addAdventureLore(player, messageService, "<gray>Last 24 hours")
+            .addAdventureLore(player, messageService, "<gray>Kills: <white>$recentActivity")
+            .addAdventureLore(player, messageService, "<gray>Activity Level: §${getActivityColor(recentActivity)}${getActivityLevel(recentActivity)}")
 
         val guiItem = GuiItem(item) {
             openRecentActivityDetail()
@@ -554,10 +566,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addPeriodStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack(Material.BOOK)
-            .name("§3Period Statistics")
-            .lore("§7View stats by time period")
-            .lore("§7Daily, Weekly, Monthly")
-            .lore("§7Compare performance over time")
+            .setAdventureName(player, messageService, "<dark_aqua>Period Statistics")
+            .addAdventureLore(player, messageService, "<gray>View stats by time period")
+            .addAdventureLore(player, messageService, "<gray>Daily, Weekly, Monthly")
+            .addAdventureLore(player, messageService, "<gray>Compare performance over time")
 
         val guiItem = GuiItem(item) {
             openPeriodStatsMenu()
@@ -567,10 +579,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addRivalryStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack(Material.RED_BANNER)
-            .name("§4Rivalry Statistics")
-            .lore("§7Kills vs other guilds")
-            .lore("§7Dominance rankings")
-            .lore("§7Most aggressive rivals")
+            .setAdventureName(player, messageService, "<dark_red>Rivalry Statistics")
+            .addAdventureLore(player, messageService, "<gray>Kills vs other guilds")
+            .addAdventureLore(player, messageService, "<gray>Dominance rankings")
+            .addAdventureLore(player, messageService, "<gray>Most aggressive rivals")
 
         val guiItem = GuiItem(item) {
             openRivalryStatsDetail()
@@ -584,10 +596,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val achievementCount = calculateAchievementCount(killStats)
 
         val item = ItemStack(Material.TROPICAL_FISH_BUCKET)
-            .name("§eGuild Achievements")
-            .lore("§7Milestones unlocked: §f$achievementCount")
-            .lore("§7Total Kills: §${getAchievementColor(killStats.totalKills)}${getKillMilestone(killStats.totalKills)}")
-            .lore("§7Net Kills: §${getAchievementColor(killStats.netKills)}${getNetKillMilestone(killStats.netKills)}")
+            .setAdventureName(player, messageService, "<yellow>Guild Achievements")
+            .addAdventureLore(player, messageService, "<gray>Milestones unlocked: <white>$achievementCount")
+            .addAdventureLore(player, messageService, "<gray>Total Kills: §${getAchievementColor(killStats.totalKills)}${getKillMilestone(killStats.totalKills)}")
+            .addAdventureLore(player, messageService, "<gray>Net Kills: §${getAchievementColor(killStats.netKills)}${getNetKillMilestone(killStats.netKills)}")
 
         val guiItem = GuiItem(item) {
             openAchievementsDetail()
@@ -597,10 +609,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addTrendAnalysisButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack(Material.REPEATER)
-            .name("§3📈 Kill Trends")
-            .lore("§7Kill performance over time")
-            .lore("§7Track improvement patterns")
-            .lore("§7Interactive trend chart")
+            .setAdventureName(player, messageService, "<dark_aqua>📈 Kill Trends")
+            .addAdventureLore(player, messageService, "<gray>Kill performance over time")
+            .addAdventureLore(player, messageService, "<gray>Track improvement patterns")
+            .addAdventureLore(player, messageService, "<gray>Interactive trend chart")
 
         val guiItem = GuiItem(item) {
             renderKillTrendChart()
@@ -610,10 +622,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addComparisonButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack(Material.COMPARATOR)
-            .name("§9📊 Member Contributions")
-            .lore("§7Compare member contributions")
-            .lore("§7Visual ranking chart")
-            .lore("§7Identify top contributors")
+            .setAdventureName(player, messageService, "<blue>📊 Member Contributions")
+            .addAdventureLore(player, messageService, "<gray>Compare member contributions")
+            .addAdventureLore(player, messageService, "<gray>Visual ranking chart")
+            .addAdventureLore(player, messageService, "<gray>Identify top contributors")
 
         val guiItem = GuiItem(item) {
             renderMemberContributionsChart()
@@ -623,10 +635,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addExportStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack(Material.WRITABLE_BOOK)
-            .name("§fExport Statistics")
-            .lore("§7Download detailed stats")
-            .lore("§7CSV format for analysis")
-            .lore("§7Secure file delivery")
+            .setAdventureName(player, messageService, "<white>Export Statistics")
+            .addAdventureLore(player, messageService, "<gray>Download detailed stats")
+            .addAdventureLore(player, messageService, "<gray>CSV format for analysis")
+            .addAdventureLore(player, messageService, "<gray>Secure file delivery")
 
         val guiItem = GuiItem(item) {
             exportGuildStatistics()
@@ -636,18 +648,260 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addRefreshStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack(Material.KNOWLEDGE_BOOK)
-            .name("§aRefresh Statistics")
-            .lore("§7Update all statistics")
-            .lore("§7Fetch latest data")
+            .setAdventureName(player, messageService, "<green>Refresh Statistics")
+            .addAdventureLore(player, messageService, "<gray>Update all statistics")
+            .addAdventureLore(player, messageService, "<gray>Fetch latest data")
 
         val guiItem = GuiItem(item) {
-            player.sendMessage("§a🔄 Refreshing statistics...")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>🔄 Refreshing statistics...")
             // Reopen the menu to refresh all data
             open()
         }
         pane.addItem(guiItem, x, y)
     }
 
+    /**
+     * Add analytics dashboard button
+     */
+    private fun addAnalyticsDashboardButton(pane: StaticPane, x: Int, y: Int) {
+        val item = ItemStack(Material.ENCHANTED_BOOK)
+            .setAdventureName(player, messageService, "<gold>📊 Analytics Dashboard")
+            .addAdventureLore(player, messageService, "<gray>Comprehensive guild analytics")
+            .addAdventureLore(player, messageService, "<gray>Performance metrics & insights")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>• Guild Performance")
+            .addAdventureLore(player, messageService, "<gray>• Member Activity")
+            .addAdventureLore(player, messageService, "<gray>• Bank Analytics")
+            .addAdventureLore(player, messageService, "<gray>• War Statistics")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click to view dashboard")
+
+        val guiItem = GuiItem(item) {
+            openAnalyticsDashboard()
+        }
+        pane.addItem(guiItem, x, y)
+    }
+
+    /**
+     * Add guild performance analytics button
+     */
+    private fun addGuildPerformanceButton(pane: StaticPane, x: Int, y: Int) {
+        val metrics = analyticsService.getGuildPerformanceMetrics(guild.id, TimePeriod.LAST_30_DAYS)
+
+        val item = ItemStack(Material.DIAMOND)
+            .setAdventureName(player, messageService, "<gold>🏆 Guild Performance")
+            .addAdventureLore(player, messageService, "<gray>Last 30 days overview")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Members: <white>${metrics.totalMembers}")
+            .addAdventureLore(player, messageService, "<gray>Active: <green>${metrics.activeMembers}")
+            .addAdventureLore(player, messageService, "<gray>New: <yellow>${metrics.newMembers}")
+            .addAdventureLore(player, messageService, "<gray>Bank Growth: <green>${decimalFormat.format(metrics.monthlyBankGrowth)}%")
+            .addAdventureLore(player, messageService, "<gray>Wars Won: <white>${metrics.warsWon}")
+            .addAdventureLore(player, messageService, "<gray>Activity Score: <yellow>${decimalFormat.format(metrics.activityScore)}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click for detailed view")
+
+        val guiItem = GuiItem(item) {
+            openGuildPerformanceDetails()
+        }
+        pane.addItem(guiItem, x, y)
+    }
+
+    /**
+     * Add member analytics button
+     */
+    private fun addMemberAnalyticsButton(pane: StaticPane, x: Int, y: Int) {
+        val analytics = analyticsService.getMemberActivityAnalytics(guild.id, TimePeriod.LAST_30_DAYS)
+
+        val item = ItemStack(Material.PLAYER_HEAD)
+            .setAdventureName(player, messageService, "<gold>👥 Member Analytics")
+            .addAdventureLore(player, messageService, "<gray>Member engagement analysis")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Total Members: <white>${analytics.totalMembers}")
+            .addAdventureLore(player, messageService, "<gray>Active Members: <green>${analytics.activeMembers}")
+            .addAdventureLore(player, messageService, "<gray>Inactive: <red>${analytics.inactiveMembers}")
+            .addAdventureLore(player, messageService, "<gray>Avg Activity: <yellow>${decimalFormat.format(analytics.averageActivityScore)}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click for member insights")
+
+        val guiItem = GuiItem(item) {
+            openMemberAnalyticsDetails()
+        }
+        pane.addItem(guiItem, x, y)
+    }
+
+    /**
+     * Add bank analytics button
+     */
+    private fun addBankAnalyticsButton(pane: StaticPane, x: Int, y: Int) {
+        val analytics = analyticsService.getBankAnalytics(guild.id, TimePeriod.LAST_30_DAYS)
+
+        val item = ItemStack(Material.GOLD_INGOT)
+            .setAdventureName(player, messageService, "<gold>💰 Bank Analytics")
+            .addAdventureLore(player, messageService, "<gray>Financial performance analysis")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Transactions: <white>${analytics.totalTransactions}")
+            .addAdventureLore(player, messageService, "<gray>Deposits: <green>${analytics.totalDeposits}")
+            .addAdventureLore(player, messageService, "<gray>Withdrawals: <red>${analytics.totalWithdrawals}")
+            .addAdventureLore(player, messageService, "<gray>Net Flow: <yellow>${analytics.netFlow}")
+            .addAdventureLore(player, messageService, "<gray>Avg Transaction: <white>${decimalFormat.format(analytics.averageTransactionAmount)}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click for financial insights")
+
+        val guiItem = GuiItem(item) {
+            openBankAnalyticsDetails()
+        }
+        pane.addItem(guiItem, x, y)
+    }
+
+    /**
+     * Add war analytics button
+     */
+    private fun addWarAnalyticsButton(pane: StaticPane, x: Int, y: Int) {
+        val stats = analyticsService.getWarStatistics(guild.id, TimePeriod.LAST_30_DAYS)
+
+        val item = ItemStack(Material.IRON_SWORD)
+            .setAdventureName(player, messageService, "<gold>⚔️ War Analytics")
+            .addAdventureLore(player, messageService, "<gray>Combat performance analysis")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Wars: <white>${stats.warsParticipated}")
+            .addAdventureLore(player, messageService, "<gray>Wins: <green>${stats.warsWon}")
+            .addAdventureLore(player, messageService, "<gray>Losses: <red>${stats.warsLost}")
+            .addAdventureLore(player, messageService, "<gray>Win Rate: <yellow>${decimalFormat.format(stats.winRate)}%")
+            .addAdventureLore(player, messageService, "<gray>K/D Ratio: <white>${decimalFormat.format(stats.kdRatio)}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Click for war insights")
+
+        val guiItem = GuiItem(item) {
+            openWarAnalyticsDetails()
+        }
+        pane.addItem(guiItem, x, y)
+    }
+
+    /**
+     * Open comprehensive analytics dashboard
+     */
+    private fun openAnalyticsDashboard() {
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold>Analytics Dashboard - ${guild.name}"))
+        AntiDupeUtil.protect(gui)
+
+        val pane = StaticPane(0, 0, 9, 6)
+        gui.addPane(pane)
+
+        var row = 0
+
+        // Guild Overview
+        val overview = analyticsService.getGuildPerformanceMetrics(guild.id, TimePeriod.LAST_30_DAYS)
+        val overviewItem = ItemStack(Material.COMMAND_BLOCK)
+            .setAdventureName(player, messageService, "<gold>📊 Guild Overview")
+            .addAdventureLore(player, messageService, "<gray>Performance Summary")
+            .addAdventureLore(player, messageService, "<gray>Members: <white>${overview.totalMembers} (<green>${overview.activeMembers} active)")
+            .addAdventureLore(player, messageService, "<gray>Bank: <green>${overview.totalBankBalance} coins")
+            .addAdventureLore(player, messageService, "<gray>Growth: <yellow>${decimalFormat.format(overview.monthlyBankGrowth)}%")
+            .addAdventureLore(player, messageService, "<gray>Wars: <white>${overview.warsWon}W/${overview.warsLost}L")
+
+        pane.addItem(GuiItem(overviewItem), 4, row)
+
+        // Analytics sections
+        row = 1
+
+        // Member Analytics
+        val memberAnalytics = analyticsService.getMemberActivityAnalytics(guild.id, TimePeriod.LAST_30_DAYS)
+        val memberItem = ItemStack(Material.PLAYER_HEAD)
+            .setAdventureName(player, messageService, "<gold>👥 Member Analytics")
+            .addAdventureLore(player, messageService, "<gray>Engagement & Activity")
+            .addAdventureLore(player, messageService, "<gray>Active: <green>${memberAnalytics.activeMembers}/${memberAnalytics.totalMembers}")
+            .addAdventureLore(player, messageService, "<gray>Top Contributors: <yellow>${memberAnalytics.topContributors.size}")
+
+        pane.addItem(GuiItem(memberItem), 0, row)
+
+        // Bank Analytics
+        val bankAnalytics = analyticsService.getBankAnalytics(guild.id, TimePeriod.LAST_30_DAYS)
+        val bankItem = ItemStack(Material.GOLD_INGOT)
+            .setAdventureName(player, messageService, "<gold>💰 Financial Analytics")
+            .addAdventureLore(player, messageService, "<gray>Transaction Analysis")
+            .addAdventureLore(player, messageService, "<gray>Volume: <white>${bankAnalytics.totalTransactions}")
+            .addAdventureLore(player, messageService, "<gray>Net Flow: <yellow>${bankAnalytics.netFlow}")
+
+        pane.addItem(GuiItem(bankItem), 2, row)
+
+        // War Analytics
+        val warStats = analyticsService.getWarStatistics(guild.id, TimePeriod.LAST_30_DAYS)
+        val warItem = ItemStack(Material.IRON_SWORD)
+            .setAdventureName(player, messageService, "<gold>⚔️ Combat Analytics")
+            .addAdventureLore(player, messageService, "<gray>War Performance")
+            .addAdventureLore(player, messageService, "<gray>Record: <white>${warStats.warsWon}W/${warStats.warsLost}L")
+            .addAdventureLore(player, messageService, "<gray>Win Rate: <yellow>${decimalFormat.format(warStats.winRate)}%")
+
+        pane.addItem(GuiItem(warItem), 4, row)
+
+        // Comparative Analysis
+        val comparisonItem = ItemStack(Material.COMPARATOR)
+            .setAdventureName(player, messageService, "<gold>📈 Comparative Analysis")
+            .addAdventureLore(player, messageService, "<gray>Guild Rankings")
+            .addAdventureLore(player, messageService, "<gray>Compare with other guilds")
+
+        pane.addItem(GuiItem(comparisonItem), 6, row)
+
+        row = 2
+
+        // Trend Analysis
+        val trendItem = ItemStack(Material.REPEATER)
+            .setAdventureName(player, messageService, "<gold>📊 Trend Analysis")
+            .addAdventureLore(player, messageService, "<gray>Performance over time")
+            .addAdventureLore(player, messageService, "<gray>Growth patterns & predictions")
+
+        pane.addItem(GuiItem(trendItem), 0, row)
+
+        // Export Analytics
+        val exportItem = ItemStack(Material.WRITABLE_BOOK)
+            .setAdventureName(player, messageService, "<gold>📄 Export Analytics")
+            .addAdventureLore(player, messageService, "<gray>Download detailed reports")
+            .addAdventureLore(player, messageService, "<gray>CSV format for analysis")
+
+        pane.addItem(GuiItem(exportItem), 2, row)
+
+        // Back button
+        val backItem = ItemStack(Material.ARROW)
+            .setAdventureName(player, messageService, "<red>Back to Statistics")
+            .addAdventureLore(player, messageService, "<gray>Return to main statistics")
+
+        val backGuiItem = GuiItem(backItem) {
+            menuNavigator.openMenu(this)
+        }
+        pane.addItem(backGuiItem, 8, 5)
+
+        gui.addPane(pane)
+        gui.show(player)
+    }
+
+    /**
+     * Open detailed guild performance view
+     */
+    private fun openGuildPerformanceDetails() {
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Detailed guild performance view coming soon!")
+    }
+
+    /**
+     * Open detailed member analytics view
+     */
+    private fun openMemberAnalyticsDetails() {
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Detailed member analytics view coming soon!")
+    }
+
+    /**
+     * Open detailed bank analytics view
+     */
+    private fun openBankAnalyticsDetails() {
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Detailed bank analytics view coming soon!")
+    }
+
+    /**
+     * Open detailed war analytics view
+     */
+    private fun openWarAnalyticsDetails() {
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Detailed war analytics view coming soon!")
+    }
 
     private fun getRankColor(rank: Int): String {
         return when (rank) {
@@ -756,58 +1010,58 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     // Additional detail view functions
     private fun openTopKillersDetail() {
-        player.sendMessage("§e🏆 Detailed top killers rankings coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>🏆 Detailed top killers rankings coming soon!")
     }
 
     private fun openTopContributorsDetail() {
-        player.sendMessage("§e💰 Detailed contribution analysis coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>💰 Detailed contribution analysis coming soon!")
     }
 
     private fun openKDAnalysisDetail() {
-        player.sendMessage("§e📈 Detailed K/D ratio analysis coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>📈 Detailed K/D ratio analysis coming soon!")
     }
 
     private fun openRecentActivityDetail() {
-        player.sendMessage("§e🕐 Detailed recent activity coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>🕐 Detailed recent activity coming soon!")
     }
 
     private fun openPeriodStatsMenu() {
-        player.sendMessage("§e📅 Period-based statistics coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>📅 Period-based statistics coming soon!")
     }
 
     private fun openRivalryStatsDetail() {
-        player.sendMessage("§e🏴 Rivalry statistics coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>🏴 Rivalry statistics coming soon!")
     }
 
 
     private fun openAchievementsDetail() {
-        player.sendMessage("§e🏅 Achievement details coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>🏅 Achievement details coming soon!")
     }
 
     private fun openTrendAnalysis() {
-        player.sendMessage("§e📈 Trend analysis coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>📈 Trend analysis coming soon!")
     }
 
     private fun openGuildComparison() {
-        player.sendMessage("§e⚖️ Guild comparison coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>⚖️ Guild comparison coming soon!")
     }
 
 
     private fun exportGuildStatistics() {
-        player.sendMessage("§e📊 Statistics export feature coming soon!")
-        player.sendMessage("§7Will generate CSV files with all guild data")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>📊 Statistics export feature coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Will generate CSV files with all guild data")
     }
 
     // Chart rendering methods
     private fun renderGuildBalanceChart() {
         try {
-            player.sendMessage("§e📊 Generating guild balance trend chart...")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>📊 Generating guild balance trend chart...")
 
             // Get real transaction history from the database
             val transactions = bankService.getTransactionHistory(guild.id, 50)
 
             if (transactions.isEmpty()) {
-                player.sendMessage("§c❌ No transaction history found for this guild.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ No transaction history found for this guild.")
                 return
             }
 
@@ -824,7 +1078,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .map { it.first.toString() to it.second }
 
             if (dailyBalances.isEmpty()) {
-                player.sendMessage("§c❌ Unable to process transaction data.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Unable to process transaction data.")
                 return
             }
 
@@ -837,20 +1091,20 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             if (chart != null) {
                 player.inventory.addItem(chart)
-                player.sendMessage("§a✅ Guild balance chart generated! Hold the map to view interactive trends.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Guild balance chart generated! Hold the map to view interactive trends.")
             } else {
-                player.sendMessage("§c❌ Failed to generate balance chart. Please try again.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to generate balance chart. Please try again.")
             }
 
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Error generating balance chart: ${e.message}")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Error generating balance chart: ${e.message}")
             e.printStackTrace()
         }
     }
 
     private fun renderKillTrendChart() {
         try {
-            player.sendMessage("§e📊 Generating kill trend analysis chart...")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>📊 Generating kill trend analysis chart...")
 
             // Get real kill data for the past 7 weeks
             val now = Instant.now()
@@ -875,7 +1129,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             weekTrends.reverse()
 
             if (weekTrends.all { it.second == 0 }) {
-                player.sendMessage("§c❌ No kill data found for this guild in the past 7 weeks.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ No kill data found for this guild in the past 7 weeks.")
                 return
             }
 
@@ -888,26 +1142,26 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             if (chart != null) {
                 player.inventory.addItem(chart)
-                player.sendMessage("§a✅ Kill trend chart generated! Hold the map to view performance patterns.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Kill trend chart generated! Hold the map to view performance patterns.")
             } else {
-                player.sendMessage("§c❌ Failed to generate kill trend chart. Please try again.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to generate kill trend chart. Please try again.")
             }
 
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Error generating kill trend chart: ${e.message}")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Error generating kill trend chart: ${e.message}")
             e.printStackTrace()
         }
     }
 
     private fun renderMemberContributionsChart() {
         try {
-            player.sendMessage("§e📊 Generating member contributions chart...")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>📊 Generating member contributions chart...")
 
             // Get real member contribution data from BankService
             val contributions = bankService.getMemberContributions(guild.id)
 
             if (contributions.isEmpty()) {
-                player.sendMessage("§c❌ No contribution data found for this guild.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ No contribution data found for this guild.")
                 return
             }
 
@@ -919,7 +1173,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .map { (it.playerName ?: "Unknown") to it.netContribution }
 
             if (chartData.isEmpty()) {
-                player.sendMessage("§c❌ No positive contributions found for this guild.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ No positive contributions found for this guild.")
                 return
             }
 
@@ -932,19 +1186,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             if (chart != null) {
                 player.inventory.addItem(chart)
-                player.sendMessage("§a✅ Member contributions chart generated! Hold the map to view ranking visualization.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Member contributions chart generated! Hold the map to view ranking visualization.")
             } else {
-                player.sendMessage("§c❌ Failed to generate contributions chart. Please try again.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to generate contributions chart. Please try again.")
             }
 
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Error generating contributions chart: ${e.message}")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Error generating contributions chart: ${e.message}")
             e.printStackTrace()
         }
-    }
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    }}
 

@@ -6,10 +6,12 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.WarService
+import net.lumalyte.lg.domain.entities.War
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -20,6 +22,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.Duration
 import java.time.Instant
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                      private var guild: Guild): Menu, KoinComponent {
@@ -42,12 +46,8 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         val gui = ChestGui(3, "§6Change Guild Mode")
         val pane = StaticPane(0, 0, 9, 3)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Add mode options
         addModeOptions(pane)
@@ -111,7 +111,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                 .lore("§c⚠︎ Cooldown: ${config.modeSwitchCooldownDays} days")
 
             val canSwitch = canSwitchToPeaceful(guild, config.modeSwitchCooldownDays)
-            val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
+            val hasActiveWar = warService.getWarsForGuild(guild.id).any { war: War -> war.isActive }
             val canSwitchConsideringWar = canSwitch && !hasActiveWar
 
             if (!canSwitchConsideringWar) {
@@ -128,7 +128,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
             }
 
             val peacefulGuiItem = GuiItem(peacefulItem) {
-                val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
+                val hasActiveWar = warService.getWarsForGuild(guild.id).any { war: War -> war.isActive }
                 if (canSwitchConsideringWar) {
                     val success = guildService.setMode(guild.id, GuildMode.PEACEFUL, player.uniqueId)
                     if (success) {

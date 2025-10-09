@@ -29,6 +29,10 @@ import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Factory for creating platform-specific menu implementations
@@ -38,6 +42,7 @@ class MenuFactory : KoinComponent {
     private val platformDetectionService: PlatformDetectionService by inject()
     private val configService: net.lumalyte.lg.application.services.ConfigService by inject()
     private val logger: Logger by inject()
+    val messageService: MessageService by inject()
 
     /**
      * Determines if Bedrock menus should be used for a player based on configuration and platform detection
@@ -85,14 +90,15 @@ class MenuFactory : KoinComponent {
         menuNavigator: MenuNavigator,
         player: Player,
         title: String,
+        messageService: MessageService,
         callback: () -> Unit
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock confirmation menu to provide enhanced Bedrock experience
-            BedrockConfirmationMenu(menuNavigator, player, title, callback = callback, logger = logger)
+            BedrockConfirmationMenu(menuNavigator, player, title, callback = callback, logger = logger, messageService = messageService)
         } else {
             // Fall back to Java confirmation menu
-            ConfirmationMenu(menuNavigator, player, title, callback)
+            ConfirmationMenu(menuNavigator, player, title) { _ -> callback() }
         }
     }
 
@@ -104,6 +110,7 @@ class MenuFactory : KoinComponent {
         player: Player,
         title: String,
         message: String,
+        messageService: MessageService,
         callback: () -> Unit,
         cancelCallback: (() -> Unit)? = null
     ): Menu {
@@ -114,252 +121,226 @@ class MenuFactory : KoinComponent {
                 player = player,
                 title = title,
                 message = message,
-                callback = callback,
+                callback = { _ -> callback() },
                 cancelCallback = cancelCallback,
-                logger = logger
+                logger = logger,
+                messageService = messageService
             )
         } else {
             // Fall back to Java confirmation menu (basic version)
-            ConfirmationMenu(menuNavigator, player, title, callback)
+            ConfirmationMenu(menuNavigator, player, title) { _ -> callback() }
         }
     }
 
     /**
      * Creates a guild invite confirmation menu appropriate for the player's platform
      */
-    fun createGuildInviteConfirmationMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildInviteConfirmationMenu(menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild,
-        targetPlayer: Player
-    ): Menu {
+        targetPlayer: Player): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock guild invite confirmation menu
-            BedrockGuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer, logger)
+            BedrockGuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer, logger, messageService)
         } else {
             // Fall back to Java guild invite confirmation menu
-            GuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer)
+            GuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer, messageService)
         }
     }
 
     /**
      * Creates a guild kick confirmation menu appropriate for the player's platform
      */
-    fun createGuildKickConfirmationMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildKickConfirmationMenu(menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild,
-        memberToKick: net.lumalyte.lg.domain.entities.Member
-    ): Menu {
+        memberToKick: net.lumalyte.lg.domain.entities.Member): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock guild kick confirmation menu
-            BedrockGuildKickConfirmationMenu(menuNavigator, player, guild, memberToKick, logger)
+            BedrockGuildKickConfirmationMenu(menuNavigator, player, guild, memberToKick, logger, messageService)
         } else {
             // Fall back to Java guild kick confirmation menu
-            GuildKickConfirmationMenu(menuNavigator, player, guild, memberToKick)
+            GuildKickConfirmationMenu(menuNavigator, player, guild, memberToKick, messageService)
         }
     }
 
     /**
      * Creates a guild member rank change confirmation menu appropriate for the player's platform
      */
-    fun createGuildMemberRankConfirmationMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildMemberRankConfirmationMenu(menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild,
         targetMember: net.lumalyte.lg.domain.entities.Member,
-        newRank: net.lumalyte.lg.domain.entities.Rank
-    ): Menu {
+        newRank: net.lumalyte.lg.domain.entities.Rank): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock guild member rank confirmation menu
-            BedrockGuildMemberRankConfirmationMenu(menuNavigator, player, guild, targetMember, newRank, logger)
+            BedrockGuildMemberRankConfirmationMenu(menuNavigator, player, guild, targetMember, newRank, logger, messageService)
         } else {
             // Fall back to Java guild member rank confirmation menu
-            GuildMemberRankConfirmationMenu(menuNavigator, player, guild, targetMember, newRank)
+            GuildMemberRankConfirmationMenu(menuNavigator, player, guild, targetMember, newRank, messageService)
         }
     }
 
     /**
      * Creates a guild disband confirmation menu appropriate for the player's platform
      */
-    fun createGuildDisbandConfirmationMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildDisbandConfirmationMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock guild disband confirmation menu
-            BedrockGuildDisbandConfirmationMenu(menuNavigator, player, guild, logger)
+            BedrockGuildDisbandConfirmationMenu(menuNavigator, player, guild, logger, messageService)
         } else {
             // Fall back to Java guild disband confirmation menu
-            GuildDisbandConfirmationMenu(menuNavigator, player, guild)
+            GuildDisbandConfirmationMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild leave confirmation menu appropriate for the player's platform
      */
-    fun createGuildLeaveConfirmationMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildLeaveConfirmationMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock guild leave confirmation menu
-            BedrockGuildLeaveConfirmationMenu(menuNavigator, player, guild, logger)
+            BedrockGuildLeaveConfirmationMenu(menuNavigator, player, guild, logger, messageService)
         } else {
             // Fall back to Java guild leave confirmation menu
-            GuildLeaveConfirmationMenu(menuNavigator, player, guild)
+            GuildLeaveConfirmationMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a tag editor menu appropriate for the player's platform
      */
-    fun createTagEditorMenu(
-        menuNavigator: MenuNavigator,
+    fun createTagEditorMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock tag editor menu with CustomForm
-            BedrockTagEditorMenu(menuNavigator, player, guild, logger)
+            BedrockTagEditorMenu(menuNavigator, player, guild, logger, messageService)
         } else {
             // Fall back to Java tag editor menu
-            TagEditorMenu(menuNavigator, player, guild)
+            TagEditorMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild selection menu appropriate for the player's platform
      */
-    fun createGuildSelectionMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildSelectionMenu(menuNavigator: MenuNavigator,
         player: Player,
         currentGuild: net.lumalyte.lg.domain.entities.Guild,
-        selectedGuilds: MutableSet<java.util.UUID>
-    ): Menu {
+        selectedGuilds: MutableSet<java.util.UUID>): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock guild selection menu
-            BedrockGuildSelectionMenu(menuNavigator, player, currentGuild, selectedGuilds, logger)
+            BedrockGuildSelectionMenu(menuNavigator, player, currentGuild, selectedGuilds, logger, messageService)
         } else {
-            GuildSelectionMenu(menuNavigator, player, currentGuild, selectedGuilds)
+            GuildSelectionMenu(menuNavigator, player, currentGuild, selectedGuilds, messageService)
         }
     }
 
     /**
      * Creates a guild info menu appropriate for the player's platform
      */
-    fun createGuildInfoMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildInfoMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildInfoMenu to provide enhanced Bedrock experience
-            // return BedrockGuildInfoMenu(menuNavigator, player, guild)
-            GuildInfoMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildInfoMenu(menuNavigator, player, guild, messageService)
+            GuildInfoMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            GuildInfoMenu(menuNavigator, player, guild)
+            GuildInfoMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild member list menu appropriate for the player's platform
      */
-    fun createGuildMemberListMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildMemberListMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock guild member list menu with SimpleForm and player heads
-            BedrockGuildMemberListMenu(menuNavigator, player, guild, logger)
+            BedrockGuildMemberListMenu(menuNavigator, player, guild, logger, messageService)
         } else {
-            GuildMemberListMenu(menuNavigator, player, guild)
+            GuildMemberListMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates an emoji selection menu appropriate for the player's platform
      */
-    fun createEmojiSelectionMenu(
-        menuNavigator: MenuNavigator,
+    fun createEmojiSelectionMenu(menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild,
-        parentMenu: net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu
-    ): Menu {
+        parentMenu: net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockEmojiSelectionMenu to provide enhanced Bedrock experience
-            // return BedrockEmojiSelectionMenu(menuNavigator, player, guild, parentMenu)
-            net.lumalyte.lg.interaction.menus.guild.EmojiSelectionMenu(menuNavigator, player, guild, parentMenu) // Fallback for now
+            // return BedrockEmojiSelectionMenu(menuNavigator, player, guild, parentMenu, messageService)
+            net.lumalyte.lg.interaction.menus.guild.EmojiSelectionMenu(menuNavigator, player, guild, parentMenu, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.EmojiSelectionMenu(menuNavigator, player, guild, parentMenu)
+            net.lumalyte.lg.interaction.menus.guild.EmojiSelectionMenu(menuNavigator, player, guild, parentMenu, messageService)
         }
     }
 
     /**
      * Creates a party creation menu appropriate for the player's platform
      */
-    fun createPartyCreationMenu(
-        menuNavigator: MenuNavigator,
+    fun createPartyCreationMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockPartyCreationMenu to provide enhanced Bedrock experience
-            // return BedrockPartyCreationMenu(menuNavigator, player, guild)
-            PartyCreationMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockPartyCreationMenu(menuNavigator, player, guild, messageService)
+            PartyCreationMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            PartyCreationMenu(menuNavigator, player, guild)
+            PartyCreationMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild emoji menu appropriate for the player's platform
      */
-    fun createGuildEmojiMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildEmojiMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildEmojiMenu to provide enhanced Bedrock experience
-            // return BedrockGuildEmojiMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildEmojiMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild control panel menu appropriate for the player's platform
      */
-    fun createGuildControlPanelMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildControlPanelMenu(menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            BedrockGuildControlPanelMenu(menuNavigator, player, guild, logger)
+            BedrockGuildControlPanelMenu(menuNavigator, player, guild, logger, messageService)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildControlPanelMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildControlPanelMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild settings menu appropriate for the player's platform
      */
-    fun createGuildSettingsMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildSettingsMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock guild settings menu with CustomForm
-            BedrockGuildSettingsMenu(menuNavigator, player, guild, logger)
+            BedrockGuildSettingsMenu(menuNavigator, player, guild, logger, messageService)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildSettingsMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildSettingsMenu(menuNavigator, player, guild, messageService)
         }
     }
 
@@ -368,60 +349,52 @@ class MenuFactory : KoinComponent {
     /**
      * Creates a description editor menu appropriate for the player's platform
      */
-    fun createDescriptionEditorMenu(
-        menuNavigator: MenuNavigator,
+    fun createDescriptionEditorMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockDescriptionEditorMenu to provide enhanced Bedrock experience
-            // return BedrockDescriptionEditorMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.DescriptionEditorMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockDescriptionEditorMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.DescriptionEditorMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.DescriptionEditorMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.DescriptionEditorMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild war management menu appropriate for the player's platform
      */
-    fun createGuildWarManagementMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildWarManagementMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildWarManagementMenu(menuNavigator, player, guild, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildWarManagementMenu(menuNavigator, player, guild, logger, messageService)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildWarManagementMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildWarManagementMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild banner menu appropriate for the player's platform
      */
-    fun createGuildBannerMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildBannerMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildBannerMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBannerMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBannerMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildBannerMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildBannerMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBannerMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBannerMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild mode menu appropriate for the player's platform
      */
-    fun createGuildModeMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildModeMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildModeMenu to provide enhanced Bedrock experience
             // return BedrockGuildModeMenu(menuNavigator, player, guild)
@@ -434,49 +407,45 @@ class MenuFactory : KoinComponent {
     /**
      * Creates a guild home menu appropriate for the player's platform
      */
-    fun createGuildHomeMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildHomeMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildHomeMenu to provide enhanced Bedrock experience
-            // return BedrockGuildHomeMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildHomeMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildHomeMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildHomeMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildHomeMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildHomeMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild rank management menu appropriate for the player's platform
      */
-    fun createGuildRankManagementMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildRankManagementMenu(menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            BedrockGuildRankManagementMenu(menuNavigator, player, guild, null, logger)
+            BedrockGuildRankManagementMenu(menuNavigator, player, guild, null, logger, messageService)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildRankManagementMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildRankManagementMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild war declaration menu appropriate for the player's platform
      */
-    fun createGuildWarDeclarationMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildWarDeclarationMenu(menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildWarDeclarationMenu to provide enhanced Bedrock experience
-            // return BedrockGuildWarDeclarationMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildWarDeclarationMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildWarDeclarationMenu(menuNavigator, player, guild, null, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildWarDeclarationMenu(menuNavigator, player, guild, null, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildWarDeclarationMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildWarDeclarationMenu(menuNavigator, player, guild, null, messageService)
         }
     }
 
@@ -487,7 +456,7 @@ class MenuFactory : KoinComponent {
         menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockPeaceAgreementMenu to provide enhanced Bedrock experience
             // return BedrockPeaceAgreementMenu(menuNavigator, player, guild)
@@ -500,32 +469,28 @@ class MenuFactory : KoinComponent {
     /**
      * Creates a guild member management menu appropriate for the player's platform
      */
-    fun createGuildMemberManagementMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildMemberManagementMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildMemberManagementMenu to provide enhanced Bedrock experience
-            // return BedrockGuildMemberManagementMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildMemberManagementMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild party management menu appropriate for the player's platform
      */
-    fun createGuildPartyManagementMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildPartyManagementMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildPartyManagementMenu(menuNavigator, player, guild, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildPartyManagementMenu(menuNavigator, player, guild, logger, messageService)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildPartyManagementMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildPartyManagementMenu(menuNavigator, player, guild, messageService)
         }
     }
 
@@ -539,482 +504,436 @@ class MenuFactory : KoinComponent {
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockRankCreationMenu to provide enhanced Bedrock experience
-            // return BedrockRankCreationMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.RankCreationMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockRankCreationMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.RankCreationMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.RankCreationMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.RankCreationMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a rank edit menu appropriate for the player's platform
      */
-    fun createRankEditMenu(
-        menuNavigator: MenuNavigator,
+    fun createRankEditMenu(menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild,
-        rank: net.lumalyte.lg.domain.entities.Rank
-    ): Menu {
+        rank: net.lumalyte.lg.domain.entities.Rank): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockRankEditMenu to provide enhanced Bedrock experience
-            // return BedrockRankEditMenu(menuNavigator, player, guild, rank)
-            net.lumalyte.lg.interaction.menus.guild.RankEditMenu(menuNavigator, player, guild, rank) // Fallback for now
+            // return BedrockRankEditMenu(menuNavigator, player, guild, rank, messageService)
+            net.lumalyte.lg.interaction.menus.guild.RankEditMenu(menuNavigator, player, guild, rank, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.RankEditMenu(menuNavigator, player, guild, rank)
+            net.lumalyte.lg.interaction.menus.guild.RankEditMenu(menuNavigator, player, guild, rank, messageService)
         }
     }
 
     /**
      * Creates a guild relations menu appropriate for the player's platform
      */
-    fun createGuildRelationsMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildRelationsMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildRelationsMenu(menuNavigator, player, guild, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildRelationsMenu(menuNavigator, player, guild, logger, messageService)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildRelationsMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildRelationsMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild bank menu appropriate for the player's platform
      */
-    fun createGuildBankMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildBankMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock guild bank menu with CustomForm and sliders
-            BedrockGuildBankMenu(menuNavigator, player, guild, logger)
+            BedrockGuildBankMenu(menuNavigator, player, guild, logger, messageService)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild bank statistics menu appropriate for the player's platform
      */
-    fun createGuildBankStatisticsMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildBankStatisticsMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildBankStatisticsMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankStatisticsMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankStatisticsMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildBankStatisticsMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankStatisticsMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankStatisticsMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankStatisticsMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild member contributions menu appropriate for the player's platform
      */
-    fun createGuildMemberContributionsMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildMemberContributionsMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildMemberContributionsMenu to provide enhanced Bedrock experience
-            // return BedrockGuildMemberContributionsMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberContributionsMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildMemberContributionsMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildMemberContributionsMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberContributionsMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildMemberContributionsMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild bank transaction history menu appropriate for the player's platform
      */
-    fun createGuildBankTransactionHistoryMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildBankTransactionHistoryMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildBankTransactionHistoryMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankTransactionHistoryMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankTransactionHistoryMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildBankTransactionHistoryMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankTransactionHistoryMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankTransactionHistoryMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankTransactionHistoryMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild bank security menu appropriate for the player's platform
      */
-    fun createGuildBankSecurityMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildBankSecurityMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildBankSecurityMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankSecurityMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankSecurityMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildBankSecurityMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankSecurityMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankSecurityMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankSecurityMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild bank automation menu appropriate for the player's platform
      */
-    fun createGuildBankAutomationMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildBankAutomationMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildBankAutomationMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankAutomationMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankAutomationMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildBankAutomationMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankAutomationMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankAutomationMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankAutomationMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild bank budget menu appropriate for the player's platform
      */
-    fun createGuildBankBudgetMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildBankBudgetMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildBankBudgetMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankBudgetMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankBudgetMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildBankBudgetMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankBudgetMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankBudgetMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankBudgetMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild statistics menu appropriate for the player's platform
      */
-    fun createGuildStatisticsMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildStatisticsMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildStatisticsMenu to provide enhanced Bedrock experience
-            // return BedrockGuildStatisticsMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildStatisticsMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildStatisticsMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildStatisticsMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildStatisticsMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildStatisticsMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild invite menu appropriate for the player's platform
      */
-    fun createGuildInviteMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildInviteMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildInviteMenu to provide enhanced Bedrock experience
-            // return BedrockGuildInviteMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildInviteMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild member rank menu appropriate for the player's platform
      */
-    fun createGuildMemberRankMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildMemberRankMenu(menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild,
-        member: net.lumalyte.lg.domain.entities.Member
-    ): Menu {
+        member: net.lumalyte.lg.domain.entities.Member): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildMemberRankMenu to provide enhanced Bedrock experience
-            // return BedrockGuildMemberRankMenu(menuNavigator, player, guild, member)
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberRankMenu(menuNavigator, player, guild, member) // Fallback for now
+            // return BedrockGuildMemberRankMenu(menuNavigator, player, guild, member, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildMemberRankMenu(menuNavigator, player, guild, member, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberRankMenu(menuNavigator, player, guild, member)
+            net.lumalyte.lg.interaction.menus.guild.GuildMemberRankMenu(menuNavigator, player, guild, member, messageService)
         }
     }
 
     /**
      * Creates a guild kick menu appropriate for the player's platform
      */
-    fun createGuildKickMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildKickMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildKickMenu to provide enhanced Bedrock experience
-            // return BedrockGuildKickMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildKickMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildKickMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildKickMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildKickMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildKickMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild promotion menu appropriate for the player's platform
      */
-    fun createGuildPromotionMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildPromotionMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildPromotionMenu to provide enhanced Bedrock experience
-            // return BedrockGuildPromotionMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildPromotionMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildPromotionMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildPromotionMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildPromotionMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildPromotionMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a guild rank list menu appropriate for the player's platform
      */
-    fun createGuildRankListMenu(
-        menuNavigator: MenuNavigator,
+    fun createGuildRankListMenu(menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
+        guild: net.lumalyte.lg.domain.entities.Guild): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockGuildRankListMenu to provide enhanced Bedrock experience
-            // return BedrockGuildRankListMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildRankListMenu(menuNavigator, player, guild) // Fallback for now
+            // return BedrockGuildRankListMenu(menuNavigator, player, guild, messageService)
+            net.lumalyte.lg.interaction.menus.guild.GuildRankListMenu(menuNavigator, player, guild, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildRankListMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildRankListMenu(menuNavigator, player, guild, messageService)
         }
     }
 
     /**
      * Creates a claim list menu appropriate for the player's platform
      */
-    fun createClaimListMenu(
-        menuNavigator: MenuNavigator,
-        player: Player
-    ): Menu {
+    fun createClaimListMenu(menuNavigator: MenuNavigator,
+        player: Player): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimListMenu to provide enhanced Bedrock experience
-            // return BedrockClaimListMenu(menuNavigator, player)
-            net.lumalyte.lg.interaction.menus.misc.ClaimListMenu(menuNavigator, player) // Fallback for now
+            // return BedrockClaimListMenu(menuNavigator, player, messageService)
+            net.lumalyte.lg.interaction.menus.misc.ClaimListMenu(menuNavigator, player, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.misc.ClaimListMenu(menuNavigator, player)
+            net.lumalyte.lg.interaction.menus.misc.ClaimListMenu(menuNavigator, player, messageService)
         }
     }
 
     /**
      * Creates a claim icon menu appropriate for the player's platform
      */
-    fun createClaimIconMenu(
-        player: Player,
+    fun createClaimIconMenu(player: Player,
         menuNavigator: MenuNavigator,
         claim: Any? // Will be Claim when claims are available
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimIconMenu to provide enhanced Bedrock experience
-            // return BedrockClaimIconMenu(player, menuNavigator, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimIconMenu(player, menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            // return BedrockClaimIconMenu(player, menuNavigator, claim, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimIconMenu(player, menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimIconMenu(player, menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim)
+            net.lumalyte.lg.interaction.menus.management.ClaimIconMenu(player, menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, messageService)
         }
     }
 
     /**
      * Creates a claim trust menu appropriate for the player's platform
      */
-    fun createClaimTrustMenu(
-        menuNavigator: MenuNavigator,
+    fun createClaimTrustMenu(menuNavigator: MenuNavigator,
         player: Player,
         claim: Any? // Will be Claim when claims are available
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimTrustMenu to provide enhanced Bedrock experience
-            // return BedrockClaimTrustMenu(menuNavigator, player, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            // return BedrockClaimTrustMenu(menuNavigator, player, claim, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
+            net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, messageService)
         }
     }
 
     /**
      * Creates a claim flag menu appropriate for the player's platform
      */
-    fun createClaimFlagMenu(
-        menuNavigator: MenuNavigator,
+    fun createClaimFlagMenu(menuNavigator: MenuNavigator,
         player: Player,
         claim: Any? // Will be Claim when claims are available
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimFlagMenu to provide enhanced Bedrock experience
-            // return BedrockClaimFlagMenu(menuNavigator, player, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimFlagMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            // return BedrockClaimFlagMenu(menuNavigator, player, claim, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimFlagMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimFlagMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
+            net.lumalyte.lg.interaction.menus.management.ClaimFlagMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, messageService)
         }
     }
 
     /**
      * Creates a claim wide permissions menu appropriate for the player's platform
      */
-    fun createClaimWidePermissionsMenu(
-        menuNavigator: MenuNavigator,
+    fun createClaimWidePermissionsMenu(menuNavigator: MenuNavigator,
         player: Player,
         claim: Any? // Will be Claim when claims are available
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimWidePermissionsMenu to provide enhanced Bedrock experience
-            // return BedrockClaimWidePermissionsMenu(menuNavigator, player, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimWidePermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            // return BedrockClaimWidePermissionsMenu(menuNavigator, player, claim, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimWidePermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimWidePermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
+            net.lumalyte.lg.interaction.menus.management.ClaimWidePermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, messageService)
         }
     }
 
     /**
      * Creates a claim player menu appropriate for the player's platform
      */
-    fun createClaimPlayerMenu(
-        menuNavigator: MenuNavigator,
+    fun createClaimPlayerMenu(menuNavigator: MenuNavigator,
         player: Player,
         claim: Any? // Will be Claim when claims are available
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimPlayerMenu to provide enhanced Bedrock experience
-            // return BedrockClaimPlayerMenu(menuNavigator, player, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            // return BedrockClaimPlayerMenu(menuNavigator, player, claim, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
+            net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, messageService)
         }
     }
 
     /**
      * Creates a claim player permissions menu appropriate for the player's platform
      */
-    fun createClaimPlayerPermissionsMenu(
-        menuNavigator: MenuNavigator,
+    fun createClaimPlayerPermissionsMenu(menuNavigator: MenuNavigator,
         player: Player,
         claim: Any?, // Will be Claim when claims are available
         targetPlayer: org.bukkit.OfflinePlayer?
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimPlayerPermissionsMenu to provide enhanced Bedrock experience
-            // return BedrockClaimPlayerPermissionsMenu(menuNavigator, player, claim, targetPlayer)
-            net.lumalyte.lg.interaction.menus.management.ClaimPlayerPermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, targetPlayer) // Fallback for now
+            // return BedrockClaimPlayerPermissionsMenu(menuNavigator, player, claim, targetPlayer, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimPlayerPermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, targetPlayer, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimPlayerPermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, targetPlayer)
+            net.lumalyte.lg.interaction.menus.management.ClaimPlayerPermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, targetPlayer, messageService)
         }
     }
 
     /**
      * Creates a claim naming menu appropriate for the player's platform
      */
-    fun createClaimNamingMenu(
-        player: Player,
+    fun createClaimNamingMenu(player: Player,
         menuNavigator: MenuNavigator,
         location: org.bukkit.Location
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimNamingMenu to provide enhanced Bedrock experience
-            // return BedrockClaimNamingMenu(player, menuNavigator, location)
-            net.lumalyte.lg.interaction.menus.management.ClaimNamingMenu(player, menuNavigator, location) // Fallback for now
+            // return BedrockClaimNamingMenu(player, menuNavigator, location, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimNamingMenu(player, menuNavigator, location, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimNamingMenu(player, menuNavigator, location)
+            net.lumalyte.lg.interaction.menus.management.ClaimNamingMenu(player, menuNavigator, location, messageService)
         }
     }
 
     /**
      * Creates an edit tool menu appropriate for the player's platform
      */
-    fun createEditToolMenu(
-        menuNavigator: MenuNavigator,
+    fun createEditToolMenu(menuNavigator: MenuNavigator,
         player: Player,
-        partition: Any? // Will be Partition when claims are available
-    ): Menu {
+        partition: Any?,
+        messageService: MessageService): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockEditToolMenu to provide enhanced Bedrock experience
-            // return BedrockEditToolMenu(menuNavigator, player, partition)
-            net.lumalyte.lg.interaction.menus.misc.EditToolMenu(menuNavigator, player, partition as? net.lumalyte.lg.domain.entities.Partition) // Fallback for now
+            // return BedrockEditToolMenu(menuNavigator, player, partition, messageService)
+            net.lumalyte.lg.interaction.menus.misc.EditToolMenu(menuNavigator, player, partition as? net.lumalyte.lg.domain.entities.Partition, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.misc.EditToolMenu(menuNavigator, player, partition as? net.lumalyte.lg.domain.entities.Partition)
+            net.lumalyte.lg.interaction.menus.misc.EditToolMenu(menuNavigator, player, partition as? net.lumalyte.lg.domain.entities.Partition, messageService)
         }
     }
 
     /**
      * Creates a claim transfer menu appropriate for the player's platform
      */
-    fun createClaimTransferMenu(
-        menuNavigator: MenuNavigator,
+    fun createClaimTransferMenu(menuNavigator: MenuNavigator,
         claim: Any?, // Will be Claim when claims are available
-        player: Player
-    ): Menu {
+        player: Player): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimTransferMenu to provide enhanced Bedrock experience
-            // return BedrockClaimTransferMenu(menuNavigator, claim, player)
-            net.lumalyte.lg.interaction.menus.management.ClaimTransferMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player) // Fallback for now
+            // return BedrockClaimTransferMenu(menuNavigator, claim, player, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimTransferMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimTransferMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player)
+            net.lumalyte.lg.interaction.menus.management.ClaimTransferMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player, messageService)
         }
     }
 
     /**
      * Creates a claim creation menu appropriate for the player's platform
      */
-    fun createClaimCreationMenu(
-        player: Player,
+    fun createClaimCreationMenu(player: Player,
         menuNavigator: MenuNavigator,
-        location: org.bukkit.Location
-    ): Menu {
+        location: org.bukkit.Location): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimCreationMenu to provide enhanced Bedrock experience
-            // return BedrockClaimCreationMenu(player, menuNavigator, location)
-            net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu(player, menuNavigator, location) // Fallback for now
+            // return BedrockClaimCreationMenu(player, menuNavigator, location, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu(player, menuNavigator, location, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu(player, menuNavigator, location)
+            net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu(player, menuNavigator, location, messageService)
         }
     }
 
     /**
      * Creates a claim transfer naming menu appropriate for the player's platform
      */
-    fun createClaimTransferNamingMenu(
-        menuNavigator: MenuNavigator,
+    fun createClaimTransferNamingMenu(menuNavigator: MenuNavigator,
         claim: Any?, // Will be Claim when claims are available
         player: Player
-    ): Menu {
+   ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimTransferNamingMenu to provide enhanced Bedrock experience
-            // return BedrockClaimTransferNamingMenu(menuNavigator, claim, player)
-            net.lumalyte.lg.interaction.menus.management.ClaimTransferNamingMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player) // Fallback for now
+            // return BedrockClaimTransferNamingMenu(menuNavigator, claim, player, messageService)
+            net.lumalyte.lg.interaction.menus.management.ClaimTransferNamingMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player, messageService) // Fallback for now
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimTransferNamingMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player)
+            net.lumalyte.lg.interaction.menus.management.ClaimTransferNamingMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player, messageService)
         }
     }
 
     /**
      * Creates a claim management menu appropriate for the player's platform
      */
-    fun createClaimManagementMenu(
-        menuNavigator: MenuNavigator,
+    fun createClaimManagementMenu(menuNavigator: MenuNavigator,
         player: Player,
-        claim: Any? // Will be Claim when claims are available
-    ): Menu {
+        claim: Any?,
+        messageService: MessageService): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // TODO: Create BedrockClaimManagementMenu to provide enhanced Bedrock experience
-            // return BedrockClaimManagementMenu(menuNavigator, player, claim)
+            // return BedrockClaimManagementMenu(menuNavigator, player, claim, messageService)
             // For now, return a placeholder or fallback
             throw NotImplementedError("Bedrock claim menus not yet implemented")
         } else {
@@ -1032,33 +951,24 @@ class MenuFactory : KoinComponent {
         vararg args: Any?
     ): Menu {
         return when (T::class) {
-            ConfirmationMenu::class -> createConfirmationMenu(
-                menuNavigator,
+            ConfirmationMenu::class -> createConfirmationMenu(menuNavigator,
                 player,
                 args[0] as String,
-                args[1] as () -> Unit
-            )
-            GuildSelectionMenu::class -> createGuildSelectionMenu(
-                menuNavigator,
+                messageService,
+                args[1] as () -> Unit)
+            GuildSelectionMenu::class -> createGuildSelectionMenu(menuNavigator,
                 player,
                 args[0] as net.lumalyte.lg.domain.entities.Guild,
-                args[1] as MutableSet<java.util.UUID>
-            )
-            GuildInfoMenu::class -> createGuildInfoMenu(
-                menuNavigator,
+                args[1] as MutableSet<java.util.UUID>)
+            GuildInfoMenu::class -> createGuildInfoMenu(menuNavigator,
                 player,
-                args[0] as net.lumalyte.lg.domain.entities.Guild
-            )
-            GuildMemberListMenu::class -> createGuildMemberListMenu(
-                menuNavigator,
+                args[0] as net.lumalyte.lg.domain.entities.Guild)
+            GuildMemberListMenu::class -> createGuildMemberListMenu(menuNavigator,
                 player,
-                args[0] as net.lumalyte.lg.domain.entities.Guild
-            )
-            PartyCreationMenu::class -> createPartyCreationMenu(
-                menuNavigator,
+                args[0] as net.lumalyte.lg.domain.entities.Guild)
+            PartyCreationMenu::class -> createPartyCreationMenu(menuNavigator,
                 player,
-                args[0] as net.lumalyte.lg.domain.entities.Guild
-            )
+                args[0] as net.lumalyte.lg.domain.entities.Guild)
             else -> {
                 // Fallback to Java implementation
                 throw IllegalArgumentException("Unsupported menu type: ${T::class.simpleName}")

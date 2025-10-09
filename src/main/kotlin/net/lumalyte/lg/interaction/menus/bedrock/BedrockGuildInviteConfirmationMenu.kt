@@ -13,6 +13,10 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild invite confirmation menu using Cumulus SimpleForm
@@ -22,8 +26,9 @@ class BedrockGuildInviteConfirmationMenu(
     player: Player,
     private val guild: Guild,
     private val targetPlayer: Player,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -67,7 +72,7 @@ class BedrockGuildInviteConfirmationMenu(
         // For now, just show the message
 
         // Return to member management menu
-        bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+        bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild, messageService))
     }
 
     override fun handleResponse(player: Player, response: Any?) {
@@ -75,4 +80,5 @@ class BedrockGuildInviteConfirmationMenu(
         // This method is kept for interface compatibility
     }
 }
+
 

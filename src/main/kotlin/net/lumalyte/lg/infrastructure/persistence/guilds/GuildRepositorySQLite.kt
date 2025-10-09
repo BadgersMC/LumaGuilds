@@ -64,6 +64,8 @@ class GuildRepositorySQLite(private val storage: SQLiteStorage) : GuildRepositor
     private fun mapResultSetToGuild(rs: co.aikar.idb.DbRow): Guild {
         val id = UUID.fromString(rs.getString("id"))
         val name = rs.getString("name")
+        val ownerId = UUID.fromString(rs.getString("owner_id"))
+        val ownerName = rs.getString("owner_name")
         val banner = rs.getString("banner")
         val emoji = rs.getString("emoji")
         val tag = rs.getString("tag")
@@ -87,6 +89,8 @@ class GuildRepositorySQLite(private val storage: SQLiteStorage) : GuildRepositor
         return Guild(
             id = id,
             name = name,
+            ownerId = ownerId,
+            ownerName = ownerName,
             banner = banner,
             emoji = emoji,
             tag = tag,

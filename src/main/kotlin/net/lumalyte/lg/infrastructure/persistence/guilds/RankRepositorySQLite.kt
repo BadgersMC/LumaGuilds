@@ -29,11 +29,31 @@ class RankRepositorySQLite(private val storage: SQLiteStorage) : RankRepository 
                 FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
             );
         """.trimIndent()
-        
+
         try {
             storage.connection.executeUpdate(sql)
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to create ranks table", e)
+        }
+
+        createInheritanceTable()
+    }
+
+    private fun createInheritanceTable() {
+        val sql = """
+            CREATE TABLE IF NOT EXISTS rank_inheritance (
+                child_rank_id TEXT NOT NULL,
+                parent_rank_id TEXT NOT NULL,
+                PRIMARY KEY (child_rank_id, parent_rank_id),
+                FOREIGN KEY (child_rank_id) REFERENCES ranks(id) ON DELETE CASCADE,
+                FOREIGN KEY (parent_rank_id) REFERENCES ranks(id) ON DELETE CASCADE
+            );
+        """.trimIndent()
+
+        try {
+            storage.connection.executeUpdate(sql)
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to create rank_inheritance table", e)
         }
     }
     
@@ -175,4 +195,58 @@ class RankRepositorySQLite(private val storage: SQLiteStorage) : RankRepository 
     }
     
     override fun getCountByGuild(guildId: UUID): Int = getByGuild(guildId).size
+
+    override fun addInheritance(childRankId: UUID, parentRankId: UUID): Boolean {
+        val sql = "INSERT OR IGNORE INTO rank_inheritance (child_rank_id, parent_rank_id) VALUES (?, ?)"
+
+        return try {
+            val rowsAffected = storage.connection.executeUpdate(sql, childRankId.toString(), parentRankId.toString())
+            rowsAffected > 0
+        } catch (e: SQLException) {
+            false
+        }
+    }
+
+    override fun removeInheritance(childRankId: UUID, parentRankId: UUID): Boolean {
+        val sql = "DELETE FROM rank_inheritance WHERE child_rank_id = ? AND parent_rank_id = ?"
+
+        return try {
+            val rowsAffected = storage.connection.executeUpdate(sql, childRankId.toString(), parentRankId.toString())
+            rowsAffected > 0
+        } catch (e: SQLException) {
+            false
+        }
+    }
+
+    override fun getChildRanks(parentRankId: UUID): Set<Rank> {
+        val sql = """
+            SELECT r.* FROM ranks r
+            INNER JOIN rank_inheritance ri ON r.id = ri.child_rank_id
+            WHERE ri.parent_rank_id = ?
+            ORDER BY r.guild_id, r.priority
+        """.trimIndent()
+
+        return try {
+            val results = storage.connection.getResults(sql, parentRankId.toString())
+            results.map { mapResultSetToRank(it) }.toSet()
+        } catch (e: SQLException) {
+            emptySet()
+        }
+    }
+
+    override fun getParentRanks(childRankId: UUID): Set<Rank> {
+        val sql = """
+            SELECT r.* FROM ranks r
+            INNER JOIN rank_inheritance ri ON r.id = ri.parent_rank_id
+            WHERE ri.child_rank_id = ?
+            ORDER BY r.guild_id, r.priority
+        """.trimIndent()
+
+        return try {
+            val results = storage.connection.getResults(sql, childRankId.toString())
+            results.map { mapResultSetToRank(it) }.toSet()
+        } catch (e: SQLException) {
+            emptySet()
+        }
+    }
 }

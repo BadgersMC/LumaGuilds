@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Rank
+import net.lumalyte.lg.domain.entities.RankInheritance
 import net.lumalyte.lg.domain.entities.RankPermission
 import org.slf4j.LoggerFactory
 import java.util.UUID
@@ -217,6 +218,17 @@ class RankServiceBukkit(
     
     override fun getRank(rankId: UUID): Rank? = rankRepository.getById(rankId)
     
+    override fun getRankById(guildId: UUID, rankId: UUID): Rank? {
+        val rank = rankRepository.getById(rankId)
+        return if (rank?.guildId == guildId) rank else null
+    }
+    
+    override fun getRankById(rankId: UUID): Rank? = getRank(rankId)
+    
+    override fun getGuildRanks(guildId: UUID): Set<Rank> = listRanks(guildId)
+    
+    override fun getRanksByGuild(guildId: UUID): Set<Rank> = listRanks(guildId)
+    
     override fun getRankByName(guildId: UUID, name: String): Rank? = rankRepository.getByName(guildId, name)
     
     override fun getDefaultRank(guildId: UUID): Rank? = rankRepository.getDefaultRank(guildId)
@@ -305,5 +317,111 @@ class RankServiceBukkit(
             logger.info("Created default ranks for guild $guildId")
         }
         return success
+    }
+
+    override fun getRankInheritance(rankId: UUID): RankInheritance? {
+        return try {
+            val rank = getRank(rankId) ?: return null
+            val parents = getParentRanks(rankId)
+            val children = getChildRanks(rankId)
+            RankInheritance(
+                rankId = rankId,
+                parents = parents,
+                children = children
+            )
+        } catch (e: Exception) {
+            logger.error("Error getting rank inheritance for rank $rankId", e)
+            null
+        }
+    }
+
+    override fun addRankInheritance(childRankId: UUID, parentRankId: UUID): Boolean {
+        return try {
+            // Validate that both ranks exist and belong to the same guild
+            val childRank = getRank(childRankId) ?: return false
+            val parentRank = getRank(parentRankId) ?: return false
+
+            if (childRank.guildId != parentRank.guildId) {
+                logger.warn("Cannot inherit between ranks from different guilds: $childRankId and $parentRankId")
+                return false
+            }
+
+            // Validate no circular dependency
+            if (!validateInheritance(childRankId, parentRankId)) {
+                logger.warn("Cannot add inheritance: would create circular dependency")
+                return false
+            }
+
+            // Add inheritance relationship
+            rankRepository.addInheritance(childRankId, parentRankId)
+            logger.info("Added inheritance: $childRankId inherits from $parentRankId")
+            true
+        } catch (e: Exception) {
+            logger.error("Error adding rank inheritance: $childRankId -> $parentRankId", e)
+            false
+        }
+    }
+
+    override fun removeRankInheritance(childRankId: UUID, parentRankId: UUID): Boolean {
+        return try {
+            // Validate that both ranks exist
+            val childRank = getRank(childRankId) ?: return false
+            val parentRank = getRank(parentRankId) ?: return false
+
+            // Remove inheritance relationship
+            val success = rankRepository.removeInheritance(childRankId, parentRankId)
+            if (success) {
+                logger.info("Removed inheritance: $childRankId no longer inherits from $parentRankId")
+            }
+            success
+        } catch (e: Exception) {
+            logger.error("Error removing rank inheritance: $childRankId -> $parentRankId", e)
+            false
+        }
+    }
+
+    override fun getChildRanks(parentRankId: UUID): Set<Rank> {
+        return try {
+            rankRepository.getChildRanks(parentRankId)
+        } catch (e: Exception) {
+            logger.error("Error getting child ranks for $parentRankId", e)
+            emptySet()
+        }
+    }
+
+    override fun getParentRanks(childRankId: UUID): Set<Rank> {
+        return try {
+            rankRepository.getParentRanks(childRankId)
+        } catch (e: Exception) {
+            logger.error("Error getting parent ranks for $childRankId", e)
+            emptySet()
+        }
+    }
+
+    override fun validateInheritance(childRankId: UUID, parentRankId: UUID): Boolean {
+        return try {
+            // Check for circular dependency by traversing the inheritance tree
+            val visited = mutableSetOf<UUID>()
+            val stack = mutableListOf(parentRankId)
+
+            while (stack.isNotEmpty()) {
+                val currentRankId = stack.removeAt(0)
+                if (currentRankId == childRankId) {
+                    return false // Circular dependency found
+                }
+                if (visited.contains(currentRankId)) {
+                    continue // Already visited
+                }
+
+                visited.add(currentRankId)
+                val parents = getParentRanks(currentRankId)
+                stack.addAll(parents.map { it.id })
+            }
+
+            true // No circular dependency
+        } catch (e: Exception) {
+            logger.error("Error validating inheritance: $childRankId -> $parentRankId", e)
+            false
+        }
     }
 }

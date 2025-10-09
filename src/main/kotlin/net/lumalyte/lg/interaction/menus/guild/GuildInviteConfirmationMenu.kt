@@ -8,6 +8,7 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -18,9 +19,13 @@ import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                                 private val guild: Guild, private val targetPlayer: Player): Menu, KoinComponent {
+                                 private val guild: Guild, private val targetPlayer: Player, private val messageService: MessageService): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -28,14 +33,10 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui = ChestGui(3, "§6Confirm Invite - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Confirm Invite - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 3)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Info display
         addInfoDisplay(pane, 0, 0)
@@ -53,15 +54,15 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
     private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
         val infoItem = ItemStack(Material.BOOK)
-            .name("§a📨 SEND INVITATION")
-            .lore("§7Send an invitation to join")
-            .lore("§7the guild.")
-            .lore("§7")
-            .lore("§eThe player will receive a message")
-            .lore("§ewith instructions to accept.")
-            .lore("§7")
-            .lore("§7They can use:")
-            .lore("§7/guild join ${guild.name}")
+            .setAdventureName(player, messageService, "<green>📨 SEND INVITATION")
+            .addAdventureLore(player, messageService, "<gray>Send an invitation to join")
+            .addAdventureLore(player, messageService, "<gray>the guild.")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>The player will receive a message")
+            .addAdventureLore(player, messageService, "<yellow>with instructions to accept.")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>They can use:")
+            .addAdventureLore(player, messageService, "<gray>/guild join ${guild.name}")
 
         pane.addItem(GuiItem(infoItem), x, y)
     }
@@ -74,20 +75,20 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         meta.owningPlayer = targetPlayer
         head.itemMeta = meta
 
-        val playerItem = head.name("§a👤 ${targetPlayer.name}")
-            .lore("§7Player: §f${targetPlayer.name}")
-            .lore("§7Status: §aOnline")
-            .lore("§7")
-            .lore("§eWill receive invitation")
+        val playerItem = head.setAdventureName(player, messageService, "<green>👤 ${targetPlayer.name}")
+            .addAdventureLore(player, messageService, "<gray>Player: <white>${targetPlayer.name}")
+            .addAdventureLore(player, messageService, "<gray>Status: <green>Online")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>Will receive invitation")
 
         pane.addItem(GuiItem(playerItem), x, y)
     }
 
     private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
         val confirmItem = ItemStack(Material.GREEN_WOOL)
-            .name("§a✅ SEND INVITE")
-            .lore("§7Send invitation to player")
-            .lore("§7Click to proceed")
+            .setAdventureName(player, messageService, "<green>✅ SEND INVITE")
+            .addAdventureLore(player, messageService, "<gray>Send invitation to player")
+            .addAdventureLore(player, messageService, "<gray>Click to proceed")
 
         val confirmGuiItem = GuiItem(confirmItem) {
             sendInvite()
@@ -97,9 +98,9 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack(Material.RED_WOOL)
-            .name("§c❌ CANCEL")
-            .lore("§7Return to invite menu")
-            .lore("§7No invitation will be sent")
+            .setAdventureName(player, messageService, "<red>❌ CANCEL")
+            .addAdventureLore(player, messageService, "<gray>Return to invite menu")
+            .addAdventureLore(player, messageService, "<gray>No invitation will be sent")
 
         val cancelGuiItem = GuiItem(cancelItem) {
             menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
@@ -110,27 +111,22 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
     private fun sendInvite() {
         // Check if player is already in a guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
-            player.sendMessage("§c❌ ${targetPlayer.name} is already in your guild!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ ${targetPlayer.name} is already in your guild!")
             menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
             return
         }
 
         // Send invitation message
-        player.sendMessage("§a✅ Invitation sent to ${targetPlayer.name}!")
-        targetPlayer.sendMessage("§6📨 Guild Invitation")
-        targetPlayer.sendMessage("§7${player.name} invited you to join §f${guild.name}")
-        targetPlayer.sendMessage("§7Type §a/guild join ${guild.name} §7to accept")
-        targetPlayer.sendMessage("§7Or §c/guild decline ${guild.name} §7to decline")
+        AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Invitation sent to ${targetPlayer.name}!")
+        targetPlayer.sendMessage("<gold>📨 Guild Invitation")
+        targetPlayer.sendMessage("<gray>${player.name} invited you to join <white>${guild.name}")
+        targetPlayer.sendMessage("<gray>Type <green>/guild join ${guild.name} <gray>to accept")
+        targetPlayer.sendMessage("<gray>Or <red>/guild decline ${guild.name} <gray>to decline")
 
         // TODO: Store invitation in database for later acceptance
         // For now, just show the message
 
         // Return to member management menu
         menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
-    }
-
-    override fun passData(data: Any?) {
-        // No data passing needed for confirmation menu
-    }
-}
+    }}
 

@@ -16,6 +16,7 @@ import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -26,9 +27,13 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.Duration
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                       private var guild: Guild): Menu, KoinComponent, ChatInputHandler {
+                       private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent, ChatInputHandler {
 
     private val guildService: GuildService by inject()
     private val partyService: PartyService by inject()
@@ -50,18 +55,14 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         // Check if parties are enabled
         val mainConfig = configService.loadConfig()
         if (!mainConfig.partiesEnabled) {
-            player.sendMessage("§c❌ Parties are disabled on this server!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Parties are disabled on this server!")
             return
         }
 
-        val gui = ChestGui(6, "§6Create New Party - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Create New Party - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Row 0: Party info
@@ -93,19 +94,19 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         // Private party toggle
         val config = getKoin().get<ConfigService>().loadConfig()
         val privateItem = ItemStack(if (isPrivateParty) Material.RED_CONCRETE else Material.GREEN_CONCRETE)
-            .name("${if (isPrivateParty) "§c🔒" else "§a🌐"} Party Type")
-            .lore("§7Current: §f${if (isPrivateParty) "Private (Guild Only)" else "Public (Multi-Guild)"}")
-            .lore("§7")
-            .lore("§7Private parties:")
-            .lore("§7• Only your guild members")
-            .lore("§7• No guild invitations")
-            .lore("§7• Simpler party management")
-            .lore("§7")
-            .lore("§7Public parties:")
-            .lore("§7• Can invite other guilds")
-            .lore("§7• More complex coordination")
-            .lore("§7")
-            .lore(if (isPrivateParty) "§eClick to make public" else "§aClick to make private")
+            .name("${if (isPrivateParty) "<red>🔒" else "<green>🌐"} Party Type")
+            .lore("<gray>Current: <white>${if (isPrivateParty) "Private (Guild Only)" else "Public (Multi-Guild)"}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Private parties:")
+            .addAdventureLore(player, messageService, "<gray>• Only your guild members")
+            .addAdventureLore(player, messageService, "<gray>• No guild invitations")
+            .addAdventureLore(player, messageService, "<gray>• Simpler party management")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Public parties:")
+            .addAdventureLore(player, messageService, "<gray>• Can invite other guilds")
+            .addAdventureLore(player, messageService, "<gray>• More complex coordination")
+            .addAdventureLore(player, messageService, "<gray>")
+            .lore(if (isPrivateParty) "<yellow>Click to make public" else "<green>Click to make private")
 
         val privateGuiItem = GuiItem(privateItem) {
             if (config.party.allowPrivateParties) {
@@ -115,10 +116,10 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
                     selectedGuilds.clear()
                     selectedGuilds.add(guild.id)
                 }
-                player.sendMessage("§a✅ Party type changed to ${if (isPrivateParty) "private" else "public"}")
+                player.sendMessage("<green>✅ Party type changed to ${if (isPrivateParty) "private" else "public"}")
                 open() // Refresh menu
             } else {
-                player.sendMessage("§c❌ Private parties are disabled in the configuration!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Private parties are disabled in the configuration!")
             }
         }
         pane.addItem(privateGuiItem, 1, 1)
@@ -126,13 +127,13 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
 
     private fun addPrivatePartyInfo(pane: StaticPane) {
         val infoItem = ItemStack(Material.SHIELD)
-            .name("§a✅ Private Guild Party")
-            .lore("§7This party will only include")
-            .lore("§7members from your guild")
-            .lore("§7")
-            .lore("§7• No external guild invitations")
-            .lore("§7• Simpler management")
-            .lore("§7• All guild members can join")
+            .setAdventureName(player, messageService, "<green>✅ Private Guild Party")
+            .addAdventureLore(player, messageService, "<gray>This party will only include")
+            .addAdventureLore(player, messageService, "<gray>members from your guild")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>• No external guild invitations")
+            .addAdventureLore(player, messageService, "<gray>• Simpler management")
+            .addAdventureLore(player, messageService, "<gray>• All guild members can join")
 
         pane.addItem(GuiItem(infoItem), 1, 2)
     }
@@ -140,27 +141,27 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
     private fun addPartyInfoSection(pane: StaticPane) {
         // Party name
         val nameItem = ItemStack(Material.NAME_TAG)
-            .name("§6📝 Party Name")
-            .lore("§7Current: ${if (partyName.isNotEmpty()) "§f$partyName" else "§cNot set"}")
-            .lore("§7")
-            .lore("§7Requirements:")
-            .lore("§7• 1-32 characters")
-            .lore("§7• Optional")
-            .lore("§7")
+            .setAdventureName(player, messageService, "<gold>📝 Party Name")
+            .lore("<gray>Current: ${if (partyName.isNotEmpty()) "§f$partyName" else "<red>Not set"}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Requirements:")
+            .addAdventureLore(player, messageService, "<gray>• 1-32 characters")
+            .addAdventureLore(player, messageService, "<gray>• Optional")
+            .addAdventureLore(player, messageService, "<gray>")
 
         if (inputMode == "name") {
-            nameItem.name("§e⏳ WAITING FOR NAME INPUT...")
-                .lore("§7Type the party name in chat")
-                .lore("§7Or click cancel to stop")
+            nameItem.setAdventureName(player, messageService, "<yellow>⏳ WAITING FOR NAME INPUT...")
+                .addAdventureLore(player, messageService, "<gray>Type the party name in chat")
+                .addAdventureLore(player, messageService, "<gray>Or click cancel to stop")
         } else {
-            nameItem.lore("§eClick to set party name")
+            nameItem.addAdventureLore(player, messageService, "<yellow>Click to set party name")
         }
 
         val nameGuiItem = GuiItem(nameItem) {
             if (inputMode != "name") {
                 startNameInput()
             } else {
-                player.sendMessage("§eAlready waiting for name input. Type the name or click cancel.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Already waiting for name input. Type the name or click cancel.")
             }
         }
         pane.addItem(nameGuiItem, 1, 0)
@@ -169,12 +170,12 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         val guilds = selectedGuilds.size
         val roles = restrictedRoles.size
         val summaryItem = ItemStack(Material.BOOK)
-            .name("§6📊 Party Summary")
-            .lore("§7Guilds: §f$guilds")
-            .lore("§7Role restrictions: §f${if (roles == 0) "None" else "$roles roles"}")
-            .lore("§7")
-            .lore("§7Duration: §f24 hours")
-            .lore("§7Leader: §f${player.name}")
+            .setAdventureName(player, messageService, "<gold>📊 Party Summary")
+            .addAdventureLore(player, messageService, "<gray>Guilds: <white>$guilds")
+            .lore("<gray>Role restrictions: <white>${if (roles == 0) "None" else "$roles roles"}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Duration: <white>24 hours")
+            .addAdventureLore(player, messageService, "<gray>Leader: <white>${player.name}")
 
         pane.addItem(GuiItem(summaryItem), 7, 0)
     }
@@ -182,18 +183,18 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
     private fun addGuildSelectionSection(pane: StaticPane) {
         // Display current guild
         val currentGuildItem = ItemStack(Material.GREEN_BANNER)
-            .name("§a✅ ${guild.name}")
-            .lore("§7Your current guild")
-            .lore("§7Always included")
+            .setAdventureName(player, messageService, "<green>✅ ${guild.name}")
+            .addAdventureLore(player, messageService, "<gray>Your current guild")
+            .addAdventureLore(player, messageService, "<gray>Always included")
         pane.addItem(GuiItem(currentGuildItem), 1, 1)
 
         // Guild invitation button
         val selectedCount = selectedGuilds.size - 1 // Subtract 1 for current guild
         val inviteItem = ItemStack(Material.WRITABLE_BOOK)
-            .name("§6📋 INVITE GUILDS ($selectedCount selected)")
-            .lore("§7Click to select guilds to invite")
-            .lore("§7Selected guilds will be invited")
-            .lore("§7when the party is created")
+            .setAdventureName(player, messageService, "<gold>📋 INVITE GUILDS ($selectedCount selected)")
+            .addAdventureLore(player, messageService, "<gray>Click to select guilds to invite")
+            .addAdventureLore(player, messageService, "<gray>Selected guilds will be invited")
+            .addAdventureLore(player, messageService, "<gray>when the party is created")
 
         val inviteGuiItem = GuiItem(inviteItem) {
             val menuFactory = MenuFactory()
@@ -207,8 +208,8 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             val selectedGuild = guildService.getGuild(guildId)
             if (selectedGuild != null) {
                 val previewItem = ItemStack(Material.LIME_BANNER)
-                    .name("§a✅ ${selectedGuild.name}")
-                    .lore("§7Will be invited to party")
+                    .setAdventureName(player, messageService, "<green>✅ ${selectedGuild.name}")
+                    .addAdventureLore(player, messageService, "<gray>Will be invited to party")
                 pane.addItem(GuiItem(previewItem), 5 + index, 1)
             }
         }
@@ -216,8 +217,8 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         // Show overflow indicator if more than 4 selected
         if (additionalGuilds.size > 4) {
             val overflowItem = ItemStack(Material.PAPER)
-                .name("§7... and ${additionalGuilds.size - 4} more")
-                .lore("§7Click invite button to see all")
+                .setAdventureName(player, messageService, "<gray>... and ${additionalGuilds.size - 4} more")
+                .addAdventureLore(player, messageService, "<gray>Click invite button to see all")
             pane.addItem(GuiItem(overflowItem), 8, 1)
         }
     }
@@ -225,27 +226,27 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
     private fun addRoleRestrictionSection(pane: StaticPane) {
         val hasRestrictions = restrictedRoles.isNotEmpty()
         val restrictionItem = ItemStack(if (hasRestrictions) Material.REDSTONE_TORCH else Material.LEVER)
-            .name("§6🔒 Role Restrictions")
-            .lore("§7Status: §f${if (hasRestrictions) "Enabled" else "Disabled"}")
-            .lore("§7")
-            .lore("§7When enabled, only selected roles")
-            .lore("§7can join the party")
-            .lore("§7")
+            .setAdventureName(player, messageService, "<gold>🔒 Role Restrictions")
+            .lore("<gray>Status: <white>${if (hasRestrictions) "Enabled" else "Disabled"}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>When enabled, only selected roles")
+            .addAdventureLore(player, messageService, "<gray>can join the party")
+            .addAdventureLore(player, messageService, "<gray>")
 
         if (hasRestrictions) {
-            restrictionItem.lore("§cClick to disable restrictions")
+            restrictionItem.addAdventureLore(player, messageService, "<red>Click to disable restrictions")
         } else {
-            restrictionItem.lore("§aClick to enable restrictions")
+            restrictionItem.addAdventureLore(player, messageService, "<green>Click to enable restrictions")
         }
 
         val restrictionGuiItem = GuiItem(restrictionItem) {
             if (hasRestrictions) {
                 restrictedRoles.clear()
                 roleSelectionMode = false
-                player.sendMessage("§c❌ Disabled role restrictions - all guild members can join")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Disabled role restrictions - all guild members can join")
             } else {
                 roleSelectionMode = true
-                player.sendMessage("§a✅ Enabled role restrictions - select roles below")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Enabled role restrictions - select roles below")
             }
             open() // Refresh menu
         }
@@ -253,18 +254,18 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Role selection button (always visible)
         val selectRolesItem = ItemStack(Material.BOOK)
-            .name("§6👥 SELECT ROLES")
-            .lore("§7Choose which roles can join")
-            .lore("§7Only works when restrictions enabled")
-            .lore("§7")
-            .lore(if (roleSelectionMode) "§aClick to select roles" else "§7Enable restrictions first")
+            .setAdventureName(player, messageService, "<gold>👥 SELECT ROLES")
+            .addAdventureLore(player, messageService, "<gray>Choose which roles can join")
+            .addAdventureLore(player, messageService, "<gray>Only works when restrictions enabled")
+            .addAdventureLore(player, messageService, "<gray>")
+            .lore(if (roleSelectionMode) "<green>Click to select roles" else "<gray>Enable restrictions first")
 
         val selectRolesGuiItem = GuiItem(selectRolesItem) {
             if (roleSelectionMode) {
                 // Show role selection - this will be handled by refreshing the menu
-                player.sendMessage("§a✅ Role selection enabled - select roles below")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Role selection enabled - select roles below")
             } else {
-                player.sendMessage("§c❌ Enable role restrictions first!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Enable role restrictions first!")
             }
             open() // Refresh menu to show role selection
         }
@@ -285,19 +286,19 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
 
             val isSelected = restrictedRoles.contains(rank.id)
             val rankItem = ItemStack(if (isSelected) Material.LIME_CONCRETE else Material.RED_CONCRETE)
-                .name("${if (isSelected) "§a✓" else "§c✗"} ${rank.name}")
-                .lore("§7Priority: §f${rank.priority}")
-                .lore("§7Members: §f${memberService.getMembersByRank(guild.id, rank.id).size}")
-                .lore("§7")
-                .lore(if (isSelected) "§cClick to remove from allowed roles" else "§aClick to add to allowed roles")
+                .name("${if (isSelected) "<green>✓" else "<red>✗"} ${rank.name}")
+                .addAdventureLore(player, messageService, "<gray>Priority: <white>${rank.priority}")
+                .addAdventureLore(player, messageService, "<gray>Members: <white>${memberService.getMembersByRank(guild.id, rank.id).size}")
+                .addAdventureLore(player, messageService, "<gray>")
+                .lore(if (isSelected) "<red>Click to remove from allowed roles" else "<green>Click to add to allowed roles")
 
             val rankGuiItem = GuiItem(rankItem) {
                 if (isSelected) {
                     restrictedRoles.remove(rank.id)
-                    player.sendMessage("§c❌ Removed ${rank.name} from allowed roles")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Removed ${rank.name} from allowed roles")
                 } else {
                     restrictedRoles.add(rank.id)
-                    player.sendMessage("§a✅ Added ${rank.name} to allowed roles")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Added ${rank.name} to allowed roles")
                 }
                 open() // Refresh menu
             }
@@ -309,46 +310,46 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         // Create party
         val canCreate = selectedGuilds.size >= 2
         val createItem = ItemStack(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
-            .name(if (canCreate) "§a✅ Create Party" else "§c❌ Cannot Create")
-            .lore("§7Create the party with selected settings")
+            .name(if (canCreate) "<green>✅ Create Party" else "<red>❌ Cannot Create")
+            .addAdventureLore(player, messageService, "<gray>Create the party with selected settings")
 
         if (canCreate) {
-            createItem.lore("§7")
-                .lore("§aReady to create party!")
-                .lore("§7Click to confirm")
+            createItem.addAdventureLore(player, messageService, "<gray>")
+                .addAdventureLore(player, messageService, "<green>Ready to create party!")
+                .addAdventureLore(player, messageService, "<gray>Click to confirm")
         } else {
-            createItem.lore("§7")
-            createItem.lore("§c• Need at least 2 guilds")
+            createItem.addAdventureLore(player, messageService, "<gray>")
+            createItem.addAdventureLore(player, messageService, "<red>• Need at least 2 guilds")
         }
 
         val createGuiItem = GuiItem(createItem) {
             if (canCreate) {
                 createParty()
             } else {
-                player.sendMessage("§c❌ Cannot create party - need at least 2 guilds!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Cannot create party - need at least 2 guilds!")
             }
         }
         pane.addItem(createGuiItem, 1, 5)
 
         // Clear all
         val clearItem = ItemStack(Material.BARRIER)
-            .name("§c🗑️ Clear All")
-            .lore("§7Reset all selections")
+            .setAdventureName(player, messageService, "<red>🗑️ Clear All")
+            .addAdventureLore(player, messageService, "<gray>Reset all selections")
 
         val clearGuiItem = GuiItem(clearItem) {
             partyName = ""
             selectedGuilds.clear()
             selectedGuilds.add(guild.id) // Keep current guild
             restrictedRoles.clear()
-            player.sendMessage("§e🗑️ Cleared all selections!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<yellow>🗑️ Cleared all selections!")
             open() // Refresh menu
         }
         pane.addItem(clearGuiItem, 3, 5)
 
         // Back button
         val backItem = ItemStack(Material.ARROW)
-            .name("§7⬅️ Back")
-            .lore("§7Return to party management")
+            .setAdventureName(player, messageService, "<gray>⬅️ Back")
+            .addAdventureLore(player, messageService, "<gray>Return to party management")
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
@@ -360,7 +361,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         try {
             // Validate party creation requirements
             if (!isPrivateParty && selectedGuilds.size < 2) {
-                player.sendMessage("§c❌ You must invite at least one other guild!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You must invite at least one other guild!")
                 return
             }
 
@@ -391,28 +392,28 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             val createdParty = partyService.createParty(party)
 
             if (createdParty != null) {
-                player.sendMessage("§a✅ Party created successfully!")
-                player.sendMessage("§7Name: §f${party.name ?: "Unnamed"}")
-                player.sendMessage("§7Guilds: §f${selectedGuilds.size}")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Party created successfully!")
+                player.sendMessage("<gray>Name: <white>${party.name ?: "Unnamed"}")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>Guilds: <white>${selectedGuilds.size}")
                 if (restrictedRoles.isNotEmpty()) {
-                    player.sendMessage("§7Role restrictions: §f${restrictedRoles.size} roles")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Role restrictions: <white>${restrictedRoles.size} roles")
                 }
-                player.sendMessage("§7Expires in: §f24 hours")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>Expires in: <white>24 hours")
 
                 // Send invites to selected guilds (only for public parties)
                 if (!isPrivateParty) {
                     sendGuildInvites(createdParty as Party)
                 } else {
-                    player.sendMessage("§a✅ Private party created! All guild members can now join.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Private party created! All guild members can now join.")
                 }
 
                 // Return to party management
                 menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
             } else {
-                player.sendMessage("§c❌ Failed to create party!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to create party!")
             }
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Error creating party!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Error creating party!")
             e.printStackTrace()
         }
     }
@@ -424,7 +425,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             val invitedGuild = guildService.getGuild(guildId)
             if (invitedGuild != null) {
                 // Send invite notification (you could implement a proper invite system here)
-                player.sendMessage("§7✉ Invite sent to §f${invitedGuild.name}")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>✉ Invite sent to <white>${invitedGuild.name}")
 
                 // TODO: Implement proper guild invite system with accept/decline
                 // For now, just notify the player that invites were sent
@@ -432,7 +433,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         }
 
         if (invitedGuilds.isNotEmpty()) {
-            player.sendMessage("§a✅ Sent ${invitedGuilds.size} guild invite${if (invitedGuilds.size != 1) "s" else ""}!")
+            player.sendMessage("<green>✅ Sent ${invitedGuilds.size} guild invite${if (invitedGuilds.size != 1) "s" else ""}!")
         }
     }
 
@@ -441,13 +442,13 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
         chatInputListener.startInputMode(player, this)
         player.closeInventory()
 
-        player.sendMessage("§6=== PARTY NAME INPUT ===")
-        player.sendMessage("§7Type the party name in chat.")
-        player.sendMessage("§7Leave blank for no name.")
-        player.sendMessage("§7Maximum 32 characters.")
-        player.sendMessage("§7")
-        player.sendMessage("§7Type 'cancel' to stop input mode")
-        player.sendMessage("§6========================")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gold>=== PARTY NAME INPUT ===")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Type the party name in chat.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Leave blank for no name.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Maximum 32 characters.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Type 'cancel' to stop input mode")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gold>========================")
     }
 
     // ChatInputHandler interface methods
@@ -456,13 +457,13 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             "name" -> {
                 val error = validatePartyName(input)
                 if (error != null) {
-                    player.sendMessage("§c❌ Invalid name: $error")
-                    player.sendMessage("§7Please try again or type 'cancel' to stop.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Invalid name: $error")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Please try again or type 'cancel' to stop.")
                     // Keep input mode active and reopen menu for retry
                 } else {
                     partyName = input
                     inputMode = ""
-                    player.sendMessage("§a✅ Party name set to: '$input'")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Party name set to: '$input'")
                 }
             }
         }
@@ -476,7 +477,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
 
     override fun onCancel(player: Player) {
         inputMode = ""
-        player.sendMessage("§7Input cancelled.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Input cancelled.")
 
         // Reopen the menu
         val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
@@ -494,9 +495,6 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
 
     override fun passData(data: Any?) {
         when (data) {
-            is Guild -> {
-                guild = data
-            }
             is Map<*, *> -> {
                 // Handle data from GuildSelectionMenu
                 val selectedGuildsData = data["selectedGuilds"] as? Set<*> ?: emptySet<Any>()

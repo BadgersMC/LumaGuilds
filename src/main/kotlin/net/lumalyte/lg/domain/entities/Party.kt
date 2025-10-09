@@ -14,6 +14,10 @@ import java.util.UUID
  * @property createdAt The timestamp when the party was created.
  * @property expiresAt Optional expiration time for the party.
  * @property restrictedRoles Optional set of rank IDs that can join the party (if null, all guild members can join).
+ * @property accessLevel The access level for party membership.
+ * @property maxMembers Maximum number of members allowed in the party.
+ * @property description Optional description of the party.
+ * @property metadata Additional metadata for the party.
  */
 data class Party(
     val id: UUID,
@@ -23,7 +27,11 @@ data class Party(
     val status: PartyStatus = PartyStatus.ACTIVE,
     val createdAt: Instant,
     val expiresAt: Instant? = null,
-    val restrictedRoles: Set<UUID>? = null
+    val restrictedRoles: Set<UUID>? = null,
+    val accessLevel: PartyAccessLevel = PartyAccessLevel.OPEN,
+    val maxMembers: Int = 50,
+    val description: String? = null,
+    val metadata: Map<String, Any> = emptyMap()
 ) {
     init {
         require(guildIds.isNotEmpty()) { "A party must have at least 1 guild." }
@@ -90,10 +98,42 @@ data class Party(
 enum class PartyStatus {
     /** Party is active and functional */
     ACTIVE,
-    
+
     /** Party has been dissolved */
     DISSOLVED,
-    
+
     /** Party has expired */
     EXPIRED
 }
+
+/**
+ * Access level for party membership.
+ */
+enum class PartyAccessLevel {
+    /** Anyone can join the party */
+    OPEN,
+
+    /** Only invited players can join */
+    INVITE_ONLY,
+
+    /** Only guild members can join */
+    GUILD_ONLY,
+
+    /** Only party leader can invite */
+    LEADER_ONLY
+}
+
+/**
+ * Statistics for a party.
+ */
+data class PartyStatistics(
+    val totalMembers: Int,
+    val onlineMembers: Int,
+    val guildsInvolved: Int,
+    val activityLevel: String,
+    val duration: String,
+    val activityScore: Int,
+    val participationRate: Int,
+    val eventsCount: Int,
+    val lastActivity: String
+)

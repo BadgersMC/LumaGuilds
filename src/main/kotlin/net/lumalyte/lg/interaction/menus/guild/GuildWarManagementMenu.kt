@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.War
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -18,23 +19,23 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                           private var guild: Guild): Menu, KoinComponent {
+                           private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val warService: WarService by inject()
     private val guildService: GuildService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
-        val gui = ChestGui(6, "§4War Management - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<dark_red><dark_red>War Management - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Row 1: Current Wars
@@ -60,9 +61,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         if (activeWars.isEmpty()) {
             val noWarsItem = ItemStack(Material.BARRIER)
-                .name("§cNo Active Wars")
-                .lore("§7Your guild is not currently at war")
-                .lore("§7Declare war to start conflicts!")
+                .setAdventureName(player, messageService, "<red>No Active Wars")
+                .addAdventureLore(player, messageService, "<gray>Your guild is not currently at war")
+                .addAdventureLore(player, messageService, "<gray>Declare war to start conflicts!")
             pane.addItem(GuiItem(noWarsItem), 0, 0)
         } else {
             // Display first active war
@@ -71,10 +72,10 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
             val enemyGuild = guildService.getGuild(enemyGuildId)
 
             val warItem = ItemStack(Material.DIAMOND_SWORD)
-                .name("§cActive War: vs ${enemyGuild?.name ?: "Unknown"}")
-                .lore("§7Duration: §f${war.duration.toDays()} days")
-                .lore("§7Remaining: §f${war.remainingDuration?.toDays() ?: 0} days")
-                .lore("§7Status: §4ACTIVE")
+                .setAdventureName(player, messageService, "<red>Active War: vs ${enemyGuild?.name ?: "Unknown"}")
+                .addAdventureLore(player, messageService, "<gray>Duration: <white>${war.duration.toDays()} days")
+                .addAdventureLore(player, messageService, "<gray>Remaining: <white>${war.remainingDuration?.toDays() ?: 0} days")
+                .addAdventureLore(player, messageService, "<gray>Status: <dark_red>ACTIVE")
 
             val guiItem = GuiItem(warItem) {
                 openWarDetailsMenu(war)
@@ -84,8 +85,8 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
             // Show war count if more than one
             if (activeWars.size > 1) {
                 val moreWarsItem = ItemStack(Material.BOOK)
-                    .name("§e+${activeWars.size - 1} More Wars")
-                    .lore("§7Click to view all active wars")
+                    .setAdventureName(player, messageService, "<yellow>+${activeWars.size - 1} More Wars")
+                    .addAdventureLore(player, messageService, "<gray>Click to view all active wars")
                 pane.addItem(GuiItem(moreWarsItem) {
                     openWarListMenu()
                 }, 1, 0)
@@ -99,9 +100,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // Incoming declarations
         val incomingItem = ItemStack(if (incomingDeclarations.isEmpty()) Material.GRAY_DYE else Material.PAPER)
-            .name("§aIncoming Declarations")
-            .lore("§7War declarations against your guild")
-            .lore("§7Count: §f${incomingDeclarations.size}")
+            .setAdventureName(player, messageService, "<green>Incoming Declarations")
+            .addAdventureLore(player, messageService, "<gray>War declarations against your guild")
+            .addAdventureLore(player, messageService, "<gray>Count: <white>${incomingDeclarations.size}")
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingDeclarationsMenu()
@@ -110,9 +111,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // Outgoing declarations
         val outgoingItem = ItemStack(if (outgoingDeclarations.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
-            .name("§eOutgoing Declarations")
-            .lore("§7Your guild's war declarations")
-            .lore("§7Count: §f${outgoingDeclarations.size}")
+            .setAdventureName(player, messageService, "<yellow>Outgoing Declarations")
+            .addAdventureLore(player, messageService, "<gray>Your guild's war declarations")
+            .addAdventureLore(player, messageService, "<gray>Count: <white>${outgoingDeclarations.size}")
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingDeclarationsMenu()
@@ -123,9 +124,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     private fun addWarActionsSection(pane: StaticPane) {
         // Declare war
         val declareWarItem = ItemStack(Material.IRON_SWORD)
-            .name("§4Declare War")
-            .lore("§7Declare war on another guild")
-            .lore("§7Start a conflict with objectives")
+            .setAdventureName(player, messageService, "<dark_red>Declare War")
+            .addAdventureLore(player, messageService, "<gray>Declare war on another guild")
+            .addAdventureLore(player, messageService, "<gray>Start a conflict with objectives")
 
         val declareWarGuiItem = GuiItem(declareWarItem) {
             openDeclareWarMenu()
@@ -134,9 +135,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // War statistics
         val warStatsItem = ItemStack(Material.KNOWLEDGE_BOOK)
-            .name("§6War Statistics")
-            .lore("§7View your guild's war performance")
-            .lore("§7Win/loss ratio and history")
+            .setAdventureName(player, messageService, "<gold>War Statistics")
+            .addAdventureLore(player, messageService, "<gray>View your guild's war performance")
+            .addAdventureLore(player, messageService, "<gray>Win/loss ratio and history")
 
         val warStatsGuiItem = GuiItem(warStatsItem) {
             openWarStatsMenu()
@@ -145,9 +146,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // War history
         val warHistoryItem = ItemStack(Material.BOOKSHELF)
-            .name("§eWar History")
-            .lore("§7View past wars and outcomes")
-            .lore("§7Learn from previous conflicts")
+            .setAdventureName(player, messageService, "<yellow>War History")
+            .addAdventureLore(player, messageService, "<gray>View past wars and outcomes")
+            .addAdventureLore(player, messageService, "<gray>Learn from previous conflicts")
 
         val warHistoryGuiItem = GuiItem(warHistoryItem) {
             openWarHistoryMenu()
@@ -156,9 +157,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // Peace agreements
         val peaceItem = ItemStack(Material.WHITE_WOOL)
-            .name("§a☮ Peace Agreements")
-            .lore("§7Propose peace to end wars")
-            .lore("§7Negotiate terms and offerings")
+            .setAdventureName(player, messageService, "<green>☮ Peace Agreements")
+            .addAdventureLore(player, messageService, "<gray>Propose peace to end wars")
+            .addAdventureLore(player, messageService, "<gray>Negotiate terms and offerings")
 
         val peaceGuiItem = GuiItem(peaceItem) {
             openPeaceAgreementsMenu()
@@ -172,10 +173,10 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val totalWars = warService.getWarsForGuild(guild.id).size
 
         val statsItem = ItemStack(Material.TOTEM_OF_UNDYING)
-            .name("§bQuick Stats")
-            .lore("§7Total Wars: §f$totalWars")
-            .lore("§7Win/Loss Ratio: §f${String.format("%.2f", winLossRatio)}")
-            .lore("§7Active Wars: §f${warService.getWarsForGuild(guild.id).count { it.isActive }}")
+            .setAdventureName(player, messageService, "<aqua>Quick Stats")
+            .addAdventureLore(player, messageService, "<gray>Total Wars: <white>$totalWars")
+            .addAdventureLore(player, messageService, "<gray>Win/Loss Ratio: <white>${String.format("%.2f", winLossRatio)}")
+            .addAdventureLore(player, messageService, "<gray>Active Wars: <white>${warService.getWarsForGuild(guild.id).count { it.isActive }}")
 
         val statsGuiItem = GuiItem(statsItem) {
             openDetailedStatsMenu()
@@ -185,8 +186,8 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
-            .name("§eBack to Control Panel")
-            .lore("§7Return to guild management")
+            .setAdventureName(player, messageService, "<yellow>Back to Control Panel")
+            .addAdventureLore(player, messageService, "<gray>Return to guild management")
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -195,23 +196,23 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     private fun openWarDetailsMenu(war: War) {
-        player.sendMessage("§eWar details menu coming soon!")
-        player.sendMessage("§7This would show detailed war information, objectives, and management options.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>War details menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>This would show detailed war information, objectives, and management options.")
     }
 
     private fun openWarListMenu() {
-        player.sendMessage("§eWar list menu coming soon!")
-        player.sendMessage("§7This would show all active wars your guild is involved in.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>War list menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>This would show all active wars your guild is involved in.")
     }
 
     private fun openIncomingDeclarationsMenu() {
-        player.sendMessage("§eIncoming declarations menu coming soon!")
-        player.sendMessage("§7This would show war declarations against your guild that you can accept or reject.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Incoming declarations menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>This would show war declarations against your guild that you can accept or reject.")
     }
 
     private fun openOutgoingDeclarationsMenu() {
-        player.sendMessage("§eOutgoing declarations menu coming soon!")
-        player.sendMessage("§7This would show war declarations your guild has sent.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Outgoing declarations menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>This would show war declarations your guild has sent.")
     }
 
     private fun openDeclareWarMenu() {
@@ -219,26 +220,21 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     private fun openWarStatsMenu() {
-        player.sendMessage("§eWar statistics menu coming soon!")
-        player.sendMessage("§7This would show detailed war performance metrics.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>War statistics menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>This would show detailed war performance metrics.")
     }
 
     private fun openWarHistoryMenu() {
-        player.sendMessage("§eWar history menu coming soon!")
-        player.sendMessage("§7This would show a history of all past wars.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>War history menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>This would show a history of all past wars.")
     }
 
     private fun openDetailedStatsMenu() {
-        player.sendMessage("§eDetailed statistics menu coming soon!")
-        player.sendMessage("§7This would show comprehensive war statistics and analytics.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Detailed statistics menu coming soon!")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>This would show comprehensive war statistics and analytics.")
     }
 
     private fun openPeaceAgreementsMenu() {
         menuNavigator.openMenu(menuFactory.createPeaceAgreementMenu(menuNavigator, player, guild))
-    }
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    }}
 

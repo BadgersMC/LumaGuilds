@@ -62,6 +62,7 @@ class EditToolListener: Listener, KoinComponent {
     private val displaySelectionVisualisation: DisplaySelectionVisualisation by inject()
     private val clearSelectionVisualisation: ClearSelectionVisualisation by inject()
     private val refreshVisualisation: RefreshVisualisation by inject()
+    private val messageService: net.lumalyte.lg.application.services.MessageService by inject()
 
     // Map of player id to the partition and the first selected corner to resize a partition
     private val firstSelectedCornerResize: MutableMap<UUID, Pair<UUID, Position2D>> = mutableMapOf()
@@ -80,8 +81,8 @@ class EditToolListener: Listener, KoinComponent {
         if (event.hand == EquipmentSlot.OFF_HAND) {
             val location = event.clickedBlock?.location ?: return
             val partition = getPartitionByPosition.execute(location.toPosition2D(), location.world.uid)
-            val menuNavigator = MenuNavigator(event.player)
-            menuNavigator.openMenu(menuFactory.createEditToolMenu(menuNavigator, event.player, partition))
+            val menuNavigator = MenuNavigator(event.player, messageService)
+            menuNavigator.openMenu(menuFactory.createEditToolMenu(menuNavigator, event.player, partition, messageService))
             return
         }
 

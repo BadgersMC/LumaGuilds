@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -19,9 +20,13 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                               private val guild: Guild, private val memberToKick: Member): Menu, KoinComponent {
+                               private val guild: Guild, private val memberToKick: Member, private val messageService: MessageService): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -29,14 +34,10 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui = ChestGui(3, "§6Confirm Kick - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Confirm Kick - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 3)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Warning display
         addWarningDisplay(pane, 0, 0)
@@ -54,16 +55,16 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addWarningDisplay(pane: StaticPane, x: Int, y: Int) {
         val warningItem = ItemStack(Material.BARRIER)
-            .name("§c⚠️ KICK CONFIRMATION")
-            .lore("§cThis action cannot be undone!")
-            .lore("§7")
-            .lore("§7The player will be immediately")
-            .lore("§7removed from the guild.")
-            .lore("§7")
-            .lore("§eThey will lose access to:")
-            .lore("§e• Guild bank")
-            .lore("§e• Guild claims")
-            .lore("§e• Guild permissions")
+            .setAdventureName(player, messageService, "<red>⚠️ KICK CONFIRMATION")
+            .addAdventureLore(player, messageService, "<red>This action cannot be undone!")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>The player will be immediately")
+            .addAdventureLore(player, messageService, "<gray>removed from the guild.")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<yellow>They will lose access to:")
+            .addAdventureLore(player, messageService, "<yellow>• Guild bank")
+            .addAdventureLore(player, messageService, "<yellow>• Guild claims")
+            .addAdventureLore(player, messageService, "<yellow>• Guild permissions")
 
         pane.addItem(GuiItem(warningItem), x, y)
     }
@@ -88,20 +89,20 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
         head.itemMeta = meta
 
-        val memberItem = head.name("§f👤 $playerName")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Joined: §f${memberToKick.joinedAt}")
-            .lore("§7")
-            .lore("§cThis player will be kicked")
+        val memberItem = head.setAdventureName(player, messageService, "<white>👤 $playerName")
+            .addAdventureLore(player, messageService, "<gray>Player: <white>$playerName")
+            .addAdventureLore(player, messageService, "<gray>Joined: <white>${memberToKick.joinedAt}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<red>This player will be kicked")
 
         pane.addItem(GuiItem(memberItem), x, y)
     }
 
     private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
         val confirmItem = ItemStack(Material.RED_WOOL)
-            .name("§c✅ CONFIRM KICK")
-            .lore("§cPermanently remove from guild")
-            .lore("§7Click to proceed")
+            .setAdventureName(player, messageService, "<red>✅ CONFIRM KICK")
+            .addAdventureLore(player, messageService, "<red>Permanently remove from guild")
+            .addAdventureLore(player, messageService, "<gray>Click to proceed")
 
         val confirmGuiItem = GuiItem(confirmItem) {
             performKick()
@@ -111,9 +112,9 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack(Material.GREEN_WOOL)
-            .name("§a❌ CANCEL")
-            .lore("§7Return to member list")
-            .lore("§7No changes will be made")
+            .setAdventureName(player, messageService, "<green>❌ CANCEL")
+            .addAdventureLore(player, messageService, "<gray>Return to member list")
+            .addAdventureLore(player, messageService, "<gray>No changes will be made")
 
         val cancelGuiItem = GuiItem(cancelItem) {
             menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
@@ -129,23 +130,18 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
         val success = memberService.removeMember(memberToKick.playerId, guild.id, player.uniqueId)
 
         if (success) {
-            player.sendMessage("§a✅ Successfully kicked $targetName from ${guild.name}!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Successfully kicked $targetName from ${guild.name}!")
 
             // Notify the kicked player if they're online
             if (targetPlayer != null) {
-                targetPlayer.sendMessage("§c❌ You have been kicked from ${guild.name} by ${player.name}")
+                targetPlayer.sendMessage("<red>❌ You have been kicked from ${guild.name} by ${player.name}")
             }
 
             // Return to member management menu
             menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
         } else {
-            player.sendMessage("§c❌ Failed to kick $targetName. Check permissions.")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to kick $targetName. Check permissions.")
             menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
         }
-    }
-
-    override fun passData(data: Any?) {
-        // No data passing needed for confirmation menu
-    }
-}
+    }}
 

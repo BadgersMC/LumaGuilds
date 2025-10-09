@@ -29,9 +29,13 @@ import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                          private var claim: Claim): Menu, KoinComponent {
+                          private var claim: Claim, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val getClaimFlags: GetClaimFlags by inject()
     private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
@@ -75,14 +79,17 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
         val renamingItem = ItemStack(Material.NAME_TAG)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_RENAME_NAME))
             .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_RENAME_LORE))
-        val guiRenamingItem = GuiItem(renamingItem) { menuNavigator.openMenu(
-            ClaimRenamingMenu(menuNavigator, player, claim)) }
+        val guiRenamingItem = GuiItem(renamingItem) { 
+            menuNavigator.openMenu(
+                ClaimRenamingMenu(menuNavigator, player, claim, messageService)
+            ) 
+        }
         pane.addItem(guiRenamingItem, 3, 0)
 
         // Add a player trusts button
         val playerTrustItem = ItemStack(Material.PLAYER_HEAD)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_PERMISSIONS_NAME))
-            .lore("${getPlayersWithPermissionInClaim.execute(claim.id).count()}")
+            .addAdventureLore(player, messageService, "${getPlayersWithPermissionInClaim.execute(claim.id).count()}")
         val guiPlayerTrustItem = GuiItem(playerTrustItem) {
             menuNavigator.openMenu(menuFactory.createClaimTrustMenu(menuNavigator, player, claim)) }
         pane.addItem(guiPlayerTrustItem, 5, 0)
@@ -141,7 +148,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
         // Add a claim flags button
         val claimFlagsItem = ItemStack(Material.ACACIA_HANGING_SIGN)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_FLAGS_NAME))
-            .lore("${getClaimFlags.execute(claim.id).count()}")
+            .addAdventureLore(player, messageService, "${getClaimFlags.execute(claim.id).count()}")
         val guiClaimFlagsItem = GuiItem(claimFlagsItem) {
             menuNavigator.openMenu(menuFactory.createClaimFlagMenu(menuNavigator, player, claim)) }
         pane.addItem(guiClaimFlagsItem, 7, 0)
@@ -159,10 +166,5 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
         // Register the player being in the menu and open it
         registerClaimMenuOpening.execute(player.uniqueId, claim.id)
         gui.show(player)
-    }
-
-    override fun passData(data: Any?) {
-        claim = data as? Claim ?: return
-    }
-}
+    }}
 

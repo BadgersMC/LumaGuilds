@@ -33,9 +33,13 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class EditToolMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                   private val partition: Partition? = null): Menu, KoinComponent {
+                   private val partition: Partition? = null, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val getVisualiserMode: GetVisualiserMode by inject()
     private val toggleVisualiserMode: ToggleVisualiserMode by inject()
@@ -52,7 +56,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
 
     override fun open() {
         val title = localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_TITLE)
-        val gui = ChestGui(1, title)
+        val gui = ChestGui(1, title, )
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -99,7 +103,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         pane.addItem(guiModeSwitchItem, 0, 0)
 
         // Add divider
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).setAdventureName(player, messageService, " ")
         val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
         pane.addItem(guiDividerItem, 1, 0)
 
@@ -183,7 +187,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
                     player.closeInventory()
                 }
                 val guiDeleteItem = GuiItem(deleteItem) {
-                    menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, deleteTitle, confirmAction)) }
+                    menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, deleteTitle, messageService, confirmAction)) }
                 pane.addItem(guiDeleteItem, 7, 0)
             }
             else -> {

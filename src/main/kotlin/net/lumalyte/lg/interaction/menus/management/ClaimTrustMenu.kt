@@ -21,9 +21,13 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.UUID
 import kotlin.math.ceil
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                     private val claim: Claim?): Menu, KoinComponent {
+                     private val claim: Claim?, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
     private val getClaimPlayerPermissions: GetClaimPlayerPermissions by inject()
@@ -33,7 +37,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
 
     override fun open() {
         if (claim == null) {
-            player.sendMessage("§cError: No claim available")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Error: No claim available")
             return
         }
 
@@ -76,7 +80,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
             val targetPlayer = Bukkit.getOfflinePlayer(trustedPlayer)
             val playerPermissions = getClaimPlayerPermissions.execute(claim.id, trustedPlayer)
             val warpItem = createHead(targetPlayer)
-                .name("${targetPlayer.name}")
+                .setAdventureName(player, messageService, "${targetPlayer.name}")
                 .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_TRUSTED_PLAYERS_ITEM_HAS_PERMISSION_LORE,
                     playerPermissions.count()))
             val guiWarpItem = GuiItem(warpItem) {
@@ -98,7 +102,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
         // Add divider
         val dividerPane = StaticPane(0, 1, 9, 1)
         gui.addPane(dividerPane)
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).setAdventureName(player, messageService, " ")
         for (slot in 0..8) {
             val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
             dividerPane.addItem(guiDividerItem, slot, 0)

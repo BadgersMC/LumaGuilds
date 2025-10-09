@@ -13,6 +13,7 @@ import net.lumalyte.lg.domain.entities.War
 import net.lumalyte.lg.domain.entities.WarDeclaration
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
@@ -27,13 +28,17 @@ import java.time.Duration as JavaDuration
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildWarAcceptanceMenu(
     private val menuNavigator: MenuNavigator, 
     private val player: Player,
     private var guild: Guild,
     private val warDeclaration: WarDeclaration
-) : Menu, KoinComponent {
+, private val messageService: MessageService) : Menu, KoinComponent {
 
     private val warService: WarService by inject()
     private val guildService: GuildService by inject()
@@ -44,26 +49,22 @@ class GuildWarAcceptanceMenu(
     override fun open() {
         // Check permissions first
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DECLARE_WAR)) {
-            player.sendMessage("§c❌ You don't have permission to respond to war declarations!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to respond to war declarations!")
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
 
         // Check if declaration is still valid
         if (!warDeclaration.isValid) {
-            player.sendMessage("§c❌ This war declaration has expired or is no longer valid!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ This war declaration has expired or is no longer valid!")
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
 
-        val gui = ChestGui(5, "§4⚔️ War Declaration - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<dark_red><dark_red>⚔️ War Declaration - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 5)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Display war declaration details
@@ -81,40 +82,40 @@ class GuildWarAcceptanceMenu(
     private fun addWarDeclarationInfo(pane: StaticPane) {
         val declaringGuild = guildService.getGuild(warDeclaration.declaringGuildId)
         if (declaringGuild == null) {
-            player.sendMessage("§c❌ Error: Declaring guild not found!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Error: Declaring guild not found!")
             return
         }
 
         // Declaring guild display with banner
-        val declaringGuildItem = createGuildDisplayItem(declaringGuild, "§c⚔️ DECLARING WAR")
+        val declaringGuildItem = createGuildDisplayItem(declaringGuild, "<red>⚔️ DECLARING WAR")
         pane.addItem(GuiItem(declaringGuildItem), 1, 1)
 
         // VS indicator
         val vsItem = ItemStack(Material.BARRIER)
-            .name("§4⚡ VS ⚡")
-            .lore("§7War Declaration")
+            .setAdventureName(player, messageService, "<dark_red>⚡ VS ⚡")
+            .addAdventureLore(player, messageService, "<gray>War Declaration")
         pane.addItem(GuiItem(vsItem), 4, 1)
 
         // Your guild display
-        val yourGuildItem = createGuildDisplayItem(guild, "§a🛡️ YOUR GUILD")
+        val yourGuildItem = createGuildDisplayItem(guild, "<green>🛡️ YOUR GUILD")
         pane.addItem(GuiItem(yourGuildItem), 7, 1)
 
         // War details
         val detailsItem = ItemStack(Material.WRITTEN_BOOK)
-            .name("§e📋 War Details")
-            .lore("§7Duration: §f${warDeclaration.proposedDuration.toDays()} days")
-            .lore("§7Objectives: §f${warDeclaration.objectives.size}")
+            .setAdventureName(player, messageService, "<yellow>📋 War Details")
+            .addAdventureLore(player, messageService, "<gray>Duration: <white>${warDeclaration.proposedDuration.toDays()} days")
+            .addAdventureLore(player, messageService, "<gray>Objectives: <white>${warDeclaration.objectives.size}")
             if (warDeclaration.objectives.isNotEmpty()) {
                 warDeclaration.objectives.forEach { objective ->
-                    detailsItem.lore("§7• §f${objective.description}")
+                    detailsItem.addAdventureLore(player, messageService, "<gray>• <white>${objective.description}")
                 }
             }
-            detailsItem.lore("§7")
+            detailsItem.addAdventureLore(player, messageService, "<gray>")
             if (warDeclaration.terms != null) {
-                detailsItem.lore("§7Terms: §f${warDeclaration.terms}")
-                detailsItem.lore("§7")
+                detailsItem.addAdventureLore(player, messageService, "<gray>Terms: <white>${warDeclaration.terms}")
+                detailsItem.addAdventureLore(player, messageService, "<gray>")
             }
-            detailsItem.lore("§7Expires: §f${warDeclaration.remainingTime.toHours()}h remaining")
+            detailsItem.addAdventureLore(player, messageService, "<gray>Expires: <white>${warDeclaration.remainingTime.toHours()}h remaining")
 
         pane.addItem(GuiItem(detailsItem), 4, 0)
     }
@@ -140,21 +141,21 @@ class GuildWarAcceptanceMenu(
 
         return bannerItem
             .name(title)
-            .lore("§7Guild: §f${targetGuild.name}")
-            .lore("§7Members: §f$memberCount")
-            .lore("§7Level: §f${targetGuild.level}")
-            .lore("§7Mode: §f${targetGuild.mode}")
+            .addAdventureLore(player, messageService, "<gray>Guild: <white>${targetGuild.name}")
+            .addAdventureLore(player, messageService, "<gray>Members: <white>$memberCount")
+            .addAdventureLore(player, messageService, "<gray>Level: <white>${targetGuild.level}")
+            .addAdventureLore(player, messageService, "<gray>Mode: <white>${targetGuild.mode}")
     }
 
     private fun addResponseOptions(pane: StaticPane) {
         // Accept button
         val acceptItem = ItemStack(Material.EMERALD_BLOCK)
-            .name("§a✅ ACCEPT WAR")
-            .lore("§7Accept this war declaration")
-            .lore("§7and begin the conflict!")
-            .lore("§7")
-            .lore("§a⚔️ Battle begins immediately")
-            .lore("§aFirst to reach kill target wins!")
+            .setAdventureName(player, messageService, "<green>✅ ACCEPT WAR")
+            .addAdventureLore(player, messageService, "<gray>Accept this war declaration")
+            .addAdventureLore(player, messageService, "<gray>and begin the conflict!")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<green>⚔️ Battle begins immediately")
+            .addAdventureLore(player, messageService, "<green>First to reach kill target wins!")
 
         val acceptGuiItem = GuiItem(acceptItem) {
             acceptWarDeclaration()
@@ -163,11 +164,11 @@ class GuildWarAcceptanceMenu(
 
         // Reject button
         val rejectItem = ItemStack(Material.REDSTONE_BLOCK)
-            .name("§c❌ REJECT WAR")
-            .lore("§7Reject this war declaration")
-            .lore("§7")
-            .lore("§c⚠️ This will decline the war")
-            .lore("§cNo conflict will occur")
+            .setAdventureName(player, messageService, "<red>❌ REJECT WAR")
+            .addAdventureLore(player, messageService, "<gray>Reject this war declaration")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<red>⚠️ This will decline the war")
+            .addAdventureLore(player, messageService, "<red>No conflict will occur")
 
         val rejectGuiItem = GuiItem(rejectItem) {
             rejectWarDeclaration()
@@ -181,10 +182,10 @@ class GuildWarAcceptanceMenu(
             
             val war = warService.acceptWarDeclaration(warDeclaration.id, player.uniqueId)
             if (war != null) {
-                player.sendMessage("§a⚔️ War accepted! Battle begins now!")
-                player.sendMessage("§7Duration: §f${war.duration.toDays()} days")
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>⚔️ War accepted! Battle begins now!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>Duration: <white>${war.duration.toDays()} days")
                 if (war.objectives.isNotEmpty()) {
-                    player.sendMessage("§7Objectives: §f${war.objectives.size}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Objectives: <white>${war.objectives.size}")
                 }
                 player.playSound(player.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
                 
@@ -196,11 +197,11 @@ class GuildWarAcceptanceMenu(
                 notifyGuildsOfWarAcceptance(war)
                 
             } else {
-                player.sendMessage("§c❌ Failed to accept war declaration!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to accept war declaration!")
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Error accepting war: ${e.message}")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Error accepting war: ${e.message}")
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -209,8 +210,8 @@ class GuildWarAcceptanceMenu(
         try {
             val success = warService.rejectWarDeclaration(warDeclaration.id, player.uniqueId)
             if (success) {
-                player.sendMessage("§c❌ War declaration rejected!")
-                player.sendMessage("§7The conflict has been declined.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ War declaration rejected!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<gray>The conflict has been declined.")
                 player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.8f)
                 
                 // Close menu and return to war management
@@ -221,19 +222,19 @@ class GuildWarAcceptanceMenu(
                 notifyGuildOfWarRejection(warDeclaration.declaringGuildId)
                 
             } else {
-                player.sendMessage("§c❌ Failed to reject war declaration!")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Failed to reject war declaration!")
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Error rejecting war: ${e.message}")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Error rejecting war: ${e.message}")
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
-            .name("§c⬅️ Back")
-            .lore("§7Return to war management")
+            .setAdventureName(player, messageService, "<red>⬅️ Back")
+            .addAdventureLore(player, messageService, "<gray>Return to war management")
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
@@ -254,18 +255,18 @@ class GuildWarAcceptanceMenu(
                 val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§a⚔️ WAR ACCEPTED! ⚔️"),
-                        Component.text("§7${defendingGuild.name} accepted - BATTLE BEGINS!"),
+                        Component.text("<green>⚔️ WAR ACCEPTED! ⚔️"),
+                        Component.text("<gray>${defendingGuild.name} accepted - BATTLE BEGINS!"),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(4), JavaDuration.ofSeconds(1))
                     ))
-                    onlinePlayer.sendMessage("§a═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§a⚔️ WAR DECLARATION ACCEPTED!")
-                    onlinePlayer.sendMessage("§7Enemy Guild: §f${defendingGuild.name}")
-                    onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
-                    onlinePlayer.sendMessage("§7Target: §f${war.objectives.firstOrNull()?.description ?: "No objectives"}")
-                    onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§c⚔️ THE BATTLE HAS BEGUN! ⚔️")
-                    onlinePlayer.sendMessage("§a═══════════════════════════════════")
+                    onlinePlayer.sendMessage("<green>═══════════════════════════════════")
+                    onlinePlayer.sendMessage("<green>⚔️ WAR DECLARATION ACCEPTED!")
+                    onlinePlayer.sendMessage("<gray>Enemy Guild: <white>${defendingGuild.name}")
+                    onlinePlayer.sendMessage("<gray>Duration: <white>${war.duration.toDays()} days")
+                    onlinePlayer.sendMessage("<gray>Target: <white>${war.objectives.firstOrNull()?.description ?: "No objectives"}")
+                    onlinePlayer.sendMessage("<gray>")
+                    onlinePlayer.sendMessage("<red>⚔️ THE BATTLE HAS BEGUN! ⚔️")
+                    onlinePlayer.sendMessage("<green>═══════════════════════════════════")
                     onlinePlayer.playSound(onlinePlayer.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
                 }
             }
@@ -278,18 +279,18 @@ class GuildWarAcceptanceMenu(
                 val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§c⚔️ WAR BEGINS! ⚔️"),
-                        Component.text("§7War against ${declaringGuild.name} - FIGHT!"),
+                        Component.text("<red>⚔️ WAR BEGINS! ⚔️"),
+                        Component.text("<gray>War against ${declaringGuild.name} - FIGHT!"),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(4), JavaDuration.ofSeconds(1))
                     ))
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§c⚔️ WAR HAS BEEN DECLARED!")
-                    onlinePlayer.sendMessage("§7Enemy Guild: §f${declaringGuild.name}")
-                    onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
-                    onlinePlayer.sendMessage("§7Target: §f${war.objectives.firstOrNull()?.description ?: "No objectives"}")
-                    onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§a⚔️ YOUR GUILD ACCEPTED THE CHALLENGE!")
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
+                    onlinePlayer.sendMessage("<red>═══════════════════════════════════")
+                    onlinePlayer.sendMessage("<red>⚔️ WAR HAS BEEN DECLARED!")
+                    onlinePlayer.sendMessage("<gray>Enemy Guild: <white>${declaringGuild.name}")
+                    onlinePlayer.sendMessage("<gray>Duration: <white>${war.duration.toDays()} days")
+                    onlinePlayer.sendMessage("<gray>Target: <white>${war.objectives.firstOrNull()?.description ?: "No objectives"}")
+                    onlinePlayer.sendMessage("<gray>")
+                    onlinePlayer.sendMessage("<green>⚔️ YOUR GUILD ACCEPTED THE CHALLENGE!")
+                    onlinePlayer.sendMessage("<red>═══════════════════════════════════")
                     onlinePlayer.playSound(onlinePlayer.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
                 }
             }
@@ -308,22 +309,22 @@ class GuildWarAcceptanceMenu(
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     // Send title
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§c⚔️ WAR REJECTED ⚔️"),
-                        Component.text("§7${guild.name} declined your declaration"),
+                        Component.text("<red>⚔️ WAR REJECTED ⚔️"),
+                        Component.text("<gray>${guild.name} declined your declaration"),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(3), JavaDuration.ofSeconds(1))
                     ))
                     
                     // Send chat messages
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§c⚔️ WAR DECLARATION REJECTED!")
-                    onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§7Guild: §f${guild.name}")
-                    onlinePlayer.sendMessage("§7Response: §cDECLINED")
-                    onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§7They chose not to engage in battle.")
-                    onlinePlayer.sendMessage("§7Consider diplomatic solutions or")
-                    onlinePlayer.sendMessage("§7find other opponents willing to fight!")
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
+                    onlinePlayer.sendMessage("<red>═══════════════════════════════════")
+                    onlinePlayer.sendMessage("<red>⚔️ WAR DECLARATION REJECTED!")
+                    onlinePlayer.sendMessage("<gray>")
+                    onlinePlayer.sendMessage("<gray>Guild: <white>${guild.name}")
+                    onlinePlayer.sendMessage("<gray>Response: <red>DECLINED")
+                    onlinePlayer.sendMessage("<gray>")
+                    onlinePlayer.sendMessage("<gray>They chose not to engage in battle.")
+                    onlinePlayer.sendMessage("<gray>Consider diplomatic solutions or")
+                    onlinePlayer.sendMessage("<gray>find other opponents willing to fight!")
+                    onlinePlayer.sendMessage("<red>═══════════════════════════════════")
                     
                     // Play sound
                     onlinePlayer.playSound(onlinePlayer.location, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f)
@@ -334,10 +335,5 @@ class GuildWarAcceptanceMenu(
             // Log error but don't break the rejection process
             println("Error notifying guild of war rejection: ${e.message}")
         }
-    }
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    }}
 

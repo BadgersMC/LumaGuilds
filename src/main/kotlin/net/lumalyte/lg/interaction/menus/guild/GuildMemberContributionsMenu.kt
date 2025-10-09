@@ -12,6 +12,7 @@ import net.lumalyte.lg.domain.entities.MemberContribution
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Material
@@ -22,6 +23,10 @@ import org.koin.core.component.inject
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Guild Member Contributions menu showing net contributions for each member
@@ -30,7 +35,7 @@ class GuildMemberContributionsMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild
-) : Menu, KoinComponent {
+, private val messageService: MessageService) : Menu, KoinComponent {
 
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
@@ -61,20 +66,13 @@ class GuildMemberContributionsMenu(
     override fun open() {
         updateContributionsDisplay()
         gui.show(player)
-    }
-
-    override fun passData(data: Any?) {
-        // Handle filter updates if needed
-        updateContributionsDisplay()
-        gui.update()
-    }
-
-    /**
+    }/**
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, "§6${guild.name} - Member Contributions")
-        gui.setOnGlobalClick { event -> event.isCancelled = true }
+        gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>${guild.name} - Member Contributions"))
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Create main pane for navigation
         mainPane = StaticPane(0, 0, 9, 1, Pane.Priority.NORMAL)
@@ -251,20 +249,20 @@ class GuildMemberContributionsMenu(
         }
 
         val lore = mutableListOf<String>()
-        lore.add("§7Deposits: §f${contribution.totalDeposits}")
-        lore.add("§7Withdrawals: §f${contribution.totalWithdrawals}")
-        lore.add("§7Net Contribution: §${if (netContribution >= 0) "a" else "c"}${netContribution}")
-        lore.add("§7Transactions: §f${contribution.transactionCount}")
+        lore.add("<gray>Deposits: <white>${contribution.totalDeposits}")
+        lore.add("<gray>Withdrawals: <white>${contribution.totalWithdrawals}")
+        lore.add("<gray>Net Contribution: §${if (netContribution >= 0) "a" else "c"}${netContribution}")
+        lore.add("<gray>Transactions: <white>${contribution.transactionCount}")
 
         if (contribution.lastTransaction != null) {
             val lastTransactionTime = LocalDateTime.ofInstant(contribution.lastTransaction, ZoneId.systemDefault())
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            lore.add("§7Last Transaction: §f${lastTransactionTime.format(formatter)}")
+            lore.add("<gray>Last Transaction: <white>${lastTransactionTime.format(formatter)}")
         } else {
-            lore.add("§7Last Transaction: §fNever")
+            lore.add("<gray>Last Transaction: <white>Never")
         }
 
-        lore.add("§7Status: §${if (color == NamedTextColor.GREEN) "a" else if (color == NamedTextColor.RED) "c" else "e"}$statusText")
+        lore.add("<gray>Status: §${if (color == NamedTextColor.GREEN) "a" else if (color == NamedTextColor.RED) "c" else "e"}$statusText")
 
         return createMenuItem(
             Material.PLAYER_HEAD,
@@ -407,43 +405,47 @@ class GuildMemberContributionsMenu(
      */
     private fun handleExport() {
         // Show loading message
-        player.sendMessage("§e🔄 Generating CSV export... This may take a moment.")
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>🔄 Generating CSV export... This may take a moment.")
 
         // Get current filtered contributions
         val contributionsToExport = filteredContributions
 
         if (contributionsToExport.isEmpty()) {
-            player.sendMessage("§c❌ No member data to export!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ No member data to export!")
             return
         }
 
         // Start async export
-        fileExportManager.exportMemberContributionsAsync(player, contributionsToExport, guild.name) { result ->
+        fileExportManager.exportMemberContributionsAsync(
+            player,
+            contributionsToExport,
+            guild.name
+        ) { result ->
             when (result) {
-                is FileExportManager.ExportResult.Success -> {
-                    val fileSizeKB = result.fileSize / 1024.0
-                    player.sendMessage("§a✅ Export successful!")
-                    player.sendMessage("§a📄 File: ${result.fileName}")
-                    player.sendMessage("§a📏 Size: ${String.format("%.1f", fileSizeKB)} KB")
-                    player.sendMessage("§e💡 Use §6/bellclaims download ${result.fileName} §eto get the file")
-                    player.sendMessage("§7📝 File will be available for 15 minutes")
+                    is FileExportManager.ExportResult.Success -> {
+                        val fileSizeKB = result.fileSize / 1024.0
+                        AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ Export successful!")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>📄 File: ${result.fileName}")
+                    player.sendMessage("<green>📏 Size: ${String.format("%.1f", fileSizeKB)} KB")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<yellow>💡 Use <gold>/bellclaims download ${result.fileName} <yellow>to get the file")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>📝 File will be available for 15 minutes")
                 }
                 is FileExportManager.ExportResult.DiscordSuccess -> {
-                    player.sendMessage("§a✅ CSV sent to Discord!")
-                    player.sendMessage("§a📄 ${result.message}")
-                    player.sendMessage("§e💡 Check your Discord server for the file attachment")
-                    player.sendMessage("§7📝 Files are uploaded instantly to your configured channel")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>✅ CSV sent to Discord!")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<green>📄 ${result.message}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<yellow>💡 Check your Discord server for the file attachment")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>📝 Files are uploaded instantly to your configured channel")
                 }
                 is FileExportManager.ExportResult.Error -> {
-                    player.sendMessage("§c❌ Export failed: ${result.message}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ Export failed: ${result.message}")
                 }
                 is FileExportManager.ExportResult.RateLimited -> {
-                    player.sendMessage("§c⏰ ${result.message}")
-                    player.sendMessage("§7You can export up to 5 files per hour for security.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>⏰ ${result.message}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>You can export up to 5 files per hour for security.")
                 }
                 is FileExportManager.ExportResult.FileTooLarge -> {
-                    player.sendMessage("§c📏 ${result.message}")
-                    player.sendMessage("§7Try filtering your data to reduce file size.")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<red>📏 ${result.message}")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>Try filtering your data to reduce file size.")
                 }
             }
         }

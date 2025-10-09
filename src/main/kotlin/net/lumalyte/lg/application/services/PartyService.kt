@@ -2,6 +2,7 @@ package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.domain.entities.Party
 import net.lumalyte.lg.domain.entities.PartyRequest
+import net.lumalyte.lg.domain.entities.PartyStatistics
 import java.time.Duration
 import java.util.UUID
 
@@ -189,4 +190,56 @@ interface PartyService {
      * @return true if the player can join, false otherwise.
      */
     fun canPlayerJoinParty(partyId: UUID, playerId: UUID): Boolean
+
+    /**
+     * Gets a party by its ID.
+     *
+     * @param partyId The ID of the party to retrieve.
+     * @return The party if found, null otherwise.
+     */
+    fun getParty(partyId: UUID): Party?
+
+    /**
+     * Updates party settings.
+     *
+     * @param partyId The ID of the party.
+     * @param updates Map of properties to update.
+     * @param actorId The ID of the player making the changes.
+     * @return true if successful, false otherwise.
+     */
+    fun updatePartySettings(partyId: UUID, updates: Map<String, Any>, actorId: UUID): Boolean
+
+    /**
+     * Gets all members of a party (all players from all guilds in the party).
+     *
+     * @param partyId The ID of the party.
+     * @return Set of player IDs in the party.
+     */
+    fun getPartyMembers(partyId: UUID): Set<UUID>
+
+    /**
+     * Gets party statistics.
+     *
+     * @param partyId The ID of the party.
+     * @return Party statistics or null if party not found.
+     */
+    fun getPartyStatistics(partyId: UUID): PartyStatistics?
+
+    /**
+     * Gets the leader of a party.
+     *
+     * @param partyId The ID of the party.
+     * @return The player ID of the party leader, or null if not found.
+     */
+    fun getPartyLeader(partyId: UUID): UUID?
+
+    /**
+     * Transfers party leadership.
+     *
+     * @param partyId The ID of the party.
+     * @param newLeaderId The ID of the new leader.
+     * @param actorId The ID of the current leader making the change.
+     * @return true if successful, false otherwise.
+     */
+    fun transferPartyLeadership(partyId: UUID, newLeaderId: UUID, actorId: UUID): Boolean
 }

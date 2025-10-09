@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -18,19 +19,22 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.UUID
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                              private var guild: Guild): Menu, KoinComponent {
+                              private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val rankService: RankService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
-        val gui = ChestGui(4, "§6Rank Management - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Rank Management - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 4)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
-            guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Get all ranks for the guild
@@ -45,9 +49,9 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
         // Add new rank button
         val createRankItem = ItemStack(Material.EMERALD)
-            .name("§aCreate New Rank")
-            .lore("§7Add a new rank to your guild")
-            .lore("§7Maximum 10 ranks per guild")
+            .setAdventureName(player, messageService, "<green>Create New Rank")
+            .addAdventureLore(player, messageService, "<gray>Add a new rank to your guild")
+            .addAdventureLore(player, messageService, "<gray>Maximum 10 ranks per guild")
         val guiCreateItem = GuiItem(createRankItem) {
             menuNavigator.openMenu(menuFactory.createRankCreationMenu(menuNavigator, player, guild))
         }
@@ -55,7 +59,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
         // Back button
         val backItem = ItemStack(Material.ARROW)
-            .name("§7← Back to Control Panel")
+            .setAdventureName(player, messageService, "<gray>← Back to Control Panel")
         val guiBackItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
@@ -74,35 +78,35 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         }
 
         val rankItem = ItemStack(iconMaterial)
-            .name("§6${rank.name}")
-            .lore("§7Priority: §f${rank.priority}")
-            .lore("§7Members: §f${getMemberCount(rank.id)} players")
-            .lore("§7")
+            .setAdventureName(player, messageService, "<gold>${rank.name}")
+            .addAdventureLore(player, messageService, "<gray>Priority: <white>${rank.priority}")
+            .addAdventureLore(player, messageService, "<gray>Members: <white>${getMemberCount(rank.id)} players")
+            .addAdventureLore(player, messageService, "<gray>")
 
         // Add formatted permissions with proper line breaks
         if (rank.permissions.isNotEmpty()) {
-            rankItem.lore("§e⚙️ Permissions:")
+            rankItem.addAdventureLore(player, messageService, "<yellow>⚙️ Permissions:")
             
             // Group permissions by category for better readability
             val permissionsByCategory = groupPermissionsByCategory(rank.permissions)
             
             permissionsByCategory.forEach { (category, perms) ->
                 if (perms.isNotEmpty()) {
-                    rankItem.lore("§7▶ §f$category:")
+                    rankItem.addAdventureLore(player, messageService, "<gray>▶ <white>$category:")
                     perms.forEach { permission ->
                         val displayName = permission.name.replace("_", " ").lowercase()
                             .split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
-                        rankItem.lore("§7  • §a$displayName")
+                        rankItem.addAdventureLore(player, messageService, "<gray>  • <green>$displayName")
                     }
                 }
             }
         } else {
-            rankItem.lore("§c❌ No permissions assigned")
-            rankItem.lore("§7This rank cannot perform any actions")
+            rankItem.addAdventureLore(player, messageService, "<red>❌ No permissions assigned")
+            rankItem.addAdventureLore(player, messageService, "<gray>This rank cannot perform any actions")
         }
         
-        rankItem.lore("§7")
-        rankItem.lore("§eClick to edit this rank")
+        rankItem.addAdventureLore(player, messageService, "<gray>")
+        rankItem.addAdventureLore(player, messageService, "<yellow>Click to edit this rank")
 
         val guiItem = GuiItem(rankItem) {
             openRankEditMenu(rank)
@@ -118,6 +122,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANNER,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_EMOJI,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_DESCRIPTION,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_NAME,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_MODE,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"
@@ -133,7 +138,9 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK,
                 net.lumalyte.lg.domain.entities.RankPermission.VIEW_BANK_TRANSACTIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.EXPORT_BANK_DATA,
-                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANK_SETTINGS -> "Banking"
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANK_SETTINGS,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANK_SECURITY,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BUDGETS -> "Banking"
                 
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_ANNOUNCEMENTS,
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_PINGS,
@@ -148,7 +155,26 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.ACCESS_ADMIN_COMMANDS,
                 net.lumalyte.lg.domain.entities.RankPermission.BYPASS_RESTRICTIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.VIEW_AUDIT_LOGS,
-                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_INTEGRATIONS -> "Administrative"
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_INTEGRATIONS,
+                net.lumalyte.lg.domain.entities.RankPermission.ACTIVATE_EMERGENCY_FREEZE,
+                net.lumalyte.lg.domain.entities.RankPermission.DEACTIVATE_EMERGENCY_FREEZE,
+                net.lumalyte.lg.domain.entities.RankPermission.VIEW_SECURITY_AUDITS -> "Administrative"
+                
+                net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_MONEY,
+                net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_MONEY,
+                net.lumalyte.lg.domain.entities.RankPermission.VIEW_BANK_HISTORY -> "Banking Extended"
+                
+                net.lumalyte.lg.domain.entities.RankPermission.USE_CHAT,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_CHAT_SETTINGS -> "Chat"
+                
+                net.lumalyte.lg.domain.entities.RankPermission.CLAIM_LAND,
+                net.lumalyte.lg.domain.entities.RankPermission.UNCLAIM_LAND -> "Land Management"
+                
+                net.lumalyte.lg.domain.entities.RankPermission.OVERRIDE_PROTECTION,
+                net.lumalyte.lg.domain.entities.RankPermission.BYPASS_COOLDOWNS,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_SECURITY -> "Security"
+                
+                else -> "Other"
             }
         }
     }
@@ -160,10 +186,5 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
     private fun openRankEditMenu(rank: Rank) {
         menuNavigator.openMenu(menuFactory.createRankEditMenu(menuNavigator, player, guild, rank))
-    }
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    }}
 

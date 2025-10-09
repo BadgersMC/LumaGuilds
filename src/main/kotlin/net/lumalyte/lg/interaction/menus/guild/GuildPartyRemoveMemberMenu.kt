@@ -1,0 +1,52 @@
+package net.lumalyte.lg.interaction.menus.guild
+
+import com.github.stefvanschie.inventoryframework.gui.GuiItem
+import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
+import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.Party
+import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
+import net.lumalyte.lg.utils.name
+import org.bukkit.Bukkit
+import org.bukkit.Material
+import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemStack
+import org.koin.core.component.KoinComponent
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
+
+class GuildPartyRemoveMemberMenu(private val menuNavigator: MenuNavigator, private val player: Player,
+                                private val guild: Guild, private val party: Party, private val messageService: MessageService) : Menu, KoinComponent {
+
+    override fun open() {
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<red><red>Remove from Party"))
+        val pane = StaticPane(0, 0, 9, 3)
+
+        val placeholderItem = ItemStack(Material.REDSTONE)
+        val meta = placeholderItem.itemMeta ?: Bukkit.getItemFactory().getItemMeta(Material.REDSTONE)!!
+        meta.setDisplayName("<gray>Remove Feature")
+        meta.lore = listOf("<dark_gray>Coming soon")
+        placeholderItem.itemMeta = meta
+
+        pane.addItem(GuiItem(placeholderItem), 4, 1)
+
+        val backItem = ItemStack(Material.BARRIER)
+        val backMeta = backItem.itemMeta ?: Bukkit.getItemFactory().getItemMeta(Material.BARRIER)!!
+        backMeta.setDisplayName("<red>Back")
+        backMeta.lore = listOf("<gray>Return to party details")
+        backItem.itemMeta = backMeta
+
+        pane.addItem(GuiItem(backItem) { _ ->
+            menuNavigator.goBack()
+        }, 4, 2)
+
+        gui.addPane(pane)
+        AntiDupeUtil.protect(gui)
+        gui.setOnGlobalClick { event -> event.isCancelled = true }
+        gui.show(player)
+    }
+}

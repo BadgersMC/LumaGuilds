@@ -4,6 +4,7 @@ import net.lumalyte.lg.application.persistence.PartyRepository
 import net.lumalyte.lg.application.persistence.PartyRequestRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PartyService
+import net.lumalyte.lg.domain.entities.PartyStatistics
 import net.lumalyte.lg.domain.entities.*
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
@@ -615,6 +616,133 @@ class PartyServiceBukkit(
             return party.canPlayerJoin(playerRankId!!)
         } catch (e: Exception) {
             logger.error("Error checking if player can join party", e)
+            return false
+        }
+    }
+
+    override fun getParty(partyId: UUID): Party? {
+        try {
+            return partyRepository.getById(partyId)
+        } catch (e: Exception) {
+            logger.error("Error getting party $partyId", e)
+            return null
+        }
+    }
+
+    override fun updatePartySettings(partyId: UUID, updates: Map<String, Any>, actorId: UUID): Boolean {
+        try {
+            val party = partyRepository.getById(partyId)
+            if (party == null) {
+                logger.warn("Party $partyId not found for update")
+                return false
+            }
+
+            // Check if actor has permission to update party settings
+            if (!canManageParties(actorId, party.leaderId)) {
+                logger.warn("Player $actorId does not have permission to update party $partyId")
+                return false
+            }
+
+            // Create updated party
+            val updatedParty = party.copy(
+                name = updates["name"] as? String ?: party.name,
+                expiresAt = updates["expiresAt"] as? Instant ?: party.expiresAt,
+                restrictedRoles = updates["restrictedRoles"] as? Set<UUID> ?: party.restrictedRoles,
+                accessLevel = updates["accessLevel"] as? PartyAccessLevel ?: party.accessLevel,
+                maxMembers = updates["maxMembers"] as? Int ?: party.maxMembers,
+                description = updates["description"] as? String ?: party.description
+            )
+
+            return partyRepository.update(updatedParty)
+        } catch (e: Exception) {
+            logger.error("Error updating party settings for party $partyId", e)
+            return false
+        }
+    }
+
+    override fun getPartyMembers(partyId: UUID): Set<UUID> {
+        try {
+            val party = partyRepository.getById(partyId)
+            if (party == null) {
+                return emptySet()
+            }
+
+            val allMembers = mutableSetOf<UUID>()
+            for (guildId in party.guildIds) {
+                val guildMembers = memberService.getGuildMembers(guildId)
+                allMembers.addAll(guildMembers.map { it.playerId })
+            }
+
+            return allMembers
+        } catch (e: Exception) {
+            logger.error("Error getting party members for party $partyId", e)
+            return emptySet()
+        }
+    }
+
+    override fun getPartyStatistics(partyId: UUID): PartyStatistics? {
+        try {
+            val party = partyRepository.getById(partyId)
+            if (party == null) {
+                return null
+            }
+
+            val totalMembers = getPartyMembers(partyId).size
+            val onlineMembers = getOnlinePartyMembers(partyId).size
+
+            return PartyStatistics(
+                totalMembers = totalMembers,
+                onlineMembers = onlineMembers,
+                guildsInvolved = party.guildIds.size,
+                activityLevel = "High", // Mock - would need actual activity tracking
+                duration = "${java.time.Duration.between(party.createdAt, Instant.now()).toDays()} days",
+                activityScore = 85, // Mock
+                participationRate = 92, // Mock
+                eventsCount = 3, // Mock
+                lastActivity = "2 hours ago" // Mock
+            )
+        } catch (e: Exception) {
+            logger.error("Error getting party statistics for party $partyId", e)
+            return null
+        }
+    }
+
+    override fun getPartyLeader(partyId: UUID): UUID? {
+        try {
+            val party = partyRepository.getById(partyId)
+            return party?.leaderId
+        } catch (e: Exception) {
+            logger.error("Error getting party leader for party $partyId", e)
+            return null
+        }
+    }
+
+    override fun transferPartyLeadership(partyId: UUID, newLeaderId: UUID, actorId: UUID): Boolean {
+        try {
+            val party = partyRepository.getById(partyId)
+            if (party == null) {
+                logger.warn("Party $partyId not found for leadership transfer")
+                return false
+            }
+
+            // Check if actor is the current leader
+            if (party.leaderId != actorId) {
+                logger.warn("Player $actorId is not the leader of party $partyId")
+                return false
+            }
+
+            // Check if new leader is in one of the party's guilds
+            val newLeaderGuildId = memberService.getPlayerGuilds(newLeaderId).firstOrNull()
+            if (newLeaderGuildId == null || !party.guildIds.contains(newLeaderGuildId)) {
+                logger.warn("New leader $newLeaderId is not in any guild in party $partyId")
+                return false
+            }
+
+            // Update party leadership
+            val updatedParty = party.copy(leaderId = newLeaderId)
+            return partyRepository.update(updatedParty)
+        } catch (e: Exception) {
+            logger.error("Error transferring party leadership for party $partyId", e)
             return false
         }
     }

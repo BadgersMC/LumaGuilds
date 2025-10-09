@@ -10,6 +10,7 @@ import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
@@ -19,9 +20,13 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                           private var guild: Guild): Menu, KoinComponent {
+                           private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val rankService: RankService by inject()
@@ -35,11 +40,10 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     override fun open() {
         val playerId = player.uniqueId
-        val gui = ChestGui(6, "§6Guild Control Panel - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Guild Control Panel - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
-            guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Row 1: Core Settings
@@ -80,9 +84,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addGuildSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val settingsItem = ItemStack(Material.COMMAND_BLOCK)
-            .name("§eGuild Settings")
-            .lore("§7Manage basic guild information")
-            .lore("§7Name, description, and general settings")
+            .setAdventureName(player, messageService, "<yellow>Guild Settings")
+            .addAdventureLore(player, messageService, "<gray>Manage basic guild information")
+            .addAdventureLore(player, messageService, "<gray>Name, description, and general settings")
         val guiItem = GuiItem(settingsItem) {
             menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
         }
@@ -92,9 +96,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
     private fun addEmojiSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val emoji = guildService.getEmoji(guild.id)
         val emojiItem = ItemStack(Material.NAME_TAG)
-            .name("§dGuild Emoji")
-            .lore("§7Current: ${emoji ?: "§cNot set"}")
-            .lore("§7Set your guild's emoji for chat")
+            .setAdventureName(player, messageService, "<light_purple>Guild Emoji")
+            .lore("<gray>Current: ${emoji ?: "§cNot set"}")
+            .addAdventureLore(player, messageService, "<gray>Set your guild's emoji for chat")
         val guiItem = GuiItem(emojiItem) {
             menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
         }
@@ -108,21 +112,21 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             val deserializedBanner = bannerData.deserializeToItemStack()
             if (deserializedBanner != null) {
                 deserializedBanner.clone()
-                    .name("§bGuild Banner")
-                    .lore("§7Current: ${deserializedBanner.type.name.lowercase().replace("_", " ")}")
-                    .lore("§7Choose your guild's banner")
+                    .setAdventureName(player, messageService, "<aqua>Guild Banner")
+                    .lore("<gray>Current: ${deserializedBanner.type.name.lowercase().replace("_", " ")}")
+                    .addAdventureLore(player, messageService, "<gray>Choose your guild's banner")
             } else {
                 // Fallback if deserialization fails
                 ItemStack(Material.WHITE_BANNER)
-                    .name("§bGuild Banner")
-                    .lore("§7Current: §cError loading banner")
-                    .lore("§7Choose your guild's banner")
+                    .setAdventureName(player, messageService, "<aqua>Guild Banner")
+                    .addAdventureLore(player, messageService, "<gray>Current: <red>Error loading banner")
+                    .addAdventureLore(player, messageService, "<gray>Choose your guild's banner")
             }
         } else {
             ItemStack(Material.WHITE_BANNER)
-                .name("§bGuild Banner")
-                .lore("§7Current: §cNot set")
-                .lore("§7Choose your guild's banner")
+                .setAdventureName(player, messageService, "<aqua>Guild Banner")
+                .addAdventureLore(player, messageService, "<gray>Current: <red>Not set")
+                .addAdventureLore(player, messageService, "<gray>Choose your guild's banner")
         }
         val guiItem = GuiItem(bannerItem) {
             menuNavigator.openMenu(menuFactory.createGuildBannerMenu(menuNavigator, player, guild))
@@ -135,10 +139,10 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             GuildMode.PEACEFUL -> ItemStack(Material.GREEN_WOOL)
             GuildMode.HOSTILE -> ItemStack(Material.RED_WOOL)
         }
-            .name("§cGuild Mode")
-            .lore("§7Current: §f${guild.mode}")
-            .lore("§7Peaceful = Cannot be attacked")
-            .lore("§7Hostile = Can engage in wars")
+            .setAdventureName(player, messageService, "<red>Guild Mode")
+            .addAdventureLore(player, messageService, "<gray>Current: <white>${guild.mode}")
+            .addAdventureLore(player, messageService, "<gray>Peaceful = Cannot be attacked")
+            .addAdventureLore(player, messageService, "<gray>Hostile = Can engage in wars")
         val guiItem = GuiItem(modeItem) {
             menuNavigator.openMenu(menuFactory.createGuildModeMenu(menuNavigator, player, guild))
         }
@@ -148,9 +152,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
     private fun addHomeSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val home = guildService.getHome(guild.id)
         val homeItem = ItemStack(Material.COMPASS)
-            .name("§aGuild Home")
-            .lore(if (home != null) "§7Set at: ${home.position.x}, ${home.position.y}, ${home.position.z}" else "§cNot set")
-            .lore("§7Teleport point for /guild home")
+            .setAdventureName(player, messageService, "<green>Guild Home")
+            .lore(if (home != null) "<gray>Set at: ${home.position.x}, ${home.position.y}, ${home.position.z}" else "<red>Not set")
+            .addAdventureLore(player, messageService, "<gray>Teleport point for /guild home")
         val guiItem = GuiItem(homeItem) {
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
         }
@@ -160,9 +164,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
     private fun addRankManagementButton(pane: StaticPane, x: Int, y: Int) {
         val rankCount = rankService.listRanks(guild.id).size
         val rankItem = ItemStack(Material.IRON_SWORD)
-            .name("§6Rank Management")
-            .lore("§7Manage guild ranks and permissions")
-            .lore("§7Current ranks: §f$rankCount")
+            .setAdventureName(player, messageService, "<gold>Rank Management")
+            .addAdventureLore(player, messageService, "<gray>Manage guild ranks and permissions")
+            .addAdventureLore(player, messageService, "<gray>Current ranks: <white>$rankCount")
         val guiItem = GuiItem(rankItem) {
             menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
         }
@@ -172,9 +176,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
     private fun addMemberManagementButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
         val memberItem = ItemStack(Material.PLAYER_HEAD)
-            .name("§bMember Management")
-            .lore("§7Manage guild members and ranks")
-            .lore("§7Current members: §f$memberCount")
+            .setAdventureName(player, messageService, "<aqua>Member Management")
+            .addAdventureLore(player, messageService, "<gray>Manage guild members and ranks")
+            .addAdventureLore(player, messageService, "<gray>Current members: <white>$memberCount")
         val guiItem = GuiItem(memberItem) {
             menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
         }
@@ -183,9 +187,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addPartyManagementButton(pane: StaticPane, x: Int, y: Int) {
         val partyItem = ItemStack(Material.FIREWORK_ROCKET)
-            .name("§dParty Management")
-            .lore("§7Start parties and coordinate with allies")
-            .lore("§7Invite other guilds to events")
+            .setAdventureName(player, messageService, "<light_purple>Party Management")
+            .addAdventureLore(player, messageService, "<gray>Start parties and coordinate with allies")
+            .addAdventureLore(player, messageService, "<gray>Invite other guilds to events")
         val guiItem = GuiItem(partyItem) {
             menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
         }
@@ -194,9 +198,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addWarManagementButton(pane: StaticPane, x: Int, y: Int) {
         val warItem = ItemStack(Material.DIAMOND_SWORD)
-            .name("§4War Management")
-            .lore("§7Declare wars and manage conflicts")
-            .lore("§7Propose truces and alliances")
+            .setAdventureName(player, messageService, "<dark_red>War Management")
+            .addAdventureLore(player, messageService, "<gray>Declare wars and manage conflicts")
+            .addAdventureLore(player, messageService, "<gray>Propose truces and alliances")
         val guiItem = GuiItem(warItem) {
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         }
@@ -205,9 +209,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addRelationManagementButton(pane: StaticPane, x: Int, y: Int) {
         val relationItem = ItemStack(Material.BOOK)
-            .name("§eRelations")
-            .lore("§7View alliances and rivalries")
-            .lore("§7Manage diplomatic relations")
+            .setAdventureName(player, messageService, "<yellow>Relations")
+            .addAdventureLore(player, messageService, "<gray>View alliances and rivalries")
+            .addAdventureLore(player, messageService, "<gray>Manage diplomatic relations")
         val guiItem = GuiItem(relationItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
         }
@@ -216,9 +220,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addBankManagementButton(pane: StaticPane, x: Int, y: Int) {
         val bankItem = ItemStack(Material.GOLD_BLOCK)
-            .name("§6Guild Bank")
-            .lore("§7Manage guild treasury")
-            .lore("§7View transactions and balance")
+            .setAdventureName(player, messageService, "<gold>Guild Bank")
+            .addAdventureLore(player, messageService, "<gray>Manage guild treasury")
+            .addAdventureLore(player, messageService, "<gray>View transactions and balance")
         val guiItem = GuiItem(bankItem) {
             menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
         }
@@ -227,9 +231,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addStatisticsButton(pane: StaticPane, x: Int, y: Int) {
         val statsItem = ItemStack(Material.BOOKSHELF)
-            .name("§aStatistics")
-            .lore("§7View guild performance metrics")
-            .lore("§7Kills, deaths, wins, losses")
+            .setAdventureName(player, messageService, "<green>Statistics")
+            .addAdventureLore(player, messageService, "<gray>View guild performance metrics")
+            .addAdventureLore(player, messageService, "<gray>Kills, deaths, wins, losses")
         val guiItem = GuiItem(statsItem) {
             menuNavigator.openMenu(menuFactory.createGuildStatisticsMenu(menuNavigator, player, guild))
         }
@@ -243,12 +247,12 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
         } catch (e: Exception) {
             // Fallback if progression system isn't available
             ItemStack(Material.EXPERIENCE_BOTTLE)
-                .name("§b⭐ GUILD PROGRESSION")
-                .lore("§7Level: §e1 §7(Starting Level)")
-                .lore("§7XP Progress: §e0§7/§e800 §7(§a0%§7)")
-                .lore("§7")
-                .lore("§c⚠️ Progression system loading...")
-                .lore("§7Try again in a moment")
+                .setAdventureName(player, messageService, "<aqua>⭐ GUILD PROGRESSION")
+                .addAdventureLore(player, messageService, "<gray>Level: <yellow>1 <gray>(Starting Level)")
+                .addAdventureLore(player, messageService, "<gray>XP Progress: <yellow>0<gray>/<yellow>800 <gray>(<green>0%<gray>)")
+                .addAdventureLore(player, messageService, "<gray>")
+                .addAdventureLore(player, messageService, "<red>⚠️ Progression system loading...")
+                .addAdventureLore(player, messageService, "<gray>Try again in a moment")
         }
         
         val guiItem = GuiItem(progressionItem) {
@@ -260,8 +264,8 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addInvitePlayerButton(pane: StaticPane, x: Int, y: Int) {
         val inviteItem = ItemStack(Material.PAPER)
-            .name("§aInvite Player")
-            .lore("§7Send guild invitation to a player")
+            .setAdventureName(player, messageService, "<green>Invite Player")
+            .addAdventureLore(player, messageService, "<gray>Send guild invitation to a player")
         val guiItem = GuiItem(inviteItem) {
             menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
         }
@@ -270,8 +274,8 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addKickPlayerButton(pane: StaticPane, x: Int, y: Int) {
         val kickItem = ItemStack(Material.BARRIER)
-            .name("§cKick Player")
-            .lore("§7Remove a player from the guild")
+            .setAdventureName(player, messageService, "<red>Kick Player")
+            .addAdventureLore(player, messageService, "<gray>Remove a player from the guild")
         val guiItem = GuiItem(kickItem) {
             menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
         }
@@ -280,8 +284,8 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addPromotePlayerButton(pane: StaticPane, x: Int, y: Int) {
         val promoteItem = ItemStack(Material.ANVIL)
-            .name("§6Promote/Demote")
-            .lore("§7Change member ranks")
+            .setAdventureName(player, messageService, "<gold>Promote/Demote")
+            .addAdventureLore(player, messageService, "<gray>Change member ranks")
         val guiItem = GuiItem(promoteItem) {
             menuNavigator.openMenu(menuFactory.createGuildPromotionMenu(menuNavigator, player, guild))
         }
@@ -290,8 +294,8 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addGuildInfoButton(pane: StaticPane, x: Int, y: Int) {
         val infoItem = ItemStack(Material.KNOWLEDGE_BOOK)
-            .name("§9Guild Info")
-            .lore("§7Detailed information about your guild")
+            .setAdventureName(player, messageService, "<blue>Guild Info")
+            .addAdventureLore(player, messageService, "<gray>Detailed information about your guild")
         val guiItem = GuiItem(infoItem) {
             menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
         }
@@ -301,9 +305,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
     private fun addMemberListButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
         val listItem = ItemStack(Material.BOOK)
-            .name("§bMember List")
-            .lore("§7View all guild members")
-            .lore("§7Total: §f$memberCount members")
+            .setAdventureName(player, messageService, "<aqua>Member List")
+            .addAdventureLore(player, messageService, "<gray>View all guild members")
+            .addAdventureLore(player, messageService, "<gray>Total: <white>$memberCount members")
         val guiItem = GuiItem(listItem) {
             menuNavigator.openMenu(menuFactory.createGuildMemberListMenu(menuNavigator, player, guild))
         }
@@ -313,9 +317,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
     private fun addRankListButton(pane: StaticPane, x: Int, y: Int) {
         val rankCount = rankService.listRanks(guild.id).size
         val listItem = ItemStack(Material.WRITABLE_BOOK)
-            .name("§6Rank List")
-            .lore("§7View all guild ranks")
-            .lore("§7Total: §f$rankCount ranks")
+            .setAdventureName(player, messageService, "<gold>Rank List")
+            .addAdventureLore(player, messageService, "<gray>View all guild ranks")
+            .addAdventureLore(player, messageService, "<gray>Total: <white>$rankCount ranks")
         val guiItem = GuiItem(listItem) {
             menuNavigator.openMenu(menuFactory.createGuildRankListMenu(menuNavigator, player, guild))
         }
@@ -324,10 +328,10 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addDisbandGuildButton(pane: StaticPane, x: Int, y: Int) {
         val disbandItem = ItemStack(Material.TNT)
-            .name("§4§lDISBAND GUILD")
-            .lore("§c§lPERMANENT ACTION")
-            .lore("§7This will delete the guild forever")
-            .lore("§7All members will be removed")
+            .setAdventureName(player, messageService, "<dark_red><bold>DISBAND GUILD")
+            .addAdventureLore(player, messageService, "<red><bold>PERMANENT ACTION")
+            .addAdventureLore(player, messageService, "<gray>This will delete the guild forever")
+            .addAdventureLore(player, messageService, "<gray>All members will be removed")
         val guiItem = GuiItem(disbandItem) {
             val menuFactory = MenuFactory()
             menuNavigator.openMenu(menuFactory.createGuildDisbandConfirmationMenu(menuNavigator, player, guild))
@@ -337,9 +341,9 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addLeaveGuildButton(pane: StaticPane, x: Int, y: Int) {
         val leaveItem = ItemStack(Material.DARK_OAK_DOOR)
-            .name("§eLeave Guild")
-            .lore("§7Leave the guild")
-            .lore("§7You can rejoin later if invited")
+            .setAdventureName(player, messageService, "<yellow>Leave Guild")
+            .addAdventureLore(player, messageService, "<gray>Leave the guild")
+            .addAdventureLore(player, messageService, "<gray>You can rejoin later if invited")
         val guiItem = GuiItem(leaveItem) {
             val menuFactory = MenuFactory()
             menuNavigator.openMenu(menuFactory.createGuildLeaveConfirmationMenu(menuNavigator, player, guild))
@@ -349,7 +353,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun createProgressionInfoItem(): ItemStack {
         val levelingItem = ItemStack(Material.EXPERIENCE_BOTTLE)
-            .name("§b⭐ GUILD PROGRESSION")
+            .setAdventureName(player, messageService, "<aqua>⭐ GUILD PROGRESSION")
 
         // Check if claims are enabled in config
         val configService = getKoin().get<ConfigService>()
@@ -367,76 +371,71 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
                     ((experienceThisLevel.toDouble() / experienceForNextLevel.toDouble()) * 100).toInt()
                 } else 100
                 
-                levelingItem.lore("§7Level: §e${progression.currentLevel}")
-                levelingItem.lore("§7XP Progress: §e$experienceThisLevel§7/§e$experienceForNextLevel §7(§a$progressPercent%§7)")
+                levelingItem.addAdventureLore(player, messageService, "<gray>Level: <yellow>${progression.currentLevel}")
+                levelingItem.addAdventureLore(player, messageService, "<gray>XP Progress: <yellow>$experienceThisLevel<gray>/<yellow>$experienceForNextLevel <gray>(<green>$progressPercent%<gray>)")
                 
                 // Show unlocked perks count
                 val unlockedPerks = progressionService.getUnlockedPerks(guild.id)
-                levelingItem.lore("§7Unlocked Perks: §a${unlockedPerks.size}")
+                levelingItem.addAdventureLore(player, messageService, "<gray>Unlocked Perks: <green>${unlockedPerks.size}")
             } else {
-                levelingItem.lore("§7Level: §e1 §7(Starting Level)")
-                levelingItem.lore("§7XP Progress: §e0§7/§e800 §7(§a0%§7)")
-                levelingItem.lore("§7Unlocked Perks: §a2 §7(Basic perks)")
+                levelingItem.addAdventureLore(player, messageService, "<gray>Level: <yellow>1 <gray>(Starting Level)")
+                levelingItem.addAdventureLore(player, messageService, "<gray>XP Progress: <yellow>0<gray>/<yellow>800 <gray>(<green>0%<gray>)")
+                levelingItem.addAdventureLore(player, messageService, "<gray>Unlocked Perks: <green>2 <gray>(Basic perks)")
             }
         } catch (e: Exception) {
             // Fallback if progression system has issues
-            levelingItem.lore("§7Level: §e1 §7(Starting Level)")
-            levelingItem.lore("§7XP Progress: §e0§7/§e800 §7(§a0%§7)")
-            levelingItem.lore("§7Unlocked Perks: §a2 §7(Basic perks)")
-            levelingItem.lore("§7")
-            levelingItem.lore("§c⚠️ Progression system unavailable")
+            levelingItem.addAdventureLore(player, messageService, "<gray>Level: <yellow>1 <gray>(Starting Level)")
+            levelingItem.addAdventureLore(player, messageService, "<gray>XP Progress: <yellow>0<gray>/<yellow>800 <gray>(<green>0%<gray>)")
+            levelingItem.addAdventureLore(player, messageService, "<gray>Unlocked Perks: <green>2 <gray>(Basic perks)")
+            levelingItem.addAdventureLore(player, messageService, "<gray>")
+            levelingItem.addAdventureLore(player, messageService, "<red>⚠️ Progression system unavailable")
         }
         
-        levelingItem.lore("§7")
-        levelingItem.lore("§6📈 Earn Experience Points:")
+        levelingItem.addAdventureLore(player, messageService, "<gray>")
+        levelingItem.addAdventureLore(player, messageService, "<gold>📈 Earn Experience Points:")
 
         // Guild activities
-        levelingItem.lore("§7• §f💰 Bank deposits")
-        levelingItem.lore("§7• §f👥 Guild member joins")
-        levelingItem.lore("§7• §f⚔️ War victories")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>💰 Bank deposits")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>👥 Guild member joins")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>⚔️ War victories")
         
         // Player activities
-        levelingItem.lore("§7• §f🗡️ Player & mob kills")
-        levelingItem.lore("§7• §f🌾 Farming & fishing")
-        levelingItem.lore("§7• §f⛏️ Mining & building")
-        levelingItem.lore("§7• §f🔨 Crafting & smelting")
-        levelingItem.lore("§7• §f✨ Enchanting")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>🗡️ Player & mob kills")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>🌾 Farming & fishing")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>⛏️ Mining & building")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>🔨 Crafting & smelting")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <white>✨ Enchanting")
 
         // Only show claim-related XP if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore("§7• §f🏞️ Claiming land")
+            levelingItem.addAdventureLore(player, messageService, "<gray>• <white>🏞️ Claiming land")
         }
-        levelingItem.lore("§7")
-        levelingItem.lore("§a🎁 Level Up Rewards:")
+        levelingItem.addAdventureLore(player, messageService, "<gray>")
+        levelingItem.addAdventureLore(player, messageService, "<green>🎁 Level Up Rewards:")
 
         // Bank rewards
-        levelingItem.lore("§7• §e💰 Higher bank balance limits")
-        levelingItem.lore("§7• §e💸 Better interest rates")
-        levelingItem.lore("§7• §e💳 Reduced withdrawal fees")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>💰 Higher bank balance limits")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>💸 Better interest rates")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>💳 Reduced withdrawal fees")
         
         // Home rewards
-        levelingItem.lore("§7• §e🏠 Additional home locations")
-        levelingItem.lore("§7• §e⚡ Faster teleport cooldowns")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>🏠 Additional home locations")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>⚡ Faster teleport cooldowns")
         
         // Audio/Visual rewards
-        levelingItem.lore("§7• §e✨ Special particle effects")
-        levelingItem.lore("§7• §e🔊 Sound effects & announcements")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>✨ Special particle effects")
+        levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>🔊 Sound effects & announcements")
 
         // Only show claim-related rewards if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore("§7• §e📦 More claim blocks")
-            levelingItem.lore("§7• §e⚡ Faster claim regeneration")
+            levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>📦 More claim blocks")
+            levelingItem.addAdventureLore(player, messageService, "<gray>• <yellow>⚡ Faster claim regeneration")
         }
-        levelingItem.lore("§7")
-        levelingItem.lore("§7Higher levels = §aBetter perks!")
-        levelingItem.lore("§7")
-        levelingItem.lore("§eClick to refresh progression data")
+        levelingItem.addAdventureLore(player, messageService, "<gray>")
+        levelingItem.addAdventureLore(player, messageService, "<gray>Higher levels = <green>Better perks!")
+        levelingItem.addAdventureLore(player, messageService, "<gray>")
+        levelingItem.addAdventureLore(player, messageService, "<yellow>Click to refresh progression data")
 
         return levelingItem
-    }
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    }}
 

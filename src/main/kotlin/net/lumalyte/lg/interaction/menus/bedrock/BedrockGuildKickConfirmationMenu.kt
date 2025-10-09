@@ -14,6 +14,10 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild kick confirmation menu using Cumulus SimpleForm
@@ -23,8 +27,9 @@ class BedrockGuildKickConfirmationMenu(
     player: Player,
     private val guild: Guild,
     private val memberToKick: Member,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -68,10 +73,10 @@ class BedrockGuildKickConfirmationMenu(
             }
 
             // Return to member management menu
-            bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild, messageService))
         } else {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.kick.failed"))
-            bedrockNavigator.openMenu(GuildKickMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(GuildKickMenu(menuNavigator, player, guild, messageService))
         }
     }
 
@@ -80,3 +85,4 @@ class BedrockGuildKickConfirmationMenu(
         // This method is kept for interface compatibility
     }
 }
+

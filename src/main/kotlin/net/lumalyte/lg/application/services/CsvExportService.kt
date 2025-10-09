@@ -1,6 +1,8 @@
 package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.domain.entities.BankTransaction
+import net.lumalyte.lg.domain.entities.GuildChest
+import net.lumalyte.lg.domain.entities.GuildChestAccessLog
 import net.lumalyte.lg.domain.entities.MemberContribution
 import java.time.Instant
 import java.time.ZoneId
@@ -142,5 +144,98 @@ class CsvExportService {
      */
     fun validateCsvSize(csv: String, maxSizeBytes: Int = 1024 * 1024): Boolean { // 1MB default
         return csv.toByteArray().size <= maxSizeBytes
+    }
+
+    /**
+     * Generate CSV for guild chests
+     */
+    fun generateGuildChestsCsv(chests: List<GuildChest>): String {
+        val csv = StringBuilder()
+
+        // CSV Header
+        csv.append("Chest ID,Guild ID,World ID,X,Y,Z,Chest Size,Max Size,Is Locked,Last Accessed,Created At\n")
+
+        // CSV Data rows
+        chests.forEach { chest ->
+            val formattedLastAccessed = formatTimestamp(chest.lastAccessed)
+            val formattedCreatedAt = formatTimestamp(chest.createdAt)
+
+            csv.append("${chest.id},")  // Chest ID
+            csv.append("${chest.guildId},")  // Guild ID
+            csv.append("${chest.worldId},")  // World ID
+            csv.append("${chest.location.x},")  // X
+            csv.append("${chest.location.y},")  // Y
+            csv.append("${chest.location.z},")  // Z
+            csv.append("${chest.chestSize},")  // Chest Size
+            csv.append("${chest.maxSize},")  // Max Size
+            csv.append("${chest.isLocked},")  // Is Locked
+            csv.append("$formattedLastAccessed,")  // Last Accessed
+            csv.append("$formattedCreatedAt\n")  // Created At
+        }
+
+        return csv.toString()
+    }
+
+    /**
+     * Generate CSV for guild chest access logs
+     */
+    fun generateGuildChestAccessLogsCsv(logs: List<GuildChestAccessLog>): String {
+        val csv = StringBuilder()
+
+        // CSV Header
+        csv.append("Log ID,Chest ID,Player ID,Player Name,Action,Timestamp,Item Type,Item Amount\n")
+
+        // CSV Data rows
+        logs.forEach { log ->
+            val playerName = getPlayerName(log.playerId)
+            val formattedTimestamp = formatTimestamp(log.timestamp)
+
+            // Sanitize item type
+            val sanitizedItemType = log.itemType?.let { sanitizeCsvField(it) } ?: ""
+
+            csv.append("${log.id},")  // Log ID
+            csv.append("${log.chestId},")  // Chest ID
+            csv.append("${log.playerId},")  // Player ID
+            csv.append("$playerName,")  // Player Name
+            csv.append("${log.action},")  // Action
+            csv.append("$formattedTimestamp,")  // Timestamp
+            csv.append("$sanitizedItemType,")  // Item Type
+            csv.append("${log.itemAmount}\n")  // Item Amount
+        }
+
+        return csv.toString()
+    }
+
+    /**
+     * Generate comprehensive item banking report CSV
+     */
+    fun generateItemBankingReportCsv(
+        guildId: UUID,
+        guildName: String,
+        chests: List<GuildChest>,
+        accessLogs: List<GuildChestAccessLog>,
+        totalItems: Int,
+        totalValue: Double
+    ): String {
+        val csv = StringBuilder()
+
+        // Guild Summary Header
+        csv.append("Item Banking Report - $guildName\n")
+        csv.append("Guild ID,$guildId\n")
+        csv.append("Total Chests,${chests.size}\n")
+        csv.append("Total Items,$totalItems\n")
+        csv.append("Total Value,$$totalValue\n")
+        csv.append("Export Date,${formatTimestamp(Instant.now())}\n\n")
+
+        // Guild Chests Section
+        csv.append("Guild Chests\n")
+        csv.append(generateGuildChestsCsv(chests))
+        csv.append("\n")
+
+        // Access Logs Section (last 100 entries)
+        csv.append("Recent Access Logs (Last 100)\n")
+        csv.append(generateGuildChestAccessLogsCsv(accessLogs.take(100)))
+
+        return csv.toString()
     }
 }

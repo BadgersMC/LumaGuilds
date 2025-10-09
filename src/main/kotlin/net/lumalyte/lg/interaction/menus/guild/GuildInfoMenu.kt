@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -23,9 +24,13 @@ import org.koin.core.component.inject
 import java.time.format.DateTimeFormatter
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                   private var guild: Guild): Menu, KoinComponent {
+                   private var guild: Guild, private val messageService: MessageService): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -34,14 +39,10 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
-        val gui = ChestGui(6, "§6Guild Info - ${guild.name}")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Guild Info - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Basic guild information
         addGuildOverview(pane, 0, 0)
@@ -64,25 +65,25 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addGuildOverview(pane: StaticPane, x: Int, y: Int) {
         val overviewItem = ItemStack(Material.SHIELD)
-            .name("§6Guild Overview")
-            .lore("§7Name: §f${guild.name}")
-            .lore("§7Level: §e${guild.level}")
-            .lore("§7Mode: §f${guild.mode.name.lowercase().replaceFirstChar { it.uppercase() }}")
+            .setAdventureName(player, messageService, "<gold>Guild Overview")
+            .addAdventureLore(player, messageService, "<gray>Name: <white>${guild.name}")
+            .addAdventureLore(player, messageService, "<gray>Level: <yellow>${guild.level}")
+            .addAdventureLore(player, messageService, "<gray>Mode: <white>${guild.mode.name.lowercase().replaceFirstChar { it.uppercase() }}")
 
         if (guild.emoji != null) {
-            overviewItem.lore("§7Emoji: §f${guild.emoji}")
+            overviewItem.addAdventureLore(player, messageService, "<gray>Emoji: <white>${guild.emoji}")
         }
 
         if (guild.description != null) {
-            overviewItem.lore("§7Description: §f${parseMiniMessageForDisplay(guild.description)}")
+            overviewItem.addAdventureLore(player, messageService, "<gray>Description: <white>${parseMiniMessageForDisplay(guild.description)}")
         }
 
         if (guild.tag != null) {
-            overviewItem.lore("§7Tag: §f${guild.tag}")
+            overviewItem.addAdventureLore(player, messageService, "<gray>Tag: <white>${guild.tag}")
         }
 
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        overviewItem.lore("§7Founded: §f${guild.createdAt.atZone(java.time.ZoneId.systemDefault()).format(formatter)}")
+        overviewItem.addAdventureLore(player, messageService, "<gray>Founded: <white>${guild.createdAt.atZone(java.time.ZoneId.systemDefault()).format(formatter)}")
 
         pane.addItem(GuiItem(overviewItem), x, y)
     }
@@ -90,8 +91,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private fun addMembersSection(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
         val membersItem = ItemStack(Material.PLAYER_HEAD)
-            .name("§bMembers (§f$memberCount§b)")
-            .lore("§7Click to view member list")
+            .setAdventureName(player, messageService, "<aqua>Members (<white>$memberCount<aqua>)")
+            .addAdventureLore(player, messageService, "<gray>Click to view member list")
 
         val membersGuiItem = GuiItem(membersItem) {
             menuNavigator.openMenu(menuFactory.createGuildMemberListMenu(menuNavigator, player, guild))
@@ -105,8 +106,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
                 val rank = rankService.getPlayerRank(member.playerId, guild.id)
                 val playerName = Bukkit.getPlayer(member.playerId)?.name ?: "Unknown Player"
                 val memberItem = ItemStack(Material.PLAYER_HEAD)
-                    .name("§f$playerName")
-                    .lore("§7Rank: §f${rank?.name ?: "Member"}")
+                    .setAdventureName(player, messageService, "<white>$playerName")
+                    .lore("<gray>Rank: <white>${rank?.name ?: "Member"}")
 
                 pane.addItem(GuiItem(memberItem), x, y + 1 + index)
             }
@@ -114,8 +115,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         if (members.size > 3) {
             val moreItem = ItemStack(Material.PAPER)
-                .name("§7... and ${members.size - 3} more")
-                .lore("§7Click members button above to see all")
+                .setAdventureName(player, messageService, "<gray>... and ${members.size - 3} more")
+                .addAdventureLore(player, messageService, "<gray>Click members button above to see all")
             pane.addItem(GuiItem(moreItem), x, y + 4)
         }
     }
@@ -126,19 +127,19 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         // Allies
         val allies = relations.filter { it.type == RelationType.ALLY }
         val alliesItem = ItemStack(Material.LIME_BANNER)
-            .name("§aAllies (§f${allies.size}§a)")
+            .setAdventureName(player, messageService, "<green>Allies (<white>${allies.size}<green>)")
 
         if (allies.isNotEmpty()) {
             allies.take(3).forEach { relation ->
                 val allyId = relation.getOtherGuild(guild.id)
                 val allyGuild = guildService.getGuild(allyId)
-                alliesItem.lore("§7• §f${allyGuild?.name ?: "Unknown"}")
+                alliesItem.lore("<gray>• <white>${allyGuild?.name ?: "Unknown"}")
             }
             if (allies.size > 3) {
-                alliesItem.lore("§7... and ${allies.size - 3} more")
+                alliesItem.addAdventureLore(player, messageService, "<gray>... and ${allies.size - 3} more")
             }
         } else {
-            alliesItem.lore("§7No allies")
+            alliesItem.addAdventureLore(player, messageService, "<gray>No allies")
         }
 
         pane.addItem(GuiItem(alliesItem), x, y)
@@ -146,19 +147,19 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         // Enemies/Wars
         val enemies = relations.filter { it.type == RelationType.ENEMY }
         val enemiesItem = ItemStack(Material.RED_BANNER)
-            .name("§cWars (§f${enemies.size}§c)")
+            .setAdventureName(player, messageService, "<red>Wars (<white>${enemies.size}<red>)")
 
         if (enemies.isNotEmpty()) {
             enemies.take(3).forEach { relation ->
                 val enemyId = relation.getOtherGuild(guild.id)
                 val enemyGuild = guildService.getGuild(enemyId)
-                enemiesItem.lore("§7• §f${enemyGuild?.name ?: "Unknown"}")
+                enemiesItem.lore("<gray>• <white>${enemyGuild?.name ?: "Unknown"}")
             }
             if (enemies.size > 3) {
-                enemiesItem.lore("§7... and ${enemies.size - 3} more")
+                enemiesItem.addAdventureLore(player, messageService, "<gray>... and ${enemies.size - 3} more")
             }
         } else {
-            enemiesItem.lore("§7No active wars")
+            enemiesItem.addAdventureLore(player, messageService, "<gray>No active wars")
         }
 
         pane.addItem(GuiItem(enemiesItem), x, y + 1)
@@ -166,37 +167,37 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addStatisticsSection(pane: StaticPane, x: Int, y: Int) {
         val statsItem = ItemStack(Material.BOOK)
-            .name("§eStatistics")
-            .lore("§7Bank Balance: §6$${guild.bankBalance}")
-            .lore("§7Level: §e${guild.level}")
+            .setAdventureName(player, messageService, "<yellow>Statistics")
+            .addAdventureLore(player, messageService, "<gray>Bank Balance: <gold>$${guild.bankBalance}")
+            .addAdventureLore(player, messageService, "<gray>Level: <yellow>${guild.level}")
 
         if (guild.home != null) {
-            statsItem.lore("§7Has Guild Home: §aYes")
+            statsItem.addAdventureLore(player, messageService, "<gray>Has Guild Home: <green>Yes")
         } else {
-            statsItem.lore("§7Has Guild Home: §cNo")
+            statsItem.addAdventureLore(player, messageService, "<gray>Has Guild Home: <red>No")
         }
 
         if (guild.banner != null) {
-            statsItem.lore("§7Has Banner: §aYes")
+            statsItem.addAdventureLore(player, messageService, "<gray>Has Banner: <green>Yes")
         } else {
-            statsItem.lore("§7Has Banner: §cNo")
+            statsItem.addAdventureLore(player, messageService, "<gray>Has Banner: <red>No")
         }
 
         pane.addItem(GuiItem(statsItem), x, y)
 
         // Progression info
         val progressionItem = ItemStack(Material.EXPERIENCE_BOTTLE)
-            .name("§dProgression")
-            .lore("§7Level: §e${guild.level}")
-            .lore("§7Next Level: §e${guild.level + 1}")
+            .setAdventureName(player, messageService, "<light_purple>Progression")
+            .addAdventureLore(player, messageService, "<gray>Level: <yellow>${guild.level}")
+            .addAdventureLore(player, messageService, "<gray>Next Level: <yellow>${guild.level + 1}")
 
         pane.addItem(GuiItem(progressionItem), x, y + 1)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
-            .lore("§7Return to previous menu")
+            .setAdventureName(player, messageService, "<red>⬅️ BACK")
+            .addAdventureLore(player, messageService, "<gray>Return to previous menu")
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.goBack()
@@ -215,10 +216,5 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         } catch (e: Exception) {
             description // Fallback to raw text if parsing fails
         }
-    }
-
-    override fun passData(data: Any?) {
-        guild = data as? Guild ?: return
-    }
-}
+    }}
 

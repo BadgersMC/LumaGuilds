@@ -8,11 +8,13 @@ import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.PeaceAgreement
 import net.lumalyte.lg.domain.entities.PeaceOffering
+import net.lumalyte.lg.domain.entities.War
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -26,6 +28,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class PeaceAgreementMenu(
     private val menuNavigator: MenuNavigator,
@@ -54,12 +58,8 @@ class PeaceAgreementMenu(
 
         val gui = ChestGui(6, "§6Peace Agreements - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
         gui.addPane(pane)
 
         // Row 1: Current Wars
@@ -75,7 +75,8 @@ class PeaceAgreementMenu(
     }
 
     private fun addCurrentWarsSection(pane: StaticPane) {
-        val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
+        val wars: List<War> = warService.getWarsForGuild(guild.id)
+        val activeWars = wars.filter { war: War -> war.isActive }
 
         if (activeWars.isEmpty()) {
             val noWarsItem = ItemStack(Material.GRAY_DYE)
@@ -88,7 +89,7 @@ class PeaceAgreementMenu(
         }
 
         // Show up to 3 active wars
-        activeWars.take(3).forEachIndexed { index, war ->
+        activeWars.toList().take(3).forEachIndexed { index: Int, war: War ->
             val enemyId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
             val enemyGuild = guildService.getGuild(enemyId)
 
@@ -120,7 +121,7 @@ class PeaceAgreementMenu(
         }
 
         // Show up to 3 pending agreements
-        pendingAgreements.take(3).forEachIndexed { index, agreement ->
+        pendingAgreements.toList().take(3).forEachIndexed { index: Int, agreement: PeaceAgreement ->
             val proposingGuild = guildService.getGuild(agreement.proposingGuildId)
             val war = warService.getWar(agreement.warId)
 
@@ -338,7 +339,7 @@ class PeaceAgreementMenu(
             }
 
             // Broadcast to enemy guild
-            val war = warService.getWar(warId)
+            val war: War? = warService.getWar(warId)
             if (war != null) {
                 val enemyId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
                 val enemyGuild = guildService.getGuild(enemyId)

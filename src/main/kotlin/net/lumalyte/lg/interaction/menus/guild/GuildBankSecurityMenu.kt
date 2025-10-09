@@ -5,13 +5,18 @@ import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.Pane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.AuditAction
 import net.lumalyte.lg.domain.entities.BankAudit
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
+import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.lore
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -24,6 +29,10 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Guild Bank Security and Audit menu with fraud detection and dual authorization
@@ -32,9 +41,10 @@ class GuildBankSecurityMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild
-) : Menu, KoinComponent {
+, private val messageService: MessageService) : Menu, KoinComponent {
 
     private val bankService: BankService by inject()
+    private val memberService: MemberService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
 
     // GUI components
@@ -56,36 +66,31 @@ class GuildBankSecurityMenu(
     }
 
     override fun open() {
+        // Check if player has permission to access bank security
+        if (!hasBankSecurityPermission()) {
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to access bank security settings!")
+            return
+        }
+
         updateSecurityDisplay()
         gui.show(player)
     }
 
-    override fun passData(data: Any?) {
-        // Handle security setting updates
-        if (data is Map<*, *>) {
-            @Suppress("UNCHECKED_CAST")
-            val updates = data as Map<String, Any>
-            updates.forEach { (setting, value) ->
-                when (setting) {
-                    "dualAuthThreshold" -> dualAuthThreshold = value as Int
-                    "fraudDetection" -> fraudDetectionEnabled = value as Boolean
-                    "emergencyFreeze" -> emergencyFreeze = value as Boolean
-                }
-            }
-            analyzeSecurityRisks()
-            updateSecurityDisplay()
-            gui.update()
-        }
-    }
-
     /**
-     * Load security settings (placeholder for now)
+     * Load security settings from database
      */
     private fun loadSecuritySettings() {
-        // TODO: Load from database/configuration
-        dualAuthThreshold = 1000
-        fraudDetectionEnabled = true
-        emergencyFreeze = false
+        val settings = bankService.getSecuritySettings(guild.id)
+        if (settings != null) {
+            dualAuthThreshold = settings.dualAuthThreshold
+            fraudDetectionEnabled = settings.fraudDetectionEnabled
+            emergencyFreeze = settings.emergencyFreeze
+        } else {
+            // Use defaults if no settings exist
+            dualAuthThreshold = 1000
+            fraudDetectionEnabled = true
+            emergencyFreeze = false
+        }
     }
 
     /**
@@ -196,8 +201,9 @@ class GuildBankSecurityMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, "Security & Audit - ${guild.name}")
-        gui.setOnGlobalClick { event -> event.isCancelled = true }
+        gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "Security & Audit - ${guild.name}"))
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Create main navigation pane
         mainPane = StaticPane(0, 0, 9, 1, Pane.Priority.NORMAL)
@@ -228,7 +234,7 @@ class GuildBankSecurityMenu(
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(GuildBankMenu(menuNavigator, player, guild, messageService))
         }
         mainPane.addItem(backGuiItem, 0, 0)
 
@@ -240,7 +246,7 @@ class GuildBankSecurityMenu(
         )
         val auditGuiItem = GuiItem(auditItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankTransactionHistoryMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(GuildBankTransactionHistoryMenu(menuNavigator, player, guild, messageService))
         }
         mainPane.addItem(auditGuiItem, 1, 0)
 
@@ -253,7 +259,7 @@ class GuildBankSecurityMenu(
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
             saveSecuritySettings()
-            player.sendMessage("§aSecurity settings saved!")
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>Security settings saved!")
         }
         mainPane.addItem(saveGuiItem, 7, 0)
 
@@ -281,13 +287,17 @@ class GuildBankSecurityMenu(
             listOf(
                 "Current: ${dualAuthThreshold} coins",
                 "Transactions above this amount",
-                "require approval from another officer"
+                "require approval from another officer",
+                if (hasManageBankSecurityPermission()) "" else "<red>⚠️ Requires MANAGE_BANK_SECURITY permission"
             )
         )
         val dualAuthGuiItem = GuiItem(dualAuthItem) { event ->
             event.isCancelled = true
-            // TODO: Open threshold input
-            player.sendMessage("§eDual authorization threshold setting coming soon!")
+            if (hasManageBankSecurityPermission()) {
+                openDualAuthThresholdMenu()
+            } else {
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to modify bank security settings!")
+            }
         }
         securityPane.addItem(dualAuthGuiItem, 0, 0)
 
@@ -298,15 +308,20 @@ class GuildBankSecurityMenu(
             listOf(
                 "Status: ${if (fraudDetectionEnabled) "Enabled" else "Disabled"}",
                 "Monitors for suspicious patterns",
-                "Click to toggle"
+                "Click to toggle",
+                if (hasManageBankSecurityPermission()) "" else "<red>⚠️ Requires MANAGE_BANK_SECURITY permission"
             )
         )
         val fraudGuiItem = GuiItem(fraudItem) { event ->
             event.isCancelled = true
-            fraudDetectionEnabled = !fraudDetectionEnabled
-            analyzeSecurityRisks()
-            updateSecurityDisplay()
-            gui.update()
+            if (hasManageBankSecurityPermission()) {
+                fraudDetectionEnabled = !fraudDetectionEnabled
+                analyzeSecurityRisks()
+                updateSecurityDisplay()
+                gui.update()
+            } else {
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to modify bank security settings!")
+            }
         }
         securityPane.addItem(fraudGuiItem, 1, 0)
 
@@ -317,23 +332,38 @@ class GuildBankSecurityMenu(
             listOf(
                 "Status: ${if (emergencyFreeze) "ACTIVE" else "Inactive"}",
                 "Blocks all bank transactions",
-                "Use only in case of suspected breach"
+                "Use only in case of suspected breach",
+                if (hasEmergencyFreezePermission()) "" else "<red>⚠️ Requires emergency freeze permission"
             )
         )
         val freezeGuiItem = GuiItem(freezeItem) { event ->
             event.isCancelled = true
-            if (!emergencyFreeze) {
-                // Confirm before activating
-                player.sendMessage("§c⚠️ EMERGENCY FREEZE ACTIVATED - All transactions blocked!")
-                player.sendMessage("§eUse this only if you suspect a security breach.")
-                emergencyFreeze = true
+            if (hasEmergencyFreezePermission()) {
+                if (!emergencyFreeze) {
+                    // Confirm before activating
+                    val activated = bankService.activateEmergencyFreeze(guild.id, player.uniqueId, "Emergency freeze activated via security menu")
+                    if (activated) {
+                        emergencyFreeze = true
+                        AdventureMenuHelper.sendMessage(player, messageService, "<red>⚠️ EMERGENCY FREEZE ACTIVATED - All transactions blocked!")
+                        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Use this only if you suspect a security breach.")
+                    } else {
+                        AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to activate emergency freeze!")
+                    }
+                } else {
+                    val deactivated = bankService.deactivateEmergencyFreeze(guild.id, player.uniqueId)
+                    if (deactivated) {
+                        emergencyFreeze = false
+                        AdventureMenuHelper.sendMessage(player, messageService, "<green>Emergency freeze deactivated.")
+                    } else {
+                        AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to deactivate emergency freeze!")
+                    }
+                }
+                analyzeSecurityRisks()
+                updateSecurityDisplay()
+                gui.update()
             } else {
-                emergencyFreeze = false
-                player.sendMessage("§aEmergency freeze deactivated.")
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>❌ You don't have permission to manage emergency freeze!")
             }
-            analyzeSecurityRisks()
-            updateSecurityDisplay()
-            gui.update()
         }
         securityPane.addItem(freezeGuiItem, 2, 0)
 
@@ -399,7 +429,7 @@ class GuildBankSecurityMenu(
         // Recent activity summary
         val auditLog = bankService.getAuditLog(guild.id, 10)
         val recentActivity = auditLog.take(3).map { audit ->
-            val actorName = org.bukkit.Bukkit.getOfflinePlayer(audit.actorId).name ?: "Unknown"
+            val actorName = org.bukkit.Bukkit.getOfflinePlayer(audit.playerId).name ?: "Unknown"
             val action = audit.action.name.lowercase().replace("_", " ")
             "$actorName: $action"
         }
@@ -437,11 +467,25 @@ class GuildBankSecurityMenu(
     }
 
     /**
-     * Save security settings
+     * Save security settings to database
      */
     private fun saveSecuritySettings() {
-        // TODO: Save to database/configuration
-        player.sendMessage("§aSecurity settings would be saved to database")
+        val settings = net.lumalyte.lg.domain.entities.BankSecuritySettings(
+            id = bankService.getSecuritySettings(guild.id)?.id ?: java.util.UUID.randomUUID(),
+            guildId = guild.id,
+            dualAuthThreshold = dualAuthThreshold,
+            fraudDetectionEnabled = fraudDetectionEnabled,
+            emergencyFreeze = emergencyFreeze
+        )
+
+        val saved = bankService.updateSecuritySettings(guild.id, settings)
+        if (saved) {
+            AdventureMenuHelper.sendMessage(player, messageService, "<green>Security settings saved successfully!")
+            bankService.logSecurityEvent(guild.id, player.uniqueId, net.lumalyte.lg.domain.entities.AuditAction.SECURITY_SETTING_CHANGE,
+                description = "Updated security settings")
+        } else {
+            AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to save security settings!")
+        }
     }
 
     /**
@@ -473,5 +517,133 @@ class GuildBankSecurityMenu(
      */
     private fun getLocalizedString(key: String, vararg params: Any?): String {
         return localizationProvider.get(player.uniqueId, key, *params)
+    }
+
+    /**
+     * Check if player has permission to access bank security menu
+     */
+    private fun hasBankSecurityPermission(): Boolean {
+        return memberService.hasPermission(player.uniqueId, guild.id, RankPermission.VIEW_SECURITY_AUDITS) ||
+               memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_BANK_SECURITY) ||
+               memberService.hasPermission(player.uniqueId, guild.id, RankPermission.ACTIVATE_EMERGENCY_FREEZE) ||
+               memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DEACTIVATE_EMERGENCY_FREEZE)
+    }
+
+    /**
+     * Check if player has permission to manage bank security settings
+     */
+    private fun hasManageBankSecurityPermission(): Boolean {
+        return memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_BANK_SECURITY)
+    }
+
+    /**
+     * Check if player has permission to manage emergency freeze
+     */
+    private fun hasEmergencyFreezePermission(): Boolean {
+        return memberService.hasPermission(player.uniqueId, guild.id, RankPermission.ACTIVATE_EMERGENCY_FREEZE) ||
+               memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DEACTIVATE_EMERGENCY_FREEZE)
+    }
+
+    /**
+     * Open dual authorization threshold configuration menu
+     */
+    private fun openDualAuthThresholdMenu() {
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<blue><blue>Dual Authorization Threshold"))
+
+        val mainPane = StaticPane(0, 0, 9, 3)
+
+        // Current threshold display
+        val settings = bankService.getSecuritySettings(guild.id)
+        val currentThreshold = settings?.dualAuthThreshold ?: 1000
+        val thresholdItem = ItemStack(Material.GOLD_BLOCK)
+            .setAdventureName(player, messageService, "<yellow>Current Threshold: <white>$currentThreshold coins")
+            .addAdventureLore(player, messageService, "<gray>Transactions above this amount require approval")
+
+        mainPane.addItem(GuiItem(thresholdItem), 4, 0)
+
+        // Threshold adjustment buttons
+        val decreaseItem = ItemStack(Material.REDSTONE_BLOCK)
+            .setAdventureName(player, messageService, "<red>Decrease Threshold")
+            .addAdventureLore(player, messageService, "<gray>Reduce the threshold by 100 coins")
+            .addAdventureLore(player, messageService, "<gray>Current: <white>$currentThreshold")
+        val decreaseGuiItem = GuiItem(decreaseItem) { event ->
+            event.isCancelled = true
+            val newThreshold = maxOf(0, currentThreshold - 100)
+            if (updateDualAuthThreshold(newThreshold)) {
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>Dual authorization threshold decreased to <white>$newThreshold coins")
+                openDualAuthThresholdMenu() // Refresh
+            } else {
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to update threshold")
+            }
+        }
+        mainPane.addItem(decreaseGuiItem, 2, 1)
+
+        val increaseItem = ItemStack(Material.EMERALD_BLOCK)
+            .setAdventureName(player, messageService, "<green>Increase Threshold")
+            .addAdventureLore(player, messageService, "<gray>Increase the threshold by 100 coins")
+            .addAdventureLore(player, messageService, "<gray>Current: <white>$currentThreshold")
+        val increaseGuiItem = GuiItem(increaseItem) { event ->
+            event.isCancelled = true
+            val newThreshold = currentThreshold + 100
+            if (updateDualAuthThreshold(newThreshold)) {
+                AdventureMenuHelper.sendMessage(player, messageService, "<green>Dual authorization threshold increased to <white>$newThreshold coins")
+                openDualAuthThresholdMenu() // Refresh
+            } else {
+                AdventureMenuHelper.sendMessage(player, messageService, "<red>Failed to update threshold")
+            }
+        }
+        mainPane.addItem(increaseGuiItem, 6, 1)
+
+        // Custom threshold input
+        val customItem = ItemStack(Material.ANVIL)
+            .setAdventureName(player, messageService, "<yellow>Set Custom Threshold")
+            .addAdventureLore(player, messageService, "<gray>Enter a specific threshold amount")
+        val customGuiItem = GuiItem(customItem) { event ->
+            event.isCancelled = true
+            openCustomThresholdInput()
+        }
+        mainPane.addItem(customGuiItem, 4, 1)
+
+        // Navigation
+        val backItem = ItemStack(Material.ARROW).setAdventureName(player, messageService, "<red>Back").addAdventureLore(player, messageService, "<gray>Return to security settings")
+        val backGuiItem = GuiItem(backItem) {
+            open() // Return to main menu
+        }
+        mainPane.addItem(backGuiItem, 0, 2)
+
+        val infoItem = ItemStack(Material.BOOK).setAdventureName(player, messageService, "<yellow>Threshold Info").lore(
+            "<gray>Transactions above this threshold",
+            "<gray>require approval from another officer",
+            "<gray>Set to 0 to disable dual authorization"
+        )
+        mainPane.addItem(GuiItem(infoItem), 8, 2)
+
+        gui.addPane(mainPane)
+        gui.show(player)
+    }
+
+    /**
+     * Open custom threshold input interface
+     */
+    private fun openCustomThresholdInput() {
+        // For now, send a message asking for input
+        // In a full implementation, this would open a text input interface
+        AdventureMenuHelper.sendMessage(player, messageService, "<yellow>Custom Threshold Input:")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Type the new threshold amount in chat")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Example: <white>1000")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>Type 'cancel' to cancel")
+    }
+
+    /**
+     * Update the dual authorization threshold
+     */
+    private fun updateDualAuthThreshold(newThreshold: Int): Boolean {
+        return try {
+            val settings = bankService.getSecuritySettings(guild.id) ?: return false
+            val updatedSettings = settings.copy(dualAuthThreshold = newThreshold)
+            bankService.updateSecuritySettings(guild.id, updatedSettings)
+        } catch (e: Exception) {
+            false
+        }
     }
 }

@@ -11,6 +11,10 @@ import org.geysermc.cumulus.form.ModalForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild bank menu using Cumulus CustomForm
@@ -20,8 +24,9 @@ class BedrockGuildBankMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val bankService: BankService by inject()
     private val configService: ConfigService by inject()
@@ -121,13 +126,13 @@ class BedrockGuildBankMenu(
 
             // Validate permissions
             if (!bankService.canDeposit(player.uniqueId, guild.id)) {
-                player.sendMessage("§c[ERROR] ${localize("guild.bank.error.no.deposit.permission")}")
+                player.sendMessage("<red>[ERROR] ${localize("guild.bank.error.no.deposit.permission")}")
                 navigateBack()
                 return
             }
 
             if (!bankService.canWithdraw(player.uniqueId, guild.id)) {
-                player.sendMessage("§c[ERROR] ${localize("guild.bank.error.no.withdraw.permission")}")
+                player.sendMessage("<red>[ERROR] ${localize("guild.bank.error.no.withdraw.permission")}")
                 navigateBack()
                 return
             }
@@ -162,7 +167,7 @@ class BedrockGuildBankMenu(
 
             // Check if any transactions to perform
             if (depositAmount == 0 && withdrawAmount == 0) {
-                player.sendMessage("§7${localize("guild.bank.no.transactions")}")
+                player.sendMessage("<gray>${localize("guild.bank.no.transactions")}")
                 navigateBack()
                 return
             }
@@ -172,7 +177,7 @@ class BedrockGuildBankMenu(
 
         } catch (e: Exception) {
             logger.warning("Error processing guild bank form response: ${e.message}")
-            player.sendMessage("§c[ERROR] ${localize("form.error.processing")}")
+            player.sendMessage("<red>[ERROR] ${localize("form.error.processing")}")
             navigateBack()
         }
     }
@@ -196,10 +201,10 @@ class BedrockGuildBankMenu(
         val errorMessage = errors.joinToString("\n") { "• $it" }
 
         // Send error message and reopen form
-        player.sendMessage("§c[ERROR] ${localize("form.validation.errors.title")}")
-        player.sendMessage("§7$errorMessage")
-        player.sendMessage("§e${localize("form.button.retry")}")
-        player.sendMessage("§c${localize("form.button.cancel")}")
+        player.sendMessage("<red>[ERROR] ${localize("form.validation.errors.title")}")
+        AdventureMenuHelper.sendMessage(player, messageService, "<gray>$errorMessage")
+        player.sendMessage("<yellow>${localize("form.button.retry")}")
+        player.sendMessage("<red>${localize("form.button.cancel")}")
 
         // Reopen the form for retry
         reopen()
@@ -234,9 +239,9 @@ class BedrockGuildBankMenu(
         } else {
             // Fallback to message confirmation
             val confirmationMessage = buildConfirmationMessage(depositAmount, withdrawAmount, autoDepositEnabled)
-            player.sendMessage("§e${localize("guild.bank.confirmation.title")}")
-            player.sendMessage("§7$confirmationMessage")
-            player.sendMessage("§a${localize("guild.bank.confirm.instructions")}")
+            player.sendMessage("<yellow>${localize("guild.bank.confirmation.title")}")
+            AdventureMenuHelper.sendMessage(player, messageService, "<gray>$confirmationMessage")
+            player.sendMessage("<green>${localize("guild.bank.confirm.instructions")}")
 
             // For message-based confirmation, execute immediately
             executeTransactions(depositAmount, withdrawAmount, autoDepositEnabled)
@@ -272,7 +277,7 @@ class BedrockGuildBankMenu(
                 changes.add(localize("guild.bank.success.deposit", depositAmount))
             } else {
                 allSuccessful = false
-                player.sendMessage("§c[ERROR] ${localize("guild.bank.error.deposit.failed")}")
+                player.sendMessage("<red>[ERROR] ${localize("guild.bank.error.deposit.failed")}")
             }
         }
 
@@ -283,7 +288,7 @@ class BedrockGuildBankMenu(
                 changes.add(localize("guild.bank.success.withdraw", withdrawAmount))
             } else {
                 allSuccessful = false
-                player.sendMessage("§c[ERROR] ${localize("guild.bank.error.withdraw.failed")}")
+                player.sendMessage("<red>[ERROR] ${localize("guild.bank.error.withdraw.failed")}")
             }
         }
 
@@ -296,10 +301,10 @@ class BedrockGuildBankMenu(
         // Show results
         if (changes.isNotEmpty()) {
             if (allSuccessful) {
-                player.sendMessage("§a✅ ${localize("guild.bank.success.title")}")
-                changes.forEach { player.sendMessage("§7• $it") }
+                player.sendMessage("<green>✅ ${localize("guild.bank.success.title")}")
+                changes.forEach { AdventureMenuHelper.sendMessage(player, messageService, "<gray>• $it") }
             } else {
-                player.sendMessage("§e[WARNING] ${localize("guild.bank.partial.success")}")
+                player.sendMessage("<yellow>[WARNING] ${localize("guild.bank.partial.success")}")
             }
         }
 

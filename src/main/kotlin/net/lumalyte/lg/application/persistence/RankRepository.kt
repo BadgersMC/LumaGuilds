@@ -111,4 +111,38 @@ interface RankRepository {
      * @return The total count of ranks.
      */
     fun getCountByGuild(guildId: UUID): Int
+
+    /**
+     * Adds an inheritance relationship between two ranks.
+     *
+     * @param childRankId The ID of the child rank.
+     * @param parentRankId The ID of the parent rank.
+     * @return true if successful, false otherwise.
+     */
+    fun addInheritance(childRankId: UUID, parentRankId: UUID): Boolean
+
+    /**
+     * Removes an inheritance relationship between two ranks.
+     *
+     * @param childRankId The ID of the child rank.
+     * @param parentRankId The ID of the parent rank.
+     * @return true if successful, false otherwise.
+     */
+    fun removeInheritance(childRankId: UUID, parentRankId: UUID): Boolean
+
+    /**
+     * Gets all child ranks for a given parent rank.
+     *
+     * @param parentRankId The ID of the parent rank.
+     * @return A set of child ranks.
+     */
+    fun getChildRanks(parentRankId: UUID): Set<Rank>
+
+    /**
+     * Gets all parent ranks for a given child rank.
+     *
+     * @param childRankId The ID of the child rank.
+     * @return A set of parent ranks.
+     */
+    fun getParentRanks(childRankId: UUID): Set<Rank>
 }

@@ -16,8 +16,12 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.math.ceil
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
-class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player: Player): Menu, KoinComponent {
+class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player: Player, private val messageService: MessageService): Menu, KoinComponent {
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val listPlayerClaims: ListPlayerClaims by inject()
 
@@ -48,7 +52,7 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Add page item
         val pageItem = ItemStack(Material.PAPER)
-            .name("Page $page of ${ceil(claims.count() / 36.0).toInt()}")
+            .setAdventureName(player, messageService, "Page $page of ${ceil(claims.count() / 36.0).toInt()}")
         val guiPageItem = GuiItem(pageItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPageItem, 7, 0)
 
@@ -61,7 +65,7 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
         // Add divider
         val dividerPane = StaticPane(0, 1, 9, 1)
         gui.addPane(dividerPane)
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).setAdventureName(player, messageService, " ")
         for (slot in 0..8) {
             val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
             dividerPane.addItem(guiDividerItem, slot, 0)

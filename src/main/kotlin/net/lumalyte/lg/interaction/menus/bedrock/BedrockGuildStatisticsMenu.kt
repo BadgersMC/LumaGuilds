@@ -12,6 +12,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 /**
  * Bedrock Edition guild statistics menu using Cumulus CustomForm
@@ -21,8 +25,9 @@ class BedrockGuildStatisticsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    messageService: MessageService
+) : BaseBedrockMenu(menuNavigator, player, logger, messageService) {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -55,7 +60,7 @@ class BedrockGuildStatisticsMenu(
     }
 
     private fun createSectionHeader(title: String): String {
-        return "§e§l$title"
+        return "<yellow><bold>$title"
     }
 
     private fun createOverviewSection(): String {
@@ -124,3 +129,4 @@ class BedrockGuildStatisticsMenu(
         onFormResponseReceived()
     }
 }
+

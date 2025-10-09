@@ -2,9 +2,12 @@ package net.lumalyte.lg.utils
 
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+import net.lumalyte.lg.application.services.MessageService
 import org.bukkit.*
 import org.bukkit.enchantments.Enchantment
+import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.LeatherArmorMeta
@@ -155,6 +158,52 @@ private fun String.c(): Component {
 
 private fun List<String>.c(): List<Component> {
     return this.map { it.c() }
+}
+
+/**
+ * Sets the item name using Adventure Component rendering.
+ * This method renders the MiniMessage-formatted text and sets it as the display name.
+ * The player and messageService parameters are kept for API compatibility but not used.
+ */
+fun ItemStack.setAdventureName(player: Player, messageService: MessageService, text: String): ItemStack {
+    val meta = itemMeta ?: Bukkit.getItemFactory().getItemMeta(type) ?: return this
+    // Render the text with MiniMessage
+    val miniMessage = MiniMessage.miniMessage()
+    val component = miniMessage.deserialize(text)
+        .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+    meta.displayName(component)
+    itemMeta = meta
+    return this
+}
+
+/**
+ * Adds a lore line using Adventure Component rendering.
+ * This method renders the MiniMessage-formatted text and adds it to the lore.
+ * The player and messageService parameters are kept for API compatibility but not used.
+ */
+fun ItemStack.addAdventureLore(player: Player, messageService: MessageService, text: String): ItemStack {
+    val meta = itemMeta ?: Bukkit.getItemFactory().getItemMeta(type) ?: return this
+    var lore: MutableList<Component>? = meta.lore()
+    if (lore == null) {
+        lore = ArrayList()
+    }
+    // Render the text with MiniMessage
+    val miniMessage = MiniMessage.miniMessage()
+    val component = miniMessage.deserialize(text)
+        .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+    lore.add(component)
+    meta.lore(lore)
+    itemMeta = meta
+    return this
+}
+
+/**
+ * Adds multiple lore lines using Adventure Component rendering.
+ * The player and messageService parameters are kept for API compatibility but not used.
+ */
+fun ItemStack.addAdventureLore(player: Player, messageService: MessageService, vararg lines: String): ItemStack {
+    lines.forEach { this.addAdventureLore(player, messageService, it) }
+    return this
 }
 
 /**

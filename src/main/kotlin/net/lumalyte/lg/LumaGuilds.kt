@@ -1,11 +1,15 @@
 package net.lumalyte.lg
 
-import co.aikar.commands.PaperCommandManager
+// import co.aikar.commands.PaperCommandManager
+import net.lumalyte.lg.application.PluginBootstrap
+import net.lumalyte.lg.application.PluginRuntime
 import net.lumalyte.lg.di.appModule
 import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
-import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
-import net.lumalyte.lg.interaction.commands.*
-import net.lumalyte.lg.interaction.commands.LumaGuildsCommand
+// import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion // Temporarily disabled
+import net.lumalyte.lg.interaction.commands.LumaGuildsBasicCommand
+import net.lumalyte.lg.interaction.commands.AdminSurveillanceBasicCommand
+import net.lumalyte.lg.interaction.commands.BedrockCacheStatsBasicCommand
+// ACF command imports removed - using Brigadier commands instead
 import net.lumalyte.lg.application.services.FileExportManager
 import net.lumalyte.lg.interaction.listeners.*
 import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
@@ -21,6 +25,9 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitScheduler
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.core.context.GlobalContext.get
+// TODO: Implement proper Paper plugin system with LifecycleEvents when available
+// import io.papermc.paper.plugin.lifecycle.event.LifecycleEvents
+// import io.papermc.paper.command.brigadier.Commands
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.DailyWarCostsService
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
@@ -35,180 +42,60 @@ import java.sql.SQLException
  * The entry point for the Luma Guilds plugin.
  */
 class LumaGuilds : JavaPlugin() {
-    private lateinit var commandManager: PaperCommandManager
+    // private lateinit var commandManager: PaperCommandManager // Temporarily disabled during Brigadier migration
     lateinit var metadata: Chat
     private lateinit var scheduler: BukkitScheduler
     lateinit var pluginScope: CoroutineScope
     private lateinit var dailyWarCostsScheduler: DailyWarCostsScheduler
     private val componentLogger = getComponentLogger()
 
+    // Bootstrap and runtime components
+    private val bootstrap = PluginBootstrap(this)
+    private lateinit var runtime: PluginRuntime
+
+    override fun onLoad() {
+        try {
+            // Bootstrap phase: validate environment, prepare filesystem, detect dependencies
+            bootstrap.validateEnvironment()
+            bootstrap.prepareFilesystem()
+            bootstrap.detectSoftDependencies()
+
+            logger.info("✓ Bootstrap phase completed successfully")
+        } catch (e: Exception) {
+            logger.severe("❌ Bootstrap phase failed: ${e.message}")
+            e.printStackTrace()
+            throw e // Prevent plugin from enabling
+        }
+    }
 
     override fun onEnable() {
-        initConfig()
+        try {
+            // Runtime initialization phase
+            runtime = PluginRuntime(this)
+            runtime.startDependencyInjection()
+            runtime.loadConfiguration()
+            runtime.initializeServices()
+            runtime.registerListeners()
+            runtime.registerCommands()
 
-        // Check if claims are enabled BEFORE initializing database
-        val claimsEnabled = config.getBoolean("claims_enabled", true)
+            // Initialize file export cleanup (needs to happen after DI)
+            get().get<FileExportManager>().cleanupOldFiles()
 
-        initDatabase(claimsEnabled)
-        pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        scheduler = server.scheduler
-        initLang()
-        initialiseVaultDependency()
-        initialisePlaceholderAPI()
-        commandManager = PaperCommandManager(this)
+            // Fancy startup message
+            displayFancyStartupMessage()
 
-        // Enable case-insensitive command completion and parsing
-        commandManager.enableUnstableAPI("help")
-
-        // Start Koin with claims enabled/disabled
-        startKoin { modules(appModule(this@LumaGuilds, claimsEnabled)) }
-
-        // Configure command completions (ACF handles this automatically)
-        configureCommandCompletions()
-
-        // Log configuration summary now that Koin is initialized
-        logConfigurationSummary()
-
-        if (claimsEnabled) {
-            registerClaimCommands()
-            registerClaimEvents()
-            logColored("✓ Claims system enabled")
-        } else {
-            logColored("⚠ Claims system disabled - all claim features unavailable")
-        }
-
-        registerNonClaimCommands()
-        registerNonClaimEvents()
-
-        // Initialize file export cleanup
-        get().get<FileExportManager>().cleanupOldFiles()
-
-        // Initialize daily war costs scheduler
-        initDailyWarCostsScheduler()
-
-        // Fancy startup message
-        displayFancyStartupMessage()
-    }
-
-    fun initConfig() {
-        // Save default config if it doesn't exist
-        saveDefaultConfig()
-        reloadConfig()
-    }
-
-    private fun logConfigurationSummary() {
-        val configService = ConfigServiceBukkit(this.config)
-        val config = configService.loadConfig()
-
-        // Basic config info
-        logColored("📋 Configuration loaded: ${this.config.getKeys(false).size} top-level keys")
-
-        // Claims system status
-        val claimsStatus = if (config.claimsEnabled) {
-            "✓ Claims system enabled"
-        } else {
-            "⚠ Claims system disabled"
-        }
-        logColored(claimsStatus)
-
-        // Guild system info
-        logColored("🏰 Guild system: Max ${config.guild.maxGuildCount} guilds, Max ${config.guild.maxMembersPerGuild} members/guild")
-
-        // Progression system info
-        logColored("📈 Progression: XP rate ${config.progression.playerKillXp} (player kills), ${config.progression.cropBreakXp} (crops)")
-
-        // Party system info
-        val partyStatus = if (config.party.allowPrivateParties) {
-            "✓ Private parties allowed"
-        } else {
-            "✗ Private parties disabled"
-        }
-        logColored(partyStatus)
-
-        // War system info
-        logColored("⚔️ War system: Kill-based objectives, High-stakes wagering")
-    }
-
-    fun initDatabase(claimsEnabled: Boolean) {
-        // Ensure the plugin data folder exists
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs()
-            logger.info("Created plugin data folder: ${dataFolder.absolutePath}")
-        }
-        
-        val databaseFile = File(dataFolder, "claims.db")
-        if (databaseFile.exists()) {
-            logColored("💾 Existing database found. Claims enabled: $claimsEnabled")
-
-            var tempConnectionForMigration: Connection? = null
-            try {
-                tempConnectionForMigration = DriverManager.getConnection("jdbc:sqlite:${databaseFile.absolutePath}")
-
-                if (claimsEnabled) {
-                    // Run migrations only if claims are enabled
-                    val migrator = SQLiteMigrations(this, tempConnectionForMigration)
-                    migrator.migrate()
-                } else {
-                    logColored("⏭️ Claims system disabled - skipping migrations but preserving existing guild data")
-                }
-            } finally {
-                tempConnectionForMigration?.let {
-                    try {
-                        if (!it.isClosed) {
-                            it.close()
-                            logger.info("Closed temporary connection after database check.")
-                        }
-                    } catch (e: SQLException) {
-                        logColored("❌ Failed to close temporary database connection: ${e.message}")
-                        e.printStackTrace()
-                    }
-                }
-            }
-        } else {
-            // No existing database
-            if (claimsEnabled) {
-                logColored("🆕 Database file not found. Creating a new database with full schema...")
-
-                var newConnection: Connection? = null
-                try {
-                    // This will create the database file if it doesn't exist
-                    newConnection = DriverManager.getConnection("jdbc:sqlite:${databaseFile.absolutePath}")
-                    val migrator = SQLiteMigrations(this, newConnection)
-                    migrator.migrate()
-                } catch (e: SQLException) {
-                    logColored("❌ Failed to create new database or run migrations: ${e.message}")
-                    e.printStackTrace()
-                } finally {
-                    newConnection?.let {
-                        try {
-                            if (!it.isClosed) {
-                                it.close()
-                                logger.info("Closed connection for new database creation.")
-                            }
-                        } catch (e: SQLException) {
-                            logColored("❌ Failed to close new database connection: ${e.message}")
-                            e.printStackTrace()
-                        }
-                    }
-                }
-            } else {
-                logger.info("Claims system disabled and no existing database - skipping database creation")
-            }
+            logger.info("✓ Plugin enabled successfully")
+        } catch (e: Exception) {
+            logger.severe("❌ Failed to enable plugin: ${e.message}")
+            e.printStackTrace()
+            throw e
         }
     }
 
-    fun initLang() {
-        val defaultLanguageFilenames = listOf(
-            "en.properties"
-        )
 
-        // Move languages to the required folder and add readme for override instructions
-        defaultLanguageFilenames.forEach { filename ->
-            val resourcePathInJar = "lang/defaults/$filename"
-            saveResource(resourcePathInJar, true)
-        }
-        saveResource("lang/overrides/README.txt", true)
-    }
+
+
+
 
     /**
      * Displays a fancy startup message with gradient coloring and occasional secret meme text.
@@ -317,130 +204,13 @@ class LumaGuilds : JavaPlugin() {
     }
 
 
-    private fun initialiseVaultDependency() {
-        if (Bukkit.getPluginManager().getPlugin("Vault") != null) {
-            server.servicesManager.getRegistration(Chat::class.java)?.let { metadata = it.provider }
-            logger.info(Chat::class.java.toString())
-        }
-    }
 
-    /**
-     * Registers the PlaceholderAPI expansion if PlaceholderAPI is available.
-     */
-    private fun initialisePlaceholderAPI() {
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            try {
-                val expansion = LumaGuildsExpansion()
-                if (expansion.register()) {
-                    logColored("✓ Successfully registered LumaGuilds PlaceholderAPI expansion!")
-                    logColored("Available placeholders: %lumaguilds_guild_name%, %lumaguilds_guild_tag%, etc.")
-                } else {
-                    logColored("❌ Failed to register LumaGuilds PlaceholderAPI expansion!")
-                }
-            } catch (e: Exception) {
-                logger.severe("Error registering PlaceholderAPI expansion: ${e.message}")
-                e.printStackTrace()
-            }
-        } else {
-            logColored("⚠ PlaceholderAPI not found. LumaGuilds placeholders will not be available.")
-        }
-    }
 
-    /**
-     * Configures basic command completions using ACF's built-in system.
-     * ACF automatically handles tab completion through @CommandCompletion annotations
-     * on command methods, providing case-insensitive completion out of the box.
-     */
-    private fun configureCommandCompletions() {
-        // ACF handles tab completion automatically through @CommandCompletion annotations
-        // No custom setup needed - the framework provides robust completion features
-    }
 
-    /**
-     * Registers claim-related commands.
-     */
-    private fun registerClaimCommands() {
-        commandManager.registerCommand(ClaimListCommand())
-        commandManager.registerCommand(ClaimCommand())
-        commandManager.registerCommand(InfoCommand())
-        commandManager.registerCommand(RenameCommand())
-        commandManager.registerCommand(DescriptionCommand())
-        commandManager.registerCommand(PartitionsCommand())
-        commandManager.registerCommand(AddFlagCommand())
-        commandManager.registerCommand(RemoveFlagCommand())
-        commandManager.registerCommand(TrustListCommand())
-        commandManager.registerCommand(TrustCommand())
-        commandManager.registerCommand(TrustAllCommand())
-        commandManager.registerCommand(UntrustCommand())
-        commandManager.registerCommand(UntrustAllCommand())
-        commandManager.registerCommand(RemoveCommand())
-        commandManager.registerCommand(ClaimOverrideCommand())
-        commandManager.registerCommand(ClaimMenuCommand())
-    }
 
-    /**
-     * Registers non-claim commands (guilds, etc.).
-     */
-    private fun registerNonClaimCommands() {
-        commandManager.registerCommand(GuildCommand())
-        commandManager.registerCommand(PartyChatCommand())
 
-        // Register LumaGuilds admin command
-        getCommand("lumaguilds")?.setExecutor(LumaGuildsCommand())
-        getCommand("lumaguilds")?.tabCompleter = LumaGuildsCommand()
 
-        // Register Bedrock cache stats command
-        getCommand("bedrockcachestats")?.setExecutor(BedrockCacheStatsCommand())
 
-        logColored("✓ Admin commands registered (/lumaguilds, /bellclaims)")
-        logColored("✓ Bedrock cache stats command registered (/bedrockcachestats)")
-    }
-
-    /**
-     * Registers claim-related listeners.
-     */
-    private fun registerClaimEvents() {
-        server.pluginManager.registerEvents(BlockLaunchListener(this), this)
-        server.pluginManager.registerEvents(ClaimAnchorListener(), this)
-        server.pluginManager.registerEvents(ClaimDestructionListener(), this)
-        server.pluginManager.registerEvents(EditToolListener(), this)
-        server.pluginManager.registerEvents(EditToolVisualisingListener(this), this)
-        server.pluginManager.registerEvents(HarvestReplantListener(), this)
-        server.pluginManager.registerEvents(MoveToolListener(), this)
-        server.pluginManager.registerEvents(PartitionUpdateListener(), this)
-        server.pluginManager.registerEvents(PlayerClaimProtectionListener(), this)
-        server.pluginManager.registerEvents(ToolRemovalListener(), this)
-        server.pluginManager.registerEvents(WorldClaimProtectionListener(), this)
-        server.pluginManager.registerEvents(CloseInventoryListener(), this)
-    }
-
-    /**
-     * Registers non-claim listeners.
-     */
-    private fun registerNonClaimEvents() {
-        // Use the DI instance of ChatInputListener to avoid duplicate instances
-        val chatInputListener = get().get<ChatInputListener>()
-        server.pluginManager.registerEvents(chatInputListener, this)
-        server.pluginManager.registerEvents(BannerSelectionListener(), this)
-        
-        // Register progression event listener
-        val progressionEventListener = get().get<ProgressionEventListener>()
-        server.pluginManager.registerEvents(progressionEventListener, this)
-    }
-
-    /**
-     * Initializes the daily war costs scheduler.
-     */
-    private fun initDailyWarCostsScheduler() {
-        try {
-            val dailyWarCostsService = get().get<DailyWarCostsService>()
-            dailyWarCostsScheduler = DailyWarCostsScheduler(this, dailyWarCostsService)
-            dailyWarCostsScheduler.startDailyScheduler()
-            logColored("✓ Daily war costs scheduler started")
-        } catch (e: Exception) {
-            logColored("❌ Failed to initialize daily war costs scheduler: ${e.message}")
-        }
-    }
 
     /**
      * Manually triggers daily war costs (for testing/admin use).
@@ -458,14 +228,16 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
-        // Stop the daily war costs scheduler
-        if (::dailyWarCostsScheduler.isInitialized) {
-            dailyWarCostsScheduler.stopDailyScheduler()
+        try {
+            // Runtime shutdown phase
+            if (::runtime.isInitialized) {
+                runtime.shutdown()
+            }
+
+            logColored("🛑 LumaGuilds disabled")
+        } catch (e: Exception) {
+            logger.warning("Error during plugin shutdown: ${e.message}")
+            e.printStackTrace()
         }
-
-        // Cancel any remaining plugin scope tasks
-        pluginScope.cancel()
-
-        logColored("🛑 LumaGuilds disabled")
     }
 }

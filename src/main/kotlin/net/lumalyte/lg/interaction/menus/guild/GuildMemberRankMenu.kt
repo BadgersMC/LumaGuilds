@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.AntiDupeUtil
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -22,13 +23,17 @@ import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
+import net.lumalyte.lg.utils.AdventureMenuHelper
+import net.lumalyte.lg.application.services.MessageService
+import net.lumalyte.lg.utils.setAdventureName
+import net.lumalyte.lg.utils.addAdventureLore
 
 class GuildMemberRankMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild,
     private val targetMember: Member
-) : Menu, KoinComponent {
+, private val messageService: MessageService) : Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -36,14 +41,10 @@ class GuildMemberRankMenu(
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
-        val gui = ChestGui(4, "§6Rank Management")
+        val gui = ChestGui(6, AdventureMenuHelper.createMenuTitle(player, messageService, "<gold><gold>Rank Management"))
         val pane = StaticPane(0, 0, 9, 4)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+        // CRITICAL SECURITY: Prevent item duplication exploits with targeted protection
+        AntiDupeUtil.protect(gui)
 
         // Add member info section
         addMemberInfoSection(pane)
@@ -69,11 +70,11 @@ class GuildMemberRankMenu(
         // Member info
         val playerName = Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown Player"
         val infoItem = ItemStack(Material.PAPER)
-            .name("§f👤 Member Info")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Joined: §f${targetMember.joinedAt}")
-            .lore("§7")
-            .lore("§7Click on a rank below to change")
+            .setAdventureName(player, messageService, "<white>👤 Member Info")
+            .addAdventureLore(player, messageService, "<gray>Player: <white>$playerName")
+            .addAdventureLore(player, messageService, "<gray>Joined: <white>${targetMember.joinedAt}")
+            .addAdventureLore(player, messageService, "<gray>")
+            .addAdventureLore(player, messageService, "<gray>Click on a rank below to change")
 
         pane.addItem(GuiItem(infoItem), 1, 0)
     }
@@ -83,14 +84,14 @@ class GuildMemberRankMenu(
 
         val rankItem = if (currentRank != null) {
             ItemStack(Material.DIAMOND_CHESTPLATE)
-                .name("§6🏆 Current Rank")
-                .lore("§7Rank: §f${currentRank.name}")
-                .lore("§7Priority: §f${currentRank.priority}")
-                .lore("§7Permissions: §f${currentRank.permissions.size}")
+                .setAdventureName(player, messageService, "<gold>🏆 Current Rank")
+                .addAdventureLore(player, messageService, "<gray>Rank: <white>${currentRank.name}")
+                .addAdventureLore(player, messageService, "<gray>Priority: <white>${currentRank.priority}")
+                .addAdventureLore(player, messageService, "<gray>Permissions: <white>${currentRank.permissions.size}")
         } else {
             ItemStack(Material.BARRIER)
-                .name("§c❌ Rank Error")
-                .lore("§7Could not load current rank")
+                .setAdventureName(player, messageService, "<red>❌ Rank Error")
+                .addAdventureLore(player, messageService, "<gray>Could not load current rank")
         }
 
         pane.addItem(GuiItem(rankItem), 3, 0)
@@ -106,16 +107,16 @@ class GuildMemberRankMenu(
         displayRanks.forEachIndexed { index, rank ->
             val isCurrentRank = rank.id == targetMember.rankId
             val rankItem = ItemStack(if (isCurrentRank) Material.LIME_CONCRETE else Material.GRAY_CONCRETE)
-                .name("${if (isCurrentRank) "§a✓" else "§f"} ${rank.name}")
-                .lore("§7Priority: §f${rank.priority}")
-                .lore("§7Members: §f${memberService.getMembersByRank(guild.id, rank.id).size}")
-                .lore("§7Permissions: §f${rank.permissions.size}")
-                .lore("§7")
-                .lore(if (isCurrentRank) "§aCurrent rank" else "§eClick to select")
+                .name("${if (isCurrentRank) "<green>✓" else "<white>"} ${rank.name}")
+                .addAdventureLore(player, messageService, "<gray>Priority: <white>${rank.priority}")
+                .addAdventureLore(player, messageService, "<gray>Members: <white>${memberService.getMembersByRank(guild.id, rank.id).size}")
+                .addAdventureLore(player, messageService, "<gray>Permissions: <white>${rank.permissions.size}")
+                .addAdventureLore(player, messageService, "<gray>")
+                .lore(if (isCurrentRank) "<green>Current rank" else "<yellow>Click to select")
 
             val rankGuiItem = GuiItem(rankItem) {
                 if (isCurrentRank) {
-                    player.sendMessage("§7This is already their current rank!")
+                    AdventureMenuHelper.sendMessage(player, messageService, "<gray>This is already their current rank!")
                 } else {
                     // Open confirmation menu
                     val menuFactory = MenuFactory()
@@ -134,8 +135,8 @@ class GuildMemberRankMenu(
         // Add scroll indicator if there are more ranks
         if (availableRanks.size > 6) {
             val scrollItem = ItemStack(Material.PAPER)
-                .name("§7... and ${availableRanks.size - 6} more")
-                .lore("§7Ranks are ordered by priority")
+                .setAdventureName(player, messageService, "<gray>... and ${availableRanks.size - 6} more")
+                .addAdventureLore(player, messageService, "<gray>Ranks are ordered by priority")
             pane.addItem(GuiItem(scrollItem), 2, 2)
         }
     }
@@ -159,24 +160,19 @@ class GuildMemberRankMenu(
 
         head.itemMeta = meta
 
-        return head.name("§f👤 $playerName")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Rank Management")
+        return head.setAdventureName(player, messageService, "<white>👤 $playerName")
+            .addAdventureLore(player, messageService, "<gray>Player: <white>$playerName")
+            .addAdventureLore(player, messageService, "<gray>Rank Management")
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
-            .lore("§7Return to guild control panel")
+            .setAdventureName(player, messageService, "<red>⬅️ BACK")
+            .addAdventureLore(player, messageService, "<gray>Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, x, y)
-    }
-
-    override fun passData(data: Any?) {
-        // Handle data passed back from sub-menus if needed
-    }
-}
+    }}
 

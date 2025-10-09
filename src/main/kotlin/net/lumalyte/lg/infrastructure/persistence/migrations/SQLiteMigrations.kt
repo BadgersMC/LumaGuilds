@@ -55,6 +55,26 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(9)
                 currentDbVersion = 9
             }
+            if (currentDbVersion < 10) {
+                migrateToVersion10()
+                updateDatabaseVersion(10)
+                currentDbVersion = 10
+            }
+            if (currentDbVersion < 11) {
+                migrateToVersion11()
+                updateDatabaseVersion(11)
+                currentDbVersion = 11
+            }
+            if (currentDbVersion < 12) {
+                migrateToVersion12()
+                updateDatabaseVersion(12)
+                currentDbVersion = 12
+            }
+            if (currentDbVersion < 13) {
+                migrateToVersion13()
+                updateDatabaseVersion(13)
+                currentDbVersion = 13
+            }
             connection.commit() // Commit transaction
 
             // Log migration completion quietly
@@ -732,6 +752,171 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_experience_transactions_timestamp ON experience_transactions(timestamp)")
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_experience_transactions_source ON experience_transactions(source)")
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_activity_metrics_member_count ON guild_activity_metrics(member_count)")
+
+        if (sqlCommands.isNotEmpty()) {
+            executeMigrationCommands(sqlCommands)
+        }
+    }
+
+    private fun migrateToVersion10() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Create diplomatic_relations table
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS diplomatic_relations (
+                id TEXT PRIMARY KEY,
+                guild_id TEXT NOT NULL,
+                target_guild_id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                established_at TEXT NOT NULL,
+                expires_at TEXT,
+                metadata TEXT NOT NULL DEFAULT '{}',
+                UNIQUE(guild_id, target_guild_id),
+                CHECK(guild_id < target_guild_id),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+                FOREIGN KEY (target_guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+
+        // Create indices for performance
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_diplomatic_relations_guild_id ON diplomatic_relations(guild_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_diplomatic_relations_target_guild_id ON diplomatic_relations(target_guild_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_diplomatic_relations_type ON diplomatic_relations(type)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_diplomatic_relations_expires_at ON diplomatic_relations(expires_at)")
+
+        if (sqlCommands.isNotEmpty()) {
+            executeMigrationCommands(sqlCommands)
+        }
+    }
+
+    private fun migrateToVersion11() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Add owner_id column if it doesn't exist
+        if (!columnExists("guilds", "owner_id")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN owner_id TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';")
+        }
+
+        // Add owner_name column if it doesn't exist
+        if (!columnExists("guilds", "owner_name")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN owner_name TEXT NOT NULL DEFAULT 'Unknown';")
+        }
+
+        if (sqlCommands.isNotEmpty()) {
+            executeMigrationCommands(sqlCommands)
+        }
+    }
+
+    private fun migrateToVersion12() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Create guild_chests table
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS guild_chests (
+                id TEXT PRIMARY KEY,
+                guild_id TEXT NOT NULL,
+                world_id TEXT NOT NULL,
+                x INTEGER NOT NULL,
+                y INTEGER NOT NULL,
+                z INTEGER NOT NULL,
+                chest_size INTEGER NOT NULL DEFAULT 54,
+                max_size INTEGER NOT NULL DEFAULT 270,
+                is_locked BOOLEAN NOT NULL DEFAULT 0,
+                last_accessed TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                metadata TEXT NOT NULL DEFAULT '{}',
+                UNIQUE(guild_id, world_id, x, y, z),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+
+        // Create guild_chest_access_logs table
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS guild_chest_access_logs (
+                id TEXT PRIMARY KEY,
+                chest_id TEXT NOT NULL,
+                player_id TEXT NOT NULL,
+                action TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                item_type TEXT,
+                item_amount INTEGER DEFAULT 0,
+                metadata TEXT NOT NULL DEFAULT '{}',
+                FOREIGN KEY (chest_id) REFERENCES guild_chests(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+
+        // Create indices for performance
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_chests_guild_id ON guild_chests(guild_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_chests_world_id ON guild_chests(world_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_chests_location ON guild_chests(world_id, x, y, z)")
+
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_chest_access_logs_chest_id ON guild_chest_access_logs(chest_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_chest_access_logs_player_id ON guild_chest_access_logs(player_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_chest_access_logs_action ON guild_chest_access_logs(action)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_chest_access_logs_timestamp ON guild_chest_access_logs(timestamp)")
+
+        // Create guild_chest_contents table
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS guild_chest_contents (
+                chest_id TEXT PRIMARY KEY,
+                items TEXT NOT NULL DEFAULT '{}',
+                last_updated TEXT NOT NULL,
+                FOREIGN KEY (chest_id) REFERENCES guild_chests(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_chest_contents_chest_id ON guild_chest_contents(chest_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_chest_contents_last_updated ON guild_chest_contents(last_updated)")
+
+        if (sqlCommands.isNotEmpty()) {
+            executeMigrationCommands(sqlCommands)
+        }
+    }
+
+    private fun migrateToVersion13() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Create bank_security_settings table
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS bank_security_settings (
+                id TEXT PRIMARY KEY,
+                guild_id TEXT NOT NULL UNIQUE,
+                dual_auth_threshold INTEGER NOT NULL DEFAULT 1000,
+                multi_signature_required BOOLEAN NOT NULL DEFAULT 0,
+                multi_signature_count INTEGER NOT NULL DEFAULT 2,
+                fraud_detection_enabled BOOLEAN NOT NULL DEFAULT 1,
+                emergency_freeze BOOLEAN NOT NULL DEFAULT 0,
+                audit_logging_enabled BOOLEAN NOT NULL DEFAULT 1,
+                suspicious_activity_threshold INTEGER NOT NULL DEFAULT 5,
+                auto_freeze_on_suspicious BOOLEAN NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+
+        // Create guild_budgets table
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS guild_budgets (
+                id TEXT PRIMARY KEY,
+                guild_id TEXT NOT NULL,
+                category TEXT NOT NULL,
+                allocated_amount INTEGER NOT NULL,
+                spent_amount INTEGER NOT NULL DEFAULT 0,
+                period_start TEXT NOT NULL,
+                period_end TEXT NOT NULL,
+                alerts_enabled BOOLEAN NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(guild_id, category),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+
+        // Create indexes for performance
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_bank_security_settings_guild_id ON bank_security_settings(guild_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_budgets_guild_id ON guild_budgets(guild_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_budgets_category ON guild_budgets(category)")
 
         if (sqlCommands.isNotEmpty()) {
             executeMigrationCommands(sqlCommands)
