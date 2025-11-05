@@ -22,6 +22,7 @@ data class MainConfig(
     var guild: GuildConfig = GuildConfig(),
     var teamRolePermissions: TeamRolePermissions = TeamRolePermissions(),
     var bank: BankConfig = BankConfig(),
+    var vault: VaultConfig = VaultConfig(),
     var combat: CombatConfig = CombatConfig(),
     var chat: ChatConfig = ChatConfig(),
     var progression: ProgressionConfig = ProgressionConfig(),
@@ -72,11 +73,15 @@ data class GuildConfig(
     var bannerCopyItemAmount: Int = 1, // Amount of items required
     var bannerCopyItemCustomModelData: Int? = null, // Custom model data for the item
 
+    // Banner Physical Currency Cost (when vault.use_physical_currency = true)
+    var bannerCopyPhysicalCost: Int = 5, // Cost in physical currency items (e.g., 5 RAW_GOLD)
+
     // War & Combat
     var peaceAgreementSystemEnabled: Boolean = false, // If true, replaces default war ending with peace agreements
     var dailyWarExpCost: Int = 10, // EXP lost per day during war
-    var dailyWarMoneyCost: Int = 100, // Money lost per day during war
+    var dailyWarMoneyCost: Int = 100, // Money lost per day during war (virtual currency)
     var warFarmingCooldownHours: Int = 24 // Hours before guild can earn EXP after war ends
+    // NOTE: Physical currency war costs are configured in vault.physical_daily_war_cost
 )
 
 data class BankConfig(
@@ -85,22 +90,71 @@ data class BankConfig(
     var maxDepositAmount: Int = 100000,
     var maxWithdrawalPercent: Double = 0.5,
     var dailyWithdrawalLimit: Int = 50000,
-    
+
     // Fees and Taxes
     var depositFeePercent: Double = 0.01,
     var withdrawalFeePercent: Double = 0.02,
     var maxDepositFee: Int = 1000,
     var maxWithdrawalFee: Int = 2000,
-    
+
     // Interest and Growth
     var interestRatePercent: Double = 0.005,
     var interestCompoundPeriodHours: Int = 24,
     var maxBankBalance: Int = 1000000,
-    
+
     // Audit and Security
     var auditLogRetentionDays: Int = 30,
     var suspiciousTransactionThreshold: Int = 50000,
     var autoLockSuspiciousAccounts: Boolean = false
+)
+
+data class VaultConfig(
+    // Bank Mode Selection
+    var bankMode: String = "BOTH", // VIRTUAL, PHYSICAL, or BOTH
+
+    // Physical Vault Settings
+    var vaultChestEnabled: Boolean = true,
+
+    // Protection and Security
+    var breakWarningTimeoutSeconds: Int = 5,
+    var dropItemsOnExplosion: Boolean = true,
+    var dropItemsOnBreak: Boolean = true,
+
+    // Capacity Scaling
+    var capacityScalingEnabled: Boolean = true,
+    var baseCapacitySlots: Int = 9,
+    var maxCapacitySlots: Int = 54,
+
+    // Virtual Economy Integration
+    var requireEconomyPlugin: Boolean = true,
+    var virtualBankFallback: Boolean = true,
+
+    // =====================================
+    // Physical Item Currency System
+    // =====================================
+    // Use a single physical item as guild currency instead of Vault economy
+    // When enabled, ALL transactions use this item from the guild vault chest
+    // This mode requires bankMode to be "PHYSICAL" (not VIRTUAL or BOTH)
+    var usePhysicalCurrency: Boolean = false,
+
+    // The Bukkit Material to use as currency (e.g., "RAW_GOLD", "DIAMOND", "EMERALD")
+    var physicalCurrencyMaterial: String = "RAW_GOLD",
+
+    // Simple 1:1 ratio - each item = 1 currency unit
+    // Example: If daily_war_cost = 10, it requires 10 RAW_GOLD items
+    var physicalCurrencyItemValue: Int = 1,
+
+    // Items must be physically in the guild vault chest (not virtual tracking)
+    var physicalCurrencyRequireVaultChest: Boolean = true,
+
+    // Physical Currency Fee Settings (flat item amounts)
+    var physicalDepositFee: Int = 0,         // Fee when depositing items (0 = no fee)
+    var physicalWithdrawalFee: Int = 1,      // Fee when withdrawing items
+    var physicalTransactionMinimum: Int = 1, // Minimum transaction size in items
+
+    // Physical Currency War Costs (in item amounts)
+    var physicalDailyWarCost: Int = 10,        // Daily cost to maintain war (10 RAW_GOLD)
+    var physicalWarDeclarationCost: Int = 100, // Cost to declare war (100 RAW_GOLD)
 )
 
 data class CombatConfig(
@@ -240,6 +294,7 @@ data class ProgressionConfig(
     var blockPlaceXp: Int = 1,
     var craftingXp: Int = 2,
     var smeltingXp: Int = 2,
+    var brewingXp: Int = 3,
     var fishingXp: Int = 3,
     var enchantingXp: Int = 10,
     var claimCreatedXp: Int = 100,

@@ -15,10 +15,12 @@ import java.util.UUID
  * @property description The description of the guild.
  * @property homes The home locations of the guild.
  * @property level The current level of the guild.
- * @property bankBalance The current bank balance of the guild.
+ * @property bankBalance The current bank balance of the guild (for virtual economy mode).
  * @property mode The current mode of the guild (Peaceful or Hostile).
  * @property modeChangedAt The timestamp when the mode was last changed.
  * @property createdAt The timestamp when the guild was created.
+ * @property vaultChestLocation The location of the physical guild vault chest.
+ * @property vaultStatus The status of the guild vault.
  */
 data class Guild(
     val id: UUID,
@@ -32,7 +34,10 @@ data class Guild(
     val bankBalance: Int = 0,
     val mode: GuildMode = GuildMode.HOSTILE,
     val modeChangedAt: Instant? = null,
-    val createdAt: Instant
+    val createdAt: Instant,
+    val vaultChestLocation: GuildVaultLocation? = null,
+    val vaultStatus: VaultStatus = VaultStatus.NEVER_PLACED,
+    val vaultLocked: Boolean = false
 ) {
     init {
         require(name.length in 1..32) { "Guild name must be between 1 and 32 characters." }
@@ -138,4 +143,48 @@ data class GuildHomes(
 enum class GuildMode {
     PEACEFUL,
     HOSTILE
+}
+
+/**
+ * Represents the location of a guild's physical vault chest.
+ *
+ * @property worldId The unique identifier of the world.
+ * @property x The X coordinate.
+ * @property y The Y coordinate.
+ * @property z The Z coordinate.
+ */
+data class GuildVaultLocation(
+    val worldId: UUID,
+    val x: Int,
+    val y: Int,
+    val z: Int
+)
+
+/**
+ * Represents the status of a guild's vault.
+ */
+enum class VaultStatus {
+    /** Chest has been placed and is functional */
+    AVAILABLE,
+
+    /** Chest was broken/destroyed and needs to be replaced */
+    UNAVAILABLE,
+
+    /** Guild has never placed a vault chest */
+    NEVER_PLACED
+}
+
+/**
+ * Represents the bank/vault mode configuration.
+ * Determines how guilds store and manage their resources.
+ */
+enum class BankMode {
+    /** Use only Vault economy (virtual currency) */
+    VIRTUAL,
+
+    /** Use only physical chest with raw gold items */
+    PHYSICAL,
+
+    /** Use both virtual currency AND physical vault chest */
+    BOTH
 }

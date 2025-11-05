@@ -394,7 +394,10 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                 
                 RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK,
                 RankPermission.VIEW_BANK_TRANSACTIONS, RankPermission.EXPORT_BANK_DATA,
-                RankPermission.MANAGE_BANK_SETTINGS -> "Banking"
+                RankPermission.MANAGE_BANK_SETTINGS, RankPermission.PLACE_VAULT,
+                RankPermission.ACCESS_VAULT, RankPermission.DEPOSIT_TO_VAULT,
+                RankPermission.WITHDRAW_FROM_VAULT, RankPermission.MANAGE_VAULT,
+                RankPermission.BREAK_VAULT -> "Banking"
                 
                 RankPermission.SEND_ANNOUNCEMENTS, RankPermission.SEND_PINGS,
                 RankPermission.MODERATE_CHAT -> "Communication"

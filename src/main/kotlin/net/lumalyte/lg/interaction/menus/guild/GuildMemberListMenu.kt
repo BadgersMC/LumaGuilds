@@ -19,7 +19,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         player.sendMessage("§eMember List menu coming soon!")
 
         // Security check: Only allow control panel access if player is a member of this guild
-        if (memberService.isMember(player.uniqueId, guild.id)) {
+        if (memberService.getMember(player.uniqueId, guild.id) != null) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         } else {
             // If not a member, go back to the info menu instead

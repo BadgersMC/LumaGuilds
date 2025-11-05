@@ -81,7 +81,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
         // Add formatted permissions with proper line breaks
         if (rank.permissions.isNotEmpty()) {
-            rankItem.lore("§e⚙️ Permissions:")
+            rankItem.lore("§e⚙ Permissions:")
             
             // Group permissions by category for better readability
             val permissionsByCategory = groupPermissionsByCategory(rank.permissions)
@@ -133,7 +133,13 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK,
                 net.lumalyte.lg.domain.entities.RankPermission.VIEW_BANK_TRANSACTIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.EXPORT_BANK_DATA,
-                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANK_SETTINGS -> "Banking"
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANK_SETTINGS,
+                net.lumalyte.lg.domain.entities.RankPermission.PLACE_VAULT,
+                net.lumalyte.lg.domain.entities.RankPermission.ACCESS_VAULT,
+                net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_VAULT,
+                net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_VAULT,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_VAULT,
+                net.lumalyte.lg.domain.entities.RankPermission.BREAK_VAULT -> "Banking"
                 
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_ANNOUNCEMENTS,
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_PINGS,
