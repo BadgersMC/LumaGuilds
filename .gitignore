@@ -236,3 +236,11 @@ banned-ips.json
 ops.json
 whitelist.json
 usercache.json
+
+# Claude and MCP stuff
+.codacy
+.codebuddy
+.claude
+.cursor
+.idea
+.vscode
