@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -12,10 +13,18 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
                          private var guild: Guild): Menu, KoinComponent {
 
     private val menuFactory: MenuFactory by inject()
+    private val memberService: MemberService by inject()
 
     override fun open() {
         player.sendMessage("§eMember List menu coming soon!")
-        menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+
+        // Security check: Only allow control panel access if player is a member of this guild
+        if (memberService.isMember(player.uniqueId, guild.id)) {
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+        } else {
+            // If not a member, go back to the info menu instead
+            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
+        }
     }
 
     override fun passData(data: Any?) {

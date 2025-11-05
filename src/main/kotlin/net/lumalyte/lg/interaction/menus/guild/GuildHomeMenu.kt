@@ -27,6 +27,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                    private var guild: Guild): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
+    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
@@ -42,6 +43,13 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private val activeTeleports = mutableMapOf<UUID, TeleportSession>()
 
     override fun open() {
+        // Security check: Only guild members can access home management
+        if (!memberService.isMember(player.uniqueId, guild.id)) {
+            player.sendMessage("§c❌ You cannot access home settings for a guild you're not a member of!")
+            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
+            return
+        }
+
         val gui = ChestGui(6, "§6Guild Homes - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -316,6 +324,12 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun startTeleportCountdown(home: GuildHome) {
+        // Security check: Verify player is still a member before teleporting
+        if (!memberService.isMember(player.uniqueId, guild.id)) {
+            player.sendMessage("§c❌ You cannot teleport to a guild home you don't belong to!")
+            return
+        }
+
         val world = Bukkit.getWorld(home.worldId)
         if (world == null) {
             player.sendMessage("§c❌ Could not find the world for guild home.")

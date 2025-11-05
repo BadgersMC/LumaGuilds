@@ -35,6 +35,15 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     override fun open() {
         val playerId = player.uniqueId
+
+        // Security check: Only guild members can access the control panel
+        if (!memberService.isMember(playerId, guild.id)) {
+            player.sendMessage("§c❌ You cannot access the control panel for a guild you're not a member of!")
+            // Redirect to the guild info menu instead
+            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
+            return
+        }
+
         val gui = ChestGui(6, "§6Guild Control Panel - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
