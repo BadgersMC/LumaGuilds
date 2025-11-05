@@ -49,11 +49,18 @@ enum class RankPermission {
     ACCEPT_PARTY_INVITES,
     
     // Banking & Economy
-    DEPOSIT_TO_BANK,
-    WITHDRAW_FROM_BANK,
-    VIEW_BANK_TRANSACTIONS,
-    EXPORT_BANK_DATA,
-    MANAGE_BANK_SETTINGS,
+    DEPOSIT_TO_BANK,          // Deposit to virtual bank (Vault economy)
+    WITHDRAW_FROM_BANK,       // Withdraw from virtual bank
+    VIEW_BANK_TRANSACTIONS,   // View transaction history
+    EXPORT_BANK_DATA,         // Export bank data
+    MANAGE_BANK_SETTINGS,     // Manage bank settings
+    // Physical Vault (Chest-based storage)
+    PLACE_VAULT,              // Place the guild vault chest
+    ACCESS_VAULT,             // Open and view vault contents
+    DEPOSIT_TO_VAULT,         // Deposit items to vault
+    WITHDRAW_FROM_VAULT,      // Withdraw items from vault
+    MANAGE_VAULT,             // Full vault management access
+    BREAK_VAULT,              // Break/move the vault chest
     
     // Communication
     SEND_ANNOUNCEMENTS,

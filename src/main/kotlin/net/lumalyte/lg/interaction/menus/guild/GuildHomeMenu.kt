@@ -44,7 +44,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
     override fun open() {
         // Security check: Only guild members can access home management
-        if (!memberService.isMember(player.uniqueId, guild.id)) {
+        if (memberService.getMember(player.uniqueId, guild.id) == null) {
             player.sendMessage("§c❌ You cannot access home settings for a guild you're not a member of!")
             menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
             return
@@ -325,7 +325,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun startTeleportCountdown(home: GuildHome) {
         // Security check: Verify player is still a member before teleporting
-        if (!memberService.isMember(player.uniqueId, guild.id)) {
+        if (memberService.getMember(player.uniqueId, guild.id) == null) {
             player.sendMessage("§c❌ You cannot teleport to a guild home you don't belong to!")
             return
         }

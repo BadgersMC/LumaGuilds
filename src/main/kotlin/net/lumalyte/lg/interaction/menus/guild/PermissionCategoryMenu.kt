@@ -301,6 +301,12 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             RankPermission.VIEW_BANK_TRANSACTIONS -> "§7View bank transaction history"
             RankPermission.EXPORT_BANK_DATA -> "§7Export bank data as CSV files"
             RankPermission.MANAGE_BANK_SETTINGS -> "§7Configure bank settings and fees"
+            RankPermission.PLACE_VAULT -> "§7Place the physical guild vault chest"
+            RankPermission.ACCESS_VAULT -> "§7Open and view vault contents"
+            RankPermission.DEPOSIT_TO_VAULT -> "§7Deposit items to physical vault"
+            RankPermission.WITHDRAW_FROM_VAULT -> "§7Withdraw items from physical vault"
+            RankPermission.MANAGE_VAULT -> "§7Full vault management access"
+            RankPermission.BREAK_VAULT -> "§7Break and move the vault chest"
 
             // Diplomacy
             RankPermission.MANAGE_RELATIONS -> "§7Manage guild relationships"

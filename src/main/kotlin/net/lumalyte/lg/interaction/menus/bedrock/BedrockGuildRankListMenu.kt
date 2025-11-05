@@ -142,6 +142,12 @@ class BedrockGuildRankListMenu(
             RankPermission.VIEW_BANK_TRANSACTIONS -> "View Bank Transactions"
             RankPermission.EXPORT_BANK_DATA -> "Export Bank Data"
             RankPermission.MANAGE_BANK_SETTINGS -> "Manage Bank Settings"
+            RankPermission.PLACE_VAULT -> "Place Vault"
+            RankPermission.ACCESS_VAULT -> "Access Vault"
+            RankPermission.DEPOSIT_TO_VAULT -> "Deposit to Vault"
+            RankPermission.WITHDRAW_FROM_VAULT -> "Withdraw from Vault"
+            RankPermission.MANAGE_VAULT -> "Manage Vault"
+            RankPermission.BREAK_VAULT -> "Break Vault"
 
             // Communication
             RankPermission.SEND_ANNOUNCEMENTS -> "Send Announcements"
