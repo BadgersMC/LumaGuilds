@@ -264,10 +264,10 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
             .name("§c⬅️ BACK")
-            .lore("§7Return to settings menu")
+            .lore("§7Return to control panel")
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
 
         pane.addItem(backGuiItem, x, y)
