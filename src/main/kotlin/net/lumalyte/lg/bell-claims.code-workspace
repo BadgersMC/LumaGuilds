@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../.."
+		},
+		{
+			"path": "C:/Users/Noah/Desktop/test_net/lobby/SanityCheck"
+		}
+	],
+	"settings": {
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"files.associations": {
+			"*.kt": "kotlin",
+			"*.kts": "kotlin"
+		},
+		"java.compile.nullAnalysis.mode": "automatic"
+	}
+}

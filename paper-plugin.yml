@@ -1,0 +1,302 @@
+name: LumaGuilds
+version: 2.3.0-SNAPSHOT
+api-version: '1.21'
+main: net.lumalyte.lg.LumaGuilds
+description: Advanced guild system with claims, wars, and economy, Tailored for Lumalyte.net
+authors: [BadgersMC]
+
+# Runtime-loaded libraries (loaded by Paper)
+libraries:
+  # Koin (depends on kotlin-reflect - shaded)
+  - io.insert-koin:koin-core:3.5.3
+  # IF-GUI (depends on Bukkit/Paper API only)
+  - com.github.stefvanschie.inventoryframework:IF:0.10.13
+  # Database libraries
+  - co.aikar:idb-core:1.0.0-SNAPSHOT
+  - org.json:json:20240303
+  - com.zaxxer:HikariCP:5.1.0
+  - org.slf4j:slf4j-nop:2.0.13
+
+# Soft dependencies (plugins that may or may not be present)
+softdepend:
+  - Vault
+  - Floodgate
+  - Geyser
+  - PlaceholderAPI
+
+# Load after these plugins if present
+loadafter:
+  - Vault
+
+commands:
+  guild:
+    description: Guild management commands
+    usage: /guild <subcommand> [args]
+    aliases: [g]
+  claim:
+    description: Claim management commands
+    usage: /claim <subcommand> [args]
+  claimlist:
+    description: List all your claims
+    usage: /claimlist
+  claimmenu:
+    description: Open claim management menu
+    usage: /claimmenu
+  claimoverride:
+    description: Override claim permissions
+    usage: /claimoverride <subcommand> [args]
+  pc:
+    description: Party chat commands
+    usage: /pc <subcommand> [args]
+    aliases: [pchat, partychat]
+  lumaguilds:
+    description: LumaGuilds administrative commands
+    usage: /lumaguilds <subcommand> [args]
+    permission: lumaguilds.admin
+    aliases: [bellclaims]
+  bedrockcachestats:
+    description: View Bedrock form cache statistics
+    usage: /bedrockcachestats [stats|clear|help]
+    permission: lumaguilds.bedrock.cache.stats
+  adminsurveillance:
+    description: Access administrative surveillance and moderation system
+    usage: /adminsurveillance
+    permission: lumaguilds.admin.surveillance
+
+permissions:
+  # Guild Management Permissions
+  lumaguilds.guild.*:
+    description: All guild management permissions
+    default: true
+    children:
+      lumaguilds.guild.create: true
+      lumaguilds.guild.rename: true
+      lumaguilds.guild.sethome: true
+      lumaguilds.guild.home: true
+      lumaguilds.guild.ranks: true
+      lumaguilds.guild.emoji: true
+      lumaguilds.guild.mode: true
+      lumaguilds.guild.disband: true
+      lumaguilds.guild.menu: true
+      lumaguilds.guild.invite: true
+      lumaguilds.guild.kick: true
+      lumaguilds.guild.tag: true
+      lumaguilds.guild.description: true
+      lumaguilds.guild.war: true
+      lumaguilds.guild.info: true
+
+  lumaguilds.guild.create:
+    description: Create new guilds
+    default: true
+  lumaguilds.guild.rename:
+    description: Rename your guild
+    default: true
+  lumaguilds.guild.sethome:
+    description: Set guild home location
+    default: true
+  lumaguilds.guild.home:
+    description: Teleport to guild home
+    default: true
+  lumaguilds.guild.ranks:
+    description: Manage guild ranks
+    default: true
+  lumaguilds.guild.emoji:
+    description: Change guild emoji
+    default: true
+  lumaguilds.guild.mode:
+    description: Change guild mode (peaceful/hostile)
+    default: true
+  lumaguilds.guild.disband:
+    description: Disband your guild
+    default: true
+  lumaguilds.guild.menu:
+    description: Open guild management menu
+    default: true
+  lumaguilds.guild.invite:
+    description: Invite players to guild
+    default: true
+  lumaguilds.guild.kick:
+    description: Kick players from guild
+    default: true
+  lumaguilds.guild.tag:
+    description: Change guild tag
+    default: true
+  lumaguilds.guild.description:
+    description: Change guild description
+    default: true
+  lumaguilds.guild.war:
+    description: Declare war on other guilds
+    default: true
+  lumaguilds.guild.info:
+    description: View guild information
+    default: true
+
+  # Claim Management Permissions
+  lumaguilds.command.*:
+    description: All claim management permissions
+    default: op
+    children:
+      lumaguilds.command.claim: true
+      lumaguilds.command.claim.addflag: true
+      lumaguilds.command.claim.description: true
+      lumaguilds.command.claim.info: true
+      lumaguilds.command.claim.partitions: true
+      lumaguilds.command.claim.remove: true
+      lumaguilds.command.claim.rename: true
+      lumaguilds.command.claim.trust: true
+      lumaguilds.command.claim.trustall: true
+      lumaguilds.command.claim.trustlist: true
+      lumaguilds.command.claim.untrust: true
+      lumaguilds.command.claim.untrustall: true
+      lumaguilds.command.claim.removeflag: true
+      lumaguilds.command.claimlist: true
+      lumaguilds.command.claimmenu: true
+      lumaguilds.command.claimoverride: true
+
+  lumaguilds.command.claim:
+    description: Basic claim management
+    default: op
+  lumaguilds.command.claim.addflag:
+    description: Add flags to claims
+    default: op
+  lumaguilds.command.claim.description:
+    description: Manage claim descriptions
+    default: op
+  lumaguilds.command.claim.info:
+    description: View claim information
+    default: op
+  lumaguilds.command.claim.partitions:
+    description: Manage claim partitions
+    default: op
+  lumaguilds.command.claim.remove:
+    description: Remove claims
+    default: op
+  lumaguilds.command.claim.rename:
+    description: Rename claims
+    default: op
+  lumaguilds.command.claim.trust:
+    description: Trust players in claims
+    default: op
+  lumaguilds.command.claim.trustall:
+    description: Trust all players in claims
+    default: op
+  lumaguilds.command.claim.trustlist:
+    description: List trusted players
+    default: op
+  lumaguilds.command.claim.untrust:
+    description: Untrust players from claims
+    default: op
+  lumaguilds.command.claim.untrustall:
+    description: Untrust all players from claims
+    default: op
+  lumaguilds.command.claim.removeflag:
+    description: Remove flags from claims
+    default: op
+  lumaguilds.command.claimlist:
+    description: List all claims
+    default: op
+  lumaguilds.command.claimmenu:
+    description: Open claim management menu
+    default: op
+  lumaguilds.command.claimoverride:
+    description: Override claim permissions
+    default: op
+
+  # Party Chat Permissions
+  lumaguilds.partychat.*:
+    description: All party chat permissions
+    default: op
+    children:
+      lumaguilds.partychat: true
+
+  lumaguilds.partychat:
+    description: Use party chat commands
+    default: op
+
+  # Administrative Permissions
+  lumaguilds.admin:
+    description: Administrative access to LumaGuilds
+    default: op
+    children:
+      lumaguilds.admin.surveillance: true
+
+  # Admin Surveillance Permissions
+  lumaguilds.admin.surveillance:
+    description: Access to administrative surveillance system
+    default: op
+    children:
+      lumaguilds.admin.surveillance.guild: true
+      lumaguilds.admin.surveillance.player: true
+      lumaguilds.admin.surveillance.financial: true
+      lumaguilds.admin.surveillance.content: true
+      lumaguilds.admin.surveillance.override: true
+      lumaguilds.admin.surveillance.monitoring: true
+      lumaguilds.admin.surveillance.audit: true
+      lumaguilds.admin.surveillance.export: true
+
+  lumaguilds.admin.surveillance.guild:
+    description: Guild surveillance capabilities
+    default: op
+    children:
+      lumaguilds.admin.surveillance.guild.viewchests: true
+      lumaguilds.admin.surveillance.guild.modifychests: true
+      lumaguilds.admin.surveillance.guild.viewfinances: true
+      lumaguilds.admin.surveillance.guild.modifybalances: true
+
+  lumaguilds.admin.surveillance.player:
+    description: Player surveillance capabilities
+    default: op
+    children:
+      lumaguilds.admin.surveillance.player.profiles: true
+      lumaguilds.admin.surveillance.player.movement: true
+      lumaguilds.admin.surveillance.player.communications: true
+      lumaguilds.admin.surveillance.player.inventory: true
+
+  lumaguilds.admin.surveillance.financial:
+    description: Financial surveillance capabilities
+    default: op
+
+  lumaguilds.admin.surveillance.content:
+    description: Content moderation capabilities
+    default: op
+    children:
+      lumaguilds.admin.surveillance.content.names: true
+      lumaguilds.admin.surveillance.content.descriptions: true
+      lumaguilds.admin.surveillance.content.banners: true
+      lumaguilds.admin.surveillance.content.tags: true
+
+  lumaguilds.admin.surveillance.override:
+    description: System override capabilities
+    default: op
+    children:
+      lumaguilds.admin.surveillance.override.guildjoin: true
+      lumaguilds.admin.surveillance.override.permissions: true
+      lumaguilds.admin.surveillance.override.rankchanges: true
+      lumaguilds.admin.surveillance.override.lockdown: true
+
+  lumaguilds.admin.surveillance.monitoring:
+    description: Real-time monitoring capabilities
+    default: op
+    children:
+      lumaguilds.admin.surveillance.monitoring.realtime: true
+      lumaguilds.admin.surveillance.monitoring.alerts: true
+      lumaguilds.admin.surveillance.monitoring.anomalies: true
+
+  lumaguilds.admin.surveillance.audit:
+    description: Audit and reporting capabilities
+    default: op
+    children:
+      lumaguilds.admin.surveillance.audit.trails: true
+      lumaguilds.admin.surveillance.audit.reports: true
+
+  lumaguilds.admin.surveillance.export:
+    description: Data export capabilities
+    default: op
+
+  # Bedrock Cache Permissions
+  lumaguilds.bedrock.cache.stats:
+    description: View Bedrock form cache statistics
+    default: op
+  lumaguilds.bedrock.cache.clear:
+    description: Clear Bedrock form cache
+    default: op
