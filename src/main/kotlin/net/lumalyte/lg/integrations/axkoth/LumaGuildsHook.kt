@@ -52,18 +52,15 @@ class LumaGuildsHook : TeamHook, KoinComponent {
         return try {
             val playerId = player.uniqueId
 
-            // Get player's guilds (LumaGuilds supports multiple guilds per player)
+            // Get player's guild (players can only be in one guild at a time)
             val guilds = guildService.getPlayerGuilds(playerId)
 
             if (guilds.isEmpty()) {
                 return null
             }
 
-            // Return the first guild's name
-            // Note: If you want to support multiple guilds, you'll need to decide
-            // which guild to prioritize (e.g., primary guild, highest level, etc.)
-            val guild = guilds.first()
-            guild.name
+            // Return the guild's name
+            guilds.first().name
 
         } catch (e: Exception) {
             logger.error("Error getting guild for player ${player.name}", e)

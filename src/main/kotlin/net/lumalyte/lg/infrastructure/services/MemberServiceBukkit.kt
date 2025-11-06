@@ -26,17 +26,25 @@ class MemberServiceBukkit(
             logger.warn("Attempted to add member to non-existent guild: $guildId")
             return null
         }
-        
+
         // Check if rank exists and belongs to the guild
         val rank = rankRepository.getById(rankId) ?: return null
         if (rank.guildId != guildId) {
             logger.warn("Rank $rankId doesn't belong to guild $guildId")
             return null
         }
-        
-        // Check if player is already a member
+
+        // Check if player is already a member of this guild
         if (memberRepository.isPlayerInGuild(playerId, guildId)) {
             logger.warn("Player $playerId is already a member of guild $guildId")
+            return null
+        }
+
+        // Check if player is already a member of ANY guild (enforce single guild membership)
+        val existingGuilds = memberRepository.getGuildsByPlayer(playerId)
+        if (existingGuilds.isNotEmpty()) {
+            val existingGuild = guildRepository.getById(existingGuilds.first())
+            logger.warn("Player $playerId is already a member of guild: ${existingGuild?.name ?: existingGuilds.first()}")
             return null
         }
         
