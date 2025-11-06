@@ -264,6 +264,9 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get()) }
     single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get()) }
 
+    // Teleportation System
+    single<net.lumalyte.lg.infrastructure.services.TeleportationService> { net.lumalyte.lg.infrastructure.services.TeleportationService(get()) }
+
     // Platform detection service for Bedrock menu system
     single<PlatformDetectionService> { FloodgatePlatformDetectionService(get<LumaGuilds>().logger) }
     

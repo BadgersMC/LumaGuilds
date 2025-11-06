@@ -66,10 +66,14 @@ object GuildHomeSafety {
         if (!feet.isPassable) return unsafe("No space at feet.")
         if (!head.isPassable) return unsafe("No space at head height.")
 
-        if (below.isPassable) {
+        // Only check for long drops if we're actually in the air/void, not on decorative blocks
+        if (below.isPassable && below.type == Material.AIR) {
             var airBelow = 0
             for (i in 1..3) {
-                if (belowLoc.clone().add(0.0, -i.toDouble(), 0.0).block.isPassable) airBelow++
+                val blockBelow = belowLoc.clone().add(0.0, -i.toDouble(), 0.0).block
+                if (blockBelow.type == Material.AIR || blockBelow.type == Material.CAVE_AIR || blockBelow.type == Material.VOID_AIR) {
+                    airBelow++
+                }
             }
             if (airBelow >= 3) return unsafe("Long drop below.")
         }
