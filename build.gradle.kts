@@ -36,6 +36,10 @@ repositories {
         name = "spigotmc-repo"
         url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     }
+    maven {
+        name = "artillex-studios"
+        url = uri("https://repo.artillex-studios.com/releases/")
+    }
 
 }
 
@@ -61,6 +65,7 @@ dependencies {
         exclude(group = "org.bukkit", module = "bukkit")
     }
     compileOnly("com.github.placeholderapi:placeholderapi:2.11.6")
+    compileOnly("com.artillexstudios:AxKothAPI:4")
 
     // Bedrock menu system dependencies - using local JARs from libs/
     compileOnly(files("libs/geyser-api-2.7.0-SNAPSHOT.jar"))

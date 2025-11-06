@@ -55,6 +55,7 @@ class LumaGuilds : JavaPlugin() {
         initLang()
         initialiseVaultDependency()
         initialisePlaceholderAPI()
+        initialiseAxKothIntegration()
         commandManager = PaperCommandManager(this)
 
         // Enable case-insensitive command completion and parsing
@@ -347,6 +348,26 @@ class LumaGuilds : JavaPlugin() {
     }
 
     /**
+     * Registers the AxKoth team hook if AxKoth is available.
+     * This allows AxKoth to recognize guilds as teams for KOTH events.
+     */
+    private fun initialiseAxKothIntegration() {
+        if (Bukkit.getPluginManager().getPlugin("AxKoth") != null) {
+            try {
+                val hook = net.lumalyte.lg.integrations.axkoth.LumaGuildsHook()
+                com.artillexstudios.axkoth.api.AxKothAPI.registerTeamHook(this, hook)
+                logColored("✓ Successfully registered LumaGuilds hook with AxKoth!")
+                logColored("Guilds can now compete in KOTH events as teams")
+            } catch (e: Exception) {
+                logger.severe("Error registering AxKoth integration: ${e.message}")
+                e.printStackTrace()
+            }
+        } else {
+            logColored("⚠ AxKoth not found. Guild KOTH integration unavailable.")
+        }
+    }
+
+    /**
      * Configures basic command completions using ACF's built-in system.
      * ACF automatically handles tab completion through @CommandCompletion annotations
      * on command methods, providing case-insensitive completion out of the box.
@@ -426,6 +447,9 @@ class LumaGuilds : JavaPlugin() {
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()
         server.pluginManager.registerEvents(progressionEventListener, this)
+
+        // Register vault protection listener
+        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener(), this)
 
         // Register player session cleanup listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
