@@ -245,6 +245,7 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
     single<BankRepository> { BankRepositorySQLite(get()) }
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.GuildVaultRepository> { net.lumalyte.lg.infrastructure.persistence.guilds.GuildVaultRepositorySQLite(get()) }
 
     single<NexoEmojiService> { NexoEmojiService() }
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get()) }
@@ -266,6 +267,12 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
 
     // Teleportation System
     single<net.lumalyte.lg.infrastructure.services.TeleportationService> { net.lumalyte.lg.infrastructure.services.TeleportationService(get()) }
+
+    // Guild Vault System
+    single<net.lumalyte.lg.application.services.GuildVaultService> {
+        net.lumalyte.lg.infrastructure.services.GuildVaultServiceBukkit(get(), get(), get(), get())
+    }
+    single<net.lumalyte.lg.infrastructure.services.VaultHologramService> { net.lumalyte.lg.infrastructure.services.VaultHologramService(get()) }
 
     // Platform detection service for Bedrock menu system
     single<PlatformDetectionService> { FloodgatePlatformDetectionService(get<LumaGuilds>().logger) }
