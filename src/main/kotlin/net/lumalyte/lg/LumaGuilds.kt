@@ -422,10 +422,13 @@ class LumaGuilds : JavaPlugin() {
         val chatInputListener = get().get<ChatInputListener>()
         server.pluginManager.registerEvents(chatInputListener, this)
         server.pluginManager.registerEvents(BannerSelectionListener(), this)
-        
+
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()
         server.pluginManager.registerEvents(progressionEventListener, this)
+
+        // Register player session cleanup listener
+        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
     }
 
     /**

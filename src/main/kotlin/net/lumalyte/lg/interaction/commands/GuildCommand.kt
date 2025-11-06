@@ -34,17 +34,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val getClaimAtPosition: GetClaimAtPosition by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: MenuFactory by inject()
-
-    // Teleportation tracking for command-based teleports
-    private data class TeleportSession(
-        val player: Player,
-        val targetLocation: org.bukkit.Location,
-        val startLocation: org.bukkit.Location,
-        var countdownTask: BukkitRunnable? = null,
-        var remainingSeconds: Int = 5
-    )
-
-    private val activeTeleports = mutableMapOf<java.util.UUID, TeleportSession>()
+    private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     
     @Subcommand("create")
     @CommandPermission("lumaguilds.guild.create")
@@ -189,11 +179,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("home")
     @CommandPermission("lumaguilds.guild.home")
     fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
+        // Handle the case where user types "/guild home confirm" - treat "confirm" as confirmation, not home name
+        val adjustedHomeName = if (homeName?.lowercase() == "confirm") null else homeName
+        val adjustedConfirm = if (homeName?.lowercase() == "confirm") "confirm" else confirm
+
         // Check if this is a confirmation for an unsafe teleport
-        if (confirm?.lowercase() == "confirm") {
+        if (adjustedConfirm?.lowercase() == "confirm") {
             val pendingLocation = GuildHomeSafety.consumePending(player)
             if (pendingLocation != null) {
-                startTeleportCountdown(player, pendingLocation)
+                teleportationService.startTeleport(player, pendingLocation)
                 return
             } else {
                 player.sendMessage("§cNo pending unsafe teleport to confirm, or confirmation expired.")
@@ -211,12 +205,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         val guild = guilds.first()
-        val targetHomeName = homeName ?: "main"
+        val targetHomeName = adjustedHomeName ?: "main"
         val home = guildService.getHome(guild.id, targetHomeName)
 
         if (home != null) {
             // Check if player already has an active teleport
-            if (activeTeleports.containsKey(playerId)) {
+            if (teleportationService.hasActiveTeleport(playerId)) {
                 player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")
                 return
             }
@@ -240,7 +234,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
 
             // Start teleport countdown
-            startTeleportCountdown(player, targetLocation)
+            teleportationService.startTeleport(player, targetLocation)
         } else {
             // Check if the guild has any homes at all
             val allHomes = guildService.getHomes(guild.id)
@@ -750,80 +744,4 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c❌ Failed to set guild home. You may not have permission.")
         }
     }
-
-    // Teleport countdown helper methods
-    private fun startTeleportCountdown(player: Player, targetLocation: org.bukkit.Location) {
-        val playerId = player.uniqueId
-
-        // Cancel any existing teleport
-        cancelTeleport(playerId)
-
-        val session = TeleportSession(
-            player = player,
-            targetLocation = targetLocation,
-            startLocation = player.location.clone(),
-            remainingSeconds = 5
-        )
-
-        activeTeleports[playerId] = session
-
-        player.sendMessage("§e◷ Teleportation countdown started! Don't move for 5 seconds...")
-        player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
-
-        val countdownTask = object : BukkitRunnable() {
-            override fun run() {
-                val currentSession = activeTeleports[playerId] ?: return
-
-                // Check if player moved
-                if (hasPlayerMoved(currentSession)) {
-                    cancelTeleport(playerId)
-                    player.sendMessage("§c❌ Teleportation canceled - you moved!")
-                    return
-                }
-
-                currentSession.remainingSeconds--
-
-                if (currentSession.remainingSeconds <= 0) {
-                    // Teleport the player
-                    player.teleport(currentSession.targetLocation)
-                    player.sendMessage("§a✅ Welcome to your guild home!")
-                    player.sendActionBar(Component.text("§aTeleported to guild home!"))
-
-                    // Clean up
-                    activeTeleports.remove(playerId)
-                } else {
-                    // Update action bar
-                    player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
-                }
-            }
-        }
-
-        session.countdownTask = countdownTask
-        val plugin = player.server.pluginManager.getPlugin("LumaGuilds")
-            ?: return // Plugin not found, cannot schedule countdown
-        countdownTask.runTaskTimer(plugin, 20L, 20L) // Every second
-    }
-
-    private fun cancelTeleport(playerId: java.util.UUID) {
-        val session = activeTeleports[playerId] ?: return
-
-        session.countdownTask?.cancel()
-        activeTeleports.remove(playerId)
-    }
-
-    private fun hasPlayerMoved(session: TeleportSession): Boolean {
-        val currentLocation = session.player.location
-        val startLocation = session.startLocation
-
-        // Check if player moved more than 0.1 blocks in any direction
-        return Math.abs(currentLocation.x - startLocation.x) > 0.1 ||
-               Math.abs(currentLocation.y - startLocation.y) > 0.1 ||
-               Math.abs(currentLocation.z - startLocation.z) > 0.1 ||
-               currentLocation.world != startLocation.world
-    }
-
-    private fun isLocationSafe(location: org.bukkit.Location): Boolean {
-        return GuildHomeSafety.evaluateSafety(location).safe
-    }
-
 }
