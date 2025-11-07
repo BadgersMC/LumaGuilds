@@ -55,6 +55,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(9)
                 currentDbVersion = 9
             }
+            if (currentDbVersion < 10) {
+                migrateToVersion10()
+                updateDatabaseVersion(10)
+                currentDbVersion = 10
+            }
             connection.commit() // Commit transaction
 
             // Log migration completion quietly
@@ -735,6 +740,96 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
 
         if (sqlCommands.isNotEmpty()) {
             executeMigrationCommands(sqlCommands)
+        }
+    }
+
+    /**
+     * Migration from version 9 to version 10.
+     * Updates kills table schema to match KillRepositorySQLite expectations.
+     * Renames killer_guild -> killer_guild_id, victim_guild -> victim_guild_id
+     * and updates other column names to match the new schema.
+     */
+    private fun migrateToVersion10() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Check if we need to migrate the kills table
+        if (tableExists("kills")) {
+            // Check if old column names exist
+            if (columnExists("kills", "killer_guild") && !columnExists("kills", "killer_guild_id")) {
+                // --- Step 1: Foreign Keys OFF ---
+                sqlCommands.add("PRAGMA foreign_keys = OFF;")
+                executeMigrationCommands(sqlCommands)
+                sqlCommands.clear()
+
+                // --- Step 2: Create new kills table with correct schema ---
+                sqlCommands.add("""
+                    CREATE TABLE kills_new (
+                        id TEXT PRIMARY KEY,
+                        killer_id TEXT NOT NULL,
+                        victim_id TEXT NOT NULL,
+                        killer_guild_id TEXT,
+                        victim_guild_id TEXT,
+                        timestamp TEXT NOT NULL,
+                        weapon TEXT,
+                        location_world TEXT,
+                        location_x REAL,
+                        location_y REAL,
+                        location_z REAL
+                    )
+                """.trimIndent())
+                executeMigrationCommands(sqlCommands)
+                sqlCommands.clear()
+
+                // --- Step 3: Copy data from old table to new table ---
+                sqlCommands.add("""
+                    INSERT INTO kills_new (id, killer_id, victim_id, killer_guild_id, victim_guild_id, timestamp, weapon, location_world, location_x, location_y, location_z)
+                    SELECT
+                        id,
+                        killer_id,
+                        victim_id,
+                        killer_guild,
+                        victim_guild,
+                        COALESCE(created_at, datetime('now')),
+                        context,
+                        NULL,
+                        NULL,
+                        NULL,
+                        NULL
+                    FROM kills
+                """.trimIndent())
+                executeMigrationCommands(sqlCommands)
+                sqlCommands.clear()
+
+                // --- Step 4: Drop old table and rename new table ---
+                sqlCommands.add("DROP TABLE kills;")
+                sqlCommands.add("ALTER TABLE kills_new RENAME TO kills;")
+                executeMigrationCommands(sqlCommands)
+                sqlCommands.clear()
+
+                // --- Step 5: Create indices ---
+                sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_kills_timestamp ON kills(timestamp);")
+                sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_kills_killer_guild_id ON kills(killer_guild_id);")
+                sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_kills_victim_guild_id ON kills(victim_guild_id);")
+                sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_kills_killer_id ON kills(killer_id);")
+                sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_kills_victim_id ON kills(victim_id);")
+                executeMigrationCommands(sqlCommands)
+                sqlCommands.clear()
+
+                // --- Step 6: Foreign Keys ON ---
+                sqlCommands.add("PRAGMA foreign_keys = ON;")
+                executeMigrationCommands(sqlCommands)
+                sqlCommands.clear()
+            }
+        }
+
+        // Drop old indices if they exist with old column names
+        try {
+            connection.createStatement().use { stmt ->
+                stmt.execute("DROP INDEX IF EXISTS idx_kills_killer_guild;")
+                stmt.execute("DROP INDEX IF EXISTS idx_kills_victim_guild;")
+            }
+        } catch (e: SQLException) {
+            // Ignore errors for non-existent indices
         }
     }
 
