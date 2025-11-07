@@ -15,5 +15,6 @@ fun Location.toPosition3D(): Position3D {
 }
 
 fun Position.toLocation(world: World): Location {
-    return Location(world, this.x.toDouble(), this.y?.toDouble() ?: 0.0, this.z.toDouble())
+    // Center the location in the block (add 0.5 to x and z coordinates)
+    return Location(world, this.x.toDouble() + 0.5, this.y?.toDouble() ?: 0.0, this.z.toDouble() + 0.5)
 }

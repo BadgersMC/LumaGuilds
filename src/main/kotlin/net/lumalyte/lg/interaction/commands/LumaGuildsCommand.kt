@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.commands
 
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.FileExportManager
+import net.lumalyte.lg.application.services.GuildService
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -18,6 +19,7 @@ import kotlin.io.path.exists
 class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
     private val fileExportManager: FileExportManager by inject()
+    private val guildService: GuildService by inject()
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
@@ -35,6 +37,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             "exports" -> handleListExports(sender)
             "cancel" -> handleCancelExport(sender, args)
             "reload" -> handleReload(sender)
+            "disband" -> handleDisband(sender, args)
             "help" -> showHelp(sender)
             else -> {
                 sender.sendMessage("§cUnknown subcommand: ${args[0]}")
@@ -139,6 +142,51 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     }
 
     /**
+     * Handle force disbanding a guild (for admin emergency use)
+     */
+    private fun handleDisband(sender: CommandSender, args: Array<out String>) {
+        // Check permissions - only console or ops can disband guilds
+        if (sender is Player && !sender.isOp) {
+            sender.sendMessage("§c❌ You don't have permission to disband guilds!")
+            return
+        }
+
+        if (args.size < 2) {
+            sender.sendMessage("§cUsage: /bellclaims disband <guild_name>")
+            return
+        }
+
+        val guildName = args.drop(1).joinToString(" ")
+        val guild = guildService.getGuildByName(guildName)
+
+        if (guild == null) {
+            sender.sendMessage("§c❌ Guild not found: $guildName")
+            return
+        }
+
+        // Confirm the disband
+        sender.sendMessage("§e⚠️ WARNING: You are about to force-disband the guild: §6${guild.name}")
+        sender.sendMessage("§7This will remove all members and delete the guild permanently!")
+        sender.sendMessage("§7Run the command again within 10 seconds to confirm:")
+        sender.sendMessage("§e/bellclaims disband ${guild.name} confirm")
+
+        // Check if this is a confirmation
+        if (args.size > 2 && args[args.size - 1].equals("confirm", ignoreCase = true)) {
+            // Perform the disband using console/system UUID
+            val systemUuid = java.util.UUID.fromString("00000000-0000-0000-0000-000000000000")
+            val success = guildService.disbandGuild(guild.id, systemUuid)
+
+            if (success) {
+                sender.sendMessage("§a✅ Guild '${guild.name}' has been forcefully disbanded!")
+                sender.sendMessage("§7All members have been removed from the guild.")
+            } else {
+                sender.sendMessage("§c❌ Failed to disband guild '${guild.name}'")
+                sender.sendMessage("§7Check server console for errors.")
+            }
+        }
+    }
+
+    /**
      * Handle plugin reload (for development)
      */
     private fun handleReload(sender: CommandSender) {
@@ -185,9 +233,11 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage("§e/bellclaims exports §7- List your active exports")
         sender.sendMessage("§e/bellclaims cancel <filename> §7- Cancel an active export")
         sender.sendMessage("§e/bellclaims reload §7- Reload plugin configuration (OP only)")
+        sender.sendMessage("§e/bellclaims disband <guild> confirm §7- Force disband a guild (OP only)")
         sender.sendMessage("§e/bellclaims help §7- Show this help")
         sender.sendMessage("§7💡 Export files are available for 15 minutes")
         sender.sendMessage("§7🔧 Reload command is for development - some changes require server restart")
+        sender.sendMessage("§7⚠️ Disband is for emergency use only - removes all members!")
     }
 
     /**
@@ -267,13 +317,24 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         if (sender !is Player) return mutableListOf()
 
         return when (args.size) {
-            1 -> mutableListOf("download", "exports", "cancel", "reload", "help").filter { it.startsWith(args[0]) }.toMutableList()
+            1 -> mutableListOf("download", "exports", "cancel", "reload", "disband", "help").filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "download", "cancel" -> {
                     fileExportManager.getActiveExports(sender.uniqueId)
                         .filter { it.startsWith(args[1]) }
                         .toMutableList()
                 }
+                "disband" -> {
+                    // Tab complete guild names
+                    guildService.getAllGuilds()
+                        .map { it.name }
+                        .filter { it.contains(args[1], ignoreCase = true) }
+                        .toMutableList()
+                }
+                else -> mutableListOf()
+            }
+            3 -> when (args[0].lowercase()) {
+                "disband" -> mutableListOf("confirm")
                 else -> mutableListOf()
             }
             else -> mutableListOf()

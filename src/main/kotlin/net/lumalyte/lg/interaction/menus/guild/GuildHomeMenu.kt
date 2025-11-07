@@ -9,7 +9,6 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import net.kyori.adventure.text.Component
@@ -202,12 +201,19 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val allHomes = guildService.getHomes(guild.id)
         if (!allHomes.hasHomes()) {
             player.sendMessage("§c❌ No homes to remove.")
+            open() // Return to main home menu
             return
         }
 
         // Create a simple removal menu
         val gui = ChestGui(4, "§cRemove Guild Homes")
         val pane = StaticPane(0, 0, 9, 4)
+        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+        gui.setOnBottomClick { guiEvent ->
+            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
+                guiEvent.isCancelled = true
+            }
+        }
 
         // List homes for removal
         var slot = 0
@@ -226,7 +232,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     val success = guildService.removeHome(guild.id, name, player.uniqueId)
                     if (success) {
                         player.sendMessage("§a✅ Home '$name' removed!")
-                        showRemoveHomesMenu() // Refresh menu
+                        // Refresh the guild data
+                        guild = guildService.getGuild(guild.id) ?: guild
+                        showRemoveHomesMenu() // Refresh menu (will auto-close if no homes left)
                     } else {
                         player.sendMessage("§c❌ Failed to remove home '$name'.")
                     }
@@ -294,7 +302,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
             player.sendMessage("§a✅ Guild $homeLabel set to your current location!")
             player.sendMessage("§7Members can now use §6/guild home ${if (homeName == "main") "" else homeName}§7to teleport here.")
-            player.sendMessage("§7Location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
+            player.sendMessage("§7Location: §f${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}")
 
             // Refresh the guild data and reopen menu
             guild = guildService.getGuild(guild.id) ?: guild
@@ -316,7 +324,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(guiItem, x, y)
     }
 
-    private fun startTeleportCountdown(home: GuildHome) {
+    private fun startTeleportCountdown(home: GuildHome, bypassSafety: Boolean = false) {
         // Security check: Verify player is still a member before teleporting
         if (memberService.getMember(player.uniqueId, guild.id) == null) {
             player.sendMessage("§c❌ You cannot teleport to a guild home you don't belong to!")
@@ -338,18 +346,68 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             player.location.pitch
         )
 
-        // Check if target location is safe (if safety check is enabled)
-        if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
+        // Check if target location is safe (if safety check is enabled and not bypassed)
+        if (!bypassSafety && configService.loadConfig().guild.homeTeleportSafetyCheck) {
             val safetyResult = net.lumalyte.lg.utils.GuildHomeSafety.evaluateSafety(targetLocation)
             if (!safetyResult.safe) {
-                player.sendMessage("§c❌ Guild home location is not safe to teleport to!")
-                player.sendMessage("§7Try setting your home on solid ground with space above you.")
+                // Show confirmation menu for unsafe teleport
+                showUnsafeTeleportConfirmation(home, safetyResult.reason ?: "Unknown reason")
                 return
             }
         }
 
         // Start teleport via shared service
         teleportationService.startTeleport(player, targetLocation)
+    }
+
+    private fun showUnsafeTeleportConfirmation(home: GuildHome, reason: String) {
+        val gui = ChestGui(3, "§c⚠ Unsafe Teleport Warning")
+        val pane = StaticPane(0, 0, 9, 3)
+        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+        gui.setOnBottomClick { guiEvent ->
+            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
+                guiEvent.isCancelled = true
+            }
+        }
+
+        // Warning info display
+        val warningItem = ItemStack(Material.YELLOW_BANNER)
+            .name("§c⚠ Safety Warning")
+            .lore("§7This guild home location")
+            .lore("§7appears to be unsafe:")
+            .lore("§c$reason")
+            .lore("§7")
+            .lore("§7You may take damage or die")
+            .lore("§7if you teleport here!")
+
+        pane.addItem(GuiItem(warningItem), 4, 0)
+
+        // Confirm button (teleport anyway)
+        val confirmItem = ItemStack(Material.RED_CONCRETE)
+            .name("§c⚠ Teleport Anyway")
+            .lore("§7Click to proceed with teleport")
+            .lore("§cWarning: This may be dangerous!")
+
+        val confirmGuiItem = GuiItem(confirmItem) {
+            // Teleport with safety check bypassed
+            startTeleportCountdown(home, bypassSafety = true)
+        }
+        pane.addItem(confirmGuiItem, 3, 1)
+
+        // Cancel button
+        val cancelItem = ItemStack(Material.GREEN_CONCRETE)
+            .name("§a✓ Cancel")
+            .lore("§7Return to home menu")
+            .lore("§7(Recommended)")
+
+        val cancelGuiItem = GuiItem(cancelItem) {
+            // Return to home menu
+            open()
+        }
+        pane.addItem(cancelGuiItem, 5, 1)
+
+        gui.addPane(pane)
+        gui.show(player)
     }
 
     override fun passData(data: Any?) {

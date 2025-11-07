@@ -29,12 +29,24 @@ import org.koin.core.component.inject
 class GuildCommand : BaseCommand(), KoinComponent {
 
     private val guildService: GuildService by inject()
+    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by inject()
     private val rankService: RankService by inject()
     private val memberService: MemberService by inject()
+    private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by inject()
     private val getClaimAtPosition: GetClaimAtPosition by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: MenuFactory by inject()
-    private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
+
+    // Teleportation tracking for command-based teleports
+    private data class TeleportSession(
+        val player: Player,
+        val targetLocation: org.bukkit.Location,
+        val startLocation: org.bukkit.Location,
+        var countdownTask: BukkitRunnable? = null,
+        var remainingSeconds: Int = 5
+    )
+
+    private val activeTeleports = mutableMapOf<java.util.UUID, TeleportSession>()
     
     @Subcommand("create")
     @CommandPermission("lumaguilds.guild.create")
@@ -179,15 +191,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("home")
     @CommandPermission("lumaguilds.guild.home")
     fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
-        // Handle the case where user types "/guild home confirm" - treat "confirm" as confirmation, not home name
-        val adjustedHomeName = if (homeName?.lowercase() == "confirm") null else homeName
-        val adjustedConfirm = if (homeName?.lowercase() == "confirm") "confirm" else confirm
-
         // Check if this is a confirmation for an unsafe teleport
-        if (adjustedConfirm?.lowercase() == "confirm") {
+        if (confirm?.lowercase() == "confirm") {
             val pendingLocation = GuildHomeSafety.consumePending(player)
             if (pendingLocation != null) {
-                teleportationService.startTeleport(player, pendingLocation)
+                startTeleportCountdown(player, pendingLocation)
                 return
             } else {
                 player.sendMessage("§cNo pending unsafe teleport to confirm, or confirmation expired.")
@@ -205,12 +213,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         val guild = guilds.first()
-        val targetHomeName = adjustedHomeName ?: "main"
+        val targetHomeName = homeName ?: "main"
         val home = guildService.getHome(guild.id, targetHomeName)
 
         if (home != null) {
             // Check if player already has an active teleport
-            if (teleportationService.hasActiveTeleport(playerId)) {
+            if (activeTeleports.containsKey(playerId)) {
                 player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")
                 return
             }
@@ -234,7 +242,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
 
             // Start teleport countdown
-            teleportationService.startTeleport(player, targetLocation)
+            startTeleportCountdown(player, targetLocation)
         } else {
             // Check if the guild has any homes at all
             val allHomes = guildService.getHomes(guild.id)
@@ -542,6 +550,131 @@ class GuildCommand : BaseCommand(), KoinComponent {
         menuNavigator.openMenu(menuFactory.createGuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer))
     }
 
+    @Subcommand("join")
+    @CommandPermission("lumaguilds.guild.join")
+    @CommandCompletion("@guilds")
+    fun onJoin(player: Player, guildName: String) {
+        val playerId = player.uniqueId
+
+        // Check if player is already in a guild
+        val currentGuilds = guildService.getPlayerGuilds(playerId)
+        if (currentGuilds.isNotEmpty()) {
+            player.sendMessage("§cYou are already in a guild!")
+            player.sendMessage("§7Use §e/guild leave§7 to leave your current guild first.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
+        // Check if player has a pending invite for this guild
+        val invite = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInviteByGuildName(playerId, guildName)
+        if (invite == null) {
+            player.sendMessage("§cYou don't have an invitation to join §6$guildName§c!")
+            player.sendMessage("§7Check §e/guild invites§7 to see your pending invitations.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
+        val (guildId, actualGuildName) = invite
+
+        // Get the guild
+        val guild = guildService.getGuild(guildId)
+        if (guild == null) {
+            player.sendMessage("§cThat guild no longer exists!")
+            net.lumalyte.lg.infrastructure.services.GuildInvitationManager.removeInvite(playerId, guildId)
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
+        // Add player to guild with lowest rank
+        val ranks = rankService.listRanks(guildId).sortedByDescending { it.priority }
+        val lowestRank = ranks.firstOrNull()
+
+        if (lowestRank == null) {
+            player.sendMessage("§cGuild has no ranks configured. Please contact the guild owner.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
+        // Add the member
+        val newMember = memberService.addMember(playerId, guildId, lowestRank.id)
+
+        if (newMember != null) {
+            // Remove the invitation
+            net.lumalyte.lg.infrastructure.services.GuildInvitationManager.removeInvite(playerId, guildId)
+
+            player.sendMessage("")
+            player.sendMessage("§a§l✅ JOINED GUILD!")
+            player.sendMessage("§7You are now a member of §6${guild.name}§7!")
+            player.sendMessage("§7Rank: §f${lowestRank.name}")
+            player.sendMessage("§7Use §e/guild menu§7 to get started.")
+            player.sendMessage("")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
+
+            // Notify guild members
+            val guildMembers = memberService.getGuildMembers(guildId)
+            guildMembers.forEach { member ->
+                if (member.playerId != playerId) {
+                    val memberPlayer = player.server.getPlayer(member.playerId)
+                    if (memberPlayer != null && memberPlayer.isOnline) {
+                        memberPlayer.sendMessage("§a${player.name}§7 has joined the guild!")
+                        memberPlayer.playSound(memberPlayer.location, org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 1.2f)
+                    }
+                }
+            }
+        } else {
+            player.sendMessage("§cFailed to join guild. Please contact an administrator.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+        }
+    }
+
+    @Subcommand("decline")
+    @CommandPermission("lumaguilds.guild.decline")
+    @CommandCompletion("@guilds")
+    fun onDecline(player: Player, guildName: String) {
+        val playerId = player.uniqueId
+
+        // Check if player has a pending invite for this guild
+        val invite = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInviteByGuildName(playerId, guildName)
+        if (invite == null) {
+            player.sendMessage("§cYou don't have an invitation to join §6$guildName§c!")
+            player.sendMessage("§7Check §e/guild invites§7 to see your pending invitations.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
+        val (guildId, actualGuildName) = invite
+
+        // Remove the invitation
+        net.lumalyte.lg.infrastructure.services.GuildInvitationManager.removeInvite(playerId, guildId)
+
+        player.sendMessage("§7You declined the invitation to join §6$actualGuildName§7.")
+        player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 0.8f)
+    }
+
+    @Subcommand("invites")
+    @CommandPermission("lumaguilds.guild.invites")
+    fun onInvites(player: Player) {
+        val playerId = player.uniqueId
+        val invites = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInvites(playerId)
+
+        if (invites.isEmpty()) {
+            player.sendMessage("§7You have no pending guild invitations.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
+        player.sendMessage("")
+        player.sendMessage("§6§l📨 PENDING GUILD INVITATIONS (${invites.size})")
+        player.sendMessage("")
+        invites.forEach { (_, guildName) ->
+            player.sendMessage("§7• §6$guildName")
+            player.sendMessage("  §7Accept: §a/guild join $guildName")
+            player.sendMessage("  §7Decline: §c/guild decline $guildName")
+            player.sendMessage("")
+        }
+        player.playSound(player.location, org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f)
+    }
+
     @Subcommand("kick")
     @CommandPermission("lumaguilds.guild.kick")
     @CommandCompletion("@guildmembers")
@@ -586,6 +719,154 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val menuNavigator = MenuNavigator(player)
         val menuFactory = MenuFactory()
         menuNavigator.openMenu(menuFactory.createGuildKickConfirmationMenu(menuNavigator, player, guild, targetMember))
+    }
+
+    @Subcommand("leave")
+    @CommandPermission("lumaguilds.guild.leave")
+    fun onLeave(player: Player) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check if player is the owner (priority 0 rank) - handle automatic succession
+        val playerRank = rankService.getPlayerRank(playerId, guild.id)
+        if (playerRank?.priority == 0) {
+            // Owner is leaving - check if there are other members
+            val allMembers = memberService.getGuildMembers(guild.id)
+            val otherMembers = allMembers.filter { it.playerId != playerId }
+
+            if (otherMembers.isEmpty()) {
+                // No other members - owner must disband
+                player.sendMessage("§cYou are the only member of this guild.")
+                player.sendMessage("§7Use §e/guild disband§7 to delete the guild.")
+                player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return
+            }
+
+            // Find the next highest rank member (lowest priority number after 0)
+            val nextOwner = otherMembers.mapNotNull { member ->
+                val rank = rankService.getPlayerRank(member.playerId, guild.id)
+                rank?.let { member to it }
+            }.minByOrNull { (_, rank) -> rank.priority }
+
+            if (nextOwner == null) {
+                player.sendMessage("§cFailed to find a successor. Please contact an administrator.")
+                return
+            }
+
+            val (successorMember, successorRank) = nextOwner
+
+            // Transfer ownership automatically
+            val transferSuccess = memberService.transferOwnership(guild.id, playerId, successorMember.playerId)
+            if (!transferSuccess) {
+                player.sendMessage("§cFailed to transfer ownership automatically. Use §e/guild transfer <player>§c instead.")
+                return
+            }
+
+            // Notify about succession
+            val successorPlayer = player.server.getPlayer(successorMember.playerId)
+            if (successorPlayer != null) {
+                successorPlayer.sendMessage("§6§l✦ OWNERSHIP TRANSFERRED ✦")
+                successorPlayer.sendMessage("§a${player.name} has left the guild and you are now the owner!")
+                successorPlayer.sendMessage("§7Use §e/guild menu§7 to manage your guild.")
+            }
+
+            player.sendMessage("§7Ownership automatically transferred to §e${successorPlayer?.name ?: "the next highest rank"}§7.")
+        }
+
+        // Remove player from guild
+        val success = memberService.removeMember(playerId, guild.id, playerId)
+
+        if (success) {
+            player.sendMessage("§aYou have left §6${guild.name}§a.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.0f)
+
+            // Notify guild members
+            val guildMembers = memberService.getGuildMembers(guild.id)
+            guildMembers.forEach { member ->
+                val memberPlayer = player.server.getPlayer(member.playerId)
+                if (memberPlayer != null && memberPlayer.isOnline) {
+                    memberPlayer.sendMessage("§e${player.name}§7 has left the guild.")
+                    memberPlayer.playSound(memberPlayer.location, org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 0.8f)
+                }
+            }
+        } else {
+            player.sendMessage("§cFailed to leave guild. Please contact an administrator.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+        }
+    }
+
+    @Subcommand("transfer")
+    @CommandPermission("lumaguilds.guild.transfer")
+    @CommandCompletion("@guildmembers")
+    fun onTransfer(player: Player, targetPlayerName: String) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check if player is the owner (priority 0 rank)
+        val playerRank = rankService.getPlayerRank(playerId, guild.id)
+        if (playerRank?.priority != 0) {
+            player.sendMessage("§cOnly the guild owner can transfer ownership.")
+            return
+        }
+
+        // Find target player
+        val targetPlayer = player.server.getPlayerExact(targetPlayerName)
+        if (targetPlayer == null) {
+            player.sendMessage("§cPlayer '$targetPlayerName' not found or is not online.")
+            return
+        }
+
+        if (targetPlayer == player) {
+            player.sendMessage("§cYou cannot transfer ownership to yourself.")
+            return
+        }
+
+        // Check if target is in the guild
+        val targetMember = memberService.getMember(targetPlayer.uniqueId, guild.id)
+        if (targetMember == null) {
+            player.sendMessage("§c${targetPlayer.name} is not in your guild!")
+            return
+        }
+
+        // Perform ownership transfer
+        val success = memberService.transferOwnership(guild.id, playerId, targetPlayer.uniqueId)
+
+        if (success) {
+            player.sendMessage("§aOwnership of §6${guild.name}§a has been transferred to §e${targetPlayer.name}§a.")
+            player.sendMessage("§7You are now a §eCo-Owner§7.")
+
+            targetPlayer.sendMessage("§6§l✦ PROMOTION ✦")
+            targetPlayer.sendMessage("§aYou are now the owner of §6${guild.name}§a!")
+            targetPlayer.sendMessage("§7Use §e/guild menu§7 to manage your guild.")
+
+            // Notify all other guild members
+            val guildMembers = memberService.getGuildMembers(guild.id)
+            guildMembers.forEach { member ->
+                if (member.playerId != playerId && member.playerId != targetPlayer.uniqueId) {
+                    val memberPlayer = player.server.getPlayer(member.playerId)
+                    memberPlayer?.sendMessage("§e${player.name}§7 has transferred ownership of the guild to §e${targetPlayer.name}§7.")
+                }
+            }
+        } else {
+            player.sendMessage("§cFailed to transfer ownership. Please contact an administrator.")
+        }
     }
 
     @Subcommand("tag")
@@ -744,4 +1025,259 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c❌ Failed to set guild home. You may not have permission.")
         }
     }
+
+    // Teleport countdown helper methods
+    private fun startTeleportCountdown(player: Player, targetLocation: org.bukkit.Location) {
+        val playerId = player.uniqueId
+
+        // Cancel any existing teleport
+        cancelTeleport(playerId)
+
+        val session = TeleportSession(
+            player = player,
+            targetLocation = targetLocation,
+            startLocation = player.location.clone(),
+            remainingSeconds = 5
+        )
+
+        activeTeleports[playerId] = session
+
+        player.sendMessage("§e◷ Teleportation countdown started! Don't move for 5 seconds...")
+        player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
+
+        val countdownTask = object : BukkitRunnable() {
+            override fun run() {
+                val currentSession = activeTeleports[playerId] ?: return
+
+                // Check if player moved
+                if (hasPlayerMoved(currentSession)) {
+                    cancelTeleport(playerId)
+                    player.sendMessage("§c❌ Teleportation canceled - you moved!")
+                    return
+                }
+
+                currentSession.remainingSeconds--
+
+                if (currentSession.remainingSeconds <= 0) {
+                    // Teleport the player
+                    player.teleport(currentSession.targetLocation)
+                    player.sendMessage("§a✅ Welcome to your guild home!")
+                    player.sendActionBar(Component.text("§aTeleported to guild home!"))
+
+                    // Clean up
+                    activeTeleports.remove(playerId)
+                } else {
+                    // Update action bar
+                    player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
+                }
+            }
+        }
+
+        session.countdownTask = countdownTask
+        val plugin = player.server.pluginManager.getPlugin("LumaGuilds")
+            ?: return // Plugin not found, cannot schedule countdown
+        countdownTask.runTaskTimer(plugin, 20L, 20L) // Every second
+    }
+
+    private fun cancelTeleport(playerId: java.util.UUID) {
+        val session = activeTeleports[playerId] ?: return
+
+        session.countdownTask?.cancel()
+        activeTeleports.remove(playerId)
+    }
+
+    private fun hasPlayerMoved(session: TeleportSession): Boolean {
+        val currentLocation = session.player.location
+        val startLocation = session.startLocation
+
+        // Check if player moved more than 0.1 blocks in any direction
+        return Math.abs(currentLocation.x - startLocation.x) > 0.1 ||
+               Math.abs(currentLocation.y - startLocation.y) > 0.1 ||
+               Math.abs(currentLocation.z - startLocation.z) > 0.1 ||
+               currentLocation.world != startLocation.world
+    }
+
+    private fun isLocationSafe(location: org.bukkit.Location): Boolean {
+        return GuildHomeSafety.evaluateSafety(location).safe
+    }
+
+    @Subcommand("getvault")
+    // @CommandPermission("lumaguilds.guild.getvault") // TODO: Fix ACF permission issue - temporarily disabled for testing
+    fun onVaultGet(player: Player) {
+        val playerId = player.uniqueId
+
+        // Check if physical vault is enabled in config
+        val vaultConfig = configService.loadConfig().vault
+        val bankMode = vaultConfig.bankMode.uppercase()
+        if (bankMode != "PHYSICAL" && bankMode != "BOTH") {
+            player.sendMessage("§cPhysical vault system is not enabled on this server.")
+            player.sendMessage("§7Contact a server administrator if you think this is incorrect.")
+            return
+        }
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check if player has PLACE_VAULT permission
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.PLACE_VAULT)) {
+            player.sendMessage("§c§lPERMISSION DENIED§r")
+            player.sendMessage("§cYou don't have permission to get a guild vault chest.")
+            player.sendMessage("§7You need the PLACE_VAULT permission.")
+            return
+        }
+
+        // Check if vault already exists
+        if (guild.vaultStatus == net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE) {
+            val vaultLocation = vaultService.getVaultLocation(guild)
+            if (vaultLocation != null) {
+                player.sendMessage("§e§lVAULT EXISTS§r")
+                player.sendMessage("§eYour guild already has a vault chest placed!")
+                player.sendMessage("§7Location: §f${vaultLocation.world?.name} (${vaultLocation.blockX}, ${vaultLocation.blockY}, ${vaultLocation.blockZ})")
+                player.sendMessage("§7Break the existing vault first if you want to move it.")
+                return
+            }
+        }
+
+        // Check if player has space in inventory
+        if (player.inventory.firstEmpty() == -1) {
+            player.sendMessage("§c§lINVENTORY FULL§r")
+            player.sendMessage("§cYour inventory is full! Make space to receive the Guild Vault.")
+            return
+        }
+
+        // Create the special Guild Vault chest item
+        val vaultChest = org.bukkit.inventory.ItemStack(org.bukkit.Material.CHEST)
+        val meta = vaultChest.itemMeta
+
+        // Use guild's colored tag if set, otherwise use green name
+        val guildDisplay = if (!guild.tag.isNullOrBlank()) {
+            // Guild has a custom tag - parse it with MiniMessage
+            val miniMessage = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+            try {
+                miniMessage.deserialize(guild.tag)
+            } catch (e: Exception) {
+                // If tag parsing fails, fall back to plain tag
+                net.kyori.adventure.text.Component.text(guild.tag)
+            }
+        } else {
+            // No tag set - use green guild name
+            net.kyori.adventure.text.Component.text(guild.name, net.kyori.adventure.text.format.NamedTextColor.GREEN)
+        }
+
+        // Build the full display name: "⚑ GUILD VAULT (GuildTag)"
+        val displayName = net.kyori.adventure.text.Component.text("§6§l⚑ GUILD VAULT §r§7(")
+            .append(guildDisplay)
+            .append(net.kyori.adventure.text.Component.text("§7)"))
+            .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
+
+        meta.displayName(displayName)
+
+        meta.lore(listOf(
+            net.kyori.adventure.text.Component.text("§7Place this chest to create your guild's"),
+            net.kyori.adventure.text.Component.text("§7physical vault storage."),
+            net.kyori.adventure.text.Component.text(""),
+            net.kyori.adventure.text.Component.text("§eCapacity: §f${vaultService.getCapacityForLevel(guild.level)} slots §7(Level ${guild.level})"),
+            net.kyori.adventure.text.Component.text("§eGuild: §f${guild.name}"),
+            net.kyori.adventure.text.Component.text(""),
+            net.kyori.adventure.text.Component.text("§6⚠ §7Only one vault can exist per guild!"),
+            net.kyori.adventure.text.Component.text("§6⚠ §7Protected - Only guild members can break it")
+        ).map { it.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
+
+        // Add persistent data to identify this as a guild vault chest
+        val key = org.bukkit.NamespacedKey(org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, "guild_vault_id")
+        meta.persistentDataContainer.set(key, org.bukkit.persistence.PersistentDataType.STRING, guild.id.toString())
+
+        vaultChest.itemMeta = meta
+
+        // Give the item to the player
+        player.inventory.addItem(vaultChest)
+
+        player.sendMessage("§a§l✓ VAULT CHEST RECEIVED§r")
+        player.sendMessage("§aYou've received a Guild Vault chest!")
+        player.sendMessage("§7")
+        player.sendMessage("§6How to use:")
+        player.sendMessage("§7 1. §fFind a safe location in your guild territory")
+        player.sendMessage("§7 2. §fPlace the chest on the ground")
+        player.sendMessage("§7 3. §fAccess it through §6/guild menu §7→ Bank")
+        player.sendMessage("§7")
+        player.sendMessage("§eCapacity: §f${vaultService.getCapacityForLevel(guild.level)} slots")
+        player.sendMessage("§eUpgrades as your guild levels up!")
+
+        // Play success sound
+        player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.2f)
+        player.playSound(player.location, org.bukkit.Sound.BLOCK_CHEST_OPEN, 1.0f, 1.0f)
+    }
+
+    @Subcommand("vault")
+    // @CommandPermission("lumaguilds.guild.vault") // TODO: Fix ACF permission issue - temporarily disabled for testing
+    fun onVault(player: Player) {
+        val playerId = player.uniqueId
+
+        // Check if physical vault is enabled in config
+        val vaultConfig = configService.loadConfig().vault
+        val bankMode = vaultConfig.bankMode.uppercase()
+        if (bankMode != "PHYSICAL" && bankMode != "BOTH") {
+            player.sendMessage("§cPhysical vault system is not enabled on this server.")
+            player.sendMessage("§7Contact a server administrator if you think this is incorrect.")
+            return
+        }
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check if vault is available
+        if (guild.vaultStatus != net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE) {
+            player.sendMessage("§c§lVAULT UNAVAILABLE§r")
+            when (guild.vaultStatus) {
+                net.lumalyte.lg.domain.entities.VaultStatus.NEVER_PLACED -> {
+                    player.sendMessage("§cYour guild hasn't placed a vault yet!")
+                    player.sendMessage("§7Use §6/guild getvault §7to get a vault chest.")
+                }
+                net.lumalyte.lg.domain.entities.VaultStatus.UNAVAILABLE -> {
+                    player.sendMessage("§cYour guild's vault chest has been destroyed!")
+                    player.sendMessage("§7Use §6/guild getvault §7to get a new vault chest.")
+                }
+                else -> {
+                    player.sendMessage("§cVault is not available.")
+                }
+            }
+            return
+        }
+
+        // Check if player has ACCESS_VAULT permission
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.ACCESS_VAULT)) {
+            player.sendMessage("§c§lPERMISSION DENIED§r")
+            player.sendMessage("§cYou don't have permission to access the guild vault.")
+            player.sendMessage("§7You need the ACCESS_VAULT permission.")
+            return
+        }
+
+        // Open vault inventory
+        val result = vaultService.openVaultInventory(player, guild)
+        when (result) {
+            is net.lumalyte.lg.application.services.VaultResult.Success -> {
+                player.sendMessage("§a§lVAULT OPENED§r")
+                player.sendMessage("§aAccessing §6${guild.name}§a's vault...")
+                player.playSound(player.location, org.bukkit.Sound.BLOCK_ENDER_CHEST_OPEN, 1.0f, 1.0f)
+            }
+            is net.lumalyte.lg.application.services.VaultResult.Failure -> {
+                player.sendMessage("§c§lFAILED§r")
+                player.sendMessage("§cCouldn't open vault: ${result.message}")
+                player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
+            }
+        }
+    }
+
 }

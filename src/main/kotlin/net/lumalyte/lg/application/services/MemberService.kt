@@ -135,4 +135,16 @@ interface MemberService {
      * @return true if successful, false otherwise.
      */
     fun demoteMember(playerId: UUID, guildId: UUID, actorId: UUID): Boolean
+
+    /**
+     * Transfers guild ownership from current owner to a new owner.
+     * The current owner is demoted to the second-highest rank (usually co-owner).
+     * The new owner is promoted to the owner rank (priority 0).
+     *
+     * @param guildId The ID of the guild.
+     * @param currentOwnerId The ID of the current owner.
+     * @param newOwnerId The ID of the new owner.
+     * @return true if successful, false otherwise.
+     */
+    fun transferOwnership(guildId: UUID, currentOwnerId: UUID, newOwnerId: UUID): Boolean
 }
