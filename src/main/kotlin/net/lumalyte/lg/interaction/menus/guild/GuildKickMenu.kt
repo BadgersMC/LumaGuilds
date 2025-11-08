@@ -117,7 +117,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
             .lore("§7Joined: §f${member.joinedAt}")
             .lore("§7")
             .lore("§cClick to kick from guild")
-            .lore("§c⚠️ This cannot be undone!")
+            .lore("§c⚠ This cannot be undone!")
     }
 
     private fun kickMember(member: Member) {
@@ -133,7 +133,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Previous page button
         val prevItem = ItemStack(Material.ARROW)
-            .name("§f⬅️ PREVIOUS PAGE")
+            .name("§f⬅ PREVIOUS PAGE")
             .lore("§7Go to previous page")
 
         val prevGuiItem = GuiItem(prevItem) {
@@ -146,7 +146,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Next page button
         val nextItem = ItemStack(Material.ARROW)
-            .name("§fNEXT PAGE ➡️")
+            .name("§fNEXT PAGE ➡")
             .lore("§7Go to next page")
 
         val nextGuiItem = GuiItem(nextItem) {
@@ -167,7 +167,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
+            .name("§c⬅ BACK")
             .lore("§7Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {

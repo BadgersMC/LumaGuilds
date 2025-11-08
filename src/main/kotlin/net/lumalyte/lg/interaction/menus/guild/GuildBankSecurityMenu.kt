@@ -120,7 +120,7 @@ class GuildBankSecurityMenu(
         val failedAuths = recentAudits.count { it.action == AuditAction.PERMISSION_DENIED }
 
         if (failedAuths >= 3) {
-            securityAlerts.add("⚠️ Multiple authentication failures detected")
+            securityAlerts.add("⚠ Multiple authentication failures detected")
         }
 
         // Check for unusual transaction times
@@ -130,7 +130,7 @@ class GuildBankSecurityMenu(
         }
 
         if (unusualHours.size >= 2) {
-            securityAlerts.add("⚠️ Unusual transaction timing detected")
+            securityAlerts.add("⚠ Unusual transaction timing detected")
         }
     }
 
@@ -144,7 +144,7 @@ class GuildBankSecurityMenu(
         }
 
         if (largeTransactions.isNotEmpty()) {
-            securityAlerts.add("⚠️ Large withdrawal detected (${largeTransactions.last().amount} coins)")
+            securityAlerts.add("⚠ Large withdrawal detected (${largeTransactions.last().amount} coins)")
         }
 
         // Check for rapid large transactions
@@ -154,7 +154,7 @@ class GuildBankSecurityMenu(
         }
 
         if (recentLarge.size >= 2) {
-            securityAlerts.add("⚠️ Multiple large transactions in short time")
+            securityAlerts.add("⚠ Multiple large transactions in short time")
         }
     }
 
@@ -168,13 +168,13 @@ class GuildBankSecurityMenu(
         }
 
         if (recentWithdrawals.size >= 5) {
-            securityAlerts.add("⚠️ Rapid withdrawal pattern detected")
+            securityAlerts.add("⚠ Rapid withdrawal pattern detected")
         }
 
         // Check for same amount withdrawals (potential fraud)
         val amounts = recentWithdrawals.map { it.amount }.toSet()
         if (amounts.size == 1 && recentWithdrawals.size >= 3) {
-            securityAlerts.add("⚠️ Identical withdrawal amounts detected")
+            securityAlerts.add("⚠ Identical withdrawal amounts detected")
         }
     }
 
@@ -324,7 +324,7 @@ class GuildBankSecurityMenu(
             event.isCancelled = true
             if (!emergencyFreeze) {
                 // Confirm before activating
-                player.sendMessage("§c⚠️ EMERGENCY FREEZE ACTIVATED - All transactions blocked!")
+                player.sendMessage("§c⚠ EMERGENCY FREEZE ACTIVATED - All transactions blocked!")
                 player.sendMessage("§eUse this only if you suspect a security breach.")
                 emergencyFreeze = true
             } else {
@@ -362,7 +362,7 @@ class GuildBankSecurityMenu(
                 val alertItem = createMenuItem(
                     when {
                         alert.contains("🚨") -> Material.RED_WOOL
-                        alert.contains("⚠️") -> Material.YELLOW_WOOL
+                        alert.contains("⚠") -> Material.YELLOW_WOOL
                         else -> Material.ORANGE_WOOL
                     },
                     "Security Alert",
@@ -419,8 +419,8 @@ class GuildBankSecurityMenu(
         return when {
             emergencyFreeze -> "Critical"
             securityAlerts.count { it.contains("🚨") } > 0 -> "Critical"
-            securityAlerts.count { it.contains("⚠️") } >= 3 -> "High"
-            securityAlerts.count { it.contains("⚠️") } >= 1 -> "Medium"
+            securityAlerts.count { it.contains("⚠") } >= 3 -> "High"
+            securityAlerts.count { it.contains("⚠") } >= 1 -> "Medium"
             securityAlerts.isEmpty() -> "Low"
             else -> "Medium"
         }

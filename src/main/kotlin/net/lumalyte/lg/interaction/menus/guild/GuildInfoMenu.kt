@@ -22,6 +22,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.format.DateTimeFormatter
 import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 
 class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player: Player,
@@ -45,6 +46,11 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Basic guild information
         addGuildOverview(pane, 0, 0)
+
+        // Description section (if available)
+        if (guild.description != null) {
+            addDescriptionSection(pane, 1, 0)
+        }
 
         // Members section
         addMembersSection(pane, 2, 0)
@@ -73,10 +79,6 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             overviewItem.lore("§7Emoji: §f${guild.emoji}")
         }
 
-        if (guild.description != null) {
-            overviewItem.lore("§7Description: §f${parseMiniMessageForDisplay(guild.description)}")
-        }
-
         if (guild.tag != null) {
             overviewItem.lore("§7Tag: §f${guild.tag}")
         }
@@ -85,6 +87,19 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         overviewItem.lore("§7Founded: §f${guild.createdAt.atZone(java.time.ZoneId.systemDefault()).format(formatter)}")
 
         pane.addItem(GuiItem(overviewItem), x, y)
+    }
+
+    private fun addDescriptionSection(pane: StaticPane, x: Int, y: Int) {
+        val descriptionItem = ItemStack(Material.WRITABLE_BOOK)
+            .name("§6Description")
+
+        // Parse and display the description with MiniMessage formatting
+        val formattedDescription = parseMiniMessageForDisplay(guild.description)
+        if (formattedDescription != null) {
+            descriptionItem.lore("§r$formattedDescription")
+        }
+
+        pane.addItem(GuiItem(descriptionItem), x, y)
     }
 
     private fun addMembersSection(pane: StaticPane, x: Int, y: Int) {
@@ -195,7 +210,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
+            .name("§c⬅ BACK")
             .lore("§7Return to previous menu")
 
         val backGuiItem = GuiItem(backItem) {
@@ -210,8 +225,9 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         return try {
             val miniMessage = MiniMessage.miniMessage()
             val component = miniMessage.deserialize(description)
-            val plainText = PlainTextComponentSerializer.plainText().serialize(component)
-            plainText
+            // Convert to legacy format (§ codes) for menu display
+            val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
+            legacyText
         } catch (e: Exception) {
             description // Fallback to raw text if parsing fails
         }

@@ -306,8 +306,8 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
     }
 
     private fun addActionButtons(pane: StaticPane) {
-        // Create party
-        val canCreate = selectedGuilds.size >= 2
+        // Create party - allow single guild for private parties, or 2+ guilds for public
+        val canCreate = if (isPrivateParty) selectedGuilds.size >= 1 else selectedGuilds.size >= 2
         val createItem = ItemStack(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
             .name(if (canCreate) "§a✅ Create Party" else "§c❌ Cannot Create")
             .lore("§7Create the party with selected settings")
@@ -318,21 +318,21 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
                 .lore("§7Click to confirm")
         } else {
             createItem.lore("§7")
-            createItem.lore("§c• Need at least 2 guilds")
+            createItem.lore(if (isPrivateParty) "§c• Need at least 1 guild" else "§c• Need at least 2 guilds")
         }
 
         val createGuiItem = GuiItem(createItem) {
             if (canCreate) {
                 createParty()
             } else {
-                player.sendMessage("§c❌ Cannot create party - need at least 2 guilds!")
+                player.sendMessage(if (isPrivateParty) "§c❌ Cannot create party - need at least 1 guild!" else "§c❌ Cannot create party - need at least 2 guilds!")
             }
         }
         pane.addItem(createGuiItem, 1, 5)
 
         // Clear all
         val clearItem = ItemStack(Material.BARRIER)
-            .name("§c🗑️ Clear All")
+            .name("§c🗑 Clear All")
             .lore("§7Reset all selections")
 
         val clearGuiItem = GuiItem(clearItem) {
@@ -340,14 +340,14 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             selectedGuilds.clear()
             selectedGuilds.add(guild.id) // Keep current guild
             restrictedRoles.clear()
-            player.sendMessage("§e🗑️ Cleared all selections!")
+            player.sendMessage("§e🗑 Cleared all selections!")
             open() // Refresh menu
         }
         pane.addItem(clearGuiItem, 3, 5)
 
         // Back button
         val backItem = ItemStack(Material.ARROW)
-            .name("§7⬅️ Back")
+            .name("§7⬅ Back")
             .lore("§7Return to party management")
 
         val backGuiItem = GuiItem(backItem) {

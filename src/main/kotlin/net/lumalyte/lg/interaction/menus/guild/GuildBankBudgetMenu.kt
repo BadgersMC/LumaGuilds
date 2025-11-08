@@ -119,9 +119,9 @@ class GuildBankBudgetMenu(
         if (weeklyPercent >= 80) budgetAlerts.add("Weekly budget at ${String.format("%.1f", weeklyPercent)}%")
         if (dailyPercent >= 75) budgetAlerts.add("Daily budget at ${String.format("%.1f", dailyPercent)}%")
 
-        if (monthlyPercent >= 100) budgetAlerts.add("⚠️ Monthly budget exceeded!")
-        if (weeklyPercent >= 100) budgetAlerts.add("⚠️ Weekly budget exceeded!")
-        if (dailyPercent >= 100) budgetAlerts.add("⚠️ Daily budget exceeded!")
+        if (monthlyPercent >= 100) budgetAlerts.add("⚠ Monthly budget exceeded!")
+        if (weeklyPercent >= 100) budgetAlerts.add("⚠ Weekly budget exceeded!")
+        if (dailyPercent >= 100) budgetAlerts.add("⚠ Daily budget exceeded!")
     }
 
     /**
@@ -279,7 +279,7 @@ class GuildBankBudgetMenu(
             // Display alerts
             budgetAlerts.take(5).forEachIndexed { index, alert ->
                 val alertItem = createMenuItem(
-                    if (alert.contains("⚠️")) Material.RED_WOOL else Material.YELLOW_WOOL,
+                    if (alert.contains("⚠")) Material.RED_WOOL else Material.YELLOW_WOOL,
                     "Budget Alert",
                     listOf(alert, "Monitor spending closely")
                 )

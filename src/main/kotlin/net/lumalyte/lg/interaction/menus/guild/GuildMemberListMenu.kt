@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.MenuFactory
@@ -18,9 +19,12 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
     override fun open() {
         player.sendMessage("§eMember List menu coming soon!")
 
-        // Security check: Only allow control panel access if player is a member of this guild
-        if (memberService.getMember(player.uniqueId, guild.id) != null) {
+        // Security check: Only allow players who are in the guild and have permission to access control panel
+        if (memberService.getMember(player.uniqueId, guild.id) != null && memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+        } else if (memberService.getMember(player.uniqueId, guild.id) != null) {
+            // For regular members without the permission
+            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
         } else {
             // If not a member, go back to the info menu instead
             menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))

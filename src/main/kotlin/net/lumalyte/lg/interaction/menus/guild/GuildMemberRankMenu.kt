@@ -166,7 +166,7 @@ class GuildMemberRankMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
+            .name("§c⬅ BACK")
             .lore("§7Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {

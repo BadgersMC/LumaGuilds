@@ -77,19 +77,22 @@ class GuildServiceBukkit(
     
     override fun disbandGuild(guildId: UUID, actorId: UUID): Boolean {
         guildRepository.getById(guildId) ?: return false
-        
-        // Check if actor has permission to disband guild
-        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_RANKS)) {
+
+        // System UUID for admin/console operations
+        val systemUuid = UUID.fromString("00000000-0000-0000-0000-000000000000")
+
+        // Check if actor has permission to disband guild (bypass for system/admin operations)
+        if (actorId != systemUuid && !hasPermission(actorId, guildId, RankPermission.MANAGE_RANKS)) {
             logger.warn("Player $actorId attempted to disband guild $guildId without permission")
             return false
         }
-        
+
         // Remove all members first
         memberRepository.removeByGuild(guildId)
-        
+
         // Remove all ranks
         rankRepository.removeByGuild(guildId)
-        
+
         // Remove guild
         val result = guildRepository.remove(guildId)
         if (result) {

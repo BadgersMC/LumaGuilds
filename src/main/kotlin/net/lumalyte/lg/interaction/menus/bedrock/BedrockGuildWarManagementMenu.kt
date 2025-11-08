@@ -122,7 +122,7 @@ class BedrockGuildWarManagementMenu(
 
             form.addButtonWithImage(
                 config,
-                "⚔️ vs $opponentName\n${bedrockLocalization.getBedrockString(player, "guild.war.management.started")}: $startedDate\n${bedrockLocalization.getBedrockString(player, "guild.war.management.remaining.days", remainingDays)}",
+                "⚔ vs $opponentName\n${bedrockLocalization.getBedrockString(player, "guild.war.management.started")}: $startedDate\n${bedrockLocalization.getBedrockString(player, "guild.war.management.remaining.days", remainingDays)}",
                 config.guildWarsIconUrl,
                 config.guildWarsIconPath
             )
@@ -332,7 +332,7 @@ class BedrockGuildWarManagementMenu(
 
             form.addButtonWithImage(
                 config,
-                "⚔️ vs $opponentName - $result\n${bedrockLocalization.getBedrockString(player, "guild.war.management.ended")}: $endedDate",
+                "⚔ vs $opponentName - $result\n${bedrockLocalization.getBedrockString(player, "guild.war.management.ended")}: $endedDate",
                 config.editIconUrl,
                 config.editIconPath
             )

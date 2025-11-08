@@ -453,6 +453,9 @@ class LumaGuilds : JavaPlugin() {
 
         // Register player session cleanup listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
+
+        // Register war kill tracking listener
+        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
     }
 
     /**

@@ -45,7 +45,7 @@ class BedrockGuildMemberRankConfirmationMenu(
                 |
                 |👤 Player: $targetName
                 |📊 Current Rank: ${currentRank?.name ?: "Unknown"}
-                |⬆️ New Rank: ${newRank.name}
+                |⬆ New Rank: ${newRank.name}
                 |
                 |${getRankChangeDescription(currentRank, newRank)}
                 |
@@ -69,10 +69,10 @@ class BedrockGuildMemberRankConfirmationMenu(
 
     private fun getRankChangeDescription(currentRank: Rank?, newRank: Rank): String {
         return when {
-            currentRank == null -> "⚠️ Setting initial rank"
-            newRank.priority < (currentRank.priority) -> "⬆️ Promoting member"
-            newRank.priority > (currentRank.priority) -> "⬇️ Demoting member"
-            else -> "⚖️ Adjusting rank priority"
+            currentRank == null -> "⚠ Setting initial rank"
+            newRank.priority < (currentRank.priority) -> "⬆ Promoting member"
+            newRank.priority > (currentRank.priority) -> "⬇ Demoting member"
+            else -> "⚖ Adjusting rank priority"
         }
     }
 

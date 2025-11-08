@@ -136,7 +136,7 @@ class GuildWarDeclarationMenu(
 
         // Info section
         val infoItem = ItemStack(Material.KNOWLEDGE_BOOK)
-            .name("§6ℹ️ War Declaration Info")
+            .name("§6ℹ War Declaration Info")
             .lore("§7• Wars last 1-14 days")
             .lore("§7• Both guilds can set objectives")
             .lore("§7• Winners gain progression XP")
@@ -371,7 +371,7 @@ class GuildWarDeclarationMenu(
                 val removeGuiItem = GuiItem(removeWager) {
                     val removedAmount = wagerAmount
                     wagerAmount = 0
-                    player.sendMessage("§7🗑️ Removed §6$removedAmount coins §7from wager")
+                    player.sendMessage("§7🗑 Removed §6$removedAmount coins §7from wager")
                     player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
                     open() // Refresh menu
                 }
@@ -390,25 +390,32 @@ class GuildWarDeclarationMenu(
             ))
         }
 
-        val killObjective = selectedObjectives.first()
         val objectivesItem = ItemStack(Material.DIAMOND_SWORD)
-            .name("§c⚔ War Objective: KILLS")
-            .lore("§7Target: §f${killObjective.targetValue} enemy kills")
+            .name("§c⚔ War Objectives (${selectedObjectives.size})")
             .lore("§7")
-            .lore("§7The first guild to reach the kill target wins!")
-            .lore("§7Only kills against enemy guild members count.")
+
+        // List all selected objectives
+        selectedObjectives.forEach { obj ->
+            val icon = when (obj.type) {
+                ObjectiveType.KILLS -> "⚔"
+                ObjectiveType.TIME_SURVIVAL -> "⏱"
+                ObjectiveType.CLAIMS_CAPTURED -> "🏰"
+                else -> "▪"
+            }
+            val typeName = obj.type.name.split("_").joinToString(" ") {
+                it.lowercase().replaceFirstChar { char -> char.uppercase() }
+            }
+            objectivesItem.lore("§7$icon §f$typeName: §e${obj.targetValue}")
+        }
+
+        objectivesItem
             .lore("§7")
-            .lore("§7Available targets:")
-            .lore("§7• §f5 kills §7(Quick skirmish)")
-            .lore("§7• §f10 kills §7(Standard battle)")
-            .lore("§7• §f25 kills §7(Extended war)")
-            .lore("§7• §f50 kills §7(Epic campaign)")
+            .lore("§7First guild to complete any objective wins!")
             .lore("§7")
-            .lore("§eClick to change kill target")
+            .lore("§eClick to customize objectives")
 
         val guiItem = GuiItem(objectivesItem) {
-            cycleKillTarget()
-            open() // Refresh menu
+            openObjectivesMenu()
         }
         pane.addItem(guiItem, 5, 1)
     }
@@ -482,8 +489,27 @@ class GuildWarDeclarationMenu(
 
     private fun declareWar() {
         val target = targetGuild!!
-        
+
         try {
+            // DUPLICATE PROTECTION: Check if war or declaration already exists
+            val existingWar = warService.getCurrentWarBetweenGuilds(guild.id, target.id)
+            if (existingWar != null) {
+                player.sendMessage("§c❌ Cannot declare war - you already have an active war with ${target.name}!")
+                player.sendMessage("§7End the current war before starting a new one.")
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return
+            }
+
+            // Check for pending declarations
+            val existingDeclarations = warService.getPendingDeclarationsForGuild(target.id)
+                .filter { it.declaringGuildId == guild.id }
+            if (existingDeclarations.isNotEmpty()) {
+                player.sendMessage("§c❌ You already have a pending war declaration with ${target.name}!")
+                player.sendMessage("§7Wait for them to accept or reject your declaration.")
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return
+            }
+
             // Handle wager escrow if there's a wager
             if (wagerAmount > 0) {
                 // Check if guild has sufficient funds
@@ -649,25 +675,31 @@ class GuildWarDeclarationMenu(
     }
 
     private fun openObjectivesMenu() {
-        val claimsEnabled = configService.loadConfig().claimsEnabled
-
-        player.sendMessage("§eObjectives menu coming soon!")
-        player.sendMessage("§7This will allow you to set custom war objectives like:")
-        player.sendMessage("§7• Kill X enemy players")
-
-        // Only show claim-related objectives if claims are enabled
-        if (claimsEnabled) {
-            player.sendMessage("§7• Capture X claims")
+        // Open the objectives selection menu
+        val objectivesMenu = WarObjectivesSelectionMenu(
+            menuNavigator,
+            player,
+            selectedObjectives
+        ) { updatedObjectives ->
+            // Callback: update the selected objectives
+            selectedObjectives.clear()
+            selectedObjectives.addAll(updatedObjectives)
         }
-
-        player.sendMessage("§7• Survive for X hours")
-        // TODO: Implement objectives menu
+        menuNavigator.openMenu(objectivesMenu)
     }
 
     private fun openGuildListMenu(guilds: List<Guild>) {
-        player.sendMessage("§eGuild list menu coming soon!")
-        player.sendMessage("§7This will show all ${guilds.size} available guilds in a paginated menu.")
-        // TODO: Implement paginated guild list
+        // Open the guild selection menu
+        val guildListMenu = WarGuildSelectionMenu(
+            menuNavigator = menuNavigator,
+            player = player,
+            availableGuilds = guilds,
+            callback = { selectedGuild ->
+                // Callback: set the selected guild as target
+                targetGuild = selectedGuild
+            }
+        )
+        menuNavigator.openMenu(guildListMenu)
     }
 
     private fun notifyGuildsOfWarDeclaration(war: War) {
@@ -761,7 +793,7 @@ class GuildWarDeclarationMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
-            .name("§c⬅️ Back")
+            .name("§c⬅ Back")
             .lore("§7Return to war management")
 
         val guiItem = GuiItem(backItem) {
