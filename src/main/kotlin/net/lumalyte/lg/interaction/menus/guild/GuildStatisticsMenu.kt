@@ -256,7 +256,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
             val warHistory = warService.getWarHistory(guild.id, 20)
 
-            val gui = ChestGui(6, "§4⚔️ ${guild.name} - War Details")
+            val gui = ChestGui(6, "§4⚔ ${guild.name} - War Details")
             val pane = StaticPane(0, 0, 9, 6)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
@@ -289,7 +289,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
         val activeWarsItem = ItemStack(Material.DIAMOND_SWORD)
-            .name("§4⚔️ ACTIVE WARS (${activeWars.size})")
+            .name("§4⚔ ACTIVE WARS (${activeWars.size})")
             .lore("§7Currently ongoing conflicts")
 
         if (activeWars.isNotEmpty()) {
@@ -302,7 +302,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 val status = if (war.declaringGuildId == guild.id) "Attacker" else "Defender"
                 val remainingTime = war.remainingDuration
 
-                activeWarsItem.lore("§c⚔️ vs $enemyName ($status)")
+                activeWarsItem.lore("§c⚔ vs $enemyName ($status)")
                 if (remainingTime != null) {
                     val days = remainingTime.toDays()
                     val hours = remainingTime.toHours() % 24
@@ -341,7 +341,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 val result = when {
                     war.winner == guild.id -> "§a✓ Won"
                     war.winner != null -> "§c✗ Lost"
-                    else -> "§e⚖️ Draw"
+                    else -> "§e⚖ Draw"
                 }
 
                 historyItem.lore("§${index + 1}. vs $enemyName: $result")
@@ -408,7 +408,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         if (activeWars.isNotEmpty()) {
             val warKillStats = ItemStack(Material.IRON_SWORD)
-                .name("§c⚔️ CURRENT WAR KILLS")
+                .name("§c⚔ CURRENT WAR KILLS")
                 .lore("§7Kill statistics in active wars")
 
             // Get kill stats for each active war
@@ -423,7 +423,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                     val enemyKills = killsBetween.count { it.killerGuildId == enemyGuildId }
 
                     warKillStats.lore("")
-                        .lore("§c⚔️ vs ${enemyGuild.name}:")
+                        .lore("§c⚔ vs ${enemyGuild.name}:")
                         .lore("§7   Your kills: §a$guildKills")
                         .lore("§7   Enemy kills: §c$enemyKills")
                         .lore("§7   Ratio: §e${calculateKillRatio(guildKills, enemyKills)}")
@@ -789,7 +789,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun openGuildComparison() {
-        player.sendMessage("§e⚖️ Guild comparison coming soon!")
+        player.sendMessage("§e⚖ Guild comparison coming soon!")
     }
 
 

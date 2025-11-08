@@ -18,6 +18,7 @@ class WarServiceBukkit : WarService {
     private val warWagers = mutableMapOf<UUID, WarWager>()
     private val peaceAgreements = mutableMapOf<UUID, PeaceAgreement>()
     private val warFarmingCooldowns = mutableMapOf<UUID, Instant>()
+    private val warDeclarationCooldowns = mutableMapOf<UUID, Instant>()
 
     override fun declareWar(
         declaringGuildId: UUID,
@@ -27,17 +28,44 @@ class WarServiceBukkit : WarService {
         actorId: UUID
     ): War? {
         return try {
+            // Check if war already exists between these guilds
+            val existingWar = getCurrentWarBetweenGuilds(declaringGuildId, defendingGuildId)
+            if (existingWar != null) {
+                logger.warn("Cannot declare war - active war already exists between guilds $declaringGuildId and $defendingGuildId")
+                return null
+            }
+
+            // Check if pending declaration already exists
+            val existingDeclaration = warDeclarations.values.find {
+                (it.declaringGuildId == declaringGuildId && it.defendingGuildId == defendingGuildId) ||
+                (it.declaringGuildId == defendingGuildId && it.defendingGuildId == declaringGuildId)
+            }
+            if (existingDeclaration != null) {
+                logger.warn("Cannot declare war - pending declaration already exists between guilds $declaringGuildId and $defendingGuildId")
+                return null
+            }
+
             // For now, create immediate war (legacy behavior)
             // TODO: This should be updated to create WarDeclarations for proper acceptance flow
             val war = War.create(
                 declaringGuildId = declaringGuildId,
                 defendingGuildId = defendingGuildId,
                 duration = duration
+            ).copy(
+                status = WarStatus.ACTIVE,  // Auto-accepted wars are immediately active
+                startedAt = Instant.now(),
+                objectives = objectives
             )
 
             wars[war.id] = war
 
-            logger.info("War declared by guild $declaringGuildId against guild $defendingGuildId")
+            // Initialize war stats
+            warStats[war.id] = WarStats(warId = war.id)
+
+            // Record war declaration for cooldown tracking
+            recordWarDeclaration(declaringGuildId)
+
+            logger.info("War declared and ACTIVE by guild $declaringGuildId against guild $defendingGuildId")
             war
         } catch (e: Exception) {
             logger.error("Error declaring war between $declaringGuildId and $defendingGuildId", e)
@@ -58,6 +86,23 @@ class WarServiceBukkit : WarService {
         actorId: UUID
     ): WarDeclaration? {
         return try {
+            // Check if war already exists between these guilds
+            val existingWar = getCurrentWarBetweenGuilds(declaringGuildId, defendingGuildId)
+            if (existingWar != null) {
+                logger.warn("Cannot create war declaration - active war already exists between guilds $declaringGuildId and $defendingGuildId")
+                return null
+            }
+
+            // Check if pending declaration already exists
+            val existingDeclaration = warDeclarations.values.find {
+                (it.declaringGuildId == declaringGuildId && it.defendingGuildId == defendingGuildId) ||
+                (it.declaringGuildId == defendingGuildId && it.defendingGuildId == declaringGuildId)
+            }
+            if (existingDeclaration != null) {
+                logger.warn("Cannot create war declaration - pending declaration already exists between guilds $declaringGuildId and $defendingGuildId")
+                return null
+            }
+
             val declaration = WarDeclaration(
                 declaringGuildId = declaringGuildId,
                 defendingGuildId = defendingGuildId,
@@ -67,6 +112,9 @@ class WarServiceBukkit : WarService {
             )
 
             warDeclarations[declaration.id] = declaration
+
+            // Record war declaration for cooldown tracking
+            recordWarDeclaration(declaringGuildId)
 
             logger.info("War declaration created by guild $declaringGuildId against guild $defendingGuildId with wager $wagerAmount")
             declaration
@@ -533,5 +581,24 @@ class WarServiceBukkit : WarService {
             logger.error("Error updating war farming cooldown", e)
             false
         }
+    }
+
+    // War Declaration Cooldown Methods
+    override fun isGuildOnWarDeclarationCooldown(guildId: UUID): Boolean {
+        val cooldownEnd = warDeclarationCooldowns[guildId]
+        return cooldownEnd != null && Instant.now().isBefore(cooldownEnd)
+    }
+
+    override fun getWarDeclarationCooldownEnd(guildId: UUID): Instant? {
+        return warDeclarationCooldowns[guildId]
+    }
+
+    override fun recordWarDeclaration(guildId: UUID) {
+        // Default to 24 hours if config not available
+        // TODO: Get actual config value when ConfigService is injected
+        val cooldownHours = 24L
+        val cooldownEnd = Instant.now().plusSeconds(cooldownHours * 3600)
+        warDeclarationCooldowns[guildId] = cooldownEnd
+        logger.info("Guild $guildId declared war - cooldown until $cooldownEnd")
     }
 }

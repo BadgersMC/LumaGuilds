@@ -202,7 +202,7 @@ class BedrockGuildRelationsMenu(
 
             form.addButtonWithImage(
                 config,
-                "⚔️ $otherName\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.declared")}: ${relation.createdAt.toString().substring(0, 10)}",
+                "⚔ $otherName\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.declared")}: ${relation.createdAt.toString().substring(0, 10)}",
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
@@ -262,7 +262,7 @@ class BedrockGuildRelationsMenu(
 
             form.addButtonWithImage(
                 config,
-                "🕊️ $otherName\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.expires")}: $expiresAt",
+                "🕊 $otherName\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.expires")}: $expiresAt",
                 config.editIconUrl,
                 config.editIconPath
             )

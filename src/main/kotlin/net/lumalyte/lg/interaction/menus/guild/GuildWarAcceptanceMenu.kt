@@ -56,7 +56,7 @@ class GuildWarAcceptanceMenu(
             return
         }
 
-        val gui = ChestGui(5, "§4⚔️ War Declaration - ${guild.name}")
+        val gui = ChestGui(5, "§4⚔ War Declaration - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -86,7 +86,7 @@ class GuildWarAcceptanceMenu(
         }
 
         // Declaring guild display with banner
-        val declaringGuildItem = createGuildDisplayItem(declaringGuild, "§c⚔️ DECLARING WAR")
+        val declaringGuildItem = createGuildDisplayItem(declaringGuild, "§c⚔ DECLARING WAR")
         pane.addItem(GuiItem(declaringGuildItem), 1, 1)
 
         // VS indicator
@@ -96,7 +96,7 @@ class GuildWarAcceptanceMenu(
         pane.addItem(GuiItem(vsItem), 4, 1)
 
         // Your guild display
-        val yourGuildItem = createGuildDisplayItem(guild, "§a🛡️ YOUR GUILD")
+        val yourGuildItem = createGuildDisplayItem(guild, "§a🛡 YOUR GUILD")
         pane.addItem(GuiItem(yourGuildItem), 7, 1)
 
         // War details
@@ -153,7 +153,7 @@ class GuildWarAcceptanceMenu(
             .lore("§7Accept this war declaration")
             .lore("§7and begin the conflict!")
             .lore("§7")
-            .lore("§a⚔️ Battle begins immediately")
+            .lore("§a⚔ Battle begins immediately")
             .lore("§aFirst to reach kill target wins!")
 
         val acceptGuiItem = GuiItem(acceptItem) {
@@ -166,7 +166,7 @@ class GuildWarAcceptanceMenu(
             .name("§c❌ REJECT WAR")
             .lore("§7Reject this war declaration")
             .lore("§7")
-            .lore("§c⚠️ This will decline the war")
+            .lore("§c⚠ This will decline the war")
             .lore("§cNo conflict will occur")
 
         val rejectGuiItem = GuiItem(rejectItem) {
@@ -181,7 +181,7 @@ class GuildWarAcceptanceMenu(
             
             val war = warService.acceptWarDeclaration(warDeclaration.id, player.uniqueId)
             if (war != null) {
-                player.sendMessage("§a⚔️ War accepted! Battle begins now!")
+                player.sendMessage("§a⚔ War accepted! Battle begins now!")
                 player.sendMessage("§7Duration: §f${war.duration.toDays()} days")
                 if (war.objectives.isNotEmpty()) {
                     player.sendMessage("§7Objectives: §f${war.objectives.size}")
@@ -232,7 +232,7 @@ class GuildWarAcceptanceMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
-            .name("§c⬅️ Back")
+            .name("§c⬅ Back")
             .lore("§7Return to war management")
 
         val guiItem = GuiItem(backItem) {
@@ -254,17 +254,17 @@ class GuildWarAcceptanceMenu(
                 val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§a⚔️ WAR ACCEPTED! ⚔️"),
+                        Component.text("§a⚔ WAR ACCEPTED! ⚔"),
                         Component.text("§7${defendingGuild.name} accepted - BATTLE BEGINS!"),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(4), JavaDuration.ofSeconds(1))
                     ))
                     onlinePlayer.sendMessage("§a═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§a⚔️ WAR DECLARATION ACCEPTED!")
+                    onlinePlayer.sendMessage("§a⚔ WAR DECLARATION ACCEPTED!")
                     onlinePlayer.sendMessage("§7Enemy Guild: §f${defendingGuild.name}")
                     onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
                     onlinePlayer.sendMessage("§7Target: §f${war.objectives.firstOrNull()?.description ?: "No objectives"}")
                     onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§c⚔️ THE BATTLE HAS BEGUN! ⚔️")
+                    onlinePlayer.sendMessage("§c⚔ THE BATTLE HAS BEGUN! ⚔")
                     onlinePlayer.sendMessage("§a═══════════════════════════════════")
                     onlinePlayer.playSound(onlinePlayer.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
                 }
@@ -278,17 +278,17 @@ class GuildWarAcceptanceMenu(
                 val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§c⚔️ WAR BEGINS! ⚔️"),
+                        Component.text("§c⚔ WAR BEGINS! ⚔"),
                         Component.text("§7War against ${declaringGuild.name} - FIGHT!"),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(4), JavaDuration.ofSeconds(1))
                     ))
                     onlinePlayer.sendMessage("§c═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§c⚔️ WAR HAS BEEN DECLARED!")
+                    onlinePlayer.sendMessage("§c⚔ WAR HAS BEEN DECLARED!")
                     onlinePlayer.sendMessage("§7Enemy Guild: §f${declaringGuild.name}")
                     onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
                     onlinePlayer.sendMessage("§7Target: §f${war.objectives.firstOrNull()?.description ?: "No objectives"}")
                     onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§a⚔️ YOUR GUILD ACCEPTED THE CHALLENGE!")
+                    onlinePlayer.sendMessage("§a⚔ YOUR GUILD ACCEPTED THE CHALLENGE!")
                     onlinePlayer.sendMessage("§c═══════════════════════════════════")
                     onlinePlayer.playSound(onlinePlayer.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
                 }
@@ -308,14 +308,14 @@ class GuildWarAcceptanceMenu(
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     // Send title
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§c⚔️ WAR REJECTED ⚔️"),
+                        Component.text("§c⚔ WAR REJECTED ⚔"),
                         Component.text("§7${guild.name} declined your declaration"),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(3), JavaDuration.ofSeconds(1))
                     ))
                     
                     // Send chat messages
                     onlinePlayer.sendMessage("§c═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§c⚔️ WAR DECLARATION REJECTED!")
+                    onlinePlayer.sendMessage("§c⚔ WAR DECLARATION REJECTED!")
                     onlinePlayer.sendMessage("§7")
                     onlinePlayer.sendMessage("§7Guild: §f${guild.name}")
                     onlinePlayer.sendMessage("§7Response: §cDECLINED")

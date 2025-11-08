@@ -12,6 +12,7 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.MenuItemBuilder
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.ColorCodeUtils
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -120,7 +121,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
                 .lore("§cCharacters: §f$characterCount§c/32")
                 .lore("§cReduce length to save")
         } else if (characterCount > 28) {
-            statusItem.name("§e⚠️ TAG NEARLY FULL")
+            statusItem.name("§e⚠ TAG NEARLY FULL")
                 .lore("§7Characters: §f$characterCount§7/32")
                 .lore("§eClose to limit")
         } else {
@@ -136,7 +137,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addTagInputField(pane: StaticPane, x: Int, y: Int) {
         val inputItem = ItemStack(Material.WRITABLE_BOOK)
-            .name("§f✏️ EDIT TAG")
+            .name("§f✏ EDIT TAG")
             .lore("§7Format: MiniMessage supported")
             .lore("§7Examples:")
             .lore("§7  <gradient:#FF0000:#00FF00>MyGuild</gradient>")
@@ -185,7 +186,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         if (validationError != null) {
             // Show error state with unformatted tag
             previewItem.lore("§7[${player.name}] §c$previewTag §7Hello!")
-                .lore("§c⚠️ Preview shows validation error")
+                .lore("§c⚠ Preview shows validation error")
         } else {
             // Show properly formatted tag using MiniMessage
             val formattedTag = renderFormattedTag(previewTag)
@@ -241,14 +242,26 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
             println("[LumaGuilds] TagEditorMenu: Changes detected, proceeding with save...")
 
-            // Save the tag
-            val success = guildService.setTag(guild.id, inputTag, player.uniqueId)
+            // Convert legacy & codes to MiniMessage format before saving
+            val tagToSave = if (inputTag != null) {
+                ColorCodeUtils.convertLegacyToMiniMessage(inputTag!!)
+            } else {
+                null
+            }
+
+            // Save the tag (now in MiniMessage format)
+            val success = guildService.setTag(guild.id, tagToSave, player.uniqueId)
             if (success) {
                 // Update local guild object
-                currentTag = inputTag
+                currentTag = tagToSave
 
                 player.sendMessage("§a✅ Guild tag updated successfully!")
-                player.sendMessage("§7New tag: ${inputTag ?: "§c(cleared)"}")
+                if (tagToSave != null) {
+                    val displayTag = ColorCodeUtils.renderTagForDisplay(tagToSave)
+                    player.sendMessage("§7New tag: $displayTag")
+                } else {
+                    player.sendMessage("§7New tag: §c(cleared)")
+                }
 
                 // Refresh the menu to show updated state
                 open()
@@ -261,7 +274,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addClearButton(pane: StaticPane, x: Int, y: Int) {
         val clearItem = ItemStack(Material.BARRIER)
-            .name("§c🗑️ CLEAR TAG")
+            .name("§c🗑 CLEAR TAG")
             .lore("§7Remove custom tag")
             .lore("§7Will use guild name instead")
 
@@ -283,7 +296,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             .lore("§7Discard changes")
 
         if (isInInputMode()) {
-            cancelItem.name("§c⏹️ CANCEL INPUT")
+            cancelItem.name("§c⏹ CANCEL INPUT")
                 .lore("§7Stop waiting for chat input")
         }
 
@@ -312,7 +325,8 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
         player.sendMessage("§6=== TAG INPUT MODE ===")
         player.sendMessage("§7Type your guild tag in chat.")
-        player.sendMessage("§7Supports MiniMessage formatting:")
+        player.sendMessage("§7Supports both legacy & and MiniMessage:")
+        player.sendMessage("§7  Legacy: &c&lRed Bold")
         player.sendMessage("§7  Colors: <#FF0000>Text</#FF0000>")
         player.sendMessage("§7  Gradients: <gradient:#FF0000:#00FF00>Text</gradient>")
         player.sendMessage("§7  Formatting: <bold>, <italic>, etc.")
@@ -323,13 +337,44 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
 
     private fun validateTag(tag: String): String? {
-        // Basic validation - more advanced validation will be added later
+        // Length validation
         val visibleChars = countVisibleCharacters(tag)
         if (visibleChars > 32) {
             return "Tag too long ($visibleChars/32 characters)"
         }
 
-        // TODO: Add MiniMessage format validation
+        if (tag.trim().isEmpty()) {
+            return "Tag cannot be empty"
+        }
+
+        // MiniMessage format validation
+        // Check for balanced tags
+        val openTags = Regex("<([^/>][^>]*)>").findAll(tag).count()
+        val closeTags = Regex("</[^>]+>").findAll(tag).count()
+
+        // Check for common syntax errors
+        if (tag.contains("<<") || tag.contains(">>")) {
+            return "Invalid tag syntax: double brackets"
+        }
+
+        // Try to parse with MiniMessage
+        try {
+            val miniMessage = MiniMessage.miniMessage()
+            miniMessage.deserialize(tag)
+        } catch (e: Exception) {
+            // Parse the error message to provide helpful feedback
+            val errorMsg = e.message ?: "Invalid format"
+            return when {
+                errorMsg.contains("unclosed", ignoreCase = true) ->
+                    "Unclosed tag (missing closing tag)"
+                errorMsg.contains("unknown tag", ignoreCase = true) ->
+                    "Unknown tag format"
+                errorMsg.contains("invalid", ignoreCase = true) ->
+                    "Invalid MiniMessage syntax"
+                else -> "Format error: ${errorMsg.take(50)}"
+            }
+        }
+
         return null
     }
 
@@ -404,7 +449,9 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             open()
         })
 
-        player.sendMessage("§a✅ Tag set to: '$input'")
+        // Show formatted tag in message
+        val displayTag = ColorCodeUtils.renderTagForDisplay(input)
+        player.sendMessage("§a✅ Tag set to: $displayTag")
         player.sendMessage("§7Click save to apply the changes.")
     }
 

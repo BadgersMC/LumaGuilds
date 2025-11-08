@@ -70,10 +70,10 @@ class BedrockGuildSelectionMenu(
 
                 // Add navigation buttons (only if needed)
                 if (currentPage > 0) {
-                    button("⬅️ Previous Page")
+                    button("⬅ Previous Page")
                 }
                 if (currentPage < totalPages - 1) {
-                    button("➡️ Next Page")
+                    button("➡ Next Page")
                 }
 
                 // Add summary and action buttons
@@ -188,7 +188,7 @@ class BedrockGuildSelectionMenu(
                     1 -> createParty() // Create party
                     2 -> {
                         selectedGuilds.clear()
-                        player.sendMessage("§c🗑️ Cleared all guild selections")
+                        player.sendMessage("§c🗑 Cleared all guild selections")
                         bedrockNavigator.createRefreshHandler(this@BedrockGuildSelectionMenu).run()
                     }
                 }

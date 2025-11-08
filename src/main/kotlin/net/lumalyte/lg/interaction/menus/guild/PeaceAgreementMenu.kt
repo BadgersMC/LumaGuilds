@@ -199,7 +199,7 @@ class PeaceAgreementMenu(
 
         // Back Button
         val backItem = ItemStack(Material.ARROW)
-            .name("§c⬅️ Back")
+            .name("§c⬅ Back")
             .lore("§7Return to war management")
 
         val backGuiItem = GuiItem(backItem) {

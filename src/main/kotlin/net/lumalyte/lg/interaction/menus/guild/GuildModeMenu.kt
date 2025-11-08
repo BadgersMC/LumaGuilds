@@ -108,7 +108,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
             peacefulItem.lore("§7• Safe trading environment")
                 .lore("§7• Prevents war declarations")
                 .lore("§7")
-                .lore("§c⚠︎ Cooldown: ${config.modeSwitchCooldownDays} days")
+                .lore("§c⚠ Cooldown: ${config.modeSwitchCooldownDays} days")
 
             val canSwitch = canSwitchToPeaceful(guild, config.modeSwitchCooldownDays)
             val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
@@ -163,7 +163,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
             hostileItem.lore("§7• Can declare wars")
                 .lore("§7• Competitive gameplay")
                 .lore("§7")
-                .lore("§c⚠︎ Lock: ${config.hostileModeMinimumDays} days")
+                .lore("§c⚠ Lock: ${config.hostileModeMinimumDays} days")
 
             val canSwitch = canSwitchToHostile(guild, config.hostileModeMinimumDays)
             if (!canSwitch) {
@@ -207,7 +207,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addBackButton(pane: StaticPane) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
+            .name("§c⬅ BACK")
             .lore("§7Return to settings")
 
         val backGuiItem = GuiItem(backItem) {

@@ -193,7 +193,10 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             "Banking" to listOf(
                 RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK,
                 RankPermission.VIEW_BANK_TRANSACTIONS, RankPermission.EXPORT_BANK_DATA,
-                RankPermission.MANAGE_BANK_SETTINGS
+                RankPermission.MANAGE_BANK_SETTINGS,
+                RankPermission.PLACE_VAULT, RankPermission.ACCESS_VAULT,
+                RankPermission.DEPOSIT_TO_VAULT, RankPermission.WITHDRAW_FROM_VAULT,
+                RankPermission.MANAGE_VAULT, RankPermission.BREAK_VAULT
             ),
             "Diplomacy" to listOf(
                 RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
@@ -251,7 +254,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             categoryItem.lore("§7")
             when {
                 hasAllPermissions -> categoryItem.lore("§a✅ All permissions enabled")
-                hasAnyPermission -> categoryItem.lore("§e⚠️ Some permissions enabled")
+                hasAnyPermission -> categoryItem.lore("§e⚠ Some permissions enabled")
                 else -> categoryItem.lore("§c❌ No permissions enabled")
             }
             categoryItem.lore("§7")
@@ -322,11 +325,11 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Delete rank
         val deleteItem = ItemStack(Material.TNT)
-            .name("§4🗑️ Delete Rank")
+            .name("§4🗑 Delete Rank")
             .lore("§7Permanently remove this rank")
             .lore("§7Members will be unassigned")
             .lore("§7")
-            .lore("§4⚠️ DESTRUCTIVE ACTION")
+            .lore("§4⚠ DESTRUCTIVE ACTION")
             .lore("§cClick to delete")
 
         val deleteGuiItem = GuiItem(deleteItem) {
@@ -337,7 +340,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Back to rank management
         val backItem = ItemStack(Material.ARROW)
-            .name("§7⬅️ Back")
+            .name("§7⬅ Back")
             .lore("§7Return to rank management")
 
         val backGuiItem = GuiItem(backItem) {

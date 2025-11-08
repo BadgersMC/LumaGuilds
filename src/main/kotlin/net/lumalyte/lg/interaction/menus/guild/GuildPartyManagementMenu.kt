@@ -203,7 +203,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         // Quick info about invite-only system
         val infoItem = ItemStack(Material.KNOWLEDGE_BOOK)
-            .name("§6ℹ️ Invite-Only System")
+            .name("§6ℹ Invite-Only System")
             .lore("§7All parties are invite-only")
             .lore("§7No public party browser")
             .lore("§7Parties coordinate guild events")
@@ -304,7 +304,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         // Back button
         val backItem = ItemStack(Material.ARROW)
-            .name("§c⬅️ Back")
+            .name("§c⬅ Back")
             .lore("§7Return to party management")
 
         val backGuiItem = GuiItem(backItem) {
@@ -375,7 +375,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         // Back button
         val backItem = ItemStack(Material.ARROW)
-            .name("§c⬅️ Back")
+            .name("§c⬅ Back")
             .lore("§7Return to party management")
 
         val backGuiItem = GuiItem(backItem) {

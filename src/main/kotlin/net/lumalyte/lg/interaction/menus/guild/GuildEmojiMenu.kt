@@ -143,7 +143,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     private fun addEmojiInputField(pane: StaticPane, x: Int, y: Int) {
         println("[LumaGuilds] GuildEmojiMenu: Adding emoji input field with current input: '$inputEmoji'")
         val inputItem = ItemStack(Material.WRITABLE_BOOK)
-            .name("§f✏️ SET NEW EMOJI")
+            .name("§f✏ SET NEW EMOJI")
             .lore("§7Format: :emoji_name:")
             .lore("§7Example: :cat:")
             .lore("§7Current input: ${inputEmoji ?: "§c(none)"}")
@@ -163,7 +163,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             chatInputListener.startInputMode(player, EmojiInputHandler(menuNavigator, player, guild, this))
             player.closeInventory()
 
-            player.sendMessage("§e✏️ Enter your guild emoji:")
+            player.sendMessage("§e✏ Enter your guild emoji:")
             player.sendMessage("§7Format: §f:emoji_name: §7(e.g., §f:cat:§7)")
             player.sendMessage("§7Type §c'cancel' §7to cancel")
         }
@@ -201,7 +201,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
         if (validationError != null) {
             previewItem.lore("§7[${player.name}] §c$previewEmoji §7Hello!")
-                .lore("§c⚠️ Preview shows validation error")
+                .lore("§c⚠ Preview shows validation error")
         } else {
             previewItem.lore("§7[${player.name}] $previewEmoji §7Hello!")
                 .lore("§a✅ Preview shows valid format")
@@ -270,7 +270,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addClearButton(pane: StaticPane, x: Int, y: Int) {
         val clearItem = ItemStack(Material.ORANGE_WOOL)
-            .name("§6🗑️ CLEAR EMOJI")
+            .name("§6🗑 CLEAR EMOJI")
             .lore("§7Remove guild emoji")
             .lore("§7Will use no emoji in chat")
 
@@ -303,7 +303,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
-            .name("§e⬅️ BACK")
+            .name("§e⬅ BACK")
             .lore("§7Return to guild settings")
 
         val guiItem = GuiItem(backItem) {
@@ -532,7 +532,7 @@ class EmojiSelectionMenu(
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {
         val prevItem = ItemStack(Material.ARROW)
-            .name("§e⬅️ Previous Page")
+            .name("§e⬅ Previous Page")
             .lore("§7Go to previous page")
 
         val guiItem = GuiItem(prevItem) {
@@ -544,7 +544,7 @@ class EmojiSelectionMenu(
 
     private fun addNextPageButton(pane: StaticPane, x: Int, y: Int) {
         val nextItem = ItemStack(Material.ARROW)
-            .name("§eNext Page ➡️")
+            .name("§eNext Page ➡")
             .lore("§7Go to next page")
 
         val guiItem = GuiItem(nextItem) {
@@ -556,7 +556,7 @@ class EmojiSelectionMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ Back to Emoji Menu")
+            .name("§c⬅ Back to Emoji Menu")
             .lore("§7Return to emoji settings")
 
         val guiItem = GuiItem(backItem) {

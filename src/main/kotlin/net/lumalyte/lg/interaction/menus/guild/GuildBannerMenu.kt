@@ -6,6 +6,7 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
@@ -25,6 +26,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
     private val guildService: GuildService by inject()
     private val bankService: BankService by inject()
+    private val physicalCurrencyService: PhysicalCurrencyService by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
@@ -101,7 +103,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
             } else {
                 // Fallback to white banner if deserialization fails
                 ItemStack(Material.WHITE_BANNER)
-                    .name("§c⚠️ BANNER ERROR")
+                    .name("§c⚠ BANNER ERROR")
                     .lore("§cFailed to load banner data")
                     .lore("§7Contact an administrator")
             }
@@ -149,7 +151,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     private fun addClearBannerButton(pane: StaticPane, x: Int, y: Int) {
         val hasBanner = guild.banner != null
         val clearItem = ItemStack(if (hasBanner) Material.BARRIER else Material.GRAY_DYE)
-            .name(if (hasBanner) "§c🗑️ CLEAR BANNER" else "§7🗑️ CLEAR BANNER")
+            .name(if (hasBanner) "§c🗑 CLEAR BANNER" else "§7🗑 CLEAR BANNER")
             .lore(if (hasBanner) {
                 listOf(
                     "§7Remove the current banner",
@@ -263,8 +265,8 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.ARROW)
-            .name("§c⬅️ BACK")
-            .lore("§7Return to control panel")
+            .name("§c⬅ BACK")
+            .lore("§7Return to main menu")
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -303,17 +305,26 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 copyItem.lore("§c❌ Invalid item material configured")
             }
         } else {
-            // Coin-based cost
-            copyItem.lore("§7Cost: §6$bannerCopyCost coins")
-            copyItem.lore("§7Charged from: §6${if (chargeGuildBank) "Guild Bank" else "Personal Balance"}")
+            // Coin-based cost or physical currency
+            if (chargeGuildBank && physicalCurrencyService.isPhysicalCurrencyEnabled()) {
+                // Physical currency cost
+                val physicalCost = config.bannerCopyPhysicalCost
+                val materialName = physicalCurrencyService.getCurrencyMaterialName()
+                copyItem.lore("§7Cost: §6$physicalCost x ${materialName.lowercase().replace("_", " ")}")
+                copyItem.lore("§7Charged from: §6Guild Vault (Physical Currency)")
+            } else {
+                // Virtual economy cost
+                copyItem.lore("§7Cost: §6$bannerCopyCost coins")
+                copyItem.lore("§7Charged from: §6${if (chargeGuildBank) "Guild Bank" else "Personal Balance"}")
 
-            // Add fee information to lore if charging guild bank
-            if (chargeGuildBank) {
-                val fee = bankService.calculateWithdrawalFee(guild.id, bannerCopyCost)
-                    if (fee > 0) {
-                        val totalCostForDisplay = bannerCopyCost + fee
-                        copyItem.lore("§7Total: §6$totalCostForDisplay coins §7(§6$fee§7 fee)")
-                    }
+                // Add fee information to lore if charging guild bank
+                if (chargeGuildBank) {
+                    val fee = bankService.calculateWithdrawalFee(guild.id, bannerCopyCost)
+                        if (fee > 0) {
+                            val totalCostForDisplay = bannerCopyCost + fee
+                            copyItem.lore("§7Total: §6$totalCostForDisplay coins §7(§6$fee§7 fee)")
+                        }
+                }
             }
         }
 
@@ -375,18 +386,38 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                     false
                 }
             } else if (chargeGuildBank) {
-                // Coin-based payment from guild bank
-                val cost = bannerCopyCost
-                val guildBalance = bankService.getBalance(guild.id)
-                val fee = bankService.calculateWithdrawalFee(guild.id, cost)
-                val totalCost = cost + fee
+                // Coin-based payment from guild bank or physical currency
+                if (physicalCurrencyService.isPhysicalCurrencyEnabled()) {
+                    // Use physical currency
+                    val physicalCost = configService.loadConfig().guild.bannerCopyPhysicalCost
+                    val currentBalance = physicalCurrencyService.calculateVaultCurrencyValue(guild)
 
-                if (guildBalance < totalCost) {
-                    player.sendMessage("§c❌ Guild bank has insufficient funds! (Need: §6$totalCost§c, Have: §6$guildBalance§c)")
-                    return@GuiItem
+                    if (currentBalance < physicalCost) {
+                        player.sendMessage("§c❌ Guild vault has insufficient physical currency! (Need: §6$physicalCost§c, Have: §6$currentBalance§c)")
+                        return@GuiItem
+                    }
+
+                    val deductSuccess = physicalCurrencyService.deductCurrency(guild, physicalCost, "Banner copy purchase")
+                    if (!deductSuccess) {
+                        player.sendMessage("§c❌ Failed to deduct physical currency from guild vault!")
+                        return@GuiItem
+                    }
+
+                    true
+                } else {
+                    // Use virtual economy
+                    val cost = bannerCopyCost
+                    val guildBalance = bankService.getBalance(guild.id)
+                    val fee = bankService.calculateWithdrawalFee(guild.id, cost)
+                    val totalCost = cost + fee
+
+                    if (guildBalance < totalCost) {
+                        player.sendMessage("§c❌ Guild bank has insufficient funds! (Need: §6$totalCost§c, Have: §6$guildBalance§c)")
+                        return@GuiItem
+                    }
+
+                    bankService.deductFromGuildBank(guild.id, totalCost, "Banner copy purchase")
                 }
-
-                bankService.deductFromGuildBank(guild.id, totalCost, "Banner copy purchase")
             } else {
                 // Coin-based payment from player balance
                 val cost = bannerCopyCost

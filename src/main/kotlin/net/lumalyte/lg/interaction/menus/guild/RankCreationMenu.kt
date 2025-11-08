@@ -285,7 +285,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             .lore("§7")
 
         if (selectedPermissions.isNotEmpty()) {
-            previewItem.lore("§e⚙️ Selected Permissions:")
+            previewItem.lore("§e⚙ Selected Permissions:")
             val grouped = groupPermissionsByCategory(selectedPermissions)
             grouped.forEach { (category, perms) ->
                 if (perms.isNotEmpty()) {
@@ -347,7 +347,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
 
         // Clear all
         val clearItem = ItemStack(Material.BARRIER)
-            .name("§c🗑️ Clear All")
+            .name("§c🗑 Clear All")
             .lore("§7Reset all selections")
             .lore("§7")
             .lore("§cClick to clear")
@@ -357,7 +357,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             rankIcon = Material.AIR
             selectedPermissions.clear()
             inputMode = ""
-            player.sendMessage("§e🗑️ Cleared all selections!")
+            player.sendMessage("§e🗑 Cleared all selections!")
             open() // Refresh menu
         }
         pane.addItem(clearGuiItem, 3, 5)
@@ -368,7 +368,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             .lore("§7Return without creating")
 
         val cancelGuiItem = GuiItem(cancelItem) {
-            player.sendMessage("§e⚠️ Rank creation cancelled.")
+            player.sendMessage("§e⚠ Rank creation cancelled.")
             menuNavigator.openMenu(GuildRankManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(cancelGuiItem, 7, 5)

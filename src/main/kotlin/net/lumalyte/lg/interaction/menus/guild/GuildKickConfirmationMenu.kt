@@ -54,7 +54,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addWarningDisplay(pane: StaticPane, x: Int, y: Int) {
         val warningItem = ItemStack(Material.BARRIER)
-            .name("§c⚠️ KICK CONFIRMATION")
+            .name("§c⚠ KICK CONFIRMATION")
             .lore("§cThis action cannot be undone!")
             .lore("§7")
             .lore("§7The player will be immediately")

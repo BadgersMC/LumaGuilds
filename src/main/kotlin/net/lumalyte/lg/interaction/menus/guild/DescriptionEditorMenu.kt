@@ -197,7 +197,19 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
         if (success) {
             player.sendMessage("§a✅ Guild description updated successfully!")
-            player.sendMessage("§7New description: §f${parseMiniMessageForDisplay(description) ?: "§oCleared"}")
+
+            // Show the description with MiniMessage formatting rendered
+            if (description != null) {
+                try {
+                    val miniMessage = MiniMessage.miniMessage()
+                    val component = miniMessage.deserialize("<gray>New description: <reset>$description")
+                    player.sendMessage(component)
+                } catch (e: Exception) {
+                    player.sendMessage("§7New description: §f$description")
+                }
+            } else {
+                player.sendMessage("§7New description: §oCleared")
+            }
 
             // Refresh guild data
             guild = guildService.getGuild(guild.id) ?: guild
@@ -266,8 +278,9 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         return try {
             val miniMessage = MiniMessage.miniMessage()
             val component = miniMessage.deserialize(description)
-            val plainText = PlainTextComponentSerializer.plainText().serialize(component)
-            plainText
+            // Convert to legacy format (§ codes) for menu display
+            val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
+            legacyText
         } catch (e: Exception) {
             description // Fallback to raw text if parsing fails
         }

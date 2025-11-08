@@ -316,4 +316,27 @@ interface WarService {
      * @return true if successful, false otherwise.
      */
     fun updateGuildWarFarmingCooldown(guildId: UUID, endTime: Instant): Boolean
+
+    /**
+     * Checks if a guild is on war declaration cooldown.
+     *
+     * @param guildId The ID of the guild.
+     * @return true if the guild is on cooldown, false otherwise.
+     */
+    fun isGuildOnWarDeclarationCooldown(guildId: UUID): Boolean
+
+    /**
+     * Gets the war declaration cooldown end time for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return The cooldown end time, or null if not on cooldown.
+     */
+    fun getWarDeclarationCooldownEnd(guildId: UUID): Instant?
+
+    /**
+     * Records that a guild has declared war (starts cooldown).
+     *
+     * @param guildId The ID of the guild.
+     */
+    fun recordWarDeclaration(guildId: UUID)
 }

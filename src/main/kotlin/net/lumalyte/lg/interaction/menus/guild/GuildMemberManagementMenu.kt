@@ -130,7 +130,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Previous page button
         val prevItem = ItemStack(Material.ARROW)
-            .name("§f⬅️ PREVIOUS PAGE")
+            .name("§f⬅ PREVIOUS PAGE")
             .lore("§7Go to previous page")
 
         val prevGuiItem = GuiItem(prevItem) {
@@ -143,7 +143,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Next page button
         val nextItem = ItemStack(Material.ARROW)
-            .name("§fNEXT PAGE ➡️")
+            .name("§fNEXT PAGE ➡")
             .lore("§7Go to next page")
 
         val nextGuiItem = GuiItem(nextItem) {
@@ -180,7 +180,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addPromoteDemoteButton(pane: StaticPane, x: Int, y: Int) {
         val promoteItem = ItemStack(Material.GOLDEN_APPLE)
-            .name("§6⬆️ PROMOTE/DEMOTE")
+            .name("§6⬆ PROMOTE/DEMOTE")
             .lore("§7Change member ranks")
             .lore("§7Requires MANAGE_MEMBERS permission")
 
@@ -223,7 +223,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
+            .name("§c⬅ BACK")
             .lore("§7Return to guild control panel")
 
         val backGuiItem = GuiItem(backItem) {

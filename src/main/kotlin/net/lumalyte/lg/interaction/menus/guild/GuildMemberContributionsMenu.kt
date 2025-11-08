@@ -420,14 +420,6 @@ class GuildMemberContributionsMenu(
         // Start async export
         fileExportManager.exportMemberContributionsAsync(player, contributionsToExport, guild.name) { result ->
             when (result) {
-                is FileExportManager.ExportResult.Success -> {
-                    val fileSizeKB = result.fileSize / 1024.0
-                    player.sendMessage("§a✅ Export successful!")
-                    player.sendMessage("§a📄 File: ${result.fileName}")
-                    player.sendMessage("§a📏 Size: ${String.format("%.1f", fileSizeKB)} KB")
-                    player.sendMessage("§e💡 Use §6/bellclaims download ${result.fileName} §eto get the file")
-                    player.sendMessage("§7📝 File will be available for 15 minutes")
-                }
                 is FileExportManager.ExportResult.DiscordSuccess -> {
                     player.sendMessage("§a✅ CSV sent to Discord!")
                     player.sendMessage("§a📄 ${result.message}")
@@ -436,6 +428,7 @@ class GuildMemberContributionsMenu(
                 }
                 is FileExportManager.ExportResult.Error -> {
                     player.sendMessage("§c❌ Export failed: ${result.message}")
+                    player.sendMessage("§7💡 Ask an admin to configure Discord CSV export in the config")
                 }
                 is FileExportManager.ExportResult.RateLimited -> {
                     player.sendMessage("§c⏰ ${result.message}")
@@ -444,6 +437,11 @@ class GuildMemberContributionsMenu(
                 is FileExportManager.ExportResult.FileTooLarge -> {
                     player.sendMessage("§c📏 ${result.message}")
                     player.sendMessage("§7Try filtering your data to reduce file size.")
+                }
+                is FileExportManager.ExportResult.Success -> {
+                    // Obsolete: Local file exports have been removed in favor of Discord-only exports
+                    player.sendMessage("§c❌ Export configuration error")
+                    player.sendMessage("§7💡 Ask an admin to configure Discord CSV export")
                 }
             }
         }

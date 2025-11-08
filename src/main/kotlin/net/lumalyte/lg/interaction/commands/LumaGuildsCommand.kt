@@ -156,7 +156,16 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             return
         }
 
-        val guildName = args.drop(1).joinToString(" ")
+        // Check if this is a confirmation (last arg is "confirm")
+        val isConfirmation = args.size > 2 && args[args.size - 1].equals("confirm", ignoreCase = true)
+
+        // Extract guild name (excluding "confirm" if present)
+        val guildName = if (isConfirmation) {
+            args.slice(1 until args.size - 1).joinToString(" ")
+        } else {
+            args.drop(1).joinToString(" ")
+        }
+
         val guild = guildService.getGuildByName(guildName)
 
         if (guild == null) {
@@ -164,25 +173,25 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             return
         }
 
-        // Confirm the disband
-        sender.sendMessage("§e⚠️ WARNING: You are about to force-disband the guild: §6${guild.name}")
-        sender.sendMessage("§7This will remove all members and delete the guild permanently!")
-        sender.sendMessage("§7Run the command again within 10 seconds to confirm:")
-        sender.sendMessage("§e/bellclaims disband ${guild.name} confirm")
+        if (!isConfirmation) {
+            // Show confirmation prompt
+            sender.sendMessage("§e⚠️ WARNING: You are about to force-disband the guild: §6${guild.name}")
+            sender.sendMessage("§7This will remove all members and delete the guild permanently!")
+            sender.sendMessage("§7Run the command again within 10 seconds to confirm:")
+            sender.sendMessage("§e/bellclaims disband ${guild.name} confirm")
+            return
+        }
 
-        // Check if this is a confirmation
-        if (args.size > 2 && args[args.size - 1].equals("confirm", ignoreCase = true)) {
-            // Perform the disband using console/system UUID
-            val systemUuid = java.util.UUID.fromString("00000000-0000-0000-0000-000000000000")
-            val success = guildService.disbandGuild(guild.id, systemUuid)
+        // Perform the disband using console/system UUID
+        val systemUuid = java.util.UUID.fromString("00000000-0000-0000-0000-000000000000")
+        val success = guildService.disbandGuild(guild.id, systemUuid)
 
-            if (success) {
-                sender.sendMessage("§a✅ Guild '${guild.name}' has been forcefully disbanded!")
-                sender.sendMessage("§7All members have been removed from the guild.")
-            } else {
-                sender.sendMessage("§c❌ Failed to disband guild '${guild.name}'")
-                sender.sendMessage("§7Check server console for errors.")
-            }
+        if (success) {
+            sender.sendMessage("§a✅ Guild '${guild.name}' has been forcefully disbanded!")
+            sender.sendMessage("§7All members have been removed from the guild.")
+        } else {
+            sender.sendMessage("§c❌ Failed to disband guild '${guild.name}'")
+            sender.sendMessage("§7Check server console for errors.")
         }
     }
 

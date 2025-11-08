@@ -52,36 +52,36 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
         gui.addPane(pane)
 
         // Row 1: Core Settings
-        addGuildSettingsButton(pane, 0, 0)
-        addEmojiSettingsButton(pane, 1, 0)
-        addBannerSettingsButton(pane, 2, 0)
-        addModeSettingsButton(pane, 3, 0)
-        addHomeSettingsButton(pane, 4, 0)
+        addGuildSettingsButton(pane, 2, 0)
+        addEmojiSettingsButton(pane, 3, 0)
+        addBannerSettingsButton(pane, 4, 0)
+        addModeSettingsButton(pane, 5, 0)
+        addHomeSettingsButton(pane, 6, 0)
 
         // Row 2: Management
-        addRankManagementButton(pane, 0, 1)
-        addMemberManagementButton(pane, 1, 1)
-        addPartyManagementButton(pane, 2, 1)
-        addWarManagementButton(pane, 3, 1)
-        addRelationManagementButton(pane, 4, 1)
+        addRankManagementButton(pane, 2, 1)
+        addMemberManagementButton(pane, 3, 1)
+        addPartyManagementButton(pane, 4, 1)
+        addWarManagementButton(pane, 5, 1)
+        addRelationManagementButton(pane, 6, 1)
 
         // Row 3: Economy & Stats
-        addBankManagementButton(pane, 0, 2)
-        addStatisticsButton(pane, 1, 2)
-        addProgressionInfoButton(pane, 2, 2)
+        addBankManagementButton(pane, 3, 2)
+        addStatisticsButton(pane, 4, 2)
+        addProgressionInfoButton(pane, 5, 2)
 
         // Row 4: Quick Actions
-        addInvitePlayerButton(pane, 0, 3)
-        addKickPlayerButton(pane, 1, 3)
-        addPromotePlayerButton(pane, 2, 3)
+        addInvitePlayerButton(pane, 3, 3)
+        addKickPlayerButton(pane, 4, 3)
+        addPromotePlayerButton(pane, 5, 3)
 
         // Row 5: Information
-        addGuildInfoButton(pane, 0, 4)
-        addMemberListButton(pane, 1, 4)
-        addRankListButton(pane, 2, 4)
+        addGuildInfoButton(pane, 3, 4)
+        addMemberListButton(pane, 4, 4)
+        addRankListButton(pane, 5, 4)
 
         // Row 6: Danger Zone
-        addDisbandGuildButton(pane, 0, 5)
+        addDisbandGuildButton(pane, 4, 5)
         addLeaveGuildButton(pane, 8, 5)
 
         gui.show(player)
@@ -256,7 +256,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
                 .lore("§7Level: §e1 §7(Starting Level)")
                 .lore("§7XP Progress: §e0§7/§e800 §7(§a0%§7)")
                 .lore("§7")
-                .lore("§c⚠️ Progression system loading...")
+                .lore("§c⚠ Progression system loading...")
                 .lore("§7Try again in a moment")
         }
         
@@ -393,7 +393,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             levelingItem.lore("§7XP Progress: §e0§7/§e800 §7(§a0%§7)")
             levelingItem.lore("§7Unlocked Perks: §a2 §7(Basic perks)")
             levelingItem.lore("§7")
-            levelingItem.lore("§c⚠️ Progression system unavailable")
+            levelingItem.lore("§c⚠ Progression system unavailable")
         }
         
         levelingItem.lore("§7")
@@ -402,18 +402,19 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
         // Guild activities
         levelingItem.lore("§7• §f💰 Bank deposits")
         levelingItem.lore("§7• §f👥 Guild member joins")
-        levelingItem.lore("§7• §f⚔️ War victories")
+        levelingItem.lore("§7• §f⚔ War victories")
         
         // Player activities
-        levelingItem.lore("§7• §f🗡️ Player & mob kills")
+        levelingItem.lore("§7• §f🗡 Player & mob kills")
         levelingItem.lore("§7• §f🌾 Farming & fishing")
-        levelingItem.lore("§7• §f⛏️ Mining & building")
+        levelingItem.lore("§7• §f⛏ Mining & building")
         levelingItem.lore("§7• §f🔨 Crafting & smelting")
+        levelingItem.lore("§7• §f🧪 Brewing")
         levelingItem.lore("§7• §f✨ Enchanting")
 
         // Only show claim-related XP if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore("§7• §f🏞️ Claiming land")
+            levelingItem.lore("§7• §f🏞 Claiming land")
         }
         levelingItem.lore("§7")
         levelingItem.lore("§a🎁 Level Up Rewards:")

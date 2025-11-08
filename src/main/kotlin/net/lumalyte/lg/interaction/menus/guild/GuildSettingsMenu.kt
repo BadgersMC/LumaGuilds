@@ -24,6 +24,7 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import java.time.Duration
 import java.time.Instant
@@ -38,6 +39,9 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
+        // Refresh guild data from database to ensure we have latest changes
+        guild = guildService.getGuild(guild.id) ?: guild
+
         // Create 6x9 double chest GUI
         val gui = ChestGui(6, "§6Guild Settings - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
@@ -81,7 +85,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
         if (currentDescription != null) {
             descItem.lore("§7Status: §aSet")
-                .lore("§7Current: §f\"${parseMiniMessageForDisplay(currentDescription)}\"")
+                .lore("§7Current: §f\"${parseMiniMessageForDisplay(currentDescription)}§r§f\"")
         } else {
             descItem.lore("§7Status: §cNot set")
         }
@@ -158,18 +162,18 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         // Guild activities
         levelingItem.lore("§7• §f💰 Bank deposits")
         levelingItem.lore("§7• §f👥 Guild member joins")
-        levelingItem.lore("§7• §f⚔️ War victories")
+        levelingItem.lore("§7• §f⚔ War victories")
         
         // Player activities
-        levelingItem.lore("§7• §f⚔ Player & mob kills")
-        levelingItem.lore("§7• §f♣ Farming & fishing")
+        levelingItem.lore("§7• §f🗡 Player & mob kills")
+        levelingItem.lore("§7• §f🌾 Farming & fishing")
         levelingItem.lore("§7• §f⛏ Mining & building")
-        levelingItem.lore("§7• §f⚒ Crafting & smelting")
-        levelingItem.lore("§7• §f✦ Enchanting")
+        levelingItem.lore("§7• §f🔨 Crafting & smelting")
+        levelingItem.lore("§7• §f✨ Enchanting")
 
         // Only show claim-related XP if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore("§7• §f🏞️ Claiming land")
+            levelingItem.lore("§7• §f🏞 Claiming land")
         }
         levelingItem.lore("§7")
         levelingItem.lore("§a🎁 Level Up Rewards:")
@@ -247,7 +251,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Guild Tag - NEW FEATURE
         val tagItem = ItemStack(Material.NAME_TAG)
-            .name("§f🏷️ GUILD TAG")
+            .name("§f🏷 GUILD TAG")
             .lore("§7Current: §f${guild.tag ?: "§cNot set"}")
             .lore("§7")
             .lore("§7Click to edit guild tag")
@@ -377,7 +381,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Back button
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
+            .name("§c⬅ BACK")
             .lore("§7Return to control panel")
 
         val backGuiItem = GuiItem(backItem) {
@@ -391,8 +395,9 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         return try {
             val miniMessage = MiniMessage.miniMessage()
             val component = miniMessage.deserialize(description)
-            val plainText = PlainTextComponentSerializer.plainText().serialize(component)
-            plainText
+            // Convert to legacy format (§ codes) for menu display
+            val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
+            legacyText
         } catch (e: Exception) {
             description // Fallback to raw text if parsing fails
         }

@@ -82,7 +82,7 @@ class GuildMemberRankConfirmationMenu(
         // Current rank
         val currentRankItem = if (currentRank != null) {
             ItemStack(Material.RED_CONCRETE)
-                .name("§c⬇️ Current Rank")
+                .name("§c⬇ Current Rank")
                 .lore("§7Rank: §f${currentRank.name}")
                 .lore("§7Priority: §f${currentRank.priority}")
         } else {
@@ -92,15 +92,15 @@ class GuildMemberRankConfirmationMenu(
 
         // New rank
         val newRankItem = ItemStack(Material.GREEN_CONCRETE)
-            .name("§a⬆️ New Rank")
+            .name("§a⬆ New Rank")
             .lore("§7Rank: §f${newRank.name}")
             .lore("§7Priority: §f${newRank.priority}")
 
         // Change direction indicator
         val changeDirection = if (newRank.priority < (currentRank?.priority ?: 0)) {
-            "§a⬆️ PROMOTION"
+            "§a⬆ PROMOTION"
         } else {
-            "§c⬇️ DEMOTION"
+            "§c⬇ DEMOTION"
         }
 
         val summaryItem = ItemStack(Material.BOOK)

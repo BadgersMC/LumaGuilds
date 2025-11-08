@@ -111,7 +111,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addManualInviteButton(pane: StaticPane, x: Int, y: Int) {
         val manualItem = ItemStack(Material.WRITABLE_BOOK)
-            .name("§f✏️ MANUAL INVITE")
+            .name("§f✏ MANUAL INVITE")
             .lore("§7Type a player name to invite")
             .lore("§7Works for offline players too")
 
@@ -135,7 +135,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK")
+            .name("§c⬅ BACK")
             .lore("§7Return to member management")
 
         val backGuiItem = GuiItem(backItem) {

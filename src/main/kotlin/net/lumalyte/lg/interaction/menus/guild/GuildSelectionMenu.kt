@@ -146,7 +146,7 @@ class GuildSelectionMenu(
 
         // Previous page button
         val prevItem = ItemStack(Material.ARROW)
-            .name("§f⬅️ PREVIOUS PAGE")
+            .name("§f⬅ PREVIOUS PAGE")
             .lore("§7Go to previous page")
 
         val prevGuiItem = GuiItem(prevItem) {
@@ -159,7 +159,7 @@ class GuildSelectionMenu(
 
         // Next page button
         val nextItem = ItemStack(Material.ARROW)
-            .name("§fNEXT PAGE ➡️")
+            .name("§fNEXT PAGE ➡")
             .lore("§7Go to next page")
 
         val nextGuiItem = GuiItem(nextItem) {
@@ -190,7 +190,7 @@ class GuildSelectionMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack(Material.BARRIER)
-            .name("§c⬅️ BACK TO CREATION")
+            .name("§c⬅ BACK TO CREATION")
             .lore("§7Return to party creation menu")
 
         val backGuiItem = GuiItem(backItem) {

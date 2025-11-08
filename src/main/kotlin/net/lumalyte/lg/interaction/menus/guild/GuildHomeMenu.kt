@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import net.kyori.adventure.text.Component
@@ -26,19 +27,21 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                    private var guild: Guild): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
-    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
+
+    // Teleportation tracking
+    private data class TeleportSession(
+        val player: Player,
+        val targetLocation: org.bukkit.Location,
+        val startLocation: org.bukkit.Location,
+        var countdownTask: BukkitRunnable? = null,
+        var remainingSeconds: Int = 5
+    )
+
+    private val activeTeleports = mutableMapOf<UUID, TeleportSession>()
 
     override fun open() {
-        // Security check: Only guild members can access home management
-        if (memberService.getMember(player.uniqueId, guild.id) == null) {
-            player.sendMessage("§c❌ You cannot access home settings for a guild you're not a member of!")
-            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
-            return
-        }
-
         val gui = ChestGui(6, "§6Guild Homes - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -144,17 +147,17 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addTeleportButtons(pane: StaticPane, x: Int, y: Int) {
         val allHomes = guildService.getHomes(guild.id)
-        val hasActiveTeleport = teleportationService.hasActiveTeleport(player.uniqueId)
+        val hasActiveTeleport = activeTeleports.containsKey(player.uniqueId)
 
         if (hasActiveTeleport) {
             // Show cancel teleport button
             val cancelItem = ItemStack(Material.CLOCK)
                 .name("§eCancel Teleport")
                 .lore("§7Teleportation in progress...")
-                .lore("§7Click to cancel")
+                .lore("§7Remaining: §f${activeTeleports[player.uniqueId]?.remainingSeconds ?: 0} seconds")
 
             val cancelGuiItem = GuiItem(cancelItem) {
-                teleportationService.cancelTeleport(player.uniqueId)
+                cancelTeleport(player.uniqueId)
                 player.sendMessage("§c❌ Teleportation canceled!")
                 open() // Refresh menu
             }
@@ -201,20 +204,20 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val allHomes = guildService.getHomes(guild.id)
         if (!allHomes.hasHomes()) {
             player.sendMessage("§c❌ No homes to remove.")
-            open() // Return to main home menu
             return
         }
 
-        // Create a simple removal menu
         val gui = ChestGui(4, "§cRemove Guild Homes")
         val pane = StaticPane(0, 0, 9, 4)
+
+        // Prevent moving items in the top or bottom inventory (same as main menu)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
                 guiEvent.isCancelled = true
             }
         }
-
+        
         // List homes for removal
         var slot = 0
         allHomes.homes.forEach { entry ->
@@ -232,9 +235,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     val success = guildService.removeHome(guild.id, name, player.uniqueId)
                     if (success) {
                         player.sendMessage("§a✅ Home '$name' removed!")
-                        // Refresh the guild data
-                        guild = guildService.getGuild(guild.id) ?: guild
-                        showRemoveHomesMenu() // Refresh menu (will auto-close if no homes left)
+                        showRemoveHomesMenu() // Refresh menu
                     } else {
                         player.sendMessage("§c❌ Failed to remove home '$name'.")
                     }
@@ -287,14 +288,11 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         )
 
         // Check if location is safe (if safety check is enabled)
-        if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
-            val safetyResult = net.lumalyte.lg.utils.GuildHomeSafety.evaluateSafety(location)
-            if (!safetyResult.safe) {
-                player.sendMessage("§c❌ This location is not safe to set as guild home!")
-                player.sendMessage("§7Try setting your home on solid ground with space above you.")
-                open() // Reopen menu to show current state
-                return
-            }
+        if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(location)) {
+            player.sendMessage("§c❌ This location is not safe to set as guild home!")
+            player.sendMessage("§7Try setting your home on solid ground with space above you.")
+            open() // Reopen menu to show current state
+            return
         }
 
         val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
@@ -302,7 +300,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
             player.sendMessage("§a✅ Guild $homeLabel set to your current location!")
             player.sendMessage("§7Members can now use §6/guild home ${if (homeName == "main") "" else homeName}§7to teleport here.")
-            player.sendMessage("§7Location: §f${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}")
+            player.sendMessage("§7Location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
 
             // Refresh the guild data and reopen menu
             guild = guildService.getGuild(guild.id) ?: guild
@@ -324,13 +322,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(guiItem, x, y)
     }
 
-    private fun startTeleportCountdown(home: GuildHome, bypassSafety: Boolean = false) {
-        // Security check: Verify player is still a member before teleporting
-        if (memberService.getMember(player.uniqueId, guild.id) == null) {
-            player.sendMessage("§c❌ You cannot teleport to a guild home you don't belong to!")
-            return
-        }
-
+    private fun startTeleportCountdown(home: GuildHome) {
         val world = Bukkit.getWorld(home.worldId)
         if (world == null) {
             player.sendMessage("§c❌ Could not find the world for guild home.")
@@ -346,68 +338,116 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             player.location.pitch
         )
 
-        // Check if target location is safe (if safety check is enabled and not bypassed)
-        if (!bypassSafety && configService.loadConfig().guild.homeTeleportSafetyCheck) {
-            val safetyResult = net.lumalyte.lg.utils.GuildHomeSafety.evaluateSafety(targetLocation)
-            if (!safetyResult.safe) {
-                // Show confirmation menu for unsafe teleport
-                showUnsafeTeleportConfirmation(home, safetyResult.reason ?: "Unknown reason")
-                return
+        // Check if target location is safe (if safety check is enabled)
+        if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(targetLocation)) {
+            player.sendMessage("§c❌ Guild home location is not safe to teleport to!")
+            player.sendMessage("§7Try setting your home on solid ground with space above you.")
+            return
+        }
+
+        // Cancel any existing teleport
+        cancelTeleport(player.uniqueId)
+
+        val session = TeleportSession(
+            player = player,
+            targetLocation = targetLocation,
+            startLocation = player.location.clone(),
+            remainingSeconds = 5
+        )
+
+        activeTeleports[player.uniqueId] = session
+
+        player.sendMessage("§e⏰ Teleportation countdown started! Don't move for 5 seconds...")
+        player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
+
+        val countdownTask = object : BukkitRunnable() {
+            override fun run() {
+                val currentSession = activeTeleports[player.uniqueId] ?: return
+
+                // Check if player moved
+                if (hasPlayerMoved(currentSession)) {
+                    cancelTeleport(player.uniqueId)
+                    player.sendMessage("§c❌ Teleportation canceled - you moved!")
+                    return
+                }
+
+                currentSession.remainingSeconds--
+
+                if (currentSession.remainingSeconds <= 0) {
+                    // Teleport the player
+                    player.teleport(currentSession.targetLocation)
+                    player.sendMessage("§a✅ Teleported to guild home!")
+                    player.sendActionBar(Component.text("§aTeleported to guild home!"))
+
+                    // Clean up
+                    activeTeleports.remove(player.uniqueId)
+                } else {
+                    // Update action bar
+                    player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
+                }
             }
         }
 
-        // Start teleport via shared service
-        teleportationService.startTeleport(player, targetLocation)
+        session.countdownTask = countdownTask
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            ?: return // Plugin not found, cannot schedule countdown
+        countdownTask.runTaskTimer(plugin, 20L, 20L) // Every second
     }
 
-    private fun showUnsafeTeleportConfirmation(home: GuildHome, reason: String) {
-        val gui = ChestGui(3, "§c⚠ Unsafe Teleport Warning")
-        val pane = StaticPane(0, 0, 9, 3)
-        gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-        gui.setOnBottomClick { guiEvent ->
-            if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
-                guiEvent.isCancelled = true
-            }
-        }
+    private fun cancelTeleport(playerId: UUID) {
+        val session = activeTeleports[playerId] ?: return
 
-        // Warning info display
-        val warningItem = ItemStack(Material.YELLOW_BANNER)
-            .name("§c⚠ Safety Warning")
-            .lore("§7This guild home location")
-            .lore("§7appears to be unsafe:")
-            .lore("§c$reason")
-            .lore("§7")
-            .lore("§7You may take damage or die")
-            .lore("§7if you teleport here!")
+        session.countdownTask?.cancel()
+        activeTeleports.remove(playerId)
+    }
 
-        pane.addItem(GuiItem(warningItem), 4, 0)
+    private fun hasPlayerMoved(session: TeleportSession): Boolean {
+        val currentLocation = session.player.location
+        val startLocation = session.startLocation
 
-        // Confirm button (teleport anyway)
-        val confirmItem = ItemStack(Material.RED_CONCRETE)
-            .name("§c⚠ Teleport Anyway")
-            .lore("§7Click to proceed with teleport")
-            .lore("§cWarning: This may be dangerous!")
+        // Check if player moved more than 0.1 blocks in any direction
+        return Math.abs(currentLocation.x - startLocation.x) > 0.1 ||
+               Math.abs(currentLocation.y - startLocation.y) > 0.1 ||
+               Math.abs(currentLocation.z - startLocation.z) > 0.1 ||
+               currentLocation.world != startLocation.world
+    }
 
-        val confirmGuiItem = GuiItem(confirmItem) {
-            // Teleport with safety check bypassed
-            startTeleportCountdown(home, bypassSafety = true)
-        }
-        pane.addItem(confirmGuiItem, 3, 1)
+    private fun isLocationSafe(location: org.bukkit.Location): Boolean {
+        val block = location.block
+        val blockBelow = location.clone().subtract(0.0, 1.0, 0.0).block
+        val blockAbove = location.clone().add(0.0, 1.0, 0.0).block
 
-        // Cancel button
-        val cancelItem = ItemStack(Material.GREEN_CONCRETE)
-            .name("§a✓ Cancel")
-            .lore("§7Return to home menu")
-            .lore("§7(Recommended)")
+        // Define dangerous materials that should prevent teleportation
+        val dangerousMaterials = setOf(
+            org.bukkit.Material.LAVA,
+            org.bukkit.Material.FIRE,
+            org.bukkit.Material.SOUL_FIRE,
+            org.bukkit.Material.CACTUS,
+            org.bukkit.Material.SWEET_BERRY_BUSH,
+            org.bukkit.Material.POINTED_DRIPSTONE,
+            org.bukkit.Material.MAGMA_BLOCK
+        )
 
-        val cancelGuiItem = GuiItem(cancelItem) {
-            // Return to home menu
-            open()
-        }
-        pane.addItem(cancelGuiItem, 5, 1)
+        // Check if location has safe ground and space to stand
+        val hasSafeGround = blockBelow.type.isSolid || blockBelow.type == org.bukkit.Material.GRASS_BLOCK ||
+                           blockBelow.type == org.bukkit.Material.DIRT || blockBelow.type == org.bukkit.Material.COARSE_DIRT ||
+                           blockBelow.type == org.bukkit.Material.PODZOL || blockBelow.type == org.bukkit.Material.SAND ||
+                           blockBelow.type == org.bukkit.Material.RED_SAND || blockBelow.type == org.bukkit.Material.GRAVEL ||
+                           blockBelow.type == org.bukkit.Material.STONE || blockBelow.type == org.bukkit.Material.COBBLESTONE
 
-        gui.addPane(pane)
-        gui.show(player)
+        val hasSpaceToStand = !block.type.isSolid || block.type == org.bukkit.Material.SHORT_GRASS ||
+                             block.type == org.bukkit.Material.TALL_GRASS || block.type == org.bukkit.Material.FERN ||
+                             block.type == org.bukkit.Material.LARGE_FERN
+
+        val hasHeadSpace = !blockAbove.type.isSolid || blockAbove.type == org.bukkit.Material.SHORT_GRASS ||
+                          blockAbove.type == org.bukkit.Material.TALL_GRASS || blockAbove.type == org.bukkit.Material.FERN ||
+                          blockAbove.type == org.bukkit.Material.LARGE_FERN
+
+        val noDangerousBlocks = !dangerousMaterials.contains(blockBelow.type) &&
+                               !dangerousMaterials.contains(block.type) &&
+                               !dangerousMaterials.contains(blockAbove.type)
+
+        return hasSafeGround && hasSpaceToStand && hasHeadSpace && noDangerousBlocks
     }
 
     override fun passData(data: Any?) {

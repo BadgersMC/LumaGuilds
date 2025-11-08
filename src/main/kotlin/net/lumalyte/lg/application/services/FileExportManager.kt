@@ -107,15 +107,19 @@ class FileExportManager(
                 if (discordCsvService != null) {
                     discordCsvService.sendTransactionCsvAsync(player, transactions, guildName) { result ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
-                            // Discord service handles its own success/failure
-                            // If Discord fails, fall back to local file
-                            callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
+                            if (result.isSuccess) {
+                                // Discord succeeded - inform player to check Discord
+                                callback(ExportResult.DiscordSuccess("CSV file has been sent to Discord! Check your guild's Discord channel."))
+                            } else {
+                                // Discord failed - return error
+                                callback(ExportResult.Error("Discord export failed: ${result.exceptionOrNull()?.message ?: "Unknown error"}"))
+                            }
                         })
                     }
                 } else {
-                    // Fall back to Minecraft book
+                    // Discord not configured - should not happen if checks are correct
                     Bukkit.getScheduler().runTask(plugin, Runnable {
-                        callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
+                        callback(ExportResult.Error("Export service not properly configured"))
                     })
                 }
 
@@ -178,15 +182,19 @@ class FileExportManager(
                 if (discordCsvService != null) {
                     discordCsvService.sendContributionsCsvAsync(player, contributions, guildName) { result ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
-                            // Discord service handles its own success/failure
-                            // If Discord fails, fall back to local file
-                            callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
+                            if (result.isSuccess) {
+                                // Discord succeeded - inform player to check Discord
+                                callback(ExportResult.DiscordSuccess("CSV file has been sent to Discord! Check your guild's Discord channel."))
+                            } else {
+                                // Discord failed - return error
+                                callback(ExportResult.Error("Discord export failed: ${result.exceptionOrNull()?.message ?: "Unknown error"}"))
+                            }
                         })
                     }
                 } else {
-                    // Fall back to Minecraft book
+                    // Discord not configured - should not happen if checks are correct
                     Bukkit.getScheduler().runTask(plugin, Runnable {
-                        callback(ExportResult.Success(fileName, csvContent.toByteArray().size))
+                        callback(ExportResult.Error("Export service not properly configured"))
                     })
                 }
 
@@ -203,7 +211,8 @@ class FileExportManager(
     }
 
     private fun isConfigured(): Boolean {
-        return csvExportService != null
+        // Require Discord to be configured - we no longer support local file exports for players
+        return discordCsvService != null && discordCsvService.isConfigured()
     }
 
     private fun checkRateLimit(playerId: UUID): Boolean {

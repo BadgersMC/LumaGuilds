@@ -7,6 +7,7 @@ import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
+import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
@@ -33,6 +34,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val rankService: RankService by inject()
     private val memberService: MemberService by inject()
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by inject()
+    private val warService: net.lumalyte.lg.application.services.WarService by inject()
     private val getClaimAtPosition: GetClaimAtPosition by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: MenuFactory by inject()
@@ -393,6 +395,39 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
+        // Check if already in that mode
+        if (guild.mode == guildMode) {
+            player.sendMessage("§c❌ Guild is already in ${guildMode.name.lowercase().replaceFirstChar { it.uppercase() }} mode!")
+            return
+        }
+
+        // Validate cooldown based on which mode we're switching to
+        if (guildMode == GuildMode.PEACEFUL) {
+            // Switching TO peaceful - check cooldown
+            val canSwitch = canSwitchToPeaceful(guild, mainConfig.guild.modeSwitchCooldownDays)
+            val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
+
+            if (hasActiveWar) {
+                player.sendMessage("§c❌ Cannot switch to peaceful mode during active war!")
+                return
+            }
+
+            if (!canSwitch) {
+                val cooldownMsg = getCooldownMessage(guild, mainConfig.guild.modeSwitchCooldownDays)
+                player.sendMessage("§c❌ $cooldownMsg")
+                return
+            }
+        } else if (guildMode == GuildMode.HOSTILE) {
+            // Switching TO hostile - check minimum peaceful days
+            val canSwitch = canSwitchToHostile(guild, mainConfig.guild.hostileModeMinimumDays)
+
+            if (!canSwitch) {
+                val lockMsg = getHostileLockMessage(guild, mainConfig.guild.hostileModeMinimumDays)
+                player.sendMessage("§c❌ $lockMsg")
+                return
+            }
+        }
+
         val success = guildService.setMode(guild.id, guildMode, playerId)
 
         if (success) {
@@ -400,6 +435,50 @@ class GuildCommand : BaseCommand(), KoinComponent {
         } else {
             player.sendMessage("§c❌ Failed to change guild mode. You may not have permission.")
         }
+    }
+
+    private fun canSwitchToPeaceful(guild: Guild, cooldownDays: Int): Boolean {
+        val modeChanged = guild.modeChangedAt ?: return true
+
+        val cooldownEnd = modeChanged.plus(java.time.Duration.ofDays(cooldownDays.toLong()))
+        return java.time.Instant.now().isAfter(cooldownEnd)
+    }
+
+    private fun canSwitchToHostile(guild: Guild, minimumDays: Int): Boolean {
+        if (guild.mode != GuildMode.PEACEFUL) return true
+
+        val modeChanged = guild.modeChangedAt ?: return true
+
+        val lockEnd = modeChanged.plus(java.time.Duration.ofDays(minimumDays.toLong()))
+        return java.time.Instant.now().isAfter(lockEnd)
+    }
+
+    private fun getCooldownMessage(guild: Guild, cooldownDays: Int): String {
+        val modeChanged = guild.modeChangedAt ?: return "No previous changes"
+
+        val cooldownEnd = modeChanged.plus(java.time.Duration.ofDays(cooldownDays.toLong()))
+        val remaining = java.time.Duration.between(java.time.Instant.now(), cooldownEnd)
+
+        if (remaining.isNegative) return "Cooldown expired"
+
+        val days = remaining.toDays()
+        val hours = remaining.toHours() % 24
+
+        return "${days}d ${hours}h until you can switch to Peaceful"
+    }
+
+    private fun getHostileLockMessage(guild: Guild, minimumDays: Int): String {
+        val modeChanged = guild.modeChangedAt ?: return "No previous changes"
+
+        val lockEnd = modeChanged.plus(java.time.Duration.ofDays(minimumDays.toLong()))
+        val remaining = java.time.Duration.between(java.time.Instant.now(), lockEnd)
+
+        if (remaining.isNegative) return "Lock expired"
+
+        val days = remaining.toDays()
+        val hours = remaining.toHours() % 24
+
+        return "${days}d ${hours}h until you can switch to Hostile"
     }
     
     @Subcommand("info")

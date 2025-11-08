@@ -264,7 +264,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         // Back to rank edit
         val backItem = ItemStack(Material.ARROW)
-            .name("§7⬅️ Back")
+            .name("§7⬅ Back")
             .lore("§7Return to rank editing")
             .lore("§7(changes will be saved)")
 
