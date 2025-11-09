@@ -23,6 +23,7 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import net.kyori.adventure.text.Component
+import net.lumalyte.lg.utils.CombatUtil
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -589,6 +590,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @CommandCompletion("@players @guilds")
     fun onInvite(player: Player, targetPlayerName: String) {
         val playerId = player.uniqueId
+        player.server.logger.info("Player : ${player} tried to invite ${targetPlayerName}")
+
 
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
@@ -596,6 +599,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§cYou are not in a guild.")
             return
         }
+        player.server.logger.info("bugrock guild : ${guilds}")
 
         val guild = guilds.first()
 
@@ -607,6 +611,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Find target player
         val targetPlayer = player.server.getPlayer(targetPlayerName)
+        player.server.logger.info("target player : ${targetPlayer}")
         if (targetPlayer == null) {
             player.sendMessage("§cPlayer '$targetPlayerName' is not online.")
             return
@@ -634,6 +639,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @CommandCompletion("@guilds")
     fun onJoin(player: Player, guildName: String) {
         val playerId = player.uniqueId
+        player.server.logger.info("Guild '${guildName}' Person who tried joining: ${player.name}")
 
         // Check if player is already in a guild
         val currentGuilds = guildService.getPlayerGuilds(playerId)
@@ -1111,6 +1117,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Cancel any existing teleport
         cancelTeleport(playerId)
+
+        if (CombatUtil.isInCombat(player)){
+            player.sendMessage("§e◷ Cannot teleport in combat.")
+            return
+        }
 
         val session = TeleportSession(
             player = player,

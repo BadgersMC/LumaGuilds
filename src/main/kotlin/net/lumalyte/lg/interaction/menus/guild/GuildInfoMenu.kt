@@ -3,6 +3,10 @@ package net.lumalyte.lg.interaction.menus.guild
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import io.papermc.paper.datacomponent.DataComponentTypes
+import io.papermc.paper.datacomponent.item.ResolvableProfile
+import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
@@ -18,12 +22,13 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.slf4j.ILoggerFactory
+import java.io.Console
 import java.time.format.DateTimeFormatter
-import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+
 
 class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                    private var guild: Guild): Menu, KoinComponent {
@@ -80,7 +85,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         if (guild.tag != null) {
-            overviewItem.lore("§7Tag: §f${guild.tag}")
+            val parsedTag = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(guild.tag!!)
+            overviewItem.lore("§7Tag: §f${parsedTag}")
         }
 
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -118,11 +124,14 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         members.forEachIndexed { index, member ->
             if (index < 3) { // Show only first 3 members to fit
                 val rank = rankService.getPlayerRank(member.playerId, guild.id)
-                val playerName = Bukkit.getPlayer(member.playerId)?.name ?: "Unknown Player"
+                val playerName = Bukkit.getOfflinePlayer(member.playerId)?.name ?: "Unknown Player"
                 val memberItem = ItemStack(Material.PLAYER_HEAD)
                     .name("§f$playerName")
                     .lore("§7Rank: §f${rank?.name ?: "Member"}")
 
+                memberItem.setData(
+                    DataComponentTypes.PROFILE,
+                    ResolvableProfile.resolvableProfile().uuid(member.playerId));
                 pane.addItem(GuiItem(memberItem), x, y + 1 + index)
             }
         }
