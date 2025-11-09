@@ -9,38 +9,22 @@ version = "0.4.0"
 repositories {
     mavenLocal()
     mavenCentral()
-    maven {
-        url = uri("https://repo.papermc.io/repository/maven-public/")
-    }
-    maven {
-        url = uri("https://oss.sonatype.org/content/repositories/snapshots")
-    }
-    maven {
-        url = uri("https://oss.sonatype.org/content/repositories/central")
-    }
-    maven {
-        url = uri("https://repo.aikar.co/content/groups/aikar/")
-    }
-    maven {
-        url = uri("https://jitpack.io")
-    }
-    maven {
-        name = "codemc-snapshots"
-        url = uri("https://repo.codemc.io/repository/maven-snapshots/")
-    }
-    maven {
-        name = "opencollab-snapshot"
-        url = uri("https://repo.opencollab.dev/main/")
-    }
-    maven {
-        name = "spigotmc-repo"
-        url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
-    }
+    maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
+    maven("https://oss.sonatype.org/content/repositories/central")
+    maven("https://repo.aikar.co/content/groups/aikar/")
+    maven("https://jitpack.io")
+    maven("https://repo.codemc.io/repository/maven-snapshots/")
+    maven("https://repo.opencollab.dev/main/")
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven {
         name = "artillex-studios"
         url = uri("https://repo.artillex-studios.com/releases/")
     }
-
+    maven {
+        name = "sirblobman-public"
+        url = uri("https://nexus.sirblobman.xyz/public/")
+    }
 }
 
 dependencies {
@@ -52,38 +36,38 @@ dependencies {
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
+
     compileOnly("io.papermc.paper:paper-api:1.21.5-R0.1-SNAPSHOT")
     shadow("org.jetbrains.kotlin:kotlin-stdlib")
-    implementation ("org.slf4j:slf4j-nop:2.0.13")
+
+    implementation("org.slf4j:slf4j-nop:2.0.13")
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
     implementation("co.aikar:idb-core:1.0.0-SNAPSHOT")
     implementation("com.github.stefvanschie.inventoryframework:IF:0.11.3")
     implementation("io.insert-koin:koin-core:4.0.2")
     implementation("org.json:json:20240303")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
+
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
     }
     compileOnly("com.github.placeholderapi:placeholderapi:2.11.6")
     compileOnly("com.artillexstudios:AxKothAPI:4")
 
-    // Bedrock menu system dependencies - using local JARs from libs/
-    compileOnly(files("libs/geyser-api-2.7.0-SNAPSHOT.jar"))
-    compileOnly(files("libs/floodgate-api-2.2.4-SNAPSHOT.jar"))
-    // Use compileOnly so we link against Floodgate's Cumulus at runtime to avoid classloader conflicts
-    compileOnly(files("libs/cumulus-2.0.0-SNAPSHOT.jar"))
-    compileOnly(files("libs/events-1.1-SNAPSHOT.jar"))
-    compileOnly(files("libs/base-api-1.0.1.jar"))
-    compileOnly(files("libs/common-2.2.1-SNAPSHOT.jar"))
-    testImplementation("com.github.MilkBowl:VaultAPI:1.7") {
-        exclude(group = "org.bukkit", module = "bukkit")
-    }
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
+    // geyser
+    compileOnly("org.geysermc.geyser:api:2.7.0-SNAPSHOT")
+    compileOnly("org.geysermc.floodgate:api:2.2.4-SNAPSHOT")
+    compileOnly("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
 
-    // Adventure API for modern text formatting (included with PaperMC)
+    //adventure
     compileOnly("net.kyori:adventure-api:4.17.0")
     compileOnly("net.kyori:adventure-text-minimessage:4.17.0")
+
+    //combatlogX api
+    compileOnly("com.github.sirblobman.api:core:2.9-SNAPSHOT")
+    compileOnly("com.github.sirblobman.combatlogx:api:11.6-SNAPSHOT")
 
 }
 
@@ -98,18 +82,14 @@ tasks.test {
 tasks.shadowJar {
     archiveBaseName.set("LumaGuilds")
     archiveClassifier.set("")
-    archiveVersion.set("0.4.0")
+    archiveVersion.set("0.5.0")
 
-    // Include runtime dependencies
     mergeServiceFiles()
 
-    // Relocate dependencies to avoid conflicts with other plugins
-    // Note: Not relocating coroutines and Koin as they are commonly used and shouldn't conflict
     relocate("com.zaxxer.hikari", "net.lumalyte.lg.shaded.hikari")
     relocate("co.aikar.commands", "net.lumalyte.lg.shaded.acf")
     relocate("co.aikar.idb", "net.lumalyte.lg.shaded.idb")
 
-    // Exclude files that cause conflicts
     exclude("META-INF/maven/**")
     exclude("META-INF/versions/**")
     exclude("**/module-info.class")

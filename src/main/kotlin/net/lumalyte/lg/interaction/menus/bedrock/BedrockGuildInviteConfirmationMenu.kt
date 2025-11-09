@@ -3,10 +3,12 @@ package net.lumalyte.lg.interaction.menus.bedrock
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.infrastructure.services.GuildInvitationManager
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu
+import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
@@ -56,12 +58,26 @@ class BedrockGuildInviteConfirmationMenu(
             return
         }
 
+        GuildInvitationManager.addInvite(
+            guildId = guild.id,
+            guildName = guild.name,
+            invitedPlayerId = targetPlayer.uniqueId,
+            inviterPlayerId = player.uniqueId,
+            inviterName = player.name
+        )
+
         // Send invitation message
-        player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.sent.success", targetPlayer.name))
-        targetPlayer.sendMessage(bedrockLocalization.getBedrockString(targetPlayer, "guild.invite.message.title"))
-        targetPlayer.sendMessage(bedrockLocalization.getBedrockString(targetPlayer, "guild.invite.message.from", player.name, guild.name))
-        targetPlayer.sendMessage(bedrockLocalization.getBedrockString(targetPlayer, "guild.invite.message.join", guild.name))
-        targetPlayer.sendMessage(bedrockLocalization.getBedrockString(targetPlayer, "guild.invite.message.decline", guild.name))
+        player.sendMessage("§a✅ Invitation sent to ${targetPlayer.name}!")
+        player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f)
+
+        targetPlayer.sendMessage("")
+        targetPlayer.sendMessage("§6§l📨 GUILD INVITATION")
+        targetPlayer.sendMessage("§7${player.name} invited you to join §6${guild.name}§7!")
+        targetPlayer.sendMessage("")
+        targetPlayer.sendMessage("§7To accept: §a/guild join ${guild.name}")
+        targetPlayer.sendMessage("§7To decline: §c/guild decline ${guild.name}")
+        targetPlayer.sendMessage("")
+        targetPlayer.playSound(targetPlayer.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
 
         // TODO: Store invitation in database for later acceptance
         // For now, just show the message
