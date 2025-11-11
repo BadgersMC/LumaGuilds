@@ -147,7 +147,7 @@ class GuildMemberRankMenu(
 
         head.setData(
             DataComponentTypes.PROFILE,
-            ResolvableProfile.resolvableProfile().uuid(targetMember.playerId));
+            ResolvableProfile.resolvableProfile().uuid(targetMember.playerId).build())
 
         val meta = head.itemMeta as SkullMeta
 

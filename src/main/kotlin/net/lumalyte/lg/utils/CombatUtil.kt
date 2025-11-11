@@ -17,7 +17,7 @@ object CombatUtil {
     }
 
     fun isInCombat(player: Player): Boolean {
-        val plugin: ICombatLogX = getAPI()!!
+        val plugin: ICombatLogX = getAPI() ?: return false
         val combatManager = plugin.getCombatManager()
         return combatManager.isInCombat(player)
     }
