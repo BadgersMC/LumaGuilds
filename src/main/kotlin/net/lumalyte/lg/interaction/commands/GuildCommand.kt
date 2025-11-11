@@ -609,8 +609,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Find target player
-        val targetPlayer = player.server.getPlayer(targetPlayerName)
+        // Find target player - handle Floodgate prefix
+        val targetPlayer = findPlayerByName(targetPlayerName)
         player.server.logger.info("target player : ${targetPlayer}")
         if (targetPlayer == null) {
             player.sendMessage("§cPlayer '$targetPlayerName' is not online.")
@@ -781,8 +781,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Find target player
-        val targetPlayer = player.server.getPlayer(targetPlayerName)
+        // Find target player - handle Floodgate prefix
+        val targetPlayer = findPlayerByName(targetPlayerName)
         if (targetPlayer == null) {
             player.sendMessage("§cPlayer '$targetPlayerName' is not online.")
             return
@@ -911,8 +911,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Find target player
-        val targetPlayer = player.server.getPlayerExact(targetPlayerName)
+        // Find target player - handle Floodgate prefix
+        val targetPlayer = findPlayerByName(targetPlayerName)
         if (targetPlayer == null) {
             player.sendMessage("§cPlayer '$targetPlayerName' not found or is not online.")
             return
@@ -1189,6 +1189,34 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     private fun isLocationSafe(location: org.bukkit.Location): Boolean {
         return GuildHomeSafety.evaluateSafety(location).safe
+    }
+
+    /**
+     * Find a player by name, handling Floodgate prefixes for Bedrock players.
+     * Tries normal lookup first, then with Floodgate prefix if available.
+     */
+    private fun findPlayerByName(playerName: String): Player? {
+        // Try normal lookup first
+        var targetPlayer = Bukkit.getServer().getPlayer(playerName)
+        if (targetPlayer != null) {
+            return targetPlayer
+        }
+
+        // Try with Floodgate prefix if available
+        try {
+            val floodgateApi = org.geysermc.floodgate.api.FloodgateApi.getInstance()
+            val prefix = floodgateApi.playerPrefix
+
+            // Try lookup with prefix
+            targetPlayer = Bukkit.getServer().getPlayer("$prefix$playerName")
+            if (targetPlayer != null) {
+                return targetPlayer
+            }
+        } catch (e: Exception) {
+            // Floodgate not available or failed - that's okay
+        }
+
+        return null
     }
 
     @Subcommand("getvault")

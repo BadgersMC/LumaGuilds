@@ -79,9 +79,6 @@ class BedrockGuildInviteConfirmationMenu(
         targetPlayer.sendMessage("")
         targetPlayer.playSound(targetPlayer.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
 
-        // TODO: Store invitation in database for later acceptance
-        // For now, just show the message
-
         // Return to member management menu
         bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
     }
