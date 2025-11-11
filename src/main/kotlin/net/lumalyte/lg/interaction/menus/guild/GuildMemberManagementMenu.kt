@@ -104,7 +104,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         head.setData(
             DataComponentTypes.PROFILE,
-            ResolvableProfile.resolvableProfile().uuid(member.playerId));
+            ResolvableProfile.resolvableProfile().uuid(member.playerId).build())
         val meta = head.itemMeta as SkullMeta
 
         // Try to get player name from online players or cache

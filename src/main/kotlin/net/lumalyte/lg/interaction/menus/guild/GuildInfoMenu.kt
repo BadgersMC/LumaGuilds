@@ -25,8 +25,6 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import org.slf4j.ILoggerFactory
-import java.io.Console
 import java.time.format.DateTimeFormatter
 
 
@@ -131,7 +129,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
                 memberItem.setData(
                     DataComponentTypes.PROFILE,
-                    ResolvableProfile.resolvableProfile().uuid(member.playerId));
+                    ResolvableProfile.resolvableProfile().uuid(member.playerId).build())
                 pane.addItem(GuiItem(memberItem), x, y + 1 + index)
             }
         }

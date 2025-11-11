@@ -75,7 +75,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
         head.setData(
             DataComponentTypes.PROFILE,
-            ResolvableProfile.resolvableProfile().uuid(memberToKick.playerId));
+            ResolvableProfile.resolvableProfile().uuid(memberToKick.playerId).build())
 
         val meta = head.itemMeta as SkullMeta
 

@@ -99,7 +99,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         head.setData(
             DataComponentTypes.PROFILE,
-            ResolvableProfile.resolvableProfile().uuid(member.playerId));
+            ResolvableProfile.resolvableProfile().uuid(member.playerId).build())
 
         val meta = head.itemMeta as SkullMeta
 
