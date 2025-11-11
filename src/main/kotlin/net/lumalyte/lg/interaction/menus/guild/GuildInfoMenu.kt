@@ -122,7 +122,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         members.forEachIndexed { index, member ->
             if (index < 3) { // Show only first 3 members to fit
                 val rank = rankService.getPlayerRank(member.playerId, guild.id)
-                val playerName = Bukkit.getOfflinePlayer(member.playerId)?.name ?: "Unknown Player"
+                val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown Player"
                 val memberItem = ItemStack(Material.PLAYER_HEAD)
                     .name("§f$playerName")
                     .lore("§7Rank: §f${rank?.name ?: "Member"}")

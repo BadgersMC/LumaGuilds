@@ -108,7 +108,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         val meta = head.itemMeta as SkullMeta
 
         // Try to get player name from online players or cache
-        val playerName = Bukkit.getOfflinePlayer(member.playerId)?.name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown Player"
 
 
         head.itemMeta = meta
