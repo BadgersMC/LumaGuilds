@@ -3,6 +3,8 @@ package net.lumalyte.lg.interaction.menus.guild
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import io.papermc.paper.datacomponent.DataComponentTypes
+import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -99,21 +101,15 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun createMemberHead(member: Member): ItemStack {
         val head = ItemStack(Material.PLAYER_HEAD)
+
+        head.setData(
+            DataComponentTypes.PROFILE,
+            ResolvableProfile.resolvableProfile().uuid(member.playerId));
         val meta = head.itemMeta as SkullMeta
 
         // Try to get player name from online players or cache
-        val playerName = Bukkit.getPlayer(member.playerId)?.name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(member.playerId)?.name ?: "Unknown Player"
 
-        // Set skull owner using Craftatar API URL
-        try {
-            val skullMeta = meta as SkullMeta
-            // Use Craftatar API for player heads
-            val textureUrl = "https://craftatar.com/avatars/${member.playerId}?size=64&default=MHF_Steve&overlay"
-            // Note: In a real implementation, you'd need to set the skull texture properly
-            // This is a simplified version - you'd need skull texture utilities
-        } catch (e: Exception) {
-            // Fallback if skull texture setting fails
-        }
 
         head.itemMeta = meta
 

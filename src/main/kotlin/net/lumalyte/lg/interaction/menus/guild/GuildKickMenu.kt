@@ -3,6 +3,8 @@ package net.lumalyte.lg.interaction.menus.guild
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import io.papermc.paper.datacomponent.DataComponentTypes
+import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -94,21 +96,15 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun createMemberKickItem(member: Member): ItemStack {
         val head = ItemStack(Material.PLAYER_HEAD)
+
+        head.setData(
+            DataComponentTypes.PROFILE,
+            ResolvableProfile.resolvableProfile().uuid(member.playerId));
+
         val meta = head.itemMeta as SkullMeta
 
         // Try to get player name from online players
-        val playerName = Bukkit.getPlayer(member.playerId)?.name ?: "Unknown Player"
-
-        // Set skull owner
-        try {
-            val skullMeta = meta as SkullMeta
-            val onlinePlayer = Bukkit.getPlayer(member.playerId)
-            if (onlinePlayer != null) {
-                skullMeta.owningPlayer = onlinePlayer
-            }
-        } catch (e: Exception) {
-            // Fallback if skull texture setting fails
-        }
+        val playerName = Bukkit.getOfflinePlayer(member.playerId)?.name ?: "Unknown Player"
 
         head.itemMeta = meta
 

@@ -3,6 +3,8 @@ package net.lumalyte.lg.interaction.menus.guild
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import io.papermc.paper.datacomponent.DataComponentTypes
+import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -70,21 +72,15 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addMemberInfo(pane: StaticPane, x: Int, y: Int) {
         val head = ItemStack(Material.PLAYER_HEAD)
+
+        head.setData(
+            DataComponentTypes.PROFILE,
+            ResolvableProfile.resolvableProfile().uuid(memberToKick.playerId));
+
         val meta = head.itemMeta as SkullMeta
 
-        // Try to get player name from online players
-        val playerName = Bukkit.getPlayer(memberToKick.playerId)?.name ?: "Unknown Player"
-
-        // Set skull owner
-        try {
-            val skullMeta = meta as SkullMeta
-            val onlinePlayer = Bukkit.getPlayer(memberToKick.playerId)
-            if (onlinePlayer != null) {
-                skullMeta.owningPlayer = onlinePlayer
-            }
-        } catch (e: Exception) {
-            // Fallback if skull texture setting fails
-        }
+        // Try to get player name from all players
+        val playerName = Bukkit.getOfflinePlayer(memberToKick.playerId)?.name ?: "Unknown Player"
 
         head.itemMeta = meta
 
@@ -123,7 +119,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun performKick() {
         val targetPlayer = Bukkit.getPlayer(memberToKick.playerId)
-        val targetName = targetPlayer?.name ?: "Unknown Player"
+        val targetName = Bukkit.getOfflinePlayer(memberToKick.playerId)?.name ?: "Unknown Player"
 
         // Perform the kick
         val success = memberService.removeMember(memberToKick.playerId, guild.id, player.uniqueId)
