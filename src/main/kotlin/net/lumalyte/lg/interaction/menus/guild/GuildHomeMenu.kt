@@ -13,6 +13,7 @@ import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import net.kyori.adventure.text.Component
+import net.lumalyte.lg.utils.CombatUtil
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -347,6 +348,11 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Cancel any existing teleport
         cancelTeleport(player.uniqueId)
+
+        if (CombatUtil.isInCombat(player)){
+            player.sendMessage("§e◷ Cannot teleport in combat.")
+            return
+        }
 
         val session = TeleportSession(
             player = player,

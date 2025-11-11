@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import com.github.sirblobman.combatlogx.api.ICombatLogX
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -7,8 +8,10 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import net.lumalyte.lg.utils.CombatUtil
+
 
 /**
  * Centralized service for managing guild home teleportation countdowns.
@@ -37,6 +40,11 @@ class TeleportationService(private val plugin: Plugin) {
 
         // Cancel any existing teleport
         cancelTeleport(playerId)
+
+        if (CombatUtil.isInCombat(player)){
+            player.sendMessage("§e◷ Cannot teleport in combat.")
+            return false
+        }
 
         val session = TeleportSession(
             player = player,
