@@ -69,7 +69,7 @@ class GuildMemberRankMenu(
         pane.addItem(GuiItem(headItem), 0, 0)
 
         // Member info
-        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId)?.name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
         val infoItem = ItemStack(Material.PAPER)
             .name("§f👤 Member Info")
             .lore("§7Player: §f$playerName")
@@ -151,7 +151,7 @@ class GuildMemberRankMenu(
 
         val meta = head.itemMeta as SkullMeta
 
-        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId)?.name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
 
         head.itemMeta = meta
 

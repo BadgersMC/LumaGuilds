@@ -80,7 +80,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
         val meta = head.itemMeta as SkullMeta
 
         // Try to get player name from all players
-        val playerName = Bukkit.getOfflinePlayer(memberToKick.playerId)?.name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(memberToKick.playerId).name ?: "Unknown Player"
 
         head.itemMeta = meta
 
