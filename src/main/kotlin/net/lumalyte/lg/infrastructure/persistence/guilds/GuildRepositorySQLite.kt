@@ -1,17 +1,20 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.persistence.getInstant
+import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class GuildRepositorySQLite(private val storage: SQLiteStorage) : GuildRepository {
+class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepository {
     
     private val guilds: MutableMap<UUID, Guild> = mutableMapOf()
     
@@ -70,8 +73,8 @@ class GuildRepositorySQLite(private val storage: SQLiteStorage) : GuildRepositor
         val level = rs.getInt("level")
         val bankBalance = rs.getInt("bank_balance")
         val mode = GuildMode.valueOf(rs.getString("mode").uppercase())
-        val modeChangedAt = rs.getString("mode_changed_at")?.let { Instant.parse(it) }
-        val createdAt = Instant.parse(rs.getString("created_at"))
+        val modeChangedAt = rs.getInstant("mode_changed_at")
+        val createdAt = rs.getInstantNotNull("created_at")
 
         val homes = if (rs.getString("home_world") != null) {
             val worldId = UUID.fromString(rs.getString("home_world"))
@@ -98,7 +101,7 @@ class GuildRepositorySQLite(private val storage: SQLiteStorage) : GuildRepositor
             createdAt = createdAt
         )
     }
-    
+
     override fun getAll(): Set<Guild> = guilds.values.toSet()
     
     override fun getById(id: UUID): Guild? = guilds[id]

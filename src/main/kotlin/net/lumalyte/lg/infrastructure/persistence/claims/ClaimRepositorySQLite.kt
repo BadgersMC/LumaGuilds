@@ -1,15 +1,17 @@
 package net.lumalyte.lg.infrastructure.persistence.claims
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.domain.values.Position3D
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.time.Instant
 import java.util.*
 
-class ClaimRepositorySQLite(private val storage: SQLiteStorage): ClaimRepository {
+class ClaimRepositorySQLite(private val storage: Storage<Database>): ClaimRepository {
     val claims: MutableMap<UUID, Claim> = mutableMapOf()
 
     init {

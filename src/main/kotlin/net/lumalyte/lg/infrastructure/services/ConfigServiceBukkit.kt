@@ -7,6 +7,8 @@ import org.bukkit.configuration.file.FileConfiguration
 class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService {
     override fun loadConfig(): MainConfig {
         return MainConfig(
+            databaseType = config.getString("database_type", "sqlite") ?: "sqlite",
+            mariadb = loadMariaDBConfig(),
             claimsEnabled = config.getBoolean("claims_enabled", true),
             partiesEnabled = config.getBoolean("parties_enabled", true),
             claimLimit = config.getInt("claim_limit"),
@@ -31,7 +33,24 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             party = loadPartyConfig()
         )
     }
-    
+
+    private fun loadMariaDBConfig(): MariaDBConfig {
+        return MariaDBConfig(
+            host = config.getString("mariadb.host", "localhost") ?: "localhost",
+            port = config.getInt("mariadb.port", 3306),
+            database = config.getString("mariadb.database", "lumaguilds") ?: "lumaguilds",
+            username = config.getString("mariadb.username", "root") ?: "root",
+            password = config.getString("mariadb.password", "password") ?: "password",
+            pool = MariaDBPoolConfig(
+                maximumPoolSize = config.getInt("mariadb.pool.maximum_pool_size", 10),
+                minimumIdle = config.getInt("mariadb.pool.minimum_idle", 2),
+                connectionTimeout = config.getLong("mariadb.pool.connection_timeout", 30000),
+                idleTimeout = config.getLong("mariadb.pool.idle_timeout", 600000),
+                maxLifetime = config.getLong("mariadb.pool.max_lifetime", 1800000)
+            )
+        )
+    }
+
     private fun loadGuildConfig(): GuildConfig {
         return GuildConfig(
             maxNameLength = config.getInt("guild.max_name_length", 32),

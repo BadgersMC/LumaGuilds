@@ -6,6 +6,30 @@
 # =====================================
 
 # =====================================
+# Database Configuration
+# =====================================
+
+# Database type: sqlite or mariadb
+# sqlite: Simple file-based database (good for testing/small servers)
+# mariadb: Production-grade MySQL/MariaDB database (recommended for production)
+database_type: sqlite
+
+# MariaDB/MySQL configuration (only used if database_type is mariadb)
+mariadb:
+  host: localhost
+  port: 3306
+  database: lumaguilds
+  username: root
+  password: password
+  # Advanced connection pool settings
+  pool:
+    maximum_pool_size: 10
+    minimum_idle: 2
+    connection_timeout: 30000
+    idle_timeout: 600000
+    max_lifetime: 1800000
+
+# =====================================
 # Core Claims Configuration
 # =====================================
 

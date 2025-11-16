@@ -1,8 +1,10 @@
 package net.lumalyte.lg.infrastructure.persistence
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.persistence.AuditRepository
 import net.lumalyte.lg.domain.entities.AuditRecord
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
@@ -14,7 +16,7 @@ import java.util.UUID
  * providing efficient storage and retrieval for audit trails.
  */
 class AuditRepositorySQLite(
-    private val storage: SQLiteStorage
+    private val storage: Storage<Database>
 ) : AuditRepository {
     
     private val logger = LoggerFactory.getLogger(javaClass)

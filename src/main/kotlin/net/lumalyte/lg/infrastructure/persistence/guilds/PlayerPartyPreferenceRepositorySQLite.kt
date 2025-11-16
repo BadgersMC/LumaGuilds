@@ -1,14 +1,17 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import net.lumalyte.lg.domain.entities.PlayerPartyPreference
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class PlayerPartyPreferenceRepositorySQLite(private val storage: SQLiteStorage) : PlayerPartyPreferenceRepository {
+class PlayerPartyPreferenceRepositorySQLite(private val storage: Storage<Database>) : PlayerPartyPreferenceRepository {
 
     private val preferences = mutableMapOf<UUID, PlayerPartyPreference>()
 
@@ -51,7 +54,7 @@ class PlayerPartyPreferenceRepositorySQLite(private val storage: SQLiteStorage) 
         return PlayerPartyPreference(
             playerId = UUID.fromString(rs.getString("player_id")),
             partyId = UUID.fromString(rs.getString("party_id")),
-            setAt = Instant.parse(rs.getString("set_at"))
+            setAt = rs.getInstantNotNull("set_at")
         )
     }
 

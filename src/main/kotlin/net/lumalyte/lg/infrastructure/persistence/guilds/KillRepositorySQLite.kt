@@ -1,16 +1,19 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.KillRepository
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.domain.values.Position3D
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository {
+class KillRepositorySQLite(private val storage: Storage<Database>) : KillRepository {
 
     private val logger = LoggerFactory.getLogger(KillRepositorySQLite::class.java)
 
@@ -91,11 +94,6 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
             )
         """.trimIndent()
 
-        // Create indices for performance
-        val killsIndexSql = "CREATE INDEX IF NOT EXISTS idx_kills_timestamp ON kills(timestamp)"
-        val killsGuildIndexSql = "CREATE INDEX IF NOT EXISTS idx_kills_guilds ON kills(killer_guild_id, victim_guild_id)"
-        val killsPlayerIndexSql = "CREATE INDEX IF NOT EXISTS idx_kills_players ON kills(killer_id, victim_id)"
-
         try {
             logger.info("Creating kill database tables...")
             storage.connection.executeUpdate(killsTableSql)
@@ -106,6 +104,15 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
             logger.debug("Created player_kill_stats table")
             storage.connection.executeUpdate(antiFarmTableSql)
             logger.debug("Created anti_farm_data table")
+
+            // Run migrations to add any missing columns to existing tables
+            migrateTables()
+
+            // Create indices for performance
+            val killsIndexSql = "CREATE INDEX IF NOT EXISTS idx_kills_timestamp ON kills(timestamp)"
+            val killsGuildIndexSql = "CREATE INDEX IF NOT EXISTS idx_kills_guilds ON kills(killer_guild_id, victim_guild_id)"
+            val killsPlayerIndexSql = "CREATE INDEX IF NOT EXISTS idx_kills_players ON kills(killer_id, victim_id)"
+
             storage.connection.executeUpdate(killsIndexSql)
             logger.debug("Created kills timestamp index")
             storage.connection.executeUpdate(killsGuildIndexSql)
@@ -116,6 +123,71 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
         } catch (e: SQLException) {
             logger.error("Failed to create kill tables: ${e.message}", e)
             throw DatabaseOperationException("Failed to create kill tables: ${e.message}", e)
+        }
+    }
+
+    private fun migrateTables() {
+        try {
+            logger.info("Running database migrations...")
+
+            // Migration 1: Add all missing columns to kills table
+            migrateKillsTableColumns()
+
+            logger.info("Database migrations completed successfully")
+        } catch (e: SQLException) {
+            logger.error("Failed to run database migrations: ${e.message}", e)
+            throw DatabaseOperationException("Failed to run database migrations: ${e.message}", e)
+        }
+    }
+
+    private fun migrateKillsTableColumns() {
+        // Define all columns that should exist in the kills table
+        val requiredColumns = listOf(
+            "killer_guild_id" to "TEXT",
+            "victim_guild_id" to "TEXT",
+            "weapon" to "TEXT",
+            "location_world" to "TEXT",
+            "location_x" to "REAL",
+            "location_y" to "REAL",
+            "location_z" to "REAL"
+        )
+
+        val missingColumns = mutableListOf<Pair<String, String>>()
+
+        // Check which columns are missing
+        for ((columnName, columnType) in requiredColumns) {
+            if (!columnExists(columnName)) {
+                missingColumns.add(columnName to columnType)
+            }
+        }
+
+        if (missingColumns.isNotEmpty()) {
+            logger.info("Adding ${missingColumns.size} missing columns to kills table: ${missingColumns.map { it.first }.joinToString(", ")}")
+
+            // Add each missing column
+            for ((columnName, columnType) in missingColumns) {
+                try {
+                    storage.connection.executeUpdate("ALTER TABLE kills ADD COLUMN $columnName $columnType")
+                    logger.debug("Added column: $columnName")
+                } catch (e: SQLException) {
+                    logger.warn("Failed to add column $columnName (may already exist): ${e.message}")
+                }
+            }
+
+            logger.info("Successfully added missing columns to kills table")
+        } else {
+            logger.debug("All required columns exist in kills table")
+        }
+    }
+
+    private fun columnExists(columnName: String): Boolean {
+        return try {
+            // Try to query the column - if it succeeds, the column exists
+            storage.connection.getFirstRow("SELECT $columnName FROM kills LIMIT 1")
+            true
+        } catch (e: SQLException) {
+            // Column doesn't exist
+            false
         }
     }
 
@@ -161,7 +233,7 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
                     totalDeaths = result.getInt("total_deaths"),
                     netKills = result.getInt("net_kills"),
                     killDeathRatio = result.getString("kill_death_ratio")?.toDouble() ?: 0.0,
-                    lastUpdated = Instant.parse(result.getString("last_updated"))
+                    lastUpdated = result.getInstantNotNull("last_updated")
                 )
                 guildStats[guildId] = stats
             }
@@ -215,7 +287,7 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
                     playerId = playerId,
                     recentKills = recentKills,
                     farmScore = result.getString("farm_score")?.toDouble() ?: 0.0,
-                    lastFarmCheck = Instant.parse(result.getString("last_farm_check")),
+                    lastFarmCheck = result.getInstantNotNull("last_farm_check"),
                     isCurrentlyFarming = result.getInt("is_currently_farming") == 1
                 )
                 antiFarmData[playerId] = data
@@ -241,7 +313,7 @@ class KillRepositorySQLite(private val storage: SQLiteStorage) : KillRepository 
             victimId = UUID.fromString(rs.getString("victim_id")),
             killerGuildId = rs.getString("killer_guild_id")?.let { UUID.fromString(it) },
             victimGuildId = rs.getString("victim_guild_id")?.let { UUID.fromString(it) },
-            timestamp = Instant.parse(rs.getString("timestamp")),
+            timestamp = rs.getInstantNotNull("timestamp"),
             weapon = rs.getString("weapon"),
             worldId = worldId,
             location = location

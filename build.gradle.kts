@@ -42,6 +42,7 @@ dependencies {
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
     implementation("com.zaxxer:HikariCP:5.1.0")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.3.2")
     implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
     implementation("co.aikar:idb-core:1.0.0-SNAPSHOT")
     implementation("com.github.stefvanschie.inventoryframework:IF:0.11.3")

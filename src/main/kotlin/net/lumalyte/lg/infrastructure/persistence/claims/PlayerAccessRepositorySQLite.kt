@@ -1,13 +1,15 @@
 package net.lumalyte.lg.infrastructure.persistence.claims
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.PlayerAccessRepository
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.domain.values.ClaimPermission
 import java.sql.SQLException
 import java.util.*
 
-class PlayerAccessRepositorySQLite(private val storage: SQLiteStorage): PlayerAccessRepository {
+class PlayerAccessRepositorySQLite(private val storage: Storage<Database>): PlayerAccessRepository {
     private val playerAccess: MutableMap<UUID, MutableMap<UUID, MutableSet<ClaimPermission>>> = mutableMapOf()
 
     init {

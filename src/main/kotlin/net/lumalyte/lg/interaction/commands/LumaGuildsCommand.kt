@@ -3,6 +3,8 @@ package net.lumalyte.lg.interaction.commands
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.FileExportManager
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.infrastructure.persistence.migrations.DatabaseMigrationUtility
+import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -10,6 +12,7 @@ import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.io.File
 import java.nio.file.Files
 import kotlin.io.path.exists
 
@@ -38,6 +41,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             "cancel" -> handleCancelExport(sender, args)
             "reload" -> handleReload(sender)
             "disband" -> handleDisband(sender, args)
+            "migrate" -> handleMigrate(sender, args)
             "help" -> showHelp(sender)
             else -> {
                 sender.sendMessage("§cUnknown subcommand: ${args[0]}")
@@ -234,6 +238,118 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     }
 
     /**
+     * Handle database migration from SQLite to MariaDB
+     */
+    private fun handleMigrate(sender: CommandSender, args: Array<out String>) {
+        // Check permissions - only console or ops can migrate
+        if (sender is Player && !sender.isOp) {
+            sender.sendMessage("§c❌ You don't have permission to migrate databases!")
+            return
+        }
+
+        // Check if this is a confirmation
+        val isConfirmation = args.size > 1 && args[1].equals("confirm", ignoreCase = true)
+
+        if (!isConfirmation) {
+            // Show confirmation prompt
+            sender.sendMessage("§e⚠️ WARNING: Database Migration (SQLite → MariaDB)")
+            sender.sendMessage("§7This will copy all data from SQLite to MariaDB.")
+            sender.sendMessage("§7")
+            sender.sendMessage("§7Prerequisites:")
+            sender.sendMessage("§7  1. MariaDB must be configured in config.yml")
+            sender.sendMessage("§7  2. MariaDB must be running and accessible")
+            sender.sendMessage("§7  3. The MariaDB database schema must be initialized")
+            sender.sendMessage("§7     (Start server with database_type: mariadb first)")
+            sender.sendMessage("§7")
+            sender.sendMessage("§c⚠️ WARNING: This will DELETE all existing data in MariaDB!")
+            sender.sendMessage("§7")
+            sender.sendMessage("§7Run the command again to confirm:")
+            sender.sendMessage("§e/bellclaims migrate confirm")
+            return
+        }
+
+        // Get plugin instance
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds") as? LumaGuilds
+        if (plugin == null) {
+            sender.sendMessage("§c❌ LumaGuilds plugin not found!")
+            return
+        }
+
+        // Get MariaDB configuration
+        val config = plugin.config
+        val host = config.getString("mariadb.host", "localhost") ?: "localhost"
+        val port = config.getInt("mariadb.port", 3306)
+        val database = config.getString("mariadb.database", "lumaguilds") ?: "lumaguilds"
+        val username = config.getString("mariadb.username", "root") ?: "root"
+        val password = config.getString("mariadb.password", "password") ?: "password"
+
+        // Get SQLite file
+        val sqliteFile = File(plugin.dataFolder, "lumaguilds.db")
+        if (!sqliteFile.exists()) {
+            sender.sendMessage("§c❌ SQLite database not found: ${sqliteFile.absolutePath}")
+            sender.sendMessage("§7Cannot migrate - no source database!")
+            return
+        }
+
+        sender.sendMessage("§e🔄 Starting database migration...")
+        sender.sendMessage("§7From: SQLite (${sqliteFile.name})")
+        sender.sendMessage("§7To: MariaDB ($host:$port/$database)")
+        sender.sendMessage("§7")
+        sender.sendMessage("§c⚠️ DO NOT stop the server during migration!")
+
+        // Run migration asynchronously to avoid blocking
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+            try {
+                val migrator = DatabaseMigrationUtility(
+                    plugin = plugin,
+                    sqliteFile = sqliteFile,
+                    mariadbHost = host,
+                    mariadbPort = port,
+                    mariadbDatabase = database,
+                    mariadbUsername = username,
+                    mariadbPassword = password
+                )
+
+                val report = migrator.migrate()
+
+                // Print report to console (synchronously)
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    report.printReport(plugin.logger)
+
+                    if (report.success) {
+                        sender.sendMessage("§a✅ Migration completed successfully!")
+                        sender.sendMessage("§7Migrated ${report.migratedTables.size} tables with ${report.totalRows} total rows")
+                        sender.sendMessage("§7")
+                        sender.sendMessage("§6📝 Next steps:")
+                        sender.sendMessage("§7  1. Verify the data in MariaDB")
+                        sender.sendMessage("§7  2. Update config.yml: database_type: mariadb")
+                        sender.sendMessage("§7  3. Restart the server")
+                        sender.sendMessage("§7  4. Test thoroughly before going to production")
+                        sender.sendMessage("§7")
+                        sender.sendMessage("§e💾 Your SQLite database is still intact as a backup!")
+                    } else {
+                        sender.sendMessage("§c❌ Migration failed!")
+                        sender.sendMessage("§7Check server console for details")
+                        if (report.errors.isNotEmpty()) {
+                            sender.sendMessage("§7Errors:")
+                            report.errors.forEach { error ->
+                                sender.sendMessage("§c  - $error")
+                            }
+                        }
+                    }
+                })
+
+            } catch (e: Exception) {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    sender.sendMessage("§c❌ Migration failed with exception: ${e.message}")
+                    plugin.logger.severe("Migration exception: ${e.message}")
+                    e.printStackTrace()
+                })
+            }
+        })
+    }
+
+    /**
      * Show help message
      */
     private fun showHelp(sender: CommandSender) {
@@ -243,10 +359,12 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage("§e/bellclaims cancel <filename> §7- Cancel an active export")
         sender.sendMessage("§e/bellclaims reload §7- Reload plugin configuration (OP only)")
         sender.sendMessage("§e/bellclaims disband <guild> confirm §7- Force disband a guild (OP only)")
+        sender.sendMessage("§e/bellclaims migrate confirm §7- Migrate SQLite → MariaDB (OP only)")
         sender.sendMessage("§e/bellclaims help §7- Show this help")
         sender.sendMessage("§7💡 Export files are available for 15 minutes")
         sender.sendMessage("§7🔧 Reload command is for development - some changes require server restart")
         sender.sendMessage("§7⚠️ Disband is for emergency use only - removes all members!")
+        sender.sendMessage("§7🔄 Migrate transfers all data from SQLite to MariaDB (requires confirmation)")
     }
 
     /**
@@ -326,7 +444,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         if (sender !is Player) return mutableListOf()
 
         return when (args.size) {
-            1 -> mutableListOf("download", "exports", "cancel", "reload", "disband", "help").filter { it.startsWith(args[0]) }.toMutableList()
+            1 -> mutableListOf("download", "exports", "cancel", "reload", "disband", "migrate", "help").filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "download", "cancel" -> {
                     fileExportManager.getActiveExports(sender.uniqueId)
@@ -340,6 +458,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                         .filter { it.contains(args[1], ignoreCase = true) }
                         .toMutableList()
                 }
+                "migrate" -> mutableListOf("confirm")
                 else -> mutableListOf()
             }
             3 -> when (args[0].lowercase()) {

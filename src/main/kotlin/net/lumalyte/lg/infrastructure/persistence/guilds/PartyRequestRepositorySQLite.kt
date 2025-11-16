@@ -1,15 +1,18 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.PartyRequestRepository
 import net.lumalyte.lg.domain.entities.PartyRequest
 import net.lumalyte.lg.domain.entities.PartyRequestStatus
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class PartyRequestRepositorySQLite(private val storage: SQLiteStorage) : PartyRequestRepository {
+class PartyRequestRepositorySQLite(private val storage: Storage<Database>) : PartyRequestRepository {
     
     private val requests: MutableMap<UUID, PartyRequest> = mutableMapOf()
     
@@ -64,8 +67,8 @@ class PartyRequestRepositorySQLite(private val storage: SQLiteStorage) : PartyRe
             requesterId = UUID.fromString(rs.getString("requester_id")),
             message = rs.getString("message"),
             status = PartyRequestStatus.valueOf(rs.getString("status")),
-            createdAt = Instant.parse(rs.getString("created_at")),
-            expiresAt = Instant.parse(rs.getString("expires_at"))
+            createdAt = rs.getInstantNotNull("created_at"),
+            expiresAt = rs.getInstantNotNull("expires_at")
         )
     }
     

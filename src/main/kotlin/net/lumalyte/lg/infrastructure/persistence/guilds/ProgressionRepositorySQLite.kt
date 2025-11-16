@@ -1,5 +1,7 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.persistence.ActivityMetricType
@@ -7,12 +9,12 @@ import net.lumalyte.lg.application.persistence.ProgressionStats
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.application.services.ExperienceSource
 import net.lumalyte.lg.application.services.PerkType
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class ProgressionRepositorySQLite(private val storage: SQLiteStorage) : ProgressionRepository {
+class ProgressionRepositorySQLite(private val storage: Storage<Database>) : ProgressionRepository {
 
     private val guildProgressions: MutableMap<UUID, GuildProgression> = mutableMapOf()
     private val activityMetrics: MutableMap<UUID, GuildActivityMetrics> = mutableMapOf()
