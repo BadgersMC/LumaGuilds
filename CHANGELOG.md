@@ -1,8 +1,82 @@
 # Changelog
 
-## [Unreleased] - 2025-11-11
+## [Unreleased] - 2025-11-15
+
+### ✨ Features
+
+- **MariaDB/MySQL Production Database Support**
+  - Added full MariaDB/MySQL database support for production deployments
+  - Created MariaDBStorage with HikariCP connection pooling
+  - Implemented MariaDBMigrations system with version tracking
+  - Added database configuration to config.yml (database_type, mariadb settings)
+  - Supports connection pool tuning (max pool size, connection timeout, etc.)
+  - Optimized for MariaDB with proper character encoding (utf8mb4)
+
+- **Database Migration Utility**
+  - New `/bellclaims migrate confirm` command to transfer SQLite → MariaDB
+  - Migrates all guild data, claims, progression, and audit logs
+  - Handles datetime format conversions automatically (ISO-8601 → MariaDB DATETIME)
+  - Transaction-based with automatic rollback on failure
+  - Preserves original SQLite database as backup
+  - Detects and migrates only common columns between schemas
+  - Provides detailed migration report with row counts per table
+
+- **Guild Invitation Persistence**
+  - Guild invitations now stored in database (previously in-memory)
+  - Invitations persist across server restarts
+  - Created GuildInvitation domain entity
+  - Created GuildInvitationRepository interface and SQLite implementation
+  - Added SQLite migration v10 → v11 for guild_invitations table
+  - Integrated with existing GuildInvitationManager
+
+### 🏗️ Architecture
+
+- **Database-Agnostic Repository Pattern**
+  - Refactored 21 repositories to accept `Storage<Database>` instead of `SQLiteStorage`
+  - Repositories now work seamlessly with both SQLite and MariaDB
+  - Updated dependency injection (Modules.kt) to properly handle generic storage
+  - Removed unsafe type casts with proper generic type handling
+  - Files affected: All guild, claim, partition, and audit repositories
+
+### 🐛 Bug Fixes
+
+- **Plugin Shutdown Crash**
+  - Fixed UninitializedPropertyAccessException when plugin fails to start
+  - Added initialization check for pluginScope before cancellation in onDisable()
+  - Prevents secondary crash when database connection fails
+
+- **MariaDB Connection Parameter Compatibility**
+  - Fixed Property cacheResultSetMetadata does not exist error
+  - Removed MySQL Connector/J-specific parameters incompatible with MariaDB JDBC driver
+  - Kept only MariaDB-compatible optimizations (useServerPrepStmts, rewriteBatchedStatements)
+
+### 🔧 Technical Changes
+
+- **Dependencies**
+  - Added org.mariadb.jdbc:mariadb-java-client:3.3.2 for MariaDB support
+
+- **Configuration Updates**
+  - Added MainConfig.MariaDBConfig data class
+  - Added MainConfig.MariaDBPoolConfig data class
+  - ConfigServiceBukkit now loads MariaDB configuration from config.yml
+
+- **Migration System**
+  - SQLite uses PRAGMA user_version for schema versioning
+  - MariaDB uses schema_version table for version tracking
+  - Both systems support incremental migrations
+
+### 📊 Migration Statistics
+
+The migration utility successfully handles:
+- 21 tables across guild, claim, and audit systems
+- Automatic datetime format conversion
+- Foreign key dependency ordering
+- Schema compatibility checking
+- Column mismatch detection and reporting
 
 ### 🔒 Security Fixes
+
+
 
 - **Critical: Unauthorized Guild Access Exploit** (ae06eeb, eab6cd2)
   - Fixed exploit allowing players to access other guilds' control panels and home locations

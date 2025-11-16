@@ -1,0 +1,36 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "LumaGuilds",
+  "description": "Minecraft plugin for land claiming and guild management built on Paper/Spigot with hexagonal architecture",
+  "folders": ["docs"],
+  "excludeFolders": [
+    "src",
+    "build",
+    "gradle",
+    ".gradle",
+    ".git",
+    ".idea",
+    "bin",
+    "libs",
+    "temp-cumulus-study",
+    ".cursor"
+  ],
+  "excludeFiles": [
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE"
+  ],
+  "rules": [
+    "This plugin uses hexagonal/clean architecture with distinct layers: domain, application, infrastructure, and interaction",
+    "Domain entities should never depend on external frameworks - they contain pure business logic",
+    "Application actions are the primary use cases - inject dependencies via constructor",
+    "All database operations go through repository interfaces defined in application layer",
+    "Use dependency injection (Koin) for wiring components - see di package",
+    "Claims are anchored by Bell blocks in the Minecraft world",
+    "All player interactions go through the interaction layer (commands, menus, listeners)",
+    "Use Result sealed classes to handle action outcomes - never throw exceptions for business logic failures",
+    "Guilds and Claims are separate concepts - Claims can be converted to guild ownership",
+    "Always check permissions before allowing claim modifications",
+    "Use Position3D for world coordinates and Position2D for area definitions"
+  ]
+}
