@@ -1,8 +1,13 @@
 package net.lumalyte.lg
 
 import co.aikar.commands.PaperCommandManager
+import co.aikar.idb.Database
 import net.lumalyte.lg.di.appModule
 import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
+import net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations
+import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
 import net.lumalyte.lg.interaction.commands.*
 import net.lumalyte.lg.interaction.commands.LumaGuildsCommand
@@ -49,7 +54,12 @@ class LumaGuilds : JavaPlugin() {
         // Check if claims are enabled BEFORE initializing database
         val claimsEnabled = config.getBoolean("claims_enabled", true)
 
-        initDatabase(claimsEnabled)
+        // Create storage based on config (SQLite or MariaDB)
+        val storage = createStorage(claimsEnabled)
+
+        // Initialize database with migrations
+        initDatabase(storage, claimsEnabled)
+
         pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         scheduler = server.scheduler
         initLang()
@@ -61,8 +71,13 @@ class LumaGuilds : JavaPlugin() {
         // Enable case-insensitive command completion and parsing
         commandManager.enableUnstableAPI("help")
 
-        // Start Koin with claims enabled/disabled
-        startKoin { modules(appModule(this@LumaGuilds, claimsEnabled)) }
+        // Start Koin with storage and claims enabled/disabled
+        startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
+
+        // Initialize GuildInvitationManager with the repository from Koin
+        net.lumalyte.lg.infrastructure.services.GuildInvitationManager.initialize(
+            get().get<net.lumalyte.lg.application.persistence.GuildInvitationRepository>()
+        )
 
         // Configure command completions (ACF handles this automatically)
         configureCommandCompletions()
@@ -95,6 +110,65 @@ class LumaGuilds : JavaPlugin() {
         // Save default config if it doesn't exist
         saveDefaultConfig()
         reloadConfig()
+    }
+
+    /**
+     * Creates the appropriate storage instance based on configuration.
+     * Returns either SQLiteStorage or MariaDBStorage.
+     */
+    private fun createStorage(claimsEnabled: Boolean): Storage<Database> {
+        val databaseType = config.getString("database_type", "sqlite")?.lowercase() ?: "sqlite"
+
+        return when (databaseType) {
+            "mariadb", "mysql" -> {
+                logColored("🔌 Connecting to MariaDB database...")
+                val host = config.getString("mariadb.host", "localhost") ?: "localhost"
+                val port = config.getInt("mariadb.port", 3306)
+                val database = config.getString("mariadb.database", "lumaguilds") ?: "lumaguilds"
+                val username = config.getString("mariadb.username", "root") ?: "root"
+                val password = config.getString("mariadb.password", "password") ?: "password"
+
+                val maxPoolSize = config.getInt("mariadb.pool.maximum_pool_size", 10)
+                val minIdle = config.getInt("mariadb.pool.minimum_idle", 2)
+                val connectionTimeout = config.getLong("mariadb.pool.connection_timeout", 30000)
+                val idleTimeout = config.getLong("mariadb.pool.idle_timeout", 600000)
+                val maxLifetime = config.getLong("mariadb.pool.max_lifetime", 1800000)
+
+                try {
+                    val storage = MariaDBStorage(
+                        host = host,
+                        port = port,
+                        database = database,
+                        username = username,
+                        password = password,
+                        maxPoolSize = maxPoolSize,
+                        minIdle = minIdle,
+                        connectionTimeout = connectionTimeout,
+                        idleTimeout = idleTimeout,
+                        maxLifetime = maxLifetime
+                    )
+                    logColored("✓ Successfully connected to MariaDB at $host:$port/$database")
+                    storage
+                } catch (e: Exception) {
+                    logColored("❌ Failed to connect to MariaDB: ${e.message}")
+                    e.printStackTrace()
+                    throw RuntimeException("Failed to initialize MariaDB storage", e)
+                }
+            }
+            else -> {
+                logColored("💾 Using SQLite database...")
+                try {
+                    val storage = SQLiteStorage(dataFolder)
+                    val databaseFile = File(dataFolder, "lumaguilds.db")
+                    logColored("✓ SQLite database initialized at ${databaseFile.absolutePath}")
+                    storage
+                } catch (e: Exception) {
+                    logColored("❌ Failed to initialize SQLite storage: ${e.message}")
+                    e.printStackTrace()
+                    throw RuntimeException("Failed to initialize SQLite storage", e)
+                }
+            }
+        }
     }
 
     private fun logConfigurationSummary() {
@@ -130,71 +204,72 @@ class LumaGuilds : JavaPlugin() {
         logColored("⚔️ War system: Kill-based objectives, High-stakes wagering")
     }
 
-    fun initDatabase(claimsEnabled: Boolean) {
+    /**
+     * Initializes the database with migrations based on storage type.
+     * For SQLite: uses SQLiteMigrations
+     * For MariaDB: uses MariaDBMigrations
+     */
+    fun initDatabase(storage: Storage<Database>, claimsEnabled: Boolean) {
         // Ensure the plugin data folder exists
         if (!dataFolder.exists()) {
             dataFolder.mkdirs()
             logger.info("Created plugin data folder: ${dataFolder.absolutePath}")
         }
-        
-        val databaseFile = File(dataFolder, "claims.db")
-        if (databaseFile.exists()) {
-            logColored("💾 Existing database found. Claims enabled: $claimsEnabled")
 
-            var tempConnectionForMigration: Connection? = null
-            try {
-                tempConnectionForMigration = DriverManager.getConnection("jdbc:sqlite:${databaseFile.absolutePath}")
+        try {
+            when (storage) {
+                is SQLiteStorage -> {
+                    logColored("🔄 Running SQLite migrations...")
 
-                if (claimsEnabled) {
-                    // Run migrations only if claims are enabled
-                    val migrator = SQLiteMigrations(this, tempConnectionForMigration)
-                    migrator.migrate()
-                } else {
-                    logColored("⏭️ Claims system disabled - skipping migrations but preserving existing guild data")
-                }
-            } finally {
-                tempConnectionForMigration?.let {
                     try {
-                        if (!it.isClosed) {
-                            it.close()
-                            logger.info("Closed temporary connection after database check.")
+                        // Use the storage's HikariCP connection to ensure schema changes are visible
+                        storage.connection.getConnection().use { connection ->
+                            val migrator = SQLiteMigrations(this, connection)
+                            migrator.migrate()
                         }
-                    } catch (e: SQLException) {
-                        logColored("❌ Failed to close temporary database connection: ${e.message}")
+                        logColored("✓ SQLite migrations completed successfully")
+                    } catch (e: Exception) {
+                        logColored("❌ Failed to run SQLite migrations: ${e.message}")
                         e.printStackTrace()
+                        throw RuntimeException("Failed to run SQLite migrations", e)
                     }
                 }
-            }
-        } else {
-            // No existing database
-            if (claimsEnabled) {
-                logColored("🆕 Database file not found. Creating a new database with full schema...")
+                is MariaDBStorage -> {
+                    logColored("🔄 Running MariaDB migrations...")
+                    // Get MariaDB connection details from config for migration
+                    val host = config.getString("mariadb.host", "localhost") ?: "localhost"
+                    val port = config.getInt("mariadb.port", 3306)
+                    val database = config.getString("mariadb.database", "lumaguilds") ?: "lumaguilds"
+                    val username = config.getString("mariadb.username", "root") ?: "root"
+                    val password = config.getString("mariadb.password", "password") ?: "password"
 
-                var newConnection: Connection? = null
-                try {
-                    // This will create the database file if it doesn't exist
-                    newConnection = DriverManager.getConnection("jdbc:sqlite:${databaseFile.absolutePath}")
-                    val migrator = SQLiteMigrations(this, newConnection)
-                    migrator.migrate()
-                } catch (e: SQLException) {
-                    logColored("❌ Failed to create new database or run migrations: ${e.message}")
-                    e.printStackTrace()
-                } finally {
-                    newConnection?.let {
-                        try {
-                            if (!it.isClosed) {
-                                it.close()
-                                logger.info("Closed connection for new database creation.")
+                    val jdbcUrl = "jdbc:mariadb://$host:$port/$database?useSSL=false&allowPublicKeyRetrieval=true"
+                    var migrationConnection: Connection? = null
+                    try {
+                        migrationConnection = DriverManager.getConnection(jdbcUrl, username, password)
+                        val migrator = MariaDBMigrations(this, migrationConnection)
+                        migrator.migrate()
+                        logColored("✓ MariaDB migrations completed successfully")
+                    } finally {
+                        migrationConnection?.let {
+                            try {
+                                if (!it.isClosed) {
+                                    it.close()
+                                }
+                            } catch (e: SQLException) {
+                                logColored("❌ Failed to close migration connection: ${e.message}")
                             }
-                        } catch (e: SQLException) {
-                            logColored("❌ Failed to close new database connection: ${e.message}")
-                            e.printStackTrace()
                         }
                     }
                 }
-            } else {
-                logger.info("Claims system disabled and no existing database - skipping database creation")
+                else -> {
+                    logColored("⚠ Unknown storage type: ${storage::class.simpleName}")
+                }
             }
+        } catch (e: Exception) {
+            logColored("❌ Failed to initialize database: ${e.message}")
+            e.printStackTrace()
+            throw RuntimeException("Failed to initialize database", e)
         }
     }
 
@@ -494,7 +569,9 @@ class LumaGuilds : JavaPlugin() {
         }
 
         // Cancel any remaining plugin scope tasks
-        pluginScope.cancel()
+        if (::pluginScope.isInitialized) {
+            pluginScope.cancel()
+        }
 
         logColored("🛑 LumaGuilds disabled")
     }

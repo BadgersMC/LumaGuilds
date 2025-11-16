@@ -1,13 +1,15 @@
 package net.lumalyte.lg.infrastructure.persistence.claims
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.ClaimFlagRepository
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.domain.values.Flag
 import java.sql.SQLException
 import java.util.*
 
-class ClaimFlagRepositorySQLite(private val storage: SQLiteStorage): ClaimFlagRepository {
+class ClaimFlagRepositorySQLite(private val storage: Storage<Database>): ClaimFlagRepository {
     private val flags: MutableMap<UUID, MutableSet<Flag>> = mutableMapOf()
 
     init {

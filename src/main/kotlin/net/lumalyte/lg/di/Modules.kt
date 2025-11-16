@@ -98,6 +98,7 @@ import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.persistence.PartyRepository
+import net.lumalyte.lg.application.persistence.GuildInvitationRepository
 import net.lumalyte.lg.application.persistence.PartyRequestRepository
 import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import net.lumalyte.lg.application.persistence.ChatSettingsRepository
@@ -146,6 +147,7 @@ import net.lumalyte.lg.infrastructure.persistence.guilds.RankRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.MemberRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.RelationRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.PartyRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.guilds.GuildInvitationRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.PartyRequestRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.PlayerPartyPreferenceRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.ChatSettingsRepositorySQLite
@@ -160,7 +162,9 @@ import net.lumalyte.lg.infrastructure.persistence.claims.ClaimRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.PlayerAccessRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.partitions.PartitionRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.players.PlayerStateRepositoryMemory
+import co.aikar.idb.Database
 import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
 
@@ -187,7 +191,7 @@ import org.koin.dsl.module
 import java.io.File
 
 // Define your Koin module(s) - using a top-level val named appModule is common
-fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
+fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true) = module {
     // --- Plugin ---
     single<Plugin> {plugin}
     single<LumaGuilds> {plugin}
@@ -203,9 +207,10 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
 
     // --- Infrastructure Layer Implementations ---
 
-    // Storage Types
-    single<Storage<*>> { SQLiteStorage(get()) }
-    single { SQLiteStorage(get()) }
+    // Storage Types - provided from main class based on config
+    // All repositories now accept Storage<Database> and are database-agnostic
+    @Suppress("UNCHECKED_CAST")
+    single<Storage<Database>> { storage as Storage<Database> }
 
     // Conditionally load claim-related components
     if (claimsEnabled) {
@@ -245,6 +250,7 @@ fun appModule(plugin: LumaGuilds, claimsEnabled: Boolean = true) = module {
     single<BankRepository> { BankRepositorySQLite(get()) }
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get()) }
+    single<GuildInvitationRepository> { GuildInvitationRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.GuildVaultRepository> { net.lumalyte.lg.infrastructure.persistence.guilds.GuildVaultRepositorySQLite(get()) }
 
     single<NexoEmojiService> { NexoEmojiService() }

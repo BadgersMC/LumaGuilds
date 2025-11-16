@@ -1,14 +1,15 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.entities.RankPermission
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.util.UUID
 
-class RankRepositorySQLite(private val storage: SQLiteStorage) : RankRepository {
+class RankRepositorySQLite(private val storage: Storage<Database>) : RankRepository {
     
     private val ranks: MutableMap<UUID, Rank> = mutableMapOf()
     

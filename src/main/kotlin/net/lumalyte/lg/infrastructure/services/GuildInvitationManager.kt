@@ -1,26 +1,25 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.application.persistence.GuildInvitationRepository
+import net.lumalyte.lg.domain.entities.GuildInvitation
 import java.time.Instant
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Manages pending guild invitations in memory.
- * For beta testing - in production this should be persisted to database.
+ * Manages pending guild invitations with database persistence.
+ * This is a static wrapper around the repository for backwards compatibility.
  */
 object GuildInvitationManager {
 
-    private data class PendingInvite(
-        val guildId: UUID,
-        val guildName: String,
-        val invitedPlayerId: UUID,
-        val inviterPlayerId: UUID,
-        val inviterName: String,
-        val timestamp: Instant = Instant.now()
-    )
+    private lateinit var repository: GuildInvitationRepository
 
-    // Map of player UUID -> list of pending invites
-    private val pendingInvites = ConcurrentHashMap<UUID, MutableList<PendingInvite>>()
+    /**
+     * Initialize the manager with a repository instance.
+     * This must be called during plugin startup.
+     */
+    fun initialize(repo: GuildInvitationRepository) {
+        repository = repo
+    }
 
     /**
      * Add a pending invitation for a player
@@ -32,7 +31,7 @@ object GuildInvitationManager {
         inviterPlayerId: UUID,
         inviterName: String
     ) {
-        val invite = PendingInvite(
+        val invitation = GuildInvitation(
             guildId = guildId,
             guildName = guildName,
             invitedPlayerId = invitedPlayerId,
@@ -40,54 +39,51 @@ object GuildInvitationManager {
             inviterName = inviterName
         )
 
-        pendingInvites.computeIfAbsent(invitedPlayerId) { mutableListOf() }.add(invite)
+        repository.add(invitation)
     }
 
     /**
      * Get all pending invites for a player
      */
     fun getInvites(playerId: UUID): List<Pair<UUID, String>> {
-        return pendingInvites[playerId]?.map { it.guildId to it.guildName } ?: emptyList()
+        return repository.getByPlayer(playerId).map { it.guildId to it.guildName }
     }
 
     /**
      * Get a specific invite by guild name for a player
      */
     fun getInviteByGuildName(playerId: UUID, guildName: String): Pair<UUID, String>? {
-        return pendingInvites[playerId]?.firstOrNull {
-            it.guildName.equals(guildName, ignoreCase = true)
-        }?.let { it.guildId to it.guildName }
+        return repository.getByPlayer(playerId)
+            .firstOrNull { it.guildName.equals(guildName, ignoreCase = true) }
+            ?.let { it.guildId to it.guildName }
     }
 
     /**
      * Remove a specific invite
      */
     fun removeInvite(playerId: UUID, guildId: UUID) {
-        pendingInvites[playerId]?.removeIf { it.guildId == guildId }
-        if (pendingInvites[playerId]?.isEmpty() == true) {
-            pendingInvites.remove(playerId)
-        }
+        repository.remove(playerId, guildId)
     }
 
     /**
      * Remove all invites for a player
      */
     fun clearInvites(playerId: UUID) {
-        pendingInvites.remove(playerId)
+        repository.removeAllForPlayer(playerId)
     }
 
     /**
      * Check if player has a pending invite from a specific guild
      */
     fun hasInvite(playerId: UUID, guildId: UUID): Boolean {
-        return pendingInvites[playerId]?.any { it.guildId == guildId } ?: false
+        return repository.hasInvitation(playerId, guildId)
     }
 
     /**
      * Get the number of pending invites for a player
      */
     fun getInviteCount(playerId: UUID): Int {
-        return pendingInvites[playerId]?.size ?: 0
+        return repository.getInvitationCount(playerId)
     }
 
     /**
@@ -95,9 +91,6 @@ object GuildInvitationManager {
      */
     fun cleanupOldInvites() {
         val oneDayAgo = Instant.now().minusSeconds(86400)
-        pendingInvites.values.forEach { inviteList ->
-            inviteList.removeIf { it.timestamp.isBefore(oneDayAgo) }
-        }
-        pendingInvites.entries.removeIf { it.value.isEmpty() }
+        repository.removeOlderThan(oneDayAgo.epochSecond)
     }
 }

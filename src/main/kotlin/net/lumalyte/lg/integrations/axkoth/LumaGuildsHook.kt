@@ -43,10 +43,11 @@ class LumaGuildsHook : TeamHook, KoinComponent {
     }
 
     /**
-     * Gets the team/guild name for a player.
+     * Gets the team/guild tag for a player.
+     * Returns the guild tag if set, otherwise falls back to guild name.
      *
      * @param player The player to check
-     * @return The guild name if player is in a guild, null otherwise
+     * @return The guild tag (or name if tag is null) if player is in a guild, null otherwise
      */
     override fun getTeamOfPlayer(player: Player): String? {
         return try {
@@ -59,8 +60,9 @@ class LumaGuildsHook : TeamHook, KoinComponent {
                 return null
             }
 
-            // Return the guild's name
-            guilds.first().name
+            val guild = guilds.first()
+            // Return tag if set, otherwise return name
+            guild.tag?.takeIf { it.isNotBlank() } ?: guild.name
 
         } catch (e: Exception) {
             logger.error("Error getting guild for player ${player.name}", e)

@@ -1,6 +1,10 @@
 package net.lumalyte.lg.config
 
 data class MainConfig(
+    // Database Configuration
+    var databaseType: String = "sqlite",
+    var mariadb: MariaDBConfig = MariaDBConfig(),
+
     // Core Claims Configuration
     var claimsEnabled: Boolean = true,
     var partiesEnabled: Boolean = true,
@@ -368,6 +372,23 @@ data class BedrockConfig(
     // Debug and logging
     var debugBedrockMenus: Boolean = false,
     var logFormInteractions: Boolean = false
+)
+
+data class MariaDBConfig(
+    var host: String = "localhost",
+    var port: Int = 3306,
+    var database: String = "lumaguilds",
+    var username: String = "root",
+    var password: String = "password",
+    var pool: MariaDBPoolConfig = MariaDBPoolConfig()
+)
+
+data class MariaDBPoolConfig(
+    var maximumPoolSize: Int = 10,
+    var minimumIdle: Int = 2,
+    var connectionTimeout: Long = 30000,
+    var idleTimeout: Long = 600000,
+    var maxLifetime: Long = 1800000
 )
 
 enum class ImageSource {

@@ -1,14 +1,16 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.domain.entities.Member
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class MemberRepositorySQLite(private val storage: SQLiteStorage) : MemberRepository {
+class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRepository {
     
     private val members: MutableMap<Pair<UUID, UUID>, Member> = mutableMapOf() // (playerId, guildId) -> Member
     
@@ -55,8 +57,8 @@ class MemberRepositorySQLite(private val storage: SQLiteStorage) : MemberReposit
         val playerId = UUID.fromString(rs.getString("player_id"))
         val guildId = UUID.fromString(rs.getString("guild_id"))
         val rankId = UUID.fromString(rs.getString("rank_id"))
-        val joinedAt = Instant.parse(rs.getString("joined_at"))
-        
+        val joinedAt = rs.getInstantNotNull("joined_at")
+
         return Member(
             playerId = playerId,
             guildId = guildId,

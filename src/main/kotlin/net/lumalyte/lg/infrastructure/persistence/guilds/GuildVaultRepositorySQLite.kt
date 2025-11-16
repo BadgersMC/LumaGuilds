@@ -1,8 +1,10 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.bukkit.inventory.ItemStack
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
@@ -16,7 +18,7 @@ import java.util.Base64
  * SQLite implementation of GuildVaultRepository.
  * Stores serialized ItemStacks in the guild_vault_items table.
  */
-class GuildVaultRepositorySQLite(private val storage: SQLiteStorage) : GuildVaultRepository {
+class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : GuildVaultRepository {
 
     init {
         createVaultItemsTable()

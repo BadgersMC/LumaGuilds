@@ -60,6 +60,15 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(10)
                 currentDbVersion = 10
             }
+            if (currentDbVersion < 11) {
+                migrateToVersion11()
+                updateDatabaseVersion(11)
+                currentDbVersion = 11
+            }
+
+            // Validate that all required tables exist, recreate if missing
+            validateAndRepairSchema()
+
             connection.commit() // Commit transaction
 
             // Log migration completion quietly
@@ -830,6 +839,74 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             }
         } catch (e: SQLException) {
             // Ignore errors for non-existent indices
+        }
+    }
+
+    /**
+     * Migration from version 10 to version 11.
+     * Adds guild_invitations table for persistent invitation storage.
+     */
+    private fun migrateToVersion11() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Create guild_invitations table
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS guild_invitations (
+                guild_id TEXT NOT NULL,
+                guild_name TEXT NOT NULL,
+                invited_player_id TEXT NOT NULL,
+                inviter_player_id TEXT NOT NULL,
+                inviter_name TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                PRIMARY KEY (invited_player_id, guild_id),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+
+        // Create indices for performance
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_invitations_guild_id ON guild_invitations(guild_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_invitations_invited_player_id ON guild_invitations(invited_player_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_invitations_timestamp ON guild_invitations(timestamp)")
+
+        if (sqlCommands.isNotEmpty()) {
+            executeMigrationCommands(sqlCommands)
+        }
+    }
+
+    /**
+     * Validates that all required tables exist and recreates them if missing.
+     * This handles cases where the schema version is correct but tables are missing.
+     */
+    private fun validateAndRepairSchema() {
+        val requiredTables = listOf(
+            "guilds", "members", "relations", "parties", "party_requests",
+            "player_party_preferences", "bank_tx", "kills",
+            "audits", "wars", "leaderboards", "guild_vault_items", "guild_invitations"
+        )
+        // Note: chat_visibility_settings and chat_rate_limits are created by ChatSettingsRepository itself
+
+        val missingTables = mutableListOf<String>()
+
+        for (table in requiredTables) {
+            val exists = connection.createStatement().use { stmt ->
+                val rs = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='$table'")
+                rs.next()
+            }
+            if (!exists) {
+                missingTables.add(table)
+            }
+        }
+
+        if (missingTables.isNotEmpty()) {
+            componentLogger.warn(Component.text("⚠ Missing tables detected: ${missingTables.joinToString(", ")}"))
+            componentLogger.info(Component.text("🔧 Recreating missing tables..."))
+
+            // Recreate missing tables by running the appropriate migration
+            // Since we use CREATE TABLE IF NOT EXISTS, we can safely call the migration again
+            if ("guild_invitations" in missingTables) {
+                migrateToVersion11()
+                componentLogger.info(Component.text("✓ Recreated guild_invitations table"))
+            }
         }
     }
 

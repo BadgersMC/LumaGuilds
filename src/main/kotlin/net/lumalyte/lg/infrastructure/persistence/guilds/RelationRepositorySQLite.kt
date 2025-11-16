@@ -1,17 +1,21 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.domain.entities.Relation
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.domain.entities.RelationStatus
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.getInstant
+import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class RelationRepositorySQLite(private val storage: SQLiteStorage) : RelationRepository {
+class RelationRepositorySQLite(private val storage: Storage<Database>) : RelationRepository {
 
     private val logger = LoggerFactory.getLogger(RelationRepositorySQLite::class.java)
 
@@ -93,9 +97,9 @@ class RelationRepositorySQLite(private val storage: SQLiteStorage) : RelationRep
             guildB = UUID.fromString(rs.getString("guild_b")),
             type = RelationType.valueOf(rs.getString("type")),
             status = RelationStatus.valueOf(rs.getString("status")),
-            expiresAt = rs.getString("expires_at")?.let { Instant.parse(it) },
-            createdAt = Instant.parse(rs.getString("created_at")),
-            updatedAt = Instant.parse(rs.getString("updated_at"))
+            expiresAt = rs.getInstant("expires_at"),
+            createdAt = rs.getInstantNotNull("created_at"),
+            updatedAt = rs.getInstantNotNull("updated_at")
         )
     }
     

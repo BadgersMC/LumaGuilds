@@ -1,15 +1,19 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.PartyRepository
 import net.lumalyte.lg.domain.entities.Party
 import net.lumalyte.lg.domain.entities.PartyStatus
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.getInstant
+import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class PartyRepositorySQLite(private val storage: SQLiteStorage) : PartyRepository {
+class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepository {
     
     private val parties: MutableMap<UUID, Party> = mutableMapOf()
     
@@ -72,8 +76,8 @@ class PartyRepositorySQLite(private val storage: SQLiteStorage) : PartyRepositor
             guildIds = guildIds,
             leaderId = UUID.fromString(rs.getString("leader_id")),
             status = PartyStatus.valueOf(rs.getString("status")),
-            createdAt = Instant.parse(rs.getString("created_at")),
-            expiresAt = rs.getString("expires_at")?.let { Instant.parse(it) },
+            createdAt = rs.getInstantNotNull("created_at"),
+            expiresAt = rs.getInstant("expires_at"),
             restrictedRoles = restrictedRoles
         )
     }

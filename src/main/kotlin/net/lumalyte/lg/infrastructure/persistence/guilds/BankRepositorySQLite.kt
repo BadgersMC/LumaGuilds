@@ -1,18 +1,21 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.BankRepository
 import net.lumalyte.lg.domain.entities.BankAudit
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.AuditAction
 import net.lumalyte.lg.domain.entities.TransactionType
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class BankRepositorySQLite(private val storage: SQLiteStorage) : BankRepository {
+class BankRepositorySQLite(private val storage: Storage<Database>) : BankRepository {
 
     private val logger = LoggerFactory.getLogger(BankRepositorySQLite::class.java)
 
@@ -141,7 +144,7 @@ class BankRepositorySQLite(private val storage: SQLiteStorage) : BankRepository 
             amount = rs.getInt("amount"),
             description = rs.getString("description"),
             fee = rs.getInt("fee"),
-            timestamp = Instant.parse(rs.getString("timestamp"))
+            timestamp = rs.getInstantNotNull("timestamp")
         )
     }
 
@@ -165,7 +168,7 @@ class BankRepositorySQLite(private val storage: SQLiteStorage) : BankRepository 
                 is String -> value.toIntOrNull() ?: 0
                 else -> value.toString().toIntOrNull() ?: 0
             },
-            timestamp = Instant.parse(rs.getString("timestamp"))
+            timestamp = rs.getInstantNotNull("timestamp")
         )
     }
 

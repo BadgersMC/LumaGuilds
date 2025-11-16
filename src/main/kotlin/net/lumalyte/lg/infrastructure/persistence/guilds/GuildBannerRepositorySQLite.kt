@@ -1,11 +1,13 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.persistence.GuildBannerRepository
 import net.lumalyte.lg.application.services.BannerDesignData
 import net.lumalyte.lg.application.services.BannerColor
 import net.lumalyte.lg.application.services.BannerPattern
 import net.lumalyte.lg.domain.entities.GuildBanner
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
@@ -14,7 +16,7 @@ import java.util.UUID
  * SQLite implementation of GuildBannerRepository.
  */
 class GuildBannerRepositorySQLite(
-    private val storage: SQLiteStorage
+    private val storage: Storage<Database>
 ) : GuildBannerRepository {
 
     private val logger = LoggerFactory.getLogger(javaClass)

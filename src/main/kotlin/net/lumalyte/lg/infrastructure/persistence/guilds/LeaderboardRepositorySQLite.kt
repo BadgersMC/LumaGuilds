@@ -1,15 +1,17 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.LeaderboardRepository
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.domain.entities.LeaderboardType
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class LeaderboardRepositorySQLite(private val storage: SQLiteStorage) : LeaderboardRepository {
+class LeaderboardRepositorySQLite(private val storage: Storage<Database>) : LeaderboardRepository {
 
     private val leaderboardEntries: MutableMap<String, LeaderboardEntry> = mutableMapOf()
     private val weeklyActivities: MutableMap<String, WeeklyActivity> = mutableMapOf()

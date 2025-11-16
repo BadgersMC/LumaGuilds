@@ -1,14 +1,16 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import co.aikar.idb.Database
+
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.ChatSettingsRepository
 import net.lumalyte.lg.domain.values.ChatVisibilitySettings
 import net.lumalyte.lg.domain.values.ChatRateLimit
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.util.UUID
 
-class ChatSettingsRepositorySQLite(private val storage: SQLiteStorage) : ChatSettingsRepository {
+class ChatSettingsRepositorySQLite(private val storage: Storage<Database>) : ChatSettingsRepository {
     
     private val visibilitySettings: MutableMap<UUID, ChatVisibilitySettings> = mutableMapOf()
     private val rateLimits: MutableMap<UUID, ChatRateLimit> = mutableMapOf()
