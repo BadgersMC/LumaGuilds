@@ -8,6 +8,7 @@ Welcome to the comprehensive documentation for **LumaGuilds** - a Minecraft plug
 
 - **[Architecture Overview](./architecture.md)** - Understanding the hexagonal architecture and layer structure
 - **[Getting Started Guide](./getting-started.md)** - How to develop and extend the plugin
+- **[API Reference](./api-reference.md)** - 📞 **Complete phone book** of all actions, results, entities, and enums
 - **[Master System Diagram](./master-diagram.md)** - Complete visual map of all components
 
 ### Layer Documentation
@@ -30,20 +31,28 @@ Welcome to the comprehensive documentation for **LumaGuilds** - a Minecraft plug
 2. Read [Domain Layer](./domain.md) to understand core concepts
 3. Check [Master Diagram](./master-diagram.md) for complete system visualization
 
+**Find a specific action/entity:**
+1. Use [API Reference](./api-reference.md) as your phone book
+2. Search for the action name
+3. See its parameters, return type, and usage example
+
 **Add a new feature:**
 1. Read [Getting Started Guide](./getting-started.md)
 2. Follow the step-by-step example
 3. Reference [Application Layer](./application.md) for action patterns
+4. Look up similar actions in [API Reference](./api-reference.md)
 
 **Integrate with another plugin:**
 1. Read [Integration Guide](./integration.md)
 2. Use the Public API examples
 3. Listen to LumaGuilds events
+4. Check [API Reference](./api-reference.md) for available actions
 
 **Fix a bug:**
 1. Check [Master Diagram](./master-diagram.md) to understand the flow
-2. Reference the specific layer documentation
-3. Follow the debugging tips in [Getting Started](./getting-started.md)
+2. Look up the action in [API Reference](./api-reference.md)
+3. Reference the specific layer documentation
+4. Follow the debugging tips in [Getting Started](./getting-started.md)
 
 ## 🏗️ Architecture Overview
 
