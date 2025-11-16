@@ -55,18 +55,64 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.create")
     fun onCreate(player: Player, name: String, @Optional banner: String?) {
         val playerId = player.uniqueId
-        
+
         // Check if player is already in a guild
         val existingGuilds = guildService.getPlayerGuilds(playerId)
         if (existingGuilds.isNotEmpty()) {
             player.sendMessage("§cYou are already in a guild: ${existingGuilds.first().name}")
             return
         }
-        
+
+        // Pre-validate guild name with helpful error messages
+
+        // Check for MiniMessage/HTML-like formatting tags
+        if (name.contains("<") && name.contains(">")) {
+            player.sendMessage("§c❌ Invalid guild name!")
+            player.sendMessage("§7Guild names cannot contain formatting tags like §f<bold>§7, §f<gradient>§7, etc.")
+            player.sendMessage("§7")
+            player.sendMessage("§e💡 TIP: Use §6/guild tag §eto set a fancy formatted tag instead!")
+            player.sendMessage("§7Example: §6/guild tag <gradient:#FF0000:#00FF00>MyGuild</gradient>")
+            player.sendMessage("§7")
+            player.sendMessage("§7Guild name = Plain text only")
+            player.sendMessage("§7Guild tag = Fancy formatting with colors")
+            return
+        }
+
+        // Check for blank name
+        if (name.isBlank()) {
+            player.sendMessage("§c❌ Guild name cannot be blank!")
+            return
+        }
+
+        // Check for length
+        if (name.length > 32) {
+            player.sendMessage("§c❌ Guild name is too long!")
+            player.sendMessage("§7Maximum length: §f32 characters")
+            player.sendMessage("§7Your name: §f${name.length} characters")
+            return
+        }
+
+        // Check for invalid characters (only allow letters, numbers, spaces, and basic punctuation)
+        if (!name.matches(Regex("^[a-zA-Z0-9 '&-]+$"))) {
+            player.sendMessage("§c❌ Invalid guild name!")
+            player.sendMessage("§7Guild names can only contain:")
+            player.sendMessage("§7 • Letters (a-z, A-Z)")
+            player.sendMessage("§7 • Numbers (0-9)")
+            player.sendMessage("§7 • Spaces")
+            player.sendMessage("§7 • Basic punctuation: ' & -")
+            player.sendMessage("§7")
+            player.sendMessage("§e💡 TIP: Use §6/guild tag §eto add colors and formatting!")
+            return
+        }
+
         val guild = guildService.createGuild(name, playerId, banner)
         if (guild != null) {
-            player.sendMessage("§aGuild '$name' created successfully!")
+            player.sendMessage("§a✅ Guild '$name' created successfully!")
             player.sendMessage("§7You are now the Owner of the guild.")
+            player.sendMessage("§7")
+            player.sendMessage("§e💡 Customize your guild:")
+            player.sendMessage("§7 • Set fancy tag: §6/guild tag")
+            player.sendMessage("§7 • Open menu: §6/guild menu")
 
             // Broadcast guild creation to all online players
             val creationMessage = "§6⌂ §eA new guild has been founded: §6$name §eby §6${player.name}§e!"
@@ -75,7 +121,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Log the guild creation
             player.server.logger.info("Guild '${name}' created by ${player.name} (${player.uniqueId})")
         } else {
-            player.sendMessage("§cFailed to create guild. The name may already be taken.")
+            player.sendMessage("§c❌ Failed to create guild!")
+            player.sendMessage("§7The name §f'$name' §7is already taken by another guild.")
+            player.sendMessage("§7Please choose a different name.")
         }
     }
     
@@ -83,21 +131,63 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.rename")
     fun onRename(player: Player, newName: String) {
         val playerId = player.uniqueId
-        
+
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
             player.sendMessage("§cYou are not in a guild.")
             return
         }
-        
+
+        // Pre-validate guild name with helpful error messages
+
+        // Check for MiniMessage/HTML-like formatting tags
+        if (newName.contains("<") && newName.contains(">")) {
+            player.sendMessage("§c❌ Invalid guild name!")
+            player.sendMessage("§7Guild names cannot contain formatting tags like §f<bold>§7, §f<gradient>§7, etc.")
+            player.sendMessage("§7")
+            player.sendMessage("§e💡 TIP: Use §6/guild tag §eto set a fancy formatted tag instead!")
+            player.sendMessage("§7Guild name = Plain text only")
+            player.sendMessage("§7Guild tag = Fancy formatting with colors")
+            return
+        }
+
+        // Check for blank name
+        if (newName.isBlank()) {
+            player.sendMessage("§c❌ Guild name cannot be blank!")
+            return
+        }
+
+        // Check for length
+        if (newName.length > 32) {
+            player.sendMessage("§c❌ Guild name is too long!")
+            player.sendMessage("§7Maximum length: §f32 characters")
+            player.sendMessage("§7Your name: §f${newName.length} characters")
+            return
+        }
+
+        // Check for invalid characters
+        if (!newName.matches(Regex("^[a-zA-Z0-9 '&-]+$"))) {
+            player.sendMessage("§c❌ Invalid guild name!")
+            player.sendMessage("§7Guild names can only contain:")
+            player.sendMessage("§7 • Letters (a-z, A-Z)")
+            player.sendMessage("§7 • Numbers (0-9)")
+            player.sendMessage("§7 • Spaces")
+            player.sendMessage("§7 • Basic punctuation: ' & -")
+            player.sendMessage("§7")
+            player.sendMessage("§e💡 TIP: Use §6/guild tag §eto add colors and formatting!")
+            return
+        }
+
         val guild = guilds.first()
         val success = guildService.renameGuild(guild.id, newName, playerId)
-        
+
         if (success) {
-            player.sendMessage("§aGuild renamed to '$newName' successfully!")
+            player.sendMessage("§a✅ Guild renamed to '$newName' successfully!")
         } else {
-            player.sendMessage("§cFailed to rename guild. The new name may already be taken.")
+            player.sendMessage("§c❌ Failed to rename guild!")
+            player.sendMessage("§7The name §f'$newName' §7is already taken by another guild.")
+            player.sendMessage("§7Please choose a different name.")
         }
     }
     
@@ -1394,6 +1484,70 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 player.sendMessage("§c§lFAILED§r")
                 player.sendMessage("§cCouldn't open vault: ${result.message}")
                 player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
+            }
+        }
+    }
+
+    @Subcommand("help")
+    @CommandPermission("lumaguilds.guild.help")
+    fun onHelp(player: Player, @Optional topic: String?) {
+        when (topic?.lowercase()) {
+            "create", "name" -> {
+                player.sendMessage("§6§l=== Guild Name & Tag Guide ===")
+                player.sendMessage("§7")
+                player.sendMessage("§e📝 Guild Name (Plain Text)")
+                player.sendMessage("§7 • Command: §f/guild create <name>")
+                player.sendMessage("§7 • Max 32 characters")
+                player.sendMessage("§7 • Letters, numbers, spaces, and: ' & -")
+                player.sendMessage("§7 • No formatting tags allowed")
+                player.sendMessage("§7 • Example: §fWhite Lotus §7or §fFire & Ice")
+                player.sendMessage("§7")
+                player.sendMessage("§e🎨 Guild Tag (Fancy Formatting)")
+                player.sendMessage("§7 • Command: §f/guild tag <formatted_text>")
+                player.sendMessage("§7 • Use MiniMessage formatting")
+                player.sendMessage("§7 • Supports colors, gradients, effects")
+                player.sendMessage("§7 • Examples:")
+                player.sendMessage("§7   §f/guild tag <red>Fire</red><gold>Guild</gold>")
+                player.sendMessage("§7   §f/guild tag <gradient:#FF0000:#00FF00>Rainbow</gradient>")
+                player.sendMessage("§7   §f/guild tag <bold><blue>ELITE</blue></bold>")
+                player.sendMessage("§7")
+                player.sendMessage("§6💡 Remember: Name = Plain, Tag = Fancy!")
+            }
+            "tag" -> {
+                player.sendMessage("§6§l=== Guild Tag Help ===")
+                player.sendMessage("§7")
+                player.sendMessage("§eGuild tags let you add fancy formatting!")
+                player.sendMessage("§7")
+                player.sendMessage("§7Commands:")
+                player.sendMessage("§7 • Set tag: §f/guild tag <formatted_text>")
+                player.sendMessage("§7 • Open menu: §f/guild tag")
+                player.sendMessage("§7")
+                player.sendMessage("§7Examples:")
+                player.sendMessage("§7 • Single color: §f<red>MyGuild</red>")
+                player.sendMessage("§7 • Two colors: §f<red>Fire</red><gold>Guild</gold>")
+                player.sendMessage("§7 • Gradient: §f<gradient:#FF0000:#00FF00>Rainbow</gradient>")
+                player.sendMessage("§7 • Bold: §f<bold><blue>ELITE</blue></bold>")
+                player.sendMessage("§7")
+                player.sendMessage("§6💡 TIP: Visit minimessage.net for more formatting!")
+            }
+            else -> {
+                player.sendMessage("§6§l=== Guild Commands ===")
+                player.sendMessage("§7")
+                player.sendMessage("§eBasic Commands:")
+                player.sendMessage("§7 • §f/guild create <name> §7- Create a guild")
+                player.sendMessage("§7 • §f/guild menu §7- Open guild menu")
+                player.sendMessage("§7 • §f/guild info §7- View guild info")
+                player.sendMessage("§7 • §f/guild invite <player> §7- Invite a player")
+                player.sendMessage("§7 • §f/guild leave §7- Leave your guild")
+                player.sendMessage("§7")
+                player.sendMessage("§eCustomization:")
+                player.sendMessage("§7 • §f/guild tag §7- Set fancy formatted tag")
+                player.sendMessage("§7 • §f/guild rename <name> §7- Rename guild")
+                player.sendMessage("§7 • §f/guild desc <text> §7- Set description")
+                player.sendMessage("§7")
+                player.sendMessage("§eFor detailed help:")
+                player.sendMessage("§7 • §f/guild help create §7- Guild name & tag guide")
+                player.sendMessage("§7 • §f/guild help tag §7- Tag formatting examples")
             }
         }
     }
