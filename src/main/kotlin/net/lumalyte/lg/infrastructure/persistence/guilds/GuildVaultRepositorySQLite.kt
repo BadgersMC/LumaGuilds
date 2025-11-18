@@ -16,36 +16,12 @@ import java.util.Base64
 
 /**
  * SQLite implementation of GuildVaultRepository.
- * Stores serialized ItemStacks in the guild_vault_items table.
+ * Uses the new vault_slots and vault_gold tables created by migration version 12.
+ * Provides crash-resistant storage with WAL mode enabled.
  */
 class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : GuildVaultRepository {
-
-    init {
-        createVaultItemsTable()
-    }
-
-    private fun createVaultItemsTable() {
-        val sql = """
-            CREATE TABLE IF NOT EXISTS guild_vault_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                guild_id TEXT NOT NULL,
-                slot_index INTEGER NOT NULL,
-                item_data TEXT NOT NULL,
-                UNIQUE(guild_id, slot_index),
-                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
-            );
-        """.trimIndent()
-
-        try {
-            storage.connection.executeUpdate(sql)
-            // Create index for faster lookups
-            storage.connection.executeUpdate(
-                "CREATE INDEX IF NOT EXISTS idx_vault_guild_id ON guild_vault_items(guild_id)"
-            )
-        } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to create guild_vault_items table", e)
-        }
-    }
+    // Note: Tables are created by SQLiteMigrations.migrateToVersion12()
+    // vault_slots, vault_gold, and vault_transaction_log tables are used
 
     override fun saveVaultInventory(guildId: UUID, items: Map<Int, ItemStack>): Boolean {
         // Use INSERT OR REPLACE for each slot - this is safe for concurrent access
@@ -61,13 +37,13 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
     }
 
     override fun getVaultInventory(guildId: UUID): Map<Int, ItemStack> {
-        val sql = "SELECT slot_index, item_data FROM guild_vault_items WHERE guild_id = ?"
+        val sql = "SELECT slot, item_data FROM vault_slots WHERE guild_id = ?"
         val inventory = mutableMapOf<Int, ItemStack>()
 
         try {
             val results = storage.connection.getResults(sql, guildId.toString())
             for (row in results) {
-                val slotIndex = row.getInt("slot_index")
+                val slotIndex = row.getInt("slot")
                 val itemData = row.getString("item_data")
                 val item = deserializeItem(itemData)
                 if (item != null) {
@@ -84,7 +60,7 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
     override fun saveVaultItem(guildId: UUID, slotIndex: Int, item: ItemStack?): Boolean {
         if (item == null) {
             // Remove item from slot
-            val deleteSql = "DELETE FROM guild_vault_items WHERE guild_id = ? AND slot_index = ?"
+            val deleteSql = "DELETE FROM vault_slots WHERE guild_id = ? AND slot = ?"
             return try {
                 storage.connection.executeUpdate(deleteSql, guildId.toString(), slotIndex) >= 0
                 true
@@ -94,21 +70,22 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
         }
 
         val serializedItem = serializeItem(item) ?: return false
+        val currentTime = System.currentTimeMillis()
 
         val sql = """
-            INSERT OR REPLACE INTO guild_vault_items (guild_id, slot_index, item_data)
-            VALUES (?, ?, ?)
+            INSERT OR REPLACE INTO vault_slots (guild_id, slot, item_data, last_modified)
+            VALUES (?, ?, ?, ?)
         """.trimIndent()
 
         return try {
-            storage.connection.executeUpdate(sql, guildId.toString(), slotIndex, serializedItem) > 0
+            storage.connection.executeUpdate(sql, guildId.toString(), slotIndex, serializedItem, currentTime) > 0
         } catch (e: SQLException) {
             false
         }
     }
 
     override fun getVaultItem(guildId: UUID, slotIndex: Int): ItemStack? {
-        val sql = "SELECT item_data FROM guild_vault_items WHERE guild_id = ? AND slot_index = ?"
+        val sql = "SELECT item_data FROM vault_slots WHERE guild_id = ? AND slot = ?"
 
         return try {
             val results = storage.connection.getResults(sql, guildId.toString(), slotIndex)
@@ -124,10 +101,19 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
     }
 
     override fun clearVault(guildId: UUID): Boolean {
-        val sql = "DELETE FROM guild_vault_items WHERE guild_id = ?"
-
         return try {
-            storage.connection.executeUpdate(sql, guildId.toString())
+            // Clear all vault slots
+            storage.connection.executeUpdate(
+                "DELETE FROM vault_slots WHERE guild_id = ?",
+                guildId.toString()
+            )
+
+            // Clear gold balance
+            storage.connection.executeUpdate(
+                "DELETE FROM vault_gold WHERE guild_id = ?",
+                guildId.toString()
+            )
+
             true
         } catch (e: SQLException) {
             false
@@ -135,7 +121,7 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
     }
 
     override fun getVaultItemCount(guildId: UUID): Int {
-        val sql = "SELECT COUNT(*) as count FROM guild_vault_items WHERE guild_id = ?"
+        val sql = "SELECT COUNT(*) as count FROM vault_slots WHERE guild_id = ?"
 
         return try {
             val results = storage.connection.getResults(sql, guildId.toString())
@@ -147,6 +133,72 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
 
     override fun hasVaultItems(guildId: UUID): Boolean {
         return getVaultItemCount(guildId) > 0
+    }
+
+    // ========== Gold Balance Management ==========
+
+    override fun getGoldBalance(guildId: UUID): Long {
+        val sql = "SELECT balance FROM vault_gold WHERE guild_id = ?"
+
+        return try {
+            val results = storage.connection.getResults(sql, guildId.toString())
+            if (results.isEmpty()) {
+                // Guild has no gold balance entry yet, return 0
+                0L
+            } else {
+                // SQLite returns INTEGER as Int, not Long
+                results[0].getInt("balance").toLong()
+            }
+        } catch (e: SQLException) {
+            0L
+        }
+    }
+
+    override fun setGoldBalance(guildId: UUID, balance: Long): Boolean {
+        if (balance < 0) return false
+
+        val currentTime = System.currentTimeMillis()
+        val sql = """
+            INSERT OR REPLACE INTO vault_gold (guild_id, balance, last_modified)
+            VALUES (?, ?, ?)
+        """.trimIndent()
+
+        return try {
+            storage.connection.executeUpdate(sql, guildId.toString(), balance, currentTime) > 0
+        } catch (e: SQLException) {
+            false
+        }
+    }
+
+    override fun addGoldBalance(guildId: UUID, amount: Long): Long {
+        if (amount < 0) return -1L
+
+        val currentBalance = getGoldBalance(guildId)
+        val newBalance = currentBalance + amount
+
+        return if (setGoldBalance(guildId, newBalance)) {
+            newBalance
+        } else {
+            -1L
+        }
+    }
+
+    override fun subtractGoldBalance(guildId: UUID, amount: Long): Long {
+        if (amount < 0) return -1L
+
+        val currentBalance = getGoldBalance(guildId)
+        if (currentBalance < amount) {
+            // Insufficient balance
+            return -1L
+        }
+
+        val newBalance = currentBalance - amount
+
+        return if (setGoldBalance(guildId, newBalance)) {
+            newBalance
+        } else {
+            -1L
+        }
     }
 
     /**

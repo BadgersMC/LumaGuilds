@@ -129,6 +129,9 @@ data class VaultConfig(
     var baseCapacitySlots: Int = 9,
     var maxCapacitySlots: Int = 54,
 
+    // Transaction Logging
+    var transactionLogRetentionDays: Int = 30,
+
     // Virtual Economy Integration
     var requireEconomyPlugin: Boolean = true,
     var virtualBankFallback: Boolean = true,

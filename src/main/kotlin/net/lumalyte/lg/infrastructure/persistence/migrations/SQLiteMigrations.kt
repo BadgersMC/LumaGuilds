@@ -10,60 +10,79 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private val componentLogger = plugin.getComponentLogger()
     fun migrate() {
         try {
-            connection.autoCommit = false
-            var currentDbVersion = getCurrentDatabaseVersion()
+            // Enable WAL mode BEFORE starting transaction (if needed for migration to v12)
+            val currentDbVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("Current database schema version: v$currentDbVersion"))
 
+            if (currentDbVersion < 12) {
+                // Enable WAL mode before any transactions
+                enableWALMode()
+            }
+
+            // Now start transaction for migrations
+            connection.autoCommit = false
+            var dbVersion = currentDbVersion
+
             // Migrate sequentially
-            if (currentDbVersion < 2) {
+            if (dbVersion < 2) {
                 migrateToVersion2()
                 updateDatabaseVersion(2)
             }
             // If you have more future migrations, add them here:
-            if (currentDbVersion < 3) {
+            if (dbVersion < 3) {
                 migrateToVersion3()
                 updateDatabaseVersion(3)
-                currentDbVersion = 3
+                dbVersion = 3
             }
-            if (currentDbVersion < 4) {
+            if (dbVersion < 4) {
                 migrateToVersion4()
                 updateDatabaseVersion(4)
-                currentDbVersion = 4
+                dbVersion = 4
             }
-            if (currentDbVersion < 5) {
+            if (dbVersion < 5) {
                 migrateToVersion5()
                 updateDatabaseVersion(5)
-                currentDbVersion = 5
+                dbVersion = 5
             }
-            if (currentDbVersion < 6) {
+            if (dbVersion < 6) {
                 migrateToVersion6()
                 updateDatabaseVersion(6)
-                currentDbVersion = 6
+                dbVersion = 6
             }
-            if (currentDbVersion < 7) {
+            if (dbVersion < 7) {
                 migrateToVersion7()
                 updateDatabaseVersion(7)
-                currentDbVersion = 7
+                dbVersion = 7
             }
-            if (currentDbVersion < 8) {
+            if (dbVersion < 8) {
                 migrateToVersion8()
                 updateDatabaseVersion(8)
-                currentDbVersion = 8
+                dbVersion = 8
             }
-            if (currentDbVersion < 9) {
+            if (dbVersion < 9) {
                 migrateToVersion9()
                 updateDatabaseVersion(9)
-                currentDbVersion = 9
+                dbVersion = 9
             }
-            if (currentDbVersion < 10) {
+            if (dbVersion < 10) {
                 migrateToVersion10()
                 updateDatabaseVersion(10)
-                currentDbVersion = 10
+                dbVersion = 10
             }
-            if (currentDbVersion < 11) {
+            if (dbVersion < 11) {
                 migrateToVersion11()
                 updateDatabaseVersion(11)
-                currentDbVersion = 11
+                dbVersion = 11
+            }
+            if (dbVersion < 12) {
+                migrateToVersion12()
+                updateDatabaseVersion(12)
+                dbVersion = 12
+            }
+            if (dbVersion < 13) {
+                migrateToVersion13()
+                updateDatabaseVersion(13)
+                dbVersion = 13
             }
 
             // Validate that all required tables exist, recreate if missing
@@ -874,6 +893,107 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     }
 
     /**
+     * Migration from version 11 to version 12.
+     * Creates new vault system with WAL mode, gold balance, and transaction logging.
+     */
+    private fun migrateToVersion12() {
+        val sqlCommands = mutableListOf<String>()
+
+        // --- Step 1: Create vault_slots table ---
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS vault_slots (
+                guild_id TEXT NOT NULL,
+                slot INTEGER NOT NULL,
+                item_data TEXT,
+                last_modified INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, slot),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        executeMigrationCommands(sqlCommands)
+        sqlCommands.clear()
+
+        // --- Step 3: Create vault_gold table ---
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS vault_gold (
+                guild_id TEXT PRIMARY KEY,
+                balance INTEGER NOT NULL DEFAULT 0,
+                last_modified INTEGER NOT NULL,
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        executeMigrationCommands(sqlCommands)
+        sqlCommands.clear()
+
+        // --- Step 4: Create vault_transaction_log table ---
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS vault_transaction_log (
+                id TEXT PRIMARY KEY,
+                guild_id TEXT NOT NULL,
+                player_id TEXT NOT NULL,
+                transaction_type TEXT NOT NULL,
+                amount INTEGER,
+                item_data TEXT,
+                slot INTEGER,
+                timestamp INTEGER NOT NULL,
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        executeMigrationCommands(sqlCommands)
+        sqlCommands.clear()
+
+        // --- Step 5: Create indices for performance ---
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_vault_slots_guild_id ON vault_slots(guild_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_vault_gold_guild_id ON vault_gold(guild_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_vault_transaction_log_guild_id ON vault_transaction_log(guild_id)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_vault_transaction_log_timestamp ON vault_transaction_log(timestamp)")
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_vault_transaction_log_player_id ON vault_transaction_log(player_id)")
+        executeMigrationCommands(sqlCommands)
+        sqlCommands.clear()
+
+        componentLogger.info(Component.text("✓ Created new vault system tables with WAL mode"))
+    }
+
+    /**
+     * Migration from version 12 to version 13.
+     * Adds vault status and vault chest location columns to guilds table.
+     */
+    private fun migrateToVersion13() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Add vault_status column to guilds table (if not exists)
+        if (!columnExists("guilds", "vault_status")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN vault_status TEXT DEFAULT 'NEVER_PLACED';")
+        }
+
+        // Add vault_chest_world column to guilds table (if not exists)
+        if (!columnExists("guilds", "vault_chest_world")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN vault_chest_world TEXT;")
+        }
+
+        // Add vault_chest_x column to guilds table (if not exists)
+        if (!columnExists("guilds", "vault_chest_x")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN vault_chest_x INTEGER;")
+        }
+
+        // Add vault_chest_y column to guilds table (if not exists)
+        if (!columnExists("guilds", "vault_chest_y")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN vault_chest_y INTEGER;")
+        }
+
+        // Add vault_chest_z column to guilds table (if not exists)
+        if (!columnExists("guilds", "vault_chest_z")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN vault_chest_z INTEGER;")
+        }
+
+        if (sqlCommands.isNotEmpty()) {
+            executeMigrationCommands(sqlCommands)
+        }
+
+        componentLogger.info(Component.text("✓ Added vault status and location columns to guilds table"))
+    }
+
+    /**
      * Validates that all required tables exist and recreates them if missing.
      * This handles cases where the schema version is correct but tables are missing.
      */
@@ -881,7 +1001,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         val requiredTables = listOf(
             "guilds", "members", "relations", "parties", "party_requests",
             "player_party_preferences", "bank_tx", "kills",
-            "audits", "wars", "leaderboards", "guild_vault_items", "guild_invitations"
+            "audits", "wars", "leaderboards", "guild_vault_items", "guild_invitations",
+            "vault_slots", "vault_gold", "vault_transaction_log"
         )
         // Note: chat_visibility_settings and chat_rate_limits are created by ChatSettingsRepository itself
 
@@ -906,6 +1027,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("guild_invitations" in missingTables) {
                 migrateToVersion11()
                 componentLogger.info(Component.text("✓ Recreated guild_invitations table"))
+            }
+            if ("vault_slots" in missingTables || "vault_gold" in missingTables || "vault_transaction_log" in missingTables) {
+                migrateToVersion12()
+                componentLogger.info(Component.text("✓ Recreated vault system tables"))
             }
         }
     }
@@ -936,6 +1061,24 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 plugin.logger.severe("Failed to execute SQL: ${sql.substringBefore(';')}. Error: ${e.message}")
                 throw e
             }
+        }
+    }
+
+    /**
+     * Enables WAL (Write-Ahead Logging) mode for crash-resistant vault storage.
+     * Must be called BEFORE any transaction is started.
+     */
+    private fun enableWALMode() {
+        try {
+            connection.createStatement().use { stmt ->
+                stmt.execute("PRAGMA journal_mode=WAL")
+                stmt.execute("PRAGMA synchronous=NORMAL")
+                stmt.execute("PRAGMA wal_autocheckpoint=1000")
+            }
+            componentLogger.info(Component.text("✓ Enabled WAL mode for crash-resistant vault storage"))
+        } catch (e: SQLException) {
+            componentLogger.warn(Component.text("⚠ Could not enable WAL mode: ${e.message}"))
+            componentLogger.warn(Component.text("  Vault will use rollback journal mode (less crash-resistant)"))
         }
     }
 }

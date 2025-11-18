@@ -79,6 +79,36 @@ class LumaGuilds : JavaPlugin() {
             get().get<net.lumalyte.lg.application.persistence.GuildInvitationRepository>()
         )
 
+        // Initialize Gold Balance Button
+        net.lumalyte.lg.application.utilities.GoldBalanceButton.initialize(this)
+
+        // Check for vault migration and perform if needed
+        val migrationService = get().get<net.lumalyte.lg.application.services.VaultMigrationService>()
+        if (migrationService.isMigrationNeeded()) {
+            logger.info("Vault migration detected - starting migration process...")
+            val migrationResult = migrationService.performMigration()
+            if (migrationResult.wasSuccessful()) {
+                logger.info("✓ Vault migration completed successfully")
+            } else {
+                logger.severe("✗ Vault migration encountered errors - check logs for details")
+            }
+        }
+
+        // Start vault auto-save service
+        val vaultAutoSaveService = get().get<net.lumalyte.lg.application.services.VaultAutoSaveService>()
+        vaultAutoSaveService.start()
+
+        // Restore vault chests and holograms on server startup
+        val vaultService = get().get<net.lumalyte.lg.application.services.GuildVaultService>()
+        val hologramService = get().get<net.lumalyte.lg.infrastructure.services.VaultHologramService>()
+
+        // Restore physical chest blocks at saved locations
+        val restoredChests = vaultService.restoreAllVaultChests()
+
+        // Start hologram service and recreate all holograms
+        hologramService.start()
+        hologramService.recreateAllHolograms()
+
         // Configure command completions (ACF handles this automatically)
         configureCommandCompletions()
 
@@ -526,6 +556,10 @@ class LumaGuilds : JavaPlugin() {
         // Register vault protection listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener(), this)
 
+        // Register vault inventory listener (for gold button and real-time sync)
+        val vaultInventoryListener = get().get<net.lumalyte.lg.interaction.listeners.VaultInventoryListener>()
+        server.pluginManager.registerEvents(vaultInventoryListener, this)
+
         // Register player session cleanup listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
 
@@ -563,6 +597,22 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        // Stop vault auto-save service (this will flush all pending writes)
+        try {
+            val vaultAutoSaveService = get().get<net.lumalyte.lg.application.services.VaultAutoSaveService>()
+            vaultAutoSaveService.stop()
+        } catch (e: Exception) {
+            logger.severe("Failed to stop vault auto-save service: ${e.message}")
+        }
+
+        // Stop vault hologram service
+        try {
+            val hologramService = get().get<net.lumalyte.lg.infrastructure.services.VaultHologramService>()
+            hologramService.stop()
+        } catch (e: Exception) {
+            logger.severe("Failed to stop vault hologram service: ${e.message}")
+        }
+
         // Stop the daily war costs scheduler
         if (::dailyWarCostsScheduler.isInitialized) {
             dailyWarCostsScheduler.stopDailyScheduler()

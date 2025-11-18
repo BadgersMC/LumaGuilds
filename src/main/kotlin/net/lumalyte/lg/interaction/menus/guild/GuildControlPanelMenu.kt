@@ -31,6 +31,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
     private val relationService: RelationService by inject()
     private val bankService: BankService by inject()
     private val killService: KillService by inject()
+    private val vaultService: GuildVaultService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
@@ -66,7 +67,8 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
         addRelationManagementButton(pane, 6, 1)
 
         // Row 3: Economy & Stats
-        addBankManagementButton(pane, 3, 2)
+        addBankManagementButton(pane, 2, 2)
+        addVaultButton(pane, 3, 2)
         addStatisticsButton(pane, 4, 2)
         addProgressionInfoButton(pane, 5, 2)
 
@@ -230,6 +232,57 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7View transactions and balance")
         val guiItem = GuiItem(bankItem) {
             menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
+        }
+        pane.addItem(guiItem, x, y)
+    }
+
+    private fun addVaultButton(pane: StaticPane, x: Int, y: Int) {
+        val vaultItem = when (guild.vaultStatus) {
+            net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE -> {
+                ItemStack(Material.CHEST)
+                    .name("§eGuild Vault")
+                    .lore("§7Status: §a✓ Available")
+                    .lore("§7Click to open vault")
+                    .lore("")
+                    .lore("§7Store items safely in your")
+                    .lore("§7guild's physical vault chest")
+            }
+            net.lumalyte.lg.domain.entities.VaultStatus.UNAVAILABLE -> {
+                ItemStack(Material.BARRIER)
+                    .name("§eGuild Vault")
+                    .lore("§7Status: §c✗ Not Placed")
+                    .lore("§7Use §f/guild getvault §7to get a vault chest")
+                    .lore("")
+                    .lore("§7Place the chest in your guild's")
+                    .lore("§7territory to enable the vault")
+            }
+            net.lumalyte.lg.domain.entities.VaultStatus.NEVER_PLACED -> {
+                ItemStack(Material.BARRIER)
+                    .name("§eGuild Vault")
+                    .lore("§7Status: §c✗ Never Placed")
+                    .lore("§7Use §f/guild getvault §7to get a vault chest")
+                    .lore("")
+                    .lore("§7Place the chest in your guild's")
+                    .lore("§7territory to enable the vault")
+            }
+        }
+
+        val guiItem = GuiItem(vaultItem) {
+            if (guild.vaultStatus == net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE) {
+                // Open vault
+                player.closeInventory()
+                val result = vaultService.openVaultInventory(player, guild)
+                when (result) {
+                    is VaultResult.Success -> {
+                        // Vault opened successfully
+                    }
+                    is VaultResult.Failure -> {
+                        player.sendMessage("§c❌ ${result.message}")
+                    }
+                }
+            } else {
+                player.sendMessage("§c❌ Guild vault is not placed! Use §f/guild getvault §cto get a vault chest.")
+            }
         }
         pane.addItem(guiItem, x, y)
     }

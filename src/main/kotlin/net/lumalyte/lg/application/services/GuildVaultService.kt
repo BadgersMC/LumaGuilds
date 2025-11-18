@@ -126,6 +126,14 @@ interface GuildVaultService {
      * @return true if player has permission.
      */
     fun hasVaultPermission(player: Player, guild: Guild, requireWithdraw: Boolean = false): Boolean
+
+    /**
+     * Restores all vault chests on server startup.
+     * Recreates chest blocks at saved locations for all guilds with AVAILABLE vault status.
+     *
+     * @return Number of vaults successfully restored.
+     */
+    fun restoreAllVaultChests(): Int
 }
 
 /**

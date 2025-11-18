@@ -7,6 +7,8 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
+import net.lumalyte.lg.domain.entities.VaultStatus
+import net.lumalyte.lg.domain.entities.GuildVaultLocation
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.persistence.getInstant
 import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
@@ -87,6 +89,39 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             GuildHomes.EMPTY
         }
 
+        // Parse vault status
+        val vaultStatusStr = rs.getString("vault_status")
+        val vaultStatus = vaultStatusStr?.let {
+            try {
+                VaultStatus.valueOf(it.uppercase())
+            } catch (e: IllegalArgumentException) {
+                VaultStatus.NEVER_PLACED
+            }
+        } ?: VaultStatus.NEVER_PLACED
+
+        // Parse vault chest location
+        val vaultChestWorldStr = rs.getString("vault_chest_world")
+        val vaultChestLocation = if (vaultChestWorldStr != null) {
+            try {
+                GuildVaultLocation(
+                    worldId = UUID.fromString(vaultChestWorldStr),
+                    x = rs.getInt("vault_chest_x"),
+                    y = rs.getInt("vault_chest_y"),
+                    z = rs.getInt("vault_chest_z")
+                )
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+
+        // Debug logging for vault data loading
+        println("DEBUG [GuildRepositorySQLite] Loading guild '$name'")
+        println("  vault_status from DB: '$vaultStatusStr' -> $vaultStatus")
+        println("  vault_chest_world from DB: '$vaultChestWorldStr'")
+        println("  vault_chest_location: $vaultChestLocation")
+
         return Guild(
             id = id,
             name = name,
@@ -98,7 +133,9 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             bankBalance = bankBalance,
             mode = mode,
             modeChangedAt = modeChangedAt,
-            createdAt = createdAt
+            createdAt = createdAt,
+            vaultStatus = vaultStatus,
+            vaultChestLocation = vaultChestLocation
         )
     }
 
@@ -151,13 +188,19 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun update(guild: Guild): Boolean {
         val sql = """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
-            level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?
+            level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?
             WHERE id = ?
         """.trimIndent()
 
         return try {
             // Extract main home for backward compatibility with existing schema
             val mainHome = guild.homes.defaultHome
+
+            // Debug logging for vault updates
+            println("DEBUG [GuildRepositorySQLite] Updating guild '${guild.name}' (${guild.id})")
+            println("  vault_status: ${guild.vaultStatus.name}")
+            println("  vault_chest_location: ${guild.vaultChestLocation}")
 
             val rowsAffected = storage.connection.executeUpdate(sql,
                 guild.name,
@@ -172,13 +215,23 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 guild.bankBalance,
                 guild.mode.name.lowercase(),
                 guild.modeChangedAt?.toString(),
+                guild.vaultStatus.name,
+                guild.vaultChestLocation?.worldId?.toString(),
+                guild.vaultChestLocation?.x,
+                guild.vaultChestLocation?.y,
+                guild.vaultChestLocation?.z,
                 guild.id.toString()
             )
+
+            println("  rows affected: $rowsAffected")
+
             if (rowsAffected > 0) {
                 guilds[guild.id] = guild
             }
             rowsAffected > 0
         } catch (e: SQLException) {
+            println("ERROR [GuildRepositorySQLite] Failed to update guild: ${e.message}")
+            e.printStackTrace()
             false
         }
     }

@@ -252,6 +252,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<ProgressionRepository> { ProgressionRepositorySQLite(get()) }
     single<GuildInvitationRepository> { GuildInvitationRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.GuildVaultRepository> { net.lumalyte.lg.infrastructure.persistence.guilds.GuildVaultRepositorySQLite(get()) }
+    single<net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger> { net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger(get()) }
 
     single<NexoEmojiService> { NexoEmojiService() }
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get()) }
@@ -275,8 +276,31 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<net.lumalyte.lg.infrastructure.services.TeleportationService> { net.lumalyte.lg.infrastructure.services.TeleportationService(get()) }
 
     // Guild Vault System
+    single<net.lumalyte.lg.application.services.VaultInventoryManager> {
+        net.lumalyte.lg.application.services.VaultInventoryManager(get(), get())
+    }
     single<net.lumalyte.lg.application.services.GuildVaultService> {
-        net.lumalyte.lg.infrastructure.services.GuildVaultServiceBukkit(get(), get(), get(), get())
+        net.lumalyte.lg.infrastructure.services.GuildVaultServiceBukkit(
+            get<LumaGuilds>(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get()
+        )
+    }
+    single<net.lumalyte.lg.application.services.VaultAutoSaveService> {
+        val config = get<ConfigService>().loadConfig()
+        net.lumalyte.lg.application.services.VaultAutoSaveService(
+            get<LumaGuilds>(),
+            get(),
+            get(),
+            config.vault.transactionLogRetentionDays
+        )
+    }
+    single<net.lumalyte.lg.application.services.VaultMigrationService> {
+        net.lumalyte.lg.application.services.VaultMigrationService(get(), get())
     }
     single<net.lumalyte.lg.infrastructure.services.VaultHologramService> { net.lumalyte.lg.infrastructure.services.VaultHologramService(get()) }
 
@@ -330,6 +354,9 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     // Listeners
     single<ChatInputListener> { ChatInputListener() }
     single<ProgressionEventListener> { ProgressionEventListener() }
+    single<net.lumalyte.lg.interaction.listeners.VaultInventoryListener> {
+        net.lumalyte.lg.interaction.listeners.VaultInventoryListener(get<LumaGuilds>(), get(), get())
+    }
 
     // --- Application Layer Actions ---
 
