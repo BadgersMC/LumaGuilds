@@ -68,4 +68,41 @@ interface GuildVaultRepository {
      * @return true if the vault has items, false otherwise.
      */
     fun hasVaultItems(guildId: UUID): Boolean
+
+    // ========== Gold Balance Management ==========
+
+    /**
+     * Gets the gold balance for a guild's vault (in nugget equivalents).
+     *
+     * @param guildId The ID of the guild.
+     * @return The gold balance in nuggets (1 block = 81 nuggets, 1 ingot = 9 nuggets).
+     */
+    fun getGoldBalance(guildId: UUID): Long
+
+    /**
+     * Sets the gold balance for a guild's vault (in nugget equivalents).
+     *
+     * @param guildId The ID of the guild.
+     * @param balance The new balance in nuggets.
+     * @return true if successful, false otherwise.
+     */
+    fun setGoldBalance(guildId: UUID, balance: Long): Boolean
+
+    /**
+     * Adds to the gold balance for a guild's vault.
+     *
+     * @param guildId The ID of the guild.
+     * @param amount The amount to add in nuggets.
+     * @return The new balance, or -1 if failed.
+     */
+    fun addGoldBalance(guildId: UUID, amount: Long): Long
+
+    /**
+     * Subtracts from the gold balance for a guild's vault.
+     *
+     * @param guildId The ID of the guild.
+     * @param amount The amount to subtract in nuggets.
+     * @return The new balance, or -1 if failed or insufficient balance.
+     */
+    fun subtractGoldBalance(guildId: UUID, amount: Long): Long
 }

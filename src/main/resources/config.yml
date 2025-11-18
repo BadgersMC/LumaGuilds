@@ -126,6 +126,70 @@ guild:
   banner_copy_free: false  # If true, banner copies are free regardless of cost setting
 
 # =====================================
+# Guild Vault Configuration
+# =====================================
+
+vault:
+  # Bank Mode Selection
+  # VIRTUAL: Only use virtual bank balance (economy plugin required)
+  # PHYSICAL: Only use physical vault chest (no economy)
+  # BOTH: Use both virtual bank and physical vault (recommended)
+  bank_mode: BOTH
+
+  # Physical Vault Settings
+  vault_chest_enabled: true
+
+  # Protection and Security
+  # Time window for confirming vault chest break (prevents accidental breaks)
+  break_warning_timeout_seconds: 5
+
+  # IMPORTANT: Item Drop Behavior
+  # When true: Breaking vault drops all items (old behavior, items lost if not picked up)
+  # When false: Breaking vault preserves items in database for restoration (RECOMMENDED)
+  drop_items_on_break: false
+
+  # When true: Explosions drop all vault items
+  # When false: Explosions preserve items in database
+  drop_items_on_explosion: false
+
+  # Capacity Scaling
+  # Whether vault capacity increases with guild level
+  capacity_scaling_enabled: true
+  base_capacity_slots: 9    # Level 1 guilds (1 row)
+  max_capacity_slots: 54     # Max level guilds (6 rows / full double chest)
+
+  # Virtual Economy Integration
+  require_economy_plugin: true
+  virtual_bank_fallback: true
+
+  # =====================================
+  # Physical Item Currency System
+  # =====================================
+  # Use a single physical item as guild currency instead of Vault economy
+  # When enabled, ALL transactions use this item from the guild vault chest
+  # This mode requires bank_mode to be "PHYSICAL" (not VIRTUAL or BOTH)
+  use_physical_currency: false
+
+  # The Bukkit Material to use as currency (e.g., "RAW_GOLD", "DIAMOND", "EMERALD")
+  physical_currency_material: RAW_GOLD
+
+  # Simple 1:1 ratio - each item = 1 currency unit
+  # Example: If daily_war_cost = 10, it requires 10 RAW_GOLD items
+  physical_currency_item_value: 1
+
+  # Items must be physically in the guild vault chest (not virtual tracking)
+  physical_currency_require_vault_chest: true
+
+  # Physical Currency Fee Settings (flat item amounts)
+  physical_deposit_fee: 0          # Fee when depositing items (0 = no fee)
+  physical_withdrawal_fee: 1       # Fee when withdrawing items
+  physical_transaction_minimum: 1  # Minimum transaction size in items
+
+  # Physical Currency War Costs (in item amounts)
+  physical_daily_war_cost: 10         # Daily cost to maintain war (10 RAW_GOLD)
+  physical_war_declaration_cost: 100  # Cost to declare war (100 RAW_GOLD)
+
+# =====================================
 # Guild Role Permissions Configuration
 # =====================================
 

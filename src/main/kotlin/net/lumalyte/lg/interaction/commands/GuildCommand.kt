@@ -1310,7 +1310,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("getvault")
-    // @CommandPermission("lumaguilds.guild.getvault") // TODO: Fix ACF permission issue - temporarily disabled for testing
+    @CommandPermission("lumaguilds.guild.getvault")
     fun onVaultGet(player: Player) {
         val playerId = player.uniqueId
 
@@ -1423,7 +1423,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("vault")
-    // @CommandPermission("lumaguilds.guild.vault") // TODO: Fix ACF permission issue - temporarily disabled for testing
+    @CommandPermission("lumaguilds.guild.vault")
     fun onVault(player: Player) {
         val playerId = player.uniqueId
 

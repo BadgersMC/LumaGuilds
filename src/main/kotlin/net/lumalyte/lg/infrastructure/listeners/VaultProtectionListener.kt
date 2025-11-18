@@ -243,39 +243,44 @@ class VaultProtectionListener : Listener, KoinComponent {
             // First warning or warning expired
             event.isCancelled = true
             playerWarnings[locationKey] = currentTime
-            player.sendMessage("§e§lWARNING§r §7» §fBreaking the vault chest will drop all items!")
+            player.sendMessage("§e§lWARNING§r §7» §fBreaking the vault will drop ALL items and currency on the ground!")
+            player.sendMessage("§e§lWARNING§r §7» §fThey will be permanently lost if not picked up!")
             player.sendMessage("§e§lWARNING§r §7» §fBreak again within §e${getConfig().breakWarningTimeoutSeconds} seconds §fto confirm.")
             logger.info("Warned ${player.name} about breaking vault chest (first warning)")
         } else {
-            // Second break attempt within timeout - allow break and drop items
-            if (getConfig().dropItemsOnBreak) {
-                // Drop all items
-                val dropResult = vaultService.dropAllVaultItems(guild)
-                when (dropResult) {
-                    is net.lumalyte.lg.application.services.VaultResult.Success -> {
-                        player.sendMessage("§c§lVAULT BROKEN§r §7» §fAll items have been dropped!")
-                        logger.info("${player.name} broke vault chest, items dropped")
+            // Second break attempt within timeout - allow break
+            val dropItems = getConfig().dropItemsOnBreak
+
+            // Use removeVaultChest which handles items correctly
+            val removeResult = vaultService.removeVaultChest(guild, dropItems = dropItems)
+
+            when (removeResult) {
+                is net.lumalyte.lg.application.services.VaultResult.Success -> {
+                    if (dropItems) {
+                        player.sendMessage("§c§lVAULT BROKEN§r §7» §fAll items and currency have been dropped on the ground!")
+                        player.sendMessage("§c§lVAULT BROKEN§r §7» §fPick them up quickly before they despawn!")
+                        logger.info("${player.name} broke vault chest, items dropped and cleared from database")
+                    } else {
+                        player.sendMessage("§c§lVAULT REMOVED§r §7» §fThe vault chest has been removed.")
+                        player.sendMessage("§e§lITEMS PRESERVED§r §7» §fPlace a new vault chest to restore your items!")
+                        logger.info("${player.name} broke vault chest, items preserved in database")
                     }
-                    is net.lumalyte.lg.application.services.VaultResult.Failure -> {
-                        player.sendMessage("§c§lERROR§r §7» §f${dropResult.message}")
-                        logger.error("Failed to drop vault items: ${dropResult.message}")
-                    }
+
+                    // Update guild in repo
+                    guildRepository.update(removeResult.data)
+
+                    // Clear warning
+                    playerWarnings.remove(locationKey)
+
+                    // Remove hologram
+                    hologramService.removeHologram(block.location)
+                }
+                is net.lumalyte.lg.application.services.VaultResult.Failure -> {
+                    event.isCancelled = true
+                    player.sendMessage("§c§lERROR§r §7» §f${removeResult.message}")
+                    logger.error("Failed to remove vault: ${removeResult.message}")
                 }
             }
-
-            // Update vault status to unavailable
-            val updatedGuild = vaultService.updateVaultStatus(guild, VaultStatus.UNAVAILABLE)
-            guildRepository.update(updatedGuild)
-
-            // Clear warning
-            playerWarnings.remove(locationKey)
-
-            // Allow the break
-            player.sendMessage("§c§lVAULT REMOVED§r §7» §fThe vault chest has been removed.")
-            logger.info("${player.name} broke vault chest (confirmed)")
-
-            // Remove hologram
-            hologramService.removeHologram(block.location)
         }
     }
 
@@ -285,7 +290,6 @@ class VaultProtectionListener : Listener, KoinComponent {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     fun onEntityExplode(event: EntityExplodeEvent) {
         val config = getConfig()
-        if (!config.dropItemsOnExplosion) return
 
         // Check each block in the explosion
         val blocksToRemove = mutableListOf<Block>()
@@ -297,20 +301,23 @@ class VaultProtectionListener : Listener, KoinComponent {
             if (guild != null) {
                 logger.info("Vault chest for guild ${guild.name} caught in explosion")
 
-                // Drop all items
-                val dropResult = vaultService.dropAllVaultItems(guild)
-                when (dropResult) {
+                // Use removeVaultChest with dropItems based on config
+                val dropItems = config.dropItemsOnExplosion
+                val removeResult = vaultService.removeVaultChest(guild, dropItems = dropItems)
+
+                when (removeResult) {
                     is net.lumalyte.lg.application.services.VaultResult.Success -> {
-                        logger.info("Dropped all items from vault chest due to explosion")
+                        if (dropItems) {
+                            logger.info("Dropped all items from vault chest due to explosion and cleared from database")
+                        } else {
+                            logger.info("Vault chest destroyed by explosion, items preserved in database")
+                        }
+                        guildRepository.update(removeResult.data)
                     }
                     is net.lumalyte.lg.application.services.VaultResult.Failure -> {
-                        logger.error("Failed to drop vault items from explosion: ${dropResult.message}")
+                        logger.error("Failed to remove vault from explosion: ${removeResult.message}")
                     }
                 }
-
-                // Update vault status
-                val updatedGuild = vaultService.updateVaultStatus(guild, VaultStatus.UNAVAILABLE)
-                guildRepository.update(updatedGuild)
 
                 // Remove hologram
                 hologramService.removeHologram(block.location)
@@ -318,12 +325,17 @@ class VaultProtectionListener : Listener, KoinComponent {
                 // Remove the chest from explosion (we'll handle destruction)
                 blocksToRemove.add(block)
 
-                // Notify guild members online
+                // Notify guild members online with appropriate message
                 for (member in memberService.getGuildMembers(guild.id)) {
                     val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                     if (onlinePlayer != null && onlinePlayer.isOnline) {
                         onlinePlayer.sendMessage("§c§lVAULT DESTROYED§r §7» §fYour guild's vault chest was destroyed by an explosion!")
-                        onlinePlayer.sendMessage("§c§lVAULT DESTROYED§r §7» §fAll items have been dropped at the vault location.")
+                        if (dropItems) {
+                            onlinePlayer.sendMessage("§c§lALL ITEMS DROPPED§r §7» §fAll items and currency scattered at the vault location!")
+                            onlinePlayer.sendMessage("§c§lACT FAST§r §7» §fItems will despawn if not picked up!")
+                        } else {
+                            onlinePlayer.sendMessage("§e§lITEMS PRESERVED§r §7» §fPlace a new vault chest to restore your items!")
+                        }
                     }
                 }
             }
