@@ -69,7 +69,11 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     }
 
     private fun addCurrentPartiesSection(pane: StaticPane) {
-        val activeParties = partyService.getActivePartiesForGuild(guild.id)
+        val allActiveParties = partyService.getActivePartiesForGuild(guild.id)
+        // Filter out parties the player is banned from
+        val activeParties = allActiveParties.filter { party ->
+            !party.isPlayerBanned(player.uniqueId)
+        }.toSet()
 
         if (activeParties.isEmpty()) {
             val noPartiesItem = ItemStack(Material.BARRIER)
@@ -100,6 +104,21 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
                 pane.addItem(GuiItem(morePartiesItem) {
                     openPartyListMenu()
                 }, 1, 0)
+            }
+
+            // Add moderation button for each party (if player has permission)
+            val canModerate = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
+            if (canModerate) {
+                val moderateItem = ItemStack(Material.ANVIL)
+                    .name("§6Moderate Channel")
+                    .lore("§7Manage mutes, bans, and kicks")
+                    .lore("§7for ${party.name ?: "this channel"}")
+                    .lore("")
+                    .lore("§eClick to open moderation menu")
+
+                pane.addItem(GuiItem(moderateItem) {
+                    openModerationMenu(party)
+                }, 8, 0)
             }
         }
     }
@@ -226,6 +245,10 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     private fun openPartyDetailsMenu(party: Party) {
         player.sendMessage("§eParty details menu coming soon!")
         player.sendMessage("§7This would show detailed party information and management options.")
+    }
+
+    private fun openModerationMenu(party: Party) {
+        menuNavigator.openMenu(PartyModerationMenu(menuNavigator, player, guild, party))
     }
 
     private fun openPartyListMenu() {

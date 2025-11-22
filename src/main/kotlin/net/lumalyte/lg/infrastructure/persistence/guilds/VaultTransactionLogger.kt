@@ -13,7 +13,7 @@ import java.util.UUID
 /**
  * Transaction types for vault operations.
  */
-enum class VaultTransactionType {
+internal enum class VaultTransactionType {
     GOLD_DEPOSIT,
     GOLD_WITHDRAW,
     ITEM_ADD,

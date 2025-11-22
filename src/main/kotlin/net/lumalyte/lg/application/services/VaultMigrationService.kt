@@ -15,7 +15,7 @@ import java.util.*
  * Handles migration of vault data from the old system to the new system.
  * Detects old vault_contents table and migrates data to vault_slots and vault_gold.
  */
-class VaultMigrationService(
+internal class VaultMigrationService(
     private val storage: Storage<Database>,
     private val vaultRepository: GuildVaultRepository
 ) {
@@ -328,7 +328,7 @@ class VaultMigrationService(
     /**
      * Result of a migration operation.
      */
-    data class MigrationResult(
+    class MigrationResult(
         var successCount: Int = 0,
         var failureCount: Int = 0,
         val failedGuilds: MutableList<UUID> = mutableListOf(),

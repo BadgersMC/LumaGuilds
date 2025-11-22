@@ -1,6 +1,8 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.PartyRepository
@@ -14,9 +16,10 @@ import java.time.Instant
 import java.util.UUID
 
 class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepository {
-    
+
     private val parties: MutableMap<UUID, Party> = mutableMapOf()
-    
+    private val gson = Gson()
+
     init {
         createPartyTable()
         preload()
@@ -45,10 +48,11 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
     
     private fun preload() {
         val sql = """
-            SELECT id, name, guild_ids, leader_id, status, created_at, expires_at, restricted_roles
+            SELECT id, name, guild_ids, leader_id, status, created_at, expires_at, restricted_roles,
+                   muted_players, banned_players
             FROM parties
         """.trimIndent()
-        
+
         try {
             val results = storage.connection.getResults(sql)
             for (result in results) {
@@ -70,6 +74,14 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
             ?.map { UUID.fromString(it.trim()) }
             ?.toSet()
 
+        // Parse muted_players JSON: {"playerId": "epochSeconds"|null}
+        val mutedPlayersJson = rs.getString("muted_players") ?: "{}"
+        val mutedPlayers = parseMutedPlayersJson(mutedPlayersJson)
+
+        // Parse banned_players JSON: ["playerId1", "playerId2"]
+        val bannedPlayersJson = rs.getString("banned_players") ?: "[]"
+        val bannedPlayers = parseBannedPlayersJson(bannedPlayersJson)
+
         return Party(
             id = UUID.fromString(rs.getString("id")),
             name = rs.getString("name"),
@@ -78,19 +90,25 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
             status = PartyStatus.valueOf(rs.getString("status")),
             createdAt = rs.getInstantNotNull("created_at"),
             expiresAt = rs.getInstant("expires_at"),
-            restrictedRoles = restrictedRoles
+            restrictedRoles = restrictedRoles,
+            mutedPlayers = mutedPlayers,
+            bannedPlayers = bannedPlayers
         )
     }
     
     override fun add(party: Party): Boolean {
         val sql = """
-            INSERT INTO parties (id, name, guild_ids, leader_id, status, created_at, expires_at, restricted_roles)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO parties (id, name, guild_ids, leader_id, status, created_at, expires_at, restricted_roles,
+                                 muted_players, banned_players)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
 
         return try {
             val guildIdsString = party.guildIds.joinToString(",") { it.toString() }
             val restrictedRolesString = party.restrictedRoles?.joinToString(",") { it.toString() }
+            val mutedPlayersJson = serializeMutedPlayers(party.mutedPlayers)
+            val bannedPlayersJson = serializeBannedPlayers(party.bannedPlayers)
+
             val rowsAffected = storage.connection.executeUpdate(sql,
                 party.id.toString(),
                 party.name,
@@ -99,7 +117,9 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
                 party.status.name,
                 party.createdAt.toString(),
                 party.expiresAt?.toString(),
-                restrictedRolesString
+                restrictedRolesString,
+                mutedPlayersJson,
+                bannedPlayersJson
             )
 
             parties[party.id] = party
@@ -112,13 +132,17 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
     override fun update(party: Party): Boolean {
         val sql = """
             UPDATE parties
-            SET name = ?, guild_ids = ?, leader_id = ?, status = ?, expires_at = ?, restricted_roles = ?
+            SET name = ?, guild_ids = ?, leader_id = ?, status = ?, expires_at = ?, restricted_roles = ?,
+                muted_players = ?, banned_players = ?
             WHERE id = ?
         """.trimIndent()
 
         return try {
             val guildIdsString = party.guildIds.joinToString(",") { it.toString() }
             val restrictedRolesString = party.restrictedRoles?.joinToString(",") { it.toString() }
+            val mutedPlayersJson = serializeMutedPlayers(party.mutedPlayers)
+            val bannedPlayersJson = serializeBannedPlayers(party.bannedPlayers)
+
             val rowsAffected = storage.connection.executeUpdate(sql,
                 party.name,
                 guildIdsString,
@@ -126,6 +150,8 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
                 party.status.name,
                 party.expiresAt?.toString(),
                 restrictedRolesString,
+                mutedPlayersJson,
+                bannedPlayersJson,
                 party.id.toString()
             )
 
@@ -166,6 +192,12 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
             party.includesGuild(guildId) && party.isActive()
         }.toSet()
     }
+
+    override fun getAllPartiesForGuild(guildId: UUID): Set<Party> {
+        return parties.values.filter { party ->
+            party.includesGuild(guildId)
+        }.toSet()
+    }
     
     override fun getPartiesByLeader(playerId: UUID): Set<Party> {
         return parties.values.filter { it.leaderId == playerId }.toSet()
@@ -195,5 +227,87 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
     
     override fun getAll(): Set<Party> {
         return parties.values.toSet()
+    }
+
+    /**
+     * Parses the muted_players JSON string into a Map<UUID, Instant?>.
+     * Format: {"playerId": "epochSeconds"} or {"playerId": null}
+     * Returns empty map if parsing fails.
+     */
+    private fun parseMutedPlayersJson(json: String): Map<UUID, Instant?> {
+        return try {
+            if (json.isBlank() || json == "{}") return emptyMap()
+
+            val type = object : TypeToken<Map<String, Long?>>() {}.type
+            val jsonMap: Map<String, Long?> = gson.fromJson(json, type)
+
+            val result = mutableMapOf<UUID, Instant?>()
+            for ((key, value) in jsonMap) {
+                val playerId = UUID.fromString(key)
+                val expiration = value?.let { Instant.ofEpochSecond(it) }
+                result[playerId] = expiration
+            }
+
+            result
+        } catch (e: Exception) {
+            // Log error but don't fail - return empty map for graceful degradation
+            System.err.println("Failed to parse muted_players JSON: $json - ${e.message}")
+            emptyMap()
+        }
+    }
+
+    /**
+     * Parses the banned_players JSON string into a Set<UUID>.
+     * Format: ["playerId1", "playerId2"]
+     * Returns empty set if parsing fails.
+     */
+    private fun parseBannedPlayersJson(json: String): Set<UUID> {
+        return try {
+            if (json.isBlank() || json == "[]") return emptySet()
+
+            val type = object : TypeToken<List<String>>() {}.type
+            val jsonList: List<String> = gson.fromJson(json, type)
+            jsonList.map { UUID.fromString(it) }.toSet()
+        } catch (e: Exception) {
+            // Log error but don't fail - return empty set for graceful degradation
+            System.err.println("Failed to parse banned_players JSON: $json - ${e.message}")
+            emptySet()
+        }
+    }
+
+    /**
+     * Serializes the muted_players map into a JSON string.
+     * Format: {"playerId": "epochSeconds"} or {"playerId": null}
+     */
+    private fun serializeMutedPlayers(mutes: Map<UUID, Instant?>): String {
+        return try {
+            if (mutes.isEmpty()) return "{}"
+
+            val jsonObject = mutableMapOf<String, Long?>()
+            for ((playerId, expiration) in mutes) {
+                jsonObject[playerId.toString()] = expiration?.epochSecond
+            }
+
+            gson.toJson(jsonObject)
+        } catch (e: Exception) {
+            System.err.println("Failed to serialize muted_players: ${e.message}")
+            "{}"
+        }
+    }
+
+    /**
+     * Serializes the banned_players set into a JSON array string.
+     * Format: ["playerId1", "playerId2"]
+     */
+    private fun serializeBannedPlayers(bans: Set<UUID>): String {
+        return try {
+            if (bans.isEmpty()) return "[]"
+
+            val playerIds = bans.map { it.toString() }
+            gson.toJson(playerIds)
+        } catch (e: Exception) {
+            System.err.println("Failed to serialize banned_players: ${e.message}")
+            "[]"
+        }
     }
 }

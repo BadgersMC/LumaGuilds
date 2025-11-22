@@ -21,6 +21,7 @@ import java.util.UUID
  * @property createdAt The timestamp when the guild was created.
  * @property vaultChestLocation The location of the physical guild vault chest.
  * @property vaultStatus The status of the guild vault.
+ * @property isOpen Whether the guild is open for anyone to join (true) or invite-only (false).
  */
 data class Guild(
     val id: UUID,
@@ -37,7 +38,8 @@ data class Guild(
     val createdAt: Instant,
     val vaultChestLocation: GuildVaultLocation? = null,
     val vaultStatus: VaultStatus = VaultStatus.NEVER_PLACED,
-    val vaultLocked: Boolean = false
+    val vaultLocked: Boolean = false,
+    val isOpen: Boolean = false
 ) {
     init {
         require(name.length in 1..32) { "Guild name must be between 1 and 32 characters." }

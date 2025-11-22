@@ -48,6 +48,15 @@ interface PartyRepository {
      * @return A set of active parties the guild is part of.
      */
     fun getActivePartiesByGuild(guildId: UUID): Set<Party>
+
+    /**
+     * Gets all parties (active and inactive) involving a specific guild.
+     * This includes both single-guild channels and multi-guild parties.
+     *
+     * @param guildId The ID of the guild.
+     * @return A set of all parties the guild is part of.
+     */
+    fun getAllPartiesForGuild(guildId: UUID): Set<Party>
     
     /**
      * Gets all parties led by a specific player.

@@ -618,4 +618,285 @@ class PartyServiceBukkit(
             return false
         }
     }
+
+    override fun mutePlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID, duration: Duration?): Party? {
+        try {
+            // Get party from repository
+            val party = partyRepository.getById(partyId)
+            if (party == null) {
+                logger.warn("Party $partyId not found")
+                return null
+            }
+
+            // Verify actor has MANAGE_RELATIONS permission in at least one guild in the party
+            var hasPermission = false
+            for (guildId in party.guildIds) {
+                if (canManageParties(actorId, guildId)) {
+                    hasPermission = true
+                    break
+                }
+            }
+
+            if (!hasPermission) {
+                logger.warn("Player $actorId does not have permission to mute players in party $partyId")
+                return null
+            }
+
+            // Verify target is not party leader
+            if (targetPlayerId == party.leaderId) {
+                logger.warn("Cannot mute party leader $targetPlayerId in party $partyId")
+                return null
+            }
+
+            // Verify actor is not attempting to mute themselves
+            if (actorId == targetPlayerId) {
+                logger.warn("Player $actorId attempted to mute themselves in party $partyId")
+                return null
+            }
+
+            // Calculate mute expiration
+            val muteExpiration = duration?.let { Instant.now().plus(it) }
+
+            // Create updated Party with new mutedPlayers map
+            val updatedMutedPlayers = party.mutedPlayers.toMutableMap()
+            updatedMutedPlayers[targetPlayerId] = muteExpiration
+            val updatedParty = party.copy(mutedPlayers = updatedMutedPlayers)
+
+            // Update repository
+            val success = partyRepository.update(updatedParty)
+
+            if (success) {
+                // Log moderation action
+                val durationType = if (muteExpiration == null) "permanent" else "until $muteExpiration"
+                logger.info("Player $targetPlayerId muted in party $partyId by $actorId ($durationType)")
+                return updatedParty
+            } else {
+                logger.error("Failed to update party $partyId with mute information")
+                return null
+            }
+        } catch (e: Exception) {
+            logger.error("Error muting player $targetPlayerId in party $partyId", e)
+            return null
+        }
+    }
+
+    override fun unmutePlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID): Party? {
+        try {
+            // Get party from repository
+            val party = partyRepository.getById(partyId)
+            if (party == null) {
+                logger.warn("Party $partyId not found")
+                return null
+            }
+
+            // Verify actor has MANAGE_RELATIONS permission
+            var hasPermission = false
+            for (guildId in party.guildIds) {
+                if (canManageParties(actorId, guildId)) {
+                    hasPermission = true
+                    break
+                }
+            }
+
+            if (!hasPermission) {
+                logger.warn("Player $actorId does not have permission to unmute players in party $partyId")
+                return null
+            }
+
+            // Create updated Party with target removed from mutedPlayers map
+            val updatedMutedPlayers = party.mutedPlayers.toMutableMap()
+            updatedMutedPlayers.remove(targetPlayerId)
+            val updatedParty = party.copy(mutedPlayers = updatedMutedPlayers)
+
+            // Update repository
+            val success = partyRepository.update(updatedParty)
+
+            if (success) {
+                // Log unmute action
+                logger.info("Player $targetPlayerId unmuted in party $partyId by $actorId")
+                return updatedParty
+            } else {
+                logger.error("Failed to update party $partyId with unmute information")
+                return null
+            }
+        } catch (e: Exception) {
+            logger.error("Error unmuting player $targetPlayerId in party $partyId", e)
+            return null
+        }
+    }
+
+    override fun banPlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID): Party? {
+        try {
+            // Get party from repository
+            val party = partyRepository.getById(partyId)
+            if (party == null) {
+                logger.warn("Party $partyId not found")
+                return null
+            }
+
+            // Verify actor has MANAGE_RELATIONS permission
+            var hasPermission = false
+            for (guildId in party.guildIds) {
+                if (canManageParties(actorId, guildId)) {
+                    hasPermission = true
+                    break
+                }
+            }
+
+            if (!hasPermission) {
+                logger.warn("Player $actorId does not have permission to ban players in party $partyId")
+                return null
+            }
+
+            // Verify target is not party leader
+            if (targetPlayerId == party.leaderId) {
+                logger.warn("Cannot ban party leader $targetPlayerId in party $partyId")
+                return null
+            }
+
+            // Verify actor is not attempting to ban themselves
+            if (actorId == targetPlayerId) {
+                logger.warn("Player $actorId attempted to ban themselves in party $partyId")
+                return null
+            }
+
+            // Create updated Party with target added to bannedPlayers set
+            val updatedBannedPlayers = party.bannedPlayers.toMutableSet()
+            updatedBannedPlayers.add(targetPlayerId)
+
+            // Remove from mutedPlayers if present (ban supersedes mute)
+            val updatedMutedPlayers = party.mutedPlayers.toMutableMap()
+            updatedMutedPlayers.remove(targetPlayerId)
+
+            val updatedParty = party.copy(
+                bannedPlayers = updatedBannedPlayers,
+                mutedPlayers = updatedMutedPlayers
+            )
+
+            // Update repository
+            val success = partyRepository.update(updatedParty)
+
+            if (success) {
+                // Log ban action
+                logger.info("Player $targetPlayerId banned from party $partyId by $actorId")
+                return updatedParty
+            } else {
+                logger.error("Failed to update party $partyId with ban information")
+                return null
+            }
+        } catch (e: Exception) {
+            logger.error("Error banning player $targetPlayerId in party $partyId", e)
+            return null
+        }
+    }
+
+    override fun unbanPlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID): Party? {
+        try {
+            // Get party from repository
+            val party = partyRepository.getById(partyId)
+            if (party == null) {
+                logger.warn("Party $partyId not found")
+                return null
+            }
+
+            // Verify actor has MANAGE_RELATIONS permission
+            var hasPermission = false
+            for (guildId in party.guildIds) {
+                if (canManageParties(actorId, guildId)) {
+                    hasPermission = true
+                    break
+                }
+            }
+
+            if (!hasPermission) {
+                logger.warn("Player $actorId does not have permission to unban players in party $partyId")
+                return null
+            }
+
+            // Create updated Party with target removed from bannedPlayers set
+            val updatedBannedPlayers = party.bannedPlayers.toMutableSet()
+            updatedBannedPlayers.remove(targetPlayerId)
+            val updatedParty = party.copy(bannedPlayers = updatedBannedPlayers)
+
+            // Update repository
+            val success = partyRepository.update(updatedParty)
+
+            if (success) {
+                // Log unban action
+                logger.info("Player $targetPlayerId unbanned from party $partyId by $actorId")
+                return updatedParty
+            } else {
+                logger.error("Failed to update party $partyId with unban information")
+                return null
+            }
+        } catch (e: Exception) {
+            logger.error("Error unbanning player $targetPlayerId in party $partyId", e)
+            return null
+        }
+    }
+
+    override fun kickPlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID): Party? {
+        try {
+            // Get party from repository
+            val party = partyRepository.getById(partyId)
+            if (party == null) {
+                logger.warn("Party $partyId not found")
+                return null
+            }
+
+            // Verify actor has MANAGE_RELATIONS permission
+            var hasPermission = false
+            for (guildId in party.guildIds) {
+                if (canManageParties(actorId, guildId)) {
+                    hasPermission = true
+                    break
+                }
+            }
+
+            if (!hasPermission) {
+                logger.warn("Player $actorId does not have permission to kick players in party $partyId")
+                return null
+            }
+
+            // Verify target is not party leader
+            if (targetPlayerId == party.leaderId) {
+                logger.warn("Cannot kick party leader $targetPlayerId from party $partyId")
+                return null
+            }
+
+            // Verify actor is not attempting to kick themselves
+            if (actorId == targetPlayerId) {
+                logger.warn("Player $actorId attempted to kick themselves from party $partyId")
+                return null
+            }
+
+            // Check if party is single-guild (private party)
+            val isPrivateParty = party.isPrivateParty()
+
+            // For both single-guild and multi-guild parties: ban player to prevent re-access
+            val result = banPlayer(partyId, targetPlayerId, actorId)
+
+            if (result != null) {
+                // Log kick action
+                val partyType = if (isPrivateParty) "single-guild channel" else "multi-guild party"
+                logger.info("Player $targetPlayerId kicked from $partyType $partyId by $actorId")
+
+                // Notify target player they were kicked
+                val targetPlayer = Bukkit.getPlayer(targetPlayerId)
+                if (targetPlayer != null && targetPlayer.isOnline) {
+                    val partyName = party.name ?: "the party"
+                    targetPlayer.sendMessage("§c❌ You have been kicked from $partyName")
+                }
+            }
+
+            return result
+        } catch (e: Exception) {
+            logger.error("Error kicking player $targetPlayerId from party $partyId", e)
+            return null
+        }
+    }
+
+    override fun getAllPartiesForGuild(guildId: UUID): Set<Party> {
+        return partyRepository.getAllPartiesForGuild(guildId)
+    }
 }

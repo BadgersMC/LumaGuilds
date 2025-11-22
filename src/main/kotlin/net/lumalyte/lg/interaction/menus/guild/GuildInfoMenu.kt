@@ -165,6 +165,26 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         pane.addItem(GuiItem(alliesItem), x, y)
 
+        // Truces
+        val truces = relations.filter { it.type == RelationType.TRUCE }
+        val trucesItem = ItemStack(Material.WHITE_BANNER)
+            .name("§fTruces (§f${truces.size}§f)")
+
+        if (truces.isNotEmpty()) {
+            truces.take(3).forEach { relation ->
+                val truceId = relation.getOtherGuild(guild.id)
+                val truceGuild = guildService.getGuild(truceId)
+                trucesItem.lore("§7• §f${truceGuild?.name ?: "Unknown"}")
+            }
+            if (truces.size > 3) {
+                trucesItem.lore("§7... and ${truces.size - 3} more")
+            }
+        } else {
+            trucesItem.lore("§7No truces")
+        }
+
+        pane.addItem(GuiItem(trucesItem), x, y + 1)
+
         // Enemies/Wars
         val enemies = relations.filter { it.type == RelationType.ENEMY }
         val enemiesItem = ItemStack(Material.RED_BANNER)
@@ -183,7 +203,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             enemiesItem.lore("§7No active wars")
         }
 
-        pane.addItem(GuiItem(enemiesItem), x, y + 1)
+        pane.addItem(GuiItem(enemiesItem), x, y + 2)
     }
 
     private fun addStatisticsSection(pane: StaticPane, x: Int, y: Int) {

@@ -5,6 +5,7 @@ import java.util.UUID
 
 /**
  * Represents a party between guilds for coordinated activities.
+ * Can be used as guild-internal channels (1 guild) or multi-guild parties (2+ guilds).
  *
  * @property id The unique identifier for the party.
  * @property name The name of the party (optional).
@@ -14,6 +15,8 @@ import java.util.UUID
  * @property createdAt The timestamp when the party was created.
  * @property expiresAt Optional expiration time for the party.
  * @property restrictedRoles Optional set of rank IDs that can join the party (if null, all guild members can join).
+ * @property mutedPlayers Map of player IDs to mute expiration times (null = permanent mute).
+ * @property bannedPlayers Set of player IDs permanently banned from this party/channel.
  */
 data class Party(
     val id: UUID,
@@ -23,7 +26,9 @@ data class Party(
     val status: PartyStatus = PartyStatus.ACTIVE,
     val createdAt: Instant,
     val expiresAt: Instant? = null,
-    val restrictedRoles: Set<UUID>? = null
+    val restrictedRoles: Set<UUID>? = null,
+    val mutedPlayers: Map<UUID, Instant?> = emptyMap(),
+    val bannedPlayers: Set<UUID> = emptySet()
 ) {
     init {
         require(guildIds.isNotEmpty()) { "A party must have at least 1 guild." }
@@ -78,9 +83,48 @@ data class Party(
 
     /**
      * Checks if this is a private party (single guild only).
+     * Private parties function as guild-internal chat channels.
      */
     fun isPrivateParty(): Boolean {
         return guildIds.size == 1
+    }
+
+    /**
+     * Checks if a player is currently muted in this party.
+     * Removes expired mutes automatically.
+     */
+    fun isPlayerMuted(playerId: UUID): Boolean {
+        val muteExpiration = mutedPlayers[playerId] ?: return false
+
+        // Permanent mute (null expiration)
+        if (muteExpiration == null) return true
+
+        // Temporary mute - check if expired
+        return muteExpiration.isAfter(Instant.now())
+    }
+
+    /**
+     * Checks if a player is banned from this party.
+     */
+    fun isPlayerBanned(playerId: UUID): Boolean {
+        return bannedPlayers.contains(playerId)
+    }
+
+    /**
+     * Checks if a player can send messages in this party.
+     */
+    fun canPlayerSendMessage(playerId: UUID): Boolean {
+        return !isPlayerMuted(playerId) && !isPlayerBanned(playerId)
+    }
+
+    /**
+     * Gets active (non-expired) mutes.
+     */
+    fun getActiveMutes(): Map<UUID, Instant?> {
+        val now = Instant.now()
+        return mutedPlayers.filter { (_, expiration) ->
+            expiration == null || expiration.isAfter(now)
+        }
     }
 }
 

@@ -18,6 +18,8 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 @CommandAlias("pc|pchat|partychat")
@@ -199,8 +201,13 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
             partyService.getActivePartiesForGuild(guildId)
         }.toSet()
 
+        // Filter out parties the player is banned from
+        val accessibleParties = activeParties.filter { party ->
+            !party.isPlayerBanned(playerId)
+        }
+
         // Find party by exact name match (case insensitive)
-        return activeParties.find { party ->
+        return accessibleParties.find { party ->
             party.name?.equals(partyName, ignoreCase = true) ?: false
         }
     }
@@ -251,6 +258,31 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
         if (playerRankId != null && !party.canPlayerJoin(playerRankId)) {
             player.sendMessage("§c❌ You don't have permission to chat in this party!")
+            return
+        }
+
+        // Check if player is banned from this party/channel
+        if (party.isPlayerBanned(playerId)) {
+            player.sendMessage("§c❌ You are banned from this channel!")
+            player.sendMessage("§7Contact a moderator to appeal.")
+            return
+        }
+
+        // Check if player is muted in this party/channel
+        if (party.isPlayerMuted(playerId)) {
+            val muteExpiration = party.mutedPlayers[playerId]
+            if (muteExpiration != null) {
+                // Temporary mute - show remaining time
+                val remaining = Duration.between(Instant.now(), muteExpiration)
+                val hours = remaining.toHours()
+                val minutes = remaining.toMinutes() % 60
+                player.sendMessage("§c❌ You are muted in this channel!")
+                player.sendMessage("§7Time remaining: §f${hours}h ${minutes}m")
+            } else {
+                // Permanent mute
+                player.sendMessage("§c❌ You are permanently muted in this channel!")
+                player.sendMessage("§7Contact a moderator to appeal.")
+            }
             return
         }
 

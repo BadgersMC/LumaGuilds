@@ -11,7 +11,7 @@ import java.nio.file.StandardOpenOption
  * Manages auto-save and crash detection for the vault system.
  * Runs periodic background tasks to flush pending writes and detects crashes.
  */
-class VaultAutoSaveService(
+internal class VaultAutoSaveService(
     private val plugin: JavaPlugin,
     private val vaultInventoryManager: VaultInventoryManager,
     private val transactionLogger: net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger? = null,
@@ -97,7 +97,7 @@ class VaultAutoSaveService(
             }
         } catch (e: Exception) {
             plugin.logger.severe("Error during auto-save: ${e.message}")
-            e.printStackTrace()
+            plugin.logger.severe("Stack trace: ${e.stackTraceToString()}")
 
             // Retry on next cycle (task will continue running)
         }

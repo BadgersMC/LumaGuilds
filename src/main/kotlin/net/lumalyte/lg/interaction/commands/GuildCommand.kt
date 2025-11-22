@@ -740,10 +740,27 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Check if player has a pending invite for this guild
+        // First, try to find the guild by name
+        val guild = guildRepository.getByName(guildName)
+        if (guild == null) {
+            player.sendMessage("§cGuild §6$guildName§c doesn't exist!")
+            player.sendMessage("§7Check §e/guild list§7 to see available guilds.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
+        // Check if guild is open - if so, allow direct joining without invitation
+        if (guild.isOpen) {
+            // Open guild - no invitation required
+            joinGuildDirectly(player, guild, isOpenGuild = true)
+            return
+        }
+
+        // Closed guild - check for pending invite
         val invite = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInviteByGuildName(playerId, guildName)
         if (invite == null) {
             player.sendMessage("§cYou don't have an invitation to join §6$guildName§c!")
+            player.sendMessage("§7This guild is invite-only. Ask a member to invite you.")
             player.sendMessage("§7Check §e/guild invites§7 to see your pending invitations.")
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
@@ -751,14 +768,24 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val (guildId, actualGuildName) = invite
 
-        // Get the guild
-        val guild = guildService.getGuild(guildId)
-        if (guild == null) {
+        // Verify the guild still exists
+        if (guild.id != guildId) {
             player.sendMessage("§cThat guild no longer exists!")
             net.lumalyte.lg.infrastructure.services.GuildInvitationManager.removeInvite(playerId, guildId)
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
+
+        // Join through invitation
+        joinGuildDirectly(player, guild, isOpenGuild = false)
+    }
+
+    /**
+     * Helper function to join a guild (either via invitation or open guild)
+     */
+    private fun joinGuildDirectly(player: Player, guild: Guild, isOpenGuild: Boolean) {
+        val playerId = player.uniqueId
+        val guildId = guild.id
 
         // Add player to guild with lowest rank
         val ranks = rankService.listRanks(guildId).sortedByDescending { it.priority }
@@ -774,12 +801,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val newMember = memberService.addMember(playerId, guildId, lowestRank.id)
 
         if (newMember != null) {
-            // Remove the invitation
+            // Remove the invitation (if they had one)
             net.lumalyte.lg.infrastructure.services.GuildInvitationManager.removeInvite(playerId, guildId)
 
             player.sendMessage("")
             player.sendMessage("§a§l✅ JOINED GUILD!")
             player.sendMessage("§7You are now a member of §6${guild.name}§7!")
+            if (isOpenGuild) {
+                player.sendMessage("§7Guild Type: §aOPEN §7(public)")
+            }
             player.sendMessage("§7Rank: §f${lowestRank.name}")
             player.sendMessage("§7Use §e/guild menu§7 to get started.")
             player.sendMessage("")
@@ -800,6 +830,46 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§cFailed to join guild. Please contact an administrator.")
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
+    }
+
+    @Subcommand("list")
+    @CommandPermission("lumaguilds.guild.list")
+    fun onList(player: Player) {
+        val allGuilds = guildRepository.getAll()
+        val openGuilds = allGuilds.filter { it.isOpen }
+
+        if (openGuilds.isEmpty()) {
+            player.sendMessage("")
+            player.sendMessage("§6§l🏛 PUBLIC GUILDS")
+            player.sendMessage("")
+            player.sendMessage("§7No open guilds available at the moment.")
+            player.sendMessage("§7Open guilds allow anyone to join without an invitation!")
+            player.sendMessage("")
+            player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
+            return
+        }
+
+        player.sendMessage("")
+        player.sendMessage("§6§l🏛 PUBLIC GUILDS (${openGuilds.size})")
+        player.sendMessage("§7Anyone can join these guilds!")
+        player.sendMessage("")
+
+        openGuilds.sortedByDescending { memberService.getMemberCount(it.id) }.take(10).forEach { guild ->
+            val memberCount = memberService.getMemberCount(guild.id)
+            val emoji = guild.emoji ?: ""
+            val tag = guild.tag ?: guild.name
+
+            player.sendMessage("§a▸ §6$emoji $tag §7[${memberCount} members]")
+            player.sendMessage("  §7Join: §e/guild join ${guild.name}")
+            player.sendMessage("")
+        }
+
+        if (openGuilds.size > 10) {
+            player.sendMessage("§7... and ${openGuilds.size - 10} more open guilds")
+            player.sendMessage("")
+        }
+
+        player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
 
     @Subcommand("decline")
