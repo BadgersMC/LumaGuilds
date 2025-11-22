@@ -84,6 +84,16 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(13)
                 dbVersion = 13
             }
+            if (dbVersion < 14) {
+                migrateToVersion14()
+                updateDatabaseVersion(14)
+                dbVersion = 14
+            }
+            if (dbVersion < 15) {
+                migrateToVersion15()
+                updateDatabaseVersion(15)
+                dbVersion = 15
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -991,6 +1001,49 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         }
 
         componentLogger.info(Component.text("✓ Added vault status and location columns to guilds table"))
+    }
+
+    /**
+     * Migration from version 13 to version 14.
+     * Adds isOpen column to guilds table for open/closed guild functionality.
+     */
+    private fun migrateToVersion14() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Add isOpen column to guilds table (if not exists)
+        if (!columnExists("guilds", "is_open")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN is_open INTEGER DEFAULT 0;")
+        }
+
+        if (sqlCommands.isNotEmpty()) {
+            executeMigrationCommands(sqlCommands)
+        }
+
+        componentLogger.info(Component.text("✓ Added isOpen column to guilds table"))
+    }
+
+    /**
+     * Migration from version 14 to version 15.
+     * Adds muted_players and banned_players columns to parties table for player moderation.
+     */
+    private fun migrateToVersion15() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Add muted_players column to parties table (JSON format: {"playerId": "expirationEpoch|null"})
+        if (!columnExists("parties", "muted_players")) {
+            sqlCommands.add("ALTER TABLE parties ADD COLUMN muted_players TEXT DEFAULT '{}';")
+        }
+
+        // Add banned_players column to parties table (JSON array of player UUIDs)
+        if (!columnExists("parties", "banned_players")) {
+            sqlCommands.add("ALTER TABLE parties ADD COLUMN banned_players TEXT DEFAULT '[]';")
+        }
+
+        if (sqlCommands.isNotEmpty()) {
+            executeMigrationCommands(sqlCommands)
+        }
+
+        componentLogger.info(Component.text("✓ Added moderation columns to parties table"))
     }
 
     /**

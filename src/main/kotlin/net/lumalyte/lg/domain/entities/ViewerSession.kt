@@ -8,7 +8,7 @@ import java.util.UUID
  * Represents an active player viewing session for a guild vault.
  * Tracks which player is viewing which vault and their Bukkit inventory reference.
  */
-data class ViewerSession(
+internal class ViewerSession(
     /**
      * The UUID of the player viewing the vault.
      */

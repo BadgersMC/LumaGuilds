@@ -189,4 +189,64 @@ interface PartyService {
      * @return true if the player can join, false otherwise.
      */
     fun canPlayerJoinParty(partyId: UUID, playerId: UUID): Boolean
+
+    /**
+     * Kicks a player from a party/channel by removing their guild if it's a single-guild party,
+     * or preventing them from chatting if it's a multi-guild party.
+     *
+     * @param partyId The ID of the party.
+     * @param targetPlayerId The ID of the player to kick.
+     * @param actorId The ID of the player performing the kick.
+     * @return The updated party if successful, null otherwise.
+     */
+    fun kickPlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID): Party?
+
+    /**
+     * Mutes a player in a party/channel.
+     *
+     * @param partyId The ID of the party.
+     * @param targetPlayerId The ID of the player to mute.
+     * @param actorId The ID of the player performing the mute.
+     * @param duration The duration of the mute (null for permanent).
+     * @return The updated party if successful, null otherwise.
+     */
+    fun mutePlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID, duration: Duration?): Party?
+
+    /**
+     * Unmutes a player in a party/channel.
+     *
+     * @param partyId The ID of the party.
+     * @param targetPlayerId The ID of the player to unmute.
+     * @param actorId The ID of the player performing the unmute.
+     * @return The updated party if successful, null otherwise.
+     */
+    fun unmutePlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID): Party?
+
+    /**
+     * Bans a player from a party/channel.
+     *
+     * @param partyId The ID of the party.
+     * @param targetPlayerId The ID of the player to ban.
+     * @param actorId The ID of the player performing the ban.
+     * @return The updated party if successful, null otherwise.
+     */
+    fun banPlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID): Party?
+
+    /**
+     * Unbans a player from a party/channel.
+     *
+     * @param partyId The ID of the party.
+     * @param targetPlayerId The ID of the player to unban.
+     * @param actorId The ID of the player performing the unban.
+     * @return The updated party if successful, null otherwise.
+     */
+    fun unbanPlayer(partyId: UUID, targetPlayerId: UUID, actorId: UUID): Party?
+
+    /**
+     * Gets all parties/channels for a specific guild (used to find default guild channels).
+     *
+     * @param guildId The ID of the guild.
+     * @return A set of all parties for the guild (including single-guild channels).
+     */
+    fun getAllPartiesForGuild(guildId: UUID): Set<Party>
 }

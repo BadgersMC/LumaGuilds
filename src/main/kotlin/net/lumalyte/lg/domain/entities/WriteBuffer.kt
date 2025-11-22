@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Represents pending database writes for a vault.
  * Batches multiple slot changes together to reduce database I/O.
  */
-data class WriteBuffer(
+class WriteBuffer(
     val guildId: UUID,
 
     /**

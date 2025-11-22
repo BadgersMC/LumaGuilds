@@ -116,6 +116,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             null
         }
 
+        // Parse isOpen (default to false for existing guilds)
+        val isOpen = try {
+            rs.getInt("is_open") == 1
+        } catch (e: Exception) {
+            false
+        }
+
         // Debug logging for vault data loading
         println("DEBUG [GuildRepositorySQLite] Loading guild '$name'")
         println("  vault_status from DB: '$vaultStatusStr' -> $vaultStatus")
@@ -135,7 +142,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             modeChangedAt = modeChangedAt,
             createdAt = createdAt,
             vaultStatus = vaultStatus,
-            vaultChestLocation = vaultChestLocation
+            vaultChestLocation = vaultChestLocation,
+            isOpen = isOpen
         )
     }
 
@@ -154,8 +162,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     
     override fun add(guild: Guild): Boolean {
         val sql = """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
 
         return try {
@@ -176,7 +184,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 guild.bankBalance,
                 guild.mode.name.lowercase(),
                 guild.modeChangedAt?.toString(),
-                guild.createdAt.toString()
+                guild.createdAt.toString(),
+                if (guild.isOpen) 1 else 0
             )
             guilds[guild.id] = guild
             rowsAffected > 0
@@ -189,7 +198,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         val sql = """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
-            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?
             WHERE id = ?
         """.trimIndent()
 
@@ -220,6 +229,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 guild.vaultChestLocation?.x,
                 guild.vaultChestLocation?.y,
                 guild.vaultChestLocation?.z,
+                if (guild.isOpen) 1 else 0,
                 guild.id.toString()
             )
 

@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicLong
  * Represents the in-memory state of a guild's vault.
  * Uses thread-safe data structures for concurrent access from multiple players.
  */
-data class VaultInventory(
+class VaultInventory(
     val guildId: UUID,
     /**
      * Map of slot index to ItemStack.

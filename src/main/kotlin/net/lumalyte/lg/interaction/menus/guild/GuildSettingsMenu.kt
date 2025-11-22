@@ -310,6 +310,43 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         }
         pane.addItem(homeGuiItem, 0, 4)
 
+        // Guild Open/Closed Toggle
+        val openClosedItem = ItemStack(
+            if (guild.isOpen) Material.LIME_DYE else Material.GRAY_DYE
+        )
+            .name("§f🚪 GUILD ACCESS")
+            .lore("§7Current: §f${if (guild.isOpen) "OPEN" else "CLOSED"}")
+            .lore("§7")
+            .lore("§7Open: Anyone can join freely")
+            .lore("§7Closed: Invite-only (default)")
+            .lore("§7")
+            .lore("§eClick to toggle guild access")
+
+        val hasPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)
+        val openClosedGuiItem = GuiItem(openClosedItem) {
+            if (!hasPermission) {
+                player.sendMessage("§c❌ You don't have permission to change guild access settings")
+                player.sendMessage("§7You need the MANAGE_GUILD_SETTINGS permission")
+                return@GuiItem
+            }
+
+            // Toggle the isOpen status
+            val updatedGuild = guild.copy(isOpen = !guild.isOpen)
+            val success = guildService.updateGuild(updatedGuild)
+
+            if (success) {
+                guild = updatedGuild
+                player.sendMessage("§a✅ Guild is now ${if (updatedGuild.isOpen) "§aOPEN" else "§cCLOSED"}")
+                player.sendMessage("§7${if (updatedGuild.isOpen) "Anyone can join your guild freely" else "Your guild is invite-only"}")
+
+                // Reopen the menu to show updated status
+                open()
+            } else {
+                player.sendMessage("§c❌ Failed to update guild access settings")
+            }
+        }
+        pane.addItem(openClosedGuiItem, 1, 4)
+
         // Guild Members
         val membersItem = ItemStack(Material.PLAYER_HEAD)
             .name("§f👥 MANAGE MEMBERS")
@@ -366,7 +403,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
             val modeGuiItem = GuiItem(modeItem) {
                 menuNavigator.openMenu(menuFactory.createGuildModeMenu(menuNavigator, player, guild))
             }
-            pane.addItem(modeGuiItem, 1, 4)
+            pane.addItem(modeGuiItem, 3, 4)
         } else {
             // Show disabled mode indicator
             val modeItem = ItemStack(Material.GRAY_WOOL)
@@ -376,7 +413,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                 .lore("§cMode switching disabled")
                 .lore("§7All guilds are hostile by default")
 
-            pane.addItem(GuiItem(modeItem), 1, 4)
+            pane.addItem(GuiItem(modeItem), 3, 4)
         }
 
         // Back button

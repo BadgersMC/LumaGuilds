@@ -21,8 +21,8 @@ import org.koin.core.component.inject
  */
 object GoldBalanceButton : KoinComponent {
 
-    private lateinit var plugin: JavaPlugin
-    private lateinit var goldButtonKey: NamespacedKey
+    private var plugin: JavaPlugin? = null
+    private var goldButtonKey: NamespacedKey? = null
     private val configService: ConfigService by inject()
 
     /**
@@ -33,7 +33,21 @@ object GoldBalanceButton : KoinComponent {
      */
     fun initialize(pluginInstance: JavaPlugin) {
         plugin = pluginInstance
-        goldButtonKey = NamespacedKey(plugin, "guild_gold_balance")
+        goldButtonKey = NamespacedKey(pluginInstance, "guild_gold_balance")
+    }
+
+    /**
+     * Gets the plugin instance, throwing an exception if not initialized.
+     */
+    private fun getPlugin(): JavaPlugin {
+        return plugin ?: error("GoldBalanceButton not initialized - call initialize() first")
+    }
+
+    /**
+     * Gets the gold button key, throwing an exception if not initialized.
+     */
+    private fun getGoldButtonKey(): NamespacedKey {
+        return goldButtonKey ?: error("GoldBalanceButton not initialized - call initialize() first")
     }
 
     /**
@@ -45,7 +59,7 @@ object GoldBalanceButton : KoinComponent {
         return try {
             Material.valueOf(materialName.uppercase())
         } catch (e: IllegalArgumentException) {
-            plugin.logger.warning("Invalid physical_currency_material '${materialName}' in config, defaulting to RAW_GOLD")
+            getPlugin().logger.warning("Invalid physical_currency_material '${materialName}' in config, defaulting to RAW_GOLD")
             Material.RAW_GOLD
         }
     }
@@ -130,7 +144,7 @@ object GoldBalanceButton : KoinComponent {
         meta.lore(lore)
 
         // Mark with PDC to identify as gold button
-        meta.persistentDataContainer.set(goldButtonKey, PersistentDataType.BYTE, 1.toByte())
+        meta.persistentDataContainer.set(getGoldButtonKey(), PersistentDataType.BYTE, 1.toByte())
 
         item.itemMeta = meta
         return item
@@ -151,7 +165,7 @@ object GoldBalanceButton : KoinComponent {
         }
 
         val meta = item.itemMeta ?: return false
-        return meta.persistentDataContainer.has(goldButtonKey, PersistentDataType.BYTE)
+        return meta.persistentDataContainer.has(getGoldButtonKey(), PersistentDataType.BYTE)
     }
 
     /**

@@ -44,7 +44,7 @@ All placeholders use the `%lumaguilds_` prefix.
 ### Relational Placeholders
 
 - `%lumaguilds_rel_<player>_status%` - Relationship status with another player
-  - Returns: `🔴` (enemy/at war), `🟢` (ally), `` (neutral/blank)
+  - Returns: `🔴` (enemy/at war), `🟢` (ally), `⚪` (truce), `` (neutral/blank)
   - Example: `%lumaguilds_rel_Steve_status%`
 
 ### Formatted Displays
@@ -81,7 +81,9 @@ Footer: Your rank: %bellclaims_guild_rank%
 ```
 Player List: %player_name%%bellclaims_rel_%player_name%_status%
 Result: Steve🔴 (shows red circle if at war with Steve)
-Result: Alex (shows nothing if neutral with Alex)
+Result: Alex🟢 (shows green circle if allied with Alex)
+Result: Bob⚪ (shows white circle if truced with Bob)
+Result: John (shows nothing if neutral with John)
 ```
 
 ### Conditional Formatting
@@ -145,8 +147,9 @@ Balance: $%bellclaims_guild_balance%
 ### Relational placeholders not working?
 1. Ensure the target player is **online** (relational placeholders only work with online players)
 2. Verify both players are in different guilds (same guild = neutral)
-3. Check if guilds are actually at war for enemy status
+3. Check if guilds have an actual relation set (war, ally, or truce)
 4. Use format: `%bellclaims_rel_<playername>_status%`
+5. Indicators: 🔴 (enemy/war), 🟢 (ally), ⚪ (truce), blank (neutral)
 
 ### Server Log Messages
 ```
