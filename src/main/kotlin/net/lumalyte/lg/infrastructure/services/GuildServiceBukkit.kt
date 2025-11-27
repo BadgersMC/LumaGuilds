@@ -25,7 +25,9 @@ class GuildServiceBukkit(
     private val memberRepository: MemberRepository,
     private val rankService: net.lumalyte.lg.application.services.RankService,
     private val memberService: net.lumalyte.lg.application.services.MemberService,
-    private val nexoEmojiService: NexoEmojiService
+    private val nexoEmojiService: NexoEmojiService,
+    private val vaultService: net.lumalyte.lg.application.services.GuildVaultService,
+    private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService
 ) : GuildService {
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
@@ -169,7 +171,7 @@ class GuildServiceBukkit(
     }
     
     override fun disbandGuild(guildId: UUID, actorId: UUID): Boolean {
-        guildRepository.getById(guildId) ?: return false
+        val guild = guildRepository.getById(guildId) ?: return false
 
         // System UUID for admin/console operations
         val systemUuid = UUID.fromString("00000000-0000-0000-0000-000000000000")
@@ -180,7 +182,25 @@ class GuildServiceBukkit(
             return false
         }
 
-        // Remove all members first
+        // Clean up vault chest and hologram if exists
+        val vaultLocation = vaultService.getVaultLocation(guild)
+        if (vaultLocation != null) {
+            // Remove hologram first
+            hologramService.removeHologram(vaultLocation)
+            logger.info("Removed vault hologram for disbanded guild ${guild.name}")
+
+            // Remove vault chest and data (with items dropped)
+            when (val removeResult = vaultService.removeVaultChest(guild, dropItems = true)) {
+                is net.lumalyte.lg.application.services.VaultResult.Success -> {
+                    logger.info("Removed vault chest for disbanded guild ${guild.name}")
+                }
+                is net.lumalyte.lg.application.services.VaultResult.Failure -> {
+                    logger.warn("Failed to remove vault chest during disbandment: ${removeResult.message}")
+                }
+            }
+        }
+
+        // Remove all members
         memberRepository.removeByGuild(guildId)
 
         // Remove all ranks

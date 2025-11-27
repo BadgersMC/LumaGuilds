@@ -255,7 +255,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger> { net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger(get()) }
 
     single<NexoEmojiService> { NexoEmojiService() }
-    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get()) }
+    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
     single<MemberService> { MemberServiceBukkit(get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get()) }

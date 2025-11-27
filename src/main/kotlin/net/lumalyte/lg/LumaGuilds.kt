@@ -49,6 +49,9 @@ class LumaGuilds : JavaPlugin() {
 
 
     override fun onEnable() {
+        // Initialize PluginKeys with plugin instance (must be first)
+        net.lumalyte.lg.common.PluginKeys.initialize(this)
+
         initConfig()
 
         // Check if claims are enabled BEFORE initializing database

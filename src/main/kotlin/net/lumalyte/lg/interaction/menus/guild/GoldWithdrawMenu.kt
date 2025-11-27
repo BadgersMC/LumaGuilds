@@ -142,26 +142,16 @@ class GoldWithdrawMenu(
      * Withdraws a specific amount of gold from the vault.
      */
     private fun withdrawGold(amount: Long) {
-        val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
+        // Attempt atomic withdrawal (prevents race conditions)
+        val newBalance = vaultInventoryManager.withdrawGold(guildId, player.uniqueId, amount)
 
-        if (currentBalance < amount) {
+        if (newBalance == -1L) {
             player.sendMessage(
                 Component.text("Insufficient gold in vault", NamedTextColor.RED)
             )
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
-
-        // Update vault balance
-        vaultInventoryManager.setGoldBalance(guildId, currentBalance - amount)
-
-        // Log transaction
-        transactionLogger.logGoldTransaction(
-            guildId,
-            player.uniqueId,
-            VaultTransactionType.GOLD_WITHDRAW,
-            amount
-        )
 
         // Immediate flush to database (high-value transaction)
         vaultInventoryManager.forceFlush(guildId)

@@ -20,6 +20,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.inventory.InventoryOpenEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
 
 /**
@@ -127,17 +128,8 @@ class VaultInventoryListener(
         }
 
         if (totalNuggets > 0) {
-            // Add to vault balance
-            val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
-            vaultInventoryManager.setGoldBalanceWithBroadcast(guildId, currentBalance + totalNuggets)
-
-            // Log transaction
-            transactionLogger.logGoldTransaction(
-                guildId,
-                player.uniqueId,
-                VaultTransactionType.GOLD_DEPOSIT,
-                totalNuggets
-            )
+            // Add to vault balance atomically (prevents race conditions)
+            val newBalance = vaultInventoryManager.depositGold(guildId, player.uniqueId, totalNuggets)
 
             // Immediate flush to database
             vaultInventoryManager.forceFlush(guildId)
@@ -278,12 +270,44 @@ class VaultInventoryListener(
             return
         }
 
+        val player = event.whoClicked as? Player ?: return
+        val guildId = holder.guildId
+
         // Prevent dragging items into slot 0
         if (event.rawSlots.contains(0)) {
             event.isCancelled = true
-            val player = event.whoClicked as? Player
-            player?.sendMessage(Component.text("Cannot place items in slot 0", NamedTextColor.RED))
+            player.sendMessage(Component.text("Cannot place items in slot 0", NamedTextColor.RED))
+            return
         }
+
+        // CRITICAL: Update cache for ALL dragged slots
+        // Schedule after drag completes to read final GUI state
+        org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+            // Update cache for each affected slot in the vault inventory
+            for (rawSlot in event.rawSlots) {
+                // Only process slots in the vault inventory (not player inventory)
+                if (rawSlot >= 0 && rawSlot < holder.getCapacity()) {
+                    val resultingItem = holder.inventory.getItem(rawSlot)
+
+                    // Update cache and broadcast to other viewers
+                    vaultInventoryManager.updateSlotWithBroadcast(guildId, rawSlot, resultingItem, player.uniqueId)
+
+                    // Log transaction for valuable items
+                    if (resultingItem != null && isValuableItem(resultingItem)) {
+                        transactionLogger.logItemTransaction(
+                            guildId,
+                            player.uniqueId,
+                            VaultTransactionType.ITEM_ADD,
+                            resultingItem,
+                            rawSlot
+                        )
+                    }
+                }
+            }
+
+            // Flush to database after drag operation
+            vaultInventoryManager.forceFlush(guildId)
+        })
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -317,5 +341,17 @@ class VaultInventoryListener(
 
         // Unregister viewer and flush if last viewer
         vaultInventoryManager.closeVaultFor(guildId, player.uniqueId)
+    }
+
+    /**
+     * Cleanup vault viewer sessions when player quits.
+     * Prevents memory leak from players disconnecting with vault open.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onPlayerQuit(event: PlayerQuitEvent) {
+        val player = event.player
+
+        // Check if player has any active vault sessions and clean them up
+        vaultInventoryManager.cleanupDisconnectedPlayer(player.uniqueId)
     }
 }
