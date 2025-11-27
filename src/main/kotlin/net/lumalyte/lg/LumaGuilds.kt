@@ -82,18 +82,6 @@ class LumaGuilds : JavaPlugin() {
         // Initialize Gold Balance Button
         net.lumalyte.lg.application.utilities.GoldBalanceButton.initialize(this)
 
-        // Check for vault migration and perform if needed
-        val migrationService = get().get<net.lumalyte.lg.application.services.VaultMigrationService>()
-        if (migrationService.isMigrationNeeded()) {
-            logger.info("Vault migration detected - starting migration process...")
-            val migrationResult = migrationService.performMigration()
-            if (migrationResult.wasSuccessful()) {
-                logger.info("✓ Vault migration completed successfully")
-            } else {
-                logger.severe("✗ Vault migration encountered errors - check logs for details")
-            }
-        }
-
         // Start vault auto-save service
         val vaultAutoSaveService = get().get<net.lumalyte.lg.application.services.VaultAutoSaveService>()
         vaultAutoSaveService.start()

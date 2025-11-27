@@ -4,8 +4,6 @@ import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.bukkit.inventory.ItemStack
-import org.bukkit.util.io.BukkitObjectOutputStream
-import java.io.ByteArrayOutputStream
 import java.sql.SQLException
 import java.util.Base64
 import java.util.UUID
@@ -13,7 +11,7 @@ import java.util.UUID
 /**
  * Transaction types for vault operations.
  */
-internal enum class VaultTransactionType {
+enum class VaultTransactionType {
     GOLD_DEPOSIT,
     GOLD_WITHDRAW,
     ITEM_ADD,
@@ -410,15 +408,11 @@ class VaultTransactionLogger(private val storage: Storage<Database>) {
     }
 
     /**
-     * Serializes an ItemStack to a Base64-encoded string.
+     * Serializes an ItemStack to a Base64-encoded string using Paper's native NBT serialization.
      */
     private fun serializeItem(item: ItemStack): String? {
         return try {
-            val outputStream = ByteArrayOutputStream()
-            val dataOutput = BukkitObjectOutputStream(outputStream)
-            dataOutput.writeObject(item)
-            dataOutput.close()
-            Base64.getEncoder().encodeToString(outputStream.toByteArray())
+            Base64.getEncoder().encodeToString(item.serializeAsBytes())
         } catch (e: Exception) {
             null
         }

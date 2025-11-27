@@ -1,11 +1,16 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.title.Title
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.*
 import org.bukkit.Bukkit
 import org.bukkit.Sound
 import org.slf4j.LoggerFactory
+import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -307,12 +312,21 @@ class ProgressionServiceBukkit(
             
             // Send notifications
             for (player in onlineMembers) {
-                // Send title and subtitle
-                player.sendTitle(
-                    "§6⭐ GUILD LEVEL UP! ⭐",
-                    "§e${guild.name} §7reached level §e$newLevel",
-                    10, 60, 10
+                // Send title and subtitle using Adventure API
+                val title = Title.title(
+                    Component.text("⭐ GUILD LEVEL UP! ⭐", NamedTextColor.GOLD),
+                    Component.text()
+                        .append(Component.text(guild.name, NamedTextColor.YELLOW))
+                        .append(Component.text(" reached level ", NamedTextColor.GRAY))
+                        .append(Component.text(newLevel.toString(), NamedTextColor.YELLOW))
+                        .build(),
+                    Title.Times.times(
+                        Duration.ofMillis(500),  // fadeIn (10 ticks = 500ms)
+                        Duration.ofSeconds(3),   // stay (60 ticks = 3s)
+                        Duration.ofMillis(500)   // fadeOut (10 ticks = 500ms)
+                    )
                 )
+                player.showTitle(title)
                 
                 // Send chat message
                 player.sendMessage("§8▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")

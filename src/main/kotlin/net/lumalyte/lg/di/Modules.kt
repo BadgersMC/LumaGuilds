@@ -299,9 +299,6 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
             config.vault.transactionLogRetentionDays
         )
     }
-    single<net.lumalyte.lg.application.services.VaultMigrationService> {
-        net.lumalyte.lg.application.services.VaultMigrationService(get(), get())
-    }
     single<net.lumalyte.lg.infrastructure.services.VaultHologramService> { net.lumalyte.lg.infrastructure.services.VaultHologramService(get()) }
 
     // Platform detection service for Bedrock menu system

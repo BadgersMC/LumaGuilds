@@ -181,7 +181,7 @@ object GoldBalanceButton : KoinComponent {
 
     /**
      * Calculates the total currency value of an ItemStack.
-     * ONLY accepts the configured currency material (1:1 ratio).
+     * Accepts configured currency material (1:1 ratio) and RAW_GOLD_BLOCK (9:1 ratio).
      *
      * @param item The ItemStack to evaluate.
      * @return The total value (amount), or 0 if not the correct currency.
@@ -191,27 +191,40 @@ object GoldBalanceButton : KoinComponent {
 
         val currencyMaterial = getCurrencyMaterial()
 
-        // ONLY accept configured currency material
-        return if (item.type == currencyMaterial) {
-            item.amount.toLong()
-        } else {
-            0L
+        // Accept configured currency material (RAW_GOLD = 1 currency) and RAW_GOLD_BLOCK (9 currency)
+        return when (item.type) {
+            currencyMaterial -> item.amount.toLong()
+            Material.RAW_GOLD_BLOCK -> item.amount.toLong() * 9
+            else -> 0L
         }
     }
 
     /**
      * Converts a balance amount to ItemStacks of the configured currency.
-     * Creates as many stacks as needed (max 64 per stack).
+     * Compresses into RAW_GOLD_BLOCK (9 currency each) where possible to reduce entity count.
+     * This is especially important when dropping large amounts from broken vaults.
      *
      * @param balance The total amount.
-     * @return List of currency ItemStacks.
+     * @return List of currency ItemStacks (compressed into blocks + remainder).
      */
     fun convertToItems(balance: Long): List<ItemStack> {
         val items = mutableListOf<ItemStack>()
         var remaining = balance
-        val currencyMaterial = getCurrencyMaterial()
 
-        // Create currency stacks (max stack size 64)
+        // First, create as many RAW_GOLD_BLOCK stacks as possible (9 currency each)
+        val numBlocks = remaining / 9
+        if (numBlocks > 0) {
+            var blocksRemaining = numBlocks
+            while (blocksRemaining > 0) {
+                val stackSize = minOf(blocksRemaining, 64)
+                items.add(ItemStack(Material.RAW_GOLD_BLOCK, stackSize.toInt()))
+                blocksRemaining -= stackSize
+            }
+            remaining %= 9  // Only leftover currency remains
+        }
+
+        // Then, create RAW_GOLD stacks for the remainder (can't compress further)
+        val currencyMaterial = getCurrencyMaterial()
         while (remaining > 0) {
             val stackSize = minOf(remaining, 64)
             items.add(ItemStack(currencyMaterial, stackSize.toInt()))

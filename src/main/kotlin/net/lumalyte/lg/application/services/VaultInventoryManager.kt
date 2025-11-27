@@ -485,16 +485,22 @@ class VaultInventoryManager(
      * @param guildId The guild ID.
      * @param slot The slot index that was updated.
      * @param item The new item in that slot (null if cleared).
+     * @param excludePlayer Optional player UUID to exclude from broadcast (the player who made the change).
      */
-    fun broadcastSlotUpdate(guildId: UUID, slot: Int, item: ItemStack?) {
+    fun broadcastSlotUpdate(guildId: UUID, slot: Int, item: ItemStack?, excludePlayer: UUID? = null) {
         val viewers = getViewersForVault(guildId)
 
         if (viewers.isEmpty()) {
             return // No viewers to broadcast to
         }
 
-        // Update all viewer inventories synchronously
+        // Update all viewer inventories synchronously (except the player who made the change)
         viewers.forEach { session ->
+            // Skip the player who triggered this update (they already have the change)
+            if (excludePlayer != null && session.playerId == excludePlayer) {
+                return@forEach
+            }
+
             try {
                 session.inventory.setItem(slot, item)
                 session.recordInteraction()
@@ -535,12 +541,13 @@ class VaultInventoryManager(
      * @param guildId The guild ID.
      * @param slot The slot index.
      * @param item The new item (null to clear slot).
-     * @param playerId Optional player ID for transaction logging.
+     * @param playerId Optional player ID for transaction logging and excluding from broadcast.
      * @return The previous item in that slot, or null.
      */
     fun updateSlotWithBroadcast(guildId: UUID, slot: Int, item: ItemStack?, playerId: UUID? = null): ItemStack? {
         val previousItem = updateSlot(guildId, slot, item, playerId)
-        broadcastSlotUpdate(guildId, slot, item)
+        // Broadcast to all viewers EXCEPT the player who made the change
+        broadcastSlotUpdate(guildId, slot, item, excludePlayer = playerId)
         return previousItem
     }
 

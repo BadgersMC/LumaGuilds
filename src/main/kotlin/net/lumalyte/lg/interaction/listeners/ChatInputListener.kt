@@ -93,7 +93,9 @@ class ChatInputListener : Listener, KoinComponent {
         }
     }
 
-    // Fallback for older server versions that don't have AsyncChatEvent
+    // Fallback for older server versions or plugins that don't use AsyncChatEvent
+    // Using deprecated AsyncPlayerChatEvent intentionally for broader compatibility
+    @Suppress("DEPRECATION")
     @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST)
     fun onPlayerChatFallbackHighest(event: org.bukkit.event.player.AsyncPlayerChatEvent) {
         val player = event.player
@@ -102,6 +104,7 @@ class ChatInputListener : Listener, KoinComponent {
         }
     }
 
+    @Suppress("DEPRECATION")
     @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
     fun onPlayerChatFallbackLowest(event: org.bukkit.event.player.AsyncPlayerChatEvent) {
         val player = event.player
@@ -110,6 +113,7 @@ class ChatInputListener : Listener, KoinComponent {
         }
     }
 
+    @Suppress("DEPRECATION")
     @EventHandler(priority = org.bukkit.event.EventPriority.MONITOR)
     fun onPlayerChatFallbackMonitor(event: org.bukkit.event.player.AsyncPlayerChatEvent) {
         val player = event.player
@@ -132,6 +136,7 @@ class ChatInputListener : Listener, KoinComponent {
         processChatInput(player, handler, input)
     }
 
+    @Suppress("DEPRECATION")
     private fun handleChatInputFallback(event: org.bukkit.event.player.AsyncPlayerChatEvent) {
         val player = event.player
         val handler = inputModePlayers[player.uniqueId]

@@ -520,6 +520,18 @@ class GuildServiceBukkit(
 
     override fun getAllGuilds(): Set<Guild> = guildRepository.getAll()
 
+    override fun setOpen(guildId: UUID, isOpen: Boolean, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        // Check permission
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            return false
+        }
+
+        val updatedGuild = guild.copy(isOpen = isOpen)
+        return guildRepository.update(updatedGuild)
+    }
+
     /**
      * Counts visible characters in a tag, excluding formatting codes.
      * MiniMessage tags like <color>, <gradient>, etc. are excluded from the count.

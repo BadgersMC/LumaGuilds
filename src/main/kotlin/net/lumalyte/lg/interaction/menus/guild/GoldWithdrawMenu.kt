@@ -9,6 +9,7 @@ import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger
 import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -17,6 +18,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 
@@ -35,6 +37,9 @@ class GoldWithdrawMenu(
 
     private lateinit var inventory: Inventory
     private var isOpen = false
+
+    // PDC key for storing gold nugget value on withdraw buttons
+    private val nuggetValueKey = NamespacedKey(plugin, "withdraw_nugget_value")
 
     init {
         createInventory()
@@ -118,8 +123,8 @@ class GoldWithdrawMenu(
                     .decoration(TextDecoration.ITALIC, false)
             )
         )
-        // Store currency amount in item's custom model data for reference
-        meta.setCustomModelData(amount.toInt())
+        // Store currency amount in item's persistent data container for reference
+        meta.persistentDataContainer.set(nuggetValueKey, PersistentDataType.LONG, amount)
         item.itemMeta = meta
 
         inventory.setItem(slot, item)
@@ -219,8 +224,9 @@ class GoldWithdrawMenu(
         }
 
         // Handle quick withdraw buttons
-        if (clickedItem.hasItemMeta() && clickedItem.itemMeta.hasCustomModelData()) {
-            val nuggetValue = clickedItem.itemMeta.customModelData.toLong()
+        val meta = clickedItem.itemMeta
+        if (meta != null && meta.persistentDataContainer.has(nuggetValueKey, PersistentDataType.LONG)) {
+            val nuggetValue = meta.persistentDataContainer.get(nuggetValueKey, PersistentDataType.LONG) ?: return
             withdrawGold(nuggetValue)
         }
     }

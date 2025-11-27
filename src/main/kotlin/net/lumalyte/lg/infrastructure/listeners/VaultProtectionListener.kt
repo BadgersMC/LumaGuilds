@@ -14,8 +14,11 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockPistonExtendEvent
+import org.bukkit.event.block.BlockPistonRetractEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityExplodeEvent
+import org.bukkit.event.inventory.InventoryMoveItemEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -29,6 +32,8 @@ import java.util.concurrent.ConcurrentHashMap
  * - Vault chest placement validation
  * - Vault chest break protection with warning system
  * - Explosion protection for vault chests
+ * - Hopper/dropper/dispenser blocking (vaults are virtual, not physical chests)
+ * - Piston blocking with backfire (attempting to push a vault destroys the piston)
  */
 class VaultProtectionListener : Listener, KoinComponent {
 
@@ -64,7 +69,13 @@ class VaultProtectionListener : Listener, KoinComponent {
         val meta = itemInHand.itemMeta ?: return
 
         if (!meta.persistentDataContainer.has(key, org.bukkit.persistence.PersistentDataType.STRING)) {
-            // Not a vault chest, allow normal placement
+            // Not a vault chest - check if trying to place next to an existing vault chest (double chest exploit)
+            if (isAdjacentToVaultChest(block.location)) {
+                event.isCancelled = true
+                player.sendMessage("§c§lBLOCKED§r §7» §fYou cannot place a chest next to a guild vault!")
+                player.sendMessage("§7This would create a double chest and bypass vault security.")
+                logger.info("Blocked ${player.name} from placing chest next to vault chest (double chest exploit prevention)")
+            }
             return
         }
 
@@ -162,27 +173,37 @@ class VaultProtectionListener : Listener, KoinComponent {
         if (block.type != Material.CHEST) return
 
         // Check if this is a guild vault chest
-        val guild = vaultService.getGuildForVaultChest(block.location) ?: return
+        val guild = vaultService.getGuildForVaultChest(block.location)
 
-        // THIS IS A VAULT CHEST - Cancel default chest opening
-        event.isCancelled = true
+        if (guild != null) {
+            // THIS IS A VAULT CHEST - Cancel default chest opening
+            event.isCancelled = true
 
-        logger.debug("${player.name} is interacting with vault chest for guild ${guild.name}")
+            logger.debug("${player.name} is interacting with vault chest for guild ${guild.name}")
 
-        // Open the SAME custom inventory that /guild vault opens
-        val result = vaultService.openVaultInventory(player, guild)
-        when (result) {
-            is net.lumalyte.lg.application.services.VaultResult.Success -> {
-                player.sendMessage("§a§lVAULT OPENED§r")
-                player.sendMessage("§aAccessing §6${guild.name}§a's vault...")
-                player.playSound(player.location, org.bukkit.Sound.BLOCK_ENDER_CHEST_OPEN, 1.0f, 1.0f)
-                logger.debug("Opened custom vault inventory for ${player.name} (guild: ${guild.name}, capacity: ${vaultService.getCapacityForLevel(guild.level)} slots)")
+            // Open the SAME custom inventory that /guild vault opens
+            val result = vaultService.openVaultInventory(player, guild)
+            when (result) {
+                is net.lumalyte.lg.application.services.VaultResult.Success -> {
+                    player.sendMessage("§a§lVAULT OPENED§r")
+                    player.sendMessage("§aAccessing §6${guild.name}§a's vault...")
+                    player.playSound(player.location, org.bukkit.Sound.BLOCK_ENDER_CHEST_OPEN, 1.0f, 1.0f)
+                    logger.debug("Opened custom vault inventory for ${player.name} (guild: ${guild.name}, capacity: ${vaultService.getCapacityForLevel(guild.level)} slots)")
+                }
+                is net.lumalyte.lg.application.services.VaultResult.Failure -> {
+                    player.sendMessage("§c§lFAILED§r")
+                    player.sendMessage("§c${result.message}")
+                    player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
+                    logger.warn("Failed to open vault for ${player.name}: ${result.message}")
+                }
             }
-            is net.lumalyte.lg.application.services.VaultResult.Failure -> {
-                player.sendMessage("§c§lFAILED§r")
-                player.sendMessage("§c${result.message}")
-                player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
-                logger.warn("Failed to open vault for ${player.name}: ${result.message}")
+        } else {
+            // Not a vault chest - check if it's adjacent to a vault chest (double chest exploit)
+            if (isAdjacentToVaultChest(block.location)) {
+                event.isCancelled = true
+                player.sendMessage("§c§lBLOCKED§r §7» §fThis chest is part of a guild vault!")
+                player.sendMessage("§7You cannot access it directly - use the vault interface instead.")
+                logger.info("Blocked ${player.name} from opening chest adjacent to vault chest (double chest exploit prevention)")
             }
         }
     }
@@ -354,6 +375,117 @@ class VaultProtectionListener : Listener, KoinComponent {
     }
 
     /**
+     * Block hoppers, droppers, and dispensers from interacting with vault chests.
+     * Guild vaults are virtual storage systems, not physical chests.
+     * Allowing hopper interactions would bypass the vault management system and cause item loss.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    fun onInventoryMoveItem(event: InventoryMoveItemEvent) {
+        // Check if source inventory is trying to pull from a vault chest
+        val sourceLocation = event.source.location
+        if (sourceLocation != null) {
+            val sourceBlock = sourceLocation.block
+            if (sourceBlock.type == Material.CHEST) {
+                val guild = vaultService.getGuildForVaultChest(sourceLocation)
+                if (guild != null) {
+                    event.isCancelled = true
+                    logger.debug("Blocked hopper/dropper from pulling items from vault chest (guild: ${guild.name})")
+                    return
+                }
+            }
+        }
+
+        // Check if destination inventory is trying to insert into a vault chest
+        val destLocation = event.destination.location
+        if (destLocation != null) {
+            val destBlock = destLocation.block
+            if (destBlock.type == Material.CHEST) {
+                val guild = vaultService.getGuildForVaultChest(destLocation)
+                if (guild != null) {
+                    event.isCancelled = true
+                    logger.debug("Blocked hopper/dropper from inserting items into vault chest (guild: ${guild.name})")
+                    return
+                }
+            }
+        }
+    }
+
+    /**
+     * Block pistons from pushing vault chests.
+     * BACKFIRE: If a piston attempts to push a vault chest, the piston breaks and drops.
+     * This provides clear feedback that vault chests are immovable special blocks.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    fun onBlockPistonExtend(event: BlockPistonExtendEvent) {
+        // Check if any blocks being pushed are vault chests
+        for (block in event.blocks) {
+            if (block.type == Material.CHEST) {
+                val guild = vaultService.getGuildForVaultChest(block.location)
+                if (guild != null) {
+                    // Cancel the piston extension
+                    event.isCancelled = true
+
+                    // BACKFIRE: Break the piston and drop it
+                    val pistonBlock = event.block
+                    val world = pistonBlock.world
+                    val pistonLocation = pistonBlock.location
+
+                    // Drop the piston as an item
+                    world.dropItemNaturally(pistonLocation, org.bukkit.inventory.ItemStack(pistonBlock.type, 1))
+
+                    // Break the piston block
+                    pistonBlock.type = Material.AIR
+
+                    // Visual/audio feedback
+                    world.playSound(pistonLocation, org.bukkit.Sound.BLOCK_PISTON_CONTRACT, 1.0f, 0.5f)
+                    world.playSound(pistonLocation, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
+                    world.spawnParticle(org.bukkit.Particle.BLOCK, pistonLocation.add(0.5, 0.5, 0.5), 20, 0.3, 0.3, 0.3, 0.0, pistonBlock.blockData)
+
+                    logger.info("Piston backfire: Destroyed piston attempting to push vault chest for guild ${guild.name} at ${pistonLocation}")
+                    return
+                }
+            }
+        }
+    }
+
+    /**
+     * Block sticky pistons from pulling vault chests.
+     * BACKFIRE: If a sticky piston attempts to pull a vault chest, the piston breaks and drops.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    fun onBlockPistonRetract(event: BlockPistonRetractEvent) {
+        // Check if any blocks being pulled are vault chests
+        for (block in event.blocks) {
+            if (block.type == Material.CHEST) {
+                val guild = vaultService.getGuildForVaultChest(block.location)
+                if (guild != null) {
+                    // Cancel the piston retraction
+                    event.isCancelled = true
+
+                    // BACKFIRE: Break the sticky piston and drop it
+                    val pistonBlock = event.block
+                    val world = pistonBlock.world
+                    val pistonLocation = pistonBlock.location
+
+                    // Drop the sticky piston as an item
+                    world.dropItemNaturally(pistonLocation, org.bukkit.inventory.ItemStack(pistonBlock.type, 1))
+
+                    // Break the piston block
+                    pistonBlock.type = Material.AIR
+
+                    // Visual/audio feedback
+                    world.playSound(pistonLocation, org.bukkit.Sound.BLOCK_PISTON_CONTRACT, 1.0f, 0.5f)
+                    world.playSound(pistonLocation, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
+                    world.spawnParticle(org.bukkit.Particle.BLOCK, pistonLocation.add(0.5, 0.5, 0.5), 20, 0.3, 0.3, 0.3, 0.0, pistonBlock.blockData)
+
+                    logger.info("Piston backfire: Destroyed sticky piston attempting to pull vault chest for guild ${guild.name} at ${pistonLocation}")
+                    return
+                }
+            }
+        }
+    }
+
+    /**
      * Convert location to a unique string key
      */
     private fun locationToKey(location: org.bukkit.Location): String {
@@ -375,5 +507,39 @@ class VaultProtectionListener : Listener, KoinComponent {
                 breakWarnings.remove(playerId)
             }
         }
+    }
+
+    /**
+     * Check if a location is adjacent to a guild vault chest.
+     * Used to prevent double chest exploit.
+     *
+     * @param location The location to check.
+     * @return true if adjacent to a vault chest.
+     */
+    private fun isAdjacentToVaultChest(location: org.bukkit.Location): Boolean {
+        val world = location.world ?: return false
+
+        // Check all 4 cardinal directions for vault chests
+        val adjacentOffsets = listOf(
+            Pair(1, 0),   // East
+            Pair(-1, 0),  // West
+            Pair(0, 1),   // South
+            Pair(0, -1)   // North
+        )
+
+        for ((dx, dz) in adjacentOffsets) {
+            val adjacentLocation = location.clone().add(dx.toDouble(), 0.0, dz.toDouble())
+            val adjacentBlock = world.getBlockAt(adjacentLocation)
+
+            // Check if this adjacent block is a vault chest
+            if (adjacentBlock.type == Material.CHEST) {
+                val guild = vaultService.getGuildForVaultChest(adjacentLocation)
+                if (guild != null) {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 }
