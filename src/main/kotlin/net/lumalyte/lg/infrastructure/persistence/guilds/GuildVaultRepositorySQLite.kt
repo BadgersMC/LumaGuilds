@@ -6,10 +6,6 @@ import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.bukkit.inventory.ItemStack
-import org.bukkit.util.io.BukkitObjectInputStream
-import org.bukkit.util.io.BukkitObjectOutputStream
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.sql.SQLException
 import java.util.UUID
 import java.util.Base64
@@ -202,30 +198,22 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
     }
 
     /**
-     * Serializes an ItemStack to a Base64-encoded string.
+     * Serializes an ItemStack to a Base64-encoded string using Paper's native NBT serialization.
      */
     private fun serializeItem(item: ItemStack): String? {
         return try {
-            val outputStream = ByteArrayOutputStream()
-            val dataOutput = BukkitObjectOutputStream(outputStream)
-            dataOutput.writeObject(item)
-            dataOutput.close()
-            Base64.getEncoder().encodeToString(outputStream.toByteArray())
+            Base64.getEncoder().encodeToString(item.serializeAsBytes())
         } catch (e: Exception) {
             null
         }
     }
 
     /**
-     * Deserializes a Base64-encoded string to an ItemStack.
+     * Deserializes a Base64-encoded string to an ItemStack using Paper's native NBT deserialization.
      */
     private fun deserializeItem(data: String): ItemStack? {
         return try {
-            val inputStream = ByteArrayInputStream(Base64.getDecoder().decode(data))
-            val dataInput = BukkitObjectInputStream(inputStream)
-            val item = dataInput.readObject() as ItemStack
-            dataInput.close()
-            item
+            ItemStack.deserializeBytes(Base64.getDecoder().decode(data))
         } catch (e: Exception) {
             null
         }

@@ -50,6 +50,10 @@ class VaultInventoryListener(
             return // Clicking in player inventory, allow normal behavior
         }
 
+        // CRITICAL: Validate and repair inventory sync BEFORE processing click
+        // This ensures the player is viewing the current state from cache
+        vaultInventoryManager.validateAndRepairVault(guildId, holder.inventory)
+
         // Handle slot 0 (Gold Balance Button) clicks
         if (clickedSlot == 0) {
             event.isCancelled = true
@@ -156,6 +160,10 @@ class VaultInventoryListener(
 
     /**
      * Handles clicks on normal vault slots (1-53).
+     *
+     * CRITICAL: This must handle multi-viewer synchronization correctly.
+     * We schedule a task to run AFTER the Bukkit click processing completes,
+     * then update the cache and broadcast to all viewers.
      */
     private fun handleNormalSlotClick(
         event: InventoryClickEvent,
@@ -164,26 +172,40 @@ class VaultInventoryListener(
         guildId: java.util.UUID,
         slot: Int
     ) {
-        // Allow the click to proceed normally
-        // But schedule a sync task to update the cache after the click completes
-
+        // Schedule a sync task to run AFTER the click completes (next tick)
+        // This ensures we read the correct inventory state after Bukkit processes the click
         org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
-            val item = holder.inventory.getItem(slot)
+            // CRITICAL: Read the actual item from the GUI inventory AFTER the click completed
+            val resultingItem = holder.inventory.getItem(slot)
 
-            // Update cache and broadcast to other viewers
-            vaultInventoryManager.updateSlotWithBroadcast(guildId, slot, item)
+            // Update cache (source of truth) and broadcast to ALL other viewers
+            // This ensures every viewer sees the same state
+            vaultInventoryManager.updateSlotWithBroadcast(guildId, slot, resultingItem, player.uniqueId)
 
             // Log transaction for valuable items
-            if (item != null && isValuableItem(item)) {
+            if (resultingItem != null && isValuableItem(resultingItem)) {
                 transactionLogger.logItemTransaction(
                     guildId,
                     player.uniqueId,
                     VaultTransactionType.ITEM_ADD,
-                    item,
+                    resultingItem,
                     slot
                 )
                 // Immediate flush for valuable items
                 vaultInventoryManager.forceFlush(guildId)
+            } else if (resultingItem == null) {
+                // Item was removed, check if we should log removal
+                val previousItem = vaultInventoryManager.getSlot(guildId, slot)
+                if (previousItem != null && isValuableItem(previousItem)) {
+                    transactionLogger.logItemTransaction(
+                        guildId,
+                        player.uniqueId,
+                        VaultTransactionType.ITEM_REMOVE,
+                        previousItem,
+                        slot
+                    )
+                    vaultInventoryManager.forceFlush(guildId)
+                }
             }
         })
     }

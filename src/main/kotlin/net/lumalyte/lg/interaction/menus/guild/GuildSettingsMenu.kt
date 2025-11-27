@@ -331,13 +331,13 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
             }
 
             // Toggle the isOpen status
-            val updatedGuild = guild.copy(isOpen = !guild.isOpen)
-            val success = guildService.updateGuild(updatedGuild)
+            val newIsOpen = !guild.isOpen
+            val success = guildService.setOpen(guild.id, newIsOpen, player.uniqueId)
 
             if (success) {
-                guild = updatedGuild
-                player.sendMessage("§a✅ Guild is now ${if (updatedGuild.isOpen) "§aOPEN" else "§cCLOSED"}")
-                player.sendMessage("§7${if (updatedGuild.isOpen) "Anyone can join your guild freely" else "Your guild is invite-only"}")
+                guild = guild.copy(isOpen = newIsOpen)
+                player.sendMessage("§a✅ Guild is now ${if (newIsOpen) "§aOPEN" else "§cCLOSED"}")
+                player.sendMessage("§7${if (newIsOpen) "Anyone can join your guild freely" else "Your guild is invite-only"}")
 
                 // Reopen the menu to show updated status
                 open()

@@ -59,11 +59,14 @@ class GoldDepositMenu(
                 Component.empty(),
                 Component.text("Place gold items in this inventory:", NamedTextColor.GRAY)
                     .decoration(TextDecoration.ITALIC, false),
-                Component.text("  • Gold Blocks (81 nuggets each)", NamedTextColor.GOLD)
+                Component.text("  • Raw Gold (1 currency each)", NamedTextColor.GOLD)
                     .decoration(TextDecoration.ITALIC, false),
-                Component.text("  • Gold Ingots (9 nuggets each)", NamedTextColor.GOLD)
+                Component.text("  • Raw Gold Block (9 currency each)", NamedTextColor.GOLD)
                     .decoration(TextDecoration.ITALIC, false),
-                Component.text("  • Gold Nuggets (1 nugget each)", NamedTextColor.GOLD)
+                Component.empty(),
+                Component.text("Or click the 'Deposit All' button", NamedTextColor.YELLOW)
+                    .decoration(TextDecoration.ITALIC, false),
+                Component.text("to deposit all gold instantly", NamedTextColor.YELLOW)
                     .decoration(TextDecoration.ITALIC, false),
                 Component.empty(),
                 Component.text("Close the inventory to confirm deposit", NamedTextColor.GREEN)
@@ -106,6 +109,7 @@ class GoldDepositMenu(
      */
     private fun depositAllGold() {
         var totalNuggets = 0L
+        val itemsToRemove = mutableListOf<Int>()
 
         // Scan player inventory for gold items
         for (i in 0 until player.inventory.size) {
@@ -114,11 +118,19 @@ class GoldDepositMenu(
             val value = GoldBalanceButton.calculateGoldValue(item)
             if (value > 0) {
                 totalNuggets += value
-                player.inventory.setItem(i, null) // Remove the item
+                itemsToRemove.add(i)
             }
         }
 
         if (totalNuggets > 0) {
+            // Remove gold items from player inventory
+            for (slot in itemsToRemove) {
+                player.inventory.setItem(slot, null)
+            }
+
+            // Force inventory update to client
+            player.updateInventory()
+
             // Add to vault balance
             val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
             vaultInventoryManager.setGoldBalance(guildId, currentBalance + totalNuggets)
@@ -152,30 +164,32 @@ class GoldDepositMenu(
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {
         if (event.whoClicked.uniqueId != player.uniqueId) return
-        if (event.clickedInventory != inventory) return
         if (!isOpen) return
 
-        val clickedItem = event.currentItem
+        // Check if clicking in the top inventory (deposit menu)
+        if (event.clickedInventory == inventory) {
+            val clickedItem = event.currentItem
 
-        // Handle deposit all button click
-        if (event.slot == 22 && clickedItem != null && clickedItem.type == Material.GOLD_BLOCK) {
-            event.isCancelled = true
-            depositAllGold()
-            return
-        }
-
-        // Handle instruction item click (prevent removal)
-        if (event.slot == 13 && clickedItem != null && clickedItem.type == Material.PAPER) {
-            event.isCancelled = true
-            return
-        }
-
-        // Allow placing gold items only
-        if (event.cursor != null && event.cursor.type != Material.AIR) {
-            val cursorValue = GoldBalanceButton.calculateGoldValue(event.cursor)
-            if (cursorValue == 0L) {
+            // Handle deposit all button click
+            if (event.slot == 22 && clickedItem != null && clickedItem.type == Material.GOLD_BLOCK) {
                 event.isCancelled = true
-                player.sendMessage(Component.text("Only gold items can be deposited", NamedTextColor.RED))
+                depositAllGold()
+                return
+            }
+
+            // Handle instruction item click (prevent removal)
+            if (event.slot == 13 && clickedItem != null && clickedItem.type == Material.PAPER) {
+                event.isCancelled = true
+                return
+            }
+
+            // Allow placing gold items only
+            if (event.cursor != null && event.cursor.type != Material.AIR) {
+                val cursorValue = GoldBalanceButton.calculateGoldValue(event.cursor)
+                if (cursorValue == 0L) {
+                    event.isCancelled = true
+                    player.sendMessage(Component.text("Only gold items can be deposited", NamedTextColor.RED))
+                }
             }
         }
     }

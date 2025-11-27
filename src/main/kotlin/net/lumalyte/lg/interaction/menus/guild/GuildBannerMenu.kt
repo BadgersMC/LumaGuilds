@@ -358,7 +358,8 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                     val material = Material.valueOf(itemMaterial.uppercase())
                     val requiredItem = ItemStack(material, itemAmount)
 
-                    // Apply custom model data if specified
+                    // Apply custom model data if specified (for matching custom items from resource packs)
+                    @Suppress("DEPRECATION")
                     if (itemCustomModelData != null) {
                         val meta = requiredItem.itemMeta
                         if (meta != null) {

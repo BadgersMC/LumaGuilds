@@ -1,6 +1,5 @@
 package net.lumalyte.lg.infrastructure.services
 
-import org.bukkit.map.MapPalette
 import org.bukkit.map.MapRenderer
 import org.bukkit.map.MapView
 import java.awt.Color
@@ -278,12 +277,9 @@ class MapCanvas(
                         val rgb = imageBuffer.getRGB(x, y)
                         val color = Color(rgb)
 
-                        // Find nearest Minecraft color
+                        // Find nearest Minecraft color and set pixel using Color API
                         val nearestColor = findNearestMinecraftColor(color.red, color.green, color.blue, minecraftColors)
-
-                        // Convert to Minecraft color byte
-                        val colorByte = MapPalette.matchColor(nearestColor.red, nearestColor.green, nearestColor.blue)
-                        mapCanvas.setPixel(x, y, colorByte)
+                        mapCanvas.setPixelColor(x, y, nearestColor)
                     }
                 }
             }

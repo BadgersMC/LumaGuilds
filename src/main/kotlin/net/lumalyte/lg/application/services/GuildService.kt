@@ -241,4 +241,14 @@ interface GuildService {
      * @return A set of all guilds.
      */
     fun getAllGuilds(): Set<Guild>
+
+    /**
+     * Sets the open/closed status for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param isOpen true if the guild should be open (anyone can join), false for invite-only.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun setOpen(guildId: UUID, isOpen: Boolean, actorId: UUID): Boolean
 }
