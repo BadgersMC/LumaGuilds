@@ -1468,8 +1468,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         ).map { it.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
 
         // Add persistent data to identify this as a guild vault chest
-        val key = org.bukkit.NamespacedKey(org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, "guild_vault_id")
-        meta.persistentDataContainer.set(key, org.bukkit.persistence.PersistentDataType.STRING, guild.id.toString())
+        meta.persistentDataContainer.set(net.lumalyte.lg.common.PluginKeys.GUILD_VAULT_ID, org.bukkit.persistence.PersistentDataType.STRING, guild.id.toString())
 
         vaultChest.itemMeta = meta
 

@@ -444,8 +444,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         setInputTag(input)
 
         // Reopen the menu with the new input
-        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")!!
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        Bukkit.getScheduler().runTask(net.lumalyte.lg.common.PluginKeys.getPlugin(), Runnable {
             open()
         })
 
@@ -460,8 +459,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         player.sendMessage("§7Tag input cancelled.")
 
         // Reopen the menu without changes
-        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")!!
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        Bukkit.getScheduler().runTask(net.lumalyte.lg.common.PluginKeys.getPlugin(), Runnable {
             open()
         })
     }   

@@ -177,7 +177,15 @@ class VaultInventoryManager(
     }
 
     /**
-     * Deposits gold into a vault and logs the transaction.
+     * Atomically deposits gold into a vault and logs the transaction.
+     *
+     * **THREAD-SAFE:** Uses AtomicLong internally via `vault.addGold()`. Safe for
+     * concurrent deposits from multiple players/threads without risk of lost updates
+     * or race conditions. This method prevents the classic read-modify-write bug
+     * where concurrent operations could overwrite each other's changes.
+     *
+     * The operation is atomic at the in-memory level. Database writes are buffered
+     * and flushed asynchronously, but the balance is immediately visible to all callers.
      *
      * @param guildId The guild ID.
      * @param playerId The player depositing gold.
@@ -203,7 +211,19 @@ class VaultInventoryManager(
     }
 
     /**
-     * Withdraws gold from a vault and logs the transaction.
+     * Atomically withdraws gold from a vault and logs the transaction.
+     *
+     * **THREAD-SAFE:** Uses atomic compare-and-swap loop internally via `vault.subtractGold()`.
+     * Safe for concurrent withdrawals from multiple players/threads. Guarantees the balance
+     * can never go negative, even under high concurrency.
+     *
+     * The operation uses a CAS (compare-and-swap) loop to ensure that:
+     * 1. The withdrawal only succeeds if sufficient funds are available
+     * 2. No other withdrawal can cause the balance to go below zero
+     * 3. Concurrent withdrawals are serialized at the atomic level
+     *
+     * The operation is atomic at the in-memory level. Database writes are buffered
+     * and flushed asynchronously, but the balance is immediately visible to all callers.
      *
      * @param guildId The guild ID.
      * @param playerId The player withdrawing gold.

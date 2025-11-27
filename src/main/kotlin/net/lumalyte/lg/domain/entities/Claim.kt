@@ -50,15 +50,18 @@ data class Claim(var id: UUID, var worldId: UUID, var playerId: UUID, var teamId
 
     /**
      * Resets the break count after a set period of time.
+     * Uses Bukkit scheduler instead of Thread.sleep() to avoid blocking threads.
+     *
+     * @param plugin The plugin instance for scheduling the reset task.
      */
-    fun resetBreakCount() {
+    fun resetBreakCount(plugin: org.bukkit.plugin.Plugin) {
         if (!breakPeriod) {
-            thread(start = true) {
-                breakPeriod = true
-                Thread.sleep(10000)
+            breakPeriod = true
+            // Schedule task on Bukkit scheduler (200 ticks = 10 seconds)
+            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, Runnable {
                 breakCount = defaultBreakCount
                 breakPeriod = false
-            }
+            }, 200L)
         }
     }
 }

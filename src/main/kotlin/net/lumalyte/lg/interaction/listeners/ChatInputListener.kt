@@ -159,8 +159,7 @@ class ChatInputListener : Listener, KoinComponent {
             stopInputMode(player)
 
             // Schedule cancel callback on main thread (in case it opens GUIs)
-            val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")!!
-            org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+            org.bukkit.Bukkit.getScheduler().runTask(net.lumalyte.lg.common.PluginKeys.getPlugin(), Runnable {
                 handler?.onCancel(player)
             })
             return
@@ -170,8 +169,7 @@ class ChatInputListener : Listener, KoinComponent {
         // IMPORTANT: Schedule on main thread because handlers often reopen GUIs
         org.bukkit.Bukkit.getLogger().info("[ChatInputListener] Calling handler.onChatInput for ${player.name}")
 
-        val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")!!
-        org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+        org.bukkit.Bukkit.getScheduler().runTask(net.lumalyte.lg.common.PluginKeys.getPlugin(), Runnable {
             handler?.onChatInput(player, input)
         })
 

@@ -244,3 +244,6 @@ usercache.json
 .cursor
 .idea
 .vscode
+kiro/spec/tasks.md
+kiro/spec/code-audit-report.md
+kiro/spec/requirements.md

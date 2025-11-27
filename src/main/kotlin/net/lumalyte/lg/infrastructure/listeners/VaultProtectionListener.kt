@@ -65,10 +65,9 @@ class VaultProtectionListener : Listener, KoinComponent {
         if (block.type != Material.CHEST) return
 
         // Check if this is a special guild vault chest
-        val key = org.bukkit.NamespacedKey(org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")!!, "guild_vault_id")
         val meta = itemInHand.itemMeta ?: return
 
-        if (!meta.persistentDataContainer.has(key, org.bukkit.persistence.PersistentDataType.STRING)) {
+        if (!meta.persistentDataContainer.has(net.lumalyte.lg.common.PluginKeys.GUILD_VAULT_ID, org.bukkit.persistence.PersistentDataType.STRING)) {
             // Not a vault chest - check if trying to place next to an existing vault chest (double chest exploit)
             if (isAdjacentToVaultChest(block.location)) {
                 event.isCancelled = true
@@ -80,7 +79,7 @@ class VaultProtectionListener : Listener, KoinComponent {
         }
 
         // This is a guild vault chest!
-        val guildIdString = meta.persistentDataContainer.get(key, org.bukkit.persistence.PersistentDataType.STRING)
+        val guildIdString = meta.persistentDataContainer.get(net.lumalyte.lg.common.PluginKeys.GUILD_VAULT_ID, org.bukkit.persistence.PersistentDataType.STRING)
         if (guildIdString == null) {
             event.isCancelled = true
             player.sendMessage("§cInvalid guild vault chest! Guild ID not found.")

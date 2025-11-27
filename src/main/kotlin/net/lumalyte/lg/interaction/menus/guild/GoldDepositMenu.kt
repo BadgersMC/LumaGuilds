@@ -131,17 +131,8 @@ class GoldDepositMenu(
             // Force inventory update to client
             player.updateInventory()
 
-            // Add to vault balance
-            val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
-            vaultInventoryManager.setGoldBalance(guildId, currentBalance + totalNuggets)
-
-            // Log transaction
-            transactionLogger.logGoldTransaction(
-                guildId,
-                player.uniqueId,
-                VaultTransactionType.GOLD_DEPOSIT,
-                totalNuggets
-            )
+            // Add to vault balance atomically (prevents race conditions)
+            val newBalance = vaultInventoryManager.depositGold(guildId, player.uniqueId, totalNuggets)
 
             // Immediate flush to database (high-value transaction)
             vaultInventoryManager.forceFlush(guildId)
@@ -216,17 +207,8 @@ class GoldDepositMenu(
         }
 
         if (totalNuggets > 0) {
-            // Add to vault balance
-            val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
-            vaultInventoryManager.setGoldBalance(guildId, currentBalance + totalNuggets)
-
-            // Log transaction
-            transactionLogger.logGoldTransaction(
-                guildId,
-                player.uniqueId,
-                VaultTransactionType.GOLD_DEPOSIT,
-                totalNuggets
-            )
+            // Add to vault balance atomically (prevents race conditions)
+            val newBalance = vaultInventoryManager.depositGold(guildId, player.uniqueId, totalNuggets)
 
             // Immediate flush to database (high-value transaction)
             vaultInventoryManager.forceFlush(guildId)
