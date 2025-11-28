@@ -381,7 +381,7 @@ class PeaceAgreementMenu(
                     player.sendMessage("§a✓ Peace terms set: §f\"$input\"")
                 }
                 inputMode = null
-                showPeaceProposalMenu(currentWarId!!)
+                currentWarId?.let { showPeaceProposalMenu(it) }
             }
             "offering_money" -> {
                 if (input.lowercase() == "cancel") {
@@ -397,7 +397,7 @@ class PeaceAgreementMenu(
                     }
                 }
                 inputMode = null
-                showPeaceProposalMenu(currentWarId!!)
+                currentWarId?.let { showPeaceProposalMenu(it) }
             }
             "offering_exp" -> {
                 if (input.lowercase() == "cancel") {
@@ -413,7 +413,7 @@ class PeaceAgreementMenu(
                     }
                 }
                 inputMode = null
-                showPeaceProposalMenu(currentWarId!!)
+                currentWarId?.let { showPeaceProposalMenu(it) }
             }
         }
     }
@@ -425,7 +425,7 @@ class PeaceAgreementMenu(
             "offering_exp" -> player.sendMessage("§7EXP offering input cancelled")
         }
         inputMode = null
-        showPeaceProposalMenu(currentWarId!!)
+        currentWarId?.let { showPeaceProposalMenu(it) }
     }
 
     override fun passData(data: Any?) {

@@ -50,15 +50,20 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
-        if (claim == null || targetPlayer == null) {
-            player.sendMessage("§cError: No claim or target player available")
+        // Validate that claim and targetPlayer are provided
+        val validClaim = claim ?: run {
+            player.sendMessage("§cError: No claim available")
+            return
+        }
+        val validTarget = targetPlayer ?: run {
+            player.sendMessage("§cError: No target player available")
             return
         }
 
         // Create player permissions menu
         val playerId = player.uniqueId
         val gui = ChestGui(6, localizationProvider.get(playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_TITLE,
-            targetPlayer.name))
+            validTarget.name))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -67,19 +72,19 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         val controlsPane = addControlsSection(playerId, gui) { menuNavigator.goBack() }
 
         val deselectAction: () -> Unit = {
-            revokeAllPlayerClaimPermissions.execute(claim.id, targetPlayer.uniqueId)
+            revokeAllPlayerClaimPermissions.execute(validClaim.id, validTarget.uniqueId)
             open()
         }
 
         val selectAction: () -> Unit = {
-            grantAllPlayerClaimPermissions.execute(claim.id, targetPlayer.uniqueId)
+            grantAllPlayerClaimPermissions.execute(validClaim.id, validTarget.uniqueId)
             open()
         }
 
-        addSelector(playerId, controlsPane, createHead(targetPlayer).name(targetPlayer.name ?:
+        addSelector(playerId, controlsPane, createHead(validTarget).name(validTarget.name ?:
             localizationProvider.get(playerId, LocalizationKeys.GENERAL_NAME_ERROR)), deselectAction, selectAction)
 
-        val transferRequestResult = doesPlayerHaveTransferRequest.execute(claim.id, targetPlayer.uniqueId)
+        val transferRequestResult = doesPlayerHaveTransferRequest.execute(validClaim.id, validTarget.uniqueId)
 
         val guiTransferRequestItem: GuiItem
         when (transferRequestResult) {
@@ -96,7 +101,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
                 guiTransferRequestItem = GuiItem(transferRequestItem)
             }
             is DoesPlayerHaveTransferRequestResult.Success -> {
-                guiTransferRequestItem = createTransferButton(playerId, transferRequestResult.hasRequest)
+                guiTransferRequestItem = createTransferButton(playerId, validClaim, validTarget, transferRequestResult.hasRequest)
             }
         }
         controlsPane.addItem(guiTransferRequestItem, 8, 0)
@@ -110,7 +115,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
             verticalDividerPane.addItem(guiDividerItem, 0, slot)
         }
 
-        val enabledPermissions = getPlayerClaimPermissions.execute(claim.id, targetPlayer.uniqueId)
+        val enabledPermissions = getPlayerClaimPermissions.execute(validClaim.id, validTarget.uniqueId)
         val disabledPermissions = ClaimPermission.entries.toTypedArray().subtract(enabledPermissions)
 
         // Add list of disabled permissions
@@ -122,7 +127,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
             val permissionItem = permission.getIcon(localizationProvider, playerId)
 
             val guiPermissionItem = GuiItem(permissionItem) {
-                grantPlayerClaimPermission.execute(claim.id, targetPlayer.uniqueId, permission)
+                grantPlayerClaimPermission.execute(validClaim.id, validTarget.uniqueId, permission)
                 open()
             }
 
@@ -144,7 +149,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
             val permissionItem = permission.getIcon(localizationProvider, playerId)
 
             val guiPermissionItem = GuiItem(permissionItem) {
-                revokePlayerClaimPermission.execute(claim.id, targetPlayer.uniqueId, permission)
+                revokePlayerClaimPermission.execute(validClaim.id, validTarget.uniqueId, permission)
                 open()
             }
 
@@ -203,7 +208,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         controlsPane.addItem(guiSelectItem, 6, 0)
     }
 
-    private fun createTransferButton(playerId: UUID, hasRequest: Boolean): GuiItem {
+    private fun createTransferButton(playerId: UUID, claim: Claim, targetPlayer: OfflinePlayer, hasRequest: Boolean): GuiItem {
         val guiTransferRequestItem: GuiItem
         if (hasRequest) {
             // Cancel the transfer request if it is pending
@@ -213,28 +218,28 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
                 .lore(localizationProvider.get(playerId,
                     LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANCEL_TRANSFER_LORE))
             guiTransferRequestItem = GuiItem(transferClaimItem) {
-                withdrawPlayerTransferRequest.execute(claim!!.id, targetPlayer!!.uniqueId)
+                withdrawPlayerTransferRequest.execute(claim.id, targetPlayer.uniqueId)
                 open()
             }
         } else {
             // Send the transfer request if there is none pending
             val transferClaimAction: () -> Unit = {
                 val confirmAction: () -> Unit = {
-                    offerPlayerTransferRequest.execute(claim!!.id, targetPlayer!!.uniqueId)
+                    offerPlayerTransferRequest.execute(claim.id, targetPlayer.uniqueId)
                     open()
                 }
 
                 menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, localizationProvider.get(
                     player.uniqueId, LocalizationKeys.MENU_TRANSFER_SEND_TITLE), confirmAction))
             }
-            when (canPlayerReceiveTransferRequest.execute(claim!!.id, targetPlayer!!.uniqueId)) {
+            when (canPlayerReceiveTransferRequest.execute(claim.id, targetPlayer.uniqueId)) {
                 CanPlayerReceiveTransferRequestResult.Success -> {
                     val transferClaimItem = ItemStack(Material.BELL)
                         .name(localizationProvider.get(
                             playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_TRANSFER_NAME))
                         .lore(localizationProvider.get(
                             playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_TRANSFER_LORE,
-                            targetPlayer!!.name))
+                            targetPlayer.name))
                     guiTransferRequestItem = GuiItem(transferClaimItem) { transferClaimAction() }
                 }
                 CanPlayerReceiveTransferRequestResult.ClaimLimitExceeded -> {

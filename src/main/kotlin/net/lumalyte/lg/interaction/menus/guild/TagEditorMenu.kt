@@ -94,12 +94,11 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             .name("§f🎯 CURRENT TAG")
             .lore("§7Guild: §f${guild.name}")
 
-        if (currentTag != null) {
-            val currentTagValue: String = currentTag!!
-            val formattedTag = renderFormattedTag(currentTagValue)
+        currentTag?.let { tagValue ->
+            val formattedTag = renderFormattedTag(tagValue)
             currentTagDisplay.lore("§7Tag: $formattedTag")
                 .lore("§7This tag appears in chat")
-        } else {
+        } ?: run {
             currentTagDisplay.lore("§7Tag: §c(Not set - using guild name)")
                 .lore("§7Click edit to create a custom tag")
         }
@@ -111,7 +110,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addTagStatusIndicator(pane: StaticPane, x: Int, y: Int) {
-        val characterCount = if (inputTag != null) countVisibleCharacters(inputTag!!) else 0
+        val characterCount = inputTag?.let { countVisibleCharacters(it) } ?: 0
         val statusItem = ItemStack(Material.PAPER)
             .name("§a📊 TAG STATUS")
             .lore("§7Characters: §f$characterCount§7/32")
@@ -155,7 +154,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         // Add validation status
         if (validationError != null) {
             inputItem.lore("§c❌ $validationError")
-        } else if (inputTag != null && inputTag!!.isNotEmpty()) {
+        } else if (inputTag?.isNotEmpty() == true) {
             inputItem.lore("§a✅ Format valid")
         }
 
@@ -243,11 +242,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             println("[LumaGuilds] TagEditorMenu: Changes detected, proceeding with save...")
 
             // Convert legacy & codes to MiniMessage format before saving
-            val tagToSave = if (inputTag != null) {
-                ColorCodeUtils.convertLegacyToMiniMessage(inputTag!!)
-            } else {
-                null
-            }
+            val tagToSave = inputTag?.let { ColorCodeUtils.convertLegacyToMiniMessage(it) }
 
             // Save the tag (now in MiniMessage format)
             val success = guildService.setTag(guild.id, tagToSave, player.uniqueId)

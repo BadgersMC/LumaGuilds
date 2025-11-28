@@ -607,12 +607,13 @@ class PartyServiceBukkit(
             }
 
             // If player is not in any participating guild, they can't join
-            if (playerGuildId == null) {
+            // This also guarantees playerRankId is not null
+            if (playerGuildId == null || playerRankId == null) {
                 return false
             }
 
             // Check role restrictions
-            return party.canPlayerJoin(playerRankId!!)
+            return party.canPlayerJoin(playerRankId)
         } catch (e: Exception) {
             logger.error("Error checking if player can join party", e)
             return false

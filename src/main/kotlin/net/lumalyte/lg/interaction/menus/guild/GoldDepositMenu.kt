@@ -48,51 +48,53 @@ class GoldDepositMenu(
         inventory = Bukkit.createInventory(null, 27, Component.text("Deposit Gold"))
 
         // Add instruction item
-        val instructionItem = ItemStack(Material.PAPER)
-        val instructionMeta = instructionItem.itemMeta!!
-        instructionMeta.displayName(
-            Component.text("How to Deposit Gold", NamedTextColor.YELLOW)
-                .decoration(TextDecoration.ITALIC, false)
-        )
-        instructionMeta.lore(
-            listOf(
-                Component.empty(),
-                Component.text("Place gold items in this inventory:", NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false),
-                Component.text("  • Raw Gold (1 currency each)", NamedTextColor.GOLD)
-                    .decoration(TextDecoration.ITALIC, false),
-                Component.text("  • Raw Gold Block (9 currency each)", NamedTextColor.GOLD)
-                    .decoration(TextDecoration.ITALIC, false),
-                Component.empty(),
-                Component.text("Or click the 'Deposit All' button", NamedTextColor.YELLOW)
-                    .decoration(TextDecoration.ITALIC, false),
-                Component.text("to deposit all gold instantly", NamedTextColor.YELLOW)
-                    .decoration(TextDecoration.ITALIC, false),
-                Component.empty(),
-                Component.text("Close the inventory to confirm deposit", NamedTextColor.GREEN)
-                    .decoration(TextDecoration.ITALIC, false)
-            )
-        )
-        instructionItem.itemMeta = instructionMeta
+        val instructionItem = ItemStack(Material.PAPER).apply {
+            itemMeta = itemMeta?.also { meta ->
+                meta.displayName(
+                    Component.text("How to Deposit Gold", NamedTextColor.YELLOW)
+                        .decoration(TextDecoration.ITALIC, false)
+                )
+                meta.lore(
+                    listOf(
+                        Component.empty(),
+                        Component.text("Place gold items in this inventory:", NamedTextColor.GRAY)
+                            .decoration(TextDecoration.ITALIC, false),
+                        Component.text("  • Raw Gold (1 currency each)", NamedTextColor.GOLD)
+                            .decoration(TextDecoration.ITALIC, false),
+                        Component.text("  • Raw Gold Block (9 currency each)", NamedTextColor.GOLD)
+                            .decoration(TextDecoration.ITALIC, false),
+                        Component.empty(),
+                        Component.text("Or click the 'Deposit All' button", NamedTextColor.YELLOW)
+                            .decoration(TextDecoration.ITALIC, false),
+                        Component.text("to deposit all gold instantly", NamedTextColor.YELLOW)
+                            .decoration(TextDecoration.ITALIC, false),
+                        Component.empty(),
+                        Component.text("Close the inventory to confirm deposit", NamedTextColor.GREEN)
+                            .decoration(TextDecoration.ITALIC, false)
+                    )
+                )
+            }
+        }
         inventory.setItem(13, instructionItem)
 
         // Add deposit all button
-        val depositAllItem = ItemStack(Material.GOLD_BLOCK)
-        val depositAllMeta = depositAllItem.itemMeta!!
-        depositAllMeta.displayName(
-            Component.text("Deposit All Gold", NamedTextColor.GREEN)
-                .decoration(TextDecoration.ITALIC, false)
-        )
-        depositAllMeta.lore(
-            listOf(
-                Component.empty(),
-                Component.text("Click to deposit all gold items", NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false),
-                Component.text("from your inventory instantly", NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false)
-            )
-        )
-        depositAllItem.itemMeta = depositAllMeta
+        val depositAllItem = ItemStack(Material.GOLD_BLOCK).apply {
+            itemMeta = itemMeta?.also { meta ->
+                meta.displayName(
+                    Component.text("Deposit All Gold", NamedTextColor.GREEN)
+                        .decoration(TextDecoration.ITALIC, false)
+                )
+                meta.lore(
+                    listOf(
+                        Component.empty(),
+                        Component.text("Click to deposit all gold items", NamedTextColor.GRAY)
+                            .decoration(TextDecoration.ITALIC, false),
+                        Component.text("from your inventory instantly", NamedTextColor.GRAY)
+                            .decoration(TextDecoration.ITALIC, false)
+                    )
+                )
+            }
+        }
         inventory.setItem(22, depositAllItem)
     }
 

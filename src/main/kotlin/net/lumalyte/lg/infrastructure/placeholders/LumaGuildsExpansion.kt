@@ -151,11 +151,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 guild.emoji?.let { parts.add(it) }
 
                 // Add tag if available, otherwise name
-                if (guild.tag != null) {
-                    parts.add(guild.tag!!)
-                } else {
-                    parts.add(guild.name)
-                }
+                parts.add(guild.tag ?: guild.name)
 
                 // Add level
                 parts.add("[${guild.level}]")

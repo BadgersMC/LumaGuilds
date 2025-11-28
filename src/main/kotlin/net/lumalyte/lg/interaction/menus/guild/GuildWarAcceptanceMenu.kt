@@ -123,20 +123,14 @@ class GuildWarAcceptanceMenu(
         val memberCount = memberService.getGuildMembers(targetGuild.id).size
 
         // Try to use guild banner, fallback to mode-appropriate material
-        val bannerItem = if (targetGuild.banner != null) {
+        val bannerItem = targetGuild.banner?.let { banner ->
             try {
-                val deserialized = targetGuild.banner!!.deserializeToItemStack()
-                if (deserialized != null) {
-                    deserialized.clone()
-                } else {
-                    ItemStack(Material.WHITE_BANNER)
-                }
+                val deserialized = banner.deserializeToItemStack()
+                deserialized?.clone() ?: ItemStack(Material.WHITE_BANNER)
             } catch (e: Exception) {
                 ItemStack(Material.WHITE_BANNER)
             }
-        } else {
-            ItemStack(Material.WHITE_BANNER)
-        }
+        } ?: ItemStack(Material.WHITE_BANNER)
 
         return bannerItem
             .name(title)

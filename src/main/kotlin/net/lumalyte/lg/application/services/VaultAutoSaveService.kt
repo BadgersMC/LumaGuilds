@@ -246,13 +246,13 @@ internal class VaultAutoSaveService(
      */
     fun getStats(): Map<String, Any> {
         val stats = mutableMapOf<String, Any>(
-            "auto_save_running" to (autoSaveTask != null && !autoSaveTask!!.isCancelled),
-            "idle_cleanup_running" to (idleCleanupTask != null && !idleCleanupTask!!.isCancelled),
+            "auto_save_running" to (autoSaveTask?.isCancelled == false),
+            "idle_cleanup_running" to (idleCleanupTask?.isCancelled == false),
             "running_marker_exists" to runningMarkerFile.exists()
         )
 
         if (transactionLogger != null) {
-            stats["archival_running"] = archivalTask != null && !archivalTask!!.isCancelled
+            stats["archival_running"] = archivalTask?.isCancelled == false
             stats["transaction_count"] = transactionLogger.getTransactionCount()
             stats["transaction_retention_days"] = transactionRetentionDays
         }

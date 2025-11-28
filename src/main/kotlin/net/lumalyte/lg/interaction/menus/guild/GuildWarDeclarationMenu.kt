@@ -152,23 +152,16 @@ class GuildWarDeclarationMenu(
         val winLossRatio = warService.getWinLossRatio(targetGuild.id)
 
         // Try to use guild banner, fallback to mode-appropriate material
-        val bannerItem = if (targetGuild.banner != null) {
+        val defaultBanner = if (targetGuild.mode == GuildMode.HOSTILE) Material.RED_BANNER else Material.WHITE_BANNER
+        val bannerItem = targetGuild.banner?.let { banner ->
             try {
-                val deserialized = targetGuild.banner!!.deserializeToItemStack()
-                if (deserialized != null) {
-                    deserialized.clone()
-                } else {
-                    // Fallback based on guild mode - deserialization failed
-                    ItemStack(if (targetGuild.mode == GuildMode.HOSTILE) Material.RED_BANNER else Material.WHITE_BANNER)
-                }
+                val deserialized = banner.deserializeToItemStack()
+                deserialized?.clone() ?: ItemStack(defaultBanner)
             } catch (e: Exception) {
                 // Fallback on any deserialization error
-                ItemStack(if (targetGuild.mode == GuildMode.HOSTILE) Material.RED_BANNER else Material.WHITE_BANNER)
+                ItemStack(defaultBanner)
             }
-        } else {
-            // Default banner based on mode - no banner configured
-            ItemStack(if (targetGuild.mode == GuildMode.HOSTILE) Material.RED_BANNER else Material.WHITE_BANNER)
-        }
+        } ?: ItemStack(defaultBanner)
 
         // Add guild mode indicator
         val modeColor = if (targetGuild.mode == GuildMode.HOSTILE) "§c" else "§a"
@@ -191,7 +184,7 @@ class GuildWarDeclarationMenu(
     }
 
     private fun addWarConfigurationSection(pane: StaticPane) {
-        val target = targetGuild!!
+        val target = targetGuild ?: return // Should never be null when this method is called
         
         // Target guild display
         val targetItem = ItemStack(Material.TARGET)
@@ -440,7 +433,7 @@ class GuildWarDeclarationMenu(
     }
 
     private fun addDeclareWarButton(pane: StaticPane) {
-        val target = targetGuild!!
+        val target = targetGuild ?: return // Should never be null when this method is called
         
         // Check if war can be declared
         val canDeclare = warService.canGuildDeclareWar(guild.id)
@@ -488,7 +481,7 @@ class GuildWarDeclarationMenu(
     }
 
     private fun declareWar() {
-        val target = targetGuild!!
+        val target = targetGuild ?: return // Should never be null when this method is called
 
         try {
             // DUPLICATE PROTECTION: Check if war or declaration already exists

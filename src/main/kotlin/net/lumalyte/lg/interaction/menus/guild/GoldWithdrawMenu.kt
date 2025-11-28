@@ -55,21 +55,22 @@ class GoldWithdrawMenu(
         val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
 
         // Add current balance display
-        val balanceItem = ItemStack(Material.RAW_GOLD)
-        val balanceMeta = balanceItem.itemMeta!!
-        balanceMeta.displayName(
-            Component.text("Current Vault Balance", NamedTextColor.YELLOW)
-                .decoration(TextDecoration.ITALIC, false)
-        )
-        balanceMeta.lore(
-            listOf(
-                Component.empty(),
-                Component.text("⭐ $currentBalance Currency", NamedTextColor.GOLD)
-                    .decoration(TextDecoration.ITALIC, false),
-                Component.empty()
-            )
-        )
-        balanceItem.itemMeta = balanceMeta
+        val balanceItem = ItemStack(Material.RAW_GOLD).apply {
+            itemMeta = itemMeta?.also { meta ->
+                meta.displayName(
+                    Component.text("Current Vault Balance", NamedTextColor.YELLOW)
+                        .decoration(TextDecoration.ITALIC, false)
+                )
+                meta.lore(
+                    listOf(
+                        Component.empty(),
+                        Component.text("⭐ $currentBalance Currency", NamedTextColor.GOLD)
+                            .decoration(TextDecoration.ITALIC, false),
+                        Component.empty()
+                    )
+                )
+            }
+        }
         inventory.setItem(13, balanceItem)
 
         // Add quick withdraw buttons
@@ -82,22 +83,23 @@ class GoldWithdrawMenu(
         addQuickWithdrawButton(21, 512, "512 Currency")
 
         // Add withdraw all button
-        val withdrawAllItem = ItemStack(Material.RAW_GOLD)
-        val withdrawAllMeta = withdrawAllItem.itemMeta!!
-        withdrawAllMeta.displayName(
-            Component.text("Withdraw All Gold", NamedTextColor.GREEN)
-                .decoration(TextDecoration.ITALIC, false)
-        )
-        withdrawAllMeta.lore(
-            listOf(
-                Component.empty(),
-                Component.text("Click to withdraw all gold", NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false),
-                Component.text("from the vault in optimal form", NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false)
-            )
-        )
-        withdrawAllItem.itemMeta = withdrawAllMeta
+        val withdrawAllItem = ItemStack(Material.RAW_GOLD).apply {
+            itemMeta = itemMeta?.also { meta ->
+                meta.displayName(
+                    Component.text("Withdraw All Gold", NamedTextColor.GREEN)
+                        .decoration(TextDecoration.ITALIC, false)
+                )
+                meta.lore(
+                    listOf(
+                        Component.empty(),
+                        Component.text("Click to withdraw all gold", NamedTextColor.GRAY)
+                            .decoration(TextDecoration.ITALIC, false),
+                        Component.text("from the vault in optimal form", NamedTextColor.GRAY)
+                            .decoration(TextDecoration.ITALIC, false)
+                    )
+                )
+            }
+        }
         inventory.setItem(22, withdrawAllItem)
     }
 
@@ -110,22 +112,23 @@ class GoldWithdrawMenu(
         description: String
     ) {
         val displayAmount = minOf(amount, 64).toInt()
-        val item = ItemStack(Material.RAW_GOLD, displayAmount)
-        val meta = item.itemMeta!!
-        meta.displayName(
-            Component.text("Withdraw $description", NamedTextColor.YELLOW)
-                .decoration(TextDecoration.ITALIC, false)
-        )
-        meta.lore(
-            listOf(
-                Component.empty(),
-                Component.text("Click to withdraw", NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false)
-            )
-        )
-        // Store currency amount in item's persistent data container for reference
-        meta.persistentDataContainer.set(nuggetValueKey, PersistentDataType.LONG, amount)
-        item.itemMeta = meta
+        val item = ItemStack(Material.RAW_GOLD, displayAmount).apply {
+            itemMeta = itemMeta?.also { meta ->
+                meta.displayName(
+                    Component.text("Withdraw $description", NamedTextColor.YELLOW)
+                        .decoration(TextDecoration.ITALIC, false)
+                )
+                meta.lore(
+                    listOf(
+                        Component.empty(),
+                        Component.text("Click to withdraw", NamedTextColor.GRAY)
+                            .decoration(TextDecoration.ITALIC, false)
+                    )
+                )
+                // Store currency amount in item's persistent data container for reference
+                meta.persistentDataContainer.set(nuggetValueKey, PersistentDataType.LONG, amount)
+            }
+        }
 
         inventory.setItem(slot, item)
     }
