@@ -206,9 +206,8 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
 
     private fun addAppearanceSection(pane: StaticPane) {
         // Guild Banner
-        val bannerItem = if (guild.banner != null) {
+        val bannerItem = guild.banner?.let { bannerData ->
             // Try to deserialize and display current banner
-            val bannerData = guild.banner!!
             val bannerStack = bannerData.deserializeToItemStack()
             if (bannerStack != null) {
                 bannerStack.clone()
@@ -224,13 +223,11 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
                     .lore("§7")
                     .lore("§7Click to manage banner")
             }
-        } else {
-            ItemStack(Material.WHITE_BANNER)
-                .name("§f🏴 BANNER")
-                .lore("§7Status: §cNot set")
-                .lore("§7")
-                .lore("§7Click to manage banner")
-        }
+        } ?: ItemStack(Material.WHITE_BANNER)
+            .name("§f🏴 BANNER")
+            .lore("§7Status: §cNot set")
+            .lore("§7")
+            .lore("§7Click to manage banner")
 
         val bannerGuiItem = GuiItem(bannerItem) {
             menuNavigator.openMenu(menuFactory.createGuildBannerMenu(menuNavigator, player, guild))

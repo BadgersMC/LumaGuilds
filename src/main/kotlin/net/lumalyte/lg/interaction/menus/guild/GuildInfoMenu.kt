@@ -82,8 +82,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             overviewItem.lore("§7Emoji: §f${guild.emoji}")
         }
 
-        if (guild.tag != null) {
-            val parsedTag = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(guild.tag!!)
+        guild.tag?.let { tag ->
+            val parsedTag = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(tag)
             overviewItem.lore("§7Tag: §f${parsedTag}")
         }
 

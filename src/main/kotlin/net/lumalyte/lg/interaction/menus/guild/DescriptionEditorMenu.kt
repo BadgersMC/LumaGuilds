@@ -166,17 +166,21 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
             .name("§d🔍 Preview")
             .lore("§7How your description will appear:")
 
-        if (inputDescription != null && validationError == null) {
-            try {
-                val miniMessage = MiniMessage.miniMessage()
-                val component = miniMessage.deserialize(inputDescription!!)
-                val plainText = PlainTextComponentSerializer.plainText().serialize(component)
+        inputDescription?.let { desc ->
+            if (validationError == null) {
+                try {
+                    val miniMessage = MiniMessage.miniMessage()
+                    val component = miniMessage.deserialize(desc)
+                    val plainText = PlainTextComponentSerializer.plainText().serialize(component)
 
-                previewItem.lore("§f\"${plainText}\"")
-            } catch (e: Exception) {
-                previewItem.lore("§cError parsing description")
+                    previewItem.lore("§f\"${plainText}\"")
+                } catch (e: Exception) {
+                    previewItem.lore("§cError parsing description")
+                }
+            } else {
+                previewItem.lore("§7§oEnter a description to see preview")
             }
-        } else {
+        } ?: run {
             previewItem.lore("§7§oEnter a description to see preview")
         }
 

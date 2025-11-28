@@ -47,9 +47,7 @@ object GuildHomeSafety {
     }
 
     fun evaluateSafety(base: Location): SafetyResult {
-        if (base.world == null) return unsafe("Invalid world or location.")
-
-        val w: World = base.world!!
+        val w: World = base.world ?: return unsafe("Invalid world or location.")
         val minY = w.minHeight
         val maxY = w.maxHeight
 

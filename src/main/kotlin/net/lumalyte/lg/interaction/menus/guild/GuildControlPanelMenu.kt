@@ -113,9 +113,8 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
     }
 
     private fun addBannerSettingsButton(pane: StaticPane, x: Int, y: Int) {
-        val bannerItem = if (guild.banner != null) {
+        val bannerItem = guild.banner?.let { bannerData ->
             // Try to deserialize the banner
-            val bannerData = guild.banner!!
             val deserializedBanner = bannerData.deserializeToItemStack()
             if (deserializedBanner != null) {
                 deserializedBanner.clone()
@@ -129,12 +128,11 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
                     .lore("§7Current: §cError loading banner")
                     .lore("§7Choose your guild's banner")
             }
-        } else {
-            ItemStack(Material.WHITE_BANNER)
-                .name("§bGuild Banner")
-                .lore("§7Current: §cNot set")
-                .lore("§7Choose your guild's banner")
-        }
+        } ?: ItemStack(Material.WHITE_BANNER)
+            .name("§bGuild Banner")
+            .lore("§7Current: §cNot set")
+            .lore("§7Choose your guild's banner")
+
         val guiItem = GuiItem(bannerItem) {
             menuNavigator.openMenu(menuFactory.createGuildBannerMenu(menuNavigator, player, guild))
         }

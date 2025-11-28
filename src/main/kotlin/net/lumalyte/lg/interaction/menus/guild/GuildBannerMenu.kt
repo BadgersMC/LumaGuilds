@@ -92,9 +92,8 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addCurrentBannerDisplay(pane: StaticPane, x: Int, y: Int) {
-        val currentItem = if (guild.banner != null) {
+        val currentItem = guild.banner?.let { bannerData ->
             // Try to deserialize the banner ItemStack
-            val bannerData = guild.banner!!
             val bannerItem = bannerData.deserializeToItemStack()
             if (bannerItem != null) {
                 bannerItem.clone()
@@ -107,11 +106,9 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                     .lore("§cFailed to load banner data")
                     .lore("§7Contact an administrator")
             }
-        } else {
-            ItemStack(Material.WHITE_BANNER)
-                .name("§c❌ NO BANNER SET")
-                .lore("§cNo custom banner configured")
-        }
+        } ?: ItemStack(Material.WHITE_BANNER)
+            .name("§c❌ NO BANNER SET")
+            .lore("§cNo custom banner configured")
 
         pane.addItem(GuiItem(currentItem), x, y)
     }
@@ -329,14 +326,14 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         }
 
         val guiItem = GuiItem(copyItem) {
-            // Check if guild has a banner
-            if (guild.banner == null) {
+            // Check if guild has a banner and deserialize it
+            val bannerData = guild.banner
+            if (bannerData == null) {
                 player.sendMessage("§c❌ Your guild doesn't have a banner set!")
                 return@GuiItem
             }
 
             // Try to deserialize the banner
-            val bannerData = guild.banner!!
             val bannerItem = bannerData.deserializeToItemStack()
             if (bannerItem == null) {
                 player.sendMessage("§c❌ Failed to load guild banner data!")
