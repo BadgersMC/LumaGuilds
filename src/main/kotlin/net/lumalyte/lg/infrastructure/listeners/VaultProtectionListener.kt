@@ -253,14 +253,6 @@ class VaultProtectionListener : Listener, KoinComponent {
         }
 
         // Check if player has BREAK_VAULT permission
-        if (!vaultService.hasVaultPermission(player, guild, requireWithdraw = false)) {
-            event.isCancelled = true
-            player.sendMessage("§c§lPERMISSION DENIED§r §7» §fYou don't have permission to break the vault chest.")
-            logger.info("Blocked ${player.name} from breaking vault chest (no permission)")
-            return
-        }
-
-        // Get permission to check specifically for BREAK_VAULT
         val rank = rankService.getPlayerRank(player.uniqueId, guild.id)
         val hasBreakPermission = rank?.permissions?.contains(RankPermission.BREAK_VAULT) == true
 
