@@ -137,6 +137,28 @@ data class VaultConfig(
     var virtualBankFallback: Boolean = true,
 
     // =====================================
+    // Valuable Items Configuration
+    // =====================================
+    // Items that trigger immediate database flush and transaction logging
+    var valuableItems: List<String> = listOf(
+        "NETHERITE_INGOT", "NETHERITE_BLOCK", "NETHERITE_SWORD", "NETHERITE_PICKAXE",
+        "NETHERITE_AXE", "NETHERITE_SHOVEL", "NETHERITE_HOE", "NETHERITE_HELMET",
+        "NETHERITE_CHESTPLATE", "NETHERITE_LEGGINGS", "NETHERITE_BOOTS",
+        "DIAMOND", "DIAMOND_BLOCK", "ENCHANTED_GOLDEN_APPLE", "TOTEM_OF_UNDYING",
+        "ELYTRA", "NETHER_STAR", "BEACON", "DRAGON_EGG", "TRIDENT", "MACE", "HEAVY_CORE",
+        "SHULKER_BOX", "WHITE_SHULKER_BOX", "ORANGE_SHULKER_BOX", "MAGENTA_SHULKER_BOX",
+        "LIGHT_BLUE_SHULKER_BOX", "YELLOW_SHULKER_BOX", "LIME_SHULKER_BOX", "PINK_SHULKER_BOX",
+        "GRAY_SHULKER_BOX", "LIGHT_GRAY_SHULKER_BOX", "CYAN_SHULKER_BOX", "PURPLE_SHULKER_BOX",
+        "BLUE_SHULKER_BOX", "BROWN_SHULKER_BOX", "GREEN_SHULKER_BOX", "RED_SHULKER_BOX", "BLACK_SHULKER_BOX"
+    ),
+
+    // Check if enchanted items should be considered valuable
+    var valuableItemsCheckEnchantments: Boolean = true,
+
+    // Custom model data items (format: "MATERIAL:custom_model_data")
+    var valuableCustomModelDataItems: List<String> = emptyList(),
+
+    // =====================================
     // Physical Item Currency System
     // =====================================
     // Use a single physical item as guild currency instead of Vault economy

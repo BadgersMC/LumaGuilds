@@ -123,7 +123,7 @@ class VaultProtectionListener : Listener, KoinComponent {
         }
 
         // Check if player is in the guild
-        val member = memberService.getGuildMembers(guild.id).find { it.playerId == player.uniqueId }
+        val member = memberService.getMember(player.uniqueId, guild.id)
         if (member == null) {
             event.isCancelled = true
             player.sendMessage("§cYou cannot place this vault chest as you're not in ${guild.name}!")
@@ -427,16 +427,46 @@ class VaultProtectionListener : Listener, KoinComponent {
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     fun onBlockPistonExtend(event: BlockPistonExtendEvent) {
-        // Check if any blocks being pushed are vault chests
-        for (block in event.blocks) {
+        handlePistonVaultInteraction(event.blocks, event.block, "push") {
+            event.isCancelled = true
+        }
+    }
+
+    /**
+     * Block sticky pistons from pulling vault chests.
+     * BACKFIRE: If a sticky piston attempts to pull a vault chest, the piston breaks and drops.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    fun onBlockPistonRetract(event: BlockPistonRetractEvent) {
+        handlePistonVaultInteraction(event.blocks, event.block, "pull") {
+            event.isCancelled = true
+        }
+    }
+
+    /**
+     * Common handler for piston interactions with vault chests.
+     * Implements the "backfire" mechanic where pistons are destroyed when attempting to move vaults.
+     *
+     * @param blocks The blocks being pushed/pulled by the piston
+     * @param pistonBlock The piston block itself
+     * @param action The action being performed ("push" or "pull") for logging purposes
+     * @param cancelEvent Lambda to cancel the piston event
+     */
+    private fun handlePistonVaultInteraction(
+        blocks: List<org.bukkit.block.Block>,
+        pistonBlock: org.bukkit.block.Block,
+        action: String,
+        cancelEvent: () -> Unit
+    ) {
+        // Check if any blocks being moved are vault chests
+        for (block in blocks) {
             if (block.type == Material.CHEST) {
                 val guild = vaultService.getGuildForVaultChest(block.location)
                 if (guild != null) {
-                    // Cancel the piston extension
-                    event.isCancelled = true
+                    // Cancel the piston action
+                    cancelEvent()
 
                     // BACKFIRE: Break the piston and drop it
-                    val pistonBlock = event.block
                     val world = pistonBlock.world
                     val pistonLocation = pistonBlock.location
 
@@ -451,44 +481,7 @@ class VaultProtectionListener : Listener, KoinComponent {
                     world.playSound(pistonLocation, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
                     world.spawnParticle(org.bukkit.Particle.BLOCK, pistonLocation.clone().add(0.5, 0.5, 0.5), 20, 0.3, 0.3, 0.3, 0.0, pistonBlock.blockData)
 
-                    logger.info("Piston backfire: Destroyed piston attempting to push vault chest for guild ${guild.name} at ${pistonLocation}")
-                    return
-                }
-            }
-        }
-    }
-
-    /**
-     * Block sticky pistons from pulling vault chests.
-     * BACKFIRE: If a sticky piston attempts to pull a vault chest, the piston breaks and drops.
-     */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    fun onBlockPistonRetract(event: BlockPistonRetractEvent) {
-        // Check if any blocks being pulled are vault chests
-        for (block in event.blocks) {
-            if (block.type == Material.CHEST) {
-                val guild = vaultService.getGuildForVaultChest(block.location)
-                if (guild != null) {
-                    // Cancel the piston retraction
-                    event.isCancelled = true
-
-                    // BACKFIRE: Break the sticky piston and drop it
-                    val pistonBlock = event.block
-                    val world = pistonBlock.world
-                    val pistonLocation = pistonBlock.location
-
-                    // Drop the sticky piston as an item
-                    world.dropItemNaturally(pistonLocation, org.bukkit.inventory.ItemStack(pistonBlock.type, 1))
-
-                    // Break the piston block
-                    pistonBlock.type = Material.AIR
-
-                    // Visual/audio feedback
-                    world.playSound(pistonLocation, org.bukkit.Sound.BLOCK_PISTON_CONTRACT, 1.0f, 0.5f)
-                    world.playSound(pistonLocation, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
-                    world.spawnParticle(org.bukkit.Particle.BLOCK, pistonLocation.clone().add(0.5, 0.5, 0.5), 20, 0.3, 0.3, 0.3, 0.0, pistonBlock.blockData)
-
-                    logger.info("Piston backfire: Destroyed sticky piston attempting to pull vault chest for guild ${guild.name} at ${pistonLocation}")
+                    logger.info("Piston backfire: Destroyed piston attempting to $action vault chest for guild ${guild.name} at $pistonLocation")
                     return
                 }
             }

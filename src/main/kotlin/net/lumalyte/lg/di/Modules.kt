@@ -277,7 +277,8 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
 
     // Guild Vault System
     single<net.lumalyte.lg.application.services.VaultInventoryManager> {
-        net.lumalyte.lg.application.services.VaultInventoryManager(get(), get())
+        val config = get<ConfigService>().loadConfig()
+        net.lumalyte.lg.application.services.VaultInventoryManager(get(), get(), config.vault)
     }
     single<net.lumalyte.lg.application.services.GuildVaultService> {
         net.lumalyte.lg.infrastructure.services.GuildVaultServiceBukkit(
@@ -352,7 +353,8 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<ChatInputListener> { ChatInputListener() }
     single<ProgressionEventListener> { ProgressionEventListener() }
     single<net.lumalyte.lg.interaction.listeners.VaultInventoryListener> {
-        net.lumalyte.lg.interaction.listeners.VaultInventoryListener(get<LumaGuilds>(), get(), get())
+        val config = get<ConfigService>().loadConfig()
+        net.lumalyte.lg.interaction.listeners.VaultInventoryListener(get<LumaGuilds>(), get(), get(), config.vault)
     }
 
     // --- Application Layer Actions ---
