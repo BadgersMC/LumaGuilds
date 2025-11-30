@@ -65,6 +65,7 @@ class LumaGuildsHook : TeamHook, KoinComponent {
             guild.tag?.takeIf { it.isNotBlank() } ?: guild.name
 
         } catch (e: Exception) {
+            // Integration hook - catching all exceptions for compatibility
             logger.error("Error getting guild for player ${player.name}", e)
             null
         }
@@ -95,12 +96,14 @@ class LumaGuildsHook : TeamHook, KoinComponent {
                 try {
                     Bukkit.getOfflinePlayer(member.playerId)
                 } catch (e: Exception) {
+            // Integration hook - catching all exceptions for compatibility
                     logger.warn("Could not get OfflinePlayer for UUID ${member.playerId}", e)
                     null
                 }
             }
 
         } catch (e: Exception) {
+            // Integration hook - catching all exceptions for compatibility
             logger.error("Error getting members for guild $teamName", e)
             emptyList()
         }
@@ -119,6 +122,7 @@ class LumaGuildsHook : TeamHook, KoinComponent {
             val guild = allGuilds.find { it.name.equals(teamName, ignoreCase = true) }
             guild?.name
         } catch (e: Exception) {
+            // Integration hook - catching all exceptions for compatibility
             logger.error("Error looking up guild by name: $teamName", e)
             null
         }

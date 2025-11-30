@@ -301,6 +301,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
         val progressionItem = try {
             createProgressionInfoItem()
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Fallback if progression system isn't available
             ItemStack(Material.EXPERIENCE_BOTTLE)
                 .name("§b⭐ GUILD PROGRESSION")
@@ -439,6 +440,7 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
                 levelingItem.lore("§7Unlocked Perks: §a2 §7(Basic perks)")
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Fallback if progression system has issues
             levelingItem.lore("§7Level: §e1 §7(Starting Level)")
             levelingItem.lore("§7XP Progress: §e0§7/§e800 §7(§a0%§7)")

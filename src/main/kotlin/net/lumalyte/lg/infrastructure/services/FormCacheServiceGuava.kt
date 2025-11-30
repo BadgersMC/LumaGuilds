@@ -47,6 +47,7 @@ class FormCacheServiceGuava(
                 formBuilder()
             }
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.warning("Error building form '$cacheKey', building without cache: ${e.message}")
             formBuilder()
         }
@@ -57,6 +58,7 @@ class FormCacheServiceGuava(
             try {
                 formBuilder()
             } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
                 logger.warning("Error building form asynchronously: ${e.message}")
                 throw e
             }

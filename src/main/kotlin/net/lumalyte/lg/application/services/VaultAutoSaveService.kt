@@ -4,6 +4,7 @@ import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 
@@ -96,6 +97,8 @@ internal class VaultAutoSaveService(
                 plugin.logger.fine("Auto-save: Flushed $flushedCount vault buffer(s)")
             }
         } catch (e: Exception) {
+            // Background task - catching all exceptions to prevent task cancellation
+            // Failures here should not stop the auto-save task - retry on next cycle
             plugin.logger.severe("Error during auto-save: ${e.message}")
             plugin.logger.severe("Stack trace: ${e.stackTraceToString()}")
 
@@ -115,6 +118,7 @@ internal class VaultAutoSaveService(
                 plugin.logger.info("Cleaned up $cleanedUp idle vault session(s)")
             }
         } catch (e: Exception) {
+            // Background task - catching all exceptions to prevent task cancellation
             plugin.logger.severe("Error during idle session cleanup: ${e.message}")
             e.printStackTrace()
         }
@@ -143,6 +147,7 @@ internal class VaultAutoSaveService(
             val duration = System.currentTimeMillis() - startTime
             plugin.logger.info("✓ Successfully saved $vaultCount vault(s) in ${duration}ms")
         } catch (e: Exception) {
+            // Shutdown handler - catching all exceptions to log critical failure
             plugin.logger.severe("!!! CRITICAL: Failed to save vaults during shutdown !!!")
             plugin.logger.severe("Error: ${e.message}")
             e.printStackTrace()
@@ -166,7 +171,8 @@ internal class VaultAutoSaveService(
             )
 
             plugin.logger.fine("Created vault running marker file")
-        } catch (e: Exception) {
+        } catch (e: IOException) {
+            // I/O error writing marker file - non-critical, only affects crash detection
             plugin.logger.warning("Failed to create running marker file: ${e.message}")
         }
     }
@@ -180,7 +186,8 @@ internal class VaultAutoSaveService(
                 runningMarkerFile.delete()
                 plugin.logger.fine("Deleted vault running marker file")
             }
-        } catch (e: Exception) {
+        } catch (e: SecurityException) {
+            // Permission error deleting marker file - non-critical
             plugin.logger.warning("Failed to delete running marker file: ${e.message}")
         }
     }
@@ -236,6 +243,7 @@ internal class VaultAutoSaveService(
                 plugin.logger.info("No old transactions to archive")
             }
         } catch (e: Exception) {
+            // Background task - catching all exceptions to prevent task cancellation
             plugin.logger.severe("Error during transaction log archival: ${e.message}")
             e.printStackTrace()
         }

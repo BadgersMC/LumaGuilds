@@ -6,6 +6,7 @@ import net.lumalyte.lg.application.services.KillService
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.domain.values.Position3D
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 import java.time.Instant
 import java.util.*
 
@@ -40,7 +41,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
                 logger.error("Failed to record kill: ${kill.id}")
                 return null
             }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error recording kill", e)
             throw DatabaseOperationException("Failed to record kill", e)
         }
@@ -49,7 +50,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
     override fun getGuildKillStats(guildId: UUID): GuildKillStats {
         return try {
             killRepository.getGuildKillStats(guildId)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error getting guild kill stats for guild: $guildId", e)
             GuildKillStats(guildId)
         }
@@ -58,7 +59,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
     override fun getPlayerKillStats(playerId: UUID): PlayerKillStats {
         return try {
             killRepository.getPlayerKillStats(playerId)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error getting player kill stats for player: $playerId", e)
             PlayerKillStats(playerId)
         }
@@ -67,7 +68,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
     override fun getRecentGuildKills(guildId: UUID, limit: Int): List<Kill> {
         return try {
             killRepository.getKillsForGuild(guildId, limit)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error getting recent kills for guild: $guildId", e)
             emptyList()
         }
@@ -76,7 +77,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
     override fun getKillsBetweenGuilds(guildA: UUID, guildB: UUID, limit: Int): List<Kill> {
         return try {
             killRepository.getKillsBetweenGuilds(guildA, guildB, limit)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error getting kills between guilds $guildA and $guildB", e)
             emptyList()
         }
@@ -86,7 +87,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
         return try {
             val antiFarmData = killRepository.getAntiFarmData(killerId)
             antiFarmData.wouldBeFarming(Instant.now())
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error checking farming behavior for killer: $killerId", e)
             false
         }
@@ -95,7 +96,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
     override fun getAntiFarmData(playerId: UUID): AntiFarmData {
         return try {
             killRepository.getAntiFarmData(playerId)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error getting anti-farm data for player: $playerId", e)
             AntiFarmData(playerId)
         }
@@ -107,7 +108,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
             killRepository.updateAntiFarmData(data)
             logger.info("Reset farm score for player: $playerId")
             true
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error resetting farm score for player: $playerId", e)
             false
         }
@@ -120,7 +121,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
                 try {
                     val stats = killRepository.getPlayerKillStats(playerId)
                     playerId to stats
-                } catch (e: Exception) {
+                } catch (e: SQLException) {
                     logger.warn("Failed to get kill stats for player $playerId", e)
                     null
                 }
@@ -129,7 +130,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
             // Sort by total kills (descending) and take the top limit
             memberStats.sortedByDescending { (_, stats) -> stats.totalKills }
                 .take(limit)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error getting top killers for guild members", e)
             emptyList()
         }
@@ -150,7 +151,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
                 killDeathRatio = if (deathsByGuild > 0) killsByGuild.toDouble() / deathsByGuild.toDouble() else killsByGuild.toDouble(),
                 lastUpdated = Instant.now()
             )
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error getting kill stats for period for guild: $guildId", e)
             GuildKillStats(guildId)
         }
@@ -215,7 +216,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
 
             logger.info("Updated kill stats for kill: ${kill.id}")
             true
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error updating kill stats for kill: ${kill.id}", e)
             false
         }
@@ -233,7 +234,7 @@ class KillServiceBukkit(private val killRepository: KillRepository) : KillServic
             } else {
                 killsByA.toDouble() / deathsByA.toDouble()
             }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error getting kill/death ratio between guilds $guildA and $guildB", e)
             0.0
         }

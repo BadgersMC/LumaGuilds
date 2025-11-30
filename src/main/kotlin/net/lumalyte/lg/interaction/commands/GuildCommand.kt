@@ -1373,6 +1373,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 return targetPlayer
             }
         } catch (e: Exception) {
+            // Command handler - catching all exceptions to prevent command crash
             // Floodgate not available or failed - that's okay
         }
 
@@ -1440,6 +1441,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             try {
                 miniMessage.deserialize(guild.tag)
             } catch (e: Exception) {
+            // Command handler - catching all exceptions to prevent command crash
                 // If tag parsing fails, fall back to plain tag
                 net.kyori.adventure.text.Component.text(guild.tag)
             }

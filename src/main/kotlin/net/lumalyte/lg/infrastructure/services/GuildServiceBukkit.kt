@@ -165,6 +165,7 @@ class GuildServiceBukkit(
                 }
             }
         } catch (e: Exception) {
+            // Non-critical operation - catching all exceptions to prevent service failure
             // Log error but don't fail guild creation - channels are non-critical
             logger.error("Failed to create default channels for guild ${guild.name}", e)
         }
@@ -326,6 +327,8 @@ class GuildServiceBukkit(
                     return false
                 }
             } catch (e: Exception) {
+            // Non-critical operation - catching all exceptions to prevent service failure
+                // Tag validation - catching parsing/format errors
                 logger.warn("Invalid tag format: $tagValue - ${e.message}")
                 return false
             }
@@ -398,6 +401,7 @@ class GuildServiceBukkit(
             }
             return result
         } catch (e: Exception) {
+            // Non-critical operation - catching all exceptions to prevent service failure
             logger.error("Error setting home for guild $guildId", e)
             return false
         }
@@ -432,6 +436,7 @@ class GuildServiceBukkit(
             }
             return baseSlots + additionalSlots
         } catch (e: Exception) {
+            // Non-critical operation - catching all exceptions to prevent service failure
             logger.error("Error calculating available home slots for guild $guildId", e)
             return 1 // Default fallback
         }
@@ -461,6 +466,7 @@ class GuildServiceBukkit(
             }
             return result
         } catch (e: Exception) {
+            // Non-critical operation - catching all exceptions to prevent service failure
             logger.error("Error removing home for guild $guildId", e)
             return false
         }
@@ -489,6 +495,7 @@ class GuildServiceBukkit(
             }
             return result
         } catch (e: Exception) {
+            // Non-critical operation - catching all exceptions to prevent service failure
             logger.error("Error removing all homes for guild $guildId", e)
             return false
         }

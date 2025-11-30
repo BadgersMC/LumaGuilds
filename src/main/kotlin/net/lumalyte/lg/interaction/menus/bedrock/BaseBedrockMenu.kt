@@ -64,6 +64,7 @@ abstract class BaseBedrockMenu(
             val configService: net.lumalyte.lg.application.services.ConfigService by inject()
             configService.loadConfig().bedrock
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Could not load Bedrock config, using defaults: ${e.message}")
             BedrockConfig()
         }
@@ -114,6 +115,7 @@ abstract class BaseBedrockMenu(
             player.sendMessage("§cUnable to open menu due to invalid data. Please contact an administrator.")
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Generic error handling
             logger.warning("Unexpected error opening Bedrock menu ${this::class.simpleName} for player ${player.name}: ${e.message}")
             logger.warning("Stack trace: ${e.stackTraceToString()}")
@@ -391,6 +393,7 @@ abstract class BaseBedrockMenu(
             player.sendMessage("§cUnable to open menu due to invalid data. Please contact an administrator.")
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Generic error handling
             logger.warning("Unexpected error opening Bedrock menu ${this::class.simpleName} for player ${player.name}: ${e.message}")
             logger.warning("Stack trace: ${e.stackTraceToString()}")
@@ -457,6 +460,7 @@ abstract class BaseBedrockMenu(
                 logger.fine("Opened Bedrock form asynchronously ${this::class.simpleName} for player ${player.name}")
 
             } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
                 logger.warning("Error sending async form ${this::class.simpleName} to player ${player.name}: ${e.message}")
                 player.sendMessage("§cFailed to load menu. Please try again.")
             }
@@ -514,6 +518,7 @@ abstract class BaseBedrockMenu(
 
             true
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error checking Bedrock services availability: ${e.message}")
             false
         }
@@ -545,6 +550,7 @@ abstract class BaseBedrockMenu(
             logger.warning("Bedrock menu ${this::class.simpleName} failed for player ${player.name} - no fallback available")
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error during Bedrock fallback handling: ${e.message}")
             player.sendMessage("§cAn error occurred. Please contact an administrator.")
         }
@@ -607,6 +613,7 @@ class FormTimeoutTask(
             menu.getMenuNavigatorInstance().goBack()
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             menu.getLoggerInstance().warning("Error handling form timeout: ${e.message}")
         } finally {
             // Always clean up the timeout tracking

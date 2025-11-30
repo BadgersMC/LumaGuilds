@@ -58,6 +58,7 @@ class BedrockLocalizationServiceFloodgate(
             Locale.forLanguageTag(minecraftLocale.toString().replace('_', '-'))
 
         } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
             logger.warning("Error detecting Bedrock locale for player ${player.name}: ${e.message}")
             Locale.ENGLISH // Default fallback
         }
@@ -90,6 +91,7 @@ class BedrockLocalizationServiceFloodgate(
         val regularTranslation = try {
             localizationProvider.getConsole(key, *args)
         } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
             logger.warning("Error getting regular localization for key '$key': ${e.message}")
             key
         }
@@ -114,6 +116,7 @@ class BedrockLocalizationServiceFloodgate(
             try {
                 Locale.forLanguageTag(localeStr.replace('_', '-'))
             } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
                 logger.warning("Invalid locale format: $localeStr")
                 null
             }
@@ -150,6 +153,7 @@ class BedrockLocalizationServiceFloodgate(
                 pattern
             }
         } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
             logger.warning("Error formatting Bedrock translation for key '$key': ${e.message}")
             pattern
         }
@@ -189,6 +193,7 @@ class BedrockLocalizationServiceFloodgate(
                 bedrockTranslations[locale] = properties
                 logger.info("Loaded Bedrock translations for locale: $locale from file: ${file.name}")
             } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
                 logger.warning("Failed to load Bedrock translations from ${file.name}: ${e.message}")
             }
         }
@@ -213,6 +218,7 @@ class BedrockLocalizationServiceFloodgate(
                 createBasicEnglishTranslations(bedrockFolder)
             }
         } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
             logger.warning("Failed to create default English translations from resource: ${e.message}")
             createBasicEnglishTranslations(bedrockFolder)
         }
@@ -240,6 +246,7 @@ class BedrockLocalizationServiceFloodgate(
             defaultFile.writeText(basicTranslations)
             logger.info("Created basic English Bedrock translations")
         } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
             logger.warning("Failed to create basic English translations: ${e.message}")
         }
     }
@@ -261,6 +268,7 @@ class BedrockLocalizationServiceFloodgate(
                 createBasicArabicTranslations(bedrockFolder)
             }
         } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
             logger.warning("Failed to create Arabic translations from resource: ${e.message}")
             createBasicArabicTranslations(bedrockFolder)
         }
@@ -285,6 +293,7 @@ class BedrockLocalizationServiceFloodgate(
             arabicFile.writeText(basicArabicTranslations)
             logger.info("Created basic Arabic Bedrock translations")
         } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
             logger.warning("Failed to create basic Arabic translations: ${e.message}")
         }
     }

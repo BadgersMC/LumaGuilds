@@ -101,6 +101,7 @@ class BedrockGuildEmojiMenu(
                 }
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error handling emoji form response: ${e.message}")
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.save.failed"))
             bedrockNavigator.goBack()

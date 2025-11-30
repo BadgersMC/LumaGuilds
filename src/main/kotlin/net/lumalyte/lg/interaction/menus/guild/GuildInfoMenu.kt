@@ -256,6 +256,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
             legacyText
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             description // Fallback to raw text if parsing fails
         }
     }

@@ -53,6 +53,7 @@ class BedrockGuildInviteMenu(
             val playerName = response.next() as? String ?: ""
             validateAndInvitePlayer(playerName)
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error handling invite form response: ${e.message}")
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.error"))
             bedrockNavigator.goBack()

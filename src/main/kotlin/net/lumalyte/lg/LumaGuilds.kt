@@ -31,6 +31,7 @@ import net.lumalyte.lg.application.services.DailyWarCostsService
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
 import net.lumalyte.lg.infrastructure.services.DailyWarCostsScheduler
 import java.io.File
+import java.io.IOException
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
@@ -45,6 +46,7 @@ class LumaGuilds : JavaPlugin() {
     private lateinit var scheduler: BukkitScheduler
     lateinit var pluginScope: CoroutineScope
     private lateinit var dailyWarCostsScheduler: DailyWarCostsScheduler
+    internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     private val componentLogger = getComponentLogger()
 
 
@@ -170,10 +172,14 @@ class LumaGuilds : JavaPlugin() {
                     )
                     logColored("✓ Successfully connected to MariaDB at $host:$port/$database")
                     storage
-                } catch (e: Exception) {
+                } catch (e: SQLException) {
                     logColored("❌ Failed to connect to MariaDB: ${e.message}")
                     e.printStackTrace()
-                    throw RuntimeException("Failed to initialize MariaDB storage", e)
+                    throw RuntimeException("Failed to initialize MariaDB storage - database connection error", e)
+                } catch (e: IllegalArgumentException) {
+                    logColored("❌ Invalid MariaDB configuration: ${e.message}")
+                    e.printStackTrace()
+                    throw RuntimeException("Failed to initialize MariaDB storage - invalid configuration", e)
                 }
             }
             else -> {
@@ -183,10 +189,14 @@ class LumaGuilds : JavaPlugin() {
                     val databaseFile = File(dataFolder, "lumaguilds.db")
                     logColored("✓ SQLite database initialized at ${databaseFile.absolutePath}")
                     storage
-                } catch (e: Exception) {
-                    logColored("❌ Failed to initialize SQLite storage: ${e.message}")
+                } catch (e: SQLException) {
+                    logColored("❌ Failed to initialize SQLite database: ${e.message}")
                     e.printStackTrace()
-                    throw RuntimeException("Failed to initialize SQLite storage", e)
+                    throw RuntimeException("Failed to initialize SQLite storage - database error", e)
+                } catch (e: IOException) {
+                    logColored("❌ Failed to create SQLite database file: ${e.message}")
+                    e.printStackTrace()
+                    throw RuntimeException("Failed to initialize SQLite storage - file system error", e)
                 }
             }
         }
@@ -249,10 +259,10 @@ class LumaGuilds : JavaPlugin() {
                             migrator.migrate()
                         }
                         logColored("✓ SQLite migrations completed successfully")
-                    } catch (e: Exception) {
+                    } catch (e: SQLException) {
                         logColored("❌ Failed to run SQLite migrations: ${e.message}")
                         e.printStackTrace()
-                        throw RuntimeException("Failed to run SQLite migrations", e)
+                        throw RuntimeException("Failed to run SQLite migrations - database error", e)
                     }
                 }
                 is MariaDBStorage -> {
@@ -287,10 +297,13 @@ class LumaGuilds : JavaPlugin() {
                     logColored("⚠ Unknown storage type: ${storage::class.simpleName}")
                 }
             }
-        } catch (e: Exception) {
-            logColored("❌ Failed to initialize database: ${e.message}")
+        } catch (e: RuntimeException) {
+            // Re-throw RuntimeException from migration failures
+            throw e
+        } catch (e: SQLException) {
+            logColored("❌ Unexpected database error during initialization: ${e.message}")
             e.printStackTrace()
-            throw RuntimeException("Failed to initialize database", e)
+            throw RuntimeException("Failed to initialize database - unexpected SQL error", e)
         }
     }
 
@@ -435,6 +448,8 @@ class LumaGuilds : JavaPlugin() {
                     logColored("❌ Failed to register LumaGuilds PlaceholderAPI expansion!")
                 }
             } catch (e: Exception) {
+                // Broad exception handling acceptable here - optional integration shouldn't crash plugin
+                // Can fail due to: NoClassDefFoundError, LinkageError, version incompatibilities
                 logger.severe("Error registering PlaceholderAPI expansion: ${e.message}")
                 e.printStackTrace()
             }
@@ -455,6 +470,8 @@ class LumaGuilds : JavaPlugin() {
                 logColored("✓ Successfully registered LumaGuilds hook with AxKoth!")
                 logColored("Guilds can now compete in KOTH events as teams")
             } catch (e: Exception) {
+                // Broad exception handling acceptable here - optional integration shouldn't crash plugin
+                // Can fail due to: NoClassDefFoundError, LinkageError, API changes
                 logger.severe("Error registering AxKoth integration: ${e.message}")
                 e.printStackTrace()
             }
@@ -545,7 +562,8 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(progressionEventListener, this)
 
         // Register vault protection listener
-        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener(), this)
+        vaultProtectionListener = net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener()
+        server.pluginManager.registerEvents(vaultProtectionListener, this)
 
         // Register vault inventory listener (for gold button and real-time sync)
         val vaultInventoryListener = get().get<net.lumalyte.lg.interaction.listeners.VaultInventoryListener>()
@@ -568,7 +586,9 @@ class LumaGuilds : JavaPlugin() {
             dailyWarCostsScheduler.startDailyScheduler()
             logColored("✓ Daily war costs scheduler started")
         } catch (e: Exception) {
+            // Broad exception handling acceptable - scheduler failure shouldn't prevent plugin load
             logColored("❌ Failed to initialize daily war costs scheduler: ${e.message}")
+            e.printStackTrace()
         }
     }
 
@@ -582,7 +602,9 @@ class LumaGuilds : JavaPlugin() {
             logColored("✓ Manual daily war costs applied to $affectedGuilds guilds")
             affectedGuilds
         } catch (e: Exception) {
+            // Broad exception handling acceptable - manual trigger shouldn't crash server
             logColored("❌ Failed to apply daily war costs: ${e.message}")
+            e.printStackTrace()
             0
         }
     }
@@ -593,7 +615,9 @@ class LumaGuilds : JavaPlugin() {
             val vaultAutoSaveService = get().get<net.lumalyte.lg.application.services.VaultAutoSaveService>()
             vaultAutoSaveService.stop()
         } catch (e: Exception) {
+            // Broad exception handling acceptable - shutdown should be resilient
             logger.severe("Failed to stop vault auto-save service: ${e.message}")
+            e.printStackTrace()
         }
 
         // Stop vault hologram service
@@ -601,7 +625,9 @@ class LumaGuilds : JavaPlugin() {
             val hologramService = get().get<net.lumalyte.lg.infrastructure.services.VaultHologramService>()
             hologramService.stop()
         } catch (e: Exception) {
+            // Broad exception handling acceptable - shutdown should be resilient
             logger.severe("Failed to stop vault hologram service: ${e.message}")
+            e.printStackTrace()
         }
 
         // Stop the daily war costs scheduler

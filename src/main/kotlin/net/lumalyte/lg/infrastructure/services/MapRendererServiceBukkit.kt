@@ -62,6 +62,7 @@ class MapRendererServiceBukkit(
             mapItem
 
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Failed to render overview chart for guild ${guild.name}", e)
             null
         }
@@ -88,6 +89,7 @@ class MapRendererServiceBukkit(
             mapItem
 
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Failed to render trend chart for guild ${guild.name}, metric $metric", e)
             null
         }
@@ -114,6 +116,7 @@ class MapRendererServiceBukkit(
             mapItem
 
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Failed to render comparison chart for guild ${guild.name}, dataType $dataType", e)
             null
         }
@@ -140,6 +143,7 @@ class MapRendererServiceBukkit(
             mapItem
 
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Failed to render proportion chart for guild ${guild.name}, category $category", e)
             null
         }
@@ -196,6 +200,7 @@ class MapRendererServiceBukkit(
             mapItem
 
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Failed to render custom chart: $title", e)
             null
         }
@@ -255,6 +260,7 @@ class MapRendererServiceBukkit(
             // if the server supports maps and we have necessary permissions
             true
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("MapRendererService availability check failed", e)
             false
         }

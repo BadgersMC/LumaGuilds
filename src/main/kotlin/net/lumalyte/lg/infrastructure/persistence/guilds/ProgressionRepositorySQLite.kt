@@ -24,7 +24,7 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
         try {
             createProgressionTables()
             preload()
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             // Tables don't exist yet - migration will create them later
             // This is expected on first startup before migration runs
         }
@@ -202,7 +202,7 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
                 .filter { it.isNotEmpty() }
                 .map { net.lumalyte.lg.application.services.PerkType.valueOf(it) }
                 .toSet()
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             emptySet()
         }
     }

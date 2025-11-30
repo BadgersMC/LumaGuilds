@@ -357,6 +357,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             val miniMessage = MiniMessage.miniMessage()
             miniMessage.deserialize(tag)
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Parse the error message to provide helpful feedback
             val errorMsg = e.message ?: "Invalid format"
             return when {
@@ -386,6 +387,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             // Count the actual visible characters
             plainText.length
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Fallback to regex approach if MiniMessage parsing fails
             val withoutTags = tag
                 .replace(Regex("<[^>]*>"), "")  // Remove all <tag> elements
@@ -404,6 +406,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             val component = miniMessage.deserialize(tag)
             legacySerializer.serialize(component)
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Fallback to plain text if MiniMessage parsing fails
             tag
         }

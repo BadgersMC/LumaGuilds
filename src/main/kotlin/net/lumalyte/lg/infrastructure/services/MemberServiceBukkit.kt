@@ -276,6 +276,7 @@ class MemberServiceBukkit(
             logger.info("Ownership of guild $guildId transferred from $currentOwnerId to $newOwnerId")
             return true
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error during ownership transfer: ${e.message}", e)
             return false
         }

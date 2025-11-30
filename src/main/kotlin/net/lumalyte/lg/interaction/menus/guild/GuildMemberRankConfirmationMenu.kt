@@ -175,6 +175,7 @@ class GuildMemberRankConfirmationMenu(
                 player.sendMessage("§c❌ Failed to change member rank!")
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Error changing member rank: ${e.message}")
             logger.error("Error changing member rank", e)
         }
@@ -194,6 +195,7 @@ class GuildMemberRankConfirmationMenu(
             // Note: In a real implementation, you'd need to set the skull texture properly
             // This is a simplified version - you'd need skull texture utilities
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Fallback if skull texture setting fails
         }
 

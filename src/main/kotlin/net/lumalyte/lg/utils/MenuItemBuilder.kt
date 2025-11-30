@@ -87,8 +87,12 @@ class MenuItemBuilder(
 
                     // Apply the component to the item meta
                     meta.setCustomModelDataComponent(customModelDataComponent)
-                } catch (e: Exception) {
-                    println("Failed to set custom model data using modern API: ${e.message}")
+                } catch (e: NoSuchMethodException) {
+                    // API method not available in this Paper version
+                    println("Custom model data API not available: ${e.message}")
+                } catch (e: ReflectiveOperationException) {
+                    // Reflection error (IllegalAccessException, InvocationTargetException, etc.)
+                    println("Failed to set custom model data via reflection: ${e.message}")
                 }
             }
             

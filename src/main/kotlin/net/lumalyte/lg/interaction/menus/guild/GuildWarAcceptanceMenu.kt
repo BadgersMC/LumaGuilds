@@ -128,6 +128,8 @@ class GuildWarAcceptanceMenu(
                 val deserialized = banner.deserializeToItemStack()
                 deserialized?.clone() ?: ItemStack(Material.WHITE_BANNER)
             } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                 ItemStack(Material.WHITE_BANNER)
             }
         } ?: ItemStack(Material.WHITE_BANNER)
@@ -194,6 +196,7 @@ class GuildWarAcceptanceMenu(
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Error accepting war: ${e.message}")
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
@@ -219,6 +222,7 @@ class GuildWarAcceptanceMenu(
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Error rejecting war: ${e.message}")
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
@@ -288,6 +292,7 @@ class GuildWarAcceptanceMenu(
                 }
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             println("Error notifying guilds of war acceptance: ${e.message}")
         }
     }
@@ -325,6 +330,7 @@ class GuildWarAcceptanceMenu(
                 }
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Log error but don't break the rejection process
             println("Error notifying guild of war rejection: ${e.message}")
         }

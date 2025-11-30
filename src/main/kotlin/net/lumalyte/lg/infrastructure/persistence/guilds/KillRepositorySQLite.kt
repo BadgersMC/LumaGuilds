@@ -330,7 +330,7 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
                 .map { it.trim().trim('"') }
                 .filter { it.isNotEmpty() }
                 .map { Instant.parse(it) }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             emptyList()
         }
     }

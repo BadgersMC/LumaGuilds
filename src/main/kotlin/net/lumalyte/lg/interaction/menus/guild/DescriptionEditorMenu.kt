@@ -175,6 +175,8 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
                     previewItem.lore("§f\"${plainText}\"")
                 } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                     previewItem.lore("§cError parsing description")
                 }
             } else {
@@ -209,6 +211,8 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
                     val component = miniMessage.deserialize("<gray>New description: <reset>$description")
                     player.sendMessage(component)
                 } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                     player.sendMessage("§7New description: §f$description")
                 }
             } else {
@@ -237,6 +241,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
             val miniMessage = MiniMessage.miniMessage()
             miniMessage.deserialize(description)
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             return "Invalid MiniMessage format: ${e.message}"
         }
 
@@ -286,6 +291,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
             val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
             legacyText
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             description // Fallback to raw text if parsing fails
         }
     }

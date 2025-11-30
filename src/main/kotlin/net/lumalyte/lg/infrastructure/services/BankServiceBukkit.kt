@@ -17,6 +17,7 @@ import net.milkbowl.vault.economy.Economy
 import org.bukkit.Bukkit
 import org.bukkit.plugin.RegisteredServiceProvider
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 import java.util.UUID
 import kotlin.math.min
 
@@ -176,8 +177,12 @@ class BankServiceBukkit(
                         progressionService.awardExperience(guildId, xpAmount, ExperienceSource.BANK_DEPOSIT)
                         logger.info("Awarded $xpAmount XP to guild $guildId for bank deposit of $amount")
                     }
-                } catch (e: Exception) {
-                    logger.warn("Failed to award progression XP for bank deposit", e)
+                } catch (e: SQLException) {
+                    // Database error awarding XP - log but don't fail deposit
+                    logger.warn("Failed to award progression XP for bank deposit (database error)", e)
+                } catch (e: IllegalStateException) {
+                    // Service not initialized or invalid state
+                    logger.warn("Failed to award progression XP for bank deposit (service error)", e)
                 }
                 
                 return transaction
@@ -187,8 +192,11 @@ class BankServiceBukkit(
                 economy.depositPlayer(player, amount.toDouble())
                 return null
             }
-        } catch (e: Exception) {
-            logger.error("Error processing deposit", e)
+        } catch (e: SQLException) {
+            logger.error("Database error processing deposit for player $playerId to guild $guildId", e)
+            return null
+        } catch (e: IllegalStateException) {
+            logger.error("Service error processing deposit (Vault economy unavailable?)", e)
             return null
         }
     }
@@ -308,8 +316,11 @@ class BankServiceBukkit(
                 economy.withdrawPlayer(player, finalAmount.toDouble())
                 return null
             }
-        } catch (e: Exception) {
-            logger.error("Error processing withdrawal", e)
+        } catch (e: SQLException) {
+            logger.error("Database error processing withdrawal for player $playerId from guild $guildId", e)
+            return null
+        } catch (e: IllegalStateException) {
+            logger.error("Service error processing withdrawal (Vault economy unavailable?)", e)
             return null
         }
     }
@@ -333,8 +344,8 @@ class BankServiceBukkit(
             }
 
             return economy.getBalance(player).toInt()
-        } catch (e: Exception) {
-            logger.error("Error getting player balance for $playerId", e)
+        } catch (e: IllegalStateException) {
+            logger.error("Vault economy unavailable when getting balance for $playerId", e)
             return 0
         }
     }
@@ -461,8 +472,8 @@ class BankServiceBukkit(
     private fun recordAudit(audit: BankAudit): Boolean {
         return try {
             bankRepository.recordAudit(audit)
-        } catch (e: Exception) {
-            logger.error("Failed to record audit entry", e)
+        } catch (e: SQLException) {
+            logger.error("Database error recording audit entry", e)
             false
         }
     }
@@ -489,8 +500,8 @@ class BankServiceBukkit(
                 logger.warn("Failed to withdraw $amount coins from player ${player.name}: ${withdrawResult.errorMessage}")
                 return false
             }
-        } catch (e: Exception) {
-            logger.error("Error withdrawing $amount coins from player $playerId", e)
+        } catch (e: IllegalStateException) {
+            logger.error("Vault economy unavailable when withdrawing $amount from player $playerId", e)
             return false
         }
     }
@@ -514,8 +525,8 @@ class BankServiceBukkit(
             )
 
             return bankRepository.recordTransaction(transaction)
-        } catch (e: Exception) {
-            logger.error("Error processing guild bank deduction", e)
+        } catch (e: SQLException) {
+            logger.error("Database error processing guild bank deduction for guild $guildId", e)
             return false
         }
     }
@@ -542,8 +553,8 @@ class BankServiceBukkit(
                 logger.warn("Failed to deposit $amount coins to player ${player.name}: ${depositResult.errorMessage}")
                 return false
             }
-        } catch (e: Exception) {
-            logger.error("Error depositing $amount coins to player $playerId", e)
+        } catch (e: IllegalStateException) {
+            logger.error("Vault economy unavailable when depositing $amount to player $playerId", e)
             return false
         }
     }

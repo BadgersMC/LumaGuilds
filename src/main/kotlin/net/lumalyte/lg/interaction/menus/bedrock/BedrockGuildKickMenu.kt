@@ -79,6 +79,7 @@ class BedrockGuildKickMenu(
         return try {
             player.server.getPlayer(member.playerId)?.name ?: "Unknown Player"
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             "Unknown Player"
         }
     }

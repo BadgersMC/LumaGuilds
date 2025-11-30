@@ -104,6 +104,7 @@ class WarKillTrackingListener : Listener, KoinComponent {
                 }
             }
         } catch (e: Exception) {
+            // Event listener - catching all exceptions to prevent listener failure
             logger.error("Error tracking war kill", e)
         }
     }
@@ -144,6 +145,7 @@ class WarKillTrackingListener : Listener, KoinComponent {
                 }
             }
         } catch (e: Exception) {
+            // Event listener - catching all exceptions to prevent listener failure
             logger.error("Error checking kill objectives for war $warId", e)
         }
     }

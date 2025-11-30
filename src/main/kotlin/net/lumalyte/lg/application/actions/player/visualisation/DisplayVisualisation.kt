@@ -94,6 +94,7 @@ class DisplayVisualisation(private val playerStateRepository: PlayerStateReposit
             playerStateRepository.update(playerState)
             logger.info("[DEBUG] Player state updated successfully")
         } catch (e: Exception) {
+            // Visualization action - catching all exceptions to prevent action failure
             logger.severe("[ERROR] Failed to update player state for $playerId: ${e.message}")
             e.printStackTrace()
         }
@@ -177,6 +178,7 @@ class DisplayVisualisation(private val playerStateRepository: PlayerStateReposit
                     visualised[claim.id] = positions
                     logger.info("[DEBUG] Guild-aware visualization completed: ${positions.size} positions generated for claim ${claim.name}")
                 } catch (e: Exception) {
+            // Visualization action - catching all exceptions to prevent action failure
                     logger.severe("[ERROR] Failed to generate guild-aware visualization for claim ${claim.name}: ${e.message}")
                     e.printStackTrace()
                 }
@@ -280,6 +282,7 @@ class DisplayVisualisation(private val playerStateRepository: PlayerStateReposit
             logger.info("[DEBUG] Non-owned claim visualization generated ${positions.size} positions")
             return positions
         } catch (e: Exception) {
+            // Visualization action - catching all exceptions to prevent action failure
             logger.severe("[ERROR] Failed to generate visualization for non-owned claim ${claim.name}: ${e.message}")
             e.printStackTrace()
             return emptySet()

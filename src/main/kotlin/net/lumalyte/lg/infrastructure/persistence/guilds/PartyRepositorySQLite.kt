@@ -249,7 +249,7 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
             }
 
             result
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             // Log error but don't fail - return empty map for graceful degradation
             System.err.println("Failed to parse muted_players JSON: $json - ${e.message}")
             emptyMap()
@@ -268,7 +268,7 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
             val type = object : TypeToken<List<String>>() {}.type
             val jsonList: List<String> = gson.fromJson(json, type)
             jsonList.map { UUID.fromString(it) }.toSet()
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             // Log error but don't fail - return empty set for graceful degradation
             System.err.println("Failed to parse banned_players JSON: $json - ${e.message}")
             emptySet()
@@ -289,7 +289,7 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
             }
 
             gson.toJson(jsonObject)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             System.err.println("Failed to serialize muted_players: ${e.message}")
             "{}"
         }
@@ -305,7 +305,7 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
 
             val playerIds = bans.map { it.toString() }
             gson.toJson(playerIds)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             System.err.println("Failed to serialize banned_players: ${e.message}")
             "[]"
         }

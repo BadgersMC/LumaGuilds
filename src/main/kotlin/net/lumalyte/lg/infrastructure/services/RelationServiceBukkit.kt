@@ -56,6 +56,7 @@ class RelationServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error creating alliance request", e)
             return null
         }
@@ -101,6 +102,7 @@ class RelationServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error accepting alliance", e)
             return null
         }
@@ -149,6 +151,7 @@ class RelationServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error declaring war", e)
             return null
         }
@@ -187,6 +190,7 @@ class RelationServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error creating truce request", e)
             return null
         }
@@ -232,6 +236,7 @@ class RelationServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error accepting truce", e)
             return null
         }
@@ -268,6 +273,7 @@ class RelationServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error creating unenemy request", e)
             return null
         }
@@ -308,6 +314,7 @@ class RelationServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error accepting unenemy", e)
             return null
         }
@@ -353,6 +360,7 @@ class RelationServiceBukkit(
                 false
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error rejecting request", e)
             return false
         }
@@ -393,6 +401,7 @@ class RelationServiceBukkit(
                 false
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error cancelling request", e)
             return false
         }
@@ -450,6 +459,7 @@ class RelationServiceBukkit(
             // Check if player has MANAGE_RELATIONS permission in the guild
             return memberService.hasPermission(playerId, guildId, RankPermission.MANAGE_RELATIONS)
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error checking relation management permissions", e)
             return false
         }
@@ -493,6 +503,7 @@ class RelationServiceBukkit(
             
             return processedCount
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error processing expired relations", e)
             return 0
         }

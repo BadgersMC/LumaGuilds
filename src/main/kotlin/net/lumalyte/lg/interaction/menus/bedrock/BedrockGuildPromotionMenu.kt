@@ -89,6 +89,7 @@ class BedrockGuildPromotionMenu(
         return try {
             player.server.getPlayer(member.playerId)?.name ?: "Unknown Player"
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             "Unknown Player"
         }
     }
@@ -145,6 +146,7 @@ class BedrockGuildPromotionMenu(
             bedrockNavigator.goBack()
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error handling promotion form response: ${e.message}")
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.promotion.error"))
             bedrockNavigator.goBack()

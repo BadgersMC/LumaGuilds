@@ -256,6 +256,7 @@ class VaultInventoryListener(
             try {
                 session.inventory.setItem(0, goldButton)
             } catch (e: Exception) {
+            // Event listener - catching all exceptions to prevent listener failure
                 // Inventory no longer valid, unregister viewer
                 vaultInventoryManager.unregisterViewer(session.playerId)
             }

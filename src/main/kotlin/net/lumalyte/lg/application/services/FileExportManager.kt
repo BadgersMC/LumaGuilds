@@ -5,6 +5,7 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
@@ -123,7 +124,7 @@ class FileExportManager(
                     })
                 }
 
-            } catch (e: Exception) {
+            } catch (e: IOException) {
                 logger.error("Failed to export transaction history for player ${player.name}", e)
                 tempFile.toFile().delete()
                 activeExports.remove(fileName)
@@ -198,7 +199,7 @@ class FileExportManager(
                     })
                 }
 
-            } catch (e: Exception) {
+            } catch (e: IOException) {
                 logger.error("Failed to export contributions for player ${player.name}", e)
                 tempFile.toFile().delete()
                 activeExports.remove(fileName)
@@ -254,7 +255,7 @@ class FileExportManager(
             try {
                 Files.deleteIfExists(file)
                 logger.info("Cleaned up expired export file: ${file.fileName}")
-            } catch (e: Exception) {
+            } catch (e: IOException) {
                 logger.warn("Failed to cleanup export file: ${file.fileName}", e)
             }
         }, (FILE_EXPIRY_MS / 50).toLong()) // Convert to ticks (20 ticks per second)
@@ -276,7 +277,7 @@ class FileExportManager(
             try {
                 Files.deleteIfExists(file)
                 logger.info("Cleaned up expired file: ${file.fileName}")
-            } catch (e: Exception) {
+            } catch (e: IOException) {
                 logger.warn("Failed to cleanup file: ${file.fileName}", e)
             }
         }

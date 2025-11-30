@@ -190,6 +190,7 @@ class ClaimAnchorListener(): Listener, KoinComponent {
                 }
             }
         } catch (e: Exception) {
+            // Event listener - catching all exceptions to prevent listener failure
             println("[ERROR] ClaimAnchorListener: Failed to create claim for player ${player.name}: ${e.message}")
             e.printStackTrace()
             player.sendMessage(Component.text("An error occurred while creating your claim")

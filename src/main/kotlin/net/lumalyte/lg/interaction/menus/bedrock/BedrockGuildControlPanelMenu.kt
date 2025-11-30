@@ -228,6 +228,7 @@ class BedrockGuildControlPanelMenu(
             )
             constructor.newInstance(menuNavigator, player, guild) as net.lumalyte.lg.interaction.menus.Menu
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Failed to create Java fallback menu for guild control panel: ${e.message}")
             null
         }

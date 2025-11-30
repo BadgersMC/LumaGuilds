@@ -92,6 +92,7 @@ class BedrockGuildLeaveConfirmationMenu(
             )
             constructor.newInstance(menuNavigator, player) as net.lumalyte.lg.interaction.menus.Menu
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Failed to create Java fallback menu for guild leave confirmation: ${e.message}")
             null
         }

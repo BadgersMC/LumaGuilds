@@ -35,6 +35,7 @@ object ColorCodeUtils {
             // Serialize back to MiniMessage format
             miniMessage.serialize(component)
         } catch (e: Exception) {
+    // Color code parsing - catching format errors
             // If conversion fails, return original input
             input
         }
@@ -68,6 +69,7 @@ object ColorCodeUtils {
                 legacySerializer.serialize(component)
             }
         } catch (e: Exception) {
+    // Color code parsing - catching format errors
             // Fallback - just return the original
             tag
         }
@@ -87,6 +89,7 @@ object ColorCodeUtils {
             val plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
             plain.serialize(component)
         } catch (e: Exception) {
+    // Color code parsing - catching format errors
             // Fallback: remove all formatting codes manually
             input
                 .replace(Regex("<[^>]*>"), "")  // Remove MiniMessage tags

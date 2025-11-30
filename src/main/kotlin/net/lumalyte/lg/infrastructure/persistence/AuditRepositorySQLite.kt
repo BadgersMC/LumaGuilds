@@ -6,6 +6,7 @@ import net.lumalyte.lg.application.persistence.AuditRepository
 import net.lumalyte.lg.domain.entities.AuditRecord
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
@@ -50,7 +51,7 @@ class AuditRepositorySQLite(
             storage.connection.executeUpdate(actorIndexSql)
             storage.connection.executeUpdate(actionIndexSql)
             storage.connection.executeUpdate(timeIndexSql)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to create audits table", e)
         }
     }
@@ -72,7 +73,7 @@ class AuditRepositorySQLite(
                 auditRecord.details
             )
             rowsAffected > 0
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to save audit record", e)
             false
         }
@@ -97,7 +98,7 @@ class AuditRepositorySQLite(
             
             val results = storage.connection.getResults(sql, *params.toTypedArray())
             results.mapNotNull { it.toAuditRecord() }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get audit records for guild: $guildId", e)
             emptyList()
         }
@@ -122,7 +123,7 @@ class AuditRepositorySQLite(
             
             val results = storage.connection.getResults(sql, *params.toTypedArray())
             results.mapNotNull { it.toAuditRecord() }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get audit records for actor: $actorId", e)
             emptyList()
         }
@@ -147,7 +148,7 @@ class AuditRepositorySQLite(
             
             val results = storage.connection.getResults(sql, *params.toTypedArray())
             results.mapNotNull { it.toAuditRecord() }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get audit records for action: $action", e)
             emptyList()
         }
@@ -172,7 +173,7 @@ class AuditRepositorySQLite(
             
             val results = storage.connection.getResults(sql, *params.toTypedArray())
             results.mapNotNull { it.toAuditRecord() }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get audit records in time range: $startTime to $endTime", e)
             emptyList()
         }
@@ -188,7 +189,7 @@ class AuditRepositorySQLite(
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get audit record by ID: $id", e)
             null
         }
@@ -205,7 +206,7 @@ class AuditRepositorySQLite(
             val params = if (limit != null) arrayOf(limit) else emptyArray()
             val results = storage.connection.getResults(sql, *params)
             results.mapNotNull { it.toAuditRecord() }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get all audit records", e)
             emptyList()
         }
@@ -216,7 +217,7 @@ class AuditRepositorySQLite(
         
         return try {
             storage.connection.executeUpdate(sql, cutoffTime.toString())
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to delete old audit records", e)
             0
         }
@@ -228,7 +229,7 @@ class AuditRepositorySQLite(
         return try {
             val result = storage.connection.getFirstRow(sql, guildId.toString())
             result?.getInt("count") ?: 0
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get audit count for guild: $guildId", e)
             0
         }
@@ -240,7 +241,7 @@ class AuditRepositorySQLite(
         return try {
             val result = storage.connection.getFirstRow(sql, actorId.toString())
             result?.getInt("count") ?: 0
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get audit count for actor: $actorId", e)
             0
         }
@@ -252,7 +253,7 @@ class AuditRepositorySQLite(
         return try {
             val result = storage.connection.getFirstRow(sql, action)
             result?.getInt("count") ?: 0
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get audit count for action: $action", e)
             0
         }
@@ -275,7 +276,7 @@ class AuditRepositorySQLite(
                 action = action,
                 details = details
             )
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error converting result map to AuditRecord", e)
             null
         }

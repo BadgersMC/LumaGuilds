@@ -46,6 +46,8 @@ class BedrockConfirmationMenu(
                         try {
                             callback()
                         } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                             logger.warning("Error executing confirmation callback: ${e.message}")
                             player.sendMessage(bedrockLocalization.getBedrockString(player, "general.error"))
                         }
@@ -53,6 +55,8 @@ class BedrockConfirmationMenu(
                         try {
                             cancelCallback?.invoke()
                         } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                             logger.warning("Error executing cancel callback: ${e.message}")
                         }
                     }
@@ -65,6 +69,8 @@ class BedrockConfirmationMenu(
                     try {
                         cancelCallback?.invoke()
                     } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                         logger.warning("Error executing cancel callback on form close: ${e.message}")
                     }
 
@@ -73,6 +79,7 @@ class BedrockConfirmationMenu(
                 }
                 .build()
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error creating Bedrock confirmation form: ${e.message}")
             throw RuntimeException("Failed to create confirmation form", e)
         }
@@ -92,6 +99,8 @@ class BedrockConfirmationMenu(
                 try {
                     callback()
                 } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                     logger.warning("Error executing confirmation callback from passData: ${e.message}")
                     player.sendMessage(bedrockLocalization.getBedrockString(player, "general.error"))
                 }
@@ -99,6 +108,8 @@ class BedrockConfirmationMenu(
                 try {
                     cancelCallback?.invoke()
                 } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                     logger.warning("Error executing cancel callback from passData: ${e.message}")
                 }
             }

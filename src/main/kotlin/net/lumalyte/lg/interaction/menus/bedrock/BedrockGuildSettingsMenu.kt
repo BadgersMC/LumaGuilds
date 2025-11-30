@@ -155,6 +155,7 @@ class BedrockGuildSettingsMenu(
             applySettings(newName, newDescription, newMode, autoHomeEnabled, hasGuildSettingsPermission, hasDescriptionPermission, hasModePermission)
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error processing guild settings form response: ${e.message}")
             player.sendMessage("§c[ERROR] ${localize("form.error.processing")}")
             navigateBack()
