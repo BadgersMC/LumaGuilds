@@ -549,6 +549,7 @@ class BedrockGuildRelationsMenu(
         val duration = try {
             Duration.ofDays(durationStr.toLong().coerceIn(1, 365))
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             Duration.ofDays(7)
         }
 

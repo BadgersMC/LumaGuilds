@@ -133,6 +133,7 @@ class BedrockGuildHomeMenu(
             player.teleport(location)
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.success"))
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error teleporting to home: ${e.message}")
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.failed"))
         }

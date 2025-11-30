@@ -48,6 +48,7 @@ class DailyWarCostsScheduler(
                     // Reschedule for next day
                     scheduleNextExecution()
                 } catch (e: Exception) {
+                    // Background task - catching all exceptions to ensure rescheduling
                     logger.error("Error running daily war costs", e)
                     // Still reschedule for next day even if this run failed
                     scheduleNextExecution()
@@ -83,6 +84,7 @@ class DailyWarCostsScheduler(
                     // Reschedule for next day
                     scheduleNextExecution()
                 } catch (e: Exception) {
+                    // Background task - catching all exceptions to ensure rescheduling
                     logger.error("Error running daily war costs", e)
                     // Still reschedule for next day even if this run failed
                     scheduleNextExecution()

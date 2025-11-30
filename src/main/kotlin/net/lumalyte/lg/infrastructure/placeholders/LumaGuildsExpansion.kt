@@ -89,6 +89,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                     val killStats = killService.getGuildKillStats(guildId)
                     killStats.totalKills.toString()
                 } catch (e: Exception) {
+                    // PlaceholderAPI requires safe fallback - service errors must not bubble up
                     "0"
                 }
             }
@@ -98,6 +99,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                     val killStats = killService.getGuildKillStats(guildId)
                     killStats.totalDeaths.toString()
                 } catch (e: Exception) {
+                    // PlaceholderAPI requires safe fallback - service errors must not bubble up
                     "0"
                 }
             }
@@ -107,6 +109,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                     val killStats = killService.getGuildKillStats(guildId)
                     String.format("%.2f", killStats.killDeathRatio)
                 } catch (e: Exception) {
+                    // PlaceholderAPI requires safe fallback - service errors must not bubble up
                     "0.00"
                 }
             }
@@ -116,6 +119,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 try {
                     warService.getWarHistory(guildId, Int.MAX_VALUE).size.toString()
                 } catch (e: Exception) {
+                    // PlaceholderAPI requires safe fallback - service errors must not bubble up
                     "0"
                 }
             }
@@ -124,6 +128,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 try {
                     warService.getWarsForGuild(guildId).filter { it.isActive }.size.toString()
                 } catch (e: Exception) {
+                    // PlaceholderAPI requires safe fallback - service errors must not bubble up
                     "0"
                 }
             }
@@ -139,6 +144,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                         "0.0%"
                     }
                 } catch (e: Exception) {
+                    // PlaceholderAPI requires safe fallback - service errors must not bubble up
                     "0.0%"
                 }
             }
@@ -222,6 +228,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 }
             }
         } catch (e: Exception) {
+                    // PlaceholderAPI requires safe fallback - service errors must not bubble up
             // Relation service error, return neutral
         }
 

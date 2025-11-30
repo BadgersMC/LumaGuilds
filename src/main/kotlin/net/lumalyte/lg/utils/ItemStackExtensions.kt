@@ -11,6 +11,7 @@ import org.bukkit.inventory.meta.LeatherArmorMeta
 import org.bukkit.persistence.PersistentDataType
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.util.*
@@ -180,8 +181,14 @@ fun ItemStack.serializeToString(): String {
         // Encode to Base64
         val base64Bytes = Base64.getEncoder().encode(byteArrayOutputStream.toByteArray())
         String(base64Bytes)
-    } catch (e: Exception) {
-        // Fallback to simple string format if serialization fails
+    } catch (e: IOException) {
+        // I/O error during serialization - fallback to simple string format
+        val serialized = this.serialize()
+        serialized.entries.joinToString(";") { (key, value) ->
+            "${key.toString()}=${value.toString()}"
+        }
+    } catch (e: IllegalArgumentException) {
+        // Item contains non-serializable data - fallback to simple string format
         val serialized = this.serialize()
         serialized.entries.joinToString(";") { (key, value) ->
             "${key.toString()}=${value.toString()}"
@@ -205,17 +212,32 @@ fun String.deserializeToItemStack(): ItemStack? {
         objectInputStream.close()
 
         ItemStack.deserialize(serialized)
-    } catch (e: Exception) {
-        // Fallback to old string format if Base64 decoding fails
+    } catch (e: IllegalArgumentException) {
+        // Invalid Base64 or deserialization data - try fallback to old string format
         try {
             val entries = this.split(";").associate { entry ->
                 val (key, value) = entry.split("=", limit = 2)
                 key to value
             }
             ItemStack.deserialize(entries)
-        } catch (fallbackException: Exception) {
+        } catch (fallbackException: IllegalArgumentException) {
+            // Old format also invalid
             null
         }
+    } catch (e: IOException) {
+        // I/O error during deserialization - try fallback to old string format
+        try {
+            val entries = this.split(";").associate { entry ->
+                val (key, value) = entry.split("=", limit = 2)
+                key to value
+            }
+            ItemStack.deserialize(entries)
+        } catch (fallbackException: IllegalArgumentException) {
+            null
+        }
+    } catch (e: ClassNotFoundException) {
+        // Serialized class not found - data corrupt or incompatible version
+        null
     }
 }
 

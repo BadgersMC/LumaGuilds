@@ -68,6 +68,7 @@ class WarServiceBukkit : WarService {
             logger.info("War declared and ACTIVE by guild $declaringGuildId against guild $defendingGuildId")
             war
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error declaring war between $declaringGuildId and $defendingGuildId", e)
             null
         }
@@ -119,6 +120,7 @@ class WarServiceBukkit : WarService {
             logger.info("War declaration created by guild $declaringGuildId against guild $defendingGuildId with wager $wagerAmount")
             declaration
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error creating war declaration between $declaringGuildId and $defendingGuildId", e)
             null
         }
@@ -140,6 +142,7 @@ class WarServiceBukkit : WarService {
             logger.info("War accepted: ${war.id}")
             war
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error accepting war declaration: $declarationId", e)
             null
         }
@@ -149,6 +152,7 @@ class WarServiceBukkit : WarService {
         return try {
             warDeclarations.remove(declarationId) != null
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error rejecting war declaration: $declarationId", e)
             false
         }
@@ -158,6 +162,7 @@ class WarServiceBukkit : WarService {
         return try {
             warDeclarations.remove(declarationId) != null
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error canceling war declaration: $declarationId", e)
             false
         }
@@ -182,6 +187,7 @@ class WarServiceBukkit : WarService {
             logger.info("War ended: $warId, winner: $winnerGuildId")
             true
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error ending war: $warId", e)
             false
         }
@@ -201,6 +207,7 @@ class WarServiceBukkit : WarService {
             logger.info("War ended as draw: $warId, reason: $reason")
             true
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error ending war as draw: $warId", e)
             false
         }
@@ -214,6 +221,7 @@ class WarServiceBukkit : WarService {
             logger.info("War canceled: $warId")
             true
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error canceling war: $warId", e)
             false
         }
@@ -248,6 +256,7 @@ class WarServiceBukkit : WarService {
             warStats[stats.warId] = stats
             true
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error updating war stats for war: ${stats.warId}", e)
             false
         }
@@ -260,6 +269,7 @@ class WarServiceBukkit : WarService {
             logger.info("Objective progress added: war=$warId, objective=$objectiveId, progress=$progress")
             true
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error adding objective progress for war: $warId", e)
             false
         }
@@ -277,6 +287,7 @@ class WarServiceBukkit : WarService {
                 wins.toDouble() / losses.toDouble()
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error getting win/loss ratio for guild: $guildId", e)
             0.0
         }
@@ -391,6 +402,7 @@ class WarServiceBukkit : WarService {
             logger.info("Wager created for war $warId: ${wager.totalPot} coins total")
             wager
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error creating wager for war: $warId", e)
             null
         }
@@ -417,6 +429,7 @@ class WarServiceBukkit : WarService {
             logger.info("Wager resolved for war $warId: ${if (winnerGuildId != null) "Winner $winnerGuildId" else "Draw"}")
             resolvedWager
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error resolving wager for war: $warId", e)
             null
         }
@@ -459,6 +472,7 @@ class WarServiceBukkit : WarService {
             logger.info("Peace agreement ${agreement.id} proposed for war $warId")
             agreement
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error proposing peace agreement", e)
             null
         }
@@ -494,6 +508,7 @@ class WarServiceBukkit : WarService {
             logger.info("Peace agreement accepted, war ${war.id} ended")
             endedWar
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error accepting peace agreement", e)
             null
         }
@@ -511,6 +526,7 @@ class WarServiceBukkit : WarService {
             logger.info("Peace agreement $agreementId rejected")
             true
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error rejecting peace agreement", e)
             false
         }
@@ -541,6 +557,7 @@ class WarServiceBukkit : WarService {
 
             affectedGuilds.size
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error applying daily war costs", e)
             0
         }
@@ -578,6 +595,7 @@ class WarServiceBukkit : WarService {
             logger.info("Updated war farming cooldown for guild $guildId until $endTime")
             true
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error updating war farming cooldown", e)
             false
         }

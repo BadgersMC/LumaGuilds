@@ -67,6 +67,7 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
             return success
 
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error setting banner for guild $guildId", e)
             return false
         }
@@ -76,6 +77,7 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
         return try {
             bannerRepository.getActiveBanner(guildId)
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error retrieving banner for guild $guildId", e)
             null
         }
@@ -96,6 +98,7 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
             return success
 
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error removing banner for guild $guildId", e)
             return false
         }
@@ -110,6 +113,7 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
             // This could be enhanced with role-based permissions later
             true
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error checking banner permissions for guild $guildId", e)
             false
         }
@@ -119,6 +123,7 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
         return try {
             bannerRepository.getBannersByGuild(guildId)
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error retrieving banners for guild $guildId", e)
             emptyList()
         }

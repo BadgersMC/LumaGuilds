@@ -9,6 +9,7 @@ import net.lumalyte.lg.application.services.BannerPattern
 import net.lumalyte.lg.domain.entities.GuildBanner
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
@@ -42,7 +43,7 @@ class GuildBannerRepositorySQLite(
 
         try {
             storage.connection.executeUpdate(sql)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to create guild_banners table", e)
         }
     }
@@ -67,7 +68,7 @@ class GuildBannerRepositorySQLite(
                 if (banner.isActive) 1 else 0
             )
             rowsAffected > 0
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to save banner", e)
             false
         }
@@ -83,7 +84,7 @@ class GuildBannerRepositorySQLite(
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get active banner", e)
             null
         }
@@ -95,7 +96,7 @@ class GuildBannerRepositorySQLite(
         return try {
             val results = storage.connection.getResults(sql, guildId.toString())
             results.mapNotNull { it.toGuildBanner() }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get banners by guild", e)
             emptyList()
         }
@@ -111,7 +112,7 @@ class GuildBannerRepositorySQLite(
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to get banner by ID", e)
             null
         }
@@ -123,7 +124,7 @@ class GuildBannerRepositorySQLite(
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql, guildId.toString())
             rowsAffected > 0
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to remove active banner", e)
             false
         }
@@ -135,7 +136,7 @@ class GuildBannerRepositorySQLite(
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql, bannerId.toString())
             rowsAffected > 0
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to delete banner", e)
             false
         }
@@ -153,7 +154,7 @@ class GuildBannerRepositorySQLite(
                 guildId.toString()
             )
             rowsAffected > 0
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Failed to set active banner", e)
             false
         }
@@ -181,7 +182,7 @@ class GuildBannerRepositorySQLite(
                 createdAt = createdAt,
                 isActive = isActive
             )
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.error("Error converting result map to GuildBanner", e)
             null
         }
@@ -204,7 +205,7 @@ class GuildBannerRepositorySQLite(
                 } else {
                     null
                 }
-            } catch (e: Exception) {
+            } catch (e: SQLException) {
                 logger.warn("Failed to deserialize pattern: $patternStr", e)
                 null
             }

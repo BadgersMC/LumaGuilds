@@ -96,6 +96,7 @@ class VaultHologramService(private val plugin: Plugin) : KoinComponent {
             logger.debug("Created hologram for guild ${guild.name} at $key")
 
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Failed to create hologram at $key", e)
         }
     }

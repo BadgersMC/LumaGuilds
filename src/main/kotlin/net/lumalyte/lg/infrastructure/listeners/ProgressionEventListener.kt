@@ -101,6 +101,7 @@ class ProgressionEventListener : Listener, KoinComponent {
 
             awardExperienceWithCooldown(event.player, getConfig().blockPlaceXp, ExperienceSource.BLOCK_PLACE)
         } catch (e: Exception) {
+            // Event listener - catching all exceptions to prevent listener failure
             logger.error("Error in onBlockPlace for player ${event.player.name}", e)
         }
     }
@@ -149,6 +150,7 @@ class ProgressionEventListener : Listener, KoinComponent {
                 progressionService.awardExperience(guildId, amount, source)
             }
         } catch (e: Exception) {
+            // Event listener - catching all exceptions to prevent listener failure
             logger.error("❌ ERROR: Failed to award $amount XP to player ${player.name} from $source", e)
         }
     }
@@ -199,6 +201,7 @@ class ProgressionEventListener : Listener, KoinComponent {
         try {
             progressionService.awardExperience(guildId, amount, source)
         } catch (e: Exception) {
+            // Event listener - catching all exceptions to prevent listener failure
             logger.warn("Failed to award experience to guild $guildId", e)
         }
     }
@@ -215,6 +218,7 @@ class ProgressionEventListener : Listener, KoinComponent {
                 logger.info("Awarded $xpAmount XP to guild ${event.guildId} for bank deposit of ${event.amount}")
             }
         } catch (e: Exception) {
+            // Event listener - catching all exceptions to prevent listener failure
             logger.warn("Failed to award progression XP for bank deposit", e)
         }
     }
@@ -227,6 +231,7 @@ class ProgressionEventListener : Listener, KoinComponent {
             progressionService.awardExperience(event.guildId, memberJoinXp, ExperienceSource.MEMBER_JOINED)
             logger.info("Awarded $memberJoinXp XP to guild ${event.guildId} for new member join")
         } catch (e: Exception) {
+            // Event listener - catching all exceptions to prevent listener failure
             logger.warn("Failed to award progression XP for member join", e)
         }
     }

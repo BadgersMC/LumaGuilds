@@ -51,6 +51,7 @@ class ModeServiceBukkit(
                 return null
             }
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error setting guild mode", e)
             return null
         }

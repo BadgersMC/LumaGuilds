@@ -158,6 +158,8 @@ class GuildWarDeclarationMenu(
                 val deserialized = banner.deserializeToItemStack()
                 deserialized?.clone() ?: ItemStack(defaultBanner)
             } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                 // Fallback on any deserialization error
                 ItemStack(defaultBanner)
             }
@@ -610,6 +612,7 @@ class GuildWarDeclarationMenu(
                 }
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Error declaring war: ${e.message}")
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
 
@@ -780,6 +783,7 @@ class GuildWarDeclarationMenu(
             org.bukkit.Bukkit.getLogger().info("WAR DECLARED: ${declaringGuild.name} vs ${defendingGuild.name} (${war.duration.toDays()} days)")
             
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             org.bukkit.Bukkit.getLogger().warning("Failed to notify guilds of war declaration: ${e.message}")
         }
     }
@@ -860,6 +864,7 @@ class GuildWarDeclarationMenu(
             }
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Failed to notify defending guild of war declaration!")
             println("Error notifying guild of war declaration: ${e.message}")
         }

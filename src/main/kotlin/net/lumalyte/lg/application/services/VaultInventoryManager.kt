@@ -9,6 +9,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -525,7 +526,8 @@ class VaultInventoryManager(
                 session.inventory.setItem(slot, item)
                 session.recordInteraction()
             } catch (e: Exception) {
-                // Handle case where inventory is no longer valid
+                // Handle case where inventory is no longer valid (player logged out, inventory closed, etc.)
+                // Catching all exceptions since inventory operations can fail in unpredictable ways
                 unregisterViewer(session.playerId)
             }
         }
@@ -641,7 +643,8 @@ class VaultInventoryManager(
                 }
                 // If the repository returns false (but doesn't throw), treat as failure
                 attempt++
-            } catch (e: Exception) {
+            } catch (e: SQLException) {
+                // Database error during save - retry with exponential backoff
                 lastError = e
                 attempt++
                 logger.warn("Failed to save vault slot (attempt $attempt/$retries): ${e.message}")
@@ -693,7 +696,8 @@ class VaultInventoryManager(
                 }
                 // If the repository returns false (but doesn't throw), treat as failure
                 attempt++
-            } catch (e: Exception) {
+            } catch (e: SQLException) {
+                // Database error during save - retry with exponential backoff
                 lastError = e
                 attempt++
                 logger.warn("Failed to save gold balance (attempt $attempt/$retries): ${e.message}")

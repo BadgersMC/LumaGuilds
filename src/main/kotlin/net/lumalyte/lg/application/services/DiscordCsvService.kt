@@ -52,7 +52,7 @@ class DiscordCsvService(
                     callback(result)
                 })
 
-            } catch (e: Exception) {
+            } catch (e: IOException) {
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     callback(Result.failure(e))
                 })
@@ -84,7 +84,7 @@ class DiscordCsvService(
                     callback(result)
                 })
 
-            } catch (e: Exception) {
+            } catch (e: IOException) {
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     callback(Result.failure(e))
                 })
@@ -287,7 +287,7 @@ class DiscordCsvService(
                 Result.failure(IOException("Discord API error: ${response.statusCode()} - ${response.body()}"))
             }
 
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             return Result.failure(e)
         }
     }

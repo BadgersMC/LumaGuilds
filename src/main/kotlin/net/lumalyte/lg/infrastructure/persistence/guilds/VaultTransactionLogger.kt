@@ -413,7 +413,7 @@ class VaultTransactionLogger(private val storage: Storage<Database>) {
     private fun serializeItem(item: ItemStack): String? {
         return try {
             Base64.getEncoder().encodeToString(item.serializeAsBytes())
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             null
         }
     }

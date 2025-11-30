@@ -412,6 +412,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
                 player.sendMessage("§c❌ Failed to create party!")
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Error creating party!")
             e.printStackTrace()
         }

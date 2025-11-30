@@ -104,6 +104,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             Files.deleteIfExists(filePath)
 
         } catch (e: Exception) {
+            // Command handler - catching all exceptions to prevent command crash
             player.sendMessage("§c❌ Failed to download file: ${e.message}")
         }
     }
@@ -224,6 +225,9 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             // Reinitialize config and services
             plugin.initConfig()
 
+            // Refresh cached configs in listeners
+            plugin.vaultProtectionListener.refreshConfig()
+
             // Note: We don't reinitialize the entire plugin as that would require
             // stopping and restarting schedulers, recreating Koin context, etc.
             // For development, config reload should be sufficient.
@@ -232,6 +236,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             sender.sendMessage("§7💡 Some changes may require a full server restart to take effect.")
 
         } catch (e: Exception) {
+            // Command handler - catching all exceptions to prevent command crash
             sender.sendMessage("§c❌ Failed to reload plugin: ${e.message}")
             sender.sendMessage("§7💡 You may need to restart the server for changes to take effect.")
         }
@@ -340,6 +345,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                 })
 
             } catch (e: Exception) {
+            // Command handler - catching all exceptions to prevent command crash
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     sender.sendMessage("§c❌ Migration failed with exception: ${e.message}")
                     plugin.logger.severe("Migration exception: ${e.message}")

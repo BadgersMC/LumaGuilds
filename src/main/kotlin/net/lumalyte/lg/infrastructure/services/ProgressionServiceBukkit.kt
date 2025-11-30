@@ -91,6 +91,7 @@ class ProgressionServiceBukkit(
             return null
 
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error awarding experience to guild $guildId", e)
             return null
         }
@@ -354,6 +355,7 @@ class ProgressionServiceBukkit(
             }
             
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error notifying guild members about level up", e)
         }
     }

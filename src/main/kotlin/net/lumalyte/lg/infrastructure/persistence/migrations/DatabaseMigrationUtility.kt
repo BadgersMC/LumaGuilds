@@ -104,7 +104,7 @@ class DatabaseMigrationUtility(
 
             report.success = true
 
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             logger.severe("Migration failed: ${e.message}")
             e.printStackTrace()
             report.addError("Migration failed: ${e.message}")
@@ -314,7 +314,7 @@ class DatabaseMigrationUtility(
             val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                 .withZone(java.time.ZoneId.of("UTC"))
             formatter.format(instant)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             // If parsing fails, try to extract the date and time manually
             iso8601.replace("T", " ").replace("Z", "").substringBefore(".")
         }
@@ -331,7 +331,7 @@ class DatabaseMigrationUtility(
             val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                 .withZone(java.time.ZoneId.of("UTC"))
             formatter.format(instant)
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             // Return a default value if conversion fails
             "1970-01-01 00:00:00"
         }

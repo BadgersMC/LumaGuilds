@@ -57,6 +57,8 @@ object BedrockFormUtils {
             return try {
                 FormImage.of(FormImage.Type.URL, imageUrl)
             } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                 // Log error if URL is invalid, but continue to PATH fallback
                 println("Invalid URL for FormImage: $imageUrl - ${e.message}")
                 null
@@ -68,6 +70,8 @@ object BedrockFormUtils {
             return try {
                 FormImage.of(FormImage.Type.PATH, imagePath)
             } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                 // Log error if PATH is invalid
                 println("Invalid PATH for FormImage: $imagePath - ${e.message}")
                 null
@@ -652,6 +656,8 @@ object BedrockFormUtils {
                     }
                 }
             } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                 errors[fieldName] = "Error processing field: ${e.message}"
             }
         }
@@ -691,6 +697,8 @@ object BedrockFormUtils {
                 val value = next() as Any?
                 values[index] = value
             } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                 values[index] = null
             }
             index++

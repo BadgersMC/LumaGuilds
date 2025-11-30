@@ -171,6 +171,7 @@ class BedrockGuildBankMenu(
             showTransactionConfirmation(depositAmount, withdrawAmount, autoDepositEnabled)
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error processing guild bank form response: ${e.message}")
             player.sendMessage("§c[ERROR] ${localize("form.error.processing")}")
             navigateBack()

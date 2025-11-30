@@ -436,6 +436,7 @@ class GuildBankMenu(
                 false
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             val errorMessage = "An error occurred during deposit."
             player.sendMessage(Component.text("§c$errorMessage"))
             showErrorFeedback(errorMessage)
@@ -465,6 +466,7 @@ class GuildBankMenu(
                 false
             }
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             val errorMessage = "An error occurred during withdrawal."
             player.sendMessage(Component.text("§c$errorMessage"))
             showErrorFeedback(errorMessage)
@@ -898,6 +900,7 @@ class GuildBankMenu(
             // Play success sound
             player.playSound(player.location, SUCCESS_SOUND, 1.0f, 1.0f)
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage(Component.text("§cError processing transaction: ${e.message}"))
             player.playSound(player.location, ERROR_SOUND, 1.0f, 0.8f)
         } finally {
@@ -940,6 +943,8 @@ class GuildBankMenu(
                             player.playSound(player.location, ERROR_SOUND, 1.0f, 0.8f)
                         }
                     } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                         player.sendMessage(Component.text("§cError reading amount. Please try again."))
                         player.playSound(player.location, ERROR_SOUND, 1.0f, 0.8f)
                     }
@@ -978,6 +983,7 @@ class GuildBankMenu(
             InventoryClickEvent.getHandlerList().unregister(this)
             InventoryCloseEvent.getHandlerList().unregister(this)
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Ignore if already unregistered
         }
     }

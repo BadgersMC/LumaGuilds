@@ -168,6 +168,7 @@ class NexoEmojiService {
             exists2
 
         } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
             logger.warn("Error validating emoji '$emoji': ${e.message}")
             false
         }
@@ -208,6 +209,7 @@ class NexoEmojiService {
                     return fontManager
                 }
             } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
                 logger.debug("FontManager field access failed: ${e.message}")
             }
 
@@ -225,11 +227,13 @@ class NexoEmojiService {
                                 return result
                             }
                         } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
                             // Continue to next method
                         }
                     }
                 }
             } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
                 logger.debug("FontManager method access failed: ${e.message}")
             }
 
@@ -237,6 +241,7 @@ class NexoEmojiService {
             null
 
         } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
             logger.warn("Error accessing Nexo FontManager: ${e.message}")
             null
         }
@@ -284,6 +289,7 @@ class NexoEmojiService {
             logger.debug("Nexo plugin classes not found - running in compatibility mode")
             false
         } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
             logger.debug("Nexo API test failed - running in compatibility mode: ${e.message}")
             false
         }
@@ -369,6 +375,7 @@ class NexoEmojiService {
                             val getNameMethod = glyph?.javaClass?.getMethod("getName")
                             name = getNameMethod?.invoke(glyph) as? String
                         } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
                             // Continue to next method
                         }
 
@@ -378,6 +385,7 @@ class NexoEmojiService {
                                 val getIdMethod = glyph?.javaClass?.getMethod("getId")
                                 name = getIdMethod?.invoke(glyph) as? String
                             } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
                                 // Continue to next method
                             }
                         }
@@ -398,12 +406,14 @@ class NexoEmojiService {
                                     }
                                 }
                             } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
                                 // Continue
                             }
                         }
 
                         name
                     } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
                         null
                     }
                 }
@@ -413,6 +423,7 @@ class NexoEmojiService {
                 emptyList()
             }
         } catch (e: Exception) {
+            // Optional integration - catching all exceptions to prevent plugin failure
             logger.warn("Error getting available emojis from FontManager: ${e.message}")
             null
         }

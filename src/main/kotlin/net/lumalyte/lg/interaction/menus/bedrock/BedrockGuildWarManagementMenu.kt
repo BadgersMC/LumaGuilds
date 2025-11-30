@@ -295,6 +295,7 @@ class BedrockGuildWarManagementMenu(
         val duration = try {
             Duration.ofDays(durationStr.toLong().coerceIn(1, 30))
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             Duration.ofDays(7)
         }
 

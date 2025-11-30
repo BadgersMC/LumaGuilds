@@ -8,6 +8,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
+import java.io.IOException
 import java.sql.SQLException
 import java.util.*
 
@@ -147,10 +148,16 @@ internal class VaultMigrationService(
                     migrateVault(guildId, oldVaultData)
                     result.successCount++
                     logger.info("✓ Migrated vault for guild $guildId")
-                } catch (e: Exception) {
+                } catch (e: SQLException) {
+                    // Database error during individual vault migration - continue with others
                     result.failureCount++
                     result.failedGuilds.add(guildId)
-                    logger.error("✗ Failed to migrate vault for guild $guildId", e)
+                    logger.error("✗ Failed to migrate vault for guild $guildId (database error)", e)
+                } catch (e: Exception) {
+                    // Deserialization or data corruption error - continue with others
+                    result.failureCount++
+                    result.failedGuilds.add(guildId)
+                    logger.error("✗ Failed to migrate vault for guild $guildId (data error)", e)
                 }
             }
 
@@ -170,7 +177,12 @@ internal class VaultMigrationService(
                 logger.warn("Failed guilds: ${result.failedGuilds.joinToString(", ")}")
             }
 
+        } catch (e: SQLException) {
+            // Critical database error during migration setup/teardown
+            logger.error("Critical database error during migration", e)
+            result.criticalError = e.message
         } catch (e: Exception) {
+            // Unexpected critical error during migration
             logger.error("Critical error during migration", e)
             result.criticalError = e.message
         }
@@ -253,8 +265,13 @@ internal class VaultMigrationService(
 
             dataInput.close()
             items
-        } catch (e: Exception) {
-            logger.error("Failed to deserialize old vault format", e)
+        } catch (e: IOException) {
+            // I/O error during deserialization of old vault format
+            logger.error("Failed to deserialize old vault format (I/O error)", e)
+            emptyArray()
+        } catch (e: ClassNotFoundException) {
+            // Serialized class not found - incompatible version or corrupt data
+            logger.error("Failed to deserialize old vault format (class not found)", e)
             emptyArray()
         }
     }

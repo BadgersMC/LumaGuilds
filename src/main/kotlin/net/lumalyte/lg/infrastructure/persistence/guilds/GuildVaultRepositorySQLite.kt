@@ -203,7 +203,7 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
     private fun serializeItem(item: ItemStack): String? {
         return try {
             Base64.getEncoder().encodeToString(item.serializeAsBytes())
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             null
         }
     }
@@ -214,7 +214,7 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
     private fun deserializeItem(data: String): ItemStack? {
         return try {
             ItemStack.deserializeBytes(Base64.getDecoder().decode(data))
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             null
         }
     }

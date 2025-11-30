@@ -123,6 +123,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
             pane.addItem(guiItem, x, y)
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Fallback to placeholder if war service fails
             val item = ItemStack(Material.WHITE_BANNER)
                 .name("§4War Statistics")
@@ -280,6 +281,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             gui.show(player)
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Failed to load war statistics: ${e.message}")
             logger.error("Error opening war stats detail for guild ${guild.id}", e)
         }
@@ -843,6 +845,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Error generating balance chart: ${e.message}")
             e.printStackTrace()
         }
@@ -865,6 +868,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                     val weekLabel = if (weeksAgo == 0) "This Week" else "${weeksAgo}W ago"
                     weekTrends.add(weekLabel to weekStats.totalKills)
                 } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                     // If we can't get data for this week, use 0
                     val weekLabel = if (weeksAgo == 0) "This Week" else "${weeksAgo}W ago"
                     weekTrends.add(weekLabel to 0)
@@ -894,6 +899,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Error generating kill trend chart: ${e.message}")
             e.printStackTrace()
         }
@@ -938,6 +944,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Error generating contributions chart: ${e.message}")
             e.printStackTrace()
         }

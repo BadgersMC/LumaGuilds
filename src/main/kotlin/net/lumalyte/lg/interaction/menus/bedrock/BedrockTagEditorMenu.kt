@@ -95,6 +95,7 @@ class BedrockTagEditorMenu(
                     )
 
                 } catch (e: Exception) {
+                    // Menu operation - catching all exceptions to prevent UI failure
                     logger.warning("Error processing tag editor form: ${e.message}")
                     player.sendMessage("§c[ERROR] ${localize("form.error.processing")}")
                     bedrockNavigator.goBack()
@@ -129,6 +130,7 @@ class BedrockTagEditorMenu(
                             miniMessage.deserialize(value)
                             ValidationResult.valid()
                         } catch (e: Exception) {
+                            // Menu operation - catching all exceptions to prevent UI failure
                             ValidationResult.invalid(localize("guild.tag.validation.invalid.format", e.message ?: "Unknown error"))
                         }
                     } as (String, Any?) -> ValidationResult
@@ -190,6 +192,7 @@ class BedrockTagEditorMenu(
             // Count the actual visible characters
             plainText.length
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Fallback to regex approach if MiniMessage parsing fails
             val withoutTags = tag
                 .replace(Regex("<[^>]*>"), "")  // Remove all <tag> elements
@@ -208,6 +211,7 @@ class BedrockTagEditorMenu(
             val component = miniMessage.deserialize(tag)
             legacySerializer.serialize(component)
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             // Fallback to plain text if MiniMessage parsing fails
             tag
         }
@@ -247,6 +251,7 @@ class BedrockTagEditorMenu(
             )
             constructor.newInstance(menuNavigator, player, guild) as net.lumalyte.lg.interaction.menus.Menu
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Failed to create Java fallback menu for tag editor: ${e.message}")
             null
         }

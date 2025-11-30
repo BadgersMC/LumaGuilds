@@ -34,6 +34,7 @@ class FloodgatePlatformDetectionService(
             logger.warning("Floodgate API not properly initialized for player ${player.name}: ${e.message}")
             false
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.warning("Unexpected error checking Bedrock status for player ${player.name}: ${e.message}")
             logger.warning("Stack trace: ${e.stackTraceToString()}")
             false
@@ -54,6 +55,7 @@ class FloodgatePlatformDetectionService(
             logger.warning("Floodgate API not properly initialized: ${e.message}")
             false
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.warning("Unexpected error checking Floodgate availability: ${e.message}")
             logger.warning("Stack trace: ${e.stackTraceToString()}")
             false
@@ -73,6 +75,7 @@ class FloodgatePlatformDetectionService(
             logger.warning("Cumulus classes not found: ${e.message}")
             false
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.warning("Unexpected error checking Cumulus availability: ${e.message}")
             logger.warning("Stack trace: ${e.stackTraceToString()}")
             false

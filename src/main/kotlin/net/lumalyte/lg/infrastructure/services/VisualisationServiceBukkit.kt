@@ -160,6 +160,7 @@ class VisualisationServiceBukkit: VisualisationService {
             e.printStackTrace()
             return emptySet()
         } catch (e: Exception) {
+            // Particle visualization - catching all exceptions to prevent visual glitches
             logger.severe("[ERROR] Unexpected error in displayGuildAware(): ${e.message}")
             e.printStackTrace()
             return emptySet()
@@ -215,6 +216,8 @@ class VisualisationServiceBukkit: VisualisationService {
                 logger.info("[DEBUG] Position calculation completed in ${calcDuration}ms, found ${newPositions.size} positions")
                 newPositions
             } catch (e: Exception) {
+                // Particle visualization - catching all exceptions to prevent visual glitches
+            // Particle visualization - catching all exceptions to prevent visual glitches
                 logger.severe("[ERROR] Failed to calculate visualization positions: ${e.message}")
                 e.printStackTrace()
                 emptySet<Position2D>()
@@ -278,11 +281,16 @@ class VisualisationServiceBukkit: VisualisationService {
                         logger.severe("[ERROR] Exception: ${e.message}")
                         e.printStackTrace()
                     } catch (e: Exception) {
+                        // Particle visualization - catching all exceptions to prevent visual glitches
+                // Particle visualization - catching all exceptions to prevent visual glitches
+            // Particle visualization - catching all exceptions to prevent visual glitches
                         logger.severe("[ERROR] Unexpected error in refreshAsync main thread execution: ${e.message}")
                         e.printStackTrace()
                     }
                 })
             } catch (e: Exception) {
+                // Particle visualization - catching all exceptions to prevent visual glitches
+            // Particle visualization - catching all exceptions to prevent visual glitches
                 logger.severe("[ERROR] Failed to schedule main thread task: ${e.message}")
                 e.printStackTrace()
             }
@@ -334,6 +342,9 @@ class VisualisationServiceBukkit: VisualisationService {
                         logger.info("[DEBUG] clearAsync() completed in ${totalDuration}ms (main thread: ${mainThreadDuration}ms)")
 
                     } catch (e: Exception) {
+                        // Particle visualization - catching all exceptions to prevent visual glitches
+                // Particle visualization - catching all exceptions to prevent visual glitches
+            // Particle visualization - catching all exceptions to prevent visual glitches
                         logger.severe("[ERROR] Error in clearAsync main thread execution: ${e.message}")
                         e.printStackTrace()
                     }
@@ -342,6 +353,8 @@ class VisualisationServiceBukkit: VisualisationService {
                 logger.info("[DEBUG] Main thread task scheduled successfully")
 
             } catch (e: Exception) {
+                // Particle visualization - catching all exceptions to prevent visual glitches
+            // Particle visualization - catching all exceptions to prevent visual glitches
                 val errorTime = System.currentTimeMillis()
                 val duration = errorTime - startTime
                 logger.severe("[ERROR] clearAsync() failed after ${duration}ms: ${e.message}")
@@ -377,6 +390,8 @@ class VisualisationServiceBukkit: VisualisationService {
                 player.sendBlockChange(location, blockData)
                 successCount++
             } catch (e: Exception) {
+                // Particle visualization - catching all exceptions to prevent visual glitches
+            // Particle visualization - catching all exceptions to prevent visual glitches
                 logger.warning("[WARN] Failed to clear position $position: ${e.message}")
                 errorCount++
             }
@@ -395,6 +410,8 @@ class VisualisationServiceBukkit: VisualisationService {
                 setVisualisedBlock(player, position, block, flatBlock)
                 successCount++
             } catch (e: Exception) {
+                // Particle visualization - catching all exceptions to prevent visual glitches
+            // Particle visualization - catching all exceptions to prevent visual glitches
                 logger.warning("[WARN] Failed to set visualised block at position $position: ${e.message}")
                 errorCount++
             }

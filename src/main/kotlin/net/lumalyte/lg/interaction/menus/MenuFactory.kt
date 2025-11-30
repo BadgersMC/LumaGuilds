@@ -70,6 +70,7 @@ class MenuFactory : KoinComponent {
             result
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error determining Bedrock menu availability for player ${player.name}: ${e.message}")
             logger.warning("Stack trace: ${e.stackTraceToString()}")
 

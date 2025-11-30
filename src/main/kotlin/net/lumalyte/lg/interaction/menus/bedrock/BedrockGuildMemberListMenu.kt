@@ -78,6 +78,8 @@ class BedrockGuildMemberListMenu(
             try {
                 player.server.getPlayer(member.playerId)?.isOnline == true
             } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                 false
             }
         }
@@ -128,6 +130,7 @@ class BedrockGuildMemberListMenu(
             }
 
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error processing guild member list form response: ${e.message}")
             player.sendMessage("§c[ERROR] ${bedrockLocalization.getBedrockString(player, "form.error.processing")}")
             navigateBack()
@@ -172,6 +175,7 @@ class BedrockGuildMemberListMenu(
         return try {
             player.server.getOfflinePlayer(member.playerId).name ?: "Unknown"
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             "Unknown"
         }
     }
@@ -180,6 +184,7 @@ class BedrockGuildMemberListMenu(
         return try {
             player.server.getPlayer(member.playerId)?.isOnline == true
         } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
             false
         }
     }

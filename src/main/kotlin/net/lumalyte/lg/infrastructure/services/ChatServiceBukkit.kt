@@ -55,6 +55,7 @@ class ChatServiceBukkit(
             logger.debug("Message from player $senderId delivered to $deliveredCount recipients in channel $targetChannel")
             return deliveredCount > 0
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error routing message", e)
             return false
         }
@@ -93,6 +94,7 @@ class ChatServiceBukkit(
             logger.info("Guild announcement from $announcerId delivered to $deliveredCount members of guild $guildId")
             return deliveredCount > 0
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error sending guild announcement", e)
             return false
         }
@@ -134,6 +136,7 @@ class ChatServiceBukkit(
             logger.info("Guild ping from $pingerId delivered to $deliveredCount members of guild $guildId")
             return deliveredCount > 0
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error sending guild ping", e)
             return false
         }
@@ -167,6 +170,7 @@ class ChatServiceBukkit(
             
             return success
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error toggling chat visibility", e)
             return false
         }
@@ -295,6 +299,7 @@ class ChatServiceBukkit(
 
             return formattedMessage
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error formatting party message", e)
             // Fallback to basic formatting
             return if (guildTag.isNotEmpty()) {

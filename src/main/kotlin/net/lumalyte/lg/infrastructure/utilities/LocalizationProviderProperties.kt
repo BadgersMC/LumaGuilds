@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.utilities
 import net.lumalyte.lg.application.services.PlayerLocaleService
 import net.lumalyte.lg.config.MainConfig
 import java.io.File
+import java.io.IOException
 import java.text.MessageFormat
 import java.util.*
 
@@ -70,15 +71,10 @@ class LocalizationProviderProperties(private val config: MainConfig,
                 // If no arguments were provided to the vararg, just return the raw pattern string.
                 pattern
             }
-        } catch (_: IllegalArgumentException) {
-            // Handle potential formatting errors (e.g., incorrect number/type of args for placeholders).
-            println("Failed to format localization key '$key' with arguments: ${args.joinToString()}")
-            return pattern
-        } catch (e: Exception) {
-            // Catch any other unexpected exceptions during formatting.
-            println("An unexpected error occurred while formatting localization with arguments: " +
-                    "${args.joinToString()} - ${e.message}")
-            return pattern
+        } catch (e: IllegalArgumentException) {
+            // Handle formatting errors (e.g., incorrect number/type of args for placeholders).
+            println("Failed to format localization key '$key' with pattern '$pattern' and arguments: ${args.joinToString()} - ${e.message}")
+            pattern
         }
     }
 
@@ -100,8 +96,8 @@ class LocalizationProviderProperties(private val config: MainConfig,
                 try {
                     specificDefaultFile.inputStream().use { properties.load(it) }
                     println("Loaded language: $locale")
-                } catch (_: Exception) {
-                    println("Failed to load default language file for $locale")
+                } catch (e: IOException) {
+                    println("Failed to load default language file for $locale: ${e.message}")
                 }
             }
 
@@ -111,8 +107,8 @@ class LocalizationProviderProperties(private val config: MainConfig,
                 try {
                     overrideFile.inputStream().use { properties.load(it) }
                     println("Loaded override language file: $locale")
-                } catch (_: Exception) {
-                    println("Failed to load override language file for $locale")
+                } catch (e: IOException) {
+                    println("Failed to load override language file for $locale: ${e.message}")
                 }
             }
 

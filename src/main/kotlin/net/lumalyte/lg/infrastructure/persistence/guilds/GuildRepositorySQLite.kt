@@ -109,7 +109,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     y = rs.getInt("vault_chest_y"),
                     z = rs.getInt("vault_chest_z")
                 )
-            } catch (e: Exception) {
+            } catch (e: SQLException) {
                 null
             }
         } else {
@@ -119,7 +119,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         // Parse isOpen (default to false for existing guilds)
         val isOpen = try {
             rs.getInt("is_open") == 1
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
             false
         }
 

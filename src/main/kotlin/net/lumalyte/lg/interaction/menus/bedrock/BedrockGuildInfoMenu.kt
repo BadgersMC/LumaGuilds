@@ -80,6 +80,8 @@ class BedrockGuildInfoMenu(
             try {
                 player.server.getPlayer(member.playerId)?.isOnline == true
             } catch (e: Exception) {
+                // Menu operation - catching all exceptions to prevent UI failure
+            // Menu operation - catching all exceptions to prevent UI failure
                 false
             }
         }

@@ -6,6 +6,7 @@ import net.lumalyte.lg.domain.entities.AuditRecord
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
@@ -57,8 +58,8 @@ class AuditServiceBukkit : AuditService, KoinComponent {
             }
             
             success
-        } catch (e: Exception) {
-            logger.error("Failed to record audit action: $action by $actorId", e)
+        } catch (e: SQLException) {
+            logger.error("Database error recording audit action: $action by $actorId", e)
             false
         }
     }
@@ -180,8 +181,8 @@ class AuditServiceBukkit : AuditService, KoinComponent {
     override fun getAuditForGuild(guildId: UUID, limit: Int?): List<AuditRecord> {
         return try {
             auditRepository.getByGuild(guildId, limit)
-        } catch (e: Exception) {
-            logger.error("Failed to get audit for guild: $guildId", e)
+        } catch (e: SQLException) {
+            logger.error("Database error getting audit for guild: $guildId", e)
             emptyList()
         }
     }
@@ -189,8 +190,8 @@ class AuditServiceBukkit : AuditService, KoinComponent {
     override fun getAuditForPlayer(playerId: UUID, limit: Int?): List<AuditRecord> {
         return try {
             auditRepository.getByActor(playerId, limit)
-        } catch (e: Exception) {
-            logger.error("Failed to get audit for player: $playerId", e)
+        } catch (e: SQLException) {
+            logger.error("Database error getting audit for player: $playerId", e)
             emptyList()
         }
     }
@@ -198,8 +199,8 @@ class AuditServiceBukkit : AuditService, KoinComponent {
     override fun getAuditForAction(action: String, limit: Int?): List<AuditRecord> {
         return try {
             auditRepository.getByAction(action, limit)
-        } catch (e: Exception) {
-            logger.error("Failed to get audit for action: $action", e)
+        } catch (e: SQLException) {
+            logger.error("Database error getting audit for action: $action", e)
             emptyList()
         }
     }
@@ -211,8 +212,8 @@ class AuditServiceBukkit : AuditService, KoinComponent {
     ): List<AuditRecord> {
         return try {
             auditRepository.getInTimeRange(startTime, endTime, limit)
-        } catch (e: Exception) {
-            logger.error("Failed to get audit in time range: $startTime to $endTime", e)
+        } catch (e: SQLException) {
+            logger.error("Database error getting audit in time range: $startTime to $endTime", e)
             emptyList()
         }
     }

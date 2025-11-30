@@ -49,6 +49,7 @@ class GuildRolePermissionResolverBukkit(
                     logger.debug("Cleared membership cache due to size limit")
                 }
             } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
                 logger.warn("Error during cache cleanup", e)
             }
         }, 1, 1, TimeUnit.HOURS)
@@ -92,6 +93,7 @@ class GuildRolePermissionResolverBukkit(
             return mapRankToClaimPermissions(rank.name)
             
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.warn("Error computing permissions for player $playerId on claim $claimId", e)
             return emptySet()
         }
@@ -176,6 +178,7 @@ class GuildRolePermissionResolverBukkit(
             
             logger.debug("Invalidated cache for guild $guildId")
         } catch (e: Exception) {
+            // Service operation - catching all exceptions to prevent service failure
             logger.warn("Error invalidating guild cache for guild $guildId", e)
         }
     }

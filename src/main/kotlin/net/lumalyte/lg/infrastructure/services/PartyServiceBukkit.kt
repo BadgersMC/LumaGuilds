@@ -80,6 +80,7 @@ class PartyServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error creating party", e)
             return null
         }
@@ -132,6 +133,7 @@ class PartyServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error sending party request", e)
             return null
         }
@@ -199,6 +201,7 @@ class PartyServiceBukkit(
                 null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error accepting party request", e)
             return null
         }
@@ -234,6 +237,7 @@ class PartyServiceBukkit(
             
             return success
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error rejecting party request", e)
             return false
         }
@@ -268,6 +272,7 @@ class PartyServiceBukkit(
             
             return success
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error cancelling party request", e)
             return false
         }
@@ -302,6 +307,7 @@ class PartyServiceBukkit(
             // Send party request
             return sendPartyRequest(inviterGuildId, targetGuildId, inviterId, "Invitation to join party")
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error inviting guild to party", e)
             return null
         }
@@ -349,6 +355,7 @@ class PartyServiceBukkit(
                 }
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error leaving party", e)
             return null
         }
@@ -391,6 +398,7 @@ class PartyServiceBukkit(
             
             return success
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error dissolving party", e)
             return false
         }
@@ -450,6 +458,7 @@ class PartyServiceBukkit(
             }
             
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error processing expired party items", e)
         }
         
@@ -487,6 +496,7 @@ class PartyServiceBukkit(
             
             return success
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error setting party name", e)
             return false
         }
@@ -524,6 +534,7 @@ class PartyServiceBukkit(
             
             return success
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error setting party expiration", e)
             return false
         }
@@ -581,6 +592,7 @@ class PartyServiceBukkit(
 
             return success
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error setting party role restrictions", e)
             return false
         }
@@ -615,6 +627,7 @@ class PartyServiceBukkit(
             // Check role restrictions
             return party.canPlayerJoin(playerRankId)
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error checking if player can join party", e)
             return false
         }
@@ -676,6 +689,7 @@ class PartyServiceBukkit(
                 return null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error muting player $targetPlayerId in party $partyId", e)
             return null
         }
@@ -721,6 +735,7 @@ class PartyServiceBukkit(
                 return null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error unmuting player $targetPlayerId in party $partyId", e)
             return null
         }
@@ -786,6 +801,7 @@ class PartyServiceBukkit(
                 return null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error banning player $targetPlayerId in party $partyId", e)
             return null
         }
@@ -831,6 +847,7 @@ class PartyServiceBukkit(
                 return null
             }
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error unbanning player $targetPlayerId in party $partyId", e)
             return null
         }
@@ -892,6 +909,7 @@ class PartyServiceBukkit(
 
             return result
         } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error kicking player $targetPlayerId from party $partyId", e)
             return null
         }

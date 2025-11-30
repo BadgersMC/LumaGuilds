@@ -50,7 +50,25 @@ class VaultProtectionListener : Listener, KoinComponent {
     // Track break warnings: player UUID -> (vault location key -> timestamp)
     private val breakWarnings = ConcurrentHashMap<UUID, ConcurrentHashMap<String, Long>>()
 
-    private fun getConfig() = configService.loadConfig().vault
+    // Cached vault config to avoid disk I/O on every event
+    @Volatile
+    private var cachedVaultConfig = configService.loadConfig().vault
+
+    /**
+     * Gets the vault configuration.
+     * Uses cached config to avoid disk I/O on every event handler call.
+     * To reload config, call refreshConfig().
+     */
+    private fun getConfig() = cachedVaultConfig
+
+    /**
+     * Refreshes the cached vault configuration from disk.
+     * Call this when config is reloaded.
+     */
+    fun refreshConfig() {
+        cachedVaultConfig = configService.loadConfig().vault
+        logger.debug("Refreshed vault config cache")
+    }
 
     /**
      * Handle vault chest placement
@@ -88,7 +106,8 @@ class VaultProtectionListener : Listener, KoinComponent {
 
         val guildId = try {
             java.util.UUID.fromString(guildIdString)
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
+            // Invalid UUID format in PDC - corrupted data
             event.isCancelled = true
             player.sendMessage("§cInvalid guild vault chest! Corrupted guild ID.")
             logger.error("Failed to parse guild ID from vault chest: $guildIdString", e)
@@ -438,7 +457,7 @@ class VaultProtectionListener : Listener, KoinComponent {
                     // Visual/audio feedback
                     world.playSound(pistonLocation, org.bukkit.Sound.BLOCK_PISTON_CONTRACT, 1.0f, 0.5f)
                     world.playSound(pistonLocation, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
-                    world.spawnParticle(org.bukkit.Particle.BLOCK, pistonLocation.add(0.5, 0.5, 0.5), 20, 0.3, 0.3, 0.3, 0.0, pistonBlock.blockData)
+                    world.spawnParticle(org.bukkit.Particle.BLOCK, pistonLocation.clone().add(0.5, 0.5, 0.5), 20, 0.3, 0.3, 0.3, 0.0, pistonBlock.blockData)
 
                     logger.info("Piston backfire: Destroyed piston attempting to push vault chest for guild ${guild.name} at ${pistonLocation}")
                     return
@@ -475,7 +494,7 @@ class VaultProtectionListener : Listener, KoinComponent {
                     // Visual/audio feedback
                     world.playSound(pistonLocation, org.bukkit.Sound.BLOCK_PISTON_CONTRACT, 1.0f, 0.5f)
                     world.playSound(pistonLocation, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
-                    world.spawnParticle(org.bukkit.Particle.BLOCK, pistonLocation.add(0.5, 0.5, 0.5), 20, 0.3, 0.3, 0.3, 0.0, pistonBlock.blockData)
+                    world.spawnParticle(org.bukkit.Particle.BLOCK, pistonLocation.clone().add(0.5, 0.5, 0.5), 20, 0.3, 0.3, 0.3, 0.0, pistonBlock.blockData)
 
                     logger.info("Piston backfire: Destroyed sticky piston attempting to pull vault chest for guild ${guild.name} at ${pistonLocation}")
                     return
