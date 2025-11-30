@@ -2,6 +2,8 @@ package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
+import net.lumalyte.lg.application.utilities.ValuableItemChecker
+import net.lumalyte.lg.config.VaultConfig
 import net.lumalyte.lg.domain.entities.VaultInventory
 import net.lumalyte.lg.domain.entities.ViewerSession
 import net.lumalyte.lg.domain.entities.WriteBuffer
@@ -20,7 +22,8 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class VaultInventoryManager(
     private val vaultRepository: GuildVaultRepository,
-    private val transactionLogger: net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger? = null
+    private val transactionLogger: net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger? = null,
+    private val vaultConfig: VaultConfig
 ) {
 
     private val logger = LoggerFactory.getLogger(VaultInventoryManager::class.java)
@@ -777,52 +780,13 @@ class VaultInventoryManager(
 
     /**
      * Checks if an item is considered valuable and should be logged in transactions.
-     * Valuable items include:
-     * - Netherite items (ingots, blocks, equipment)
-     * - Diamonds and diamond blocks
-     * - Enchanted items
-     * - Nether stars
-     * - Elytra
-     * - Shulker boxes (can contain many items)
+     * Delegates to the shared ValuableItemChecker utility which reads from config.
      *
      * @param item The item to check.
      * @return true if the item is valuable.
      */
     private fun isValuableItem(item: ItemStack): Boolean {
-        val material = item.type
-        val materialName = material.name
-
-        // Check for netherite items
-        if (materialName.contains("NETHERITE")) {
-            return true
-        }
-
-        // Check for diamonds
-        if (material == org.bukkit.Material.DIAMOND || material == org.bukkit.Material.DIAMOND_BLOCK) {
-            return true
-        }
-
-        // Check for nether star
-        if (material == org.bukkit.Material.NETHER_STAR) {
-            return true
-        }
-
-        // Check for elytra
-        if (material == org.bukkit.Material.ELYTRA) {
-            return true
-        }
-
-        // Check for shulker boxes
-        if (materialName.contains("SHULKER_BOX")) {
-            return true
-        }
-
-        // Check if item has enchantments
-        if (item.hasItemMeta() && item.itemMeta?.hasEnchants() == true) {
-            return true
-        }
-
-        return false
+        return ValuableItemChecker.isValuableItem(item, vaultConfig)
     }
 
     /**

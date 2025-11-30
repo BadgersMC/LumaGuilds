@@ -4,6 +4,8 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.application.services.VaultInventoryManager
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
+import net.lumalyte.lg.application.utilities.ValuableItemChecker
+import net.lumalyte.lg.config.VaultConfig
 import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger
 import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType
 import net.lumalyte.lg.interaction.inventory.VaultInventoryHolder
@@ -30,7 +32,8 @@ import org.bukkit.plugin.java.JavaPlugin
 class VaultInventoryListener(
     private val plugin: JavaPlugin,
     private val vaultInventoryManager: VaultInventoryManager,
-    private val transactionLogger: VaultTransactionLogger
+    private val transactionLogger: VaultTransactionLogger,
+    private val vaultConfig: VaultConfig
 ) : Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -204,44 +207,10 @@ class VaultInventoryListener(
 
     /**
      * Checks if an item is valuable and should be immediately saved.
+     * Delegates to the shared ValuableItemChecker utility.
      */
     private fun isValuableItem(item: org.bukkit.inventory.ItemStack): Boolean {
-        val material = item.type
-
-        // Check for valuable materials
-        val valuableMaterials = setOf(
-            org.bukkit.Material.NETHERITE_INGOT,
-            org.bukkit.Material.NETHERITE_BLOCK,
-            org.bukkit.Material.NETHERITE_SWORD,
-            org.bukkit.Material.NETHERITE_PICKAXE,
-            org.bukkit.Material.NETHERITE_AXE,
-            org.bukkit.Material.NETHERITE_SHOVEL,
-            org.bukkit.Material.NETHERITE_HOE,
-            org.bukkit.Material.NETHERITE_HELMET,
-            org.bukkit.Material.NETHERITE_CHESTPLATE,
-            org.bukkit.Material.NETHERITE_LEGGINGS,
-            org.bukkit.Material.NETHERITE_BOOTS,
-            org.bukkit.Material.DIAMOND,
-            org.bukkit.Material.DIAMOND_BLOCK,
-            org.bukkit.Material.ELYTRA,
-            org.bukkit.Material.ENCHANTED_GOLDEN_APPLE,
-            org.bukkit.Material.NETHER_STAR,
-            org.bukkit.Material.BEACON,
-            org.bukkit.Material.DRAGON_HEAD,
-            org.bukkit.Material.DRAGON_EGG,
-            org.bukkit.Material.TRIDENT
-        )
-
-        if (material in valuableMaterials) {
-            return true
-        }
-
-        // Check for enchantments
-        if (item.hasItemMeta() && item.itemMeta.hasEnchants()) {
-            return true
-        }
-
-        return false
+        return ValuableItemChecker.isValuableItem(item, vaultConfig)
     }
 
     /**
