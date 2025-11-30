@@ -26,6 +26,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryType
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.scheduler.BukkitRunnable
 import org.koin.core.component.KoinComponent
@@ -971,6 +972,14 @@ class GuildBankMenu(
         }
     }
 
+    @EventHandler
+    fun onPlayerQuit(event: PlayerQuitEvent) {
+        if (event.player.uniqueId != player.uniqueId) return
+
+        // Player disconnected - cleanup
+        cleanup()
+    }
+
     /**
      * Cleanup animation tasks when menu is closed
      */
@@ -982,6 +991,7 @@ class GuildBankMenu(
         try {
             InventoryClickEvent.getHandlerList().unregister(this)
             InventoryCloseEvent.getHandlerList().unregister(this)
+            PlayerQuitEvent.getHandlerList().unregister(this)
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             // Ignore if already unregistered

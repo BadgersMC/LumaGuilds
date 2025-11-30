@@ -15,6 +15,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
@@ -225,7 +226,21 @@ class GoldDepositMenu(
         }
 
         // Unregister listener
+        unregisterListeners()
+    }
+
+    @EventHandler
+    fun onPlayerQuit(event: PlayerQuitEvent) {
+        if (event.player.uniqueId != player.uniqueId) return
+
+        // Player disconnected - cleanup
+        isOpen = false
+        unregisterListeners()
+    }
+
+    private fun unregisterListeners() {
         InventoryClickEvent.getHandlerList().unregister(this)
         InventoryCloseEvent.getHandlerList().unregister(this)
+        PlayerQuitEvent.getHandlerList().unregister(this)
     }
 }
