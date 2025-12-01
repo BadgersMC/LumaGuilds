@@ -109,12 +109,11 @@ class CsvExportService {
     }
 
     /**
-     * Get player name (placeholder - would integrate with player service)
+     * Get player name from Bukkit's player cache
      */
     private fun getPlayerName(playerId: UUID): String {
-        // TODO: Integrate with player service to get actual names
-        // For now, return UUID as fallback
-        return "Player_$playerId"
+        val offlinePlayer = org.bukkit.Bukkit.getOfflinePlayer(playerId)
+        return offlinePlayer.name ?: "Player_$playerId"
     }
 
     /**

@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.*
 import org.slf4j.LoggerFactory
@@ -8,7 +9,9 @@ import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-class WarServiceBukkit : WarService {
+class WarServiceBukkit(
+    private val configService: ConfigService
+) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
 
@@ -543,6 +546,8 @@ class WarServiceBukkit : WarService {
     }
 
     // Daily War Costs
+    // NOTE: This method is deprecated - DailyWarCostsServiceBukkit handles actual cost deduction
+    // This just returns the count of affected guilds for backward compatibility
     override fun applyDailyWarCosts(): Int {
         return try {
             val activeWars = wars.values.filter { it.isActive }
@@ -553,14 +558,12 @@ class WarServiceBukkit : WarService {
                 affectedGuilds.add(war.defendingGuildId)
             }
 
-            // TODO: Implement actual EXP and money deduction from guilds
-            // This would require integration with GuildService and BankService
-            logger.info("Applied daily war costs to ${affectedGuilds.size} guilds")
+            logger.debug("${affectedGuilds.size} guilds in active wars (actual costs applied by DailyWarCostsService)")
 
             affectedGuilds.size
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
-            logger.error("Error applying daily war costs", e)
+            logger.error("Error counting guilds in active wars", e)
             0
         }
     }
@@ -578,8 +581,8 @@ class WarServiceBukkit : WarService {
 
     private fun getWarFarmingCooldownSeconds(): Long {
         // Convert hours from config to seconds
-        return 60 * 60L // Default 1 hour in seconds if config not available
-        // TODO: Get actual config value when ConfigService is injected
+        val config = configService.loadConfig()
+        return config.combat.warFarmingCooldownHours * 3600L
     }
 
     override fun isGuildInWarFarmingCooldown(guildId: UUID): Boolean {
@@ -614,9 +617,8 @@ class WarServiceBukkit : WarService {
     }
 
     override fun recordWarDeclaration(guildId: UUID) {
-        // Default to 24 hours if config not available
-        // TODO: Get actual config value when ConfigService is injected
-        val cooldownHours = 24L
+        val config = configService.loadConfig()
+        val cooldownHours = config.combat.warDeclarationCooldownHours.toLong()
         val cooldownEnd = Instant.now().plusSeconds(cooldownHours * 3600)
         warDeclarationCooldowns[guildId] = cooldownEnd
         logger.info("Guild $guildId declared war - cooldown until $cooldownEnd")

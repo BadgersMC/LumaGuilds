@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.DailyWarCostsService
+import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.WarService
@@ -15,7 +16,8 @@ import java.util.concurrent.ConcurrentHashMap
 class DailyWarCostsServiceBukkit(
     private val warService: WarService,
     private val guildService: GuildService,
-    private val configService: ConfigService
+    private val configService: ConfigService,
+    private val bankService: BankService
 ) : DailyWarCostsService {
 
     private val logger = LoggerFactory.getLogger(DailyWarCostsServiceBukkit::class.java)
@@ -44,33 +46,28 @@ class DailyWarCostsServiceBukkit(
                     continue
                 }
 
-                // Calculate and apply costs
-                val (expCost, moneyCost) = calculateDailyCosts(guild)
-
-                var expDeducted = false
-                var moneyDeducted = false
-
-                // Apply EXP cost (if guild has enough)
-                if (expCost > 0) {
-                    // TODO: Implement EXP deduction from guild
-                    // This would require integration with guild leveling system
-                    logger.info("Would deduct $expCost EXP from guild ${guild.name}")
-                    expDeducted = true // Placeholder
-                }
+                // Calculate and apply costs (money only, no EXP costs)
+                val (_, moneyCost) = calculateDailyCosts(guild)
 
                 // Apply money cost (if guild has enough)
                 if (moneyCost > 0) {
-                    // TODO: Implement money deduction from guild bank
-                    // This would require integration with bank system
-                    logger.info("Would deduct $moneyCost coins from guild ${guild.name} bank")
-                    moneyDeducted = true // Placeholder
-                }
-
-                if (expDeducted || moneyDeducted) {
-                    affectedGuilds.add(guildId)
-                    recordCostsApplied(guildId, Instant.now())
-
-                    logger.info("Applied daily war costs to guild ${guild.name}: ${expCost} EXP, ${moneyCost} coins")
+                    val currentBalance = bankService.getBalance(guildId)
+                    if (currentBalance >= moneyCost) {
+                        val success = bankService.deductFromGuildBank(
+                            guildId,
+                            moneyCost,
+                            "Daily war costs"
+                        )
+                        if (success) {
+                            logger.info("Deducted $moneyCost coins from guild ${guild.name} bank (balance: $currentBalance -> ${currentBalance - moneyCost})")
+                            affectedGuilds.add(guildId)
+                            recordCostsApplied(guildId, Instant.now())
+                        } else {
+                            logger.warn("Failed to deduct $moneyCost coins from guild ${guild.name} bank")
+                        }
+                    } else {
+                        logger.warn("Guild ${guild.name} has insufficient funds for daily war costs ($currentBalance < $moneyCost)")
+                    }
                 }
             }
 

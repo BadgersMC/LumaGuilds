@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildVaultService
+import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.VaultInventoryManager
 import net.lumalyte.lg.application.services.VaultResult
 import net.lumalyte.lg.domain.entities.Guild
@@ -36,7 +37,8 @@ class GuildVaultServiceBukkit(
     private val memberRepository: MemberRepository,
     private val configService: ConfigService,
     private val vaultInventoryManager: VaultInventoryManager,
-    private val hologramService: VaultHologramService
+    private val hologramService: VaultHologramService,
+    private val rankService: RankService
 ) : GuildVaultService {
 
     private val logger = LoggerFactory.getLogger(GuildVaultServiceBukkit::class.java)
@@ -348,9 +350,8 @@ class GuildVaultServiceBukkit(
             RankPermission.ACCESS_VAULT
         }
 
-        // TODO: Check rank permissions when RankService is integrated
-        // For now, allow all guild members
-        return true
+        // Check if player has the required permission through their rank
+        return rankService.hasPermission(player.uniqueId, guild.id, requiredPermission)
     }
 
     /**

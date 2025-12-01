@@ -154,10 +154,20 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun getByName(name: String): Guild? = guilds.values.find { it.name.equals(name, ignoreCase = true) }
     
     override fun getByPlayer(playerId: UUID): Set<Guild> {
-        // TODO: Implement this
-        // This will need to join with the members table
-        // For now, return empty set - will be implemented when MemberRepository is available
-        return emptySet()
+        // Query guild IDs from members table, then get guilds from cache
+        val sql = "SELECT guild_id FROM members WHERE player_id = ?"
+
+        return try {
+            val results = storage.connection.getResults(sql, playerId.toString())
+            val guildSet = mutableSetOf<Guild>()
+            for (result in results) {
+                val guildId = UUID.fromString(result.getString("guild_id"))
+                guilds[guildId]?.let { guildSet.add(it) }
+            }
+            guildSet
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to get guilds for player $playerId", e)
+        }
     }
     
     override fun add(guild: Guild): Boolean {

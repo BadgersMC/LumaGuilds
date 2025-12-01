@@ -51,8 +51,7 @@ class BedrockGuildDisbandConfirmationMenu(
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.success", guild.name))
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.success.details"))
 
-            // TODO: Navigate to main menu or guild selection after disband
-            // For now, just close the menu
+            // Clear menu stack - player no longer has a guild so close all menus
             clearMenuStack()
         } else {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.failed"))
