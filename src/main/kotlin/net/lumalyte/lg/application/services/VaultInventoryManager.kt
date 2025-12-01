@@ -647,15 +647,12 @@ class VaultInventoryManager(
                 // If the repository returns false (but doesn't throw), treat as failure
                 attempt++
             } catch (e: SQLException) {
-                // Database error during save - retry with exponential backoff
+                // Database error during save - retry immediately
+                // Note: No Thread.sleep() to avoid blocking main thread
+                // If all retries fail, item will be marked dirty for next auto-save cycle
                 lastError = e
                 attempt++
                 logger.warn("Failed to save vault slot (attempt $attempt/$retries): ${e.message}")
-
-                if (attempt < retries) {
-                    // Exponential backoff: 100ms, 200ms, 400ms
-                    Thread.sleep(100L * (1 shl (attempt - 1)))
-                }
             }
         }
 
@@ -700,15 +697,12 @@ class VaultInventoryManager(
                 // If the repository returns false (but doesn't throw), treat as failure
                 attempt++
             } catch (e: SQLException) {
-                // Database error during save - retry with exponential backoff
+                // Database error during save - retry immediately
+                // Note: No Thread.sleep() to avoid blocking main thread
+                // If all retries fail, gold balance will be marked dirty for next auto-save cycle
                 lastError = e
                 attempt++
                 logger.warn("Failed to save gold balance (attempt $attempt/$retries): ${e.message}")
-
-                if (attempt < retries) {
-                    // Exponential backoff: 100ms, 200ms, 400ms
-                    Thread.sleep(100L * (1 shl (attempt - 1)))
-                }
             }
         }
 
