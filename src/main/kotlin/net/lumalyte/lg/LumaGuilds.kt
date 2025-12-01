@@ -42,7 +42,7 @@ import java.sql.SQLException
  */
 class LumaGuilds : JavaPlugin() {
     private lateinit var commandManager: PaperCommandManager
-    lateinit var metadata: Chat
+    var metadata: Chat? = null // Nullable - only initialized if Vault plugin exists
     private lateinit var scheduler: BukkitScheduler
     lateinit var pluginScope: CoroutineScope
     private lateinit var dailyWarCostsScheduler: DailyWarCostsScheduler

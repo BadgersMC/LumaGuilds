@@ -6,19 +6,21 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class WarServiceBukkit : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
 
     // In-memory storage for now - would need database persistence in production
-    private val wars = mutableMapOf<UUID, War>()
-    private val warDeclarations = mutableMapOf<UUID, WarDeclaration>()
-    private val warStats = mutableMapOf<UUID, WarStats>()
-    private val warWagers = mutableMapOf<UUID, WarWager>()
-    private val peaceAgreements = mutableMapOf<UUID, PeaceAgreement>()
-    private val warFarmingCooldowns = mutableMapOf<UUID, Instant>()
-    private val warDeclarationCooldowns = mutableMapOf<UUID, Instant>()
+    // Thread-safe collections for concurrent access from multiple guilds/players
+    private val wars = ConcurrentHashMap<UUID, War>()
+    private val warDeclarations = ConcurrentHashMap<UUID, WarDeclaration>()
+    private val warStats = ConcurrentHashMap<UUID, WarStats>()
+    private val warWagers = ConcurrentHashMap<UUID, WarWager>()
+    private val peaceAgreements = ConcurrentHashMap<UUID, PeaceAgreement>()
+    private val warFarmingCooldowns = ConcurrentHashMap<UUID, Instant>()
+    private val warDeclarationCooldowns = ConcurrentHashMap<UUID, Instant>()
 
     override fun declareWar(
         declaringGuildId: UUID,
