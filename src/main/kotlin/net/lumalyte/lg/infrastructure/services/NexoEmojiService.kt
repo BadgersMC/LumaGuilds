@@ -181,13 +181,10 @@ class NexoEmojiService {
     private fun getFontManager(): Any? {
         return try {
 
-            // TODO: this is fucking trash
-            // To who it may concern, I tried to use the FontManager class directly, but it was not working.
-            // So I had to use reflection to get the FontManager instance.
-            // This is a hack, but it works.
-            // If you have a better way to do this, please let me know.
-            // I am not a fan of reflection, but it is what it is.
-            // This is a workaround to get the FontManager instance.
+            // TODO: Refactor to use FontManager API directly instead of reflection
+            // Current implementation uses reflection as a workaround due to compatibility issues.
+            // Ideally, this should use the Nexo API directly for better maintainability.
+            // If you have a cleaner solution, contributions are welcome!
 
             // First, let's check if the Nexo plugin is even loaded at all
             val pluginManager = org.bukkit.Bukkit.getPluginManager()

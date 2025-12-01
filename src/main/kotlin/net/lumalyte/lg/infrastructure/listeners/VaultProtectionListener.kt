@@ -242,9 +242,9 @@ class VaultProtectionListener : Listener, KoinComponent {
 
         logger.info("Player ${player.name} is attempting to break vault chest for guild ${guild.name}")
 
-        // Check if player is in the guild
-        val member = memberService.getMember(player.uniqueId, guild.id)
-        if (member == null) {
+        // Check if player has BREAK_VAULT permission (also verifies guild membership)
+        val rank = rankService.getPlayerRank(player.uniqueId, guild.id)
+        if (rank == null) {
             // Non-member trying to break vault
             event.isCancelled = true
             player.sendMessage("§c§lVAULT PROTECTED§r §7» §fOnly guild members can interact with the vault.")
@@ -252,10 +252,7 @@ class VaultProtectionListener : Listener, KoinComponent {
             return
         }
 
-        // Check if player has BREAK_VAULT permission
-        val rank = rankService.getPlayerRank(player.uniqueId, guild.id)
-        val hasBreakPermission = rank?.permissions?.contains(RankPermission.BREAK_VAULT) == true
-
+        val hasBreakPermission = rank.permissions.contains(RankPermission.BREAK_VAULT)
         if (!hasBreakPermission) {
             event.isCancelled = true
             player.sendMessage("§c§lPERMISSION DENIED§r §7» §fYou don't have permission to break the vault chest.")
