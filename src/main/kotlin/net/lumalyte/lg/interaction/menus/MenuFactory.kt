@@ -257,9 +257,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildInfoMenu to provide enhanced Bedrock experience
-            // return BedrockGuildInfoMenu(menuNavigator, player, guild)
-            GuildInfoMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildInfoMenu(menuNavigator, player, guild, logger)
         } else {
             GuildInfoMenu(menuNavigator, player, guild)
         }
@@ -291,9 +289,7 @@ class MenuFactory : KoinComponent {
         parentMenu: net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockEmojiSelectionMenu to provide enhanced Bedrock experience
-            // return BedrockEmojiSelectionMenu(menuNavigator, player, guild, parentMenu)
-            net.lumalyte.lg.interaction.menus.guild.EmojiSelectionMenu(menuNavigator, player, guild, parentMenu) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockEmojiSelectionMenu(menuNavigator, player, guild, parentMenu, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.EmojiSelectionMenu(menuNavigator, player, guild, parentMenu)
         }
@@ -308,9 +304,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockPartyCreationMenu to provide enhanced Bedrock experience
-            // return BedrockPartyCreationMenu(menuNavigator, player, guild)
-            PartyCreationMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockPartyCreationMenu(menuNavigator, player, guild, logger)
         } else {
             PartyCreationMenu(menuNavigator, player, guild)
         }
@@ -325,9 +319,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildEmojiMenu to provide enhanced Bedrock experience
-            // return BedrockGuildEmojiMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildEmojiMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu(menuNavigator, player, guild)
         }
@@ -375,9 +367,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockDescriptionEditorMenu to provide enhanced Bedrock experience
-            // return BedrockDescriptionEditorMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.DescriptionEditorMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockDescriptionEditorMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.DescriptionEditorMenu(menuNavigator, player, guild)
         }
@@ -407,9 +397,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildBannerMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBannerMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBannerMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBannerMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildBannerMenu(menuNavigator, player, guild)
         }
@@ -424,9 +412,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildModeMenu to provide enhanced Bedrock experience
-            // return BedrockGuildModeMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildModeMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildModeMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildModeMenu(menuNavigator, player, guild)
         }
@@ -441,9 +427,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildHomeMenu to provide enhanced Bedrock experience
-            // return BedrockGuildHomeMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildHomeMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildHomeMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildHomeMenu(menuNavigator, player, guild)
         }
@@ -473,9 +457,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildWarDeclarationMenu to provide enhanced Bedrock experience
-            // return BedrockGuildWarDeclarationMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildWarDeclarationMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildWarDeclarationMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildWarDeclarationMenu(menuNavigator, player, guild)
         }
@@ -490,9 +472,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockPeaceAgreementMenu to provide enhanced Bedrock experience
-            // return BedrockPeaceAgreementMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.PeaceAgreementMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockPeaceAgreementMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.PeaceAgreementMenu(menuNavigator, player, guild)
         }
@@ -507,9 +487,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildMemberManagementMenu to provide enhanced Bedrock experience
-            // return BedrockGuildMemberManagementMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildMemberManagementMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu(menuNavigator, player, guild)
         }
@@ -539,9 +517,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockRankCreationMenu to provide enhanced Bedrock experience
-            // return BedrockRankCreationMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.RankCreationMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockRankCreationMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.RankCreationMenu(menuNavigator, player, guild)
         }
@@ -557,9 +533,7 @@ class MenuFactory : KoinComponent {
         rank: net.lumalyte.lg.domain.entities.Rank
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockRankEditMenu to provide enhanced Bedrock experience
-            // return BedrockRankEditMenu(menuNavigator, player, guild, rank)
-            net.lumalyte.lg.interaction.menus.guild.RankEditMenu(menuNavigator, player, guild, rank) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockRankEditMenu(menuNavigator, player, guild, rank, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.RankEditMenu(menuNavigator, player, guild, rank)
         }
@@ -605,9 +579,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildBankStatisticsMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankStatisticsMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankStatisticsMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankStatisticsMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildBankStatisticsMenu(menuNavigator, player, guild)
         }
@@ -622,9 +594,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildMemberContributionsMenu to provide enhanced Bedrock experience
-            // return BedrockGuildMemberContributionsMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberContributionsMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildMemberContributionsMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildMemberContributionsMenu(menuNavigator, player, guild)
         }
@@ -639,9 +609,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildBankTransactionHistoryMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankTransactionHistoryMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankTransactionHistoryMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankTransactionHistoryMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildBankTransactionHistoryMenu(menuNavigator, player, guild)
         }
@@ -656,9 +624,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildBankSecurityMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankSecurityMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankSecurityMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankSecurityMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildBankSecurityMenu(menuNavigator, player, guild)
         }
@@ -673,9 +639,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildBankAutomationMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankAutomationMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankAutomationMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankAutomationMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildBankAutomationMenu(menuNavigator, player, guild)
         }
@@ -690,9 +654,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildBankBudgetMenu to provide enhanced Bedrock experience
-            // return BedrockGuildBankBudgetMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildBankBudgetMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankBudgetMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildBankBudgetMenu(menuNavigator, player, guild)
         }
@@ -707,9 +669,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildStatisticsMenu to provide enhanced Bedrock experience
-            // return BedrockGuildStatisticsMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildStatisticsMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildStatisticsMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildStatisticsMenu(menuNavigator, player, guild)
         }
@@ -724,9 +684,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildInviteMenu to provide enhanced Bedrock experience
-            // return BedrockGuildInviteMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildInviteMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu(menuNavigator, player, guild)
         }
@@ -742,9 +700,7 @@ class MenuFactory : KoinComponent {
         member: net.lumalyte.lg.domain.entities.Member
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildMemberRankMenu to provide enhanced Bedrock experience
-            // return BedrockGuildMemberRankMenu(menuNavigator, player, guild, member)
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberRankMenu(menuNavigator, player, guild, member) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildMemberRankMenu(menuNavigator, player, guild, member, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildMemberRankMenu(menuNavigator, player, guild, member)
         }
@@ -759,9 +715,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildKickMenu to provide enhanced Bedrock experience
-            // return BedrockGuildKickMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildKickMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildKickMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildKickMenu(menuNavigator, player, guild)
         }
@@ -776,9 +730,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildPromotionMenu to provide enhanced Bedrock experience
-            // return BedrockGuildPromotionMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildPromotionMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildPromotionMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildPromotionMenu(menuNavigator, player, guild)
         }
@@ -793,9 +745,7 @@ class MenuFactory : KoinComponent {
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockGuildRankListMenu to provide enhanced Bedrock experience
-            // return BedrockGuildRankListMenu(menuNavigator, player, guild)
-            net.lumalyte.lg.interaction.menus.guild.GuildRankListMenu(menuNavigator, player, guild) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildRankListMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildRankListMenu(menuNavigator, player, guild)
         }

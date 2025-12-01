@@ -194,6 +194,7 @@ data class CombatConfig(
     
     // War System
     var warDeclarationCooldownHours: Int = 24,
+    var warFarmingCooldownHours: Int = 1,
     var warDurationHours: Int = 168, // 1 week
     var warEndGracePeriodMinutes: Int = 30,
     var maxSimultaneousWars: Int = 3,

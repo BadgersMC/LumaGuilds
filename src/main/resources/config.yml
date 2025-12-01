@@ -361,6 +361,7 @@ combat:
   
   # War System
   war_declaration_cooldown_hours: 24     # Cooldown between war declarations
+  war_farming_cooldown_hours: 1          # Cooldown to prevent war farming after winning
   war_duration_hours: 168                # 1 week war duration
   war_end_grace_period_minutes: 30       # Grace period after war ends
   max_simultaneous_wars: 3               # Max wars a guild can be in

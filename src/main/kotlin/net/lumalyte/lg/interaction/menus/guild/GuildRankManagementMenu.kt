@@ -3,6 +3,7 @@ package net.lumalyte.lg.interaction.menus.guild
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Rank
@@ -23,6 +24,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                               private var guild: Guild): Menu, KoinComponent {
 
     private val rankService: RankService by inject()
+    private val memberService: MemberService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
@@ -160,8 +162,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
     }
 
     private fun getMemberCount(rankId: UUID): Int {
-        // TODO: Get actual member count from MemberService
-        return 0
+        return memberService.getMembersByRank(guild.id, rankId).size
     }
 
     private fun openRankEditMenu(rank: Rank) {

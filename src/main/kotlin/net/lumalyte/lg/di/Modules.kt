@@ -263,9 +263,9 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get()) }
     single<KillService> { KillServiceBukkit(get()) }
-    single<WarService> { WarServiceBukkit() }
+    single<WarService> { WarServiceBukkit(get()) }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
-        net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get())
+        net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get(), get())
     }
     single<ModeService> { ModeServiceBukkit(get(), get(), get(), get()) }
     single<CombatService> { CombatServiceBukkit(get()) }
@@ -283,6 +283,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<net.lumalyte.lg.application.services.GuildVaultService> {
         net.lumalyte.lg.infrastructure.services.GuildVaultServiceBukkit(
             get<LumaGuilds>(),
+            get(),
             get(),
             get(),
             get(),

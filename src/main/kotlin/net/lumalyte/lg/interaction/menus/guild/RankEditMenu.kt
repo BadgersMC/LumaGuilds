@@ -363,8 +363,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     }
 
     private fun getMemberCount(): Int {
-        // TODO: Get actual member count from MemberService
-        return 0
+        return memberService.getMembersByRank(guild.id, rank.id).size
     }
 
     private fun startNameInput() {
