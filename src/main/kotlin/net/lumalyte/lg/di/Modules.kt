@@ -197,7 +197,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<LumaGuilds> {plugin}
     single<File> { plugin.dataFolder }
     single<FileConfiguration> { plugin.config }
-    single<Chat> { plugin.metadata }
+    single<Chat?> { plugin.metadata } // Nullable - may be null if Vault not installed
     single<CoroutineScope> { plugin.pluginScope }
     single<CoroutineDispatcher>(named("IODispatcher")) { Dispatchers.IO }
 
