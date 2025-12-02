@@ -759,9 +759,7 @@ class MenuFactory : KoinComponent {
         player: Player
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimListMenu to provide enhanced Bedrock experience
-            // return BedrockClaimListMenu(menuNavigator, player)
-            net.lumalyte.lg.interaction.menus.misc.ClaimListMenu(menuNavigator, player) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimListMenu(menuNavigator, player, logger)
         } else {
             net.lumalyte.lg.interaction.menus.misc.ClaimListMenu(menuNavigator, player)
         }
@@ -776,9 +774,7 @@ class MenuFactory : KoinComponent {
         claim: Any? // Will be Claim when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimIconMenu to provide enhanced Bedrock experience
-            // return BedrockClaimIconMenu(player, menuNavigator, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimIconMenu(player, menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimIconMenu(player, menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, logger)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimIconMenu(player, menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim)
         }
@@ -793,9 +789,7 @@ class MenuFactory : KoinComponent {
         claim: Any? // Will be Claim when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimTrustMenu to provide enhanced Bedrock experience
-            // return BedrockClaimTrustMenu(menuNavigator, player, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTrustMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
         }
@@ -810,9 +804,7 @@ class MenuFactory : KoinComponent {
         claim: Any? // Will be Claim when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimFlagMenu to provide enhanced Bedrock experience
-            // return BedrockClaimFlagMenu(menuNavigator, player, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimFlagMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimFlagMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimFlagMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
         }
@@ -827,9 +819,7 @@ class MenuFactory : KoinComponent {
         claim: Any? // Will be Claim when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimWidePermissionsMenu to provide enhanced Bedrock experience
-            // return BedrockClaimWidePermissionsMenu(menuNavigator, player, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimWidePermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimWidePermissionsMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimWidePermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
         }
@@ -844,9 +834,7 @@ class MenuFactory : KoinComponent {
         claim: Any? // Will be Claim when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimPlayerMenu to provide enhanced Bedrock experience
-            // return BedrockClaimPlayerMenu(menuNavigator, player, claim)
-            net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
         }
@@ -862,9 +850,7 @@ class MenuFactory : KoinComponent {
         targetPlayer: org.bukkit.OfflinePlayer?
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimPlayerPermissionsMenu to provide enhanced Bedrock experience
-            // return BedrockClaimPlayerPermissionsMenu(menuNavigator, player, claim, targetPlayer)
-            net.lumalyte.lg.interaction.menus.management.ClaimPlayerPermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, targetPlayer) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerPermissionsMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, targetPlayer!!.uniqueId, logger)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimPlayerPermissionsMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, targetPlayer)
         }
@@ -874,16 +860,14 @@ class MenuFactory : KoinComponent {
      * Creates a claim naming menu appropriate for the player's platform
      */
     fun createClaimNamingMenu(
-        player: Player,
         menuNavigator: MenuNavigator,
-        location: org.bukkit.Location
+        player: Player,
+        claim: net.lumalyte.lg.domain.entities.Claim
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimNamingMenu to provide enhanced Bedrock experience
-            // return BedrockClaimNamingMenu(player, menuNavigator, location)
-            net.lumalyte.lg.interaction.menus.management.ClaimNamingMenu(player, menuNavigator, location) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimNamingMenu(menuNavigator, player, claim, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimNamingMenu(player, menuNavigator, location)
+            net.lumalyte.lg.interaction.menus.management.ClaimRenamingMenu(menuNavigator, player, claim)
         }
     }
 
@@ -896,9 +880,7 @@ class MenuFactory : KoinComponent {
         partition: Any? // Will be Partition when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockEditToolMenu to provide enhanced Bedrock experience
-            // return BedrockEditToolMenu(menuNavigator, player, partition)
-            net.lumalyte.lg.interaction.menus.misc.EditToolMenu(menuNavigator, player, partition as? net.lumalyte.lg.domain.entities.Partition) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockEditToolMenu(menuNavigator, player, logger)
         } else {
             net.lumalyte.lg.interaction.menus.misc.EditToolMenu(menuNavigator, player, partition as? net.lumalyte.lg.domain.entities.Partition)
         }
@@ -913,9 +895,7 @@ class MenuFactory : KoinComponent {
         player: Player
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimTransferMenu to provide enhanced Bedrock experience
-            // return BedrockClaimTransferMenu(menuNavigator, claim, player)
-            net.lumalyte.lg.interaction.menus.management.ClaimTransferMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTransferMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimTransferMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player)
         }
@@ -930,9 +910,7 @@ class MenuFactory : KoinComponent {
         location: org.bukkit.Location
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimCreationMenu to provide enhanced Bedrock experience
-            // return BedrockClaimCreationMenu(player, menuNavigator, location)
-            net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu(player, menuNavigator, location) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimCreationMenu(menuNavigator, player, logger)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu(player, menuNavigator, location)
         }
@@ -947,9 +925,7 @@ class MenuFactory : KoinComponent {
         player: Player
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimTransferNamingMenu to provide enhanced Bedrock experience
-            // return BedrockClaimTransferNamingMenu(menuNavigator, claim, player)
-            net.lumalyte.lg.interaction.menus.management.ClaimTransferNamingMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player) // Fallback for now
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTransferNamingMenu(menuNavigator, player, (claim as net.lumalyte.lg.domain.entities.Claim).id, logger)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimTransferNamingMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player)
         }
@@ -964,13 +940,9 @@ class MenuFactory : KoinComponent {
         claim: Any? // Will be Claim when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Create BedrockClaimManagementMenu to provide enhanced Bedrock experience
-            // return BedrockClaimManagementMenu(menuNavigator, player, claim)
-            // For now, return a placeholder or fallback
-            throw NotImplementedError("Bedrock claim menus not yet implemented")
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimManagementMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
         } else {
-            // TODO: Return Java claim management menu when claims are available
-            throw NotImplementedError("Claim menus not yet implemented")
+            net.lumalyte.lg.interaction.menus.management.ClaimManagementMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim)
         }
     }
 

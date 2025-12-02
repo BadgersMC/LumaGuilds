@@ -60,7 +60,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
                     .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CREATE_LORE_REMAINING,
                         playerMetadataService.getPlayerClaimLimit(playerId) - playerClaimCount))
                 val guiIconEditorItem = GuiItem(iconEditorItem) {
-                    menuNavigator.openMenu(menuFactory.createClaimNamingMenu(player, menuNavigator, location))
+                    menuNavigator.openMenu(ClaimNamingMenu(player, menuNavigator, location))
                 }
                 pane.addItem(guiIconEditorItem, 4, 0)
                 gui.show(player)
