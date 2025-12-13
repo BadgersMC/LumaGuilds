@@ -1005,7 +1005,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
 
     /**
      * Migration from version 13 to version 14.
-     * Adds isOpen column to guilds table for open/closed guild functionality.
+     * Adds isOpen column and join fee columns to guilds table for open/closed guild functionality and LFG join requirements.
      */
     private fun migrateToVersion14() {
         val sqlCommands = mutableListOf<String>()
@@ -1015,11 +1015,21 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             sqlCommands.add("ALTER TABLE guilds ADD COLUMN is_open INTEGER DEFAULT 0;")
         }
 
+        // Add join_fee_enabled column to guilds table (if not exists)
+        if (!columnExists("guilds", "join_fee_enabled")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN join_fee_enabled INTEGER DEFAULT 0;")
+        }
+
+        // Add join_fee_amount column to guilds table (if not exists)
+        if (!columnExists("guilds", "join_fee_amount")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN join_fee_amount INTEGER DEFAULT 0;")
+        }
+
         if (sqlCommands.isNotEmpty()) {
             executeMigrationCommands(sqlCommands)
         }
 
-        componentLogger.info(Component.text("✓ Added isOpen column to guilds table"))
+        componentLogger.info(Component.text("✓ Added isOpen and join fee columns to guilds table"))
     }
 
     /**

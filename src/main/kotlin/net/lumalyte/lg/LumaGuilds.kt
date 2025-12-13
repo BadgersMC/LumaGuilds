@@ -91,6 +91,11 @@ class LumaGuilds : JavaPlugin() {
         val vaultAutoSaveService = get().get<net.lumalyte.lg.application.services.VaultAutoSaveService>()
         vaultAutoSaveService.start()
 
+        // Start vault backup service (auto-backup every 60 minutes by default)
+        val vaultBackupService = get().get<net.lumalyte.lg.application.services.VaultBackupService>()
+        vaultBackupService.startAutoBackup(intervalMinutes = 60)
+        logColored("✓ Vault auto-backup started (interval: 60 minutes)")
+
         // Restore vault chests and holograms on server startup
         val vaultService = get().get<net.lumalyte.lg.application.services.GuildVaultService>()
         val hologramService = get().get<net.lumalyte.lg.infrastructure.services.VaultHologramService>()
@@ -526,7 +531,15 @@ class LumaGuilds : JavaPlugin() {
         // Register Bedrock cache stats command
         getCommand("bedrockcachestats")?.setExecutor(BedrockCacheStatsCommand())
 
-        logColored("✓ Admin commands registered (/lumaguilds, /bellclaims)")
+        // Register Vault Rollback admin command
+        val vaultRollbackCommand = net.lumalyte.lg.interaction.commands.admin.VaultRollbackCommand(
+            get().get(),
+            get().get()
+        )
+        getCommand("vaultrollback")?.setExecutor(vaultRollbackCommand)
+        getCommand("vaultrollback")?.tabCompleter = vaultRollbackCommand
+
+        logColored("✓ Admin commands registered (/lumaguilds, /bellclaims, /vaultrollback)")
         logColored("✓ Bedrock cache stats command registered (/bedrockcachestats)")
     }
 
@@ -574,6 +587,10 @@ class LumaGuilds : JavaPlugin() {
 
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
+
+        // Register admin override listener (for logout cleanup)
+        val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
+        server.pluginManager.registerEvents(adminOverrideListener, this)
     }
 
     /**
@@ -617,6 +634,16 @@ class LumaGuilds : JavaPlugin() {
         } catch (e: Exception) {
             // Broad exception handling acceptable - shutdown should be resilient
             logger.severe("Failed to stop vault auto-save service: ${e.message}")
+            e.printStackTrace()
+        }
+
+        // Stop vault backup service
+        try {
+            val vaultBackupService = get().get<net.lumalyte.lg.application.services.VaultBackupService>()
+            vaultBackupService.stopAutoBackup()
+        } catch (e: Exception) {
+            // Broad exception handling acceptable - shutdown should be resilient
+            logger.severe("Failed to stop vault backup service: ${e.message}")
             e.printStackTrace()
         }
 

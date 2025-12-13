@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
@@ -25,9 +26,15 @@ class BedrockGuildBankMenu(
 
     private val bankService: BankService by inject()
     private val configService: ConfigService by inject()
+    private val physicalCurrencyService: PhysicalCurrencyService by inject()
 
     override fun getForm(): Form {
-        val playerBalance = bankService.getPlayerBalance(player.uniqueId)
+        // Use physical currency from inventory if enabled, otherwise use Vault balance
+        val playerBalance = if (physicalCurrencyService.isPhysicalCurrencyEnabled()) {
+            physicalCurrencyService.calculatePlayerInventoryValue(player.uniqueId)
+        } else {
+            bankService.getPlayerBalance(player.uniqueId)
+        }
         val guildBalance = bankService.getBalance(guild.id)
         val config = getBedrockConfig()
         val bankIcon = BedrockFormUtils.createFormImage(config, config.guildBankIconUrl, config.guildBankIconPath)
@@ -82,22 +89,23 @@ class BedrockGuildBankMenu(
 
     private fun createBalanceInfoSection(playerBalance: Int, guildBalance: Int): String {
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.bank.description")}
+            |§7${bedrockLocalization.getBedrockString(player, "guild.bank.description")}
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.bank.balance.label")}: ${bedrockLocalization.getBedrockString(player, "guild.bank.balance.amount", playerBalance)}
-            |Guild Balance: ${bedrockLocalization.getBedrockString(player, "guild.bank.balance.amount", guildBalance)}
+            |§6§l━━━ BALANCES ━━━
+            |§e${bedrockLocalization.getBedrockString(player, "guild.bank.balance.label")}§7: §a${bedrockLocalization.getBedrockString(player, "guild.bank.balance.amount", playerBalance)}
+            |§6Guild Balance§7: §a${bedrockLocalization.getBedrockString(player, "guild.bank.balance.amount", guildBalance)}
             |
-            |Use the sliders below to deposit or withdraw money.
+            |§7Use the sliders below to deposit or withdraw money.
         """.trimMargin()
     }
 
     private fun createValidationInfoSection(): String {
         return """
-            |${bedrockLocalization.getBedrockString(player, "form.validation.title")}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.invalid.number")}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.number.too.small", 0)}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.insufficient.funds")}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.permission.denied")}
+            |§6§l━━━ ${bedrockLocalization.getBedrockString(player, "form.validation.title")} §r§6━━━
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.invalid.number")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.number.too.small", 0)}
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.insufficient.funds")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.permission.denied")}
         """.trimMargin()
     }
 

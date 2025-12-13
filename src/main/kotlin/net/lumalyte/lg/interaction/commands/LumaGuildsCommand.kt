@@ -1,7 +1,9 @@
 package net.lumalyte.lg.interaction.commands
 
 import net.lumalyte.lg.LumaGuilds
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.FileExportManager
+import net.lumalyte.lg.application.services.GuildRolePermissionResolver
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.infrastructure.persistence.migrations.DatabaseMigrationUtility
 import org.bukkit.Bukkit
@@ -23,6 +25,8 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
     private val fileExportManager: FileExportManager by inject()
     private val guildService: GuildService by inject()
+    private val adminOverrideService: AdminOverrideService by inject()
+    private val guildRolePermissionResolver: GuildRolePermissionResolver by inject()
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
@@ -42,6 +46,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             "reload" -> handleReload(sender)
             "disband" -> handleDisband(sender, args)
             "migrate" -> handleMigrate(sender, args)
+            "override" -> handleOverride(sender)
             "help" -> showHelp(sender)
             else -> {
                 sender.sendMessage("§cUnknown subcommand: ${args[0]}")
@@ -243,6 +248,38 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     }
 
     /**
+     * Handle admin override toggle
+     */
+    private fun handleOverride(sender: CommandSender) {
+        // Only players can use this command
+        if (sender !is Player) {
+            sender.sendMessage("§c❌ Only players can use this command!")
+            return
+        }
+
+        // Check permissions
+        if (!sender.hasPermission("bellclaims.admin")) {
+            sender.sendMessage("§c❌ You don't have permission to use this command!")
+            return
+        }
+
+        // Toggle the override state
+        val newState = adminOverrideService.toggleOverride(sender.uniqueId)
+
+        // Invalidate the permission cache to apply changes immediately
+        guildRolePermissionResolver.invalidatePlayerCache(sender.uniqueId)
+
+        // Send appropriate message based on new state
+        if (newState) {
+            sender.sendMessage("§a✅ Admin guild override enabled!")
+            sender.sendMessage("§7You now have owner permissions in all guilds.")
+        } else {
+            sender.sendMessage("§c❌ Admin guild override disabled!")
+            sender.sendMessage("§7You no longer have owner permissions in all guilds.")
+        }
+    }
+
+    /**
      * Handle database migration from SQLite to MariaDB
      */
     private fun handleMigrate(sender: CommandSender, args: Array<out String>) {
@@ -366,11 +403,13 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage("§e/bellclaims reload §7- Reload plugin configuration (OP only)")
         sender.sendMessage("§e/bellclaims disband <guild> confirm §7- Force disband a guild (OP only)")
         sender.sendMessage("§e/bellclaims migrate confirm §7- Migrate SQLite → MariaDB (OP only)")
+        sender.sendMessage("§e/bellclaims override §7- Toggle admin override mode (Admin only)")
         sender.sendMessage("§e/bellclaims help §7- Show this help")
         sender.sendMessage("§7💡 Export files are available for 15 minutes")
         sender.sendMessage("§7🔧 Reload command is for development - some changes require server restart")
         sender.sendMessage("§7⚠️ Disband is for emergency use only - removes all members!")
         sender.sendMessage("§7🔄 Migrate transfers all data from SQLite to MariaDB (requires confirmation)")
+        sender.sendMessage("§7🔓 Override grants owner permissions in all guilds temporarily")
     }
 
     /**
@@ -450,7 +489,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         if (sender !is Player) return mutableListOf()
 
         return when (args.size) {
-            1 -> mutableListOf("download", "exports", "cancel", "reload", "disband", "migrate", "help").filter { it.startsWith(args[0]) }.toMutableList()
+            1 -> mutableListOf("download", "exports", "cancel", "reload", "disband", "migrate", "override", "help").filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "download", "cancel" -> {
                     fileExportManager.getActiveExports(sender.uniqueId)

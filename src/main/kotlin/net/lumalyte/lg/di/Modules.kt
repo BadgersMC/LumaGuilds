@@ -140,6 +140,7 @@ import net.lumalyte.lg.infrastructure.services.BedrockLocalizationServiceFloodga
 import net.lumalyte.lg.infrastructure.services.FormCacheServiceGuava
 import net.lumalyte.lg.infrastructure.services.FormValidationServiceImpl
 import net.lumalyte.lg.application.services.FormValidationService
+import net.lumalyte.lg.interaction.listeners.AdminOverrideListener
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
 import net.lumalyte.lg.infrastructure.persistence.guilds.GuildRepositorySQLite
@@ -262,6 +263,9 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get()) }
     single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.services.PhysicalCurrencyService> {
+        net.lumalyte.lg.infrastructure.services.PhysicalCurrencyServiceBukkit(get(), get())
+    }
     single<KillService> { KillServiceBukkit(get()) }
     single<WarService> { WarServiceBukkit(get()) }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
@@ -270,7 +274,10 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<ModeService> { ModeServiceBukkit(get(), get(), get(), get()) }
     single<CombatService> { CombatServiceBukkit(get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get()) }
-    single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get()) }
+    single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.services.AdminOverrideService> {
+        net.lumalyte.lg.infrastructure.services.AdminOverrideServiceImpl()
+    }
 
     // Teleportation System
     single<net.lumalyte.lg.infrastructure.services.TeleportationService> { net.lumalyte.lg.infrastructure.services.TeleportationService(get()) }
@@ -299,6 +306,13 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
             get(),
             get(),
             config.vault.transactionLogRetentionDays
+        )
+    }
+    single<net.lumalyte.lg.application.services.VaultBackupService> {
+        net.lumalyte.lg.infrastructure.services.VaultBackupServiceBukkit(
+            get<LumaGuilds>(),
+            get(),
+            get()
         )
     }
     single<net.lumalyte.lg.infrastructure.services.VaultHologramService> { net.lumalyte.lg.infrastructure.services.VaultHologramService(get()) }
@@ -356,6 +370,9 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<net.lumalyte.lg.interaction.listeners.VaultInventoryListener> {
         val config = get<ConfigService>().loadConfig()
         net.lumalyte.lg.interaction.listeners.VaultInventoryListener(get<LumaGuilds>(), get(), get(), config.vault)
+    }
+    single<net.lumalyte.lg.interaction.listeners.AdminOverrideListener> {
+        net.lumalyte.lg.interaction.listeners.AdminOverrideListener(get(), get())
     }
 
     // --- Application Layer Actions ---

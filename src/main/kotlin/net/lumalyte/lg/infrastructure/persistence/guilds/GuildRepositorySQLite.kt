@@ -123,6 +123,19 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             false
         }
 
+        // Parse join fee settings (default to disabled for existing guilds)
+        val joinFeeEnabled = try {
+            rs.getInt("join_fee_enabled") == 1
+        } catch (e: SQLException) {
+            false
+        }
+
+        val joinFeeAmount = try {
+            rs.getInt("join_fee_amount")
+        } catch (e: SQLException) {
+            0
+        }
+
         // Debug logging for vault data loading
         println("DEBUG [GuildRepositorySQLite] Loading guild '$name'")
         println("  vault_status from DB: '$vaultStatusStr' -> $vaultStatus")
@@ -143,7 +156,9 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             createdAt = createdAt,
             vaultStatus = vaultStatus,
             vaultChestLocation = vaultChestLocation,
-            isOpen = isOpen
+            isOpen = isOpen,
+            joinFeeEnabled = joinFeeEnabled,
+            joinFeeAmount = joinFeeAmount
         )
     }
 
@@ -172,8 +187,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     
     override fun add(guild: Guild): Boolean {
         val sql = """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
 
         return try {
@@ -195,7 +210,9 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 guild.mode.name.lowercase(),
                 guild.modeChangedAt?.toString(),
                 guild.createdAt.toString(),
-                if (guild.isOpen) 1 else 0
+                if (guild.isOpen) 1 else 0,
+                if (guild.joinFeeEnabled) 1 else 0,
+                guild.joinFeeAmount
             )
             guilds[guild.id] = guild
             rowsAffected > 0
@@ -208,7 +225,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         val sql = """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
-            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
+            join_fee_enabled = ?, join_fee_amount = ?
             WHERE id = ?
         """.trimIndent()
 
@@ -240,6 +258,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 guild.vaultChestLocation?.y,
                 guild.vaultChestLocation?.z,
                 if (guild.isOpen) 1 else 0,
+                if (guild.joinFeeEnabled) 1 else 0,
+                guild.joinFeeAmount,
                 guild.id.toString()
             )
 

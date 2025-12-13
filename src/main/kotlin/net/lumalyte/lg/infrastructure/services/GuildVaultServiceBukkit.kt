@@ -180,18 +180,19 @@ class GuildVaultServiceBukkit(
         // Get capacity for guild level
         val capacity = getCapacityForLevel(guild.level)
 
-        // Create VaultInventoryHolder which loads from VaultInventoryManager cache
-        val holder = VaultInventoryHolder(
-            guildId = guild.id,
-            guildName = guild.name,
-            vaultInventoryManager = vaultInventoryManager,
-            capacity = capacity
+        // Get or create the SHARED inventory for this guild
+        // All players viewing the same guild vault share this single Inventory instance
+        // This eliminates synchronization issues - Bukkit handles multi-viewer updates natively
+        val sharedInventory = vaultInventoryManager.getOrCreateSharedInventory(
+            guild.id,
+            guild.name,
+            capacity
         )
 
-        // Open the inventory for the player
+        // Open the SHARED inventory for the player
         // The VaultInventoryListener will handle all click events and viewer registration
-        player.openInventory(holder.getInventory())
-        logger.debug("${player.name} opened vault for guild ${guild.name}")
+        player.openInventory(sharedInventory)
+        logger.debug("${player.name} opened shared vault for guild ${guild.name}")
 
         return VaultResult.Success(Unit)
     }

@@ -85,12 +85,13 @@ class BedrockGuildMemberListMenu(
         }
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.members.description")}
+            |§7${bedrockLocalization.getBedrockString(player, "guild.members.description")}
             |
-            |Members: $memberCount ($onlineCount online)
-            |Select a member below to manage them.
+            |§6§l━━━ MEMBERS ━━━
+            |§bMembers§7: §f$memberCount §7(§a$onlineCount §7online)
+            |§7Select a member below to manage them.
             |
-            |Tap on a member to view options.
+            |§7Tap on a member to view options.
         """.trimMargin()
     }
 
@@ -101,7 +102,7 @@ class BedrockGuildMemberListMenu(
 
         val memberTexts = members.take(10).map { m ->
             val playerName = getPlayerName(m)
-            val onlineStatus = if (isPlayerOnline(m)) "[ONLINE]" else "[OFFLINE]"
+            val onlineStatus = if (isPlayerOnline(m)) "§a[ONLINE]" else "§7[OFFLINE]"
             val rank = rankService.getRank(m.rankId)?.name ?: "Unknown"
             "$onlineStatus §f$playerName §7($rank)"
         }
@@ -161,9 +162,9 @@ class BedrockGuildMemberListMenu(
             return
         }
 
-        // TODO: Implement invite player functionality
-        player.sendMessage("§eInvite feature coming soon")
-        navigateBack()
+        // Navigate to invite menu
+        val inviteMenu = BedrockGuildInviteMenu(menuNavigator, player, guild, logger)
+        openMenu(inviteMenu)
     }
 
     private fun handleRefresh() {

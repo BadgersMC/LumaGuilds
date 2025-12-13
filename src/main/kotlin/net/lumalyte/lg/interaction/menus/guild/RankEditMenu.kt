@@ -419,7 +419,11 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         if (!name.matches(Regex("^[a-zA-Z0-9 ]+$"))) {
             return "Name can only contain letters, numbers, and spaces"
         }
-        // TODO: Check if name is unique in guild
+        // Check if name is unique in guild (excluding current rank)
+        val existingRank = rankService.getRankByName(guild.id, name)
+        if (existingRank != null && existingRank.id != rank.id) {
+            return "A rank with this name already exists"
+        }
         return null
     }
 
@@ -441,9 +445,14 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                     player.sendMessage("§7Please try again or type 'cancel' to stop.")
                     // Keep input mode active and reopen menu for retry
                 } else {
-                    // TODO: Update rank name in database
-                    player.sendMessage("§a✅ Rank name updated to: '$input'")
-                    player.sendMessage("§7Changes will be saved when you apply them.")
+                    // Update rank name in database
+                    rank = rank.copy(name = input)
+                    val success = rankService.updateRank(rank)
+                    if (success) {
+                        player.sendMessage("§a✅ Rank name updated to: '$input'")
+                    } else {
+                        player.sendMessage("§c❌ Failed to update rank name")
+                    }
                     inputMode = ""
                 }
             }
@@ -456,9 +465,14 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                     // Keep input mode active and reopen menu for retry
                 } else {
                     selectedIcon = material
-                    // TODO: Update rank icon in database
-                    player.sendMessage("§a✅ Rank icon updated to: ${material.name}")
-                    player.sendMessage("§7Changes will be saved when you apply them.")
+                    // Update rank icon in database
+                    rank = rank.copy(icon = material.name)
+                    val success = rankService.updateRank(rank)
+                    if (success) {
+                        player.sendMessage("§a✅ Rank icon updated to: ${material.name}")
+                    } else {
+                        player.sendMessage("§c❌ Failed to update rank icon")
+                    }
                     inputMode = ""
                 }
             }

@@ -93,11 +93,7 @@ class ProgressionEventListener : Listener, KoinComponent {
                 return
             }
 
-            if (event.block != null) {
-                event.block.setMetadata("player_placed", org.bukkit.metadata.FixedMetadataValue(plugin, true))
-            } else {
-                logger.warn("Block is null in BlockPlaceEvent for player ${event.player.name}")
-            }
+            event.block.setMetadata("player_placed", org.bukkit.metadata.FixedMetadataValue(plugin, true))
 
             awardExperienceWithCooldown(event.player, getConfig().blockPlaceXp, ExperienceSource.BLOCK_PLACE)
         } catch (e: Exception) {
@@ -226,6 +222,13 @@ class ProgressionEventListener : Listener, KoinComponent {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
         try {
+            // Don't award XP for the first member (guild creator)
+            val memberCount = memberService.getGuildMembers(event.guildId).size
+            if (memberCount <= 1) {
+                logger.info("Skipping member join XP for guild ${event.guildId} - first member (guild creator)")
+                return
+            }
+
             val config = configService.loadConfig()
             val memberJoinXp = config.progression.memberJoinedXp
             progressionService.awardExperience(event.guildId, memberJoinXp, ExperienceSource.MEMBER_JOINED)

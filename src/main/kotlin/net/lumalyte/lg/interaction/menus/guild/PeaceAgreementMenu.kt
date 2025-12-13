@@ -36,6 +36,7 @@ class PeaceAgreementMenu(
 
     private val warService: WarService by inject()
     private val guildService: GuildService by inject()
+    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
     private val chatInputListener: ChatInputListener by inject()
 
     // State for input handling
@@ -337,20 +338,25 @@ class PeaceAgreementMenu(
                 player.sendMessage("§7Offering: ${offering.totalValue}")
             }
 
-            // Broadcast to enemy guild
+            // Broadcast to enemy guild members
             val war = warService.getWar(warId)
             if (war != null) {
                 val enemyId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
                 val enemyGuild = guildService.getGuild(enemyId)
 
-                // For now, just send a simple broadcast to all online players
-                // TODO: Implement proper guild member messaging
-                val server = org.bukkit.Bukkit.getServer()
-                server.onlinePlayers.forEach { onlinePlayer ->
-                    onlinePlayer.sendMessage("§6☮ ${guild.name} has proposed peace!")
-                    onlinePlayer.sendMessage("§7Terms: $peaceTerms")
-                    if (offering != null) {
-                        onlinePlayer.sendMessage("§7Offering: ${offering.totalValue}")
+                // Send message to all online members of the enemy guild
+                if (enemyGuild != null) {
+                    val enemyMembers = memberService.getGuildMembers(enemyId)
+                    val server = org.bukkit.Bukkit.getServer()
+                    enemyMembers.forEach { member ->
+                        val onlinePlayer = server.getPlayer(member.playerId)
+                        if (onlinePlayer != null && onlinePlayer.isOnline) {
+                            onlinePlayer.sendMessage("§6☮ ${guild.name} has proposed peace!")
+                            onlinePlayer.sendMessage("§7Terms: $peaceTerms")
+                            if (offering != null) {
+                                onlinePlayer.sendMessage("§7Offering: ${offering.totalValue}")
+                            }
+                        }
                     }
                 }
             }

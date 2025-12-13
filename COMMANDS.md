@@ -125,7 +125,10 @@ LumaGuilds is a comprehensive guild management plugin with party chat, claim man
 | `/lumaguilds download <exportId>` | `lumaguilds.admin` | Download exported data | `/lumaguilds download abc123` |
 | `/lumaguilds exports` | `lumaguilds.admin` | List available exports | `/lumaguilds exports` |
 | `/lumaguilds cancel <exportId>` | `lumaguilds.admin` | Cancel export | `/lumaguilds cancel abc123` |
+| `/lumaguilds override` | `bellclaims.admin` | Toggle admin override mode | `/lumaguilds override` |
 | `/lumaguilds help` | `lumaguilds.admin` | Show admin help | `/lumaguilds help` |
+
+**Admin Override Mode**: When enabled, grants the administrator owner-level permissions in all guild claims, bypassing normal membership and rank checks. Override mode is automatically cleared on logout.
 
 ### Command Aliases
 - `/lumaguilds` - Primary command

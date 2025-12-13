@@ -1,279 +1,282 @@
 package net.lumalyte.lg.infrastructure.services
 
-import dev.mizarc.bellclaims.application.persistence.ClaimRepository
-import dev.mizarc.bellclaims.application.services.ConfigService
-import dev.mizarc.bellclaims.application.services.MemberService
-import dev.mizarc.bellclaims.application.services.RankService
-import dev.mizarc.bellclaims.config.MainConfig
-import dev.mizarc.bellclaims.config.TeamRolePermissions
-import dev.mizarc.bellclaims.domain.entities.Claim
-import dev.mizarc.bellclaims.domain.entities.Member
-import dev.mizarc.bellclaims.domain.entities.Rank
-import dev.mizarc.bellclaims.domain.values.ClaimPermission
-import dev.mizarc.bellclaims.domain.values.Position3D
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import net.lumalyte.lg.application.persistence.ClaimRepository
+import net.lumalyte.lg.application.services.AdminOverrideService
+import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.RankService
+import net.lumalyte.lg.domain.entities.Claim
+import net.lumalyte.lg.domain.entities.Rank
+import net.lumalyte.lg.domain.values.ClaimPermission
+import net.lumalyte.lg.config.MainConfig
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
-import java.time.Instant
 import java.util.UUID
 
 class GuildRolePermissionResolverBukkitTest {
-    
-    private lateinit var guildRolePermissionResolver: GuildRolePermissionResolverBukkit
-    private lateinit var mockMemberService: MemberService
-    private lateinit var mockRankService: RankService
-    private lateinit var mockClaimRepository: ClaimRepository
-    private lateinit var mockConfigService: ConfigService
-    
-    private lateinit var playerId: UUID
-    private lateinit var guildId: UUID
-    private lateinit var claimId: UUID
-    private lateinit var rankId: UUID
-    
+
+    private lateinit var resolver: GuildRolePermissionResolverBukkit
+    private lateinit var memberService: MemberService
+    private lateinit var rankService: RankService
+    private lateinit var claimRepository: ClaimRepository
+    private lateinit var configService: ConfigService
+    private lateinit var adminOverrideService: AdminOverrideService
+
+    private lateinit var testPlayerId: UUID
+    private lateinit var testGuildId: UUID
+    private lateinit var testClaimId: UUID
+    private lateinit var testClaim: Claim
+
     @BeforeEach
     fun setUp() {
-        mockMemberService = mockk<MemberService>()
-        mockRankService = mockk<RankService>()
-        mockClaimRepository = mockk<ClaimRepository>()
-        mockConfigService = mockk<ConfigService>()
-        
-        playerId = UUID.randomUUID()
-        guildId = UUID.randomUUID()
-        claimId = UUID.randomUUID()
-        rankId = UUID.randomUUID()
-        
-        // Setup default config with role mappings
-        val rolePermissions = TeamRolePermissions(
-            roleMappings = mapOf(
-                "Owner" to setOf("BUILD", "HARVEST", "CONTAINER", "VIEW"),
-                "Member" to setOf("VIEW", "HARVEST")
-            ),
-            defaultPermissions = setOf("VIEW")
+        // Create mock services
+        memberService = mockk(relaxed = true)
+        rankService = mockk(relaxed = true)
+        claimRepository = mockk(relaxed = true)
+        configService = mockk(relaxed = true)
+        adminOverrideService = mockk(relaxed = true)
+
+        // Set up test UUIDs
+        testPlayerId = UUID.randomUUID()
+        testGuildId = UUID.randomUUID()
+        testClaimId = UUID.randomUUID()
+
+        // Create test claim owned by guild
+        testClaim = mockk(relaxed = true)
+        every { testClaim.teamId } returns testGuildId
+        every { claimRepository.getById(testClaimId) } returns testClaim
+
+        // Set up default config
+        val mockConfig = MainConfig(
+            teamRolePermissions = net.lumalyte.lg.config.TeamRolePermissions(
+                defaultPermissions = setOf("VIEW"),
+                roleMappings = mapOf(
+                    "member" to setOf("VIEW", "DOOR"),
+                    "officer" to setOf("VIEW", "DOOR", "CONTAINER", "BUILD")
+                )
+            )
         )
-        val config = MainConfig(teamRolePermissions = rolePermissions)
-        every { mockConfigService.loadConfig() } returns config
-        
-        guildRolePermissionResolver = GuildRolePermissionResolverBukkit(
-            mockMemberService,
-            mockRankService,
-            mockClaimRepository,
-            mockConfigService
+        every { configService.loadConfig() } returns mockConfig
+
+        // Create resolver instance
+        resolver = GuildRolePermissionResolverBukkit(
+            memberService = memberService,
+            rankService = rankService,
+            claimRepository = claimRepository,
+            configService = configService,
+            adminOverrideService = adminOverrideService
         )
     }
-    
+
     @Test
-    fun `should return permissions for guild member with valid rank`() {
-        // Given: Player is in guild and has Owner rank
-        val claim = createTestClaim(guildId)
-        val rank = Rank(rankId, guildId, "Owner", 0, emptySet())
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(guildId)
-        every { mockRankService.getPlayerRank(playerId, guildId) } returns rank
-        
-        // When
-        val permissions = guildRolePermissionResolver.getPermissions(playerId, claimId)
-        
-        // Then
-        assertEquals(setOf(ClaimPermission.BUILD, ClaimPermission.HARVEST, ClaimPermission.CONTAINER, ClaimPermission.VIEW), permissions)
+    fun `admin override should grant all permissions`() {
+        // Given: Player has admin override enabled
+        every { adminOverrideService.hasOverride(testPlayerId) } returns true
+
+        // When: Check all permissions
+        val allPermissions = ClaimPermission.entries.toSet()
+        val grantedPermissions = resolver.getPermissions(testPlayerId, testClaimId)
+
+        // Then: Should have all permissions
+        assertEquals(allPermissions, grantedPermissions)
+
+        // Verify each individual permission
+        ClaimPermission.entries.forEach { permission ->
+            assertTrue(
+                resolver.hasPermission(testPlayerId, testClaimId, permission),
+                "Should have permission: $permission"
+            )
+        }
     }
-    
+
     @Test
-    fun `should return true for hasPermission when player has the permission`() {
-        // Given: Player is in guild with permissions that include BUILD
-        val claim = createTestClaim(guildId)
-        val rank = Rank(rankId, guildId, "Owner", 0, emptySet())
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(guildId)
-        every { mockRankService.getPlayerRank(playerId, guildId) } returns rank
-        
-        // When
-        val hasPermission = guildRolePermissionResolver.hasPermission(playerId, claimId, ClaimPermission.BUILD)
-        
-        // Then
-        assertTrue(hasPermission)
+    fun `admin override should bypass guild membership check`() {
+        // Given: Player has admin override enabled but is NOT in the guild
+        every { adminOverrideService.hasOverride(testPlayerId) } returns true
+        every { memberService.getPlayerGuilds(testPlayerId) } returns emptySet()
+
+        // When: Get permissions
+        val permissions = resolver.getPermissions(testPlayerId, testClaimId)
+
+        // Then: Should still have all permissions despite not being a member
+        assertEquals(ClaimPermission.entries.toSet(), permissions)
+
+        // Verify membership service was NOT called (override bypassed check)
+        verify(exactly = 0) { memberService.getPlayerGuilds(testPlayerId) }
     }
-    
+
     @Test
-    fun `should return false for hasPermission when player does not have the permission`() {
-        // Given: Player is in guild with Member rank (no BUILD permission)
-        val claim = createTestClaim(guildId)
-        val rank = Rank(rankId, guildId, "Member", 0, emptySet())
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(guildId)
-        every { mockRankService.getPlayerRank(playerId, guildId) } returns rank
-        
-        // When
-        val hasPermission = guildRolePermissionResolver.hasPermission(playerId, claimId, ClaimPermission.BUILD)
-        
-        // Then
-        assertFalse(hasPermission)
+    fun `admin override should be checked before normal permission logic`() {
+        // Given: Player has admin override enabled
+        every { adminOverrideService.hasOverride(testPlayerId) } returns true
+
+        // When: Get permissions
+        resolver.getPermissions(testPlayerId, testClaimId)
+
+        // Then: Should check override first and skip other service calls
+        verify(exactly = 1) { adminOverrideService.hasOverride(testPlayerId) }
+        verify(exactly = 0) { memberService.getPlayerGuilds(any()) }
+        verify(exactly = 0) { rankService.getPlayerRank(any(), any()) }
     }
-    
+
     @Test
-    fun `should return empty permissions when player is not in guild that owns claim`() {
-        // Given: Player is not in the guild that owns the claim
-        val claim = createTestClaim(guildId)
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(UUID.randomUUID()) // Different guild
-        
-        // When
-        val permissions = guildRolePermissionResolver.getPermissions(playerId, claimId)
-        
-        // Then
+    fun `hasPermission should return true for all permissions when override enabled`() {
+        // Given: Player has admin override enabled
+        every { adminOverrideService.hasOverride(testPlayerId) } returns true
+
+        // Then: All permissions should return true
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.BUILD))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.CONTAINER))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.REDSTONE))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.DETONATE))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.HARVEST))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.DISPLAY))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.VEHICLE))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.SIGN))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.DOOR))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.TRADE))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.HUSBANDRY))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.EVENT))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.SLEEP))
+        assertTrue(resolver.hasPermission(testPlayerId, testClaimId, ClaimPermission.VIEW))
+    }
+
+    @Test
+    fun `normal permission resolution when override disabled`() {
+        // Given: Player does NOT have override but is a guild member
+        every { adminOverrideService.hasOverride(testPlayerId) } returns false
+        every { memberService.getPlayerGuilds(testPlayerId) } returns setOf(testGuildId)
+
+        val mockRank = mockk<Rank>(relaxed = true)
+        every { mockRank.name } returns "member"
+        every { rankService.getPlayerRank(testPlayerId, testGuildId) } returns mockRank
+
+        // When: Get permissions
+        val permissions = resolver.getPermissions(testPlayerId, testClaimId)
+
+        // Then: Should get normal permissions based on rank (VIEW, DOOR from config)
+        assertEquals(setOf(ClaimPermission.VIEW, ClaimPermission.DOOR), permissions)
+
+        // Verify normal service calls were made
+        verify(exactly = 1) { memberService.getPlayerGuilds(testPlayerId) }
+        verify(exactly = 1) { rankService.getPlayerRank(testPlayerId, testGuildId) }
+    }
+
+    @Test
+    fun `non-member without override should have no permissions`() {
+        // Given: Player does NOT have override and is NOT in guild
+        every { adminOverrideService.hasOverride(testPlayerId) } returns false
+        every { memberService.getPlayerGuilds(testPlayerId) } returns emptySet()
+
+        // When: Get permissions
+        val permissions = resolver.getPermissions(testPlayerId, testClaimId)
+
+        // Then: Should have no permissions
         assertTrue(permissions.isEmpty())
+
+        // Verify rank service was NOT called (not a member)
+        verify(exactly = 0) { rankService.getPlayerRank(any(), any()) }
     }
-    
+
     @Test
-    fun `should return empty permissions when claim is not owned by a guild`() {
-        // Given: Claim is owned by a player, not a guild
-        val claim = createTestClaim(null) // No team ownership
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        
-        // When
-        val permissions = guildRolePermissionResolver.getPermissions(playerId, claimId)
-        
-        // Then
-        assertTrue(permissions.isEmpty())
+    fun `cache should properly reflect override state`() {
+        // Given: Player initially does NOT have override
+        every { adminOverrideService.hasOverride(testPlayerId) } returns false
+        every { memberService.getPlayerGuilds(testPlayerId) } returns setOf(testGuildId)
+
+        val mockRank = mockk<Rank>(relaxed = true)
+        every { mockRank.name } returns "member"
+        every { rankService.getPlayerRank(testPlayerId, testGuildId) } returns mockRank
+
+        // When: Get permissions (should cache result)
+        val permissions1 = resolver.getPermissions(testPlayerId, testClaimId)
+        assertEquals(setOf(ClaimPermission.VIEW, ClaimPermission.DOOR), permissions1)
+
+        // When: Enable override and invalidate cache
+        every { adminOverrideService.hasOverride(testPlayerId) } returns true
+        resolver.invalidatePlayerCache(testPlayerId)
+
+        // When: Get permissions again (should get new result)
+        val permissions2 = resolver.getPermissions(testPlayerId, testClaimId)
+
+        // Then: Should now have all permissions
+        assertEquals(ClaimPermission.entries.toSet(), permissions2)
     }
-    
+
     @Test
-    fun `should return default permissions when player has no rank in guild`() {
-        // Given: Player is in guild but has no rank
-        val claim = createTestClaim(guildId)
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(guildId)
-        every { mockRankService.getPlayerRank(playerId, guildId) } returns null
-        
-        // When
-        val permissions = guildRolePermissionResolver.getPermissions(playerId, claimId)
-        
-        // Then
-        assertEquals(setOf(ClaimPermission.VIEW), permissions)
+    fun `admin override should work for claims not owned by guilds`() {
+        // Given: Claim is NOT owned by a guild (teamId is null)
+        val nonGuildClaim = mockk<Claim>(relaxed = true)
+        every { nonGuildClaim.teamId } returns null
+        every { claimRepository.getById(testClaimId) } returns nonGuildClaim
+
+        // Given: Player has admin override enabled
+        every { adminOverrideService.hasOverride(testPlayerId) } returns true
+
+        // When: Get permissions
+        val permissions = resolver.getPermissions(testPlayerId, testClaimId)
+
+        // Then: Should still have all permissions due to override
+        assertEquals(ClaimPermission.entries.toSet(), permissions)
     }
-    
+
     @Test
-    fun `should return default permissions when rank is not in config`() {
-        // Given: Player has a rank not configured in role mappings
-        val claim = createTestClaim(guildId)
-        val rank = Rank(rankId, guildId, "UnknownRank", 0, emptySet())
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(guildId)
-        every { mockRankService.getPlayerRank(playerId, guildId) } returns rank
-        
-        // When
-        val permissions = guildRolePermissionResolver.getPermissions(playerId, claimId)
-        
-        // Then
-        assertEquals(setOf(ClaimPermission.VIEW), permissions)
+    fun `multiple calls with override should return consistent results`() {
+        // Given: Player has admin override enabled
+        every { adminOverrideService.hasOverride(testPlayerId) } returns true
+
+        // When: Call getPermissions multiple times
+        val result1 = resolver.getPermissions(testPlayerId, testClaimId)
+        val result2 = resolver.getPermissions(testPlayerId, testClaimId)
+        val result3 = resolver.getPermissions(testPlayerId, testClaimId)
+
+        // Then: All results should be identical
+        assertEquals(result1, result2)
+        assertEquals(result2, result3)
+        assertEquals(ClaimPermission.entries.toSet(), result1)
     }
-    
+
     @Test
-    fun `should cache permissions and not call services again`() {
-        // Given: First call to get permissions
-        val claim = createTestClaim(guildId)
-        val rank = Rank(rankId, guildId, "Owner", 0, emptySet())
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(guildId)
-        every { mockRankService.getPlayerRank(playerId, guildId) } returns rank
-        
-        // When: Call twice
-        guildRolePermissionResolver.getPermissions(playerId, claimId)
-        val secondCallPermissions = guildRolePermissionResolver.getPermissions(playerId, claimId)
-        
-        // Then: Services should only be called once due to caching
-        verify(exactly = 1) { mockClaimRepository.getById(claimId) }
-        verify(exactly = 1) { mockMemberService.getPlayerGuilds(playerId) }
-        verify(exactly = 1) { mockRankService.getPlayerRank(playerId, guildId) }
-        
-        assertEquals(setOf(ClaimPermission.BUILD, ClaimPermission.HARVEST, ClaimPermission.CONTAINER, ClaimPermission.VIEW), secondCallPermissions)
+    fun `override check should handle different players independently`() {
+        val player1 = UUID.randomUUID()
+        val player2 = UUID.randomUUID()
+
+        // Given: Only player1 has override enabled
+        every { adminOverrideService.hasOverride(player1) } returns true
+        every { adminOverrideService.hasOverride(player2) } returns false
+        every { memberService.getPlayerGuilds(player2) } returns emptySet()
+
+        // When: Get permissions for both players
+        val permissions1 = resolver.getPermissions(player1, testClaimId)
+        val permissions2 = resolver.getPermissions(player2, testClaimId)
+
+        // Then: Player1 should have all permissions, player2 should have none
+        assertEquals(ClaimPermission.entries.toSet(), permissions1)
+        assertTrue(permissions2.isEmpty())
     }
-    
+
     @Test
-    fun `should invalidate player cache correctly`() {
-        // Given: Cached permissions for player
-        val claim = createTestClaim(guildId)
-        val rank = Rank(rankId, guildId, "Owner", 0, emptySet())
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(guildId)
-        every { mockRankService.getPlayerRank(playerId, guildId) } returns rank
-        
-        // First call to cache permissions
-        guildRolePermissionResolver.getPermissions(playerId, claimId)
-        
-        // When: Invalidate cache
-        guildRolePermissionResolver.invalidatePlayerCache(playerId)
-        
-        // Then: Second call should hit services again
-        guildRolePermissionResolver.getPermissions(playerId, claimId)
-        verify(exactly = 2) { mockClaimRepository.getById(claimId) }
-    }
-    
-    @Test
-    fun `should invalidate guild cache correctly`() {
-        // Given: Player in guild with cached permissions
-        val claim = createTestClaim(guildId)
-        val rank = Rank(rankId, guildId, "Owner", 0, emptySet())
-        val member = Member(playerId, guildId, rankId, Instant.now())
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(guildId)
-        every { mockRankService.getPlayerRank(playerId, guildId) } returns rank
-        every { mockMemberService.getGuildMembers(guildId) } returns setOf(member)
-        
-        // Cache permissions
-        guildRolePermissionResolver.getPermissions(playerId, claimId)
-        
-        // When: Invalidate guild cache
-        guildRolePermissionResolver.invalidateGuildCache(guildId)
-        
-        // Then: Should fetch guild members and invalidate their caches
-        verify(exactly = 1) { mockMemberService.getGuildMembers(guildId) }
-    }
-    
-    @Test
-    fun `should clear all cache correctly`() {
-        // Given: Some cached permissions
-        val claim = createTestClaim(guildId)
-        val rank = Rank(rankId, guildId, "Owner", 0, emptySet())
-        
-        every { mockClaimRepository.getById(claimId) } returns claim
-        every { mockMemberService.getPlayerGuilds(playerId) } returns setOf(guildId)
-        every { mockRankService.getPlayerRank(playerId, guildId) } returns rank
-        
-        // Cache permissions
-        guildRolePermissionResolver.getPermissions(playerId, claimId)
-        
-        // When: Clear all cache
-        guildRolePermissionResolver.clearCache()
-        
-        // Then: Next call should hit services again
-        guildRolePermissionResolver.getPermissions(playerId, claimId)
-        verify(exactly = 2) { mockClaimRepository.getById(claimId) }
-    }
-    
-    private fun createTestClaim(teamId: UUID?): Claim {
-        return Claim(
-            claimId,
-            UUID.randomUUID(), // worldId
-            playerId,
-            teamId,
-            Instant.now(),
-            "TestClaim",
-            "Test Description",
-            Position3D(0, 64, 0),
-            "GRASS_BLOCK"
-        )
+    fun `officer rank with override should still get all permissions`() {
+        // Given: Player has override AND is an officer (should get all permissions, not just officer perms)
+        every { adminOverrideService.hasOverride(testPlayerId) } returns true
+        every { memberService.getPlayerGuilds(testPlayerId) } returns setOf(testGuildId)
+
+        val mockRank = mockk<Rank>(relaxed = true)
+        every { mockRank.name } returns "officer"
+        every { rankService.getPlayerRank(testPlayerId, testGuildId) } returns mockRank
+
+        // When: Get permissions
+        val permissions = resolver.getPermissions(testPlayerId, testClaimId)
+
+        // Then: Should have ALL permissions (not just officer permissions)
+        assertEquals(ClaimPermission.entries.toSet(), permissions)
+
+        // Verify override was checked and rank service was NOT called (override bypassed it)
+        verify(exactly = 1) { adminOverrideService.hasOverride(testPlayerId) }
+        verify(exactly = 0) { rankService.getPlayerRank(any(), any()) }
     }
 }

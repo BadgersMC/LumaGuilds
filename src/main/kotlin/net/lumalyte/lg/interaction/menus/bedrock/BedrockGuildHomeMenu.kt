@@ -65,11 +65,14 @@ class BedrockGuildHomeMenu(
     }
 
     private fun buildHomeContent(maxHomes: Int, availableSlots: Int): String {
+        val slotsColor = if (availableSlots > 0) "§a" else "§c"
+
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.home.description")}
+            |§7${bedrockLocalization.getBedrockString(player, "guild.home.description")}
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.home.max.homes")}: $maxHomes
-            |${bedrockLocalization.getBedrockString(player, "guild.home.available.slots")}: $availableSlots
+            |§6§l━━━ HOME SLOTS ━━━
+            |§b${bedrockLocalization.getBedrockString(player, "guild.home.max.homes")}§7: §f$maxHomes
+            |§e${bedrockLocalization.getBedrockString(player, "guild.home.available.slots")}§7: $slotsColor$availableSlots
         """.trimMargin()
     }
 
@@ -82,35 +85,47 @@ class BedrockGuildHomeMenu(
     private fun handleHomeSelection(buttonIndex: Int, homes: net.lumalyte.lg.domain.entities.GuildHomes, maxHomes: Int, availableSlots: Int) {
         val homeNames = homes.homeNames.toList()
         val totalHomes = homeNames.size
+        var currentIndex = 0
 
-        when {
-            // Teleport to existing home
-            buttonIndex < totalHomes -> {
-                val homeName = homeNames[buttonIndex]
-                val home = homes.getHome(homeName)
-                if (home != null) {
-                    teleportToHome(home)
-                }
+        // Teleport to existing home
+        if (buttonIndex < totalHomes) {
+            val homeName = homeNames[buttonIndex]
+            val home = homes.getHome(homeName)
+            if (home != null) {
+                teleportToHome(home)
             }
+            return
+        }
 
-            // No homes set
-            totalHomes == 0 && buttonIndex == 0 -> {
-                bedrockNavigator.goBack()
-            }
+        currentIndex = totalHomes
 
-            // Set new home (if user has permission and slots available)
-            canManageHomes() && availableSlots > 0 && buttonIndex == totalHomes -> {
-                showSetHomeMenu()
-            }
-
-            // Remove home (if user has permission and homes exist)
-            canManageHomes() && homes.hasHomes() && (
-                (availableSlots > 0 && buttonIndex == totalHomes + 1) ||
-                (availableSlots <= 0 && buttonIndex == totalHomes)
-            ) -> {
-                showRemoveHomeMenu(homes)
+        // No homes placeholder button
+        if (totalHomes == 0) {
+            if (buttonIndex == currentIndex) {
+                // This is the "No homes set" placeholder button, skip it
+                currentIndex++
             }
         }
+
+        // Set new home button
+        if (canManageHomes() && availableSlots > 0) {
+            if (buttonIndex == currentIndex) {
+                showSetHomeMenu()
+                return
+            }
+            currentIndex++
+        }
+
+        // Remove home button
+        if (canManageHomes() && homes.hasHomes()) {
+            if (buttonIndex == currentIndex) {
+                showRemoveHomeMenu(homes)
+                return
+            }
+        }
+
+        // Default: go back
+        bedrockNavigator.goBack()
     }
 
     private fun teleportToHome(home: GuildHome) {
@@ -142,8 +157,9 @@ class BedrockGuildHomeMenu(
     }
 
     private fun showSetHomeMenu() {
-        // For simplicity, we'll set a home with a default name based on current location
-        val homeName = "home${guild.homes.size + 1}"
+        // Get current homes to generate proper name
+        val homes = guildService.getHomes(guild.id)
+        val homeName = "home${homes.size + 1}"
         val currentLocation = player.location
 
         val home = GuildHome(

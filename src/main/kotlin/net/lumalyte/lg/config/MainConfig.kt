@@ -184,6 +184,11 @@ data class VaultConfig(
     // Physical Currency War Costs (in item amounts)
     var physicalDailyWarCost: Int = 10,        // Daily cost to maintain war (10 RAW_GOLD)
     var physicalWarDeclarationCost: Int = 100, // Cost to declare war (100 RAW_GOLD)
+
+    // Compressable blocks - Define materials that can be compressed/uncompressed
+    // Format: "COMPRESSED_MATERIAL:BASE_MATERIAL:RATIO"
+    // Example: "RAW_GOLD_BLOCK:RAW_GOLD:9" means 1 RAW_GOLD_BLOCK counts as 9 RAW_GOLD
+    var compressableBlocks: List<String> = listOf("RAW_GOLD_BLOCK:RAW_GOLD:9")
 )
 
 data class CombatConfig(

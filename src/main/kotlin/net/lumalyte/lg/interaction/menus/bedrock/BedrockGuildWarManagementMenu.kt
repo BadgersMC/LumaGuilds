@@ -1,8 +1,11 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
@@ -28,6 +31,8 @@ class BedrockGuildWarManagementMenu(
 
     private val warService: WarService by inject()
     private val guildService: GuildService by inject()
+    private val bankService: BankService by inject()
+    private val memberService: MemberService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -556,10 +561,33 @@ class BedrockGuildWarManagementMenu(
 
     private fun openDeclarationActionMenu(declaration: Any, isIncoming: Boolean) {
         val config = getBedrockConfig()
+        val warDeclaration = declaration as net.lumalyte.lg.domain.entities.WarDeclaration
+
+        val contentBuilder = StringBuilder()
+        contentBuilder.append(bedrockLocalization.getBedrockString(player, "guild.war.management.declaration.action.description"))
+        contentBuilder.append("\n\n")
+        contentBuilder.append("§7Duration: §f${warDeclaration.proposedDuration.toDays()} days\n")
+        contentBuilder.append("§7Objectives: §f${warDeclaration.objectives.size}\n")
+
+        if (warDeclaration.wagerAmount > 0) {
+            contentBuilder.append("\n${bedrockLocalization.getBedrockString(player, "guild.war.wager.info.header")}\n")
+            contentBuilder.append(bedrockLocalization.getBedrockString(player, "guild.war.wager.info.amount", warDeclaration.wagerAmount) + "\n")
+            if (isIncoming) {
+                contentBuilder.append(bedrockLocalization.getBedrockString(player, "guild.war.wager.info.must.match", warDeclaration.wagerAmount) + "\n")
+                contentBuilder.append(bedrockLocalization.getBedrockString(player, "guild.war.wager.info.total.pot", warDeclaration.wagerAmount * 2) + "\n")
+                contentBuilder.append(bedrockLocalization.getBedrockString(player, "guild.war.wager.info.winner.takes.all") + "\n")
+            } else {
+                contentBuilder.append(bedrockLocalization.getBedrockString(player, "guild.war.wager.info.awaiting.match") + "\n")
+            }
+        }
+
+        if (warDeclaration.terms != null) {
+            contentBuilder.append("\n§7Terms: §f${warDeclaration.terms}\n")
+        }
 
         val form = SimpleForm.builder()
             .title(if (isIncoming) bedrockLocalization.getBedrockString(player, "guild.war.management.declaration.action.incoming") else bedrockLocalization.getBedrockString(player, "guild.war.management.declaration.action.outgoing"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.war.management.declaration.action.description"))
+            .content(contentBuilder.toString())
 
         if (isIncoming) {
             form.addButtonWithImage(
@@ -596,13 +624,7 @@ class BedrockGuildWarManagementMenu(
                 when {
                     isIncoming && clickedButton == 0 -> {
                         // Accept declaration
-                        val success = warService.acceptWarDeclaration((declaration as net.lumalyte.lg.domain.entities.WarDeclaration).id, player.uniqueId)
-                        if (success != null) {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.management.declaration.accepted"))
-                        } else {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.management.declaration.failed"))
-                        }
-                        openWarDeclarationsMenu()
+                        acceptWarDeclaration(declaration as net.lumalyte.lg.domain.entities.WarDeclaration)
                     }
                     isIncoming && clickedButton == 1 -> {
                         // Reject declaration
@@ -641,6 +663,85 @@ class BedrockGuildWarManagementMenu(
                 onFormResponseReceived()
             }
         })
+    }
+
+    private fun acceptWarDeclaration(warDeclaration: net.lumalyte.lg.domain.entities.WarDeclaration) {
+        try {
+            // Handle wager matching if there's a wager
+            if (warDeclaration.wagerAmount > 0) {
+                // Refresh guild data to get current bank balance
+                val currentGuild = guildService.getGuild(guild.id)
+                if (currentGuild == null) {
+                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.error.load.guild"))
+                    openWarDeclarationsMenu()
+                    return
+                }
+
+                // Check if guild has sufficient funds to match wager
+                val guildBalance = bankService.getBalance(currentGuild.id)
+                if (guildBalance < warDeclaration.wagerAmount) {
+                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.error.match.wager"))
+                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.need.amount", warDeclaration.wagerAmount))
+                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.have.amount", guildBalance))
+                    openWarDeclarationsMenu()
+                    return
+                }
+
+                // Check withdraw permissions
+                if (!memberService.hasPermission(player.uniqueId, currentGuild.id, RankPermission.WITHDRAW_FROM_BANK)) {
+                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.no.permission"))
+                    openWarDeclarationsMenu()
+                    return
+                }
+
+                // Get declaring guild info for description
+                val declaringGuild = guildService.getGuild(warDeclaration.declaringGuildId)
+                val declaringGuildName = declaringGuild?.name ?: "Unknown"
+
+                // Withdraw matching wager amount from defending guild's bank
+                val withdrawal = bankService.withdraw(
+                    guildId = currentGuild.id,
+                    playerId = player.uniqueId,
+                    amount = warDeclaration.wagerAmount,
+                    description = "War wager match vs $declaringGuildName"
+                )
+
+                if (withdrawal == null) {
+                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.failed.withdraw"))
+                    openWarDeclarationsMenu()
+                    return
+                }
+            }
+
+            val war = warService.acceptWarDeclaration(warDeclaration.id, player.uniqueId)
+            if (war != null) {
+                // Create wager if both guilds put up funds
+                if (warDeclaration.wagerAmount > 0) {
+                    val wager = warService.createWager(
+                        warId = war.id,
+                        declaringGuildWager = warDeclaration.wagerAmount,
+                        defendingGuildWager = warDeclaration.wagerAmount
+                    )
+
+                    if (wager != null) {
+                        player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.accepted"))
+                        player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.pot.total", wager.totalPot))
+                    } else {
+                        player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.accepted"))
+                        player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.escrow.failed"))
+                    }
+                } else {
+                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.management.declaration.accepted"))
+                }
+            } else {
+                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.management.declaration.failed"))
+            }
+            openWarDeclarationsMenu()
+        } catch (e: Exception) {
+            // Menu operation - catching all exceptions to prevent UI failure
+            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.error.accepting", e.message ?: "Unknown error"))
+            openWarDeclarationsMenu()
+        }
     }
 
     override fun handleResponse(player: Player, response: Any?) {

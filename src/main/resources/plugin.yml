@@ -34,6 +34,10 @@ commands:
     description: View Bedrock form cache statistics
     usage: /bedrockcachestats [stats|clear|help]
     permission: lumaguilds.bedrock.cache.stats
+  vaultrollback:
+    description: List and restore vault backups
+    usage: /vaultrollback <list|restore> <guild> [backupId]
+    permission: lumaguilds.admin.vault.rollback
 
 permissions:
   # Guild Management Permissions
@@ -187,7 +191,13 @@ permissions:
 
   # Administrative Permissions
   lumaguilds.admin:
-    description: Administrative access to LumaGuilds
+    description: Administrative access to LumaGuilds (includes override command)
+    default: op
+    children:
+      bellclaims.admin: true
+
+  bellclaims.admin:
+    description: Allows access to admin commands including guild override mode
     default: op
 
   # Bedrock Cache Permissions
@@ -196,4 +206,9 @@ permissions:
     default: op
   lumaguilds.bedrock.cache.clear:
     description: Clear Bedrock form cache
+    default: op
+
+  # Vault Rollback Permissions
+  lumaguilds.admin.vault.rollback:
+    description: List and restore vault backups
     default: op

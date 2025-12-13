@@ -38,7 +38,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     private var rankName: String = ""
     private var rankPriority: Int = 100 // Default low priority
     private var selectedPermissions: MutableSet<RankPermission> = mutableSetOf()
-    private var rankIcon: Material = Material.AIR // Default icon (TODO: Load from rank entity when icon field is added)
+    private var rankIcon: Material = Material.AIR // Default icon
     private var inputMode: String = "" // "name" or "icon"
 
     override fun open() {
@@ -467,7 +467,11 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         if (!name.matches(Regex("^[a-zA-Z0-9 ]+$"))) {
             return "Name can only contain letters, numbers, and spaces"
         }
-        // TODO: Check if name is unique in guild
+        // Check if name is unique in guild
+        val existingRank = rankService.getRankByName(guild.id, name)
+        if (existingRank != null) {
+            return "A rank with this name already exists"
+        }
         return null
     }
 

@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.ClaimRepository
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
 import net.lumalyte.lg.application.services.MemberService
@@ -15,12 +16,15 @@ import java.util.concurrent.TimeUnit
 /**
  * Bukkit implementation of GuildRolePermissionResolver that maps guild ranks to claim permissions.
  * Uses caching for performance and integrates with the config system for role-to-permission mappings.
+ *
+ * Supports admin override mode where administrators can bypass guild membership and permission checks.
  */
 class GuildRolePermissionResolverBukkit(
     private val memberService: MemberService,
     private val rankService: RankService,
     private val claimRepository: ClaimRepository,
-    private val configService: ConfigService
+    private val configService: ConfigService,
+    private val adminOverrideService: AdminOverrideService
 ) : GuildRolePermissionResolver {
     
     private val logger = LoggerFactory.getLogger(GuildRolePermissionResolverBukkit::class.java)
@@ -75,12 +79,18 @@ class GuildRolePermissionResolverBukkit(
     
     private fun computePermissions(playerId: UUID, claimId: UUID): Set<ClaimPermission> {
         try {
+            // Check admin override first - if enabled, grant all permissions immediately
+            if (adminOverrideService.hasOverride(playerId)) {
+                logger.debug("Player $playerId has admin override enabled - granting all permissions")
+                return ClaimPermission.entries.toSet()
+            }
+
             // Get the claim to check if it has guild ownership
             val claim = claimRepository.getById(claimId) ?: return emptySet()
-            
+
             // If claim is not owned by a guild, no guild permissions apply
             val guildId = claim.teamId ?: return emptySet()
-            
+
             // Check if player is a member of the guild that owns the claim
             if (!isPlayerInGuild(playerId, guildId)) {
                 return emptySet()

@@ -55,7 +55,7 @@ class BedrockGuildStatisticsMenu(
     }
 
     private fun createSectionHeader(title: String): String {
-        return "§e§l$title"
+        return "§6§l━━━ $title §r§6━━━"
     }
 
     private fun createOverviewSection(): String {
@@ -71,27 +71,27 @@ class BedrockGuildStatisticsMenu(
             }
         }
 
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val createdDate = formatter.format(guild.createdAt)
+        val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+        val createdDate = formatter.format(guild.createdAt.atZone(java.time.ZoneId.systemDefault()))
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.members.total")}: $totalMembers
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.members.online")}: $onlineMembers
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.created.date")}: $createdDate
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.level")}: 1
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.experience")}: 0/800
+            |§b${bedrockLocalization.getBedrockString(player, "guild.statistics.members.total")}§7: §f$totalMembers
+            |§a${bedrockLocalization.getBedrockString(player, "guild.statistics.members.online")}§7: §f$onlineMembers
+            |§e${bedrockLocalization.getBedrockString(player, "guild.statistics.created.date")}§7: §f$createdDate
+            |§d${bedrockLocalization.getBedrockString(player, "guild.statistics.level")}§7: §f1
+            |§3${bedrockLocalization.getBedrockString(player, "guild.statistics.experience")}§7: §f0/800
         """.trimMargin()
     }
 
     private fun createActivitySection(): String {
         val members = memberService.getGuildMembers(guild.id)
         val lastActivity = members.maxOfOrNull { it.joinedAt } ?: guild.createdAt
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")
         val lastSeen = formatter.format(lastActivity)
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.activity.recent")}: Active
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.activity.last.seen")}: $lastSeen
+            |§a${bedrockLocalization.getBedrockString(player, "guild.statistics.activity.recent")}§7: §fActive
+            |§e${bedrockLocalization.getBedrockString(player, "guild.statistics.activity.last.seen")}§7: §f$lastSeen
         """.trimMargin()
     }
 
@@ -102,9 +102,9 @@ class BedrockGuildStatisticsMenu(
         val averageTransaction = 0.0
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.economy.balance")}: $balance coins
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.economy.transactions")}: $totalTransactions
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.economy.average")}: $averageTransaction coins
+            |§6${bedrockLocalization.getBedrockString(player, "guild.statistics.economy.balance")}§7: §e$balance §7coins
+            |§b${bedrockLocalization.getBedrockString(player, "guild.statistics.economy.transactions")}§7: §f$totalTransactions
+            |§3${bedrockLocalization.getBedrockString(player, "guild.statistics.economy.average")}§7: §f$averageTransaction §7coins
         """.trimMargin()
     }
 
@@ -115,9 +115,9 @@ class BedrockGuildStatisticsMenu(
         val powerLevel = 1
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.territory.claims")}: $totalClaims
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.territory.area")}: ${controlledArea} blocks
-            |${bedrockLocalization.getBedrockString(player, "guild.statistics.territory.power")}: $powerLevel
+            |§d${bedrockLocalization.getBedrockString(player, "guild.statistics.territory.claims")}§7: §f$totalClaims
+            |§5${bedrockLocalization.getBedrockString(player, "guild.statistics.territory.area")}§7: §f${controlledArea} §7blocks
+            |§c${bedrockLocalization.getBedrockString(player, "guild.statistics.territory.power")}§7: §f$powerLevel
         """.trimMargin()
     }
 

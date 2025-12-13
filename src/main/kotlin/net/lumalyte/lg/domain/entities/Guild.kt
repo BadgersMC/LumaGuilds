@@ -22,6 +22,8 @@ import java.util.UUID
  * @property vaultChestLocation The location of the physical guild vault chest.
  * @property vaultStatus The status of the guild vault.
  * @property isOpen Whether the guild is open for anyone to join (true) or invite-only (false).
+ * @property joinFeeEnabled Whether the guild requires a join fee for players joining via LFG.
+ * @property joinFeeAmount The amount of currency required to join this guild via LFG (0 if no fee).
  */
 data class Guild(
     val id: UUID,
@@ -39,13 +41,16 @@ data class Guild(
     val vaultChestLocation: GuildVaultLocation? = null,
     val vaultStatus: VaultStatus = VaultStatus.NEVER_PLACED,
     val vaultLocked: Boolean = false,
-    val isOpen: Boolean = false
+    val isOpen: Boolean = false,
+    val joinFeeEnabled: Boolean = false,
+    val joinFeeAmount: Int = 0
 ) {
     init {
         require(name.length in 1..32) { "Guild name must be between 1 and 32 characters." }
         require(level > 0) { "Guild level must be positive." }
         require(bankBalance >= 0) { "Guild bank balance cannot be negative." }
-        
+        require(joinFeeAmount >= 0) { "Join fee amount cannot be negative." }
+
         // Validate emoji format if provided (should be Nexo placeholder format like ":emojiname:")
         emoji?.let { emojiValue ->
             require(emojiValue.startsWith(":") && emojiValue.endsWith(":") && emojiValue.length > 2) {

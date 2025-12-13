@@ -10,12 +10,14 @@ import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.application.services.ExperienceSource
 import net.lumalyte.lg.application.services.PerkType
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
 class ProgressionRepositorySQLite(private val storage: Storage<Database>) : ProgressionRepository {
 
+    private val logger = LoggerFactory.getLogger(ProgressionRepositorySQLite::class.java)
     private val guildProgressions: MutableMap<UUID, GuildProgression> = mutableMapOf()
     private val activityMetrics: MutableMap<UUID, GuildActivityMetrics> = mutableMapOf()
 
@@ -70,7 +72,7 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
                 bank_deposits_this_week INTEGER NOT NULL DEFAULT 0,
                 relations_formed INTEGER NOT NULL DEFAULT 0,
                 wars_participated INTEGER NOT NULL DEFAULT 0,
-                last_calculated INTEGER NOT NULL
+                last_updated TEXT NOT NULL
             )
         """.trimIndent()
 
@@ -143,7 +145,7 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             SELECT guild_id, member_count, active_members, claims_owned,
                    claims_created_this_week, kills_this_week, deaths_this_week,
                    bank_deposits_this_week, relations_formed, wars_participated,
-                   last_calculated
+                   last_updated
             FROM guild_activity_metrics
         """.trimIndent()
 
@@ -158,6 +160,26 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
         }
     }
 
+    /**
+     * Parses timestamp from database, handling both ISO-8601 format and legacy epoch milliseconds.
+     * This ensures backward compatibility with existing data.
+     */
+    private fun parseTimestamp(value: String): Instant {
+        return try {
+            // Try parsing as ISO-8601 first (new format)
+            Instant.parse(value)
+        } catch (e: Exception) {
+            try {
+                // Fallback to epoch milliseconds (legacy format)
+                Instant.ofEpochMilli(value.toLong())
+            } catch (e2: Exception) {
+                // If both fail, log error and return current time
+                logger.error("Failed to parse timestamp '$value': ${e.message} / ${e2.message}")
+                Instant.now()
+            }
+        }
+    }
+
     private fun mapResultSetToGuildProgression(rs: co.aikar.idb.DbRow): GuildProgression {
         val unlockedPerksJson = rs.getString("unlocked_perks")
         val unlockedPerks = parseUnlockedPerks(unlockedPerksJson)
@@ -168,11 +190,11 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             currentLevel = rs.getInt("current_level"),
             experienceThisLevel = rs.getInt("experience_this_level"),
             experienceForNextLevel = rs.getInt("experience_for_next_level"),
-            lastLevelUp = rs.getLong("last_level_up")?.let { Instant.ofEpochMilli(it) },
+            lastLevelUp = rs.getString("last_level_up")?.let { parseTimestamp(it) },
             totalLevelUps = rs.getInt("total_level_ups"),
             unlockedPerks = unlockedPerks,
-            createdAt = Instant.ofEpochMilli(rs.getLong("created_at")),
-            lastUpdated = Instant.ofEpochMilli(rs.getLong("last_updated"))
+            createdAt = parseTimestamp(rs.getString("created_at")),
+            lastUpdated = parseTimestamp(rs.getString("last_updated"))
         )
     }
 
@@ -188,7 +210,7 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             bankDepositsThisWeek = rs.getInt("bank_deposits_this_week"),
             relationsFormed = rs.getInt("relations_formed"),
             warsParticipated = rs.getInt("wars_participated"),
-            lastCalculated = Instant.ofEpochMilli(rs.getLong("last_calculated"))
+            lastCalculated = parseTimestamp(rs.getString("last_updated"))
         )
     }
 
@@ -317,7 +339,7 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
                     source = ExperienceSource.valueOf(rs.getString("source")),
                     description = rs.getString("description"),
                     actorId = rs.getString("actor_id")?.let { UUID.fromString(it) },
-                    timestamp = Instant.ofEpochMilli(rs.getLong("timestamp"))
+                    timestamp = parseTimestamp(rs.getString("timestamp"))
                 )
             }
         } catch (e: SQLException) {
@@ -341,7 +363,7 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             INSERT OR REPLACE INTO guild_activity_metrics
             (guild_id, member_count, active_members, claims_owned, claims_created_this_week,
              kills_this_week, deaths_this_week, bank_deposits_this_week, relations_formed,
-             wars_participated, last_calculated)
+             wars_participated, last_updated)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
 
@@ -357,7 +379,7 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
                 metrics.bankDepositsThisWeek,
                 metrics.relationsFormed,
                 metrics.warsParticipated,
-                metrics.lastCalculated.toEpochMilli()
+                metrics.lastCalculated.toString()
             ) > 0
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to save activity metrics", e)
@@ -395,9 +417,9 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             SELECT guild_id, member_count, active_members, claims_owned,
                    claims_created_this_week, kills_this_week, deaths_this_week,
                    bank_deposits_this_week, relations_formed, wars_participated,
-                   last_calculated
+                   last_updated
             FROM guild_activity_metrics
-            ORDER BY last_calculated DESC
+            ORDER BY last_updated DESC
             LIMIT ?
         """.trimIndent()
 
@@ -422,12 +444,12 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             net.lumalyte.lg.application.persistence.ActivityMetricType.WARS_PARTICIPATED -> "wars_participated"
         }
 
-        val sql = "UPDATE guild_activity_metrics SET $columnName = ?, last_calculated = ? WHERE guild_id = ?"
+        val sql = "UPDATE guild_activity_metrics SET $columnName = ?, last_updated = ? WHERE guild_id = ?"
 
         return try {
             storage.connection.executeUpdate(sql,
                 value,
-                Instant.now().toEpochMilli(),
+                Instant.now().toString(),
                 guildId.toString()
             ) > 0
         } catch (e: SQLException) {
@@ -448,12 +470,12 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             net.lumalyte.lg.application.persistence.ActivityMetricType.WARS_PARTICIPATED -> "wars_participated"
         }
 
-        val sql = "UPDATE guild_activity_metrics SET $columnName = $columnName + ?, last_calculated = ? WHERE guild_id = ?"
+        val sql = "UPDATE guild_activity_metrics SET $columnName = $columnName + ?, last_updated = ? WHERE guild_id = ?"
 
         return try {
             storage.connection.executeUpdate(sql,
                 amount,
-                Instant.now().toEpochMilli(),
+                Instant.now().toString(),
                 guildId.toString()
             ) > 0
         } catch (e: SQLException) {
@@ -500,11 +522,11 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             bank_deposits_this_week = 0,
             relations_formed = 0,
             wars_participated = 0,
-            last_calculated = ?
+            last_updated = ?
         """.trimIndent()
 
         return try {
-            storage.connection.executeUpdate(sql, Instant.now().toEpochMilli())
+            storage.connection.executeUpdate(sql, Instant.now().toString())
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to reset all activity metrics", e)
         }

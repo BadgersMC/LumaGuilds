@@ -110,6 +110,13 @@ class GuildWarAcceptanceMenu(
                 }
             }
             detailsItem.lore("§7")
+            if (warDeclaration.wagerAmount > 0) {
+                detailsItem.lore("§6💰 Wager: §f${warDeclaration.wagerAmount} gold")
+                detailsItem.lore("§7  • You must match: §6${warDeclaration.wagerAmount} gold")
+                detailsItem.lore("§7  • Total pot: §6${warDeclaration.wagerAmount * 2} gold")
+                detailsItem.lore("§7  • Winner takes all!")
+                detailsItem.lore("§7")
+            }
             if (warDeclaration.terms != null) {
                 detailsItem.lore("§7Terms: §f${warDeclaration.terms}")
                 detailsItem.lore("§7")
@@ -149,8 +156,13 @@ class GuildWarAcceptanceMenu(
             .lore("§7Accept this war declaration")
             .lore("§7and begin the conflict!")
             .lore("§7")
-            .lore("§a⚔ Battle begins immediately")
-            .lore("§aFirst to reach kill target wins!")
+            if (warDeclaration.wagerAmount > 0) {
+                acceptItem.lore("§6💰 This will withdraw:")
+                acceptItem.lore("§6  ${warDeclaration.wagerAmount} gold from guild bank")
+                acceptItem.lore("§7")
+            }
+            acceptItem.lore("§a⚔ Battle begins immediately")
+            acceptItem.lore("§aFirst to reach kill target wins!")
 
         val acceptGuiItem = GuiItem(acceptItem) {
             acceptWarDeclaration()
@@ -173,11 +185,71 @@ class GuildWarAcceptanceMenu(
 
     private fun acceptWarDeclaration() {
         try {
-            // TODO: Handle wager matching if there's a wager
-            
+            // Handle wager matching if there's a wager
+            if (warDeclaration.wagerAmount > 0) {
+                // Refresh guild data to get current bank balance
+                guild = guildService.getGuild(guild.id) ?: run {
+                    player.sendMessage("§c❌ Error: Could not load guild data!")
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                    return
+                }
+
+                // Check if guild has sufficient funds to match wager
+                if (guild.bankBalance < warDeclaration.wagerAmount) {
+                    player.sendMessage("§c❌ Insufficient guild bank funds to match wager!")
+                    player.sendMessage("§7Need: §6${warDeclaration.wagerAmount} gold")
+                    player.sendMessage("§7Have: §6${guild.bankBalance} gold")
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                    return
+                }
+
+                // Check withdraw permissions
+                if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.WITHDRAW_FROM_BANK)) {
+                    player.sendMessage("§c❌ You don't have permission to withdraw from guild bank for wagers!")
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                    return
+                }
+
+                // Get declaring guild info for description
+                val declaringGuild = guildService.getGuild(warDeclaration.declaringGuildId)
+                val declaringGuildName = declaringGuild?.name ?: "Unknown"
+
+                // Withdraw matching wager amount from defending guild's bank
+                val withdrawal = bankService.withdraw(
+                    guildId = guild.id,
+                    playerId = player.uniqueId,
+                    amount = warDeclaration.wagerAmount,
+                    description = "War wager match vs $declaringGuildName"
+                )
+
+                if (withdrawal == null) {
+                    player.sendMessage("§c❌ Failed to withdraw wager funds from guild bank!")
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                    return
+                }
+            }
+
             val war = warService.acceptWarDeclaration(warDeclaration.id, player.uniqueId)
             if (war != null) {
-                player.sendMessage("§a⚔ War accepted! Battle begins now!")
+                // Create wager if both guilds put up funds
+                if (warDeclaration.wagerAmount > 0) {
+                    val wager = warService.createWager(
+                        warId = war.id,
+                        declaringGuildWager = warDeclaration.wagerAmount,
+                        defendingGuildWager = warDeclaration.wagerAmount
+                    )
+
+                    if (wager != null) {
+                        player.sendMessage("§a⚔ War accepted! Battle begins now!")
+                        player.sendMessage("§6💰 War pot: ${wager.totalPot} gold (winner takes all!)")
+                    } else {
+                        player.sendMessage("§a⚔ War accepted! Battle begins now!")
+                        player.sendMessage("§e⚠ Warning: Failed to create wager escrow")
+                    }
+                } else {
+                    player.sendMessage("§a⚔ War accepted! Battle begins now!")
+                }
+
                 player.sendMessage("§7Duration: §f${war.duration.toDays()} days")
                 if (war.objectives.isNotEmpty()) {
                     player.sendMessage("§7Objectives: §f${war.objectives.size}")

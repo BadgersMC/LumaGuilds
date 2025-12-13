@@ -69,6 +69,13 @@ interface GuildVaultRepository {
      */
     fun hasVaultItems(guildId: UUID): Boolean
 
+    /**
+     * Gets all guild IDs that have vaults.
+     *
+     * @return List of guild IDs with vaults.
+     */
+    fun getAllGuildIds(): List<UUID>
+
     // ========== Gold Balance Management ==========
 
     /**
