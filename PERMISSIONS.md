@@ -66,7 +66,14 @@ lumaguilds.command.*     # All claim commands (default: op)
 ### Administrative (OP-only)
 ```
 lumaguilds.admin         # Admin commands (default: op)
+bellclaims.admin         # Admin override mode (default: op)
 ```
+
+**Admin Override Mode** (`bellclaims.admin`): Allows administrators to toggle a special mode that grants owner-level permissions in all guild claims. When enabled:
+- Grants all 13 claim permissions (BUILD, CONTAINER, REDSTONE, etc.)
+- Bypasses guild membership and rank checks
+- Automatically cleared on logout for security
+- Use `/lumaguilds override` or `/bellclaims override` to toggle
 
 ---
 
@@ -163,6 +170,7 @@ pex group <group> check lumaguilds.guild.*
 | Claim Management | `lumaguilds.command.*: op` | Resource intensive |
 | Party Chat | `lumaguilds.partychat.*: op` | Prevent spam |
 | Admin Commands | `lumaguilds.admin: op` | Server management |
+| Admin Override | `bellclaims.admin: op` | Powerful debugging tool |
 
 ---
 

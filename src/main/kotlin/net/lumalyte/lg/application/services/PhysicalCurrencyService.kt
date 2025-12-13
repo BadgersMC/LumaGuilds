@@ -132,6 +132,15 @@ interface PhysicalCurrencyService {
      * @return ItemStack of currency items, or null if invalid material.
      */
     fun createCurrencyItemStack(amount: Int): ItemStack?
+
+    /**
+     * Calculates the total physical currency value in a player's inventory.
+     * Includes both base currency items and compressed blocks (e.g., RAW_GOLD and RAW_GOLD_BLOCK).
+     *
+     * @param playerId The UUID of the player.
+     * @return Total currency value in the player's inventory.
+     */
+    fun calculatePlayerInventoryValue(playerId: UUID): Int
 }
 
 /**

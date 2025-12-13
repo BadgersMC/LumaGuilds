@@ -164,6 +164,7 @@ data class WarDeclaration(
     val proposedDuration: Duration = Duration.ofDays(7),
     val objectives: Set<WarObjective> = emptySet(),
     val terms: String? = null,
+    val wagerAmount: Int = 0, // Amount wagered by declaring guild (escrowed)
     val declaredAt: Instant = Instant.now(),
     val expiresAt: Instant = Instant.now().plus(Duration.ofHours(24)), // 24 hour expiration
     val accepted: Boolean = false,

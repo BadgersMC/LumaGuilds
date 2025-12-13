@@ -251,4 +251,32 @@ interface GuildService {
      * @return true if successful, false otherwise.
      */
     fun setOpen(guildId: UUID, isOpen: Boolean, actorId: UUID): Boolean
+
+    /**
+     * Enables or disables join fee requirements for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param enabled true to enable join fee requirements, false to disable.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun setJoinFeeEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean
+
+    /**
+     * Sets the join fee amount for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param amount The join fee amount (must be non-negative).
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun setJoinFeeAmount(guildId: UUID, amount: Int, actorId: UUID): Boolean
+
+    /**
+     * Gets the current join fee settings for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return A pair of (joinFeeEnabled, joinFeeAmount), or null if guild not found.
+     */
+    fun getJoinFeeSettings(guildId: UUID): Pair<Boolean, Int>?
 }

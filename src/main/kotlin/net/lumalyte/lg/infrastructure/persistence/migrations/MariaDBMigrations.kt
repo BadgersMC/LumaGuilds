@@ -90,8 +90,13 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 mode VARCHAR(20) NOT NULL DEFAULT 'Hostile',
                 mode_changed_at DATETIME,
                 created_at DATETIME NOT NULL,
+                is_open BOOLEAN NOT NULL DEFAULT FALSE,
+                join_fee_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+                join_fee_amount INT NOT NULL DEFAULT 0,
                 INDEX idx_guilds_name (name),
-                INDEX idx_guilds_mode (mode)
+                INDEX idx_guilds_mode (mode),
+                INDEX idx_guilds_is_open (is_open),
+                INDEX idx_guilds_join_fee_enabled (join_fee_enabled)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """.trimIndent())
 

@@ -420,20 +420,35 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
 
     private fun sendGuildInvites(party: Party) {
         val invitedGuilds = selectedGuilds.filter { it != guild.id }
+        var successCount = 0
 
         for (guildId in invitedGuilds) {
             val invitedGuild = guildService.getGuild(guildId)
             if (invitedGuild != null) {
-                // Send invite notification (you could implement a proper invite system here)
-                player.sendMessage("§7✉ Invite sent to §f${invitedGuild.name}")
+                // Send party invite through PartyService
+                val invite = partyService.inviteToParty(party.id, guild.id, guildId, player.uniqueId)
+                if (invite != null) {
+                    successCount++
+                    player.sendMessage("§7✉ Invite sent to §f${invitedGuild.name}")
 
-                // TODO: Implement proper guild invite system with accept/decline
-                // For now, just notify the player that invites were sent
+                    // Notify online members of the invited guild
+                    val invitedMembers = memberService.getGuildMembers(guildId)
+                    val server = org.bukkit.Bukkit.getServer()
+                    invitedMembers.forEach { member ->
+                        val onlinePlayer = server.getPlayer(member.playerId)
+                        if (onlinePlayer != null && onlinePlayer.isOnline) {
+                            onlinePlayer.sendMessage("§6✉ ${guild.name} has invited your guild to a party!")
+                            onlinePlayer.sendMessage("§7Party: ${party.name}")
+                        }
+                    }
+                } else {
+                    player.sendMessage("§c✗ Failed to invite ${invitedGuild.name}")
+                }
             }
         }
 
-        if (invitedGuilds.isNotEmpty()) {
-            player.sendMessage("§a✅ Sent ${invitedGuilds.size} guild invite${if (invitedGuilds.size != 1) "s" else ""}!")
+        if (successCount > 0) {
+            player.sendMessage("§a✅ Sent $successCount guild invite${if (successCount != 1) "s" else ""}!")
         }
     }
 

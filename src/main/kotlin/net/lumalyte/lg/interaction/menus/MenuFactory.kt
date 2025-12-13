@@ -13,6 +13,7 @@ import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildMemberRankConfirmat
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildRankManagementMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildSelectionMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildSettingsMenu
+import net.lumalyte.lg.interaction.menus.bedrock.BedrockJoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockTagEditorMenu
 import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildInfoMenu
@@ -24,6 +25,7 @@ import net.lumalyte.lg.interaction.menus.guild.GuildMemberRankConfirmationMenu
 import net.lumalyte.lg.interaction.menus.guild.TagEditorMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildMemberListMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildSelectionMenu
+import net.lumalyte.lg.interaction.menus.guild.JoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.guild.PartyCreationMenu
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
@@ -986,6 +988,24 @@ class MenuFactory : KoinComponent {
                 // Fallback to Java implementation
                 throw IllegalArgumentException("Unsupported menu type: ${T::class.simpleName}")
             }
+        }
+    }
+
+    /**
+     * Creates a join requirements menu appropriate for the player's platform.
+     * Shows join fee details and allows joining a guild via LFG.
+     */
+    fun createJoinRequirementsMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return if (shouldUseBedrockMenus(player)) {
+            // TODO: Use Bedrock join requirements menu when implemented
+            // BedrockJoinRequirementsMenu(menuNavigator, player, guild, logger)
+            JoinRequirementsMenu(menuNavigator, player, guild)
+        } else {
+            JoinRequirementsMenu(menuNavigator, player, guild)
         }
     }
 }

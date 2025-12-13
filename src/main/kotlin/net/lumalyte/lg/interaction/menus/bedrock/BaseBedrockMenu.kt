@@ -71,8 +71,8 @@ abstract class BaseBedrockMenu(
     }
 
     /**
-     * Creates a form image based on configuration
-     * TODO: Implement when Cumulus FormImage API is available
+     * Creates a form image based on configuration using Cumulus FormImage API.
+     * Prioritizes URL if available, falls back to PATH, or returns null if neither is valid.
      */
     protected fun createFormImage(imageUrl: String, imagePath: String): org.geysermc.cumulus.util.FormImage? {
         val config = getBedrockConfig()

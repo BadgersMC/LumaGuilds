@@ -156,9 +156,9 @@ class VaultInventoryListener(
     /**
      * Handles clicks on normal vault slots (1-53).
      *
-     * CRITICAL: This must handle multi-viewer synchronization correctly.
-     * We schedule a task to run AFTER the Bukkit click processing completes,
-     * then update the cache and broadcast to all viewers.
+     * Uses syncInventoryToCache to sync the ENTIRE inventory state after any click.
+     * This correctly handles ALL click types including shift-click, which moves items
+     * to unpredictable slots. With shared inventory, Bukkit handles viewer sync natively.
      */
     private fun handleNormalSlotClick(
         event: InventoryClickEvent,
@@ -170,39 +170,42 @@ class VaultInventoryListener(
         // Schedule a sync task to run AFTER the click completes (next tick)
         // This ensures we read the correct inventory state after Bukkit processes the click
         org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
-            // CRITICAL: Read the actual item from the GUI inventory AFTER the click completed
-            val resultingItem = holder.inventory.getItem(slot)
+            // Sync the ENTIRE inventory to cache - this correctly handles:
+            // - Normal clicks (single slot)
+            // - Shift-click (item moves to first available slot, not clicked slot)
+            // - Number key swaps
+            // - Any other click type
+            // With shared inventory, all viewers see changes immediately (Bukkit handles this)
+            vaultInventoryManager.syncInventoryToCache(guildId, holder.inventory)
 
-            // Update cache (source of truth) and broadcast to ALL other viewers
-            // This ensures every viewer sees the same state
-            vaultInventoryManager.updateSlotWithBroadcast(guildId, slot, resultingItem, player.uniqueId)
-
-            // Log transaction for valuable items
-            if (resultingItem != null && isValuableItem(resultingItem)) {
-                transactionLogger.logItemTransaction(
-                    guildId,
-                    player.uniqueId,
-                    VaultTransactionType.ITEM_ADD,
-                    resultingItem,
-                    slot
-                )
-                // Immediate flush for valuable items
-                vaultInventoryManager.forceFlush(guildId)
-            } else if (resultingItem == null) {
-                // Item was removed, check if we should log removal
-                val previousItem = vaultInventoryManager.getSlot(guildId, slot)
-                if (previousItem != null && isValuableItem(previousItem)) {
-                    transactionLogger.logItemTransaction(
-                        guildId,
-                        player.uniqueId,
-                        VaultTransactionType.ITEM_REMOVE,
-                        previousItem,
-                        slot
-                    )
-                    vaultInventoryManager.forceFlush(guildId)
-                }
-            }
+            // Log transactions for valuable items by scanning what changed
+            logValuableItemTransactions(guildId, player, holder.inventory)
         })
+    }
+
+    /**
+     * Scans the inventory for valuable items and logs transactions.
+     * Called after syncInventoryToCache to log any valuable item changes.
+     */
+    private fun logValuableItemTransactions(
+        guildId: java.util.UUID,
+        player: Player,
+        inventory: org.bukkit.inventory.Inventory
+    ) {
+        // Check all non-gold-button slots for valuable items
+        var hasValuableChanges = false
+        for (slot in 1 until inventory.size) {
+            val item = inventory.getItem(slot)
+            if (item != null && isValuableItem(item)) {
+                hasValuableChanges = true
+                break
+            }
+        }
+
+        // If valuable items exist, force flush to ensure persistence
+        if (hasValuableChanges) {
+            vaultInventoryManager.forceFlush(guildId)
+        }
     }
 
     /**
@@ -215,24 +218,30 @@ class VaultInventoryListener(
 
     /**
      * Updates the gold button for all viewers of a vault.
+     * With shared inventory, we only need to update slot 0 once - all viewers see the same Inventory.
      */
     private fun updateGoldButtonForAllViewers(guildId: java.util.UUID) {
-        val viewers = vaultInventoryManager.getViewersForVault(guildId)
         val newBalance = vaultInventoryManager.getGoldBalance(guildId)
         val goldButton = GoldBalanceButton.createItem(newBalance)
 
-        viewers.forEach { session ->
+        // With shared inventory, all viewers share the same Inventory object
+        // So we just need to get one viewer's inventory and update it
+        val viewers = vaultInventoryManager.getViewersForVault(guildId)
+        if (viewers.isNotEmpty()) {
             try {
-                session.inventory.setItem(0, goldButton)
+                // All viewers share the same inventory, so updating one updates all
+                viewers.first().inventory.setItem(0, goldButton)
             } catch (e: Exception) {
-            // Event listener - catching all exceptions to prevent listener failure
-                // Inventory no longer valid, unregister viewer
-                vaultInventoryManager.unregisterViewer(session.playerId)
+                // Event listener - catching all exceptions to prevent listener failure
+                // Inventory no longer valid, try to clean up
+                viewers.forEach { session ->
+                    vaultInventoryManager.unregisterViewer(session.playerId)
+                }
             }
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     fun onInventoryDrag(event: InventoryDragEvent) {
         val holder = event.inventory.holder
 
@@ -241,43 +250,22 @@ class VaultInventoryListener(
         }
 
         val player = event.whoClicked as? Player ?: return
-        val guildId = holder.guildId
 
-        // Prevent dragging items into slot 0
-        if (event.rawSlots.contains(0)) {
-            event.isCancelled = true
-            player.sendMessage(Component.text("Cannot place items in slot 0", NamedTextColor.RED))
-            return
+        // SAFETY: Completely prevent drag-clicking in vaults
+        // Drag operations create race conditions and can cause item deletion
+        // Check if any of the dragged slots are in the vault inventory
+        val affectsVault = event.rawSlots.any { slot ->
+            slot >= 0 && slot < holder.getCapacity()
         }
 
-        // CRITICAL: Update cache for ALL dragged slots
-        // Schedule after drag completes to read final GUI state
-        org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
-            // Update cache for each affected slot in the vault inventory
-            for (rawSlot in event.rawSlots) {
-                // Only process slots in the vault inventory (not player inventory)
-                if (rawSlot >= 0 && rawSlot < holder.getCapacity()) {
-                    val resultingItem = holder.inventory.getItem(rawSlot)
-
-                    // Update cache and broadcast to other viewers
-                    vaultInventoryManager.updateSlotWithBroadcast(guildId, rawSlot, resultingItem, player.uniqueId)
-
-                    // Log transaction for valuable items
-                    if (resultingItem != null && isValuableItem(resultingItem)) {
-                        transactionLogger.logItemTransaction(
-                            guildId,
-                            player.uniqueId,
-                            VaultTransactionType.ITEM_ADD,
-                            resultingItem,
-                            rawSlot
-                        )
-                    }
-                }
-            }
-
-            // Flush to database after drag operation
-            vaultInventoryManager.forceFlush(guildId)
-        })
+        if (affectsVault) {
+            event.isCancelled = true
+            player.sendMessage(
+                Component.text("⚠ Drag-clicking is disabled in vaults for safety", NamedTextColor.YELLOW)
+                    .append(Component.text(" - Please move items individually", NamedTextColor.GRAY))
+            )
+            player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f)
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -305,12 +293,21 @@ class VaultInventoryListener(
 
         val player = event.player as? Player ?: return
         val guildId = holder.guildId
+        val inventory = holder.inventory
 
-        // Sync inventory state to cache
-        holder.syncToCache()
+        // Sync entire inventory state to cache
+        vaultInventoryManager.syncInventoryToCache(guildId, inventory)
+
+        // Check if this is the last viewer (before unregistering)
+        val isLastViewer = inventory.viewers.size <= 1
 
         // Unregister viewer and flush if last viewer
         vaultInventoryManager.closeVaultFor(guildId, player.uniqueId)
+
+        // If this was the last viewer, evict the shared inventory to free memory
+        if (isLastViewer) {
+            vaultInventoryManager.evictSharedInventory(guildId)
+        }
     }
 
     /**

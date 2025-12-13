@@ -69,15 +69,8 @@ class BedrockGuildRankManagementMenu(
             selectedRank?.name ?: existingRanks.firstOrNull()?.name ?: ""
         )
 
-        // Priority step slider - using numeric priorities
-        val maxPriority = existingRanks.maxOfOrNull { it.priority } ?: 0
-        val priorityOptions = (0..maxPriority + 5).map { it.toString() }
-        val selectedPriority = selectedRank?.priority ?: maxPriority + 1
-        formBuilder.stepSlider(
-            bedrockLocalization.getBedrockString(player, "rank.management.priority.label"),
-            priorityOptions,
-            selectedPriority.coerceIn(0, priorityOptions.size - 1)
-        )
+        // Note: Priority slider removed as it's confusing for users
+        // Priority is now automatically assigned based on creation order
 
         // Permission toggles organized by category
         formBuilder.addLocalizedLabel(
@@ -85,20 +78,13 @@ class BedrockGuildRankManagementMenu(
             "rank.management.permissions.guild"
         )
         RankPermission.values().forEach { permission ->
-            formBuilder.addLocalizedToggle(
-                player, bedrockLocalization,
-                "permission.${permission.name.lowercase()}",
+            formBuilder.toggle(
+                getPermissionDisplayName(permission),
                 selectedRank?.permissions?.contains(permission) ?: false
             )
         }
 
-        // Member limits slider (placeholder for future feature)
-        formBuilder.addLocalizedSlider(
-            player, bedrockLocalization,
-            "rank.management.member.limit.label",
-            0f, 100f, 1f,
-            selectedRank?.let { 50f } ?: 25f
-        )
+        // Note: Member limit slider removed as it was not functional and confusing
 
         // Validation section
         formBuilder.label(createValidationSection())
@@ -116,23 +102,25 @@ class BedrockGuildRankManagementMenu(
 
     private fun createInfoSection(): String {
         val rankCount = rankService.getRankCount(guild.id)
+        val statusColor = if (selectedRank != null) "§e" else "§a"
+        val statusText = if (selectedRank != null) {
+            bedrockLocalization.getBedrockString(player, "rank.management.info.editing", selectedRank.name)
+        } else {
+            bedrockLocalization.getBedrockString(player, "rank.management.info.creating")
+        }
+
         return """
-            |${bedrockLocalization.getBedrockString(player, "rank.management.description")}
+            |§7${bedrockLocalization.getBedrockString(player, "rank.management.description")}
             |
-            |Guild: ${guild.name}
-            |Total Ranks: $rankCount
-            |Configure rank permissions and hierarchy below.
-            |
-            |${if (selectedRank != null)
-                bedrockLocalization.getBedrockString(player, "rank.management.info.editing", selectedRank.name)
-            else
-                bedrockLocalization.getBedrockString(player, "rank.management.info.creating")
-            }
+            |§6§l━━━ RANK OVERVIEW ━━━
+            |§e${bedrockLocalization.getBedrockString(player, "guild.info.guild.name")}§7: §f${guild.name}
+            |§b${bedrockLocalization.getBedrockString(player, "rank.list.total")}§7: §f$rankCount
+            |$statusColor$statusText
         """.trimMargin()
     }
 
     private fun createSectionHeader(title: String): String {
-        return "§e§l$title"
+        return "§6§l━━━ $title §r§6━━━"
     }
 
     private fun getPermissionDisplayName(permission: RankPermission): String {
@@ -156,12 +144,12 @@ class BedrockGuildRankManagementMenu(
             RankPermission.VIEW_BANK_TRANSACTIONS -> bedrockLocalization.getBedrockString(player, "permission.view.bank.transactions")
             RankPermission.EXPORT_BANK_DATA -> bedrockLocalization.getBedrockString(player, "permission.export.bank.data")
             RankPermission.MANAGE_BANK_SETTINGS -> bedrockLocalization.getBedrockString(player, "permission.manage.bank.settings")
-            RankPermission.PLACE_VAULT -> "Place Vault"
-            RankPermission.ACCESS_VAULT -> "Access Vault"
-            RankPermission.DEPOSIT_TO_VAULT -> "Deposit to Vault"
-            RankPermission.WITHDRAW_FROM_VAULT -> "Withdraw from Vault"
-            RankPermission.MANAGE_VAULT -> "Manage Vault"
-            RankPermission.BREAK_VAULT -> "Break Vault"
+            RankPermission.PLACE_VAULT -> bedrockLocalization.getBedrockString(player, "permission.place.vault")
+            RankPermission.ACCESS_VAULT -> bedrockLocalization.getBedrockString(player, "permission.access.vault")
+            RankPermission.DEPOSIT_TO_VAULT -> bedrockLocalization.getBedrockString(player, "permission.deposit.vault")
+            RankPermission.WITHDRAW_FROM_VAULT -> bedrockLocalization.getBedrockString(player, "permission.withdraw.vault")
+            RankPermission.MANAGE_VAULT -> bedrockLocalization.getBedrockString(player, "permission.manage.vault")
+            RankPermission.BREAK_VAULT -> bedrockLocalization.getBedrockString(player, "permission.break.vault")
             RankPermission.SEND_ANNOUNCEMENTS -> bedrockLocalization.getBedrockString(player, "permission.send.announcements")
             RankPermission.SEND_PINGS -> bedrockLocalization.getBedrockString(player, "permission.send.pings")
             RankPermission.MODERATE_CHAT -> bedrockLocalization.getBedrockString(player, "permission.moderate.chat")
@@ -180,10 +168,10 @@ class BedrockGuildRankManagementMenu(
     private fun createValidationSection(): String {
         return """
             |${createSectionHeader(bedrockLocalization.getBedrockString(player, "form.validation.title"))}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.rank.name.too.short")}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.rank.name.too.long")}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.rank.permissions.required")}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.rank.priority.conflict")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.rank.name.too.short")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.rank.name.too.long")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.rank.permissions.required")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.rank.priority.conflict")}
         """.trimMargin()
     }
 
@@ -194,8 +182,6 @@ class BedrockGuildRankManagementMenu(
             val modeIndex = response.next() as? Int ?: 0
             val rankName = response.next() as? String ?: ""
             val selectedRankIndex = response.next() as? Int ?: 0
-            val priorityIndex = response.next() as? Int ?: 0
-            val memberLimit = response.next() as? Float ?: 25f
 
             // Collect permissions from toggles
             val permissions = mutableSetOf<RankPermission>()
@@ -228,15 +214,9 @@ class BedrockGuildRankManagementMenu(
                 return
             }
 
-            // Validate priority conflicts
+            // Auto-assign priority (no longer checking for conflicts)
             val existingRanks = rankService.listRanks(guild.id)
-            val newPriority = priorityIndex
-            val priorityConflict = existingRanks.any { it.priority == newPriority && it != selectedRank }
-            if (priorityConflict) {
-                player.sendMessage("§c[ERROR] ${localize("rank.management.validation.priority.conflict", newPriority)}")
-                reopen()
-                return
-            }
+            val newPriority = existingRanks.maxOfOrNull { it.priority }?.plus(1) ?: 1
 
             // Process based on mode
             if (modeIndex == 0) {

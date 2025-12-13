@@ -559,6 +559,51 @@ class GuildServiceBukkit(
         return guildRepository.update(updatedGuild)
     }
 
+    override fun setJoinFeeEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        // Check permission
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            logger.warn("Player $actorId attempted to set join fee enabled for guild $guildId without permission")
+            return false
+        }
+
+        val updatedGuild = guild.copy(joinFeeEnabled = enabled)
+        val result = guildRepository.update(updatedGuild)
+        if (result) {
+            logger.info("Guild $guildId join fee ${if (enabled) "enabled" else "disabled"} by $actorId")
+        }
+        return result
+    }
+
+    override fun setJoinFeeAmount(guildId: UUID, amount: Int, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        // Validate amount
+        if (amount < 0) {
+            logger.warn("Invalid join fee amount: $amount (must be non-negative)")
+            return false
+        }
+
+        // Check permission
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            logger.warn("Player $actorId attempted to set join fee amount for guild $guildId without permission")
+            return false
+        }
+
+        val updatedGuild = guild.copy(joinFeeAmount = amount)
+        val result = guildRepository.update(updatedGuild)
+        if (result) {
+            logger.info("Guild $guildId join fee amount set to $amount by $actorId")
+        }
+        return result
+    }
+
+    override fun getJoinFeeSettings(guildId: UUID): Pair<Boolean, Int>? {
+        val guild = guildRepository.getById(guildId) ?: return null
+        return Pair(guild.joinFeeEnabled, guild.joinFeeAmount)
+    }
+
     /**
      * Counts visible characters in a tag, excluding formatting codes.
      * MiniMessage tags like <color>, <gradient>, etc. are excluded from the count.

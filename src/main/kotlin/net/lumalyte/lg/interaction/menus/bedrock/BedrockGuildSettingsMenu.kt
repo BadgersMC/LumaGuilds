@@ -57,11 +57,6 @@ class BedrockGuildSettingsMenu(
                 createModeOptionKeys(),
                 getCurrentModeValue()
             )
-            .addLocalizedToggle(
-                player, bedrockLocalization,
-                "guild.settings.home.auto.set",
-                false // Auto-home setting not implemented yet
-            )
             .label(createValidationSection())
             .validResultHandler { response ->
                 handleFormResponse(response)
@@ -74,13 +69,20 @@ class BedrockGuildSettingsMenu(
     }
 
     private fun createInfoSection(): String {
+        val modeColor = when (guild.mode) {
+            GuildMode.PEACEFUL -> "§a"
+            GuildMode.HOSTILE -> "§c"
+        }
+
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.settings.description")}
+            |§7${bedrockLocalization.getBedrockString(player, "guild.settings.description")}
             |
-            |Created: ${guild.createdAt.toString()}
-            |Level: 1 | Experience: 0/800
+            |§6§l━━━ GUILD INFO ━━━
+            |§eCreated§7: §f${guild.createdAt.toString()}
+            |§dLevel§7: §f1 §7| §3Experience§7: §f0/800
+            |§eMode§7: $modeColor${guild.mode.name}
             |
-            |Configure your guild's basic information below.
+            |§7Configure your guild's basic information below.
         """.trimMargin()
     }
 
@@ -100,10 +102,10 @@ class BedrockGuildSettingsMenu(
 
     private fun createValidationSection(): String {
         return """
-            |${bedrockLocalization.getBedrockString(player, "form.validation.title")}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.guild.name.too.short")}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.guild.name.too.long")}
-            |• ${bedrockLocalization.getBedrockString(player, "validation.guild.description.too.long")}
+            |§6§l━━━ ${bedrockLocalization.getBedrockString(player, "form.validation.title")} §r§6━━━
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.guild.name.too.short")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.guild.name.too.long")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "validation.guild.description.too.long")}
         """.trimMargin()
     }
 
@@ -114,7 +116,6 @@ class BedrockGuildSettingsMenu(
             val newName = response.next() as? String ?: guild.name
             val newDescription = response.next() as? String ?: guild.description ?: ""
             val modeIndex = response.next() as? Int ?: 0
-            val autoHomeEnabled = response.next() as? Boolean ?: false
 
             // Validate permissions
             val hasGuildSettingsPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)
@@ -152,7 +153,7 @@ class BedrockGuildSettingsMenu(
             }
 
             // Apply changes
-            applySettings(newName, newDescription, newMode, autoHomeEnabled, hasGuildSettingsPermission, hasDescriptionPermission, hasModePermission)
+            applySettings(newName, newDescription, newMode, hasGuildSettingsPermission, hasDescriptionPermission, hasModePermission)
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
@@ -225,7 +226,6 @@ class BedrockGuildSettingsMenu(
         newName: String,
         newDescription: String,
         newMode: GuildMode,
-        autoHomeEnabled: Boolean,
         hasGuildSettingsPermission: Boolean,
         hasDescriptionPermission: Boolean,
         hasModePermission: Boolean
@@ -244,8 +244,8 @@ class BedrockGuildSettingsMenu(
             }
         }
 
-        // Apply description change
-        if (newDescription != (guild.description ?: "") && hasDescriptionPermission) {
+        // Apply description change (only if not blank and different from current)
+        if (newDescription.isNotBlank() && newDescription != (guild.description ?: "") && hasDescriptionPermission) {
             val success = guildService.setDescription(guild.id, newDescription, player.uniqueId)
             if (success) {
                 changes.add(localize("guild.settings.change.description"))
@@ -264,12 +264,6 @@ class BedrockGuildSettingsMenu(
                 allSuccessful = false
                 player.sendMessage("§c[ERROR] ${localize("guild.settings.error.mode.save.failed")}")
             }
-        }
-
-        // Apply auto-home setting (placeholder - auto-home not implemented)
-        if (autoHomeEnabled) {
-            // TODO: Implement auto-home setting when available
-            changes.add(localize("guild.settings.change.auto.home", "requested"))
         }
 
         // Show results

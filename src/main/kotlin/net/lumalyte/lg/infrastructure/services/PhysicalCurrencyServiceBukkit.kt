@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.services.CurrencyResult
 import net.lumalyte.lg.application.services.GuildVaultService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.domain.entities.Guild
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import org.slf4j.LoggerFactory
@@ -311,5 +312,84 @@ class PhysicalCurrencyServiceBukkit(
         }
 
         return ItemStack(currencyMaterial, amount)
+    }
+
+    override fun calculatePlayerInventoryValue(playerId: UUID): Int {
+        if (!isPhysicalCurrencyEnabled()) {
+            return 0
+        }
+
+        // Get player
+        val player = Bukkit.getPlayer(playerId) ?: run {
+            logger.debug("Player with UUID $playerId is not online")
+            return 0
+        }
+
+        val materialName = getCurrencyMaterialName()
+        val currencyMaterial = try {
+            Material.valueOf(materialName)
+        } catch (e: IllegalArgumentException) {
+            logger.error("Invalid currency material: $materialName")
+            return 0
+        }
+
+        val itemValue = getItemValue()
+        var totalValue = 0
+
+        // Count base currency items in inventory
+        for (item in player.inventory.contents) {
+            if (item == null) continue
+
+            if (item.type == currencyMaterial) {
+                totalValue += item.amount * itemValue
+            }
+        }
+
+        // Count compressed blocks
+        val config = getConfig()
+        val compressableBlocks = config.vault.compressableBlocks
+
+        for (blockConfig in compressableBlocks) {
+            // Parse format: "COMPRESSED_MATERIAL:BASE_MATERIAL:RATIO"
+            val parts = blockConfig.split(":")
+            if (parts.size != 3) {
+                logger.warn("Invalid compressable block format: $blockConfig (expected COMPRESSED:BASE:RATIO)")
+                continue
+            }
+
+            val compressedMaterialName = parts[0]
+            val baseMaterialName = parts[1]
+            val ratioStr = parts[2]
+
+            // Check if this compressed block applies to our currency
+            if (baseMaterialName != materialName) {
+                continue
+            }
+
+            val ratio = try {
+                ratioStr.toInt()
+            } catch (e: NumberFormatException) {
+                logger.warn("Invalid ratio in compressable block config: $blockConfig")
+                continue
+            }
+
+            val compressedMaterial = try {
+                Material.valueOf(compressedMaterialName)
+            } catch (e: IllegalArgumentException) {
+                logger.warn("Invalid compressed material: $compressedMaterialName")
+                continue
+            }
+
+            // Count compressed blocks in inventory
+            for (item in player.inventory.contents) {
+                if (item == null) continue
+
+                if (item.type == compressedMaterial) {
+                    totalValue += item.amount * ratio * itemValue
+                }
+            }
+        }
+
+        return totalValue
     }
 }

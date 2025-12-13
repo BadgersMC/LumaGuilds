@@ -55,17 +55,18 @@ class BedrockGuildRankListMenu(
 
     private fun buildRankListContent(rankCount: Int): String {
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.rank.list.description")}
+            |§7${bedrockLocalization.getBedrockString(player, "guild.rank.list.description")}
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.rank.list.total", rankCount)}
+            |§6§l━━━ RANKS ━━━
+            |§bTotal Ranks§7: §f$rankCount
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.rank.list.priority")}: ${bedrockLocalization.getBedrockString(player, "guild.rank.list.permissions")}
+            |§7${bedrockLocalization.getBedrockString(player, "guild.rank.list.priority")}: ${bedrockLocalization.getBedrockString(player, "guild.rank.list.permissions")}
         """.trimMargin()
     }
 
     private fun buildRankButtonText(rank: Rank, permissionCount: Int): String {
         val permissionText = bedrockLocalization.getBedrockString(player, "guild.rank.list.permission.count", permissionCount)
-        return "${rank.name} (${rank.priority}) - $permissionText"
+        return "§6${rank.name} §7(${rank.priority}) §f- §b$permissionText"
     }
 
     private fun handleRankSelection(buttonIndex: Int, ranks: List<Rank>) {
@@ -100,18 +101,18 @@ class BedrockGuildRankListMenu(
 
     private fun buildRankDetailsContent(rank: Rank): String {
         val permissions = if (rank.permissions.isEmpty()) {
-            bedrockLocalization.getBedrockString(player, "guild.rank.details.no.permissions")
+            "§7${bedrockLocalization.getBedrockString(player, "guild.rank.details.no.permissions")}"
         } else {
-            rank.permissions.joinToString("\n• ") { permission ->
-                "• ${getLocalizedPermissionName(permission)}"
+            rank.permissions.joinToString("\n") { permission ->
+                "§b• §f${getLocalizedPermissionName(permission)}"
             }
         }
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.rank.details.name")}: ${rank.name}
-            |${bedrockLocalization.getBedrockString(player, "guild.rank.details.priority")}: ${rank.priority}
+            |§6§l━━━ ${rank.name} §r§6━━━
+            |§e${bedrockLocalization.getBedrockString(player, "guild.rank.details.priority")}§7: §f${rank.priority}
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.rank.details.permissions")}:
+            |§6${bedrockLocalization.getBedrockString(player, "guild.rank.details.permissions")}§7:
             |$permissions
         """.trimMargin()
     }
@@ -120,52 +121,52 @@ class BedrockGuildRankListMenu(
         return when (permission) {
             // Guild management
             RankPermission.MANAGE_RANKS -> bedrockLocalization.getBedrockString(player, "permission.manage.ranks")
-            RankPermission.MANAGE_MEMBERS -> "Manage Members"
-            RankPermission.MANAGE_BANNER -> "Manage Banner"
-            RankPermission.MANAGE_EMOJI -> "Manage Emoji"
-            RankPermission.MANAGE_DESCRIPTION -> "Manage Description"
-            RankPermission.MANAGE_HOME -> "Manage Home"
-            RankPermission.MANAGE_MODE -> "Manage Mode"
-            RankPermission.MANAGE_GUILD_SETTINGS -> "Manage Guild Settings"
+            RankPermission.MANAGE_MEMBERS -> bedrockLocalization.getBedrockString(player, "permission.manage.members")
+            RankPermission.MANAGE_BANNER -> bedrockLocalization.getBedrockString(player, "permission.manage.banner")
+            RankPermission.MANAGE_EMOJI -> bedrockLocalization.getBedrockString(player, "permission.manage.emoji")
+            RankPermission.MANAGE_DESCRIPTION -> bedrockLocalization.getBedrockString(player, "permission.manage.description")
+            RankPermission.MANAGE_HOME -> bedrockLocalization.getBedrockString(player, "permission.manage.home")
+            RankPermission.MANAGE_MODE -> bedrockLocalization.getBedrockString(player, "permission.manage.mode")
+            RankPermission.MANAGE_GUILD_SETTINGS -> bedrockLocalization.getBedrockString(player, "permission.manage.guild.settings")
 
             // Relations & Diplomacy
             RankPermission.MANAGE_RELATIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.relations")
             RankPermission.DECLARE_WAR -> bedrockLocalization.getBedrockString(player, "permission.declare.war")
-            RankPermission.ACCEPT_ALLIANCES -> "Accept Alliances"
-            RankPermission.MANAGE_PARTIES -> "Manage Parties"
-            RankPermission.SEND_PARTY_REQUESTS -> "Send Party Requests"
-            RankPermission.ACCEPT_PARTY_INVITES -> "Accept Party Invites"
+            RankPermission.ACCEPT_ALLIANCES -> bedrockLocalization.getBedrockString(player, "permission.accept.alliances")
+            RankPermission.MANAGE_PARTIES -> bedrockLocalization.getBedrockString(player, "permission.manage.parties")
+            RankPermission.SEND_PARTY_REQUESTS -> bedrockLocalization.getBedrockString(player, "permission.send.party.requests")
+            RankPermission.ACCEPT_PARTY_INVITES -> bedrockLocalization.getBedrockString(player, "permission.accept.party.invites")
 
             // Banking & Economy
-            RankPermission.DEPOSIT_TO_BANK -> "Deposit to Bank"
-            RankPermission.WITHDRAW_FROM_BANK -> "Withdraw from Bank"
-            RankPermission.VIEW_BANK_TRANSACTIONS -> "View Bank Transactions"
-            RankPermission.EXPORT_BANK_DATA -> "Export Bank Data"
-            RankPermission.MANAGE_BANK_SETTINGS -> "Manage Bank Settings"
-            RankPermission.PLACE_VAULT -> "Place Vault"
-            RankPermission.ACCESS_VAULT -> "Access Vault"
-            RankPermission.DEPOSIT_TO_VAULT -> "Deposit to Vault"
-            RankPermission.WITHDRAW_FROM_VAULT -> "Withdraw from Vault"
-            RankPermission.MANAGE_VAULT -> "Manage Vault"
-            RankPermission.BREAK_VAULT -> "Break Vault"
+            RankPermission.DEPOSIT_TO_BANK -> bedrockLocalization.getBedrockString(player, "permission.deposit.bank")
+            RankPermission.WITHDRAW_FROM_BANK -> bedrockLocalization.getBedrockString(player, "permission.withdraw.bank")
+            RankPermission.VIEW_BANK_TRANSACTIONS -> bedrockLocalization.getBedrockString(player, "permission.view.bank.transactions")
+            RankPermission.EXPORT_BANK_DATA -> bedrockLocalization.getBedrockString(player, "permission.export.bank.data")
+            RankPermission.MANAGE_BANK_SETTINGS -> bedrockLocalization.getBedrockString(player, "permission.manage.bank.settings")
+            RankPermission.PLACE_VAULT -> bedrockLocalization.getBedrockString(player, "permission.place.vault")
+            RankPermission.ACCESS_VAULT -> bedrockLocalization.getBedrockString(player, "permission.access.vault")
+            RankPermission.DEPOSIT_TO_VAULT -> bedrockLocalization.getBedrockString(player, "permission.deposit.vault")
+            RankPermission.WITHDRAW_FROM_VAULT -> bedrockLocalization.getBedrockString(player, "permission.withdraw.vault")
+            RankPermission.MANAGE_VAULT -> bedrockLocalization.getBedrockString(player, "permission.manage.vault")
+            RankPermission.BREAK_VAULT -> bedrockLocalization.getBedrockString(player, "permission.break.vault")
 
             // Communication
-            RankPermission.SEND_ANNOUNCEMENTS -> "Send Announcements"
-            RankPermission.SEND_PINGS -> "Send Pings"
-            RankPermission.MODERATE_CHAT -> "Moderate Chat"
+            RankPermission.SEND_ANNOUNCEMENTS -> bedrockLocalization.getBedrockString(player, "permission.send.announcements")
+            RankPermission.SEND_PINGS -> bedrockLocalization.getBedrockString(player, "permission.send.pings")
+            RankPermission.MODERATE_CHAT -> bedrockLocalization.getBedrockString(player, "permission.moderate.chat")
 
             // Claims & Territory
             RankPermission.MANAGE_CLAIMS -> bedrockLocalization.getBedrockString(player, "permission.manage.claims")
-            RankPermission.MANAGE_FLAGS -> "Manage Flags"
-            RankPermission.MANAGE_PERMISSIONS -> "Manage Permissions"
-            RankPermission.CREATE_CLAIMS -> "Create Claims"
-            RankPermission.DELETE_CLAIMS -> "Delete Claims"
+            RankPermission.MANAGE_FLAGS -> bedrockLocalization.getBedrockString(player, "permission.manage.flags")
+            RankPermission.MANAGE_PERMISSIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.permissions")
+            RankPermission.CREATE_CLAIMS -> bedrockLocalization.getBedrockString(player, "permission.create.claims")
+            RankPermission.DELETE_CLAIMS -> bedrockLocalization.getBedrockString(player, "permission.delete.claims")
 
             // Special Roles
-            RankPermission.ACCESS_ADMIN_COMMANDS -> "Access Admin Commands"
-            RankPermission.BYPASS_RESTRICTIONS -> "Bypass Restrictions"
-            RankPermission.VIEW_AUDIT_LOGS -> "View Audit Logs"
-            RankPermission.MANAGE_INTEGRATIONS -> "Manage Integrations"
+            RankPermission.ACCESS_ADMIN_COMMANDS -> bedrockLocalization.getBedrockString(player, "permission.access.admin.commands")
+            RankPermission.BYPASS_RESTRICTIONS -> bedrockLocalization.getBedrockString(player, "permission.bypass.restrictions")
+            RankPermission.VIEW_AUDIT_LOGS -> bedrockLocalization.getBedrockString(player, "permission.view.audit.logs")
+            RankPermission.MANAGE_INTEGRATIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.integrations")
         }
     }
 

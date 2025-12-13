@@ -56,7 +56,7 @@ class BedrockGuildProgressionInfoMenu(
     }
 
     private fun createSectionHeader(title: String): String {
-        return "§e§l$title"
+        return "§6§l━━━ $title §r§6━━━"
     }
 
     private fun createLevelAndExperienceSection(): String {
@@ -72,12 +72,19 @@ class BedrockGuildProgressionInfoMenu(
             100
         }
 
+        val progressBarColor = when {
+            progressPercent >= 75 -> "§a"
+            progressPercent >= 50 -> "§e"
+            progressPercent >= 25 -> "§6"
+            else -> "§c"
+        }
+
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.current.level")}: $currentLevel
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.total.experience")}: $totalExperience XP
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.experience.this.level")}: $experienceThisLevel XP
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.experience.to.next")}: $experienceForNextLevel XP
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.progress")}: $progressPercent%
+            |§d${bedrockLocalization.getBedrockString(player, "guild.progression.current.level")}§7: §f$currentLevel
+            |§b${bedrockLocalization.getBedrockString(player, "guild.progression.total.experience")}§7: §f$totalExperience §7XP
+            |§3${bedrockLocalization.getBedrockString(player, "guild.progression.experience.this.level")}§7: §f$experienceThisLevel §7XP
+            |§e${bedrockLocalization.getBedrockString(player, "guild.progression.experience.to.next")}§7: §f$experienceForNextLevel §7XP
+            |§6${bedrockLocalization.getBedrockString(player, "guild.progression.progress")}§7: $progressBarColor$progressPercent%
         """.trimMargin()
     }
 
@@ -85,10 +92,10 @@ class BedrockGuildProgressionInfoMenu(
         val unlockedPerks = progressionService.getUnlockedPerks(guild.id)
 
         if (unlockedPerks.isEmpty()) {
-            return bedrockLocalization.getBedrockString(player, "guild.progression.perks.none")
+            return "§7${bedrockLocalization.getBedrockString(player, "guild.progression.perks.none")}"
         }
 
-        val perkList = unlockedPerks.joinToString("\n• ") { "• ${getLocalizedPerkName(it)}" }
+        val perkList = unlockedPerks.joinToString("\n") { "§a✓ §f${getLocalizedPerkName(it)}" }
         return perkList
     }
 
@@ -97,11 +104,11 @@ class BedrockGuildProgressionInfoMenu(
         val nextLevelPerks = progressionService.getPerksForLevel(nextLevel)
 
         if (nextLevelPerks.isEmpty()) {
-            return bedrockLocalization.getBedrockString(player, "guild.progression.perks.more")
+            return "§7${bedrockLocalization.getBedrockString(player, "guild.progression.perks.more")}"
         }
 
-        val perkList = nextLevelPerks.joinToString("\n• ") { "• ${getLocalizedPerkName(it)}" }
-        return "Level $nextLevel:\n$perkList"
+        val perkList = nextLevelPerks.joinToString("\n") { "§e• §f${getLocalizedPerkName(it)}" }
+        return "§6Level $nextLevel§7:\n$perkList"
     }
 
     private fun createBenefitsSection(): String {
@@ -110,9 +117,9 @@ class BedrockGuildProgressionInfoMenu(
         val bankInterestRate = progressionService.getBankInterestRate(guild.id)
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.benefits.max.claims")}: ${if (maxClaimBlocks >= Int.MAX_VALUE) bedrockLocalization.getBedrockString(player, "guild.progression.benefits.unlimited") else maxClaimBlocks.toString()}
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.benefits.max.homes")}: $maxHomes
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.benefits.bank.interest")}: ${(bankInterestRate * 100).toInt()}%
+            |§b${bedrockLocalization.getBedrockString(player, "guild.progression.benefits.max.claims")}§7: §f${if (maxClaimBlocks >= Int.MAX_VALUE) bedrockLocalization.getBedrockString(player, "guild.progression.benefits.unlimited") else maxClaimBlocks.toString()}
+            |§d${bedrockLocalization.getBedrockString(player, "guild.progression.benefits.max.homes")}§7: §f$maxHomes
+            |§6${bedrockLocalization.getBedrockString(player, "guild.progression.benefits.bank.interest")}§7: §a${(bankInterestRate * 100).toInt()}%
         """.trimMargin()
     }
 

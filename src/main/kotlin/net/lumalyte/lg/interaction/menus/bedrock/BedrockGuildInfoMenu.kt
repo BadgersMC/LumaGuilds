@@ -51,25 +51,31 @@ class BedrockGuildInfoMenu(
     }
 
     private fun createSectionHeader(title: String): String {
-        return "§e§l$title"
+        return "§6§l━━━ $title §r§6━━━"
     }
 
     private fun createOverviewSection(): String {
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val foundedDate = formatter.format(guild.createdAt)
+        val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+        val foundedDate = formatter.format(guild.createdAt.atZone(java.time.ZoneId.systemDefault()))
 
         val description = guild.description ?: bedrockLocalization.getBedrockString(player, "guild.info.no.description")
         val tag = guildService.getTag(guild.id) ?: bedrockLocalization.getBedrockString(player, "guild.info.no.tag")
         val emoji = guildService.getEmoji(guild.id) ?: bedrockLocalization.getBedrockString(player, "guild.info.no.emoji")
 
+        val modeColor = when (guild.mode.name) {
+            "PEACEFUL" -> "§a"
+            "HOSTILE" -> "§c"
+            else -> "§e"
+        }
+
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.info.name")}: ${guild.name}
-            |${bedrockLocalization.getBedrockString(player, "guild.info.level")}: 1
-            |${bedrockLocalization.getBedrockString(player, "guild.info.mode")}: ${guild.mode.name.lowercase().replaceFirstChar { it.uppercase() }}
-            |${bedrockLocalization.getBedrockString(player, "guild.info.emoji")}: $emoji
-            |${bedrockLocalization.getBedrockString(player, "guild.info.description")}: $description
-            |${bedrockLocalization.getBedrockString(player, "guild.info.tag")}: $tag
-            |${bedrockLocalization.getBedrockString(player, "guild.info.founded")}: $foundedDate
+            |§b${bedrockLocalization.getBedrockString(player, "guild.info.name")}§7: §f${guild.name}
+            |§d${bedrockLocalization.getBedrockString(player, "guild.info.level")}§7: §f1
+            |§e${bedrockLocalization.getBedrockString(player, "guild.info.mode")}§7: $modeColor${guild.mode.name.lowercase().replaceFirstChar { it.uppercase() }}
+            |§6${bedrockLocalization.getBedrockString(player, "guild.info.emoji")}§7: §f$emoji
+            |§3${bedrockLocalization.getBedrockString(player, "guild.info.description")}§7: §7$description
+            |§5${bedrockLocalization.getBedrockString(player, "guild.info.tag")}§7: §f$tag
+            |§e${bedrockLocalization.getBedrockString(player, "guild.info.founded")}§7: §f$foundedDate
         """.trimMargin()
     }
 
@@ -87,8 +93,8 @@ class BedrockGuildInfoMenu(
         }
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.info.members.total")}: $totalMembers
-            |${bedrockLocalization.getBedrockString(player, "guild.info.members.online")}: $onlineMembers
+            |§b${bedrockLocalization.getBedrockString(player, "guild.info.members.total")}§7: §f$totalMembers
+            |§a${bedrockLocalization.getBedrockString(player, "guild.info.members.online")}§7: §f$onlineMembers
         """.trimMargin()
     }
 
@@ -98,8 +104,8 @@ class BedrockGuildInfoMenu(
         val enemies = bedrockLocalization.getBedrockString(player, "guild.info.relations.none")
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.info.relations.allies")}: $allies
-            |${bedrockLocalization.getBedrockString(player, "guild.info.relations.enemies")}: $enemies
+            |§a${bedrockLocalization.getBedrockString(player, "guild.info.relations.allies")}§7: §7$allies
+            |§c${bedrockLocalization.getBedrockString(player, "guild.info.relations.enemies")}§7: §7$enemies
         """.trimMargin()
     }
 

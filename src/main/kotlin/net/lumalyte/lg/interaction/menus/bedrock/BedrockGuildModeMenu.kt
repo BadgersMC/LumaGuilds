@@ -58,31 +58,32 @@ class BedrockGuildModeMenu(
     }
 
     private fun buildModeContent(guildConfig: GuildConfig): String {
-        val currentModeText = when (guild.mode) {
-            GuildMode.PEACEFUL -> bedrockLocalization.getBedrockString(player, "guild.mode.peaceful")
-            GuildMode.HOSTILE -> bedrockLocalization.getBedrockString(player, "guild.mode.hostile")
+        val (currentModeText, modeColor) = when (guild.mode) {
+            GuildMode.PEACEFUL -> Pair(bedrockLocalization.getBedrockString(player, "guild.mode.peaceful"), "§a")
+            GuildMode.HOSTILE -> Pair(bedrockLocalization.getBedrockString(player, "guild.mode.hostile"), "§c")
         }
 
         val lastChangedText = guild.modeChangedAt?.let { formatTimeAgo(it) }
             ?: bedrockLocalization.getBedrockString(player, "guild.mode.never")
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.mode.description")}
+            |§7${bedrockLocalization.getBedrockString(player, "guild.mode.description")}
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.mode.current")}: $currentModeText
-            |${bedrockLocalization.getBedrockString(player, "guild.mode.last.changed")}: $lastChangedText
+            |§6§l━━━ CURRENT MODE ━━━
+            |§e${bedrockLocalization.getBedrockString(player, "guild.mode.current")}§7: $modeColor$currentModeText
+            |§7${bedrockLocalization.getBedrockString(player, "guild.mode.last.changed")}§7: §f$lastChangedText
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.benefits")}
-            |• ${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.no.pvp")}
-            |• ${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.safe.trading")}
-            |• ${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.no.wars")}
+            |§a§l${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.benefits")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.no.pvp")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.safe.trading")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.no.wars")}
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.benefits")}
-            |• ${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.pvp")}
-            |• ${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.wars")}
-            |• ${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.competitive")}
+            |§c§l${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.benefits")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.pvp")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.wars")}
+            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.competitive")}
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.mode.cooldown")}: ${guildConfig.modeSwitchCooldownDays} ${bedrockLocalization.getBedrockString(player, "guild.mode.days")}
+            |§e${bedrockLocalization.getBedrockString(player, "guild.mode.cooldown")}§7: §f${guildConfig.modeSwitchCooldownDays} §7${bedrockLocalization.getBedrockString(player, "guild.mode.days")}
         """.trimMargin()
     }
 
@@ -91,9 +92,9 @@ class BedrockGuildModeMenu(
         val canSwitch = canSwitchToPeaceful(guild, guildConfig.modeSwitchCooldownDays) && !hasActiveWar
 
         val buttonText = if (canSwitch) {
-            bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.peaceful")
+            "§a${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.peaceful")}"
         } else {
-            "${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.peaceful")} (${bedrockLocalization.getBedrockString(player, "guild.mode.cannot.switch")})"
+            "§7${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.peaceful")} §c(${bedrockLocalization.getBedrockString(player, "guild.mode.cannot.switch")})"
         }
 
         button(buttonText)
@@ -103,9 +104,9 @@ class BedrockGuildModeMenu(
         val canSwitch = canSwitchToHostile(guild, guildConfig.hostileModeMinimumDays)
 
         val buttonText = if (canSwitch) {
-            bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.hostile")
+            "§c${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.hostile")}"
         } else {
-            "${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.hostile")} (${bedrockLocalization.getBedrockString(player, "guild.mode.cannot.switch")})"
+            "§7${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.hostile")} §c(${bedrockLocalization.getBedrockString(player, "guild.mode.cannot.switch")})"
         }
 
         button(buttonText)

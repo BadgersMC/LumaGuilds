@@ -1,5 +1,6 @@
 package net.lumalyte.lg.application.services
 
+import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import net.lumalyte.lg.application.utilities.ValuableItemChecker
@@ -7,6 +8,8 @@ import net.lumalyte.lg.config.VaultConfig
 import net.lumalyte.lg.domain.entities.VaultInventory
 import net.lumalyte.lg.domain.entities.ViewerSession
 import net.lumalyte.lg.domain.entities.WriteBuffer
+import net.lumalyte.lg.interaction.inventory.VaultInventoryHolder
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
@@ -48,6 +51,129 @@ class VaultInventoryManager(
      * Value: WriteBuffer
      */
     private val writeBuffers = ConcurrentHashMap<UUID, WriteBuffer>()
+
+    /**
+     * Shared Bukkit Inventory instances per guild.
+     * All players viewing the same guild vault share the same Inventory object.
+     * This eliminates synchronization issues - Bukkit handles multi-viewer updates natively.
+     * Key: Guild UUID
+     * Value: Shared Bukkit Inventory
+     */
+    private val sharedInventories = ConcurrentHashMap<UUID, Inventory>()
+
+    /**
+     * Gets or creates a shared Bukkit Inventory for a guild vault.
+     * All players viewing the same guild vault will receive the same Inventory instance.
+     * This method is thread-safe and ensures only one Inventory is created per guild.
+     *
+     * @param guildId The guild ID.
+     * @param guildName The guild name (used for inventory title).
+     * @param capacity The inventory capacity (must be multiple of 9).
+     * @return The shared Inventory for this guild.
+     */
+    fun getOrCreateSharedInventory(guildId: UUID, guildName: String, capacity: Int): Inventory {
+        return sharedInventories.computeIfAbsent(guildId) { id ->
+            logger.debug("Creating shared inventory for guild $guildName ($id)")
+
+            // Load vault data from cache (or database if not cached)
+            val vault = getOrLoadVault(id)
+
+            // Create the shared Bukkit Inventory with a holder
+            val holder = VaultInventoryHolder(
+                guildId = id,
+                guildName = guildName,
+                vaultInventoryManager = this,
+                capacity = capacity
+            )
+
+            val inventory = Bukkit.createInventory(
+                holder,
+                capacity,
+                Component.text("$guildName Vault")
+            )
+
+            // Set the inventory reference in the holder
+            holder.setSharedInventory(inventory)
+
+            // Load existing items from cache into the inventory
+            vault.slots.forEach { (slot, item) ->
+                if (slot in 0 until capacity && item != null) {
+                    inventory.setItem(slot, item)
+                }
+            }
+
+            // Ensure Gold Balance Button is in slot 0
+            val goldBalance = vault.getGold()
+            val goldButton = GoldBalanceButton.createItem(goldBalance)
+            inventory.setItem(0, goldButton)
+
+            logger.info("Created shared inventory for guild $guildName with ${vault.slots.size} items")
+            inventory
+        }
+    }
+
+    /**
+     * Evicts a shared inventory from the cache.
+     * Should only be called when no players are viewing the vault.
+     * Flushes any pending writes before eviction.
+     *
+     * @param guildId The guild ID.
+     */
+    fun evictSharedInventory(guildId: UUID) {
+        val inventory = sharedInventories[guildId]
+
+        // Only evict if no viewers remain
+        if (inventory != null && inventory.viewers.isEmpty()) {
+            logger.debug("Evicting shared inventory for guild $guildId")
+
+            // Flush any pending writes first
+            forceFlush(guildId)
+
+            // Remove from shared inventory cache
+            sharedInventories.remove(guildId)
+
+            logger.info("Evicted shared inventory for guild $guildId")
+        } else if (inventory != null) {
+            logger.warn("Cannot evict shared inventory for guild $guildId - ${inventory.viewers.size} viewers still active")
+        }
+    }
+
+    /**
+     * Syncs the entire Bukkit Inventory state to the VaultInventory cache.
+     * This method compares each slot and only updates changed slots for efficiency.
+     * Slot 0 is skipped as it's reserved for the Gold Balance Button.
+     *
+     * This is the preferred method for syncing after any inventory modification,
+     * as it correctly handles all click types including shift-click and drag.
+     *
+     * @param guildId The guild ID.
+     * @param inventory The Bukkit Inventory to sync from.
+     */
+    fun syncInventoryToCache(guildId: UUID, inventory: Inventory) {
+        val vault = getOrLoadVault(guildId)
+        var changesDetected = 0
+
+        // Iterate through all slots except slot 0 (Gold Balance Button)
+        for (slot in 1 until inventory.size) {
+            val inventoryItem = inventory.getItem(slot)
+            val cachedItem = vault.getSlot(slot)
+
+            // Check if items are different
+            if (!itemsEqual(inventoryItem, cachedItem)) {
+                // Update cache
+                vault.setSlot(slot, inventoryItem)
+
+                // Buffer change for database write
+                bufferSlotChange(guildId, slot, inventoryItem)
+
+                changesDetected++
+            }
+        }
+
+        if (changesDetected > 0) {
+            logger.debug("Synced $changesDetected slot changes for guild $guildId")
+        }
+    }
 
     /**
      * Gets a vault inventory, loading from database if not cached.

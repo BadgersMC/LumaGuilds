@@ -9,6 +9,10 @@ import org.bukkit.inventory.ItemStack
 import java.sql.SQLException
 import java.util.UUID
 import java.util.Base64
+import org.slf4j.LoggerFactory
+import java.io.ByteArrayInputStream
+import java.io.ObjectInputStream
+import java.util.zip.ZipException
 
 /**
  * SQLite implementation of GuildVaultRepository.
@@ -16,6 +20,8 @@ import java.util.Base64
  * Provides crash-resistant storage with WAL mode enabled.
  */
 class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : GuildVaultRepository {
+    private val logger = LoggerFactory.getLogger(GuildVaultRepositorySQLite::class.java)
+
     // Note: Tables are created by SQLiteMigrations.migrateToVersion12()
     // vault_slots, vault_gold, and vault_transaction_log tables are used
 
@@ -131,6 +137,17 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
         return getVaultItemCount(guildId) > 0
     }
 
+    override fun getAllGuildIds(): List<UUID> {
+        val sql = "SELECT DISTINCT guild_id FROM vault_slots UNION SELECT DISTINCT guild_id FROM vault_gold"
+
+        return try {
+            val results = storage.connection.getResults(sql)
+            results.map { row -> UUID.fromString(row.getString("guild_id")) }
+        } catch (e: SQLException) {
+            emptyList()
+        }
+    }
+
     // ========== Gold Balance Management ==========
 
     override fun getGoldBalance(guildId: UUID): Long {
@@ -203,19 +220,42 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
     private fun serializeItem(item: ItemStack): String? {
         return try {
             Base64.getEncoder().encodeToString(item.serializeAsBytes())
-        } catch (e: SQLException) {
+        } catch (e: Exception) {
             null
         }
     }
 
-    /**
-     * Deserializes a Base64-encoded string to an ItemStack using Paper's native NBT deserialization.
-     */
     private fun deserializeItem(data: String): ItemStack? {
-        return try {
-            ItemStack.deserializeBytes(Base64.getDecoder().decode(data))
-        } catch (e: SQLException) {
-            null
+        val bytes = try {
+            Base64.getDecoder().decode(data)
+        } catch (e: IllegalArgumentException) {
+            logger.warn("Invalid Base64 data for item, skipping")
+            return null
+        }
+
+        // Try Paper's native NBT format first (GZIP compressed)
+        try {
+            return ItemStack.deserializeBytes(bytes)
+        } catch (e: RuntimeException) {
+            if (e.cause is ZipException || e.message?.contains("GZIP") == true) {
+                // Fall through to try legacy format
+            } else {
+                logger.warn("Failed to deserialize item with NBT format: ${e.message}")
+                return null
+            }
+        }
+
+        // Try legacy Java ObjectInputStream format
+        try {
+            val byteArrayInputStream = ByteArrayInputStream(bytes)
+            val objectInputStream = ObjectInputStream(byteArrayInputStream)
+            @Suppress("UNCHECKED_CAST")
+            val serialized = objectInputStream.readObject() as Map<String, Any>
+            objectInputStream.close()
+            return ItemStack.deserialize(serialized)
+        } catch (e: Exception) {
+            logger.warn("Failed to deserialize item with legacy format: ${e.message}")
+            return null
         }
     }
 }

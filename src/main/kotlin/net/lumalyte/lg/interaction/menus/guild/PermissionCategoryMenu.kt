@@ -206,8 +206,13 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         val saveGuiItem = GuiItem(saveItem) {
             // Update the rank with modified permissions
             val updatedRank = rank.copy(permissions = modifiedPermissions)
-            // TODO: Save to RankService
-            player.sendMessage("§a✅ Permission changes saved for ${rank.name}!")
+            val success = rankService.updateRank(updatedRank)
+            if (success) {
+                rank = updatedRank // Update local reference
+                player.sendMessage("§a✅ Permission changes saved for ${rank.name}!")
+            } else {
+                player.sendMessage("§c❌ Failed to save permission changes")
+            }
             menuNavigator.openMenu(
                 net.lumalyte.lg.interaction.menus.guild.RankEditMenu(
                     menuNavigator,

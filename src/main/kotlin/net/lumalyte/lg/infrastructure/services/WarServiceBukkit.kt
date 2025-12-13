@@ -114,7 +114,8 @@ class WarServiceBukkit(
                 defendingGuildId = defendingGuildId,
                 proposedDuration = duration,
                 objectives = objectives,
-                terms = terms
+                terms = terms,
+                wagerAmount = wagerAmount
             )
 
             warDeclarations[declaration.id] = declaration
