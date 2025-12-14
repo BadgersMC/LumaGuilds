@@ -110,6 +110,7 @@ Works with popular plugins out of the box.
 | **PlaceholderAPI** | 20+ placeholders for scoreboards, chat |
 | **WorldGuard** | Respects WorldGuard regions |
 | **CombatLogX** | Combat tagging compatibility |
+| **AxKoth** | Guild/team King of the Hill events |
 | **Geyser/Floodgate** | Bedrock Edition support |
 
 ---
