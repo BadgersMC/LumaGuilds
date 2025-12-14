@@ -1,6 +1,5 @@
 package net.lumalyte.lg.interaction.listeners
 
-import com.destroystokyo.paper.MaterialTags
 import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 import net.lumalyte.lg.application.actions.claim.IsWorldActionAllowed
 import net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult
@@ -436,7 +435,8 @@ class WorldClaimProtectionListener: Listener, KoinComponent {
     @EventHandler
     fun onBlockForm(event: BlockFormEvent) {
         // Check to only prevent concrete powder and lava
-        if (event.block.type !in MaterialTags.CONCRETE_POWDER.values && event.block.type != Material.LAVA) return
+        val isConcretePowder = event.block.type.name.endsWith("_CONCRETE_POWDER")
+        if (!isConcretePowder && event.block.type != Material.LAVA) return
 
         // Check all directions that could cause the block form
         val formClaim = getClaimOrNull(event.block.location)

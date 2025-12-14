@@ -94,7 +94,8 @@ data class Party(
      * Removes expired mutes automatically.
      */
     fun isPlayerMuted(playerId: UUID): Boolean {
-        val muteExpiration = mutedPlayers[playerId] ?: return false
+        if (playerId !in mutedPlayers) return false
+        val muteExpiration = mutedPlayers[playerId]
 
         // Permanent mute (null expiration)
         if (muteExpiration == null) return true

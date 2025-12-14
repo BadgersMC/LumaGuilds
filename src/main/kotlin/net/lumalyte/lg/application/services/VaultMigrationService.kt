@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION") // BukkitObjectInputStream required for legacy data migration
+
 package net.lumalyte.lg.application.services
 
 import co.aikar.idb.Database

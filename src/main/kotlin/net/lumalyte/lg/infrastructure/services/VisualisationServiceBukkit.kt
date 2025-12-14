@@ -105,12 +105,6 @@ class VisualisationServiceBukkit: VisualisationService {
     ): Set<Position3D> {
         logger.info("[DEBUG] displayGuildAware() called for player $playerId with ${areas.size} areas")
 
-        // Check if Bukkit server is available (for test environments)
-        if (Bukkit.getServer() == null) {
-            logger.warning("[WARN] Bukkit server not available, returning empty set")
-            return emptySet()
-        }
-
         // Get player if they exist
         val player = Bukkit.getPlayer(playerId)
         if (player == null) {

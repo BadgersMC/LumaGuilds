@@ -19,16 +19,6 @@ class LfgJoinResultTest {
         assertEquals("You joined Test Guild!", result.message)
     }
 
-    @Test
-    fun `Success should be instance of LfgJoinResult`() {
-        // Given: A success result
-        val result: LfgJoinResult = LfgJoinResult.Success("Joined!")
-
-        // Then: Should be instance of LfgJoinResult
-        assertTrue(result is LfgJoinResult)
-        assertTrue(result is LfgJoinResult.Success)
-    }
-
     // ===== InsufficientFunds Tests =====
 
     @Test
@@ -44,16 +34,6 @@ class LfgJoinResultTest {
         assertEquals(500, result.required)
         assertEquals(200, result.current)
         assertEquals("RAW_GOLD", result.currencyType)
-    }
-
-    @Test
-    fun `InsufficientFunds should be instance of LfgJoinResult`() {
-        // Given: An insufficient funds result
-        val result: LfgJoinResult = LfgJoinResult.InsufficientFunds(100, 50, "Coins")
-
-        // Then: Should be instance of LfgJoinResult
-        assertTrue(result is LfgJoinResult)
-        assertTrue(result is LfgJoinResult.InsufficientFunds)
     }
 
     @Test
@@ -81,16 +61,6 @@ class LfgJoinResultTest {
         assertEquals("This guild has reached maximum capacity", result.message)
     }
 
-    @Test
-    fun `GuildFull should be instance of LfgJoinResult`() {
-        // Given: A guild full result
-        val result: LfgJoinResult = LfgJoinResult.GuildFull("Guild is full")
-
-        // Then: Should be instance of LfgJoinResult
-        assertTrue(result is LfgJoinResult)
-        assertTrue(result is LfgJoinResult.GuildFull)
-    }
-
     // ===== AlreadyInGuild Tests =====
 
     @Test
@@ -100,16 +70,6 @@ class LfgJoinResultTest {
 
         // Then: Should have correct message
         assertEquals("You are already a member of a guild", result.message)
-    }
-
-    @Test
-    fun `AlreadyInGuild should be instance of LfgJoinResult`() {
-        // Given: An already in guild result
-        val result: LfgJoinResult = LfgJoinResult.AlreadyInGuild("Already in guild")
-
-        // Then: Should be instance of LfgJoinResult
-        assertTrue(result is LfgJoinResult)
-        assertTrue(result is LfgJoinResult.AlreadyInGuild)
     }
 
     // ===== VaultUnavailable Tests =====
@@ -123,16 +83,6 @@ class LfgJoinResultTest {
         assertEquals("Guild vault is not set up", result.message)
     }
 
-    @Test
-    fun `VaultUnavailable should be instance of LfgJoinResult`() {
-        // Given: A vault unavailable result
-        val result: LfgJoinResult = LfgJoinResult.VaultUnavailable("Vault unavailable")
-
-        // Then: Should be instance of LfgJoinResult
-        assertTrue(result is LfgJoinResult)
-        assertTrue(result is LfgJoinResult.VaultUnavailable)
-    }
-
     // ===== Error Tests =====
 
     @Test
@@ -142,16 +92,6 @@ class LfgJoinResultTest {
 
         // Then: Should have correct message
         assertEquals("An unexpected error occurred", result.message)
-    }
-
-    @Test
-    fun `Error should be instance of LfgJoinResult`() {
-        // Given: An error result
-        val result: LfgJoinResult = LfgJoinResult.Error("Error")
-
-        // Then: Should be instance of LfgJoinResult
-        assertTrue(result is LfgJoinResult)
-        assertTrue(result is LfgJoinResult.Error)
     }
 
     // ===== Pattern Matching Tests =====

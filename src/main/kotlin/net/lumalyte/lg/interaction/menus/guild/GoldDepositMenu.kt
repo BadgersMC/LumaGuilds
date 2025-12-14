@@ -178,7 +178,7 @@ class GoldDepositMenu(
             }
 
             // Allow placing gold items only
-            if (event.cursor != null && event.cursor.type != Material.AIR) {
+            if (event.cursor.type != Material.AIR) {
                 val cursorValue = GoldBalanceButton.calculateGoldValue(event.cursor)
                 if (cursorValue == 0L) {
                     event.isCancelled = true
