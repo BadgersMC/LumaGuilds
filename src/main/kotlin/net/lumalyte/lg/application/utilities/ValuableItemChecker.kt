@@ -28,7 +28,9 @@ object ValuableItemChecker {
         }
 
         // Check custom model data items
+        @Suppress("DEPRECATION") // customModelData API still needed for backwards compatibility
         if (item.hasItemMeta() && item.itemMeta?.hasCustomModelData() == true) {
+            @Suppress("DEPRECATION")
             val customModelData = item.itemMeta?.customModelData
             val itemSignature = "$materialName:$customModelData"
 

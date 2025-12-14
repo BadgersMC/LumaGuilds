@@ -333,7 +333,7 @@ class LumaGuilds : JavaPlugin() {
         if ((0..9).random() == 0) {
             // Use the hidden system validator for secret messages
             try {
-                val validator = net.lumalyte.lg.infrastructure.hidden.SystemValidator(description.version)
+                val validator = net.lumalyte.lg.infrastructure.hidden.SystemValidator(pluginMeta.version)
                 validator.validateAndDisplaySecretMessage()
             } catch (e: Exception) {
                 // Fallback to regular message if hidden class fails
@@ -423,7 +423,7 @@ class LumaGuilds : JavaPlugin() {
     fun previewSecretEasterEgg() {
         logger.info("§6=== PREVIEWING SECRET EASTER EGG ===")
         try {
-            val validator = net.lumalyte.lg.infrastructure.hidden.SystemValidator(description.version)
+            val validator = net.lumalyte.lg.infrastructure.hidden.SystemValidator(pluginMeta.version)
             validator.validateAndDisplaySecretMessage()
         } catch (e: Exception) {
             logger.warning("§cCould not load secret easter egg: ${e.message}")

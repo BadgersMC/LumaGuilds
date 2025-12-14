@@ -263,6 +263,7 @@ abstract class BaseBedrockMenu(
      * Restores workflow data for multi-step forms
      * @return Map of step names to their saved data
      */
+    @Suppress("UNCHECKED_CAST")
     protected fun restoreWorkflow(): Map<String, Map<String, Any?>> {
         val workflowKey = "${player.uniqueId}:${this::class.simpleName}:workflow"
         return (FormStateManager.restoreState(workflowKey) as? Map<String, Map<String, Any?>>) ?: emptyMap()

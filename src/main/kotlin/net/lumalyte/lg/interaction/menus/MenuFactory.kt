@@ -951,6 +951,7 @@ class MenuFactory : KoinComponent {
     /**
      * Generic method to create any menu type based on platform
      */
+    @Suppress("UNCHECKED_CAST")
     inline fun <reified T : Menu> createMenu(
         menuNavigator: MenuNavigator,
         player: Player,

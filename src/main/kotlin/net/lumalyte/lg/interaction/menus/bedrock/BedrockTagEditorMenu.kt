@@ -261,6 +261,7 @@ class BedrockTagEditorMenu(
                     rendered = true
 
                     // Draw the QR code on the map
+                    @Suppress("DEPRECATION") // setPixel with byte is required for map rendering
                     for (x in 0 until 128) {
                         for (y in 0 until 128) {
                             if (bitMatrix.get(x, y)) {
@@ -279,12 +280,14 @@ class BedrockTagEditorMenu(
             val mapItem = org.bukkit.inventory.ItemStack(org.bukkit.Material.FILLED_MAP)
             val mapMeta = mapItem.itemMeta as? org.bukkit.inventory.meta.MapMeta
             mapMeta?.mapView = mapView
-            mapMeta?.setDisplayName("§6§lBirdflop Text Generator")
-            mapMeta?.lore = listOf(
-                "§7Scan this QR code to open:",
-                "§b$url",
-                "§7Use your phone's camera!"
-            )
+            mapMeta?.displayName(net.kyori.adventure.text.Component.text("Birdflop Text Generator")
+                .color(net.kyori.adventure.text.format.NamedTextColor.GOLD)
+                .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD, true))
+            mapMeta?.lore(listOf(
+                net.kyori.adventure.text.Component.text("Scan this QR code to open:").color(net.kyori.adventure.text.format.NamedTextColor.GRAY),
+                net.kyori.adventure.text.Component.text(url).color(net.kyori.adventure.text.format.NamedTextColor.AQUA),
+                net.kyori.adventure.text.Component.text("Use your phone's camera!").color(net.kyori.adventure.text.format.NamedTextColor.GRAY)
+            ))
             mapItem.itemMeta = mapMeta
 
             // Give to player

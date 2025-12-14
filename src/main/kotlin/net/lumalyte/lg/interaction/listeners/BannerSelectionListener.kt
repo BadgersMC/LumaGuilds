@@ -62,7 +62,7 @@ class BannerSelectionListener : Listener, KoinComponent {
                 player.sendMessage("§a✅ Guild banner set to ${bannerToPlace.type.name.lowercase().replace("_", " ")}!")
 
                 // Handle item consumption based on placement method
-                if (cursorItem != null) {
+                if (cursorItem.type != Material.AIR) {
                     // Manual placement: consume from cursor
                     if (cursorItem.amount > 1) {
                         cursorItem.amount = cursorItem.amount - 1
@@ -70,7 +70,7 @@ class BannerSelectionListener : Listener, KoinComponent {
                     } else {
                         player.setItemOnCursor(null)
                     }
-                } else if (bannerItem != null && bannerItem.type.name.endsWith("_BANNER")) {
+                } else if (bannerItem?.type?.name?.endsWith("_BANNER") == true) {
                     // Shift-click placement: consume from slot
                     if (bannerItem.amount > 1) {
                         bannerItem.amount = bannerItem.amount - 1

@@ -5,6 +5,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
+import net.kyori.adventure.text.Component
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerQuitEvent
 import org.junit.jupiter.api.BeforeEach
@@ -44,7 +45,7 @@ class AdminOverrideListenerTest {
         every { adminOverrideService.hasOverride(playerId) } returns true
 
         // When: Player quits
-        val event = PlayerQuitEvent(player, "Player quit")
+        val event = PlayerQuitEvent(player, Component.text("Player quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
         listener.onPlayerQuit(event)
 
         // Then: Should clear override
@@ -57,7 +58,7 @@ class AdminOverrideListenerTest {
         every { adminOverrideService.hasOverride(playerId) } returns true
 
         // When: Player quits
-        val event = PlayerQuitEvent(player, "Player quit")
+        val event = PlayerQuitEvent(player, Component.text("Player quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
         listener.onPlayerQuit(event)
 
         // Then: Should invalidate cache after clearing override
@@ -74,7 +75,7 @@ class AdminOverrideListenerTest {
         every { permissionResolver.invalidatePlayerCache(playerId) } answers { callOrder.add("invalidate") }
 
         // When: Player quits
-        val event = PlayerQuitEvent(player, "Player quit")
+        val event = PlayerQuitEvent(player, Component.text("Player quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
         listener.onPlayerQuit(event)
 
         // Then: clearOverride should be called before invalidatePlayerCache
@@ -87,7 +88,7 @@ class AdminOverrideListenerTest {
         every { adminOverrideService.hasOverride(playerId) } returns false
 
         // When: Player quits
-        val event = PlayerQuitEvent(player, "Player quit")
+        val event = PlayerQuitEvent(player, Component.text("Player quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
         listener.onPlayerQuit(event)
 
         // Then: Should NOT clear override
@@ -100,7 +101,7 @@ class AdminOverrideListenerTest {
         every { adminOverrideService.hasOverride(playerId) } returns false
 
         // When: Player quits
-        val event = PlayerQuitEvent(player, "Player quit")
+        val event = PlayerQuitEvent(player, Component.text("Player quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
         listener.onPlayerQuit(event)
 
         // Then: Should NOT invalidate cache
@@ -113,7 +114,7 @@ class AdminOverrideListenerTest {
         every { adminOverrideService.hasOverride(playerId) } returns true
 
         // When: Player quits
-        val event = PlayerQuitEvent(player, "Player quit")
+        val event = PlayerQuitEvent(player, Component.text("Player quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
         listener.onPlayerQuit(event)
 
         // Then: Should check override state first
@@ -135,8 +136,8 @@ class AdminOverrideListenerTest {
         every { adminOverrideService.hasOverride(player2Id) } returns false
 
         // When: Both players quit
-        val event1 = PlayerQuitEvent(player1, "Player1 quit")
-        val event2 = PlayerQuitEvent(player2, "Player2 quit")
+        val event1 = PlayerQuitEvent(player1, Component.text("Player1 quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
+        val event2 = PlayerQuitEvent(player2, Component.text("Player2 quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
         listener.onPlayerQuit(event1)
         listener.onPlayerQuit(event2)
 
@@ -156,7 +157,7 @@ class AdminOverrideListenerTest {
         every { adminOverrideService.clearOverride(playerId) } throws RuntimeException("Test exception")
 
         // When: Player quits
-        val event = PlayerQuitEvent(player, "Player quit")
+        val event = PlayerQuitEvent(player, Component.text("Player quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
 
         // Then: Should not throw exception (listener should catch it)
         assertDoesNotThrow {
@@ -171,7 +172,7 @@ class AdminOverrideListenerTest {
         every { adminOverrideService.clearOverride(playerId) } throws RuntimeException("Test exception")
 
         // When: Player quits
-        val event = PlayerQuitEvent(player, "Player quit")
+        val event = PlayerQuitEvent(player, Component.text("Player quit"), PlayerQuitEvent.QuitReason.DISCONNECTED)
 
         // Catch any exception to allow test to continue
         try {

@@ -2,6 +2,7 @@ package net.lumalyte.lg.application.services
 
 import io.mockk.*
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
+import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import net.lumalyte.lg.config.VaultConfig
 import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger
 import org.bukkit.Bukkit
@@ -39,10 +40,21 @@ class VaultInventoryManagerSharedInventoryTest {
         transactionLogger = mockk(relaxed = true)
         vaultConfig = mockk(relaxed = true)
 
-        // Mock Bukkit server for inventory creation
-        mockServer = mockk(relaxed = true)
+        // Mock Bukkit static methods
         mockkStatic(Bukkit::class)
+        mockServer = mockk(relaxed = true)
         every { Bukkit.getServer() } returns mockServer
+
+        // Mock GoldBalanceButton to avoid Koin dependency
+        mockkObject(GoldBalanceButton)
+        val mockGoldButton = mockk<ItemStack>(relaxed = true)
+        every { GoldBalanceButton.createItem(any()) } returns mockGoldButton
+
+        // Default mock inventory for any createInventory call
+        val defaultMockInventory = mockk<Inventory>(relaxed = true)
+        every {
+            Bukkit.createInventory(any<InventoryHolder>(), any<Int>(), any<net.kyori.adventure.text.Component>())
+        } returns defaultMockInventory
 
         // Setup default repository behavior
         every { vaultRepository.getVaultInventory(any()) } returns emptyMap()
@@ -55,6 +67,7 @@ class VaultInventoryManagerSharedInventoryTest {
     @AfterEach
     fun tearDown() {
         unmockkStatic(Bukkit::class)
+        unmockkObject(GoldBalanceButton)
         clearAllMocks()
     }
 
@@ -69,7 +82,7 @@ class VaultInventoryManagerSharedInventoryTest {
         val mockInventory = mockk<Inventory>(relaxed = true)
 
         every {
-            mockServer.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
         } returns mockInventory
 
         // When: First call to get shared inventory
@@ -80,7 +93,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         // And: Bukkit.createInventory should have been called once
         verify(exactly = 1) {
-            mockServer.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
         }
     }
 
@@ -93,7 +106,7 @@ class VaultInventoryManagerSharedInventoryTest {
         val mockInventory = mockk<Inventory>(relaxed = true)
 
         every {
-            mockServer.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
         } returns mockInventory
 
         // When: Multiple calls to get shared inventory
@@ -107,7 +120,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         // And: Bukkit.createInventory should only have been called ONCE
         verify(exactly = 1) {
-            mockServer.createInventory(any<InventoryHolder>(), any<Int>(), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), any<Int>(), any<net.kyori.adventure.text.Component>())
         }
     }
 
@@ -125,7 +138,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         var callCount = 0
         every {
-            mockServer.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
         } answers {
             callCount++
             if (callCount == 1) mockInventory1 else mockInventory2
@@ -140,7 +153,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         // And: Bukkit.createInventory should have been called twice
         verify(exactly = 2) {
-            mockServer.createInventory(any<InventoryHolder>(), any<Int>(), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), any<Int>(), any<net.kyori.adventure.text.Component>())
         }
     }
 
@@ -155,7 +168,7 @@ class VaultInventoryManagerSharedInventoryTest {
         every { mockInventory.size } returns expectedCapacity
 
         every {
-            mockServer.createInventory(any<InventoryHolder>(), eq(expectedCapacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(expectedCapacity), any<net.kyori.adventure.text.Component>())
         } returns mockInventory
 
         // When: Get shared inventory with specific capacity
@@ -166,7 +179,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         // And: createInventory was called with correct capacity
         verify {
-            mockServer.createInventory(any<InventoryHolder>(), eq(expectedCapacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(expectedCapacity), any<net.kyori.adventure.text.Component>())
         }
     }
 
@@ -181,7 +194,7 @@ class VaultInventoryManagerSharedInventoryTest {
         val mockInventory = mockk<Inventory>(relaxed = true)
 
         every {
-            mockServer.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
         } answers {
             capturedHolder = firstArg()
             mockInventory
@@ -208,7 +221,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         val mockInventory = mockk<Inventory>(relaxed = true)
         every {
-            mockServer.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
         } returns mockInventory
 
         // When: Get shared inventory
@@ -229,7 +242,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         val mockInventory = mockk<Inventory>(relaxed = true)
         every {
-            mockServer.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
         } returns mockInventory
 
         // When: Get shared inventory
@@ -253,7 +266,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         val mockInventory = mockk<Inventory>(relaxed = true)
         every {
-            mockServer.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
         } returns mockInventory
 
         val results = mutableListOf<Inventory>()
@@ -287,7 +300,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         // And: createInventory should only have been called once despite concurrent access
         verify(atMost = 1) {
-            mockServer.createInventory(any<InventoryHolder>(), any<Int>(), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), any<Int>(), any<net.kyori.adventure.text.Component>())
         }
     }
 
@@ -304,7 +317,7 @@ class VaultInventoryManagerSharedInventoryTest {
         val mockInventories = guildIds.associateWith { mockk<Inventory>(relaxed = true) }
 
         every {
-            mockServer.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
+            Bukkit.createInventory(any<InventoryHolder>(), eq(capacity), any<net.kyori.adventure.text.Component>())
         } answers {
             // Return a new mock each time (simulating real Bukkit behavior)
             mockk<Inventory>(relaxed = true)
