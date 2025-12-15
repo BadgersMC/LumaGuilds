@@ -118,21 +118,21 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
         // Parse isOpen (default to false for existing guilds)
         val isOpen = try {
-            rs.getInt("is_open") == 1
-        } catch (e: SQLException) {
+            rs.get<Int?>("is_open")?.let { it == 1 } ?: false
+        } catch (e: Exception) {
             false
         }
 
         // Parse join fee settings (default to disabled for existing guilds)
         val joinFeeEnabled = try {
-            rs.getInt("join_fee_enabled") == 1
-        } catch (e: SQLException) {
+            rs.get<Int?>("join_fee_enabled")?.let { it == 1 } ?: false
+        } catch (e: Exception) {
             false
         }
 
         val joinFeeAmount = try {
-            rs.getInt("join_fee_amount")
-        } catch (e: SQLException) {
+            rs.get<Int?>("join_fee_amount") ?: 0
+        } catch (e: Exception) {
             0
         }
 

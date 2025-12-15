@@ -6,7 +6,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.sql.Connection
 import java.sql.SQLException
 
-class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: Connection) {
+class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: Connection, private val claimsEnabled: Boolean = true) {
     private val componentLogger = plugin.getComponentLogger()
     fun migrate() {
         try {
@@ -1061,12 +1061,18 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
      * This handles cases where the schema version is correct but tables are missing.
      */
     private fun validateAndRepairSchema() {
-        val requiredTables = listOf(
+        val requiredTables = mutableListOf(
             "guilds", "members", "relations", "parties", "party_requests",
             "player_party_preferences", "bank_tx", "kills",
             "audits", "wars", "leaderboards", "guild_vault_items", "guild_invitations",
             "vault_slots", "vault_gold", "vault_transaction_log"
         )
+
+        // Add claim tables to required list if claims are enabled
+        if (claimsEnabled) {
+            requiredTables.addAll(listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access"))
+        }
+
         // Note: chat_visibility_settings and chat_rate_limits are created by ChatSettingsRepository itself
 
         val missingTables = mutableListOf<String>()
@@ -1094,6 +1100,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("vault_slots" in missingTables || "vault_gold" in missingTables || "vault_transaction_log" in missingTables) {
                 migrateToVersion12()
                 componentLogger.info(Component.text("✓ Recreated vault system tables"))
+            }
+            // Recreate claim tables if missing (only checked when claims enabled)
+            if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
+                migrateToVersion2()
+                componentLogger.info(Component.text("✓ Recreated claim system tables"))
             }
         }
     }

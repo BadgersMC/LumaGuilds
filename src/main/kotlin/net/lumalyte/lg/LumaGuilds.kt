@@ -122,7 +122,7 @@ class LumaGuilds : JavaPlugin() {
         }
 
         registerNonClaimCommands()
-        registerNonClaimEvents()
+        registerNonClaimEvents(claimsEnabled)
 
         // Initialize file export cleanup
         get().get<FileExportManager>().cleanupOldFiles()
@@ -260,7 +260,7 @@ class LumaGuilds : JavaPlugin() {
                     try {
                         // Use the storage's HikariCP connection to ensure schema changes are visible
                         storage.connection.getConnection().use { connection ->
-                            val migrator = SQLiteMigrations(this, connection)
+                            val migrator = SQLiteMigrations(this, connection, claimsEnabled)
                             migrator.migrate()
                         }
                         logColored("✓ SQLite migrations completed successfully")
@@ -564,7 +564,7 @@ class LumaGuilds : JavaPlugin() {
     /**
      * Registers non-claim listeners.
      */
-    private fun registerNonClaimEvents() {
+    private fun registerNonClaimEvents(claimsEnabled: Boolean) {
         // Use the DI instance of ChatInputListener to avoid duplicate instances
         val chatInputListener = get().get<ChatInputListener>()
         server.pluginManager.registerEvents(chatInputListener, this)
@@ -588,9 +588,11 @@ class LumaGuilds : JavaPlugin() {
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
 
-        // Register admin override listener (for logout cleanup)
-        val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
-        server.pluginManager.registerEvents(adminOverrideListener, this)
+        // Register admin override listener (for logout cleanup) - only when claims enabled
+        if (claimsEnabled) {
+            val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
+            server.pluginManager.registerEvents(adminOverrideListener, this)
+        }
     }
 
     /**
