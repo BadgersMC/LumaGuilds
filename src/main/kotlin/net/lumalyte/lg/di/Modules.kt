@@ -274,7 +274,10 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<ModeService> { ModeServiceBukkit(get(), get(), get(), get()) }
     single<CombatService> { CombatServiceBukkit(get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get()) }
-    single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get()) }
+    // GuildRolePermissionResolver depends on ClaimRepository - only register when claims enabled
+    if (claimsEnabled) {
+        single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get()) }
+    }
     single<net.lumalyte.lg.application.services.AdminOverrideService> {
         net.lumalyte.lg.infrastructure.services.AdminOverrideServiceImpl()
     }
@@ -371,8 +374,11 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
         val config = get<ConfigService>().loadConfig()
         net.lumalyte.lg.interaction.listeners.VaultInventoryListener(get<LumaGuilds>(), get(), get(), config.vault)
     }
-    single<net.lumalyte.lg.interaction.listeners.AdminOverrideListener> {
-        net.lumalyte.lg.interaction.listeners.AdminOverrideListener(get(), get())
+    // AdminOverrideListener depends on GuildRolePermissionResolver - only register when claims enabled
+    if (claimsEnabled) {
+        single<net.lumalyte.lg.interaction.listeners.AdminOverrideListener> {
+            net.lumalyte.lg.interaction.listeners.AdminOverrideListener(get(), get())
+        }
     }
 
     // --- Application Layer Actions ---
