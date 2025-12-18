@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.lumalyte.lg"
-version = "0.5.1"
+version = "0.5.3"
 
 repositories {
     mavenLocal()
@@ -88,7 +88,7 @@ tasks.test {
 tasks.shadowJar {
     archiveBaseName.set("LumaGuilds")
     archiveClassifier.set("")
-    archiveVersion.set("0.5.1")
+    archiveVersion.set("0.5.3")
 
     mergeServiceFiles()
 

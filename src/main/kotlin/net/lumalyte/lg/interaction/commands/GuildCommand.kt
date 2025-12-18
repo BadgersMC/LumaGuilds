@@ -50,7 +50,17 @@ class GuildCommand : BaseCommand(), KoinComponent {
     )
 
     private val activeTeleports = mutableMapOf<java.util.UUID, TeleportSession>()
-    
+
+    private fun notifyGuildMembers(guildId: java.util.UUID, message: String) {
+        val members = memberService.getGuildMembers(guildId)
+        members.forEach { member ->
+            val onlinePlayer = Bukkit.getPlayer(member.playerId)
+            if (onlinePlayer != null && onlinePlayer.isOnline) {
+                onlinePlayer.sendMessage(message)
+            }
+        }
+    }
+
     @Subcommand("create")
     @CommandPermission("lumaguilds.guild.create")
     fun onCreate(player: Player, name: String, @Optional banner: String?) {
@@ -421,7 +431,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
     
     @Subcommand("emoji")
     @CommandPermission("lumaguilds.guild.emoji")
-    fun onEmoji(player: Player) {
+    @CommandCompletion("@unlockedemojis")
+    fun onEmoji(player: Player, @Optional emoji: String?) {
         val playerId = player.uniqueId
 
         // Find player's guild
@@ -451,9 +462,47 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Open emoji menu
-        val menuNavigator = MenuNavigator(player)
-        menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
+        // If no emoji parameter provided, open the menu
+        if (emoji == null) {
+            val menuNavigator = MenuNavigator(player)
+            menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
+            return
+        }
+
+        // Direct emoji setting via command parameter
+        val nexoEmojiService: net.lumalyte.lg.infrastructure.services.NexoEmojiService by inject()
+
+        // Validate emoji format
+        if (!nexoEmojiService.isValidEmojiFormat(emoji)) {
+            player.sendMessage("§c❌ Invalid emoji format!")
+            player.sendMessage("§7Format must be: §f:emoji_name: §7(e.g., §f:cat:§7)")
+            return
+        }
+
+        // Check if emoji exists in Nexo
+        if (!nexoEmojiService.doesEmojiExist(emoji)) {
+            player.sendMessage("§c❌ Emoji not found in Nexo registry!")
+            player.sendMessage("§7Make sure the emoji is configured in Nexo.")
+            return
+        }
+
+        // Check if player has permission for this specific emoji
+        if (!nexoEmojiService.hasEmojiPermission(player, emoji)) {
+            val permission = nexoEmojiService.getEmojiPermission(emoji) ?: "unknown"
+            player.sendMessage("§c❌ You don't have permission to use this emoji!")
+            player.sendMessage("§7Required permission: §f$permission")
+            return
+        }
+
+        // Set the emoji
+        val success = guildService.setEmoji(guild.id, emoji, playerId)
+        if (success) {
+            player.sendMessage("§a✅ Guild emoji updated successfully!")
+            player.sendMessage("§7New emoji: $emoji")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
+        } else {
+            player.sendMessage("§c❌ Failed to save emoji. Please try again.")
+        }
     }
 
     @Subcommand("mode")
@@ -869,6 +918,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("")
         }
 
+        player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
+    }
+
+    @Subcommand("lfg")
+    @CommandPermission("lumaguilds.guild.lfg")
+    fun onLfg(player: Player) {
+        val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+        val menuNavigator = net.lumalyte.lg.interaction.menus.MenuNavigator(player)
+
+        menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
 
@@ -1620,6 +1679,276 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 player.sendMessage("§7 • §f/guild help create §7- Guild name & tag guide")
                 player.sendMessage("§7 • §f/guild help tag §7- Tag formatting examples")
             }
+        }
+    }
+
+    @Subcommand("ally")
+    @CommandPermission("lumaguilds.guild.ally")
+    @CommandCompletion("@guilds")
+    fun onAlly(player: Player, guildName: String) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check MANAGE_RELATIONS permission
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_RELATIONS)) {
+            player.sendMessage("§cYou don't have permission to manage guild relations.")
+            player.sendMessage("§7You need the MANAGE_RELATIONS permission.")
+            return
+        }
+
+        // Find target guild
+        val targetGuild = guildRepository.getByName(guildName)
+        if (targetGuild == null) {
+            player.sendMessage("§cGuild '$guildName' not found.")
+            return
+        }
+
+        if (targetGuild.id == guild.id) {
+            player.sendMessage("§cYou cannot ally with your own guild.")
+            return
+        }
+
+        // Get relation service
+        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
+
+        // Check current relation
+        val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
+        if (currentRelation == net.lumalyte.lg.domain.entities.RelationType.ALLY) {
+            player.sendMessage("§cYou are already allied with ${targetGuild.name}!")
+            return
+        }
+
+        if (currentRelation == net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
+            player.sendMessage("§cYou are at war with ${targetGuild.name}!")
+            player.sendMessage("§7Request a truce first: §6/guild truce ${targetGuild.name}")
+            return
+        }
+
+        // Check for pending requests
+        val pendingRequests = relationService.getPendingRequests(guild.id)
+        if (pendingRequests.any { it.getOtherGuild(guild.id) == targetGuild.id }) {
+            player.sendMessage("§cYou already have a pending request with ${targetGuild.name}.")
+            return
+        }
+
+        // Request alliance
+        val relation = relationService.requestAlliance(guild.id, targetGuild.id, playerId)
+        if (relation != null) {
+            player.sendMessage("§a✓ Alliance request sent to ${targetGuild.name}!")
+            player.sendMessage("§7They must accept your request for the alliance to become active.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
+
+            // Notify target guild members
+            notifyGuildMembers(targetGuild.id, "§6${guild.name} §7has requested an alliance with your guild! Use §6/guild menu §7→ Relations to respond.")
+        } else {
+            player.sendMessage("§c✗ Failed to send alliance request.")
+            player.sendMessage("§7There may already be a pending request.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+        }
+    }
+
+    @Subcommand("enemy")
+    @CommandPermission("lumaguilds.guild.enemy")
+    @CommandCompletion("@guilds")
+    fun onEnemy(player: Player, guildName: String) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check DECLARE_WAR permission (specific permission for war)
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.DECLARE_WAR)) {
+            player.sendMessage("§cYou don't have permission to declare war.")
+            player.sendMessage("§7You need the DECLARE_WAR permission.")
+            return
+        }
+
+        // Find target guild
+        val targetGuild = guildRepository.getByName(guildName)
+        if (targetGuild == null) {
+            player.sendMessage("§cGuild '$guildName' not found.")
+            return
+        }
+
+        if (targetGuild.id == guild.id) {
+            player.sendMessage("§cYou cannot declare war on your own guild.")
+            return
+        }
+
+        // Get relation service
+        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
+
+        // Check current relation
+        val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
+        if (currentRelation == net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
+            player.sendMessage("§cYou are already at war with ${targetGuild.name}!")
+            return
+        }
+
+        if (currentRelation == net.lumalyte.lg.domain.entities.RelationType.ALLY) {
+            player.sendMessage("§cYou are allied with ${targetGuild.name}!")
+            player.sendMessage("§7You must break the alliance first through the relations menu.")
+            return
+        }
+
+        // Declare war (immediate effect)
+        val relation = relationService.declareWar(guild.id, targetGuild.id, playerId)
+        if (relation != null) {
+            player.sendMessage("§c⚔ War declared against ${targetGuild.name}!")
+            player.sendMessage("§7Your guilds are now enemies.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
+
+            // Notify target guild members
+            notifyGuildMembers(targetGuild.id, "§c⚔ ${guild.name} §chas declared war on your guild!")
+
+            // Broadcast to all online players
+            net.lumalyte.lg.utils.ChatUtils.broadcastMessage("§c⚔ §6${guild.name} §chas declared war on §6${targetGuild.name}§c!", player)
+        } else {
+            player.sendMessage("§c✗ Failed to declare war.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+        }
+    }
+
+    @Subcommand("truce")
+    @CommandPermission("lumaguilds.guild.truce")
+    @CommandCompletion("@guilds")
+    fun onTruce(player: Player, guildName: String, @Optional durationDays: Int?) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check MANAGE_RELATIONS permission
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_RELATIONS)) {
+            player.sendMessage("§cYou don't have permission to manage guild relations.")
+            player.sendMessage("§7You need the MANAGE_RELATIONS permission.")
+            return
+        }
+
+        // Find target guild
+        val targetGuild = guildRepository.getByName(guildName)
+        if (targetGuild == null) {
+            player.sendMessage("§cGuild '$guildName' not found.")
+            return
+        }
+
+        if (targetGuild.id == guild.id) {
+            player.sendMessage("§cYou cannot request a truce with your own guild.")
+            return
+        }
+
+        // Get relation service
+        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
+
+        // Check current relation
+        val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
+        if (currentRelation != net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
+            player.sendMessage("§cYou can only request a truce with enemy guilds!")
+            player.sendMessage("§7Current relation with ${targetGuild.name}: ${currentRelation.name.lowercase()}")
+            return
+        }
+
+        // Validate duration (1-90 days, default 14)
+        val duration = durationDays ?: 14
+        if (duration < 1 || duration > 90) {
+            player.sendMessage("§cTruce duration must be between 1 and 90 days.")
+            return
+        }
+
+        // Request truce
+        val relation = relationService.requestTruce(guild.id, targetGuild.id, playerId, java.time.Duration.ofDays(duration.toLong()))
+        if (relation != null) {
+            player.sendMessage("§e✓ Truce request sent to ${targetGuild.name} for $duration days!")
+            player.sendMessage("§7They must accept your request for the truce to become active.")
+            player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.2f)
+
+            // Notify target guild members
+            notifyGuildMembers(targetGuild.id, "§e${guild.name} §7has requested a §e$duration-day truce§7 with your guild! Use §6/guild menu §7→ Relations to respond.")
+        } else {
+            player.sendMessage("§c✗ Failed to send truce request.")
+            player.sendMessage("§7There may already be a pending request.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+        }
+    }
+
+    @Subcommand("neutral")
+    @CommandPermission("lumaguilds.guild.neutral")
+    @CommandCompletion("@guilds")
+    fun onNeutral(player: Player, guildName: String) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check MANAGE_RELATIONS permission
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_RELATIONS)) {
+            player.sendMessage("§cYou don't have permission to manage guild relations.")
+            player.sendMessage("§7You need the MANAGE_RELATIONS permission.")
+            return
+        }
+
+        // Find target guild
+        val targetGuild = guildRepository.getByName(guildName)
+        if (targetGuild == null) {
+            player.sendMessage("§cGuild '$guildName' not found.")
+            return
+        }
+
+        if (targetGuild.id == guild.id) {
+            player.sendMessage("§cYou cannot request peace with your own guild.")
+            return
+        }
+
+        // Get relation service
+        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
+
+        // Check current relation
+        val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
+        if (currentRelation != net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
+            player.sendMessage("§cYou can only request peace with enemy guilds!")
+            player.sendMessage("§7Current relation with ${targetGuild.name}: ${currentRelation.name.lowercase()}")
+            return
+        }
+
+        // Request unenemy (peace)
+        val relation = relationService.requestUnenemy(guild.id, targetGuild.id, playerId)
+        if (relation != null) {
+            player.sendMessage("§f✓ Peace request sent to ${targetGuild.name}!")
+            player.sendMessage("§7If accepted, hostilities will end permanently.")
+            player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.5f)
+
+            // Notify target guild members
+            notifyGuildMembers(targetGuild.id, "§f${guild.name} §7has requested to end hostilities with your guild! Use §6/guild menu §7→ Relations to respond.")
+        } else {
+            player.sendMessage("§c✗ Failed to send peace request.")
+            player.sendMessage("§7There may already be a pending request.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
 

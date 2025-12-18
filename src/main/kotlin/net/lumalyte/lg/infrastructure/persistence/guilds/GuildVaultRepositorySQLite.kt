@@ -254,7 +254,9 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
             objectInputStream.close()
             return ItemStack.deserialize(serialized)
         } catch (e: Exception) {
-            logger.warn("Failed to deserialize item with legacy format: ${e.message}")
+            // Legacy format failed - item is from an old/incompatible version or corrupted
+            // This is expected when migrating from very old databases, safe to ignore
+            logger.debug("Skipped item with unreadable legacy format (${e.javaClass.simpleName})")
             return null
         }
     }

@@ -12,7 +12,7 @@ import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.values.JoinRequirement
-import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.UUID
 
 /**
@@ -26,9 +26,10 @@ class LfgServiceBukkit(
     private val configService: ConfigService,
     private val vaultService: GuildVaultService,
     private val bankService: BankService,
-    private val rankService: RankService,
-    private val logger: Logger
+    private val rankService: RankService
 ) : LfgService {
+
+    private val logger = LoggerFactory.getLogger(LfgServiceBukkit::class.java)
 
     override fun getAvailableGuilds(): List<Guild> {
         val config = configService.loadConfig()

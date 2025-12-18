@@ -14,15 +14,71 @@ import net.lumalyte.lg.infrastructure.persistence.getInstant
 import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
 import java.sql.SQLException
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepository {
-    
+
     private val guilds: MutableMap<UUID, Guild> = mutableMapOf()
-    
+
+    /**
+     * Format Instant as SQL datetime string compatible with both SQLite and MariaDB.
+     * MariaDB requires YYYY-MM-DD HH:MM:SS format, not ISO-8601.
+     */
+    private fun Instant.toSqlDateTime(): String {
+        return DateTimeFormatter
+            .ofPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(ZoneOffset.UTC)
+            .format(this)
+    }
+
+    /**
+     * Cache the LFG column existence check result to avoid repeated PRAGMA queries.
+     * This is set once during initialization and never changes during runtime.
+     */
+    private val hasLfgColumns: Boolean by lazy {
+        checkColumnExists("guilds", "is_open") &&
+        checkColumnExists("guilds", "join_fee_enabled") &&
+        checkColumnExists("guilds", "join_fee_amount")
+    }
+
     init {
         createGuildTable()
         preload()
+    }
+
+    /**
+     * Database-agnostic column existence check.
+     * Uses INFORMATION_SCHEMA for MariaDB or PRAGMA for SQLite.
+     */
+    private fun checkColumnExists(tableName: String, columnName: String): Boolean {
+        return try {
+            // Try MariaDB/MySQL INFORMATION_SCHEMA approach first
+            try {
+                val rows = storage.connection.getResults("""
+                    SELECT COLUMN_NAME
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                    AND TABLE_NAME = ?
+                    AND COLUMN_NAME = ?
+                """.trimIndent(), tableName, columnName)
+                return rows.isNotEmpty()
+            } catch (e: Exception) {
+                // Fall back to SQLite PRAGMA approach
+                val rows = storage.connection.getResults("PRAGMA table_info($tableName)")
+                rows.forEach { row ->
+                    val name = row.getString("name")
+                    if (name == columnName) {
+                        return true
+                    }
+                }
+                false
+            }
+        } catch (e: Exception) {
+            println("WARN [GuildRepositorySQLite] Failed to check column existence: ${e.message}")
+            false
+        }
     }
     
     private fun createGuildTable() {
@@ -186,34 +242,63 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     }
     
     override fun add(guild: Guild): Boolean {
-        val sql = """
+        // Use cached column existence check
+        val sql = if (hasLfgColumns) {
+            """
             INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """.trimIndent()
+            """.trimIndent()
+        } else {
+            // Fallback for databases without LFG columns
+            """
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+        }
 
         return try {
             // Extract main home for backward compatibility with existing schema
             val mainHome = guild.homes.defaultHome
 
-            val rowsAffected = storage.connection.executeUpdate(sql,
-                guild.id.toString(),
-                guild.name,
-                guild.banner,
-                guild.emoji,
-                guild.tag,
-                mainHome?.worldId?.toString(),
-                mainHome?.position?.x,
-                mainHome?.position?.y,
-                mainHome?.position?.z,
-                guild.level,
-                guild.bankBalance,
-                guild.mode.name.lowercase(),
-                guild.modeChangedAt?.toString(),
-                guild.createdAt.toString(),
-                if (guild.isOpen) 1 else 0,
-                if (guild.joinFeeEnabled) 1 else 0,
-                guild.joinFeeAmount
-            )
+            val rowsAffected = if (hasLfgColumns) {
+                storage.connection.executeUpdate(sql,
+                    guild.id.toString(),
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.createdAt.toSqlDateTime(),
+                    if (guild.isOpen) 1 else 0,
+                    if (guild.joinFeeEnabled) 1 else 0,
+                    guild.joinFeeAmount
+                )
+            } else {
+                // Fallback without LFG columns
+                storage.connection.executeUpdate(sql,
+                    guild.id.toString(),
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.createdAt.toSqlDateTime()
+                )
+            }
             guilds[guild.id] = guild
             rowsAffected > 0
         } catch (e: SQLException) {
@@ -222,13 +307,24 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     }
     
     override fun update(guild: Guild): Boolean {
-        val sql = """
+        // Use cached column existence check
+        val sql = if (hasLfgColumns) {
+            """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
             vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
             join_fee_enabled = ?, join_fee_amount = ?
             WHERE id = ?
-        """.trimIndent()
+            """.trimIndent()
+        } else {
+            // Fallback for databases without LFG columns
+            """
+            UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
+            level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?
+            WHERE id = ?
+            """.trimIndent()
+        }
 
         return try {
             // Extract main home for backward compatibility with existing schema
@@ -239,29 +335,53 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             println("  vault_status: ${guild.vaultStatus.name}")
             println("  vault_chest_location: ${guild.vaultChestLocation}")
 
-            val rowsAffected = storage.connection.executeUpdate(sql,
-                guild.name,
-                guild.banner,
-                guild.emoji,
-                guild.tag,
-                mainHome?.worldId?.toString(),
-                mainHome?.position?.x,
-                mainHome?.position?.y,
-                mainHome?.position?.z,
-                guild.level,
-                guild.bankBalance,
-                guild.mode.name.lowercase(),
-                guild.modeChangedAt?.toString(),
-                guild.vaultStatus.name,
-                guild.vaultChestLocation?.worldId?.toString(),
-                guild.vaultChestLocation?.x,
-                guild.vaultChestLocation?.y,
-                guild.vaultChestLocation?.z,
-                if (guild.isOpen) 1 else 0,
-                if (guild.joinFeeEnabled) 1 else 0,
-                guild.joinFeeAmount,
-                guild.id.toString()
-            )
+            val rowsAffected = if (hasLfgColumns) {
+                storage.connection.executeUpdate(sql,
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.vaultStatus.name,
+                    guild.vaultChestLocation?.worldId?.toString(),
+                    guild.vaultChestLocation?.x,
+                    guild.vaultChestLocation?.y,
+                    guild.vaultChestLocation?.z,
+                    if (guild.isOpen) 1 else 0,
+                    if (guild.joinFeeEnabled) 1 else 0,
+                    guild.joinFeeAmount,
+                    guild.id.toString()
+                )
+            } else {
+                // Fallback without LFG columns
+                storage.connection.executeUpdate(sql,
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.vaultStatus.name,
+                    guild.vaultChestLocation?.worldId?.toString(),
+                    guild.vaultChestLocation?.x,
+                    guild.vaultChestLocation?.y,
+                    guild.vaultChestLocation?.z,
+                    guild.id.toString()
+                )
+            }
 
             println("  rows affected: $rowsAffected")
 

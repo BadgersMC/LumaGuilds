@@ -857,30 +857,9 @@ class VaultInventoryManager(
      * @return true if inventory is in sync or was successfully repaired.
      */
     fun validateInventorySync(guildId: UUID, inventory: Inventory): Boolean {
-        val vault = vaultCache[guildId] ?: return false
-        var desyncDetected = false
-
-        // Validate all slots (including slot 0 - gold button)
-        for (slot in 0 until inventory.size) {
-            val guiItem = inventory.getItem(slot)
-            val cachedItem = vault.getSlot(slot)
-
-            if (!itemsEqual(guiItem, cachedItem)) {
-                logger.error(
-                    "DESYNC DETECTED: Guild $guildId slot $slot - " +
-                    "GUI: ${guiItem?.type}x${guiItem?.amount}, Cache: ${cachedItem?.type}x${cachedItem?.amount}"
-                )
-                desyncDetected = true
-
-                // Auto-repair: prefer cache over GUI (cache is source of truth)
-                inventory.setItem(slot, cachedItem)
-            }
-        }
-
-        if (desyncDetected) {
-            logger.warn("Auto-repaired inventory desync for guild $guildId")
-        }
-
+        // With shared GUI, just sync GUI→cache instead of complex validation
+        // The GUI is the source of truth since all players see the same inventory
+        syncInventoryToCache(guildId, inventory)
         return true
     }
 

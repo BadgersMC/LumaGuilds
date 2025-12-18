@@ -492,7 +492,18 @@ class LumaGuilds : JavaPlugin() {
      */
     private fun configureCommandCompletions() {
         // ACF handles tab completion automatically through @CommandCompletion annotations
-        // No custom setup needed - the framework provides robust completion features
+        // Register custom async completions for dynamic data
+
+        // Register unlocked emojis completion (shows only emojis the player has permission to use)
+        commandManager.commandCompletions.registerAsyncCompletion("unlockedemojis") { context ->
+            val player = context.player ?: return@registerAsyncCompletion emptyList()
+            val nexoEmojiService = get().get<net.lumalyte.lg.infrastructure.services.NexoEmojiService>()
+
+            // Get emoji names player has permission for and format as :emojiname:
+            nexoEmojiService.getPlayerUnlockedEmojis(player).map { emojiName ->
+                ":$emojiName:"
+            }
+        }
     }
 
     /**
