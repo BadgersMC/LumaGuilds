@@ -21,7 +21,6 @@ import net.lumalyte.lg.domain.entities.Guild
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
-import org.slf4j.Logger
 import java.time.Instant
 import java.util.UUID
 
@@ -38,7 +37,6 @@ class LfgServiceBukkitTest {
     private lateinit var vaultService: GuildVaultService
     private lateinit var bankService: BankService
     private lateinit var rankService: RankService
-    private lateinit var logger: Logger
 
     private lateinit var lfgService: LfgServiceBukkit
     private lateinit var defaultRank: Rank
@@ -59,7 +57,6 @@ class LfgServiceBukkitTest {
         vaultService = mockk(relaxed = true)
         bankService = mockk(relaxed = true)
         rankService = mockk(relaxed = true)
-        logger = mockk(relaxed = true)
 
         // Set up default config with maxMembersPerGuild = 50
         val config = MainConfig(
@@ -77,8 +74,7 @@ class LfgServiceBukkitTest {
             configService = configService,
             vaultService = vaultService,
             bankService = bankService,
-            rankService = rankService,
-            logger = logger
+            rankService = rankService
         )
 
         // Set up default rank for guilds

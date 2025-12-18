@@ -103,6 +103,21 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             // Log migration completion quietly
             val finalVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))
+
+            // Verify schema integrity after migrations
+            val verifier = MigrationVerifier(plugin, connection)
+            if (!verifier.verifyGuildsTableSchema()) {
+                componentLogger.warn(Component.text("⚠ Schema verification failed, attempting auto-repair..."))
+                if (verifier.autoRepairSchema()) {
+                    componentLogger.info(Component.text("✓ Schema auto-repair successful"))
+                    // Verify again after repair
+                    if (!verifier.verifyGuildsTableSchema()) {
+                        componentLogger.error(Component.text("✗ Schema still invalid after repair - plugin may not function correctly"))
+                    }
+                } else {
+                    componentLogger.error(Component.text("✗ Schema auto-repair failed - please report this issue"))
+                }
+            }
         } catch (e: SQLException) {
             plugin.logger.severe("Database migration failed: ${e.message}")
             e.printStackTrace()
@@ -473,8 +488,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 guild_a TEXT NOT NULL,
                 guild_b TEXT NOT NULL,
                 type TEXT NOT NULL CHECK (type IN ('Ally', 'Enemy', 'Truce', 'Neutral')),
+                status TEXT NOT NULL,
                 expires_at TEXT,
                 created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
                 FOREIGN KEY (guild_a) REFERENCES guilds(id) ON DELETE CASCADE,
                 FOREIGN KEY (guild_b) REFERENCES guilds(id) ON DELETE CASCADE,
                 UNIQUE (guild_a, guild_b)
@@ -1064,7 +1081,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         val requiredTables = mutableListOf(
             "guilds", "members", "relations", "parties", "party_requests",
             "player_party_preferences", "bank_tx", "kills",
-            "audits", "wars", "leaderboards", "guild_vault_items", "guild_invitations",
+            "audits", "wars", "leaderboards", "guild_invitations",
             "vault_slots", "vault_gold", "vault_transaction_log"
         )
 

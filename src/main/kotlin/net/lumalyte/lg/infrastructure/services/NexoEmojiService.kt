@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.application.services.ConfigService
 import org.bukkit.entity.Player
 import org.slf4j.LoggerFactory
 
@@ -8,9 +9,19 @@ import org.slf4j.LoggerFactory
  * Handles emoji validation and permission checking for guild emoji system.
  * JFS there is some really nasty shit going on here.
  */
-class NexoEmojiService {
-    
+class NexoEmojiService(
+    private val configService: ConfigService
+) {
+
     private val logger = LoggerFactory.getLogger(NexoEmojiService::class.java)
+
+    /**
+     * Gets the configured emoji permission prefix from config.
+     * Defaults to "lumalyte.emoji" if not configured.
+     */
+    private fun getEmojiPermissionPrefix(): String {
+        return configService.loadConfig().chat.emojiPermissionPrefix
+    }
     
     /**
      * Validates if an emoji placeholder is in valid Nexo format.
@@ -24,7 +35,8 @@ class NexoEmojiService {
     
     /**
      * Checks if a player has the required permission to use a specific emoji.
-     * This checks the specific emoji permission in the format "lumalyte.emoji.<emojiname>".
+     * This checks the specific emoji permission in the format "<prefix>.<emojiname>".
+     * The prefix is configurable in config.yml under chat.emoji_permission_prefix.
      *
      * @param player The player to check permissions for.
      * @param emoji The emoji placeholder (e.g., ":catsmileysmile:").
@@ -37,9 +49,10 @@ class NexoEmojiService {
             logger.debug("Invalid emoji format: $emoji")
             return false
         }
-        
-        // Check specific emoji permission
-        val permission = "lumalyte.emoji.$emojiName"
+
+        // Check specific emoji permission using configured prefix
+        val prefix = getEmojiPermissionPrefix()
+        val permission = "$prefix.$emojiName"
         val hasPermission = player.hasPermission(permission)
         
         if (!hasPermission) {
@@ -107,12 +120,13 @@ class NexoEmojiService {
      * Gets the permission node for a specific emoji.
      *
      * @param emoji The emoji placeholder (e.g., ":catsmileysmile:").
-     * @return The permission node (e.g., "lumalyte.emoji.catsmileysmile"), or null if invalid format.
+     * @return The permission node (e.g., "<prefix>.catsmileysmile"), or null if invalid format.
      */
     fun getEmojiPermission(emoji: String): String? {
         val emojiName = extractEmojiName(emoji)
         return if (emojiName != null) {
-            "lumalyte.emoji.$emojiName"
+            val prefix = getEmojiPermissionPrefix()
+            "$prefix.$emojiName"
         } else {
             null
         }
@@ -325,8 +339,9 @@ class NexoEmojiService {
         }
 
         // Filter emojis based on player permissions
+        val prefix = getEmojiPermissionPrefix()
         return availableEmojis.filter { emojiName ->
-            val permission = "lumalyte.emoji.$emojiName"
+            val permission = "$prefix.$emojiName"
             val hasPermission = player.hasPermission(permission)
 
             if (!hasPermission) {

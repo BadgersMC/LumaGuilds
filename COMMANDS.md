@@ -26,6 +26,8 @@ LumaGuilds is a comprehensive guild management plugin with party chat, claim man
 | `/guild disband` | `lumaguilds.guild.disband` | Disband your guild | `/guild disband` |
 | `/guild menu` | `lumaguilds.guild.menu` | Open guild management menu | `/guild menu` |
 | `/guild info [guild]` | `lumaguilds.guild.info` | View guild information | `/guild info` or `/guild info OtherGuild` |
+| `/guild list` | `lumaguilds.guild.list` | List all open/public guilds | `/guild list` |
+| `/guild lfg` | `lumaguilds.guild.lfg` | Browse guilds looking for members (LFG system) | `/guild lfg` |
 
 ### Home & Teleportation
 | Command | Permission | Description | Usage |
@@ -155,7 +157,9 @@ lumaguilds.guild.*
 ├── lumaguilds.guild.tag         (default: op)
 ├── lumaguilds.guild.description (default: op)
 ├── lumaguilds.guild.war         (default: op)
-└── lumaguilds.guild.info        (default: true)
+├── lumaguilds.guild.info        (default: true)
+├── lumaguilds.guild.list        (default: true)
+└── lumaguilds.guild.lfg         (default: true)
 ```
 
 ### Claim Permissions
@@ -270,5 +274,5 @@ lumaguilds.admin: true
 
 ---
 
-*Last updated: September 11, 2025*
-*Plugin Version: 0.4.0*
+*Last updated: December 15, 2025*
+*Plugin Version: 0.5.3*

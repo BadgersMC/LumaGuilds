@@ -24,6 +24,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
     private val relationService: RelationService by inject()
     private val guildService: GuildService by inject()
+    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
@@ -165,17 +166,17 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         }
         pane.addItem(truceGuiItem, 2, 2)
 
-        // Declare War
-        val warItem = ItemStack(Material.IRON_SWORD)
-            .name("§4Declare War")
-            .lore("§7Immediately declare war on another guild")
+        // Declare Enemy
+        val enemyItem = ItemStack(Material.IRON_SWORD)
+            .name("§cDeclare Enemy")
+            .lore("§7Declare another guild as an enemy")
             .lore("§7No acceptance required")
-            .lore("§7Enables warfare between guilds")
+            .lore("§7Creates hostile relations")
 
-        val warGuiItem = GuiItem(warItem) {
-            openDeclareWarMenu()
+        val enemyGuiItem = GuiItem(enemyItem) {
+            openDeclareEnemyMenu()
         }
-        pane.addItem(warGuiItem, 4, 2)
+        pane.addItem(enemyGuiItem, 4, 2)
     }
 
     private fun addRelationDetailsSection(pane: StaticPane) {
@@ -216,58 +217,92 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     }
 
     private fun openAlliesListMenu() {
-        player.sendMessage("§eAllies list menu coming soon!")
-        player.sendMessage("§7This would show all guilds your guild is allied with.")
+        menuNavigator.openMenu(menuFactory.createAlliesListMenu(menuNavigator, player, guild))
     }
 
     private fun openEnemiesListMenu() {
-        player.sendMessage("§eEnemies list menu coming soon!")
-        player.sendMessage("§7This would show all guilds your guild is at war with.")
+        menuNavigator.openMenu(menuFactory.createEnemiesListMenu(menuNavigator, player, guild))
     }
 
     private fun openTrucesListMenu() {
-        player.sendMessage("§eTruces list menu coming soon!")
-        player.sendMessage("§7This would show all active truce agreements.")
+        // Get active truces
+        val truces = relationService.getGuildRelationsByType(guild.id, net.lumalyte.lg.domain.entities.RelationType.TRUCE)
+            .filter { it.isActive() }
+
+        if (truces.isEmpty()) {
+            player.sendMessage("§7Your guild has no active truces.")
+            return
+        }
+
+        player.sendMessage("§e=== Active Truces ===")
+        truces.forEach { relation ->
+            val otherGuildId = relation.getOtherGuild(guild.id)
+            val otherGuild = guildService.getGuild(otherGuildId)
+            if (otherGuild != null && relation.expiresAt != null) {
+                val remaining = java.time.Duration.between(java.time.Instant.now(), relation.expiresAt)
+                val days = remaining.toDays()
+                val hours = remaining.toHours() % 24
+                player.sendMessage("§7• §e${otherGuild.name} §7- Expires in ${days}d ${hours}h")
+            }
+        }
     }
 
     private fun openDiplomaticStatusMenu() {
-        player.sendMessage("§eDiplomatic status menu coming soon!")
-        player.sendMessage("§7This would show comprehensive diplomatic information.")
+        val allies = relationService.getGuildRelationsByType(guild.id, net.lumalyte.lg.domain.entities.RelationType.ALLY).count { it.isActive() }
+        val enemies = relationService.getGuildRelationsByType(guild.id, net.lumalyte.lg.domain.entities.RelationType.ENEMY).count { it.isActive() }
+        val truces = relationService.getGuildRelationsByType(guild.id, net.lumalyte.lg.domain.entities.RelationType.TRUCE).count { it.isActive() }
+
+        player.sendMessage("§6=== Diplomatic Status ===")
+        player.sendMessage("§aAllies: §f$allies")
+        player.sendMessage("§cEnemies: §f$enemies")
+        player.sendMessage("§eTruces: §f$truces")
+        player.sendMessage("§7Incoming Requests: §f${relationService.getIncomingRequests(guild.id).size}")
+        player.sendMessage("§7Outgoing Requests: §f${relationService.getOutgoingRequests(guild.id).size}")
     }
 
     private fun openIncomingRequestsMenu() {
-        player.sendMessage("§eIncoming requests menu coming soon!")
-        player.sendMessage("§7This would show diplomatic requests you can accept or reject.")
+        menuNavigator.openMenu(menuFactory.createIncomingRequestsMenu(menuNavigator, player, guild))
     }
 
     private fun openOutgoingRequestsMenu() {
-        player.sendMessage("§eOutgoing requests menu coming soon!")
-        player.sendMessage("§7This would show requests your guild has sent.")
+        menuNavigator.openMenu(menuFactory.createOutgoingRequestsMenu(menuNavigator, player, guild))
     }
 
     private fun openRequestAllianceMenu() {
-        player.sendMessage("§eRequest alliance menu coming soon!")
-        player.sendMessage("§7This would allow you to request alliances with other guilds.")
+        menuNavigator.openMenu(menuFactory.createAllianceRequestMenu(menuNavigator, player, guild))
     }
 
     private fun openRequestTruceMenu() {
-        player.sendMessage("§eRequest truce menu coming soon!")
-        player.sendMessage("§7This would allow you to request truces with enemy guilds.")
+        menuNavigator.openMenu(menuFactory.createTruceRequestMenu(menuNavigator, player, guild))
     }
 
-    private fun openDeclareWarMenu() {
-        player.sendMessage("§eDeclare war menu coming soon!")
-        player.sendMessage("§7This would allow you to declare war on other guilds.")
+    private fun openDeclareEnemyMenu() {
+        menuNavigator.openMenu(menuFactory.createEnemyDeclarationMenu(menuNavigator, player, guild))
     }
 
     private fun openDiplomaticHistoryMenu() {
-        player.sendMessage("§eDiplomatic history menu coming soon!")
-        player.sendMessage("§7This would show the history of diplomatic relations.")
+        player.sendMessage("§eDiplomatic history coming soon!")
     }
 
     private fun openNeutralGuildsMenu() {
-        player.sendMessage("§eNeutral guilds menu coming soon!")
-        player.sendMessage("§7This would show guilds with no special relations to your guild.")
+        val allGuilds = guildService.getAllGuilds().filter { it.id != guild.id }
+        val neutralGuilds = allGuilds.filter { otherGuild ->
+            relationService.getRelationType(guild.id, otherGuild.id) == net.lumalyte.lg.domain.entities.RelationType.NEUTRAL
+        }
+
+        if (neutralGuilds.isEmpty()) {
+            player.sendMessage("§7No neutral guilds found.")
+            return
+        }
+
+        player.sendMessage("§7=== Neutral Guilds ===")
+        neutralGuilds.take(10).forEach { otherGuild ->
+            val memberCount = memberService.getMemberCount(otherGuild.id)
+            player.sendMessage("§7• §f${otherGuild.name} §7[${memberCount} members]")
+        }
+        if (neutralGuilds.size > 10) {
+            player.sendMessage("§7... and ${neutralGuilds.size - 10} more")
+        }
     }
 
     override fun passData(data: Any?) {

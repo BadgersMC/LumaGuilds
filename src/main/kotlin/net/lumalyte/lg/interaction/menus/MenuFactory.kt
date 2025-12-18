@@ -26,6 +26,7 @@ import net.lumalyte.lg.interaction.menus.guild.TagEditorMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildMemberListMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildSelectionMenu
 import net.lumalyte.lg.interaction.menus.guild.JoinRequirementsMenu
+import net.lumalyte.lg.interaction.menus.guild.LfgBrowserMenu
 import net.lumalyte.lg.interaction.menus.guild.PartyCreationMenu
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
@@ -1008,6 +1009,93 @@ class MenuFactory : KoinComponent {
         } else {
             JoinRequirementsMenu(menuNavigator, player, guild)
         }
+    }
+
+    /**
+     * Creates an LFG browser menu for browsing available open guilds.
+     */
+    fun createLfgBrowserMenu(
+        menuNavigator: MenuNavigator,
+        player: Player
+    ): Menu {
+        return LfgBrowserMenu(menuNavigator, player)
+    }
+
+    /**
+     * Creates an incoming requests menu for viewing and responding to relation requests.
+     */
+    fun createIncomingRequestsMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return net.lumalyte.lg.interaction.menus.guild.IncomingRequestsMenu(menuNavigator, player, guild)
+    }
+
+    /**
+     * Creates an outgoing requests menu for viewing and canceling sent relation requests.
+     */
+    fun createOutgoingRequestsMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return net.lumalyte.lg.interaction.menus.guild.OutgoingRequestsMenu(menuNavigator, player, guild)
+    }
+
+    /**
+     * Creates an allies list menu for viewing and managing allied guilds.
+     */
+    fun createAlliesListMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return net.lumalyte.lg.interaction.menus.guild.AlliesListMenu(menuNavigator, player, guild)
+    }
+
+    /**
+     * Creates an enemies list menu for viewing enemy guilds and managing conflicts.
+     */
+    fun createEnemiesListMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return net.lumalyte.lg.interaction.menus.guild.EnemiesListMenu(menuNavigator, player, guild)
+    }
+
+    /**
+     * Creates an alliance request menu for requesting alliances with neutral guilds.
+     */
+    fun createAllianceRequestMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return net.lumalyte.lg.interaction.menus.guild.AllianceRequestMenu(menuNavigator, player, guild)
+    }
+
+    /**
+     * Creates a truce request menu for requesting truces with enemy guilds.
+     */
+    fun createTruceRequestMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return net.lumalyte.lg.interaction.menus.guild.TruceRequestMenu(menuNavigator, player, guild)
+    }
+
+    /**
+     * Creates an enemy declaration menu for declaring guilds as enemies.
+     */
+    fun createEnemyDeclarationMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return net.lumalyte.lg.interaction.menus.guild.EnemyDeclarationMenu(menuNavigator, player, guild)
     }
 }
 

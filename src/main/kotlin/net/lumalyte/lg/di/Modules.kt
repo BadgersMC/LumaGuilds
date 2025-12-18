@@ -86,6 +86,7 @@ import net.lumalyte.lg.application.services.WorldManipulationService
 import net.lumalyte.lg.application.services.scheduling.SchedulerService
 
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.LfgService
 import net.lumalyte.lg.application.services.MapRendererService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.MemberService
@@ -118,6 +119,7 @@ import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.application.persistence.KillRepository
 
 import net.lumalyte.lg.infrastructure.services.GuildServiceBukkit
+import net.lumalyte.lg.infrastructure.services.LfgServiceBukkit
 import net.lumalyte.lg.infrastructure.services.RankServiceBukkit
 import net.lumalyte.lg.infrastructure.services.MemberServiceBukkit
 import net.lumalyte.lg.infrastructure.services.RelationServiceBukkit
@@ -255,8 +257,9 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<net.lumalyte.lg.application.persistence.GuildVaultRepository> { net.lumalyte.lg.infrastructure.persistence.guilds.GuildVaultRepositorySQLite(get()) }
     single<net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger> { net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger(get()) }
 
-    single<NexoEmojiService> { NexoEmojiService() }
+    single<NexoEmojiService> { NexoEmojiService(get()) }
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
     single<MemberService> { MemberServiceBukkit(get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get()) }

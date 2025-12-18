@@ -50,6 +50,8 @@ admin:
 ```
 lumaguilds.guild.create  # Create guilds (default: true)
 lumaguilds.guild.info    # View guild info (default: true)
+lumaguilds.guild.list    # List open/public guilds (default: true)
+lumaguilds.guild.lfg     # Browse LFG (Looking For Guild) system (default: true)
 ```
 
 ### Guild Management (Now available to all players!)
@@ -165,6 +167,8 @@ pex group <group> check lumaguilds.guild.*
 |-------------|-------------------|---------|
 | Guild Creation | `lumaguilds.guild.create: true` | Anyone should be able to create guilds |
 | Guild Info | `lumaguilds.guild.info: true` | Public information |
+| Guild List | `lumaguilds.guild.list: true` | View open guilds |
+| Guild LFG | `lumaguilds.guild.lfg: true` | Browse guilds looking for members |
 | Guild Management | `lumaguilds.guild.*: true` | Guild members should manage their guilds |
 | War Declarations | `lumaguilds.guild.war: true` | Guild members can wage war |
 | Claim Management | `lumaguilds.command.*: op` | Resource intensive |
