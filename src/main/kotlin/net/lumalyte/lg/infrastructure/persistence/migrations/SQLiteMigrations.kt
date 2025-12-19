@@ -94,6 +94,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(15)
                 dbVersion = 15
             }
+            if (dbVersion < 16) {
+                migrateToVersion16()
+                updateDatabaseVersion(16)
+                dbVersion = 16
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1071,6 +1076,72 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         }
 
         componentLogger.info(Component.text("✓ Added moderation columns to parties table"))
+    }
+
+    /**
+     * Migration from version 15 to version 16.
+     * Fixes the relations table CHECK constraint to use uppercase enum values (ALLY, ENEMY, TRUCE, NEUTRAL)
+     * instead of capitalized values (Ally, Enemy, Truce, Neutral).
+     */
+    private fun migrateToVersion16() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Check if relations table exists and needs migration
+        if (tableExists("relations")) {
+            componentLogger.info(Component.text("Fixing relations table CHECK constraint..."))
+
+            // --- Step 1: Foreign Keys OFF ---
+            sqlCommands.add("PRAGMA foreign_keys = OFF;")
+            executeMigrationCommands(sqlCommands)
+            sqlCommands.clear()
+
+            // --- Step 2: Create new relations table with corrected CHECK constraint ---
+            sqlCommands.add("""
+                CREATE TABLE relations_new (
+                    id TEXT PRIMARY KEY,
+                    guild_a TEXT NOT NULL,
+                    guild_b TEXT NOT NULL,
+                    type TEXT NOT NULL CHECK (type IN ('ALLY', 'ENEMY', 'TRUCE', 'NEUTRAL')),
+                    status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'PENDING', 'EXPIRED', 'REJECTED')),
+                    expires_at TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE (guild_a, guild_b),
+                    CHECK (guild_a < guild_b)
+                )
+            """.trimIndent())
+            executeMigrationCommands(sqlCommands)
+            sqlCommands.clear()
+
+            // --- Step 3: Copy data from old table to new table ---
+            sqlCommands.add("""
+                INSERT INTO relations_new (id, guild_a, guild_b, type, status, expires_at, created_at, updated_at)
+                SELECT id, guild_a, guild_b, type, status, expires_at, created_at, updated_at
+                FROM relations
+            """.trimIndent())
+            executeMigrationCommands(sqlCommands)
+            sqlCommands.clear()
+
+            // --- Step 4: Drop old table and rename new table ---
+            sqlCommands.add("DROP TABLE relations;")
+            sqlCommands.add("ALTER TABLE relations_new RENAME TO relations;")
+            executeMigrationCommands(sqlCommands)
+            sqlCommands.clear()
+
+            // --- Step 5: Recreate indices ---
+            sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_relations_guild_a ON relations(guild_a);")
+            sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_relations_guild_b ON relations(guild_b);")
+            sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_relations_type ON relations(type);")
+            executeMigrationCommands(sqlCommands)
+            sqlCommands.clear()
+
+            // --- Step 6: Foreign Keys ON ---
+            sqlCommands.add("PRAGMA foreign_keys = ON;")
+            executeMigrationCommands(sqlCommands)
+            sqlCommands.clear()
+
+            componentLogger.info(Component.text("✓ Fixed relations table CHECK constraint to use uppercase enum values"))
+        }
     }
 
     /**

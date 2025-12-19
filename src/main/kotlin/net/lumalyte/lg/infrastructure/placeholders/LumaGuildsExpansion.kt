@@ -14,7 +14,7 @@ import org.koin.core.component.inject
  * Available placeholders:
  * - %lumaguilds_guild_name% - Player's guild name
  * - %lumaguilds_guild_tag% - Player's guild tag (formatted)
- * - %lumaguilds_guild_emoji% - Player's guild emoji (Nexo format)
+ * - %lumaguilds_guild_emoji% - Player's guild emoji (converted to %nexo_<emoji>% format for tab/scoreboard)
  * - %lumaguilds_guild_level% - Player's guild level
  * - %lumaguilds_guild_balance% - Player's guild bank balance
  * - %lumaguilds_guild_members% - Player's guild member count
@@ -64,8 +64,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         return when (identifier.lowercase()) {
             // Basic guild info
             "guild_name" -> guild.name
-            "guild_tag" -> guild.tag ?: ""
-            "guild_emoji" -> guild.emoji ?: ""
+            "guild_tag" -> guild.tag ?: "§6${guild.name}"
+            "guild_emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
             "guild_level" -> guild.level.toString()
             "guild_balance" -> guild.bankBalance.toString()
             "guild_mode" -> guild.mode.toString()
@@ -153,11 +153,16 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "guild_display" -> {
                 val parts = mutableListOf<String>()
 
-                // Add emoji if available
-                guild.emoji?.let { parts.add(it) }
+                // Add emoji if available (convert to Nexo format)
+                guild.emoji?.let {
+                    val nexoEmoji = convertEmojiToNexoPlaceholder(it)
+                    if (nexoEmoji.isNotEmpty()) {
+                        parts.add(nexoEmoji)
+                    }
+                }
 
-                // Add tag if available, otherwise name
-                parts.add(guild.tag ?: guild.name)
+                // Add tag if available, otherwise name in gold
+                parts.add(guild.tag ?: "§6${guild.name}")
 
                 // Add level
                 parts.add("[${guild.level}]")
@@ -167,9 +172,13 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
             // Chat format (for use in chat plugins)
             "guild_chat_format" -> {
-                val emoji = guild.emoji ?: ""
-                val tag = guild.tag ?: guild.name
-                "$emoji $tag"
+                val emoji = convertEmojiToNexoPlaceholder(guild.emoji)
+                val tag = guild.tag ?: "§6${guild.name}"
+                if (emoji.isNotEmpty()) {
+                    "$emoji $tag"
+                } else {
+                    tag
+                }
             }
 
             else -> {
@@ -245,5 +254,27 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             number >= 1_000L -> "${number / 1_000L}K"
             else -> number.toString()
         }
+    }
+
+    /**
+     * Converts emoji from Discord format (:emoji:) to Nexo placeholder format (%nexo_emoji%)
+     * Examples:
+     * - ":clown:" -> "%nexo_clown%"
+     * - ":fire:" -> "%nexo_fire%"
+     * - null or empty -> ""
+     */
+    private fun convertEmojiToNexoPlaceholder(emoji: String?): String {
+        if (emoji.isNullOrEmpty()) return ""
+
+        // Check if emoji is in Discord format (:emoji:)
+        if (emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2) {
+            // Extract emoji name (remove colons)
+            val emojiName = emoji.substring(1, emoji.length - 1)
+            // Return Nexo placeholder format
+            return "%nexo_$emojiName%"
+        }
+
+        // If not in Discord format, return as-is
+        return emoji
     }
 }
