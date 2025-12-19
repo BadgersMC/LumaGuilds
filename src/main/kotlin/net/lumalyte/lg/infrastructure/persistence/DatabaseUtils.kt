@@ -23,8 +23,8 @@ fun DbRow.getInstant(columnName: String): Instant? {
                 // Try parsing as ISO-8601 first
                 return try {
                     Instant.parse(value)
-                } catch (e: SQLException) {
-                    // Try parsing as LocalDateTime (MariaDB DATETIME format: "YYYY-MM-DD HH:MM:SS")
+                } catch (e: Exception) {
+                    // Try parsing as LocalDateTime (SQLite/MariaDB DATETIME format: "YYYY-MM-DD HH:MM:SS")
                     val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                     val localDateTime = java.time.LocalDateTime.parse(value, formatter)
                     localDateTime.atZone(java.time.ZoneId.of("UTC")).toInstant()
