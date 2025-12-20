@@ -78,5 +78,10 @@ enum class RankPermission {
     ACCESS_ADMIN_COMMANDS,
     BYPASS_RESTRICTIONS,
     VIEW_AUDIT_LOGS,
-    MANAGE_INTEGRATIONS
+    MANAGE_INTEGRATIONS,
+
+    // Guild Shop Permissions (ARM Integration)
+    ACCESS_SHOP_CHESTS,    // Open chests in guild-owned shop regions
+    EDIT_SHOP_STOCK,       // Modify inventory in shop chests
+    MODIFY_SHOP_PRICES     // Change prices on shop signs
 }

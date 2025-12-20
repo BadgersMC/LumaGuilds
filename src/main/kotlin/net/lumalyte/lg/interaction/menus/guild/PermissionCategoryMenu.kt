@@ -312,6 +312,9 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             RankPermission.WITHDRAW_FROM_VAULT -> "§7Withdraw items from physical vault"
             RankPermission.MANAGE_VAULT -> "§7Full vault management access"
             RankPermission.BREAK_VAULT -> "§7Break and move the vault chest"
+            RankPermission.ACCESS_SHOP_CHESTS -> "§7Open chests in guild shop regions"
+            RankPermission.EDIT_SHOP_STOCK -> "§7Modify inventory in shop chests"
+            RankPermission.MODIFY_SHOP_PRICES -> "§7Change prices on shop signs"
 
             // Diplomacy
             RankPermission.MANAGE_RELATIONS -> "§7Manage guild relationships"

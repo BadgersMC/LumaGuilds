@@ -141,7 +141,10 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_VAULT,
                 net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_VAULT,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_VAULT,
-                net.lumalyte.lg.domain.entities.RankPermission.BREAK_VAULT -> "Banking"
+                net.lumalyte.lg.domain.entities.RankPermission.BREAK_VAULT,
+                net.lumalyte.lg.domain.entities.RankPermission.ACCESS_SHOP_CHESTS,
+                net.lumalyte.lg.domain.entities.RankPermission.EDIT_SHOP_STOCK,
+                net.lumalyte.lg.domain.entities.RankPermission.MODIFY_SHOP_PRICES -> "Banking"
                 
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_ANNOUNCEMENTS,
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_PINGS,

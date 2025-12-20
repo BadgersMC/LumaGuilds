@@ -196,7 +196,9 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 RankPermission.MANAGE_BANK_SETTINGS,
                 RankPermission.PLACE_VAULT, RankPermission.ACCESS_VAULT,
                 RankPermission.DEPOSIT_TO_VAULT, RankPermission.WITHDRAW_FROM_VAULT,
-                RankPermission.MANAGE_VAULT, RankPermission.BREAK_VAULT
+                RankPermission.MANAGE_VAULT, RankPermission.BREAK_VAULT,
+                RankPermission.ACCESS_SHOP_CHESTS, RankPermission.EDIT_SHOP_STOCK,
+                RankPermission.MODIFY_SHOP_PRICES
             ),
             "Diplomacy" to listOf(
                 RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,

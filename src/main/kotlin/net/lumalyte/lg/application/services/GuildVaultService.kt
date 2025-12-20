@@ -128,6 +128,28 @@ interface GuildVaultService {
     fun hasVaultPermission(player: Player, guild: Guild, requireWithdraw: Boolean = false): Boolean
 
     /**
+     * Withdraws funds from guild vault for shop purchase.
+     * Handles both VIRTUAL and PHYSICAL currency modes.
+     *
+     * @param guild The guild making the purchase.
+     * @param amount Amount in currency units.
+     * @param reason Transaction description for audit log.
+     * @return VaultResult with withdrawal info or failure message.
+     */
+    fun withdrawForShopPurchase(guild: Guild, amount: Double, reason: String): VaultResult<WithdrawalInfo>
+
+    /**
+     * Deposits funds to guild vault (for shop income, donations, etc).
+     * Handles conversion to RAW_GOLD items for PHYSICAL mode.
+     *
+     * @param guild The guild receiving the deposit.
+     * @param amount Amount in currency units (RAW_GOLD).
+     * @param reason Transaction description for audit log.
+     * @return VaultResult with new balance or failure message.
+     */
+    fun depositToVault(guild: Guild, amount: Double, reason: String): VaultResult<Double>
+
+    /**
      * Restores all vault chests on server startup.
      * Recreates chest blocks at saved locations for all guilds with AVAILABLE vault status.
      *
@@ -135,6 +157,15 @@ interface GuildVaultService {
      */
     fun restoreAllVaultChests(): Int
 }
+
+/**
+ * Information about a vault withdrawal transaction.
+ */
+data class WithdrawalInfo(
+    val withdrawnAmount: Double,
+    val remainingBalance: Double,
+    val mode: net.lumalyte.lg.domain.entities.BankMode
+)
 
 /**
  * Simple result wrapper for service operations.
