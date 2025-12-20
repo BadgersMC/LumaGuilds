@@ -8,6 +8,8 @@ import net.lumalyte.lg.application.services.GuildVaultService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.VaultInventoryManager
 import net.lumalyte.lg.application.services.VaultResult
+import net.lumalyte.lg.application.services.WithdrawalInfo
+import net.lumalyte.lg.domain.entities.BankMode
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildVaultLocation
 import net.lumalyte.lg.domain.entities.RankPermission
@@ -410,6 +412,292 @@ class GuildVaultServiceBukkit(
             }
         }
         logger.info("Rebuilt vault location cache with ${vaultLocationCache.size} entries")
+    }
+
+    override fun withdrawForShopPurchase(guild: Guild, amount: Double, reason: String): VaultResult<WithdrawalInfo> {
+        val config = configService.loadConfig()
+        val bankModeStr = config.vault.bankMode
+        val bankMode = try {
+            BankMode.valueOf(bankModeStr.uppercase())
+        } catch (e: IllegalArgumentException) {
+            logger.warn("Invalid bank mode '$bankModeStr', defaulting to BOTH")
+            BankMode.BOTH
+        }
+
+        logger.debug("Attempting shop purchase withdrawal for guild ${guild.name}: $amount (mode: $bankMode)")
+
+        return when (bankMode) {
+            BankMode.VIRTUAL -> withdrawVirtual(guild, amount, reason)
+            BankMode.PHYSICAL -> withdrawPhysical(guild, amount, reason)
+            BankMode.BOTH -> {
+                // Try virtual first, fallback to physical
+                val virtualResult = withdrawVirtual(guild, amount, reason)
+                if (virtualResult is VaultResult.Success) {
+                    virtualResult
+                } else {
+                    withdrawPhysical(guild, amount, reason)
+                }
+            }
+        }
+    }
+
+    override fun depositToVault(guild: Guild, amount: Double, reason: String): VaultResult<Double> {
+        val config = configService.loadConfig()
+        val bankModeStr = config.vault.bankMode
+        val bankMode = try {
+            BankMode.valueOf(bankModeStr.uppercase())
+        } catch (e: IllegalArgumentException) {
+            logger.warn("Invalid bank mode '$bankModeStr', defaulting to BOTH")
+            BankMode.BOTH
+        }
+
+        logger.debug("Attempting deposit to guild ${guild.name}: $amount (mode: $bankMode)")
+
+        return when (bankMode) {
+            BankMode.VIRTUAL, BankMode.BOTH -> depositVirtual(guild, amount, reason)
+            BankMode.PHYSICAL -> depositPhysical(guild, amount, reason)
+        }
+    }
+
+    private fun depositVirtual(guild: Guild, amount: Double, reason: String): VaultResult<Double> {
+        // Add to guild bank balance
+        val newBalance = guild.bankBalance + amount.toInt()
+        val updatedGuild = guild.copy(bankBalance = newBalance)
+
+        return if (guildRepository.update(updatedGuild)) {
+            logger.info("Guild ${guild.name} deposited $amount virtual currency for: $reason")
+            VaultResult.Success(newBalance.toDouble())
+        } else {
+            VaultResult.Failure("Failed to update guild balance in database")
+        }
+    }
+
+    private fun depositPhysical(guild: Guild, amount: Double, reason: String): VaultResult<Double> {
+        // Get current vault inventory
+        val inventory = getVaultInventory(guild).toMutableMap()
+
+        // Convert amount to RAW_GOLD items
+        // Conversion: 1 RAW_GOLD_BLOCK = 9 RAW_GOLD
+        val rawGoldUnits = amount.toInt()
+
+        // Add as many blocks as possible, remainder as individual raw gold
+        val blocksToAdd = rawGoldUnits / 9
+        val individualRawGoldToAdd = rawGoldUnits % 9
+
+        // Find empty slots or add to existing stacks
+        var itemsAdded = false
+
+        // Add blocks
+        if (blocksToAdd > 0) {
+            itemsAdded = addItemsToInventory(inventory, Material.RAW_GOLD_BLOCK, blocksToAdd)
+        }
+
+        // Add individual raw gold
+        if (individualRawGoldToAdd > 0) {
+            val rawGoldAdded = addItemsToInventory(inventory, Material.RAW_GOLD, individualRawGoldToAdd)
+            itemsAdded = itemsAdded || rawGoldAdded
+        }
+
+        if (!itemsAdded && rawGoldUnits > 0) {
+            return VaultResult.Failure("Vault is full - cannot add items")
+        }
+
+        // Update vault inventory
+        return when (val updateResult = updateVaultInventory(guild, inventory)) {
+            is VaultResult.Success -> {
+                logger.info("Guild ${guild.name} deposited $amount raw gold for: $reason")
+                val newBalance = calculateRawGoldValue(inventory.values.toList()).toDouble()
+                VaultResult.Success(newBalance)
+            }
+            is VaultResult.Failure -> {
+                VaultResult.Failure("Failed to update vault inventory: ${updateResult.message}")
+            }
+        }
+    }
+
+    /**
+     * Adds items to inventory, stacking where possible and using empty slots
+     * @return true if at least some items were added
+     */
+    private fun addItemsToInventory(
+        inventory: MutableMap<Int, ItemStack>,
+        material: Material,
+        amount: Int
+    ): Boolean {
+        var remaining = amount
+        val maxStackSize = material.maxStackSize
+
+        // First, add to existing stacks
+        for (slot in inventory.keys.sorted()) {
+            if (remaining <= 0) break
+            val item = inventory[slot] ?: continue
+
+            if (item.type == material && item.amount < maxStackSize) {
+                val spaceInStack = maxStackSize - item.amount
+                val toAdd = minOf(remaining, spaceInStack)
+
+                val newItem = item.clone()
+                newItem.amount = item.amount + toAdd
+                inventory[slot] = newItem
+
+                remaining -= toAdd
+            }
+        }
+
+        // Then, use empty slots
+        val vaultCapacity = getCapacityForLevel(1) // Use guild level for capacity
+        for (slot in 0 until vaultCapacity) {
+            if (remaining <= 0) break
+            if (inventory.containsKey(slot)) continue
+
+            val toAdd = minOf(remaining, maxStackSize)
+            val newItem = ItemStack(material, toAdd)
+            inventory[slot] = newItem
+
+            remaining -= toAdd
+        }
+
+        return remaining < amount // Return true if we added at least something
+    }
+
+    private fun withdrawVirtual(guild: Guild, amount: Double, reason: String): VaultResult<WithdrawalInfo> {
+        if (guild.bankBalance < amount.toInt()) {
+            return VaultResult.Failure(
+                "Insufficient virtual currency: ${guild.bankBalance} < ${amount.toInt()}"
+            )
+        }
+
+        // Deduct from guild bank balance
+        val newBalance = guild.bankBalance - amount.toInt()
+        val updatedGuild = guild.copy(bankBalance = newBalance)
+
+        return if (guildRepository.update(updatedGuild)) {
+            logger.info("Guild ${guild.name} withdrew $amount virtual currency for: $reason")
+            VaultResult.Success(
+                WithdrawalInfo(
+                    withdrawnAmount = amount,
+                    remainingBalance = newBalance.toDouble(),
+                    mode = BankMode.VIRTUAL
+                )
+            )
+        } else {
+            VaultResult.Failure("Failed to update guild balance in database")
+        }
+    }
+
+    private fun withdrawPhysical(guild: Guild, amount: Double, reason: String): VaultResult<WithdrawalInfo> {
+        // Get current vault inventory
+        val inventory = getVaultInventory(guild)
+
+        // Calculate raw gold needed
+        // Conversion: 1 RAW_GOLD_BLOCK = 9 RAW_GOLD
+        val rawGoldUnitsNeeded = amount.toInt()
+
+        // Count available raw gold
+        val availableRawGold = calculateRawGoldValue(inventory.values.toList())
+
+        if (availableRawGold < rawGoldUnitsNeeded) {
+            return VaultResult.Failure(
+                "Insufficient physical currency: $availableRawGold raw gold < $rawGoldUnitsNeeded"
+            )
+        }
+
+        // Remove raw gold items from inventory
+        val updatedInventory = removeRawGoldItems(inventory, rawGoldUnitsNeeded)
+
+        // Update vault inventory using our own method
+        return when (val updateResult = updateVaultInventory(guild, updatedInventory)) {
+            is VaultResult.Success -> {
+                logger.info("Guild ${guild.name} withdrew $amount raw gold for: $reason")
+                VaultResult.Success(
+                    WithdrawalInfo(
+                        withdrawnAmount = amount,
+                        remainingBalance = (availableRawGold - rawGoldUnitsNeeded).toDouble(),
+                        mode = BankMode.PHYSICAL
+                    )
+                )
+            }
+            is VaultResult.Failure -> {
+                VaultResult.Failure("Failed to update vault inventory: ${updateResult.message}")
+            }
+        }
+    }
+
+    /**
+     * Calculates the total raw gold value in the inventory.
+     * Conversion: 1 RAW_GOLD_BLOCK = 9 RAW_GOLD
+     */
+    private fun calculateRawGoldValue(items: List<ItemStack>): Int {
+        var total = 0
+        for (item in items) {
+            when (item.type) {
+                Material.RAW_GOLD_BLOCK -> total += item.amount * 9
+                Material.RAW_GOLD -> total += item.amount
+                else -> continue
+            }
+        }
+        return total
+    }
+
+    /**
+     * Removes raw gold items worth the specified value.
+     * Prioritizes: RAW_GOLD_BLOCK (9 units) -> RAW_GOLD (1 unit)
+     */
+    private fun removeRawGoldItems(inventory: Map<Int, ItemStack>, unitsNeeded: Int): Map<Int, ItemStack> {
+        val updated = inventory.toMutableMap()
+        var remaining = unitsNeeded
+
+        // Remove raw gold blocks first (9 units each)
+        remaining = removeItemType(updated, Material.RAW_GOLD_BLOCK, remaining, 9)
+
+        // Remove individual raw gold (1 unit each)
+        remaining = removeItemType(updated, Material.RAW_GOLD, remaining, 1)
+
+        if (remaining > 0) {
+            logger.error("Failed to remove enough raw gold items: $remaining units short")
+            throw IllegalStateException("Failed to remove enough raw gold items")
+        }
+
+        return updated
+    }
+
+    /**
+     * Removes items of a specific type from the inventory.
+     * @return Remaining units still needed
+     */
+    private fun removeItemType(
+        inventory: MutableMap<Int, ItemStack>,
+        material: Material,
+        unitsNeeded: Int,
+        unitsPerItem: Int
+    ): Int {
+        var remaining = unitsNeeded
+
+        val slots = inventory.filter { it.value.type == material }.keys.toList()
+        for (slot in slots) {
+            if (remaining <= 0) break
+
+            val item = inventory[slot] ?: continue
+            val itemValue = item.amount * unitsPerItem
+
+            if (itemValue <= remaining) {
+                // Remove entire stack
+                inventory.remove(slot)
+                remaining -= itemValue
+            } else {
+                // Partially remove from stack
+                val itemsToRemove = (remaining + unitsPerItem - 1) / unitsPerItem // Ceiling division
+                val newAmount = item.amount - itemsToRemove
+                if (newAmount > 0) {
+                    inventory[slot] = item.clone().apply { amount = newAmount }
+                } else {
+                    inventory.remove(slot)
+                }
+                remaining = 0
+            }
+        }
+
+        return remaining
     }
 
     override fun restoreAllVaultChests(): Int {

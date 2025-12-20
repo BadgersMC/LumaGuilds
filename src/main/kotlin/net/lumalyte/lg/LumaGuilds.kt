@@ -639,6 +639,30 @@ class LumaGuilds : JavaPlugin() {
         }
     }
 
+    /**
+     * Public service getters for external plugins (ARM-Guilds-Bridge, etc.)
+     * These methods provide access to LumaGuilds services via Koin dependency injection
+     */
+    fun getGuildService(): net.lumalyte.lg.application.services.GuildService {
+        return get().get()
+    }
+
+    fun getGuildVaultService(): net.lumalyte.lg.application.services.GuildVaultService {
+        return get().get()
+    }
+
+    fun getMemberService(): net.lumalyte.lg.application.services.MemberService {
+        return get().get()
+    }
+
+    fun getRankService(): net.lumalyte.lg.application.services.RankService {
+        return get().get()
+    }
+
+    fun getRelationService(): net.lumalyte.lg.application.services.RelationService {
+        return get().get()
+    }
+
     override fun onDisable() {
         // Stop vault auto-save service (this will flush all pending writes)
         try {

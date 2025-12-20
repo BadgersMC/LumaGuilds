@@ -162,6 +162,9 @@ class BedrockGuildRankManagementMenu(
             RankPermission.BYPASS_RESTRICTIONS -> bedrockLocalization.getBedrockString(player, "permission.bypass.restrictions")
             RankPermission.VIEW_AUDIT_LOGS -> bedrockLocalization.getBedrockString(player, "permission.view.audit.logs")
             RankPermission.MANAGE_INTEGRATIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.integrations")
+            RankPermission.ACCESS_SHOP_CHESTS -> bedrockLocalization.getBedrockString(player, "permission.access.shop.chests")
+            RankPermission.EDIT_SHOP_STOCK -> bedrockLocalization.getBedrockString(player, "permission.edit.shop.stock")
+            RankPermission.MODIFY_SHOP_PRICES -> bedrockLocalization.getBedrockString(player, "permission.modify.shop.prices")
         }
     }
 

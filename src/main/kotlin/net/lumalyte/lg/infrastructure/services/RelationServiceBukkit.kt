@@ -7,6 +7,8 @@ import net.lumalyte.lg.domain.entities.Relation
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.domain.entities.RelationStatus
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.events.GuildRelationChangeEvent
+import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -96,6 +98,10 @@ class RelationServiceBukkit(
             
             return if (relationRepository.update(updatedRelation)) {
                 logger.info("Alliance accepted between guilds ${relation.guildA} and ${relation.guildB}")
+                // Fire relation change event
+                Bukkit.getPluginManager().callEvent(
+                    GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.ALLY, updatedRelation)
+                )
                 updatedRelation
             } else {
                 logger.error("Failed to update alliance relation")
@@ -145,6 +151,10 @@ class RelationServiceBukkit(
             
             return if (success) {
                 logger.info("War declared between guilds ${relation.guildA} and ${relation.guildB}")
+                // Fire relation change event
+                Bukkit.getPluginManager().callEvent(
+                    GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.ENEMY, relation)
+                )
                 relation
             } else {
                 logger.error("Failed to save enemy relation")
@@ -230,6 +240,10 @@ class RelationServiceBukkit(
             
             return if (relationRepository.update(updatedRelation)) {
                 logger.info("Truce accepted between guilds ${relation.guildA} and ${relation.guildB}")
+                // Fire relation change event
+                Bukkit.getPluginManager().callEvent(
+                    GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.TRUCE, updatedRelation)
+                )
                 updatedRelation
             } else {
                 logger.error("Failed to update truce relation")
@@ -308,7 +322,12 @@ class RelationServiceBukkit(
             // Remove the relation (neutral is the default state)
             return if (relationRepository.remove(relationId)) {
                 logger.info("Unenemy accepted, relation removed between guilds ${relation.guildA} and ${relation.guildB}")
-                relation.copy(status = RelationStatus.ACTIVE)
+                val neutralRelation = relation.copy(status = RelationStatus.ACTIVE)
+                // Fire relation change event
+                Bukkit.getPluginManager().callEvent(
+                    GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.NEUTRAL, neutralRelation)
+                )
+                neutralRelation
             } else {
                 logger.error("Failed to remove relation for unenemy")
                 null
@@ -483,6 +502,10 @@ class RelationServiceBukkit(
                         
                         if (relationRepository.update(updatedRelation)) {
                             logger.info("Truce expired between guilds ${relation.guildA} and ${relation.guildB}, reverted to enemy")
+                            // Fire relation change event
+                            Bukkit.getPluginManager().callEvent(
+                                GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.ENEMY, updatedRelation)
+                            )
                             processedCount++
                         }
                     }

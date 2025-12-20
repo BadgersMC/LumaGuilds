@@ -397,7 +397,8 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                 RankPermission.MANAGE_BANK_SETTINGS, RankPermission.PLACE_VAULT,
                 RankPermission.ACCESS_VAULT, RankPermission.DEPOSIT_TO_VAULT,
                 RankPermission.WITHDRAW_FROM_VAULT, RankPermission.MANAGE_VAULT,
-                RankPermission.BREAK_VAULT -> "Banking"
+                RankPermission.BREAK_VAULT, RankPermission.ACCESS_SHOP_CHESTS,
+                RankPermission.EDIT_SHOP_STOCK, RankPermission.MODIFY_SHOP_PRICES -> "Banking"
                 
                 RankPermission.SEND_ANNOUNCEMENTS, RankPermission.SEND_PINGS,
                 RankPermission.MODERATE_CHAT -> "Communication"
