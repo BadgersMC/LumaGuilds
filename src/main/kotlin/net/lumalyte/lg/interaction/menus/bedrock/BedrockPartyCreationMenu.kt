@@ -105,6 +105,14 @@ class BedrockPartyCreationMenu(
             guildIds.add(invitedGuild.id)
         }
 
+        // Validate party name (no spaces allowed)
+        if (partyName.contains(" ")) {
+            player.sendMessage("§c❌ Party names cannot contain spaces!")
+            player.sendMessage("§7Use underscores instead (e.g., My_Party)")
+            bedrockNavigator.goBack()
+            return
+        }
+
         // Check if we have enough guilds for public party
         if (!isPrivate && guildIds.size < 2) {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.need.guilds"))

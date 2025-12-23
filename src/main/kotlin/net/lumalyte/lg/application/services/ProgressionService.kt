@@ -143,6 +143,46 @@ interface ProgressionService {
     fun getMaxHomes(guildId: UUID): Int
 
     /**
+     * Gets the maximum bank balance allowed for a guild based on its level.
+     *
+     * @param guildId The ID of the guild.
+     * @return The maximum bank balance.
+     */
+    fun getMaxBankBalance(guildId: UUID): Int
+
+    /**
+     * Gets the maximum member count for a guild based on its level.
+     *
+     * @param guildId The ID of the guild.
+     * @return The maximum number of members.
+     */
+    fun getMaxMembers(guildId: UUID): Int
+
+    /**
+     * Gets the withdrawal fee multiplier for a guild based on its level.
+     *
+     * @param guildId The ID of the guild.
+     * @return The withdrawal fee multiplier (1.0 = normal, 0.5 = 50% fees).
+     */
+    fun getWithdrawalFeeMultiplier(guildId: UUID): Double
+
+    /**
+     * Gets the home teleport cooldown multiplier for a guild based on its level.
+     *
+     * @param guildId The ID of the guild.
+     * @return The cooldown multiplier (1.0 = normal, 0.6 = 60% of normal).
+     */
+    fun getHomeCooldownMultiplier(guildId: UUID): Double
+
+    /**
+     * Gets the maximum simultaneous wars for a guild based on its level.
+     *
+     * @param guildId The ID of the guild.
+     * @return The maximum number of simultaneous wars.
+     */
+    fun getMaxWars(guildId: UUID): Int
+
+    /**
      * Processes level up events and applies unlocked perks.
      *
      * @param guildId The ID of the guild.

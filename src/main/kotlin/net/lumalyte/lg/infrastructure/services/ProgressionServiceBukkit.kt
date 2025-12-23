@@ -20,7 +20,8 @@ class ProgressionServiceBukkit(
     private val progressionRepository: ProgressionRepository,
     private val guildService: GuildService,
     private val configService: ConfigService,
-    private val warService: WarService
+    private val warService: WarService,
+    private val progressionConfigService: ProgressionConfigService
 ) : ProgressionService {
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
@@ -184,33 +185,36 @@ class ProgressionServiceBukkit(
 
     override fun getMaxClaimBlocks(guildId: UUID): Int {
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 0
-        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
-        
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+
         var totalBonus = 0
         for (level in 1..progression.currentLevel) {
-            totalBonus += configs[level]?.claimBlockBonus ?: 0
+            totalBonus += levelRewards[level]?.claimBlocks ?: 0
         }
         return totalBonus
     }
 
     override fun getMaxClaimCount(guildId: UUID): Int {
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 0
-        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
-        
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+
         var totalBonus = 0
         for (level in 1..progression.currentLevel) {
-            totalBonus += configs[level]?.claimCountBonus ?: 0
+            totalBonus += levelRewards[level]?.claimCount ?: 0
         }
         return totalBonus
     }
 
     override fun getBankInterestRate(guildId: UUID): Double {
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 0.0
-        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
-        
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+
         var maxRate = 0.0
         for (level in 1..progression.currentLevel) {
-            val rate = configs[level]?.bankInterestRate ?: 0.0
+            val rate = levelRewards[level]?.interestRate ?: 0.0
             if (rate > maxRate) maxRate = rate
         }
         return maxRate
@@ -278,13 +282,86 @@ class ProgressionServiceBukkit(
 
     override fun getMaxHomes(guildId: UUID): Int {
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 1
-        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
-        
-        var totalBonus = 0
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+
+        // Get the highest home limit for the current level or below
+        var maxHomes = 1 // Default base
         for (level in 1..progression.currentLevel) {
-            totalBonus += configs[level]?.homeLimitBonus ?: 0
+            val homes = levelRewards[level]?.homes ?: 1
+            if (homes > maxHomes) maxHomes = homes
         }
-        return 1 + totalBonus // Base 1 home + bonus
+        return maxHomes
+    }
+
+    override fun getMaxBankBalance(guildId: UUID): Int {
+        val progression = progressionRepository.getGuildProgression(guildId) ?: return 50000 // Default
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+
+        // Get the highest bank limit for the current level or below
+        var maxLimit = 50000 // Default base
+        for (level in 1..progression.currentLevel) {
+            val limit = levelRewards[level]?.bankLimit ?: 0
+            if (limit > maxLimit) maxLimit = limit
+        }
+        return maxLimit
+    }
+
+    override fun getMaxMembers(guildId: UUID): Int {
+        val progression = progressionRepository.getGuildProgression(guildId) ?: return 10 // Default
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+
+        // Get the highest member limit for the current level or below
+        var maxMembers = 10 // Default base
+        for (level in 1..progression.currentLevel) {
+            val members = levelRewards[level]?.members ?: 10
+            if (members > maxMembers) maxMembers = members
+        }
+        return maxMembers
+    }
+
+    override fun getWithdrawalFeeMultiplier(guildId: UUID): Double {
+        val progression = progressionRepository.getGuildProgression(guildId) ?: return 1.0 // Default (no reduction)
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+
+        // Get the lowest multiplier (best reduction) for the current level or below
+        var multiplier = 1.0 // Default (no reduction)
+        for (level in 1..progression.currentLevel) {
+            val levelMultiplier = levelRewards[level]?.withdrawalFeeMultiplier ?: 1.0
+            if (levelMultiplier < multiplier) multiplier = levelMultiplier
+        }
+        return multiplier
+    }
+
+    override fun getHomeCooldownMultiplier(guildId: UUID): Double {
+        val progression = progressionRepository.getGuildProgression(guildId) ?: return 1.0 // Default (no reduction)
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+
+        // Get the lowest multiplier (best reduction) for the current level or below
+        var multiplier = 1.0 // Default (no reduction)
+        for (level in 1..progression.currentLevel) {
+            val levelMultiplier = levelRewards[level]?.homeCooldownMultiplier ?: 1.0
+            if (levelMultiplier < multiplier) multiplier = levelMultiplier
+        }
+        return multiplier
+    }
+
+    override fun getMaxWars(guildId: UUID): Int {
+        val progression = progressionRepository.getGuildProgression(guildId) ?: return 3 // Default
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+
+        // Get the highest war slots for the current level or below
+        var maxWars = 3 // Default base
+        for (level in 1..progression.currentLevel) {
+            val wars = levelRewards[level]?.warSlots ?: 3
+            if (wars > maxWars) maxWars = wars
+        }
+        return maxWars
     }
 
     override fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType> {

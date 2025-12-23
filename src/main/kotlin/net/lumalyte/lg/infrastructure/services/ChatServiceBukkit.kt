@@ -1,6 +1,8 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.ChatSettingsRepository
+import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
+import net.lumalyte.lg.application.persistence.PartyRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.domain.entities.RankPermission
@@ -19,7 +21,9 @@ class ChatServiceBukkit(
     private val partyService: PartyService,
     private val nexoEmojiService: NexoEmojiService,
     private val configService: ConfigService,
-    private val rankService: RankService
+    private val rankService: RankService,
+    private val preferenceRepository: PlayerPartyPreferenceRepository,
+    private val partyRepository: PartyRepository
 ) : ChatService {
     
     private val logger = LoggerFactory.getLogger(ChatServiceBukkit::class.java)
@@ -203,11 +207,17 @@ class ChatServiceBukkit(
                 }.toSet()
             }
             ChatChannel.PARTY -> {
-                val senderGuilds = memberService.getPlayerGuilds(senderId)
-                senderGuilds.flatMap { guildId ->
-                    getOnlinePartyMembers(guildId).filter { playerId ->
-                        getVisibilitySettings(playerId).partyChatVisible
-                    }
+                // Get the sender's currently active party
+                val activeParty = getCurrentActiveParty(senderId)
+                if (activeParty == null) {
+                    logger.debug("Player $senderId has no active party for messaging")
+                    return emptySet()
+                }
+
+                // Get online members of the specific party
+                val partyMembers = partyService.getOnlinePartyMembers(activeParty.id)
+                partyMembers.filter { playerId ->
+                    getVisibilitySettings(playerId).partyChatVisible
                 }.toSet()
             }
             ChatChannel.PUBLIC -> {
@@ -507,5 +517,27 @@ class ChatServiceBukkit(
         )
         
         chatSettingsRepository.updateRateLimit(updatedRateLimit)
+    }
+
+    /**
+     * Gets the player's currently active party for messaging.
+     * Checks stored preference first, then falls back to default party.
+     */
+    private fun getCurrentActiveParty(playerId: UUID): net.lumalyte.lg.domain.entities.Party? {
+        // First check if player has a stored preference
+        val preference = preferenceRepository.getByPlayerId(playerId)
+        if (preference != null) {
+            val party = partyRepository.getById(preference.partyId)
+            if (party != null && party.isActive()) {
+                return party
+            } else {
+                // Party no longer exists or is inactive, remove the preference
+                preferenceRepository.removeByPlayerId(playerId)
+                // Continue to fallback below
+            }
+        }
+
+        // Fallback to default party behavior
+        return partyService.getActivePartyForPlayer(playerId)
     }
 }

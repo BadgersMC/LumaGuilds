@@ -50,6 +50,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     )
 
     private val activeTeleports = mutableMapOf<java.util.UUID, TeleportSession>()
+    private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
     private fun notifyGuildMembers(guildId: java.util.UUID, message: String) {
         val members = memberService.getGuildMembers(guildId)
@@ -324,6 +325,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
             if (activeTeleports.containsKey(playerId)) {
                 player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")
                 return
+            }
+
+            // Check teleport cooldown
+            val config = configService.loadConfig()
+            val cooldownSeconds = config.guild.homeTeleportCooldownSeconds
+            val lastTeleport = lastHomeTeleport[playerId]
+            if (lastTeleport != null) {
+                val elapsedSeconds = (System.currentTimeMillis() - lastTeleport) / 1000
+                if (elapsedSeconds < cooldownSeconds) {
+                    val remainingSeconds = cooldownSeconds - elapsedSeconds
+                    player.sendMessage("§c◷ Please wait ${remainingSeconds}s before teleporting again.")
+                    return
+                }
             }
 
             // Get target location
@@ -1373,6 +1387,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
                     player.sendMessage("§a✅ Welcome to your guild home!")
                     player.sendActionBar(Component.text("§aTeleported to guild home!"))
 
+                    // Record teleport time for cooldown
+                    lastHomeTeleport[playerId] = System.currentTimeMillis()
+
                     // Clean up
                     activeTeleports.remove(playerId)
                 } else {
@@ -1615,6 +1632,94 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 player.sendMessage("§cCouldn't open vault: ${result.message}")
                 player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
             }
+        }
+    }
+
+    @Subcommand("setshop")
+    @CommandPermission("lumaguilds.guild.setshop")
+    fun onSetShop(player: Player) {
+        val playerId = player.uniqueId
+
+        // Find player's guild
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§c❌ You are not in a guild!")
+            return
+        }
+
+        val guild = guilds.first()
+
+        // Check permission
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            player.sendMessage("§c❌ You don't have permission to convert shops to guild shops!")
+            player.sendMessage("§7You need the MANAGE_GUILD_SETTINGS permission.")
+            return
+        }
+
+        // Check if ARM-Guilds-Bridge is available
+        val armBridgePlugin = Bukkit.getPluginManager().getPlugin("ARM-Guilds-Bridge")
+        if (armBridgePlugin == null || !armBridgePlugin.isEnabled) {
+            player.sendMessage("§c❌ Guild shops feature is not available!")
+            player.sendMessage("§7Contact a server administrator - ARM-Guilds-Bridge is required.")
+            return
+        }
+
+        // Get ARM-Guilds-Bridge services
+        val armBridge = armBridgePlugin as net.lumalyte.armbridge.ARMGuildsBridge
+        val guildShopService = armBridge.getGuildShopService()
+        val itemShopGuildService = armBridge.getItemShopGuildService()
+
+        // Check if standing in a guild-owned ARM region
+        val playerLoc = player.location
+        val armPlugin = Bukkit.getPluginManager().getPlugin("AdvancedRegionMarket")
+
+        if (armPlugin == null || !armPlugin.isEnabled) {
+            player.sendMessage("§c❌ ARM plugin not found!")
+            return
+        }
+
+        val arm = armPlugin as net.alex9849.arm.AdvancedRegionMarket
+        val region = arm.adapterHandler.getRegion(playerLoc)
+
+        if (region == null) {
+            player.sendMessage("§c❌ You must be standing in an ARM region to convert this shop!")
+            player.sendMessage("§7Guild shops can only be created in guild-owned market regions.")
+            return
+        }
+
+        // Check if region is owned by the player's guild
+        val regionOwner = guildShopService.getGuildForShopRegion(region.id, playerLoc.world?.name ?: "")
+        if (regionOwner == null || regionOwner != guild.id) {
+            player.sendMessage("§c❌ This ARM region is not owned by your guild!")
+            player.sendMessage("§7Your guild must own this market region to create guild shops here.")
+            if (regionOwner != null) {
+                player.sendMessage("§7This region is owned by a different guild.")
+            }
+            return
+        }
+
+        // Check if ItemShops plugin is available
+        val itemShopsPlugin = Bukkit.getPluginManager().getPlugin("ItemShops")
+        if (itemShopsPlugin == null || !itemShopsPlugin.isEnabled) {
+            player.sendMessage("§c❌ ItemShops plugin not found!")
+            return
+        }
+
+        // Check if there's a shop at this location (we'll validate in ItemShops later)
+        // For now, just register it
+        val shopLocation = playerLoc.block.location
+
+        // Register the shop
+        if (itemShopGuildService.registerGuildItemShop(shopLocation, guild.id, playerId)) {
+            player.sendMessage("§a✅ Shop converted to guild shop!")
+            player.sendMessage("§7All income from this shop will now go to §6${guild.name}§7's vault.")
+            player.sendMessage("§7Guild permissions now apply to this shop.")
+
+            // Notify guild members
+            notifyGuildMembers(guild.id, "§6★ §e${player.name} §7converted a shop to a guild shop!")
+        } else {
+            player.sendMessage("§c❌ Failed to convert shop!")
+            player.sendMessage("§7Contact a server administrator if this problem persists.")
         }
     }
 

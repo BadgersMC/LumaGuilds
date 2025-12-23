@@ -43,17 +43,19 @@ class GuildBankMenu(
     private var guild: Guild
 ) : Menu, KoinComponent, Listener {
 
-    private val bankService: BankService by inject()
+    private val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val guildService: net.lumalyte.lg.application.services.GuildService by inject()
+    private val bankService: BankService by inject() // Keep for transaction history only
 
     // GUI components
     private lateinit var gui: ChestGui
     private lateinit var mainPane: StaticPane
 
-    // Current balance cache
-    private var currentBalance = 0
-    private var previousBalance = 0
+    // Current balance cache (stored as Long to match VaultInventoryManager)
+    private var currentBalance = 0L
+    private var previousBalance = 0L
 
     // UI/UX Enhancement variables
     private var isLoading = false
@@ -301,6 +303,18 @@ class GuildBankMenu(
         }
         mainPane.addItem(statsGuiItem, 7, 3)
 
+        // Automation & Rewards button
+        val automationItem = createMenuItem(
+            Material.COMPARATOR,
+            "Automation & Rewards",
+            listOf("Configure automated bank features", "Scheduled deposits, auto-rewards, alerts")
+        )
+        val automationGuiItem = GuiItem(automationItem) { event ->
+            event.isCancelled = true
+            menuNavigator.openMenu(menuFactory.createGuildBankAutomationMenu(menuNavigator, player, guild))
+        }
+        mainPane.addItem(automationGuiItem, 5, 3)
+
         // Member Contributions button
         val contributionsItem = createMenuItem(
             Material.PLAYER_HEAD,
@@ -365,13 +379,13 @@ class GuildBankMenu(
         // Play button click sound
         player.playSound(player.location, BUTTON_CLICK_SOUND, 1.0f, 1.0f)
 
-        val actualAmount = if (amount == -1) {
+        val actualAmount: Int = if (amount == -1) {
             if (isDeposit) {
                 // Get player's current balance from Vault economy
-                bankService.getPlayerBalance(player.uniqueId)
+                bankService.getPlayerBalance(player.uniqueId).toInt()
             } else {
                 // For withdraw all, use guild balance
-                currentBalance
+                currentBalance.toInt()
             }
         } else {
             amount
@@ -396,7 +410,7 @@ class GuildBankMenu(
 
                         if (success) {
                             // Animate balance change
-                            animateBalanceChange(currentBalance, bankService.getBalance(guild.id))
+                            animateBalanceChange(currentBalance, vaultInventoryManager.getGoldBalance(guild.id))
 
                             // Play success sound and visual feedback
                             player.playSound(player.location, SUCCESS_SOUND, 1.0f, 1.5f)
@@ -416,29 +430,76 @@ class GuildBankMenu(
     }
 
     /**
-     * Handle deposit operation with enhanced feedback
+     * Handle deposit operation with physical gold items
      */
     private fun handleDeposit(amount: Int): Boolean {
         return try {
-            val transaction = bankService.deposit(guild.id, player.uniqueId, amount)
-            if (transaction != null) {
-                val message = getLocalizedString(
-                    LocalizationKeys.MENU_BANK_FEEDBACK_DEPOSIT_SUCCESS,
-                    amount.toString()
-                )
-                player.sendMessage(Component.text(message).color(NamedTextColor.GREEN))
-                // Show enhanced success feedback
-                showSuccessFeedback("Deposit successful!", amount)
-                true
-            } else {
-                val message = getLocalizedString(LocalizationKeys.MENU_BANK_FEEDBACK_NO_PERMISSION)
+            // Count available gold in player inventory
+            var totalNuggets = 0L
+            val goldItems = mutableListOf<Pair<Int, Int>>() // slot, value pairs
+
+            for (i in 0 until player.inventory.size) {
+                val item = player.inventory.getItem(i) ?: continue
+                val value = net.lumalyte.lg.application.utilities.GoldBalanceButton.calculateGoldValue(item)
+                if (value > 0) {
+                    totalNuggets += value
+                    goldItems.add(Pair(i, value.toInt()))
+                }
+            }
+
+            if (totalNuggets < amount) {
+                val message = "You don't have enough gold! You have $totalNuggets, but need $amount."
                 player.sendMessage(Component.text(message).color(NamedTextColor.RED))
                 showErrorFeedback(message)
-                false
+                return false
             }
+
+            // Remove gold items from player inventory
+            var remaining = amount
+            for ((slot, value) in goldItems) {
+                if (remaining <= 0) break
+
+                val toRemove = minOf(remaining, value)
+                val item = player.inventory.getItem(slot) ?: continue
+
+                if (toRemove >= value) {
+                    // Remove entire stack
+                    player.inventory.setItem(slot, null)
+                    remaining -= value
+                } else {
+                    // Partially remove - need to break down the item
+                    player.inventory.setItem(slot, null)
+                    remaining -= value
+
+                    // Give back change if needed
+                    if (value > toRemove) {
+                        val change = value - toRemove
+                        val changeItems = net.lumalyte.lg.application.utilities.GoldBalanceButton.convertToItems(change.toLong())
+                        for (changeItem in changeItems) {
+                            player.inventory.addItem(changeItem)
+                        }
+                    }
+                }
+            }
+
+            // Deposit to guild vault (adds to virtual gold balance)
+            val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager by inject()
+            val newBalance = vaultInventoryManager.depositGold(guild.id, player.uniqueId, amount.toLong())
+            vaultInventoryManager.forceFlush(guild.id)
+
+            // Reload guild to get updated state
+            guild = guildService.getGuild(guild.id) ?: guild
+
+            val message = getLocalizedString(
+                LocalizationKeys.MENU_BANK_FEEDBACK_DEPOSIT_SUCCESS,
+                amount.toString()
+            )
+            player.sendMessage(Component.text(message).color(NamedTextColor.GREEN))
+            showSuccessFeedback("Deposit successful!", amount.toLong())
+            true
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            val errorMessage = "An error occurred during deposit."
+            val errorMessage = "An error occurred during deposit: ${e.message}"
             player.sendMessage(Component.text("§c$errorMessage"))
             showErrorFeedback(errorMessage)
             false
@@ -446,29 +507,63 @@ class GuildBankMenu(
     }
 
     /**
-     * Handle withdrawal operation with enhanced feedback
+     * Handle withdrawal operation with physical gold items
      */
     private fun handleWithdrawal(amount: Int): Boolean {
         return try {
-            val transaction = bankService.withdraw(guild.id, player.uniqueId, amount)
-            if (transaction != null) {
-                val message = getLocalizedString(
-                    LocalizationKeys.MENU_BANK_FEEDBACK_WITHDRAW_SUCCESS,
-                    amount.toString()
-                )
-                player.sendMessage(Component.text(message).color(NamedTextColor.GREEN))
-                // Show enhanced success feedback
-                showSuccessFeedback("Withdrawal successful!", -amount) // Negative for withdrawal
-                true
-            } else {
-                val message = getLocalizedString(LocalizationKeys.MENU_BANK_FEEDBACK_INSUFFICIENT_GUILD_FUNDS)
+            // Get vault inventory manager
+            val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager by inject()
+
+            // Check if guild has sufficient gold
+            val currentVaultBalance = vaultInventoryManager.getGoldBalance(guild.id)
+            if (currentVaultBalance < amount) {
+                val message = "Guild vault has insufficient gold! Balance: $currentVaultBalance, requested: $amount."
                 player.sendMessage(Component.text(message).color(NamedTextColor.RED))
                 showErrorFeedback(message)
-                false
+                return false
             }
+
+            // Withdraw from guild vault (deducts from virtual gold balance)
+            val newBalance = vaultInventoryManager.withdrawGold(guild.id, player.uniqueId, amount.toLong())
+            if (newBalance == -1L) {
+                val message = "Failed to withdraw from guild vault!"
+                player.sendMessage(Component.text(message).color(NamedTextColor.RED))
+                showErrorFeedback(message)
+                return false
+            }
+
+            vaultInventoryManager.forceFlush(guild.id)
+
+            // Give physical gold items to player
+            val goldItems = net.lumalyte.lg.application.utilities.GoldBalanceButton.convertToItems(amount.toLong())
+            val leftoverItems = mutableListOf<ItemStack>()
+
+            for (goldItem in goldItems) {
+                val leftover = player.inventory.addItem(goldItem)
+                leftoverItems.addAll(leftover.values)
+            }
+
+            if (leftoverItems.isNotEmpty()) {
+                // Inventory full - drop items at player's feet
+                leftoverItems.forEach { item ->
+                    player.world.dropItemNaturally(player.location, item)
+                }
+                player.sendMessage(Component.text("§eYour inventory is full! Items dropped at your feet.").color(NamedTextColor.YELLOW))
+            }
+
+            // Reload guild to get updated state
+            guild = guildService.getGuild(guild.id) ?: guild
+
+            val message = getLocalizedString(
+                LocalizationKeys.MENU_BANK_FEEDBACK_WITHDRAW_SUCCESS,
+                amount.toString()
+            )
+            player.sendMessage(Component.text(message).color(NamedTextColor.GREEN))
+            showSuccessFeedback("Withdrawal successful!", -amount.toLong())
+            true
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            val errorMessage = "An error occurred during withdrawal."
+            val errorMessage = "An error occurred during withdrawal: ${e.message}"
             player.sendMessage(Component.text("§c$errorMessage"))
             showErrorFeedback(errorMessage)
             false
@@ -546,10 +641,10 @@ class GuildBankMenu(
     }
 
     /**
-     * Load current balance
+     * Load current balance from vault gold balance
      */
     private fun loadBalance() {
-        currentBalance = bankService.getBalance(guild.id)
+        currentBalance = vaultInventoryManager.getGoldBalance(guild.id)
     }
 
     /**
@@ -638,12 +733,12 @@ class GuildBankMenu(
     /**
      * Animate balance change with smooth transitions
      */
-    private fun animateBalanceChange(oldBalance: Int, newBalance: Int) {
+    private fun animateBalanceChange(oldBalance: Long, newBalance: Long) {
         if (oldBalance == newBalance) return
 
         val difference = newBalance - oldBalance
         val isIncrease = difference > 0
-        val steps = max(1, min(10, Math.abs(difference) / 50)) // More steps for larger changes
+        val steps = max(1, min(10, Math.abs(difference.toInt()) / 50)) // More steps for larger changes
         val stepSize = difference / steps
 
         object : BukkitRunnable() {
@@ -684,7 +779,7 @@ class GuildBankMenu(
     /**
      * Create animated balance display item
      */
-    private fun createAnimatedBalanceItem(balance: Int, color: NamedTextColor, isIncrease: Boolean): ItemStack {
+    private fun createAnimatedBalanceItem(balance: Long, color: NamedTextColor, isIncrease: Boolean): ItemStack {
         val arrow = if (isIncrease) "⬆" else "⬇"
         val displayName = Component.text("$balance coins $arrow")
             .color(color)
@@ -805,7 +900,7 @@ class GuildBankMenu(
     /**
      * Enhanced success feedback with celebration effects
      */
-    private fun showSuccessFeedback(message: String, amount: Int) {
+    private fun showSuccessFeedback(message: String, amount: Long) {
         player.playSound(player.location, SUCCESS_SOUND, 1.0f, 1.5f)
 
         // Create celebration particles (visual effect)

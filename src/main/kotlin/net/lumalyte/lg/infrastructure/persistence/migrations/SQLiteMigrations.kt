@@ -99,6 +99,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(16)
                 dbVersion = 16
             }
+            if (dbVersion < 17) {
+                migrateToVersion17()
+                updateDatabaseVersion(17)
+                dbVersion = 17
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1141,6 +1146,26 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             sqlCommands.clear()
 
             componentLogger.info(Component.text("✓ Fixed relations table CHECK constraint to use uppercase enum values"))
+        }
+    }
+
+    private fun migrateToVersion17() {
+        componentLogger.info(Component.text("Migrating to version 17: Fixing party names with spaces..."))
+
+        // Replace spaces with underscores in all party names
+        val updatePartyNames = """
+            UPDATE parties
+            SET name = REPLACE(name, ' ', '_')
+            WHERE name LIKE '% %'
+        """.trimIndent()
+
+        connection.createStatement().use { statement ->
+            val rowsAffected = statement.executeUpdate(updatePartyNames)
+            if (rowsAffected > 0) {
+                componentLogger.info(Component.text("✓ Fixed $rowsAffected party names by replacing spaces with underscores"))
+            } else {
+                componentLogger.info(Component.text("✓ No party names needed repair (migration v17)"))
+            }
         }
     }
 

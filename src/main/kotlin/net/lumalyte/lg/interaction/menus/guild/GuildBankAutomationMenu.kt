@@ -428,7 +428,11 @@ class GuildBankAutomationMenu(
      * Update automation display with latest data
      */
     private fun updateAutomationDisplay() {
-        // Update is handled by individual setup methods
+        // Clear and recreate automation pane to reflect toggle changes
+        automationPane.clear()
+        setupAutomationSettings()
+
+        // Update other displays
         checkActiveAutomations()
         updateActiveAutomations()
         updateAutomationStatus()

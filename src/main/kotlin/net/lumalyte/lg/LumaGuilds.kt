@@ -347,6 +347,26 @@ class LumaGuilds : JavaPlugin() {
     }
 
     /**
+     * Parses a priority string into an EventPriority enum value.
+     * Valid values: LOWEST, LOW, NORMAL, HIGH, HIGHEST, MONITOR
+     * Defaults to NORMAL if invalid.
+     */
+    private fun parsePriority(priorityString: String): org.bukkit.event.EventPriority {
+        return when (priorityString.uppercase()) {
+            "LOWEST" -> org.bukkit.event.EventPriority.LOWEST
+            "LOW" -> org.bukkit.event.EventPriority.LOW
+            "NORMAL" -> org.bukkit.event.EventPriority.NORMAL
+            "HIGH" -> org.bukkit.event.EventPriority.HIGH
+            "HIGHEST" -> org.bukkit.event.EventPriority.HIGHEST
+            "MONITOR" -> org.bukkit.event.EventPriority.MONITOR
+            else -> {
+                componentLogger.warn(Component.text("⚠ Invalid event priority '$priorityString', defaulting to NORMAL").color(NamedTextColor.YELLOW))
+                org.bukkit.event.EventPriority.NORMAL
+            }
+        }
+    }
+
+    /**
      * Logs a message with proper console colors using Paper's component logger.
      */
     private fun logColored(message: String) {
@@ -504,6 +524,36 @@ class LumaGuilds : JavaPlugin() {
                 ":$emojiName:"
             }
         }
+
+        // Register parties completion (shows available parties for the player)
+        commandManager.commandCompletions.registerAsyncCompletion("parties") { context ->
+            val player = context.player ?: return@registerAsyncCompletion listOf("GLOBAL")
+            val playerId = player.uniqueId
+
+            val partyService = get().get<net.lumalyte.lg.application.services.PartyService>()
+            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
+
+            // Get player's guild IDs
+            val playerGuildIds = guildService.getPlayerGuilds(playerId).map { it.id }.toSet()
+
+            if (playerGuildIds.isEmpty()) {
+                return@registerAsyncCompletion listOf("GLOBAL")
+            }
+
+            // Get all active parties for player's guilds
+            val activeParties = playerGuildIds.flatMap { guildId ->
+                partyService.getActivePartiesForGuild(guildId)
+            }.toSet()
+
+            // Filter out parties the player is banned from and get their names
+            val partyNames = activeParties
+                .filter { party -> !party.isPlayerBanned(playerId) }
+                .mapNotNull { party -> party.name }
+                .sorted()
+
+            // Always include GLOBAL option first
+            listOf("GLOBAL") + partyNames
+        }
     }
 
     /**
@@ -579,6 +629,21 @@ class LumaGuilds : JavaPlugin() {
         // Use the DI instance of ChatInputListener to avoid duplicate instances
         val chatInputListener = get().get<ChatInputListener>()
         server.pluginManager.registerEvents(chatInputListener, this)
+
+        // Register party chat listener with configurable priority (auto-routes messages to party after /pc switch)
+        val config = get().get<ConfigService>().loadConfig()
+        val partyChatListener = PartyChatListener()
+        val priority = parsePriority(config.party.partyChatListenerPriority)
+        server.pluginManager.registerEvent(
+            io.papermc.paper.event.player.AsyncChatEvent::class.java,
+            partyChatListener,
+            priority,
+            { _, event -> partyChatListener.onPlayerChat(event as io.papermc.paper.event.player.AsyncChatEvent) },
+            this,
+            true // ignoreCancelled
+        )
+        logColored("✓ Party chat auto-routing registered (priority: ${config.party.partyChatListenerPriority})")
+
         server.pluginManager.registerEvents(BannerSelectionListener(), this)
 
         // Register progression event listener
@@ -660,6 +725,10 @@ class LumaGuilds : JavaPlugin() {
     }
 
     fun getRelationService(): net.lumalyte.lg.application.services.RelationService {
+        return get().get()
+    }
+
+    fun getPhysicalCurrencyService(): net.lumalyte.lg.application.services.PhysicalCurrencyService {
         return get().get()
     }
 

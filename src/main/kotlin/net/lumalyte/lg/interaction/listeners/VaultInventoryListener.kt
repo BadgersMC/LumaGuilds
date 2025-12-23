@@ -24,6 +24,7 @@ import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
+import org.slf4j.LoggerFactory
 
 /**
  * Listens for inventory events on guild vault inventories.
@@ -33,8 +34,11 @@ class VaultInventoryListener(
     private val plugin: JavaPlugin,
     private val vaultInventoryManager: VaultInventoryManager,
     private val transactionLogger: VaultTransactionLogger,
-    private val vaultConfig: VaultConfig
+    private val vaultConfig: VaultConfig,
+    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository
 ) : Listener {
+
+    private val logger = LoggerFactory.getLogger(VaultInventoryListener::class.java)
 
     @EventHandler(priority = EventPriority.HIGH)
     fun onInventoryClick(event: InventoryClickEvent) {
@@ -295,14 +299,39 @@ class VaultInventoryListener(
         val guildId = holder.guildId
         val inventory = holder.inventory
 
-        // Sync entire inventory state to cache
-        vaultInventoryManager.syncInventoryToCache(guildId, inventory)
+        // CRITICAL: Check if vault is being removed (broken)
+        // If the vault is being removed, we must NOT sync the inventory back
+        // This prevents the duplication bug where items are re-seeded after being dropped
+        val isBeingRemoved = vaultInventoryManager.isVaultBeingRemoved(guildId)
+
+        if (isBeingRemoved) {
+            // Vault is being broken - do NOT sync inventory back to cache/database
+            logger.info("Vault for guild $guildId is being removed - skipping inventory sync to prevent item duplication")
+
+            // Unregister viewer without flushing to database
+            vaultInventoryManager.closeVaultFor(guildId, player.uniqueId, flushToDatabase = false)
+            return
+        }
+
+        // Check if vault is still AVAILABLE before syncing
+        // If the vault was broken while a player had it open, we must NOT sync the inventory back
+        // Otherwise, items that were dropped will be duplicated when saved to the database
+        val guild = guildRepository.getById(guildId)
+        val vaultIsAvailable = guild?.vaultStatus == net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE
+
+        if (vaultIsAvailable) {
+            // Sync entire inventory state to cache
+            vaultInventoryManager.syncInventoryToCache(guildId, inventory)
+        } else {
+            // Vault was broken - do NOT sync inventory back to cache/database
+            logger.info("Vault for guild $guildId is UNAVAILABLE - skipping inventory sync to prevent item duplication")
+        }
 
         // Check if this is the last viewer (before unregistering)
         val isLastViewer = inventory.viewers.size <= 1
 
-        // Unregister viewer and flush if last viewer
-        vaultInventoryManager.closeVaultFor(guildId, player.uniqueId)
+        // Unregister viewer (but don't flush if vault is unavailable)
+        vaultInventoryManager.closeVaultFor(guildId, player.uniqueId, flushToDatabase = vaultIsAvailable)
 
         // If this was the last viewer, evict the shared inventory to free memory
         if (isLastViewer) {

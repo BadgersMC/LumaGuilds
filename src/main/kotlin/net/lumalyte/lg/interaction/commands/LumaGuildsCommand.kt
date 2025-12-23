@@ -27,6 +27,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private val guildService: GuildService by inject()
     private val adminOverrideService: AdminOverrideService by inject()
     private val guildRolePermissionResolver: GuildRolePermissionResolver by inject()
+    private val progressionConfigService: net.lumalyte.lg.infrastructure.services.ProgressionConfigService by inject()
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
@@ -44,6 +45,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             "exports" -> handleListExports(sender)
             "cancel" -> handleCancelExport(sender, args)
             "reload" -> handleReload(sender)
+            "progressionreload" -> handleProgressionReload(sender)
             "disband" -> handleDisband(sender, args)
             "migrate" -> handleMigrate(sender, args)
             "override" -> handleOverride(sender)
@@ -248,6 +250,33 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     }
 
     /**
+     * Handle progression config reload
+     */
+    private fun handleProgressionReload(sender: CommandSender) {
+        // Check permissions - only console or ops can reload
+        if (sender is Player && !sender.isOp) {
+            sender.sendMessage("§c❌ You don't have permission to reload progression config!")
+            return
+        }
+
+        try {
+            sender.sendMessage("§e🔄 Reloading progression.yml configuration...")
+
+            // Reload the progression configuration
+            progressionConfigService.reloadProgressionConfig()
+
+            sender.sendMessage("§a✅ Progression configuration reloaded successfully!")
+            sender.sendMessage("§7💡 Changes to level rewards and XP sources are now active.")
+            sender.sendMessage("§7    Existing guild levels and XP are unaffected.")
+
+        } catch (e: Exception) {
+            // Command handler - catching all exceptions to prevent command crash
+            sender.sendMessage("§c❌ Failed to reload progression config: ${e.message}")
+            sender.sendMessage("§7💡 Check your progression.yml file for errors.")
+        }
+    }
+
+    /**
      * Handle admin override toggle
      */
     private fun handleOverride(sender: CommandSender) {
@@ -401,12 +430,13 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage("§e/bellclaims exports §7- List your active exports")
         sender.sendMessage("§e/bellclaims cancel <filename> §7- Cancel an active export")
         sender.sendMessage("§e/bellclaims reload §7- Reload plugin configuration (OP only)")
+        sender.sendMessage("§e/bellclaims progressionreload §7- Reload progression.yml (OP only)")
         sender.sendMessage("§e/bellclaims disband <guild> confirm §7- Force disband a guild (OP only)")
         sender.sendMessage("§e/bellclaims migrate confirm §7- Migrate SQLite → MariaDB (OP only)")
         sender.sendMessage("§e/bellclaims override §7- Toggle admin override mode (Admin only)")
         sender.sendMessage("§e/bellclaims help §7- Show this help")
         sender.sendMessage("§7💡 Export files are available for 15 minutes")
-        sender.sendMessage("§7🔧 Reload command is for development - some changes require server restart")
+        sender.sendMessage("§7🔧 Reload commands are for development - some changes require server restart")
         sender.sendMessage("§7⚠️ Disband is for emergency use only - removes all members!")
         sender.sendMessage("§7🔄 Migrate transfers all data from SQLite to MariaDB (requires confirmation)")
         sender.sendMessage("§7🔓 Override grants owner permissions in all guilds temporarily")
@@ -489,7 +519,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         if (sender !is Player) return mutableListOf()
 
         return when (args.size) {
-            1 -> mutableListOf("download", "exports", "cancel", "reload", "disband", "migrate", "override", "help").filter { it.startsWith(args[0]) }.toMutableList()
+            1 -> mutableListOf("download", "exports", "cancel", "reload", "progressionreload", "disband", "migrate", "override", "help").filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "download", "cancel" -> {
                     fileExportManager.getActiveExports(sender.uniqueId)

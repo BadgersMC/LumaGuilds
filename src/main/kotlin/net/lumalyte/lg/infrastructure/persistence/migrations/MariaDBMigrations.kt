@@ -24,6 +24,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(1)
                 currentDbVersion = 1
             }
+            if (currentDbVersion < 17) {
+                migrateToVersion17()
+                updateDatabaseVersion(17)
+                currentDbVersion = 17
+            }
 
             connection.commit()
 
@@ -431,6 +436,26 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             stmt.setString(1, tableName)
             stmt.executeQuery().use { rs ->
                 return rs.next() && rs.getInt(1) > 0
+            }
+        }
+    }
+
+    private fun migrateToVersion17() {
+        componentLogger.info(Component.text("Migrating to version 17: Fixing party names with spaces..."))
+
+        // Replace spaces with underscores in all party names
+        val updatePartyNames = """
+            UPDATE parties
+            SET name = REPLACE(name, ' ', '_')
+            WHERE name LIKE '% %'
+        """.trimIndent()
+
+        connection.createStatement().use { statement ->
+            val rowsAffected = statement.executeUpdate(updatePartyNames)
+            if (rowsAffected > 0) {
+                componentLogger.info(Component.text("✓ Fixed $rowsAffected party names by replacing spaces with underscores"))
+            } else {
+                componentLogger.info(Component.text("✓ No party names needed repair (migration v17)"))
             }
         }
     }

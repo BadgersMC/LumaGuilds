@@ -210,6 +210,19 @@ class GoldDepositMenu(
         }
 
         if (totalNuggets > 0) {
+            // Clear all gold items from the menu inventory
+            for (i in 0 until inventory.size) {
+                val item = inventory.getItem(i) ?: continue
+                if (item.type == Material.PAPER || (item.type == Material.GOLD_BLOCK && i == 22)) {
+                    continue // Skip instruction and deposit all button
+                }
+
+                val value = GoldBalanceButton.calculateGoldValue(item)
+                if (value > 0) {
+                    inventory.setItem(i, null) // Remove gold items
+                }
+            }
+
             // Add to vault balance atomically (prevents race conditions)
             val newBalance = vaultInventoryManager.depositGold(guildId, player.uniqueId, totalNuggets)
 

@@ -358,6 +358,13 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
 
     private fun createParty() {
         try {
+            // Validate party name (no spaces allowed)
+            if (partyName.contains(" ")) {
+                player.sendMessage("§c❌ Party names cannot contain spaces!")
+                player.sendMessage("§7Use underscores instead (e.g., My_Party)")
+                return
+            }
+
             // Validate party creation requirements
             if (!isPrivateParty && selectedGuilds.size < 2) {
                 player.sendMessage("§c❌ You must invite at least one other guild!")

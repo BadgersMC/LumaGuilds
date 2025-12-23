@@ -253,6 +253,7 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             partyChatPrefix = config.getString("party.party_chat_prefix") ?: "[PARTY]",
             partyChatSuffix = config.getString("party.party_chat_suffix") ?: "",
             chatInputListenerPriority = config.getString("party.chat_input_listener_priority") ?: "HIGHEST",
+            partyChatListenerPriority = config.getString("party.party_chat_listener_priority") ?: "NORMAL",
             allowRoleRestrictions = config.getBoolean("party.allow_role_restrictions", true),
             defaultToAllMembers = config.getBoolean("party.default_to_all_members", true)
         )
