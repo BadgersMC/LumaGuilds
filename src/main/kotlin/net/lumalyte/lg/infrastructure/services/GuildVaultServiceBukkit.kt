@@ -122,6 +122,28 @@ class GuildVaultServiceBukkit(
             return VaultResult.Failure("Guild does not have a vault placed")
         }
 
+        // CRITICAL FIX FOR DUPLICATION BUG:
+        // Mark vault as being removed BEFORE closing any inventories
+        // This prevents the InventoryCloseEvent from re-syncing items back to cache
+        vaultInventoryManager.markVaultAsBeingRemoved(guild.id)
+
+        // Force-close all open vault inventories
+        // This must happen AFTER marking the vault as being removed
+        // The close event listener will see the flag and skip syncing
+        val viewers = vaultInventoryManager.getViewersForVault(guild.id)
+        for (viewerSession in viewers) {
+            val player = Bukkit.getPlayer(viewerSession.playerId)
+            if (player != null && player.isOnline) {
+                // Force-close the player's inventory (this will trigger InventoryCloseEvent)
+                // The close listener will check isVaultBeingRemoved() and skip syncing
+                player.closeInventory()
+                logger.debug("Force-closed vault inventory for ${player.name} due to vault break")
+            }
+        }
+
+        // Immediately evict the shared inventory to prevent any further access
+        vaultInventoryManager.evictSharedInventory(guild.id)
+
         // Drop items if requested (NOT recommended - items should persist)
         if (dropItems) {
             logger.warn("Dropping vault items for guild ${guild.name} - this is NOT recommended!")
@@ -159,9 +181,13 @@ class GuildVaultServiceBukkit(
         )
 
         return if (guildRepository.update(updatedGuild)) {
+            // Unmark the vault as being removed now that the process is complete
+            vaultInventoryManager.unmarkVaultAsBeingRemoved(guild.id)
             logger.info("Guild ${guild.name} vault status set to UNAVAILABLE (items preserved)")
             VaultResult.Success(updatedGuild)
         } else {
+            // Also unmark on failure
+            vaultInventoryManager.unmarkVaultAsBeingRemoved(guild.id)
             VaultResult.Failure("Failed to update guild vault status")
         }
     }

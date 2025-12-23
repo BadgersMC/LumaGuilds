@@ -20,8 +20,14 @@ class PartyServiceBukkit(
     
     private val logger = LoggerFactory.getLogger(PartyServiceBukkit::class.java)
 
-    override fun createParty(party: Party): Party? {
+    override fun createParty(party: Party, suppressBroadcast: Boolean): Party? {
         try {
+            // Validate party name (no spaces allowed - prevents command conflicts)
+            if (party.name?.contains(" ") == true) {
+                logger.warn("Cannot create party with spaces in name: ${party.name}")
+                return null
+            }
+
             // Validate that the party has at least 1 guild
             if (party.guildIds.isEmpty()) {
                 logger.warn("Cannot create party with no guilds")
@@ -54,24 +60,26 @@ class PartyServiceBukkit(
             return if (partyRepository.add(party)) {
                 logger.info("Party ${party.id} created with ${party.guildIds.size} guilds by player ${party.leaderId}")
 
-                // Broadcast party creation message
-                val leaderPlayer = Bukkit.getServer().getPlayer(party.leaderId)
-                val leaderName = leaderPlayer?.name ?: "Unknown"
+                // Broadcast party creation message (unless suppressed)
+                if (!suppressBroadcast) {
+                    val leaderPlayer = Bukkit.getServer().getPlayer(party.leaderId)
+                    val leaderName = leaderPlayer?.name ?: "Unknown"
 
-                // Get guild names for the message
-                val guildNames = party.guildIds.mapNotNull { guildId ->
-                    guildService.getGuild(guildId)?.name
-                }
-
-                if (guildNames.isNotEmpty()) {
-                    val partyMessage = if (guildNames.size == 1) {
-                        "§6★ §eA party has been created: §6${guildNames.first()} §eby §6$leaderName§e!"
-                    } else {
-                        "§6★ §eA party has been created with guilds: §6${guildNames.joinToString(", ")} §eby §6$leaderName§e!"
+                    // Get guild names for the message
+                    val guildNames = party.guildIds.mapNotNull { guildId ->
+                        guildService.getGuild(guildId)?.name
                     }
 
-                    // Send to all online players using ChatUtils for emoji sanitization
-                    net.lumalyte.lg.utils.ChatUtils.broadcastMessage(partyMessage)
+                    if (guildNames.isNotEmpty()) {
+                        val partyMessage = if (guildNames.size == 1) {
+                            "§6★ §eA party has been created: §6${guildNames.first()} §eby §6$leaderName§e!"
+                        } else {
+                            "§6★ §eA party has been created with guilds: §6${guildNames.joinToString(", ")} §eby §6$leaderName§e!"
+                        }
+
+                        // Send to all online players using ChatUtils for emoji sanitization
+                        net.lumalyte.lg.utils.ChatUtils.broadcastMessage(partyMessage)
+                    }
                 }
 
                 party

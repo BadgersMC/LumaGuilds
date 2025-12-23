@@ -201,7 +201,7 @@ class GoldWithdrawMenu(
         val clickedItem = event.currentItem ?: return
 
         // Handle withdraw all button
-        if (event.slot == 22 && clickedItem.type == Material.GOLD_BLOCK) {
+        if (event.slot == 22 && clickedItem.type == Material.RAW_GOLD) {
             val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
             if (currentBalance > 0) {
                 withdrawGold(currentBalance)

@@ -425,6 +425,14 @@ party:
   party_chat_suffix: ""
   chat_input_listener_priority: "HIGHEST"  # HIGHEST, HIGH, NORMAL, LOW, LOWEST
 
+  # Party chat auto-routing listener priority (for /pc switch auto-routing)
+  # Adjust this if you have chat formatting plugins that conflict
+  # Set LOWER than your chat plugin's priority to route messages before formatting
+  # Set HIGHER than your chat plugin's priority to route after formatting
+  # Example: If your chat plugin uses HIGH priority, use NORMAL or LOW here
+  # DO NOT RELOAD WHEN CHANGING THIS - RESTART THE SERVER
+  party_chat_listener_priority: "NORMAL"  # HIGHEST, HIGH, NORMAL, LOW, LOWEST
+
   # Role Restrictions
   allow_role_restrictions: true
   default_to_all_members: true

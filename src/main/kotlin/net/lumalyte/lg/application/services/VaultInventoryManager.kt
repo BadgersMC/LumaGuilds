@@ -53,6 +53,13 @@ class VaultInventoryManager(
     private val writeBuffers = ConcurrentHashMap<UUID, WriteBuffer>()
 
     /**
+     * Tracks vaults that are being removed (broken).
+     * Used to prevent re-syncing items from Bukkit inventory during close events.
+     * Key: Guild UUID
+     */
+    private val vaultsBeingRemoved = ConcurrentHashMap.newKeySet<UUID>()
+
+    /**
      * Shared Bukkit Inventory instances per guild.
      * All players viewing the same guild vault share the same Inventory object.
      * This eliminates synchronization issues - Bukkit handles multi-viewer updates natively.
@@ -337,6 +344,9 @@ class VaultInventoryManager(
             amount
         )
 
+        // Update Gold Balance Button in shared inventory if it exists
+        updateGoldBalanceButton(guildId, newBalance)
+
         return newBalance
     }
 
@@ -379,7 +389,32 @@ class VaultInventoryManager(
             amount
         )
 
+        // Update Gold Balance Button in shared inventory if it exists
+        updateGoldBalanceButton(guildId, newBalance)
+
         return newBalance
+    }
+
+    /**
+     * Updates the Gold Balance Button (slot 0) in the shared vault inventory.
+     * Should be called after any gold deposit or withdrawal operation.
+     *
+     * @param guildId The guild ID.
+     * @param newBalance The new gold balance to display.
+     */
+    private fun updateGoldBalanceButton(guildId: UUID, newBalance: Long) {
+        // Get the shared inventory if it exists
+        val sharedInventory = sharedInventories[guildId] ?: return
+
+        // Create updated Gold Balance Button
+        val updatedButton = GoldBalanceButton.createItem(newBalance)
+
+        // Update slot 0 in the shared inventory
+        sharedInventory.setItem(0, updatedButton)
+
+        // Also update the cache to keep it in sync
+        val vault = vaultCache[guildId]
+        vault?.setSlot(0, updatedButton)
     }
 
     /**
@@ -605,12 +640,12 @@ class VaultInventoryManager(
      * @param guildId The guild ID.
      * @param playerId The player ID.
      */
-    fun closeVaultFor(guildId: UUID, playerId: UUID) {
+    fun closeVaultFor(guildId: UUID, playerId: UUID, flushToDatabase: Boolean = true) {
         unregisterViewer(playerId)
 
-        // If no more viewers, flush pending writes immediately
+        // If no more viewers, flush pending writes immediately (unless disabled)
         val remainingViewers = getViewersForVault(guildId)
-        if (remainingViewers.isEmpty()) {
+        if (remainingViewers.isEmpty() && flushToDatabase) {
             forceFlush(guildId)
         }
     }
@@ -742,6 +777,38 @@ class VaultInventoryManager(
     fun clearCache(guildId: UUID) {
         vaultCache.remove(guildId)
         writeBuffers.remove(guildId)
+    }
+
+    /**
+     * Marks a vault as being removed.
+     * This prevents re-syncing items from Bukkit inventory during close events.
+     * Should be called BEFORE closing player inventories when breaking a vault.
+     *
+     * @param guildId The guild ID.
+     */
+    fun markVaultAsBeingRemoved(guildId: UUID) {
+        vaultsBeingRemoved.add(guildId)
+        logger.info("Marked vault $guildId as being removed - close events will not sync inventory")
+    }
+
+    /**
+     * Checks if a vault is marked as being removed.
+     *
+     * @param guildId The guild ID.
+     * @return true if the vault is being removed.
+     */
+    fun isVaultBeingRemoved(guildId: UUID): Boolean {
+        return vaultsBeingRemoved.contains(guildId)
+    }
+
+    /**
+     * Unmarks a vault as being removed.
+     * Should be called after the removal process completes.
+     *
+     * @param guildId The guild ID.
+     */
+    fun unmarkVaultAsBeingRemoved(guildId: UUID) {
+        vaultsBeingRemoved.remove(guildId)
     }
 
     // ========== Error Recovery & Retry Logic (Phase 8) ==========

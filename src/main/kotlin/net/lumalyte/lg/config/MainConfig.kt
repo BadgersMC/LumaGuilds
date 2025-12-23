@@ -312,6 +312,7 @@ data class PartyConfig(
     var partyChatPrefix: String = "[PARTY]",
     var partyChatSuffix: String = "",
     var chatInputListenerPriority: String = "HIGHEST", // HIGHEST, HIGH, NORMAL, LOW, LOWEST
+    var partyChatListenerPriority: String = "NORMAL", // Event priority for party chat auto-routing after /pc switch
 
     // Role Restrictions
     var allowRoleRestrictions: Boolean = true,

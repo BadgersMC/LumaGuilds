@@ -52,6 +52,7 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
     @Default
     @CommandPermission("lumaguilds.partychat")
+    @CommandCompletion("@parties switch help toggle clear")
     fun onPartyChat(player: Player, firstArg: String) {
         if (!checkPartiesEnabled(player)) return
 
@@ -85,6 +86,95 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
             // Send the full message to current party
             sendPartyMessage(player, fullMessage)
         }
+    }
+
+    @Subcommand("switch")
+    @CommandPermission("lumaguilds.partychat")
+    @CommandCompletion("@parties|GLOBAL")
+    fun onSwitch(player: Player, targetName: String) {
+        if (!checkPartiesEnabled(player)) return
+
+        val playerId = player.uniqueId
+
+        // Handle GLOBAL option - clear party preference to use global chat
+        if (targetName.equals("GLOBAL", ignoreCase = true)) {
+            val hadActiveParty = preferenceRepository.getByPlayerId(playerId) != null
+
+            if (hadActiveParty) {
+                val success = preferenceRepository.removeByPlayerId(playerId)
+                if (success) {
+                    player.sendMessage("§a✅ Switched to GLOBAL chat")
+                    player.sendMessage("§7Your messages will now go to global chat, not party chat")
+                    player.sendMessage("§7Use §f/pc switch <partyname> §7to switch back to a party")
+                } else {
+                    player.sendMessage("§c❌ Failed to switch to global chat!")
+                }
+            } else {
+                player.sendMessage("§7You are already using global chat")
+            }
+            return
+        }
+
+        // Try to find a party with this name
+        val targetParty = findPartyByName(playerId, targetName)
+
+        if (targetParty != null) {
+            switchToParty(player, targetParty)
+        } else {
+            player.sendMessage("§c❌ Party not found: §f$targetName")
+            player.sendMessage("§7Use §f/pc switch §7to see available parties")
+        }
+    }
+
+    @Subcommand("switch")
+    @CommandPermission("lumaguilds.partychat")
+    @CommandCompletion("")
+    fun onSwitchList(player: Player) {
+        if (!checkPartiesEnabled(player)) return
+
+        val playerId = player.uniqueId
+        val playerGuildIds = getPlayerGuildIds(playerId)
+
+        if (playerGuildIds.isEmpty()) {
+            player.sendMessage("§c❌ You are not in any guild!")
+            return
+        }
+
+        val activeParties = playerGuildIds.flatMap { guildId: UUID ->
+            partyService.getActivePartiesForGuild(guildId)
+        }.toSet()
+
+        // Filter out parties the player is banned from
+        val accessibleParties = activeParties.filter { party ->
+            !party.isPlayerBanned(playerId)
+        }
+
+        if (accessibleParties.isEmpty()) {
+            player.sendMessage("§c❌ No available parties to switch to!")
+            return
+        }
+
+        val currentParty = getCurrentActiveParty(playerId)
+        val isUsingGlobal = preferenceRepository.getByPlayerId(playerId) == null
+
+        player.sendMessage("§6=== Available Parties ===")
+
+        // Show GLOBAL option
+        if (isUsingGlobal) {
+            player.sendMessage("§a▶ GLOBAL §7(current)")
+        } else {
+            player.sendMessage("§7  GLOBAL")
+        }
+
+        accessibleParties.forEach { party ->
+            val isCurrent = currentParty?.id == party.id
+            val marker = if (isCurrent) "§a▶" else "§7 "
+            val currentTag = if (isCurrent) " §7(current)" else ""
+            player.sendMessage("$marker §f${party.name ?: "Unnamed"}$currentTag")
+        }
+
+        player.sendMessage("§6========================")
+        player.sendMessage("§7Use §f/pc switch <name> §7to switch")
     }
 
     @Subcommand("toggle")
@@ -122,7 +212,8 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         player.sendMessage("§6=== Party Chat Commands ===")
         player.sendMessage("§f/pc §7- Show current party info")
         player.sendMessage("§f/pc <message> §7- Send message to current party")
-        player.sendMessage("§f/pc <partyname> §7- Switch to different party")
+        player.sendMessage("§f/pc switch §7- List available parties")
+        player.sendMessage("§f/pc switch <name> §7- Switch to party or GLOBAL")
         player.sendMessage("§f/pc toggle §7- Toggle party chat visibility")
         player.sendMessage("§f/pc clear §7- Return to default party")
         player.sendMessage("§f/pc help §7- Show this help")
@@ -221,9 +312,9 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
         if (success) {
             player.sendMessage("§a✅ Switched to party: §f${party.name ?: "Unnamed"}")
-            player.sendMessage("§7You can now send messages to this party with §f/pc <message>")
+            player.sendMessage("§7All your messages will now go to this party chat!")
             player.sendMessage("§7Use §f/pc §7to see current party info")
-            player.sendMessage("§7Use §f/pc clear §7to return to default")
+            player.sendMessage("§7Use §f/pc switch GLOBAL §7to return to global chat")
             player.sendMessage("§7§oThis preference will persist across server restarts!")
         } else {
             player.sendMessage("§c❌ Failed to save party preference!")

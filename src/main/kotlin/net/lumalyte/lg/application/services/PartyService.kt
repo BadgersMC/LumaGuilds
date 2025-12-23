@@ -14,9 +14,10 @@ interface PartyService {
      * Creates a new party with the specified configuration.
      *
      * @param party The party entity to create.
+     * @param suppressBroadcast If true, suppresses the party creation broadcast message. Defaults to true.
      * @return The created party if successful, null otherwise.
      */
-    fun createParty(party: Party): Party?
+    fun createParty(party: Party, suppressBroadcast: Boolean = true): Party?
 
     /**
      * Sends a party request to another guild.

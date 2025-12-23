@@ -230,6 +230,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<ConfigService> { ConfigServiceBukkit(get()) }
     single<PlayerLocaleService> { PlayerLocaleServicePaper() }
     single<PlayerMetadataService> { PlayerMetadataServiceVault(get(), get()) }
+    single<net.lumalyte.lg.infrastructure.services.ARMIntegrationService> { net.lumalyte.lg.infrastructure.services.ARMIntegrationService() }
     // Conditionally load claim-related services
     if (claimsEnabled) {
         single<VisualisationService> { VisualisationServiceBukkit() }
@@ -264,7 +265,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<MemberService> { MemberServiceBukkit(get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get()) }
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get()) }
-    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.PhysicalCurrencyService> {
         net.lumalyte.lg.infrastructure.services.PhysicalCurrencyServiceBukkit(get(), get())
@@ -375,7 +376,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<ProgressionEventListener> { ProgressionEventListener() }
     single<net.lumalyte.lg.interaction.listeners.VaultInventoryListener> {
         val config = get<ConfigService>().loadConfig()
-        net.lumalyte.lg.interaction.listeners.VaultInventoryListener(get<LumaGuilds>(), get(), get(), config.vault)
+        net.lumalyte.lg.interaction.listeners.VaultInventoryListener(get<LumaGuilds>(), get(), get(), config.vault, get())
     }
     // AdminOverrideListener depends on GuildRolePermissionResolver - only register when claims enabled
     if (claimsEnabled) {

@@ -90,7 +90,7 @@ class GuildServiceBukkit(
 
     /**
      * Creates default guild chat channels when a guild is formed.
-     * Creates: Guild Chat (all members), Officer Chat (officer+ ranks), Leader Chat (leader only).
+     * Creates: Guild_Chat (all members), Officer_Chat (officer+ ranks), Leader_Chat (leader only).
      *
      * @param guild The guild to create channels for.
      * @param ownerId The UUID of the guild owner who will lead the channels.
@@ -110,10 +110,10 @@ class GuildServiceBukkit(
                 rank.name.matches(Regex("(?i)(officer|admin|moderator|co-?leader|leader|owner)"))
             }
 
-            // 1. Guild Chat - All ranks (no restrictions)
+            // 1. Guild_Chat - All ranks (no restrictions)
             val guildChat = Party(
                 id = UUID.randomUUID(),
-                name = "Guild Chat",
+                name = "Guild_Chat",
                 guildIds = setOf(guild.id),
                 leaderId = ownerId,
                 status = PartyStatus.ACTIVE,
@@ -121,17 +121,17 @@ class GuildServiceBukkit(
                 restrictedRoles = null // No restrictions = all members
             )
 
-            if (partyService.createParty(guildChat) != null) {
-                logger.info("Created Guild Chat channel for guild ${guild.name}")
+            if (partyService.createParty(guildChat, suppressBroadcast = true) != null) {
+                logger.info("Created Guild_Chat channel for guild ${guild.name}")
             } else {
-                logger.warn("Failed to create Guild Chat channel for guild ${guild.name}")
+                logger.warn("Failed to create Guild_Chat channel for guild ${guild.name}")
             }
 
-            // 2. Officer Chat - Officer+ ranks only (if officer ranks exist)
+            // 2. Officer_Chat - Officer+ ranks only (if officer ranks exist)
             if (officerRanks.isNotEmpty()) {
                 val officerChat = Party(
                     id = UUID.randomUUID(),
-                    name = "Officer Chat",
+                    name = "Officer_Chat",
                     guildIds = setOf(guild.id),
                     leaderId = ownerId,
                     status = PartyStatus.ACTIVE,
@@ -139,18 +139,18 @@ class GuildServiceBukkit(
                     restrictedRoles = officerRanks.map { it.id }.toSet()
                 )
 
-                if (partyService.createParty(officerChat) != null) {
-                    logger.info("Created Officer Chat channel for guild ${guild.name}")
+                if (partyService.createParty(officerChat, suppressBroadcast = true) != null) {
+                    logger.info("Created Officer_Chat channel for guild ${guild.name}")
                 } else {
-                    logger.warn("Failed to create Officer Chat channel for guild ${guild.name}")
+                    logger.warn("Failed to create Officer_Chat channel for guild ${guild.name}")
                 }
             }
 
-            // 3. Leader Chat - Leader rank only (if leader rank exists)
+            // 3. Leader_Chat - Leader rank only (if leader rank exists)
             if (leaderRank != null) {
                 val leaderChat = Party(
                     id = UUID.randomUUID(),
-                    name = "Leader Chat",
+                    name = "Leader_Chat",
                     guildIds = setOf(guild.id),
                     leaderId = ownerId,
                     status = PartyStatus.ACTIVE,
@@ -158,10 +158,10 @@ class GuildServiceBukkit(
                     restrictedRoles = setOf(leaderRank.id)
                 )
 
-                if (partyService.createParty(leaderChat) != null) {
-                    logger.info("Created Leader Chat channel for guild ${guild.name}")
+                if (partyService.createParty(leaderChat, suppressBroadcast = true) != null) {
+                    logger.info("Created Leader_Chat channel for guild ${guild.name}")
                 } else {
-                    logger.warn("Failed to create Leader Chat channel for guild ${guild.name}")
+                    logger.warn("Failed to create Leader_Chat channel for guild ${guild.name}")
                 }
             }
         } catch (e: Exception) {
