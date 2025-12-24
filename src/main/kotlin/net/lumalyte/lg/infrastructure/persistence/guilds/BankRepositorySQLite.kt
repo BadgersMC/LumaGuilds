@@ -386,6 +386,33 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
         }
     }
 
+    override fun deleteTransaction(transactionId: UUID): Boolean {
+        val sql = "DELETE FROM bank_transactions WHERE id = ?"
+
+        return try {
+            val rowsAffected = storage.connection.executeUpdate(sql, transactionId.toString())
+
+            if (rowsAffected > 0) {
+                // Remove from in-memory cache
+                val transaction = transactions.remove(transactionId)
+
+                // Recalculate balance for the affected guild
+                if (transaction != null) {
+                    updateCachedBalance(transaction.guildId)
+                    logger.info("Deleted transaction $transactionId for guild ${transaction.guildId}")
+                }
+
+                true
+            } else {
+                logger.warn("Attempted to delete non-existent transaction $transactionId")
+                false
+            }
+        } catch (e: SQLException) {
+            logger.error("Failed to delete transaction $transactionId", e)
+            throw DatabaseOperationException("Failed to delete transaction", e)
+        }
+    }
+
     private fun calculateGuildBalance(guildId: UUID): Int {
         val sql = """
             SELECT COALESCE(SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE -amount - fee END), 0) as balance
