@@ -3,6 +3,8 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.*
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -10,11 +12,13 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class WarServiceBukkit(
-    private val configService: ConfigService,
-    private val progressionService: net.lumalyte.lg.application.services.ProgressionService
-) : WarService {
+    private val configService: ConfigService
+) : WarService, KoinComponent {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
+
+    // Lazy inject ProgressionService to break circular dependency
+    private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
 
     // In-memory storage for now - would need database persistence in production
     // Thread-safe collections for concurrent access from multiple guilds/players

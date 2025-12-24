@@ -272,7 +272,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     }
     single<KillService> { KillServiceBukkit(get()) }
     single<net.lumalyte.lg.infrastructure.services.ProgressionConfigService> { net.lumalyte.lg.infrastructure.services.ProgressionConfigService(get()) }
-    single<WarService> { WarServiceBukkit(get(), get()) }
+    single<WarService> { WarServiceBukkit(get()) }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
         net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get(), get())
     }
