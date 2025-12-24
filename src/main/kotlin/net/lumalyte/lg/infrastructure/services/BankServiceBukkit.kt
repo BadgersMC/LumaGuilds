@@ -16,6 +16,8 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import net.milkbowl.vault.economy.Economy
 import org.bukkit.Bukkit
 import org.bukkit.plugin.RegisteredServiceProvider
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.util.UUID
@@ -24,9 +26,11 @@ import kotlin.math.min
 class BankServiceBukkit(
     private val bankRepository: BankRepository,
     private val memberService: MemberService,
-    private val configService: ConfigService,
-    private val progressionService: ProgressionService
-) : BankService {
+    private val configService: ConfigService
+) : BankService, KoinComponent {
+
+    // Lazy inject ProgressionService to break circular dependency
+    private val progressionService: ProgressionService by inject()
 
     private val logger = LoggerFactory.getLogger(BankServiceBukkit::class.java)
 
