@@ -191,7 +191,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
 
         // --- Step 3: claims table recreation and data migration ---
         sqlCommands.add("""
-            CREATE TABLE claims (
+            CREATE TABLE IF NOT EXISTS claims (
                 id TEXT PRIMARY KEY,
                 world_id TEXT,
                 owner_id TEXT,
@@ -328,7 +328,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         
         // Create claims table
         executeSql("""
-            CREATE TABLE claims (
+            CREATE TABLE IF NOT EXISTS claims (
                 id TEXT PRIMARY KEY,
                 world_id TEXT NOT NULL,
                 owner_id TEXT NOT NULL,
@@ -344,7 +344,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         
         // Create claim_partitions table
         executeSql("""
-            CREATE TABLE claim_partitions (
+            CREATE TABLE IF NOT EXISTS claim_partitions (
                 id TEXT PRIMARY KEY,
                 claim_id TEXT NOT NULL,
                 lower_position_x INTEGER NOT NULL,
@@ -357,7 +357,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         
         // Create claim_default_permissions table
         executeSql("""
-            CREATE TABLE claim_default_permissions (
+            CREATE TABLE IF NOT EXISTS claim_default_permissions (
                 claim_id TEXT,
                 permission TEXT,
                 FOREIGN KEY (claim_id) REFERENCES claims(id),
@@ -367,7 +367,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         
         // Create claim_flags table
         executeSql("""
-            CREATE TABLE claim_flags (
+            CREATE TABLE IF NOT EXISTS claim_flags (
                 claim_id TEXT,
                 flag TEXT,
                 FOREIGN KEY (claim_id) REFERENCES claims(id),
@@ -377,7 +377,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         
         // Create claim_player_permissions table
         executeSql("""
-            CREATE TABLE claim_player_permissions (
+            CREATE TABLE IF NOT EXISTS claim_player_permissions (
                 claim_id TEXT,
                 player_id TEXT,
                 permission TEXT,
