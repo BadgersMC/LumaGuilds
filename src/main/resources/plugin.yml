@@ -1,5 +1,5 @@
 name: LumaGuilds
-version: 0.5.3
+version: 0.6.0
 api-version: '1.21'
 main: net.lumalyte.lg.LumaGuilds
 softdepend: [Vault, PlaceholderAPI, AxKoth]
