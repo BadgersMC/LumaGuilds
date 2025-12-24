@@ -266,7 +266,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<RelationService> { RelationServiceBukkit(get(), get()) }
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get()) }
     single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    single<BankService> { BankServiceBukkit(get(), get(), get()) }
+    single<BankService> { BankServiceBukkit(get(), get(), get(), lazy { get<ProgressionService>() }) }
     single<net.lumalyte.lg.application.services.PhysicalCurrencyService> {
         net.lumalyte.lg.infrastructure.services.PhysicalCurrencyServiceBukkit(get(), get())
     }
