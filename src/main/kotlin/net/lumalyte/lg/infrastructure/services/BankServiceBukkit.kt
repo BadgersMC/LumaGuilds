@@ -150,62 +150,87 @@ class BankServiceBukkit(
                 return null
             }
 
-            // Withdraw money from player's account
-            val withdrawResult = economy.withdrawPlayer(player, amount.toDouble())
-            if (!withdrawResult.transactionSuccess()) {
-                logger.error("Failed to withdraw $amount from player $playerId")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Failed to withdraw money from player account"
-                ))
+            // Create transaction object BEFORE withdrawing from player
+            // This ensures we have a transaction ID for crash recovery
+            val transaction = BankTransaction.deposit(guildId, playerId, amount, description)
+
+            // ATOMICITY IMPROVEMENT: Record pending transaction FIRST
+            // This acts as a write-ahead log (WAL) for crash recovery
+            val pendingRecorded = try {
+                bankRepository.recordTransaction(transaction)
+            } catch (e: Exception) {
+                logger.error("Failed to record pending transaction - aborting deposit", e)
                 return null
             }
 
-            // Create transaction
-            val transaction = BankTransaction.deposit(guildId, playerId, amount, description)
+            if (!pendingRecorded) {
+                logger.error("Failed to record pending transaction - aborting deposit")
+                return null
+            }
 
-            // Record transaction in guild bank database
-            val success = bankRepository.recordTransaction(transaction)
+            // Now withdraw money from player's account
+            val withdrawResult = economy.withdrawPlayer(player, amount.toDouble())
+            if (!withdrawResult.transactionSuccess()) {
+                logger.error("Failed to withdraw $amount from player $playerId - ROLLING BACK transaction")
+                // ROLLBACK: Delete the pending transaction we just recorded
+                val rollbackSuccess = try {
+                    bankRepository.deleteTransaction(transaction.id)
+                } catch (e: Exception) {
+                    logger.error("CRITICAL: Failed to rollback transaction ${transaction.id}", e)
+                    false
+                }
 
-            if (success) {
-                val newBalance = bankRepository.getGuildBalance(guildId)
                 recordAudit(BankAudit(
                     transactionId = transaction.id,
                     guildId = guildId,
                     actorId = playerId,
-                    action = AuditAction.DEPOSIT,
-                    details = "Deposit of $amount",
-                    newBalance = newBalance
+                    action = AuditAction.PERMISSION_DENIED,
+                    details = if (rollbackSuccess) {
+                        "Failed to withdraw money from player account - transaction rolled back successfully"
+                    } else {
+                        "Failed to withdraw money from player account - ROLLBACK FAILED! Manual intervention required"
+                    }
                 ))
 
-                logger.info("Player $playerId deposited $amount to guild $guildId (balance: $newBalance)")
-                
-                // Award progression XP for bank deposits
-                try {
-                    val config = getConfig()
-                    val xpPerHundred = config.progression.bankDepositXpPer100
-                    val xpAmount = (amount / 100.0 * xpPerHundred).toInt()
-                    if (xpAmount > 0) {
-                        progressionService.awardExperience(guildId, xpAmount, ExperienceSource.BANK_DEPOSIT)
-                        logger.info("Awarded $xpAmount XP to guild $guildId for bank deposit of $amount")
-                    }
-                } catch (e: SQLException) {
-                    // Database error awarding XP - log but don't fail deposit
-                    logger.warn("Failed to award progression XP for bank deposit (database error)", e)
-                } catch (e: IllegalStateException) {
-                    // Service not initialized or invalid state
-                    logger.warn("Failed to award progression XP for bank deposit (service error)", e)
+                if (!rollbackSuccess) {
+                    logger.error("CRITICAL: Transaction ${transaction.id} exists in database but Vault withdrawal failed AND rollback failed - manual cleanup required")
+                } else {
+                    logger.info("Successfully rolled back failed deposit transaction ${transaction.id}")
                 }
-                
-                return transaction
-            } else {
-                // Refund player if database recording failed
-                logger.error("Failed to record deposit transaction, refunding player")
-                economy.depositPlayer(player, amount.toDouble())
                 return null
             }
+
+            // SUCCESS: Both database record and Vault withdrawal succeeded
+            val newBalance = bankRepository.getGuildBalance(guildId)
+            recordAudit(BankAudit(
+                transactionId = transaction.id,
+                guildId = guildId,
+                actorId = playerId,
+                action = AuditAction.DEPOSIT,
+                details = "Deposit of $amount",
+                newBalance = newBalance
+            ))
+
+            logger.info("Player $playerId deposited $amount to guild $guildId (balance: $newBalance)")
+
+            // Award progression XP for bank deposits
+            try {
+                val config = getConfig()
+                val xpPerHundred = config.progression.bankDepositXpPer100
+                val xpAmount = (amount / 100.0 * xpPerHundred).toInt()
+                if (xpAmount > 0) {
+                    progressionService.awardExperience(guildId, xpAmount, ExperienceSource.BANK_DEPOSIT)
+                    logger.info("Awarded $xpAmount XP to guild $guildId for bank deposit of $amount")
+                }
+            } catch (e: SQLException) {
+                // Database error awarding XP - log but don't fail deposit
+                logger.warn("Failed to award progression XP for bank deposit (database error)", e)
+            } catch (e: IllegalStateException) {
+                // Service not initialized or invalid state
+                logger.warn("Failed to award progression XP for bank deposit (service error)", e)
+            }
+
+            return transaction
         } catch (e: SQLException) {
             logger.error("Database error processing deposit for player $playerId to guild $guildId", e)
             return null
@@ -271,65 +296,88 @@ class BankServiceBukkit(
             // Calculate final amount player receives (after fee)
             val finalAmount = amount
 
-            // Deposit money to player's account (from guild bank withdrawal)
-            val depositResult = economy.depositPlayer(player, finalAmount.toDouble())
-            if (!depositResult.transactionSuccess()) {
-                logger.error("Failed to deposit $finalAmount to player $playerId")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Failed to deposit money to player account"
-                ))
+            // Create transaction object BEFORE depositing to player
+            // This ensures we have a transaction ID for crash recovery
+            val transaction = BankTransaction.withdraw(guildId, playerId, amount, fee, description)
+
+            // ATOMICITY IMPROVEMENT: Record pending transaction FIRST
+            // This acts as a write-ahead log (WAL) for crash recovery
+            // For withdrawals, we record as NEGATIVE in the database first
+            val pendingRecorded = try {
+                bankRepository.recordTransaction(transaction)
+            } catch (e: Exception) {
+                logger.error("Failed to record pending withdrawal transaction - aborting withdrawal", e)
                 return null
             }
 
-            // Create transaction
-            val transaction = BankTransaction.withdraw(guildId, playerId, amount, fee, description)
+            if (!pendingRecorded) {
+                logger.error("Failed to record pending withdrawal transaction - aborting withdrawal")
+                return null
+            }
 
-            // Record transaction in guild bank database
-            val success = bankRepository.recordTransaction(transaction)
+            // Record fee transaction if applicable
+            if (fee > 0) {
+                val feeTransaction = BankTransaction(
+                    guildId = guildId,
+                    actorId = playerId,
+                    type = TransactionType.FEE,
+                    amount = fee,
+                    description = "Withdrawal fee"
+                )
+                try {
+                    bankRepository.recordTransaction(feeTransaction)
+                } catch (e: Exception) {
+                    logger.error("Failed to record fee transaction", e)
+                    // Continue anyway - fee is less critical than the main transaction
+                }
+            }
 
-            if (success) {
-                val newBalance = bankRepository.getGuildBalance(guildId)
+            // Now deposit money to player's account (from guild bank withdrawal)
+            val depositResult = economy.depositPlayer(player, finalAmount.toDouble())
+            if (!depositResult.transactionSuccess()) {
+                logger.error("Failed to deposit $finalAmount to player $playerId - INCOMPLETE WITHDRAWAL")
+                // IMPORTANT: For withdrawals, we do NOT delete the transaction like we do for deposits
+                // The guild bank has already been debited (transaction recorded)
+                // If we delete the transaction, the guild gets their money back for free
+                // This is the SAFER failure mode:
+                //   - Guild bank shows money was withdrawn (correct)
+                //   - Player didn't receive money (needs manual credit by admin)
+                //   - Admin can audit logs and manually credit the player
+                // This prevents money duplication exploits
                 recordAudit(BankAudit(
                     transactionId = transaction.id,
                     guildId = guildId,
                     actorId = playerId,
-                    action = AuditAction.WITHDRAWAL,
-                    details = "Withdrawal of $amount (fee: $fee)",
-                    newBalance = newBalance
+                    action = AuditAction.PERMISSION_DENIED,
+                    details = "Failed to deposit money to player account - withdrawal recorded but payout failed, manual payout required"
                 ))
-
-                // Record fee if applicable
-                if (fee > 0) {
-                    val feeTransaction = BankTransaction(
-                        guildId = guildId,
-                        actorId = playerId,
-                        type = TransactionType.FEE,
-                        amount = fee,
-                        description = "Withdrawal fee"
-                    )
-                    bankRepository.recordTransaction(feeTransaction)
-
-                    recordAudit(BankAudit(
-                        transactionId = feeTransaction.id,
-                        guildId = guildId,
-                        actorId = playerId,
-                        action = AuditAction.FEE_CHARGED,
-                        details = "Fee charged: $fee",
-                        newBalance = newBalance
-                    ))
-                }
-
-                logger.info("Player $playerId withdrew $amount from guild $guildId (fee: $fee, balance: $newBalance)")
-                return transaction
-            } else {
-                // Reverse the deposit if database recording failed
-                logger.error("Failed to record withdrawal transaction, reversing player deposit")
-                economy.withdrawPlayer(player, finalAmount.toDouble())
+                logger.warn("MANUAL ACTION REQUIRED: Withdrawal transaction ${transaction.id} recorded but Vault deposit failed - player $playerId needs manual credit of $finalAmount coins")
                 return null
             }
+
+            // SUCCESS: Both database record and Vault deposit succeeded
+            val newBalance = bankRepository.getGuildBalance(guildId)
+            recordAudit(BankAudit(
+                transactionId = transaction.id,
+                guildId = guildId,
+                actorId = playerId,
+                action = AuditAction.WITHDRAWAL,
+                details = "Withdrawal of $amount (fee: $fee)",
+                newBalance = newBalance
+            ))
+
+            if (fee > 0) {
+                recordAudit(BankAudit(
+                    guildId = guildId,
+                    actorId = playerId,
+                    action = AuditAction.FEE_CHARGED,
+                    details = "Fee charged: $fee",
+                    newBalance = newBalance
+                ))
+            }
+
+            logger.info("Player $playerId withdrew $amount from guild $guildId (fee: $fee, balance: $newBalance)")
+            return transaction
         } catch (e: SQLException) {
             logger.error("Database error processing withdrawal for player $playerId from guild $guildId", e)
             return null

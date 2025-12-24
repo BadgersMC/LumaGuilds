@@ -101,4 +101,13 @@ interface BankRepository {
      * @return true if successful, false otherwise.
      */
     fun clearGuildTransactions(guildId: UUID): Boolean
+
+    /**
+     * Deletes a specific transaction by ID.
+     * Used for rolling back failed transactions.
+     *
+     * @param transactionId The ID of the transaction to delete.
+     * @return true if successful, false otherwise.
+     */
+    fun deleteTransaction(transactionId: UUID): Boolean
 }

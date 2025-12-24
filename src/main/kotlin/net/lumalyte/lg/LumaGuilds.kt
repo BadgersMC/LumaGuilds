@@ -600,7 +600,22 @@ class LumaGuilds : JavaPlugin() {
         getCommand("vaultrollback")?.setExecutor(vaultRollbackCommand)
         getCommand("vaultrollback")?.tabCompleter = vaultRollbackCommand
 
-        logColored("✓ Admin commands registered (/lumaguilds, /bellclaims, /vaultrollback)")
+        // Register Bank Credit admin command
+        val bankCreditCommand = net.lumalyte.lg.interaction.commands.admin.BankCreditCommand(
+            get().get()
+        )
+        getCommand("bankcredit")?.setExecutor(bankCreditCommand)
+        getCommand("bankcredit")?.tabCompleter = bankCreditCommand
+
+        // Register Remove Vault admin command
+        val removeVaultCommand = net.lumalyte.lg.interaction.commands.admin.RemoveVaultCommand(
+            get().get(),
+            get().get()
+        )
+        getCommand("removevault")?.setExecutor(removeVaultCommand)
+        getCommand("removevault")?.tabCompleter = removeVaultCommand
+
+        logColored("✓ Admin commands registered (/lumaguilds, /bellclaims, /vaultrollback, /bankcredit, /removevault)")
         logColored("✓ Bedrock cache stats command registered (/bedrockcachestats)")
     }
 

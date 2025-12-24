@@ -38,6 +38,14 @@ commands:
     description: List and restore vault backups
     usage: /vaultrollback <list|restore> <guild> [backupId]
     permission: lumaguilds.admin.vault.rollback
+  bankcredit:
+    description: Manually credit a player's Vault balance
+    usage: /bankcredit <player> <amount>
+    permission: lumaguilds.admin.bank.credit
+  removevault:
+    description: Forcibly remove a guild's vault
+    usage: /removevault <guild> [dropItems]
+    permission: lumaguilds.admin.vault.remove
 
 permissions:
   # Guild Management Permissions
@@ -211,4 +219,14 @@ permissions:
   # Vault Rollback Permissions
   lumaguilds.admin.vault.rollback:
     description: List and restore vault backups
+    default: op
+
+  # Bank Credit Permissions
+  lumaguilds.admin.bank.credit:
+    description: Manually credit a player's Vault balance
+    default: op
+
+  # Remove Vault Permissions
+  lumaguilds.admin.vault.remove:
+    description: Forcibly remove a guild's vault
     default: op
