@@ -250,6 +250,13 @@ kiro/spec/requirements.md
 gradlew
 CLAUDE.md
 
-# Subprojects - separate git repositories
-enthusia-currency/
-enthusia-itemshops/
+# Enthusia stuff
+enthusia-itemshops/src
+enthusia-currency/src
+enthusia-itemshops/gradle/wrapper/gradle-wrapper.jar
+PROGRESSION_FINAL_INTEGRATION.md
+enthusia-currency/CRITICAL_FIXES_REQUIRED.md
+enthusia-itemshops/build.gradle.kts
+enthusia-itemshops/gradlew.bat
+enthusia-itemshops/settings.gradle.kts
+enthusia-itemshops/gradle/wrapper/gradle-wrapper.properties

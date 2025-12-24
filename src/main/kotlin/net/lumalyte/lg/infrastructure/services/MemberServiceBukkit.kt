@@ -15,9 +15,10 @@ import java.util.UUID
 class MemberServiceBukkit(
     private val memberRepository: MemberRepository,
     private val rankRepository: RankRepository,
-    private val guildRepository: GuildRepository
+    private val guildRepository: GuildRepository,
+    private val progressionService: net.lumalyte.lg.application.services.ProgressionService
 ) : MemberService {
-    
+
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
     
     override fun addMember(playerId: UUID, guildId: UUID, rankId: UUID): Member? {
@@ -39,7 +40,15 @@ class MemberServiceBukkit(
             logger.warn("Player $playerId is already a member of guild $guildId")
             return null
         }
-        
+
+        // Check guild member limit (progression-based)
+        val currentMemberCount = memberRepository.getByGuild(guildId).size
+        val maxMembers = progressionService.getMaxMembers(guildId)
+        if (currentMemberCount >= maxMembers) {
+            logger.warn("Guild $guildId has reached member limit: $currentMemberCount/$maxMembers")
+            return null
+        }
+
         val member = Member(
             playerId = playerId,
             guildId = guildId,

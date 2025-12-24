@@ -262,7 +262,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
-    single<MemberService> { MemberServiceBukkit(get(), get(), get()) }
+    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get()) }
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get()) }
     single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
@@ -271,13 +271,14 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
         net.lumalyte.lg.infrastructure.services.PhysicalCurrencyServiceBukkit(get(), get())
     }
     single<KillService> { KillServiceBukkit(get()) }
-    single<WarService> { WarServiceBukkit(get()) }
+    single<net.lumalyte.lg.infrastructure.services.ProgressionConfigService> { net.lumalyte.lg.infrastructure.services.ProgressionConfigService(get()) }
+    single<WarService> { WarServiceBukkit(get(), get()) }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
         net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get(), get())
     }
     single<ModeService> { ModeServiceBukkit(get(), get(), get(), get()) }
     single<CombatService> { CombatServiceBukkit(get()) }
-    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get()) }
+    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get()) }
     // GuildRolePermissionResolver depends on ClaimRepository - only register when claims enabled
     if (claimsEnabled) {
         single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get()) }

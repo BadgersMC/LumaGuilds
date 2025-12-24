@@ -124,6 +124,20 @@ class BankServiceBukkit(
                 return null
             }
 
+            // Check guild bank balance limit (progression-based)
+            val currentBalance = bankRepository.getGuildBalance(guildId)
+            val maxBalance = progressionService.getMaxBankBalance(guildId)
+            if (currentBalance + amount > maxBalance) {
+                logger.warn("Deposit would exceed guild bank limit: $currentBalance + $amount > $maxBalance")
+                recordAudit(BankAudit(
+                    guildId = guildId,
+                    actorId = playerId,
+                    action = AuditAction.PERMISSION_DENIED,
+                    details = "Deposit would exceed bank balance limit ($maxBalance)"
+                ))
+                return null
+            }
+
             // Check if player has sufficient funds
             if (!economy.has(player, amount.toDouble())) {
                 logger.warn("Player $playerId has insufficient funds for deposit of $amount")
@@ -407,7 +421,10 @@ class BankServiceBukkit(
         val feePercent = config.bank.withdrawalFeePercent
         val maxFee = config.bank.maxWithdrawalFee
 
-        val calculatedFee = (amount * feePercent).toInt()
+        // Apply progression-based fee multiplier
+        val feeMultiplier = progressionService.getWithdrawalFeeMultiplier(guildId)
+
+        val calculatedFee = (amount * feePercent * feeMultiplier).toInt()
         return min(calculatedFee, maxFee)
     }
 
