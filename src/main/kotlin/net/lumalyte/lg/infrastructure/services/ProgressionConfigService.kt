@@ -172,7 +172,7 @@ class ProgressionConfigService(private val plugin: Plugin) {
 
             milestones[level] = MilestoneRewardConfig(
                 broadcast = yamlConfig.getBoolean("$milestonePath.broadcast", false),
-                message = yamlConfig.getString("$milestonePath.message", ""),
+                message = yamlConfig.getString("$milestonePath.message") ?: "",
                 coins = yamlConfig.getInt("$milestonePath.coins", 0),
                 items = loadMilestoneItems("$milestonePath.items")
             )
@@ -211,7 +211,7 @@ class ProgressionConfigService(private val plugin: Plugin) {
         return ActivityTrackingConfig(
             enabled = yamlConfig.getBoolean("activity.enabled", true),
             weeklyReset = yamlConfig.getBoolean("activity.weekly_reset", true),
-            resetDay = loadDayOfWeek(yamlConfig.getString("activity.reset_day", "MONDAY")),
+            resetDay = loadDayOfWeek(yamlConfig.getString("activity.reset_day") ?: "MONDAY"),
             weights = loadActivityWeights()
         )
     }

@@ -39,6 +39,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val getClaimAtPosition: GetClaimAtPosition by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: MenuFactory by inject()
+    private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
 
     // Teleportation tracking for command-based teleports
     private data class TeleportSession(
@@ -327,9 +328,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 return
             }
 
-            // Check teleport cooldown
+            // Check teleport cooldown (with progression-based multiplier)
             val config = configService.loadConfig()
-            val cooldownSeconds = config.guild.homeTeleportCooldownSeconds
+            val baseCooldownSeconds = config.guild.homeTeleportCooldownSeconds
+            val cooldownMultiplier = progressionService.getHomeCooldownMultiplier(guild.id)
+            val cooldownSeconds = (baseCooldownSeconds * cooldownMultiplier).toLong()
+
             val lastTeleport = lastHomeTeleport[playerId]
             if (lastTeleport != null) {
                 val elapsedSeconds = (System.currentTimeMillis() - lastTeleport) / 1000

@@ -10,7 +10,8 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class WarServiceBukkit(
-    private val configService: ConfigService
+    private val configService: ConfigService,
+    private val progressionService: net.lumalyte.lg.application.services.ProgressionService
 ) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
@@ -47,6 +48,14 @@ class WarServiceBukkit(
             }
             if (existingDeclaration != null) {
                 logger.warn("Cannot declare war - pending declaration already exists between guilds $declaringGuildId and $defendingGuildId")
+                return null
+            }
+
+            // Check war slot limit (progression-based)
+            val currentWars = getWarsForGuild(declaringGuildId).filter { it.isActive }
+            val maxWars = progressionService.getMaxWars(declaringGuildId)
+            if (currentWars.size >= maxWars) {
+                logger.warn("Guild $declaringGuildId has reached war limit: ${currentWars.size}/$maxWars")
                 return null
             }
 
