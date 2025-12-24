@@ -100,3 +100,12 @@ tasks.shadowJar {
     exclude("META-INF/versions/**")
     exclude("**/module-info.class")
 }
+
+tasks.processResources {
+    val props = mapOf("version" to version)
+    inputs.properties(props)
+    filteringCharset = "UTF-8"
+    filesMatching("plugin.yml") {
+        expand(props)
+    }
+}
