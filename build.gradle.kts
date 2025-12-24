@@ -88,7 +88,7 @@ tasks.test {
 tasks.shadowJar {
     archiveBaseName.set("LumaGuilds")
     archiveClassifier.set("")
-    archiveVersion.set("0.6.2")
+    archiveVersion.set(version.toString())
 
     mergeServiceFiles()
 
