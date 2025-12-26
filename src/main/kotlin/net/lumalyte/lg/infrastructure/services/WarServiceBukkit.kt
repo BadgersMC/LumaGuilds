@@ -1,10 +1,10 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.application.persistence.BankRepository
+import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.*
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -12,19 +12,13 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class WarServiceBukkit(
-    private val configService: ConfigService
-) : WarService, KoinComponent {
+    private val configService: ConfigService,
+    private val bankRepository: BankRepository,
+    private val progressionRepository: ProgressionRepository,
+    private val progressionConfigService: ProgressionConfigService
+) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
-
-    // Lazy inject ProgressionService to break circular dependency
-    private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
-
-    // Lazy inject BankService for wager money transfers
-    private val bankService: net.lumalyte.lg.application.services.BankService by inject()
-
-    // Lazy inject BankRepository for direct wager payout deposits
-    private val bankRepository: net.lumalyte.lg.application.persistence.BankRepository by inject()
 
     // In-memory storage for now - would need database persistence in production
     // Thread-safe collections for concurrent access from multiple guilds/players
@@ -63,7 +57,18 @@ class WarServiceBukkit(
 
             // Check war slot limit (progression-based)
             val currentWars = getWarsForGuild(declaringGuildId).filter { it.isActive }
-            val maxWars = progressionService.getMaxWars(declaringGuildId)
+            // Calculate max wars based on progression level
+            val progression = progressionRepository.getGuildProgression(declaringGuildId)
+            val progressionConfig = progressionConfigService.getProgressionConfig()
+            val levelRewards = progressionConfig.getActiveLevelRewards()
+            var maxWars = 3 // Default base
+            if (progression != null) {
+                for (level in 1..progression.currentLevel) {
+                    val wars = levelRewards[level]?.warSlots ?: 3
+                    if (wars > maxWars) maxWars = wars
+                }
+            }
+
             if (currentWars.size >= maxWars) {
                 logger.warn("Guild $declaringGuildId has reached war limit: ${currentWars.size}/$maxWars")
                 return null
@@ -430,8 +435,8 @@ class WarServiceBukkit(
             }
 
             // Check if both guilds have sufficient funds
-            val declaringBalance = bankService.getBalance(war.declaringGuildId)
-            val defendingBalance = bankService.getBalance(war.defendingGuildId)
+            val declaringBalance = bankRepository.getGuildBalance(war.declaringGuildId)
+            val defendingBalance = bankRepository.getGuildBalance(war.defendingGuildId)
 
             if (declaringBalance < declaringGuildWager) {
                 logger.warn("Declaring guild ${war.declaringGuildId} has insufficient funds for wager: $declaringBalance < $declaringGuildWager")
@@ -445,11 +450,13 @@ class WarServiceBukkit(
 
             // Deduct wager from declaring guild
             val declaringDeductSuccess = if (declaringGuildWager > 0) {
-                bankService.deductFromGuildBank(
-                    war.declaringGuildId,
-                    declaringGuildWager,
-                    "War wager for war ${warId.toString().substring(0, 8)}"
+                val withdrawal = BankTransaction.withdraw(
+                    guildId = war.declaringGuildId,
+                    actorId = UUID.randomUUID(), // System actor
+                    amount = declaringGuildWager,
+                    description = "War wager for war ${warId.toString().substring(0, 8)}"
                 )
+                bankRepository.recordTransaction(withdrawal)
             } else true
 
             if (!declaringDeductSuccess) {
@@ -459,24 +466,27 @@ class WarServiceBukkit(
 
             // Deduct wager from defending guild
             val defendingDeductSuccess = if (defendingGuildWager > 0) {
-                bankService.deductFromGuildBank(
-                    war.defendingGuildId,
-                    defendingGuildWager,
-                    "War wager for war ${warId.toString().substring(0, 8)}"
+                val withdrawal = BankTransaction.withdraw(
+                    guildId = war.defendingGuildId,
+                    actorId = UUID.randomUUID(), // System actor
+                    amount = defendingGuildWager,
+                    description = "War wager for war ${warId.toString().substring(0, 8)}"
                 )
+                bankRepository.recordTransaction(withdrawal)
             } else true
 
             if (!defendingDeductSuccess) {
                 logger.error("Failed to deduct wager from defending guild ${war.defendingGuildId}")
                 // ROLLBACK: Refund declaring guild
                 if (declaringGuildWager > 0) {
-                    val rollbackSuccess = bankService.deposit(
-                        war.declaringGuildId,
-                        UUID.randomUUID(), // System actor
-                        declaringGuildWager,
-                        "Wager rollback - defending guild deduction failed"
+                    val deposit = BankTransaction.deposit(
+                        guildId = war.declaringGuildId,
+                        actorId = UUID.randomUUID(), // System actor
+                        amount = declaringGuildWager,
+                        description = "Wager rollback - defending guild deduction failed"
                     )
-                    if (rollbackSuccess == null) {
+                    val rollbackSuccess = bankRepository.recordTransaction(deposit)
+                    if (!rollbackSuccess) {
                         logger.error("CRITICAL: Failed to rollback wager for declaring guild ${war.declaringGuildId}! Manual intervention required.")
                     }
                 }

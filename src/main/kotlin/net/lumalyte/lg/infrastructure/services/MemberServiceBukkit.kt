@@ -16,7 +16,8 @@ class MemberServiceBukkit(
     private val memberRepository: MemberRepository,
     private val rankRepository: RankRepository,
     private val guildRepository: GuildRepository,
-    private val progressionService: net.lumalyte.lg.application.services.ProgressionService
+    private val progressionRepository: net.lumalyte.lg.application.persistence.ProgressionRepository,
+    private val progressionConfigService: ProgressionConfigService
 ) : MemberService {
 
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
@@ -43,7 +44,16 @@ class MemberServiceBukkit(
 
         // Check guild member limit (progression-based)
         val currentMemberCount = memberRepository.getByGuild(guildId).size
-        val maxMembers = progressionService.getMaxMembers(guildId)
+        val progression = progressionRepository.getGuildProgression(guildId)
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+        var maxMembers = 10 // Default starting member limit
+        if (progression != null) {
+            for (level in 1..progression.currentLevel) {
+                val members = levelRewards[level]?.members ?: 10
+                if (members > maxMembers) maxMembers = members
+            }
+        }
         if (currentMemberCount >= maxMembers) {
             logger.warn("Guild $guildId has reached member limit: $currentMemberCount/$maxMembers")
             return null

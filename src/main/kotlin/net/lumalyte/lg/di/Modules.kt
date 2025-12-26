@@ -262,17 +262,17 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
-    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get()) }
+    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get()) }
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get()) }
     single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    single<BankService> { BankServiceBukkit(get(), get(), get(), lazy { get<ProgressionService>() }) }
+    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.PhysicalCurrencyService> {
         net.lumalyte.lg.infrastructure.services.PhysicalCurrencyServiceBukkit(get(), get())
     }
     single<KillService> { KillServiceBukkit(get()) }
     single<net.lumalyte.lg.infrastructure.services.ProgressionConfigService> { net.lumalyte.lg.infrastructure.services.ProgressionConfigService(get()) }
-    single<WarService> { WarServiceBukkit(get()) }
+    single<WarService> { WarServiceBukkit(get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
         net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get(), get())
     }

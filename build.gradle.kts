@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.lumalyte.lg"
-version = "0.6.2"
+version = "1.0.0"
 
 repositories {
     mavenLocal()

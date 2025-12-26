@@ -18,9 +18,9 @@ import kotlin.math.pow
 
 class ProgressionServiceBukkit(
     private val progressionRepository: ProgressionRepository,
-    private val guildService: GuildService,
+    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
+    private val memberRepository: net.lumalyte.lg.application.persistence.MemberRepository,
     private val configService: ConfigService,
-    private val warService: WarService,
     private val progressionConfigService: ProgressionConfigService
 ) : ProgressionService {
 
@@ -28,11 +28,8 @@ class ProgressionServiceBukkit(
 
     override fun awardExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? {
         try {
-            // Check for war farming cooldown
-            if (warService.isGuildInWarFarmingCooldown(guildId)) {
-                logger.info("Blocked EXP award for guild $guildId due to war farming cooldown")
-                return null // Don't award EXP if guild is in cooldown
-            }
+            // War farming cooldown check removed - this should be handled by the caller
+            // if needed, since it's WarService's responsibility
 
             // Check if claims are enabled for claim-related sources
             val mainConfig = configService.loadConfig()
@@ -381,11 +378,12 @@ class ProgressionServiceBukkit(
      */
     private fun notifyGuildMembers(guildId: UUID, newLevel: Int, newPerks: List<PerkType>) {
         try {
-            val guild = guildService.getGuild(guildId) ?: return
-            
+            val guild = guildRepository.getById(guildId) ?: return
+
             // Get all online members
+            val guildMembers = memberRepository.getByGuild(guildId).map { it.playerId }.toSet()
             val onlineMembers = Bukkit.getOnlinePlayers().filter { player ->
-                guildService.getPlayerGuilds(player.uniqueId).any { it.id == guildId }
+                guildMembers.contains(player.uniqueId)
             }
             
             // Send notifications
