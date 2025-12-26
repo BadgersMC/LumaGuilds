@@ -401,28 +401,31 @@ class LumaGuilds : JavaPlugin() {
     }
 
     /**
-     * Displays the main gradient-colored startup text in GTA Vice City style.
+     * Displays the main gradient-colored startup text with diagonal gradient (top-left to bottom-right).
      */
     private fun displayGradientText() {
         // Simple ASCII art for LumaGuilds
-        val gradientText = """
- _                                ____         _  _      _      
-| |     _   _  _ __ ___    __ _  / ___| _   _ (_)| |  __| | ___ 
-| |    | | | || '_ ` _ \  / _` || |  _ | | | || || | / _` |/ __|
-| |___ | |_| || | | | | || (_| || |_| || |_| || || || (_| |\__ \
-|_____| \__,_||_| |_| |_| \__,_| \____| \__,_||_||_| \__,_||___/
-        """.trimIndent()
+        val asciiLines = listOf(
+            " _                                ____         _  _      _      ",
+            "| |     _   _  _ __ ___    __ _  / ___| _   _ (_)| |  __| | ___ ",
+            "| |    | | | || '_ ` _ \\  / _` || |  _ | | | || || | / _` |/ __|",
+            "| |___ | |_| || | | | | || (_| || |_| || |_| || || || (_| |\\__ \\",
+            "|_____| \\__,_||_| |_| |_| \\__,_| \\____| \\__,_||_||_| \\__,_||___/"
+        )
 
-        // Log each line (simplified without MiniMessage)
-        val lines = gradientText.lines()
-        lines.forEach { line ->
-            if (line.isNotBlank()) {
-                logColored(line)
-            }
+        // Gradient colors from cyan (top-left) to magenta (bottom-right)
+        // Using ANSI 256-color codes: 51=cyan, 45=light blue, 39=light purple, 135=purple, 201=magenta
+        val gradientColors = listOf(51, 45, 39, 135, 201)
+
+        // Apply diagonal gradient: each line gets progressively warmer colors
+        asciiLines.forEachIndexed { lineIndex, line ->
+            val colorCode = gradientColors[lineIndex.coerceIn(0, gradientColors.size - 1)]
+            val coloredLine = "\u001B[38;5;${colorCode}m$line\u001B[0m"
+            server.consoleSender.sendMessage(coloredLine)
         }
 
-        // Simple text messages
-        logColored("✨ LumaGuilds v0.4.0 has been Enabled!")
+        // Simple text messages with the final gradient color
+        logColored("✨ LumaGuilds v${description.version} has been Enabled!")
         logColored("Enhanced guild system with parties, progression, and wars!")
         logColored("Made with ♥ by BadgersMC & mizarc")
     }

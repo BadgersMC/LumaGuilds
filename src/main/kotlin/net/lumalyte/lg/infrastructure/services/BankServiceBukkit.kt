@@ -1,12 +1,10 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.BankRepository
+import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.BankStats
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.services.MemberService
-import net.lumalyte.lg.application.services.ProgressionService
-import net.lumalyte.lg.application.services.ExperienceSource
 import net.lumalyte.lg.domain.entities.BankAudit
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.MemberContribution
@@ -23,15 +21,12 @@ import kotlin.math.min
 
 class BankServiceBukkit(
     private val bankRepository: BankRepository,
-    private val memberService: MemberService,
-    private val configService: ConfigService,
-    // Use Lazy to break circular dependency - only evaluated when actually accessed
-    private val lazyProgressionService: Lazy<ProgressionService>
+    private val memberRepository: net.lumalyte.lg.application.persistence.MemberRepository,
+    private val rankRepository: net.lumalyte.lg.application.persistence.RankRepository,
+    private val progressionRepository: ProgressionRepository,
+    private val progressionConfigService: ProgressionConfigService,
+    private val configService: ConfigService
 ) : BankService {
-
-    // Unwrap the lazy value when needed
-    private val progressionService: ProgressionService
-        get() = lazyProgressionService.value
 
     private val logger = LoggerFactory.getLogger(BankServiceBukkit::class.java)
 
@@ -131,7 +126,16 @@ class BankServiceBukkit(
 
             // Check guild bank balance limit (progression-based)
             val currentBalance = bankRepository.getGuildBalance(guildId)
-            val maxBalance = progressionService.getMaxBankBalance(guildId)
+            val progression = progressionRepository.getGuildProgression(guildId)
+            val progressionConfig = progressionConfigService.getProgressionConfig()
+            val levelRewards = progressionConfig.getActiveLevelRewards()
+            var maxBalance = 100000 // Default starting balance limit
+            if (progression != null) {
+                for (level in 1..progression.currentLevel) {
+                    val balance = levelRewards[level]?.bankLimit ?: 0
+                    if (balance > maxBalance) maxBalance = balance
+                }
+            }
             if (currentBalance + amount > maxBalance) {
                 logger.warn("Deposit would exceed guild bank limit: $currentBalance + $amount > $maxBalance")
                 recordAudit(BankAudit(
@@ -224,8 +228,14 @@ class BankServiceBukkit(
                 val xpPerHundred = config.progression.bankDepositXpPer100
                 val xpAmount = (amount / 100.0 * xpPerHundred).toInt()
                 if (xpAmount > 0) {
-                    progressionService.awardExperience(guildId, xpAmount, ExperienceSource.BANK_DEPOSIT)
-                    logger.info("Awarded $xpAmount XP to guild $guildId for bank deposit of $amount")
+                    val progression = progressionRepository.getGuildProgression(guildId)
+                    if (progression != null) {
+                        val updatedProgression = progression.copy(
+                            totalExperience = progression.totalExperience + xpAmount
+                        )
+                        progressionRepository.saveGuildProgression(updatedProgression)
+                        logger.info("Awarded $xpAmount XP to guild $guildId for bank deposit of $amount")
+                    }
                 }
             } catch (e: SQLException) {
                 // Database error awarding XP - log but don't fail deposit
@@ -418,11 +428,15 @@ class BankServiceBukkit(
     }
 
     override fun canWithdraw(playerId: UUID, guildId: UUID): Boolean {
-        return memberService.hasPermission(playerId, guildId, RankPermission.WITHDRAW_FROM_BANK)
+        val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
+        val rank = rankRepository.getById(member.rankId) ?: return false
+        return rank.permissions.contains(RankPermission.WITHDRAW_FROM_BANK)
     }
 
     override fun canDeposit(playerId: UUID, guildId: UUID): Boolean {
-        return memberService.hasPermission(playerId, guildId, RankPermission.DEPOSIT_TO_BANK)
+        val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
+        val rank = rankRepository.getById(member.rankId) ?: return false
+        return rank.permissions.contains(RankPermission.DEPOSIT_TO_BANK)
     }
 
     override fun getTransactionHistory(guildId: UUID, limit: Int?): List<BankTransaction> {
@@ -434,7 +448,7 @@ class BankServiceBukkit(
     }
 
     override fun getMemberContributions(guildId: UUID): List<MemberContribution> {
-        val members = memberService.getGuildMembers(guildId)
+        val members = memberRepository.getByGuild(guildId)
 
         return members.map { member ->
             val playerId = member.playerId
@@ -475,7 +489,16 @@ class BankServiceBukkit(
         val maxFee = config.bank.maxWithdrawalFee
 
         // Apply progression-based fee multiplier
-        val feeMultiplier = progressionService.getWithdrawalFeeMultiplier(guildId)
+        val progression = progressionRepository.getGuildProgression(guildId)
+        val progressionConfig = progressionConfigService.getProgressionConfig()
+        val levelRewards = progressionConfig.getActiveLevelRewards()
+        var feeMultiplier = 1.0
+        if (progression != null) {
+            for (level in 1..progression.currentLevel) {
+                val multiplier = levelRewards[level]?.withdrawalFeeMultiplier ?: 1.0
+                if (multiplier < feeMultiplier) feeMultiplier = multiplier
+            }
+        }
 
         val calculatedFee = (amount * feePercent * feeMultiplier).toInt()
         return min(calculatedFee, maxFee)
