@@ -420,18 +420,17 @@ party:
   # Party Chat
   party_chat_enabled: true
   party_chat_priority: 100
-  party_chat_format: "[%bellclaims_party_name%] %bellclaims_rel_<player>_status% %bellclaims_guild_emoji%%bellclaims_guild_tag% %luckperms-suffix% %player_name% ⋙ <message>"
+  party_chat_format: "[%lumaguilds_party_name%] %lumaguilds_rel_<player>_status% %lumaguilds_guild_emoji%%lumaguilds_guild_tag% %luckperms-suffix% %player_name% ⋙ <message>"
   party_chat_prefix: "[PARTY]"
   party_chat_suffix: ""
   chat_input_listener_priority: "HIGHEST"  # HIGHEST, HIGH, NORMAL, LOW, LOWEST
 
   # Party chat auto-routing listener priority (for /pc switch auto-routing)
-  # Adjust this if you have chat formatting plugins that conflict
-  # Set LOWER than your chat plugin's priority to route messages before formatting
-  # Set HIGHER than your chat plugin's priority to route after formatting
-  # Example: If your chat plugin uses HIGH priority, use NORMAL or LOW here
+  # IMPORTANT: LOWEST priority = executes FIRST (Bukkit priority system is backwards!)
+  # Priority execution order: LOWEST -> LOW -> NORMAL -> HIGH -> HIGHEST
+  # ChatControl uses HIGH priority, so we use LOWEST to run before it and cancel the event
   # DO NOT RELOAD WHEN CHANGING THIS - RESTART THE SERVER
-  party_chat_listener_priority: "NORMAL"  # HIGHEST, HIGH, NORMAL, LOW, LOWEST
+  party_chat_listener_priority: "LOWEST"  # LOWEST = runs first, HIGHEST = runs last
 
   # Role Restrictions
   allow_role_restrictions: true

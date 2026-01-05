@@ -42,6 +42,15 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     private var inputMode: String = "" // "name" or "icon"
 
     override fun open() {
+        // Security check: Only players with MANAGE_RANKS permission can create ranks
+        val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
+        if (!hasPermission) {
+            player.sendMessage("§c❌ You don't have permission to create ranks!")
+            player.sendMessage("§7Required permission: §fMANAGE_RANKS")
+            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
+            return
+        }
+
         val gui = ChestGui(6, "§6Create New Rank - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -326,7 +335,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                     // Update the rank with the icon if one was selected
                     if (iconString != null) {
                         val rankWithIcon = createdRank.copy(icon = iconString)
-                        rankService.updateRank(rankWithIcon)
+                        rankService.updateRank(rankWithIcon, player.uniqueId)
                     }
 
                     player.sendMessage("§a✅ Created rank '$rankName' successfully!")

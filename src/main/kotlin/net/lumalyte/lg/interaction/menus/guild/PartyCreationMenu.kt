@@ -196,7 +196,6 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             .lore("§7when the party is created")
 
         val inviteGuiItem = GuiItem(inviteItem) {
-            val menuFactory = MenuFactory()
             menuNavigator.openMenu(menuFactory.createGuildSelectionMenu(menuNavigator, player, guild, selectedGuilds))
         }
         pane.addItem(inviteGuiItem, 3, 1)

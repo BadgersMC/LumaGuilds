@@ -260,3 +260,9 @@ enthusia-itemshops/build.gradle.kts
 enthusia-itemshops/gradlew.bat
 enthusia-itemshops/settings.gradle.kts
 enthusia-itemshops/gradle/wrapper/gradle-wrapper.properties
+enthusia-currency/build.gradle.kts
+.gitignore
+enthusia-currency/settings.gradle.kts
+enthusia-currency/gradle/wrapper/gradle-wrapper.properties
+enthusia-currency/gradle/wrapper/gradle-wrapper.jar
+enthusia-currency/gradlew.bat

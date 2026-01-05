@@ -2,10 +2,12 @@ package net.lumalyte.lg.interaction.listeners
 
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.VaultInventoryManager
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import net.lumalyte.lg.application.utilities.ValuableItemChecker
 import net.lumalyte.lg.config.VaultConfig
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger
 import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType
 import net.lumalyte.lg.interaction.inventory.VaultInventoryHolder
@@ -35,7 +37,8 @@ class VaultInventoryListener(
     private val vaultInventoryManager: VaultInventoryManager,
     private val transactionLogger: VaultTransactionLogger,
     private val vaultConfig: VaultConfig,
-    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository
+    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
+    private val memberService: MemberService
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(VaultInventoryListener::class.java)
@@ -97,15 +100,33 @@ class VaultInventoryListener(
         when {
             // Shift + Left Click: Deposit all gold
             isShift && (clickType == ClickType.LEFT || clickType == ClickType.SHIFT_LEFT) -> {
+                // Check DEPOSIT_TO_VAULT permission
+                if (!memberService.hasPermission(player.uniqueId, guildId, RankPermission.DEPOSIT_TO_VAULT)) {
+                    player.sendMessage(Component.text("You don't have permission to deposit to the vault!", NamedTextColor.RED))
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                    return
+                }
                 depositAllGold(player, guildId, guildName)
             }
             // Left Click: Open deposit menu
             clickType == ClickType.LEFT -> {
+                // Check DEPOSIT_TO_VAULT permission
+                if (!memberService.hasPermission(player.uniqueId, guildId, RankPermission.DEPOSIT_TO_VAULT)) {
+                    player.sendMessage(Component.text("You don't have permission to deposit to the vault!", NamedTextColor.RED))
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                    return
+                }
                 val depositMenu = GoldDepositMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger)
                 depositMenu.open()
             }
             // Right Click: Open withdraw menu
             clickType == ClickType.RIGHT -> {
+                // Check WITHDRAW_FROM_VAULT permission
+                if (!memberService.hasPermission(player.uniqueId, guildId, RankPermission.WITHDRAW_FROM_VAULT)) {
+                    player.sendMessage(Component.text("You don't have permission to withdraw from the vault!", NamedTextColor.RED))
+                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                    return
+                }
                 val withdrawMenu = GoldWithdrawMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger)
                 withdrawMenu.open()
             }

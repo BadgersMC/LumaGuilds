@@ -151,9 +151,10 @@ interface RankService {
      * Updates an existing rank with new data.
      *
      * @param rank The updated rank object.
+     * @param actorId The ID of the player performing the update.
      * @return true if successful, false otherwise.
      */
-    fun updateRank(rank: Rank): Boolean
+    fun updateRank(rank: Rank, actorId: UUID): Boolean
 
     /**
      * Creates default ranks for a new guild.

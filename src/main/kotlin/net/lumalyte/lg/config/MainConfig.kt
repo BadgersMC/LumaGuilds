@@ -308,11 +308,11 @@ data class PartyConfig(
     // Party Chat
     var partyChatEnabled: Boolean = true,
     var partyChatPriority: Int = 100,
-    var partyChatFormat: String = "[%bellclaims_party_name%] %bellclaims_rel_<player>_status% %bellclaims_guild_emoji%%bellclaims_guild_tag% %luckperms-suffix% %player_name% ⋙ <message>",
+    var partyChatFormat: String = "[%lumaguilds_party_name%] %lumaguilds_rel_<player>_status% %lumaguilds_guild_emoji%%lumaguilds_guild_tag% %luckperms-suffix% %player_name% ⋙ <message>",
     var partyChatPrefix: String = "[PARTY]",
     var partyChatSuffix: String = "",
     var chatInputListenerPriority: String = "HIGHEST", // HIGHEST, HIGH, NORMAL, LOW, LOWEST
-    var partyChatListenerPriority: String = "NORMAL", // Event priority for party chat auto-routing after /pc switch
+    var partyChatListenerPriority: String = "LOWEST", // Event priority for party chat auto-routing after /pc switch (LOWEST = runs first, before ChatControl)
 
     // Role Restrictions
     var allowRoleRestrictions: Boolean = true,

@@ -77,7 +77,25 @@ class BedrockGuildRankManagementMenu(
             player, bedrockLocalization,
             "rank.management.permissions.guild"
         )
-        RankPermission.values().forEach { permission ->
+
+        // Filter out claims permissions if claims are disabled
+        val mainConfig = configService.loadConfig()
+        val claimsEnabled = mainConfig.claimsEnabled
+        val claimsPermissions = setOf(
+            RankPermission.MANAGE_CLAIMS,
+            RankPermission.MANAGE_FLAGS,
+            RankPermission.MANAGE_PERMISSIONS,
+            RankPermission.CREATE_CLAIMS,
+            RankPermission.DELETE_CLAIMS
+        )
+
+        val availablePermissions = if (!claimsEnabled) {
+            RankPermission.values().filterNot { it in claimsPermissions }
+        } else {
+            RankPermission.values().toList()
+        }
+
+        availablePermissions.forEach { permission ->
             formBuilder.toggle(
                 getPermissionDisplayName(permission),
                 selectedRank?.permissions?.contains(permission) ?: false
@@ -186,9 +204,25 @@ class BedrockGuildRankManagementMenu(
             val rankName = response.next() as? String ?: ""
             val selectedRankIndex = response.next() as? Int ?: 0
 
-            // Collect permissions from toggles
+            // Collect permissions from toggles (must match the filtered list from form creation)
+            val mainConfig = configService.loadConfig()
+            val claimsEnabled = mainConfig.claimsEnabled
+            val claimsPermissions = setOf(
+                RankPermission.MANAGE_CLAIMS,
+                RankPermission.MANAGE_FLAGS,
+                RankPermission.MANAGE_PERMISSIONS,
+                RankPermission.CREATE_CLAIMS,
+                RankPermission.DELETE_CLAIMS
+            )
+
+            val availablePermissions = if (!claimsEnabled) {
+                RankPermission.values().filterNot { it in claimsPermissions }
+            } else {
+                RankPermission.values().toList()
+            }
+
             val permissions = mutableSetOf<RankPermission>()
-            for (permission in RankPermission.values()) {
+            for (permission in availablePermissions) {
                 val hasPermission = response.next() as? Boolean ?: false
                 if (hasPermission) {
                     permissions.add(permission)
@@ -235,7 +269,7 @@ class BedrockGuildRankManagementMenu(
                     // Update priority if needed
                     if (createdRank.priority != newPriority) {
                         val updatedRank = createdRank.copy(priority = newPriority)
-                        rankService.updateRank(updatedRank)
+                        rankService.updateRank(updatedRank, player.uniqueId)
                     }
 
                     player.sendMessage("§a[SUCCESS] ${localize("rank.management.success.created", rankName)}")
@@ -256,7 +290,7 @@ class BedrockGuildRankManagementMenu(
                         permissions = permissions
                     )
 
-                    val success = rankService.updateRank(updatedRank)
+                    val success = rankService.updateRank(updatedRank, player.uniqueId)
                     if (success) {
                         player.sendMessage("§a[SUCCESS] ${localize("rank.management.success.updated", rankName)}")
                     } else {

@@ -206,7 +206,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         val saveGuiItem = GuiItem(saveItem) {
             // Update the rank with modified permissions
             val updatedRank = rank.copy(permissions = modifiedPermissions)
-            val success = rankService.updateRank(updatedRank)
+            val success = rankService.updateRank(updatedRank, player.uniqueId)
             if (success) {
                 rank = updatedRank // Update local reference
                 player.sendMessage("§a✅ Permission changes saved for ${rank.name}!")

@@ -190,7 +190,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
         }
 
         invitePlayer(targetPlayer)
-        open()
+        // Don't call open() here - invitePlayer already opens the confirmation menu
     }
 
     override fun onCancel(player: Player) {

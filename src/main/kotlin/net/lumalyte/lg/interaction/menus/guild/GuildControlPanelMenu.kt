@@ -168,11 +168,23 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addRankManagementButton(pane: StaticPane, x: Int, y: Int) {
         val rankCount = rankService.listRanks(guild.id).size
+        val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
+
         val rankItem = ItemStack(Material.IRON_SWORD)
             .name("§6Rank Management")
             .lore("§7Manage guild ranks and permissions")
             .lore("§7Current ranks: §f$rankCount")
+
+        if (!hasPermission) {
+            rankItem.lore("§7").lore("§c🔒 Requires MANAGE_RANKS permission")
+        }
+
         val guiItem = GuiItem(rankItem) {
+            if (!hasPermission) {
+                player.sendMessage("§c❌ You don't have permission to manage ranks!")
+                player.sendMessage("§7Required permission: §fMANAGE_RANKS")
+                return@GuiItem
+            }
             menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)

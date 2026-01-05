@@ -18,6 +18,7 @@ import net.lumalyte.lg.interaction.menus.guild.*
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.GuildHomeSafety
 import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -151,6 +152,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
+        val guild = guilds.first()
+
+        // Check if player has permission to rename guild
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_RANKS)) {
+            player.sendMessage("§c❌ You don't have permission to rename the guild!")
+            player.sendMessage("§7You need the MANAGE_RANKS permission to rename the guild.")
+            return
+        }
+
         // Pre-validate guild name with helpful error messages
 
         // Check for MiniMessage/HTML-like formatting tags
@@ -191,7 +201,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        val guild = guilds.first()
         val success = guildService.renameGuild(guild.id, newName, playerId)
 
         if (success) {
@@ -351,9 +360,14 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 return
             }
 
-            val targetLocation = world.getBlockAt(home.position.x, home.position.y, home.position.z).location
-            targetLocation.yaw = player.location.yaw
-            targetLocation.pitch = player.location.pitch
+            val targetLocation = Location(
+                world,
+                home.position.x.toDouble() + 0.5,  // Center of block
+                home.position.y.toDouble(),
+                home.position.z.toDouble() + 0.5,  // Center of block
+                player.location.yaw,
+                player.location.pitch
+            )
 
             // Check if target location is safe (if safety check is enabled)
             if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
@@ -744,7 +758,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     @Subcommand("invite")
     @CommandPermission("lumaguilds.guild.invite")
-    @CommandCompletion("@players @guilds")
+    @CommandCompletion("@allplayers")
     fun onInvite(player: Player, targetPlayerName: String) {
         val playerId = player.uniqueId
         player.server.logger.info("Player : ${player} tried to invite ${targetPlayerName}")
@@ -1374,7 +1388,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val countdownTask = object : BukkitRunnable() {
             override fun run() {
-                val currentSession = activeTeleports[playerId] ?: return
+                val currentSession = activeTeleports[playerId]
+                if (currentSession == null) {
+                    cancel()
+                    return
+                }
 
                 // Check if player moved
                 if (hasPlayerMoved(currentSession)) {
@@ -1396,6 +1414,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
                     // Clean up
                     activeTeleports.remove(playerId)
+                    cancel() // Stop the task after successful teleport
                 } else {
                     // Update action bar
                     player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
@@ -1406,7 +1425,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         session.countdownTask = countdownTask
         val plugin = player.server.pluginManager.getPlugin("LumaGuilds")
             ?: return // Plugin not found, cannot schedule countdown
-        countdownTask.runTaskTimer(plugin, 20L, 20L) // Every second
+        countdownTask.runTaskTimer(plugin, 0L, 20L) // Start immediately, then every second
     }
 
     private fun cancelTeleport(playerId: java.util.UUID) {

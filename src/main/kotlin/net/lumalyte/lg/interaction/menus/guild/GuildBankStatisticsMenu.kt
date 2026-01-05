@@ -37,6 +37,7 @@ class GuildBankStatisticsMenu(
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -374,18 +375,25 @@ class GuildBankStatisticsMenu(
         }
 
         // Member activity summary
-        val totalMembers = memberContributions.size
-        val activeMembers = memberContributions.count { it.value > 0 }
-        val inactiveMembers = totalMembers - activeMembers
+        val totalMembers = memberService.getMemberCount(guild.id)
+        val activeContributors = memberContributions.count { it.value > 0 }
+        val inactiveMembers = totalMembers - activeContributors
+
+        // Calculate participation rate, avoiding division by zero
+        val participationRate = if (totalMembers > 0) {
+            String.format("%.1f", (activeContributors.toDouble() / totalMembers) * 100)
+        } else {
+            "0.0"
+        }
 
         val summaryItem = createMenuItem(
             Material.BOOK,
             "Member Summary",
             listOf(
                 "Total Members: $totalMembers",
-                "Active Contributors: $activeMembers",
+                "Active Contributors: $activeContributors",
                 "Inactive: $inactiveMembers",
-                "${String.format("%.1f", (activeMembers.toDouble() / totalMembers) * 100)}% participation rate"
+                "$participationRate% participation rate"
             )
         )
         memberPane.addItem(GuiItem(summaryItem), 6, 0)

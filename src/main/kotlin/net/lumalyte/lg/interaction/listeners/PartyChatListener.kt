@@ -22,6 +22,16 @@ import java.util.UUID
  * Listener that intercepts regular chat messages and routes them to party chat
  * when a player has switched to a specific party using /pc switch
  *
+ * IMPORTANT: This listener ONLY intercepts messages when:
+ * - Player has explicitly used /pc switch <partyname> to join a party
+ * - Player has a stored party preference in the database
+ *
+ * GLOBAL chat behavior:
+ * - Players with NO party preference = GLOBAL chat (default)
+ * - This listener does NOT intercept GLOBAL messages (returns early at line 55)
+ * - GLOBAL messages are handled by ChatControl or vanilla Minecraft
+ * - Party formatting ONLY applies to party messages, never to GLOBAL
+ *
  * Note: This listener does NOT use @EventHandler annotation - it is manually
  * registered in LumaGuilds.kt with a configurable priority from config.yml
  */
@@ -51,8 +61,14 @@ class PartyChatListener : Listener, KoinComponent {
         }
 
         // Check if player has an active party preference
+        // IMPORTANT: If no preference exists, player is in GLOBAL chat and we return immediately
+        // This means GLOBAL messages are NEVER intercepted or formatted by this listener
         val playerId = player.uniqueId
-        val preference = preferenceRepository.getByPlayerId(playerId) ?: return
+        val preference = preferenceRepository.getByPlayerId(playerId) ?: return // GLOBAL chat - don't intercept
+
+        // CANCEL THE EVENT IMMEDIATELY to prevent ChatControl or other plugins from processing it
+        // This must happen BEFORE any other checks to ensure the message doesn't leak to global chat
+        event.isCancelled = true
 
         // Get the party
         val party = partyRepository.getById(preference.partyId)
@@ -75,16 +91,14 @@ class PartyChatListener : Listener, KoinComponent {
         if (playerRankId != null && !party.canPlayerJoin(playerRankId)) {
             player.sendMessage("§c❌ You don't have permission to chat in this party!")
             player.sendMessage("§7Use §f/pc switch GLOBAL §7to return to global chat")
-            event.isCancelled = true
-            return
+            return // Event already cancelled at line 71
         }
 
         // Check if player is banned
         if (party.isPlayerBanned(playerId)) {
             player.sendMessage("§c❌ You are banned from this channel!")
             player.sendMessage("§7Use §f/pc switch GLOBAL §7to return to global chat")
-            event.isCancelled = true
-            return
+            return // Event already cancelled at line 71
         }
 
         // Check if player is muted
@@ -102,12 +116,8 @@ class PartyChatListener : Listener, KoinComponent {
                 player.sendMessage("§c❌ You are permanently muted in this channel!")
             }
             player.sendMessage("§7Use §f/pc switch GLOBAL §7to return to global chat")
-            event.isCancelled = true
-            return
+            return // Event already cancelled at line 71
         }
-
-        // Cancel the default chat event
-        event.isCancelled = true
 
         // Convert Adventure Component to plain text
         val plainTextSerializer = PlainTextComponentSerializer.plainText()

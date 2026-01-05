@@ -1,16 +1,21 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.values.Position3D
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.CombatUtil
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
+import org.bukkit.scheduler.BukkitRunnable
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.UUID
 import java.util.logging.Logger
 
 /**
@@ -25,6 +30,19 @@ class BedrockGuildHomeMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildService: GuildService by inject()
+
+    // Teleportation tracking
+    private data class TeleportSession(
+        val player: Player,
+        val targetLocation: Location,
+        val startLocation: Location,
+        var countdownTask: BukkitRunnable? = null,
+        var remainingSeconds: Int = 5
+    )
+
+    companion object {
+        private val activeTeleports = mutableMapOf<UUID, TeleportSession>()
+    }
 
     override fun getForm(): Form {
         val homes = guildService.getHomes(guild.id)
@@ -137,16 +155,17 @@ class BedrockGuildHomeMenu(
                 return
             }
 
-            val location = Location(
+            val targetLocation = Location(
                 world,
-                home.position.x.toDouble(),
+                home.position.x.toDouble() + 0.5,  // Center of block
                 home.position.y.toDouble(),
-                home.position.z.toDouble()
+                home.position.z.toDouble() + 0.5,  // Center of block
+                player.location.yaw,
+                player.location.pitch
             )
 
-            // Teleport player
-            player.teleport(location)
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.success"))
+            // Start countdown timer
+            startTeleportCountdown(targetLocation)
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error teleporting to home: ${e.message}")
@@ -154,6 +173,84 @@ class BedrockGuildHomeMenu(
         }
 
         bedrockNavigator.goBack()
+    }
+
+    private fun startTeleportCountdown(targetLocation: Location) {
+        // Cancel any existing teleport
+        cancelTeleport(player.uniqueId)
+
+        if (CombatUtil.isInCombat(player)) {
+            player.sendMessage("§e◷ Cannot teleport in combat.")
+            return
+        }
+
+        val session = TeleportSession(
+            player = player,
+            targetLocation = targetLocation,
+            startLocation = player.location.clone(),
+            remainingSeconds = 5
+        )
+
+        activeTeleports[player.uniqueId] = session
+
+        player.sendMessage("§e⏰ Teleportation countdown started! Don't move for 5 seconds...")
+        player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
+
+        val countdownTask = object : BukkitRunnable() {
+            override fun run() {
+                val currentSession = activeTeleports[player.uniqueId]
+                if (currentSession == null) {
+                    cancel()
+                    return
+                }
+
+                // Check if player moved
+                if (hasPlayerMoved(currentSession)) {
+                    cancelTeleport(player.uniqueId)
+                    player.sendMessage("§c❌ Teleportation canceled - you moved!")
+                    cancel()
+                    return
+                }
+
+                currentSession.remainingSeconds--
+
+                if (currentSession.remainingSeconds <= 0) {
+                    // Teleport the player
+                    player.teleport(currentSession.targetLocation)
+                    player.sendMessage("§a✅ Teleported to guild home!")
+                    player.sendActionBar(Component.text("§aTeleported to guild home!"))
+
+                    // Clean up
+                    activeTeleports.remove(player.uniqueId)
+                    cancel() // Stop the task after successful teleport
+                } else {
+                    // Update action bar
+                    player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
+                }
+            }
+        }
+
+        session.countdownTask = countdownTask
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
+            ?: return // Plugin not found, cannot schedule countdown
+        countdownTask.runTaskTimer(plugin, 0L, 20L) // Start immediately, then every second
+    }
+
+    private fun cancelTeleport(playerId: UUID) {
+        val session = activeTeleports[playerId] ?: return
+        session.countdownTask?.cancel()
+        activeTeleports.remove(playerId)
+    }
+
+    private fun hasPlayerMoved(session: TeleportSession): Boolean {
+        val currentLocation = session.player.location
+        val startLocation = session.startLocation
+
+        // Check if player moved more than 0.1 blocks in any direction
+        return Math.abs(currentLocation.x - startLocation.x) > 0.1 ||
+               Math.abs(currentLocation.y - startLocation.y) > 0.1 ||
+               Math.abs(currentLocation.z - startLocation.z) > 0.1 ||
+               currentLocation.world != startLocation.world
     }
 
     private fun showSetHomeMenu() {
