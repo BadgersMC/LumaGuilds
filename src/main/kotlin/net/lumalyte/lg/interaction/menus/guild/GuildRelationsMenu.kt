@@ -150,6 +150,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .lore("§7Allows coordination and support")
 
         val allianceGuiItem = GuiItem(allianceItem) {
+            if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RELATIONS)) {
+                player.sendMessage("§cYou don't have permission to manage relations.")
+                return@GuiItem
+            }
             openRequestAllianceMenu()
         }
         pane.addItem(allianceGuiItem, 0, 2)
@@ -162,6 +166,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .lore("§7Must be accepted by the target guild")
 
         val truceGuiItem = GuiItem(truceItem) {
+            if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RELATIONS)) {
+                player.sendMessage("§cYou don't have permission to manage relations.")
+                return@GuiItem
+            }
             openRequestTruceMenu()
         }
         pane.addItem(truceGuiItem, 2, 2)
@@ -174,6 +182,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .lore("§7Creates hostile relations")
 
         val enemyGuiItem = GuiItem(enemyItem) {
+            if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.DECLARE_WAR)) {
+                player.sendMessage("§cYou don't have permission to declare enemy status.")
+                return@GuiItem
+            }
             openDeclareEnemyMenu()
         }
         pane.addItem(enemyGuiItem, 4, 2)

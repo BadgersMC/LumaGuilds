@@ -85,6 +85,15 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     }
 
     override fun open() {
+        // Security check: Only players with MANAGE_RANKS permission can edit ranks
+        val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
+        if (!hasPermission) {
+            player.sendMessage("§c❌ You don't have permission to edit ranks!")
+            player.sendMessage("§7Required permission: §fMANAGE_RANKS")
+            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
+            return
+        }
+
         val gui = ChestGui(6, "§6Edit Rank: ${rank.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -297,7 +306,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             )
 
             // Save to database
-            val success = rankService.updateRank(updatedRank)
+            val success = rankService.updateRank(updatedRank, player.uniqueId)
 
             if (success) {
                 player.sendMessage("§a✅ Rank changes saved!")
@@ -449,7 +458,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 } else {
                     // Update rank name in database
                     rank = rank.copy(name = input)
-                    val success = rankService.updateRank(rank)
+                    val success = rankService.updateRank(rank, player.uniqueId)
                     if (success) {
                         player.sendMessage("§a✅ Rank name updated to: '$input'")
                     } else {
@@ -469,7 +478,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                     selectedIcon = material
                     // Update rank icon in database
                     rank = rank.copy(icon = material.name)
-                    val success = rankService.updateRank(rank)
+                    val success = rankService.updateRank(rank, player.uniqueId)
                     if (success) {
                         player.sendMessage("§a✅ Rank icon updated to: ${material.name}")
                     } else {

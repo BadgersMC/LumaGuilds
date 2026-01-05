@@ -10,6 +10,7 @@ import net.lumalyte.lg.infrastructure.services.BankServiceBukkit
 
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.entities.TransactionType
 import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
@@ -48,6 +49,7 @@ class GuildBankMenu(
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val guildService: net.lumalyte.lg.application.services.GuildService by inject()
     private val bankService: BankService by inject() // Keep for transaction history only
+    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -433,6 +435,14 @@ class GuildBankMenu(
      * Handle deposit operation with physical gold items
      */
     private fun handleDeposit(amount: Int): Boolean {
+        // Check DEPOSIT_TO_BANK permission
+        if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DEPOSIT_TO_BANK)) {
+            val message = "You don't have permission to deposit to the bank!"
+            player.sendMessage(Component.text(message).color(NamedTextColor.RED))
+            showErrorFeedback(message)
+            return false
+        }
+
         return try {
             // Count available gold in player inventory
             var totalNuggets = 0L
@@ -510,6 +520,14 @@ class GuildBankMenu(
      * Handle withdrawal operation with physical gold items
      */
     private fun handleWithdrawal(amount: Int): Boolean {
+        // Check WITHDRAW_FROM_BANK permission
+        if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.WITHDRAW_FROM_BANK)) {
+            val message = "You don't have permission to withdraw from the bank!"
+            player.sendMessage(Component.text(message).color(NamedTextColor.RED))
+            showErrorFeedback(message)
+            return false
+        }
+
         return try {
             // Get vault inventory manager
             val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager by inject()

@@ -377,7 +377,7 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
     single<ProgressionEventListener> { ProgressionEventListener() }
     single<net.lumalyte.lg.interaction.listeners.VaultInventoryListener> {
         val config = get<ConfigService>().loadConfig()
-        net.lumalyte.lg.interaction.listeners.VaultInventoryListener(get<LumaGuilds>(), get(), get(), config.vault, get())
+        net.lumalyte.lg.interaction.listeners.VaultInventoryListener(get<LumaGuilds>(), get(), get(), config.vault, get(), get())
     }
     // AdminOverrideListener depends on GuildRolePermissionResolver - only register when claims enabled
     if (claimsEnabled) {

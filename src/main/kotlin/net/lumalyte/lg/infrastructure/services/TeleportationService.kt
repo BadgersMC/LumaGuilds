@@ -93,7 +93,7 @@ class TeleportationService(private val plugin: Plugin) {
         }
 
         session.countdownTask = countdownTask
-        countdownTask.runTaskTimer(plugin, 20L, 20L) // Every second
+        countdownTask.runTaskTimer(plugin, 0L, 20L) // Start immediately, then every second
 
         logger.debug("Started teleport countdown for player ${player.name}")
         return true

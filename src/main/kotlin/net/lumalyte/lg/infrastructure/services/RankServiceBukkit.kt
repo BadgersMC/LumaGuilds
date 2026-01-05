@@ -230,7 +230,7 @@ class RankServiceBukkit(
     
     override fun getRankCount(guildId: UUID): Int = rankRepository.getCountByGuild(guildId)
 
-    override fun updateRank(rank: Rank): Boolean {
+    override fun updateRank(rank: Rank, actorId: UUID): Boolean {
         // Check if rank exists
         val existingRank = rankRepository.getById(rank.id) ?: return false
 
@@ -240,9 +240,15 @@ class RankServiceBukkit(
             return false
         }
 
+        // Check if actor has permission to manage ranks
+        if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
+            logger.warn("Player $actorId attempted to update rank ${rank.id} without permission")
+            return false
+        }
+
         val result = rankRepository.update(rank)
         if (result) {
-            logger.info("Rank ${rank.id} updated: name='${rank.name}', permissions=${rank.permissions.size}, icon='${rank.icon}'")
+            logger.info("Rank ${rank.id} updated by $actorId: name='${rank.name}', permissions=${rank.permissions.size}, icon='${rank.icon}'")
         }
         return result
     }

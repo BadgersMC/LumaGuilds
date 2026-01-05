@@ -3,6 +3,7 @@ package net.lumalyte.lg.interaction.menus.guild
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -25,9 +26,19 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
     private val rankService: RankService by inject()
     private val memberService: MemberService by inject()
+    private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
+        // Security check: Only players with MANAGE_RANKS permission can access this menu
+        val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
+        if (!hasPermission) {
+            player.sendMessage("§c❌ You don't have permission to manage ranks!")
+            player.sendMessage("§7Required permission: §fMANAGE_RANKS")
+            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            return
+        }
+
         val gui = ChestGui(4, "§6Rank Management - ${guild.name}")
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -113,7 +124,26 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
     }
 
     private fun groupPermissionsByCategory(permissions: Set<net.lumalyte.lg.domain.entities.RankPermission>): Map<String, List<net.lumalyte.lg.domain.entities.RankPermission>> {
-        return permissions.groupBy { permission ->
+        val config = configService.loadConfig()
+        val claimsEnabled = config.claimsEnabled
+
+        // Define claims permissions to filter out
+        val claimsPermissions = setOf(
+            net.lumalyte.lg.domain.entities.RankPermission.MANAGE_CLAIMS,
+            net.lumalyte.lg.domain.entities.RankPermission.MANAGE_FLAGS,
+            net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PERMISSIONS,
+            net.lumalyte.lg.domain.entities.RankPermission.CREATE_CLAIMS,
+            net.lumalyte.lg.domain.entities.RankPermission.DELETE_CLAIMS
+        )
+
+        // Filter out claims permissions if claims are disabled
+        val filteredPermissions = if (!claimsEnabled) {
+            permissions.filterNot { it in claimsPermissions }
+        } else {
+            permissions.toList()
+        }
+
+        return filteredPermissions.groupBy { permission ->
             when (permission) {
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_MEMBERS,
@@ -123,14 +153,14 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_MODE,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"
-                
+
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RELATIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.DECLARE_WAR,
                 net.lumalyte.lg.domain.entities.RankPermission.ACCEPT_ALLIANCES,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PARTIES,
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_PARTY_REQUESTS,
                 net.lumalyte.lg.domain.entities.RankPermission.ACCEPT_PARTY_INVITES -> "Diplomacy"
-                
+
                 net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_BANK,
                 net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK,
                 net.lumalyte.lg.domain.entities.RankPermission.VIEW_BANK_TRANSACTIONS,
@@ -145,17 +175,17 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.ACCESS_SHOP_CHESTS,
                 net.lumalyte.lg.domain.entities.RankPermission.EDIT_SHOP_STOCK,
                 net.lumalyte.lg.domain.entities.RankPermission.MODIFY_SHOP_PRICES -> "Banking"
-                
+
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_ANNOUNCEMENTS,
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_PINGS,
                 net.lumalyte.lg.domain.entities.RankPermission.MODERATE_CHAT -> "Communication"
-                
+
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_CLAIMS,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_FLAGS,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PERMISSIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.CREATE_CLAIMS,
                 net.lumalyte.lg.domain.entities.RankPermission.DELETE_CLAIMS -> "Claims"
-                
+
                 net.lumalyte.lg.domain.entities.RankPermission.ACCESS_ADMIN_COMMANDS,
                 net.lumalyte.lg.domain.entities.RankPermission.BYPASS_RESTRICTIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.VIEW_AUDIT_LOGS,

@@ -282,11 +282,11 @@ class ChatServiceBukkit(
                 }
             }
 
-            // Get the party name for the sender
-            val party = partyService.getActivePartyForPlayer(senderId)
+            // Get the party name for the sender using the current active party
+            val party = getCurrentActiveParty(senderId)
             val partyName = party?.name ?: "Party"
 
-            // Get the player's rank status for PlaceholderAPI
+            // Get the player's rank status
             val playerGuilds = memberService.getPlayerGuilds(senderId)
             val primaryGuild = playerGuilds.firstOrNull()?.let { guildService.getGuild(it) }
             val playerRank = if (primaryGuild != null) {
@@ -297,13 +297,16 @@ class ChatServiceBukkit(
                 "Member"
             }
 
+            // Get LuckPerms suffix if available
+            val luckPermsSuffix = getLuckPermsSuffix(senderId)
+
             // Build the format string with placeholders
             var formattedMessage = config.partyChatFormat
-                .replace("%bellclaims_party_name%", partyName)
-                .replace("%bellclaims_rel_<player>_status%", playerRank)
-                .replace("%bellclaims_guild_emoji%", primaryGuild?.emoji ?: "")
-                .replace("%bellclaims_guild_tag%", guildTag)
-                .replace("%luckperms-suffix%", getLuckPermsSuffix(senderId))
+                .replace("%lumaguilds_party_name%", partyName)
+                .replace("%lumaguilds_rel_<player>_status%", playerRank)
+                .replace("%lumaguilds_guild_emoji%", primaryGuild?.emoji ?: "")
+                .replace("%lumaguilds_guild_tag%", guildTag)
+                .replace("%luckperms-suffix%", luckPermsSuffix)
                 .replace("%player_name%", senderName)
                 .replace("<message>", message)
 
@@ -321,8 +324,9 @@ class ChatServiceBukkit(
     }
 
     private fun getLuckPermsSuffix(playerId: UUID): String {
-        // This would integrate with LuckPerms API to get the player's suffix
-        // For now, return empty string
+        // LuckPerms integration would require adding LuckPerms as a dependency
+        // For now, return empty string - servers can use PlaceholderAPI or ChatControl
+        // to handle LuckPerms placeholders in their chat format
         return ""
     }
 
@@ -521,10 +525,11 @@ class ChatServiceBukkit(
 
     /**
      * Gets the player's currently active party for messaging.
-     * Checks stored preference first, then falls back to default party.
+     * Only returns a party if the player has explicitly switched to one.
+     * Players are in GLOBAL chat by default (no automatic party assignment).
      */
     private fun getCurrentActiveParty(playerId: UUID): net.lumalyte.lg.domain.entities.Party? {
-        // First check if player has a stored preference
+        // Check if player has explicitly switched to a party
         val preference = preferenceRepository.getByPlayerId(playerId)
         if (preference != null) {
             val party = partyRepository.getById(preference.partyId)
@@ -533,11 +538,10 @@ class ChatServiceBukkit(
             } else {
                 // Party no longer exists or is inactive, remove the preference
                 preferenceRepository.removeByPlayerId(playerId)
-                // Continue to fallback below
             }
         }
 
-        // Fallback to default party behavior
-        return partyService.getActivePartyForPlayer(playerId)
+        // No automatic party assignment - players are in GLOBAL chat by default
+        return null
     }
 }

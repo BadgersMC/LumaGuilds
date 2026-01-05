@@ -401,7 +401,8 @@ class LumaGuilds : JavaPlugin() {
     }
 
     /**
-     * Displays the main gradient-colored startup text with diagonal gradient (top-left to bottom-right).
+     * Displays the main gradient-colored startup text with one color per line.
+     * Creates a Vice City-style aesthetic.
      */
     private fun displayGradientText() {
         // Simple ASCII art for LumaGuilds
@@ -413,18 +414,17 @@ class LumaGuilds : JavaPlugin() {
             "|_____| \\__,_||_| |_| |_| \\__,_| \\____| \\__,_||_||_| \\__,_||___/"
         )
 
-        // Gradient colors from cyan (top-left) to magenta (bottom-right)
-        // Using ANSI 256-color codes: 51=cyan, 45=light blue, 39=light purple, 135=purple, 201=magenta
-        val gradientColors = listOf(51, 45, 39, 135, 201)
+        // Gradient colors from cyan to magenta (one color per line)
+        // ANSI 256-color codes: 51 (cyan) -> 201 (magenta)
+        val lineColors = listOf(51, 123, 165, 177, 201)
 
-        // Apply diagonal gradient: each line gets progressively warmer colors
-        asciiLines.forEachIndexed { lineIndex, line ->
-            val colorCode = gradientColors[lineIndex.coerceIn(0, gradientColors.size - 1)]
-            val coloredLine = "\u001B[38;5;${colorCode}m$line\u001B[0m"
-            server.consoleSender.sendMessage(coloredLine)
+        // Apply one color per line
+        asciiLines.forEachIndexed { index, line ->
+            val colorCode = lineColors[index]
+            server.consoleSender.sendMessage("\u001B[38;5;${colorCode}m$line\u001B[0m")
         }
 
-        // Simple text messages with the final gradient color
+        // Simple text messages
         logColored("✨ LumaGuilds v${description.version} has been Enabled!")
         logColored("Enhanced guild system with parties, progression, and wars!")
         logColored("Made with ♥ by BadgersMC & mizarc")
@@ -516,6 +516,11 @@ class LumaGuilds : JavaPlugin() {
     private fun configureCommandCompletions() {
         // ACF handles tab completion automatically through @CommandCompletion annotations
         // Register custom async completions for dynamic data
+
+        // Register custom player name completion for all online players
+        commandManager.commandCompletions.registerAsyncCompletion("allplayers") { context ->
+            Bukkit.getOnlinePlayers().map { it.name }
+        }
 
         // Register unlocked emojis completion (shows only emojis the player has permission to use)
         commandManager.commandCompletions.registerAsyncCompletion("unlockedemojis") { context ->
@@ -658,7 +663,7 @@ class LumaGuilds : JavaPlugin() {
             priority,
             { _, event -> partyChatListener.onPlayerChat(event as io.papermc.paper.event.player.AsyncChatEvent) },
             this,
-            true // ignoreCancelled
+            false // ignoreCancelled - MUST be false to ensure we process events even if ChatControl marks them cancelled
         )
         logColored("✓ Party chat auto-routing registered (priority: ${config.party.partyChatListenerPriority})")
 

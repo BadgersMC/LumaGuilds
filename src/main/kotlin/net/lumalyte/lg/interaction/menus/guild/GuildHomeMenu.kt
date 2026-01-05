@@ -332,9 +332,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         val targetLocation = org.bukkit.Location(
             world,
-            home.position.x.toDouble(),
+            home.position.x.toDouble() + 0.5,  // Center of block
             home.position.y.toDouble(),
-            home.position.z.toDouble(),
+            home.position.z.toDouble() + 0.5,  // Center of block
             player.location.yaw,
             player.location.pitch
         )
@@ -368,7 +368,11 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         val countdownTask = object : BukkitRunnable() {
             override fun run() {
-                val currentSession = activeTeleports[player.uniqueId] ?: return
+                val currentSession = activeTeleports[player.uniqueId]
+                if (currentSession == null) {
+                    cancel()
+                    return
+                }
 
                 // Check if player moved
                 if (hasPlayerMoved(currentSession)) {
@@ -387,6 +391,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
                     // Clean up
                     activeTeleports.remove(player.uniqueId)
+                    cancel() // Stop the task after successful teleport
                 } else {
                     // Update action bar
                     player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
@@ -397,7 +402,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         session.countdownTask = countdownTask
         val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
             ?: return // Plugin not found, cannot schedule countdown
-        countdownTask.runTaskTimer(plugin, 20L, 20L) // Every second
+        countdownTask.runTaskTimer(plugin, 0L, 20L) // Start immediately, then every second
     }
 
     private fun cancelTeleport(playerId: UUID) {

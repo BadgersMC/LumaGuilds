@@ -127,14 +127,14 @@ class BedrockGuildBankMenu(
             val depositAmount = parseAmount(depositInputValue, depositSliderValue, playerBalance, true)
             val withdrawAmount = parseAmount(withdrawInputValue, withdrawSliderValue, guildBalance, false)
 
-            // Validate permissions
-            if (!bankService.canDeposit(player.uniqueId, guild.id)) {
+            // Validate permissions - only check permissions for actions being performed
+            if (depositAmount > 0 && !bankService.canDeposit(player.uniqueId, guild.id)) {
                 player.sendMessage("§c[ERROR] ${localize("guild.bank.error.no.deposit.permission")}")
                 navigateBack()
                 return
             }
 
-            if (!bankService.canWithdraw(player.uniqueId, guild.id)) {
+            if (withdrawAmount > 0 && !bankService.canWithdraw(player.uniqueId, guild.id)) {
                 player.sendMessage("§c[ERROR] ${localize("guild.bank.error.no.withdraw.permission")}")
                 navigateBack()
                 return

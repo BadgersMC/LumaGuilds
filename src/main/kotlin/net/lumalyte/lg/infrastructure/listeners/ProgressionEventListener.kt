@@ -76,10 +76,7 @@ class ProgressionEventListener : Listener, KoinComponent {
         // Only award XP for natural blocks to prevent exploit farms
         if (event.block.type.isBlock && !event.block.hasMetadata("player_placed")) {
             val blockBreakXp = getConfig().blockBreakXp
-            logger.info("Awarding $blockBreakXp XP to ${event.player.name} for breaking ${event.block.type}")
             awardExperienceWithCooldown(event.player, blockBreakXp, ExperienceSource.BLOCK_BREAK)
-        } else {
-            logger.info("Not awarding XP to ${event.player.name} for breaking ${event.block.type} (player-placed or not a block)")
         }
     }
 
@@ -134,20 +131,17 @@ class ProgressionEventListener : Listener, KoinComponent {
     private fun awardExperience(player: Player, amount: Int, source: ExperienceSource) {
         try {
             val guildIds = memberService.getPlayerGuilds(player.uniqueId)
-            logger.debug("Player ${player.name} (${player.uniqueId}) guild membership check for $source: found ${guildIds.size} guilds: $guildIds")
 
             if (guildIds.isEmpty()) {
-                logger.info("❌ BLOCKED: Player ${player.name} attempted to gain $amount XP from $source but is not in any guild")
                 return
             }
 
             guildIds.forEach { guildId ->
-                // Debug logging removed - issue is solved
                 progressionService.awardExperience(guildId, amount, source)
             }
         } catch (e: Exception) {
             // Event listener - catching all exceptions to prevent listener failure
-            logger.error("❌ ERROR: Failed to award $amount XP to player ${player.name} from $source", e)
+            logger.error("Failed to award $amount XP to player ${player.name} from $source", e)
         }
     }
 
@@ -211,7 +205,6 @@ class ProgressionEventListener : Listener, KoinComponent {
             val xpAmount = (event.amount / 100.0 * xpPerHundred).toInt()
             if (xpAmount > 0) {
                 progressionService.awardExperience(event.guildId, xpAmount, ExperienceSource.BANK_DEPOSIT)
-                logger.info("Awarded $xpAmount XP to guild ${event.guildId} for bank deposit of ${event.amount}")
             }
         } catch (e: Exception) {
             // Event listener - catching all exceptions to prevent listener failure
@@ -225,14 +218,12 @@ class ProgressionEventListener : Listener, KoinComponent {
             // Don't award XP for the first member (guild creator)
             val memberCount = memberService.getGuildMembers(event.guildId).size
             if (memberCount <= 1) {
-                logger.info("Skipping member join XP for guild ${event.guildId} - first member (guild creator)")
                 return
             }
 
             val config = configService.loadConfig()
             val memberJoinXp = config.progression.memberJoinedXp
             progressionService.awardExperience(event.guildId, memberJoinXp, ExperienceSource.MEMBER_JOINED)
-            logger.info("Awarded $memberJoinXp XP to guild ${event.guildId} for new member join")
         } catch (e: Exception) {
             // Event listener - catching all exceptions to prevent listener failure
             logger.warn("Failed to award progression XP for member join", e)
