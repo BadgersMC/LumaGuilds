@@ -495,8 +495,64 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
         single<net.lumalyte.lg.application.services.apollo.LunarClientService> {
             net.lumalyte.lg.infrastructure.services.apollo.LunarClientServiceBukkit()
         }
-        get<java.util.logging.Logger>().info("✓ Apollo integration enabled - Lunar Client features active")
+
+        // Guild Teams Service
+        if (plugin.config.getBoolean("apollo.teams.enabled", true)) {
+            single<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService> {
+                net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService(
+                    plugin = get(),
+                    lunarClientService = get(),
+                    guildService = get(),
+                    memberService = get(),
+                    rankService = get()
+                )
+            }
+
+            // Guild Team Listener
+            single<net.lumalyte.lg.infrastructure.listeners.apollo.GuildTeamListener> {
+                net.lumalyte.lg.infrastructure.listeners.apollo.GuildTeamListener(
+                    guildTeamService = get(),
+                    memberService = get(),
+                    guildWaypointService = getOrNull()
+                )
+            }
+        }
+
+        // Guild Waypoint Service
+        if (plugin.config.getBoolean("apollo.waypoints.enabled", true)) {
+            single<net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService> {
+                net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService(
+                    plugin = get(),
+                    lunarClientService = get(),
+                    guildService = get(),
+                    memberService = get()
+                )
+            }
+        }
+
+        // Guild Notification Service
+        if (plugin.config.getBoolean("apollo.notifications.enabled", true)) {
+            single<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService> {
+                net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService(
+                    plugin = get(),
+                    lunarClientService = get(),
+                    guildService = get(),
+                    memberService = get()
+                )
+            }
+
+            // Guild Notification Listener
+            single<net.lumalyte.lg.infrastructure.listeners.apollo.GuildNotificationListener> {
+                net.lumalyte.lg.infrastructure.listeners.apollo.GuildNotificationListener(
+                    notificationService = get(),
+                    guildService = get(),
+                    memberService = get()
+                )
+            }
+        }
+
+        plugin.logger.info("✓ Apollo integration enabled - Lunar Client features active")
     } else {
-        get<java.util.logging.Logger>().info("⚠ Apollo integration disabled - Lunar Client features unavailable")
+        plugin.logger.info("⚠ Apollo integration disabled - Lunar Client features unavailable")
     }
 }

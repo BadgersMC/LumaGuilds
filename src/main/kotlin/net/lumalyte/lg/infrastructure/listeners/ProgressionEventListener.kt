@@ -136,8 +136,20 @@ class ProgressionEventListener : Listener, KoinComponent {
                 return
             }
 
+            // Check if player is using Lunar Client for 2x XP bonus
+            var finalAmount = amount
+            try {
+                val lunarClientService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.application.services.apollo.LunarClientService>()
+                if (lunarClientService != null && lunarClientService.isLunarClient(player)) {
+                    finalAmount = amount * 2
+                    logger.debug("${player.name} earned 2x XP ($finalAmount instead of $amount) from $source due to Lunar Client")
+                }
+            } catch (e: Exception) {
+                // Silently fail if Apollo not available
+            }
+
             guildIds.forEach { guildId ->
-                progressionService.awardExperience(guildId, amount, source)
+                progressionService.awardExperience(guildId, finalAmount, source)
             }
         } catch (e: Exception) {
             // Event listener - catching all exceptions to prevent listener failure

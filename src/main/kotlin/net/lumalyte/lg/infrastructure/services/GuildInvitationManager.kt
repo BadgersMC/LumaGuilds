@@ -40,6 +40,14 @@ object GuildInvitationManager {
         )
 
         repository.add(invitation)
+
+        // Send Apollo notification (if available)
+        try {
+            val notificationService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
+            notificationService?.notifyGuildInvite(invitedPlayerId, guildName, inviterName)
+        } catch (e: Exception) {
+            // Silently fail if Apollo not available
+        }
     }
 
     /**

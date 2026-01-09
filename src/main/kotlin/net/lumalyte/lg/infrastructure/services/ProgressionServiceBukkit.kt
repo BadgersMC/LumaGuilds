@@ -40,7 +40,7 @@ class ProgressionServiceBukkit(
             }
 
             // Get or create guild progression
-            val progression = progressionRepository.getGuildProgression(guildId) 
+            val progression = progressionRepository.getGuildProgression(guildId)
                 ?: GuildProgression.create(guildId)
 
             val oldLevel = progression.currentLevel

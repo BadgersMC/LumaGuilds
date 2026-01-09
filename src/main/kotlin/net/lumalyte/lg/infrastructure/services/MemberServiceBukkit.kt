@@ -69,10 +69,25 @@ class MemberServiceBukkit(
         val result = memberRepository.add(member)
         if (result) {
             logger.info("Player $playerId added to guild $guildId with rank '${rank.name}'")
-            
+
             // Fire event for progression system
             Bukkit.getPluginManager().callEvent(GuildMemberJoinEvent(guildId, playerId))
-            
+
+            // Update Apollo team and waypoints (if available)
+            try {
+                val guildTeamService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()
+                guildTeamService?.onPlayerJoinGuild(playerId, guildId)
+
+                val guildWaypointService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService>()
+                val player = org.bukkit.Bukkit.getPlayer(playerId)
+                if (player != null) {
+                    guildWaypointService?.showGuildHomeWaypoints(player)
+                }
+            } catch (e: Exception) {
+                // Silently fail if Apollo not available
+                logger.debug("Apollo update skipped: ${e.message}")
+            }
+
             return member
         }
         
@@ -96,6 +111,35 @@ class MemberServiceBukkit(
 
         val result = memberRepository.remove(playerId, guildId)
         if (result) {
+            // Update Apollo team and waypoints (if available)
+            try {
+                val guildTeamService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()
+                guildTeamService?.onPlayerLeaveGuild(playerId, guildId)
+
+                val guildWaypointService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService>()
+                val player = org.bukkit.Bukkit.getPlayer(playerId)
+                if (player != null) {
+                    // Refresh waypoints to remove old guild's homes
+                    guildWaypointService?.showGuildHomeWaypoints(player)
+                }
+            } catch (e: Exception) {
+                // Silently fail if Apollo not available
+                logger.debug("Apollo update skipped: ${e.message}")
+            }
+
+            // Send Apollo notification (if available)
+            try {
+                val notificationService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
+                val player = org.bukkit.Bukkit.getPlayer(playerId)
+                val playerName = player?.name ?: "Player"
+                val wasKicked = actorId != playerId
+
+                notificationService?.notifyMemberLeave(guildId, playerName, wasKicked)
+            } catch (e: Exception) {
+                // Silently fail if Apollo not available
+                logger.debug("Apollo notification skipped: ${e.message}")
+            }
+
             if (actorId == playerId) {
                 logger.info("Player $playerId left guild $guildId")
             } else {
@@ -142,6 +186,25 @@ class MemberServiceBukkit(
         val result = memberRepository.update(updatedMember)
         if (result) {
             logger.info("Player $playerId rank changed to '${newRank.name}' in guild $guildId by $actorId")
+
+            // Send Apollo notification (if available)
+            try {
+                val notificationService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
+                val actor = org.bukkit.Bukkit.getPlayer(actorId)
+                val actorName = actor?.name ?: "Admin"
+
+                // Determine if it's a promotion or demotion
+                if (newRank.priority < currentRank.priority) {
+                    // Lower priority number = higher rank = promotion
+                    notificationService?.notifyPromotion(playerId, guildId, newRank.name, actorName)
+                } else {
+                    // Higher priority number = lower rank = demotion
+                    notificationService?.notifyDemotion(playerId, guildId, newRank.name, actorName)
+                }
+            } catch (e: Exception) {
+                // Silently fail if Apollo not available
+                logger.debug("Apollo notification skipped: ${e.message}")
+            }
         }
         return result
     }
