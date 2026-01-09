@@ -765,6 +765,7 @@ apollo:
   # Notifications Module - Rich notifications for guild events
   notifications:
     enabled: true
+    welcome_notification: true
     guild_invites: true
     war_events: true
     member_events: true
@@ -775,6 +776,7 @@ apollo:
     # Format: "namespace:path/to/texture.png"
     # Example: "enthusia:textures/9dbaaab9-0cc8-4606-9e3f-44b4487d5366.png"
     icons:
+      welcome: "minecraft:textures/item/banner.png"
       guild: "minecraft:textures/item/banner.png"
       invite: "minecraft:textures/item/writable_book.png"
       join: "minecraft:textures/item/green_banner.png"
