@@ -482,4 +482,21 @@ fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = 
 
     // PlaceholderAPI Expansion
     singleOf(::LumaGuildsExpansion)
+
+    // Apollo Integration (Lunar Client)
+    // Only register if Apollo-Bukkit plugin is detected
+    val apolloAvailable = try {
+        org.bukkit.Bukkit.getPluginManager().getPlugin("Apollo-Bukkit") != null
+    } catch (e: Exception) {
+        false
+    }
+
+    if (apolloAvailable && plugin.config.getBoolean("apollo.enabled", true)) {
+        single<net.lumalyte.lg.application.services.apollo.LunarClientService> {
+            net.lumalyte.lg.infrastructure.services.apollo.LunarClientServiceBukkit()
+        }
+        get<java.util.logging.Logger>().info("✓ Apollo integration enabled - Lunar Client features active")
+    } else {
+        get<java.util.logging.Logger>().info("⚠ Apollo integration disabled - Lunar Client features unavailable")
+    }
 }

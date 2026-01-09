@@ -74,8 +74,6 @@ class TeleportationService(private val plugin: Plugin) {
                     return
                 }
 
-                currentSession.remainingSeconds--
-
                 if (currentSession.remainingSeconds <= 0) {
                     // Teleport the player
                     player.teleport(currentSession.targetLocation)
@@ -86,8 +84,10 @@ class TeleportationService(private val plugin: Plugin) {
                     activeTeleports.remove(playerId)
                     cancel()
                 } else {
-                    // Update action bar
+                    // Update action bar with current time remaining
                     player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
+                    // Decrement after showing the message
+                    currentSession.remainingSeconds--
                 }
             }
         }

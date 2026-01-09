@@ -71,6 +71,7 @@ class LumaGuilds : JavaPlugin() {
         initialiseVaultDependency()
         initialisePlaceholderAPI()
         initialiseAxKothIntegration()
+        initialiseApolloIntegration()
         commandManager = PaperCommandManager(this)
 
         // Enable case-insensitive command completion and parsing
@@ -509,6 +510,54 @@ class LumaGuilds : JavaPlugin() {
     }
 
     /**
+     * Initializes Apollo (Lunar Client) integration if available.
+     * Provides enhanced features for Lunar Client users through Apollo API.
+     */
+    private fun initialiseApolloIntegration() {
+        if (!config.getBoolean("apollo.enabled", true)) {
+            logColored("⚠ Apollo integration disabled in config")
+            return
+        }
+
+        if (Bukkit.getPluginManager().getPlugin("Apollo-Bukkit") != null) {
+            try {
+                val lunarClientService = get().getOrNull<net.lumalyte.lg.application.services.apollo.LunarClientService>()
+                if (lunarClientService != null && lunarClientService.isApolloAvailable()) {
+                    logColored("✓ Successfully initialized Apollo (Lunar Client) integration!")
+                    logColored("Enhanced features available for Lunar Client users")
+
+                    // Log enabled features
+                    if (config.getBoolean("apollo.teams.enabled", true)) {
+                        logColored("  ⭐ Teams Module: Guild members visible on minimap/HUD")
+                    }
+                    if (config.getBoolean("apollo.waypoints.enabled", true)) {
+                        logColored("  📍 Waypoints Module: Guild home navigation")
+                    }
+                    if (config.getBoolean("apollo.beams.enabled", true)) {
+                        logColored("  ⚡ Beams Module: Vault location markers")
+                    }
+                    if (config.getBoolean("apollo.borders.enabled", true)) {
+                        logColored("  🔲 Borders Module: War territory visualization")
+                    }
+                    if (config.getBoolean("apollo.notifications.enabled", true)) {
+                        logColored("  📢 Notifications Module: Rich guild event alerts")
+                    }
+                } else {
+                    logColored("⚠ Apollo API not responding - features disabled")
+                }
+            } catch (e: Exception) {
+                // Broad exception handling acceptable here - optional integration shouldn't crash plugin
+                // Can fail due to: NoClassDefFoundError, LinkageError, API version mismatch
+                logger.severe("Error initializing Apollo integration: ${e.message}")
+                e.printStackTrace()
+            }
+        } else {
+            logColored("⚠ Apollo-Bukkit plugin not found. Lunar Client features unavailable.")
+            logColored("  Install Apollo-Bukkit from https://modrinth.com/plugin/lunar-client-apollo")
+        }
+    }
+
+    /**
      * Configures basic command completions using ACF's built-in system.
      * ACF automatically handles tab completion through @CommandCompletion annotations
      * on command methods, providing case-insensitive completion out of the box.
@@ -668,6 +717,7 @@ class LumaGuilds : JavaPlugin() {
         logColored("✓ Party chat auto-routing registered (priority: ${config.party.partyChatListenerPriority})")
 
         server.pluginManager.registerEvents(BannerSelectionListener(), this)
+        server.pluginManager.registerEvents(BannerFuelPreventionListener(), this)
 
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()

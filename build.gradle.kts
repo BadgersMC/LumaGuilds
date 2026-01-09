@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.lumalyte.lg"
-version = "1.0.6"
+version = "1.0.7"
 
 repositories {
     mavenLocal()
@@ -24,6 +24,10 @@ repositories {
     maven {
         name = "sirblobman-public"
         url = uri("https://nexus.sirblobman.xyz/public/")
+    }
+    maven {
+        name = "lunarclient-public"
+        url = uri("https://repo.lunarclient.dev/")
     }
 }
 
@@ -74,6 +78,11 @@ dependencies {
     //combatlogX api
     compileOnly("com.github.sirblobman.api:core:2.9-SNAPSHOT")
     compileOnly("com.github.sirblobman.combatlogx:api:11.6-SNAPSHOT")
+
+    // Lunar Client Apollo API
+    compileOnly("com.lunarclient:apollo-api:1.0.9")
+    compileOnly("com.lunarclient:apollo-common:1.0.9")
+    compileOnly("com.lunarclient:apollo-bukkit:1.0.9")
 
 }
 
