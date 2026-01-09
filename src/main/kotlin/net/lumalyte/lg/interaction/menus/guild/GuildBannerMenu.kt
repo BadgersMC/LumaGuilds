@@ -7,6 +7,7 @@ import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
+import net.lumalyte.lg.common.PluginKeys
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
@@ -18,6 +19,7 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
+import org.bukkit.persistence.PersistentDataType
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -179,75 +181,38 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addApplyChangesButton(pane: StaticPane, x: Int, y: Int) {
-        val applyItem = ItemStack(Material.GRAY_CONCRETE)
-            .name("§7⏳ APPLY CHANGES")
-            .lore("§7Place a banner in the slot first")
+        val applyItem = ItemStack(Material.LIME_CONCRETE)
+            .name("§a⏳ APPLY CHANGES")
+            .lore("§7Place a banner in the slot,")
+            .lore("§7then click here to save it")
 
         val guiItem = GuiItem(applyItem) { event ->
-            // Check the actual inventory contents when clicked (position 0,0)
+            // Check the actual inventory contents when clicked (slot 0 is the banner slot)
             val inventory = player.openInventory.topInventory
-            val cursorItem = player.itemOnCursor
+            val bannerSlot = 0
+            val bannerItem = inventory.getItem(bannerSlot)
 
-            // Check all slots for banners
-            val bannerSlots = mutableListOf<Int>()
-            for (slot in 0..26) {
-                val item = inventory.getItem(slot)
-                if (item != null && item.type.name.endsWith("_BANNER")) {
-                    bannerSlots.add(slot)
-                }
-            }
+            // Check if there's a banner in the slot
+            if (bannerItem != null && bannerItem.type.name.endsWith("_BANNER")) {
+                // Clone the banner to preserve its data
+                val bannerToSave = bannerItem.clone()
 
-            // Calculate the expected slot based on StaticPane position (0,0)
-            // In a 9-slot wide inventory: slot = y * 9 + x
-            val expectedSlot = 0 * 9 + 0 // Should be slot 0
-
-            var bannerSlotItem: org.bukkit.inventory.ItemStack? = null
-
-            // First try the expected slot
-            val expectedItem = inventory.getItem(expectedSlot)
-            if (expectedItem != null && (expectedItem.type.name.endsWith("_BANNER") ||
-                (expectedItem.type == Material.LIGHT_GRAY_STAINED_GLASS_PANE && cursorItem?.type?.name?.endsWith("_BANNER") == true))) {
-                // If we have a banner directly in the slot, or cursor has banner and slot has placeholder
-                bannerSlotItem = if (expectedItem.type.name.endsWith("_BANNER")) expectedItem else cursorItem
-            } else {
-                // If not found in expected slot, scan all banner slots we found
-                for (slot in bannerSlots) {
-                    val item = inventory.getItem(slot)
-                    if (item != null && item.type.name.endsWith("_BANNER")) {
-                        bannerSlotItem = item
-                        break
-                    }
-                }
-
-                // Also check if player has banner on cursor and is hovering over placeholder
-                if (bannerSlotItem == null && cursorItem?.type?.name?.endsWith("_BANNER") == true) {
-                    for (slot in 0..26) {
-                        val item = inventory.getItem(slot)
-                        if (item != null && item.type == Material.LIGHT_GRAY_STAINED_GLASS_PANE) {
-                            bannerSlotItem = cursorItem
-                            break
-                        }
-                    }
-                }
-            }
-
-            if (bannerSlotItem != null) {
                 // Apply the banner (pass the entire ItemStack to preserve patterns)
-                val success = guildService.setBanner(guild.id, bannerSlotItem, player.uniqueId)
+                val success = guildService.setBanner(guild.id, bannerToSave, player.uniqueId)
 
                 if (success) {
-                    player.sendMessage("§a✅ Guild banner set to ${bannerSlotItem.type.name.lowercase().replace("_", " ")}!")
+                    player.sendMessage("§a✅ Guild banner set to ${bannerToSave.type.name.lowercase().replace("_", " ")}!")
 
                     // Return the banner to player's inventory
-                    val remaining = player.inventory.addItem(bannerSlotItem)
+                    val remaining = player.inventory.addItem(bannerToSave)
                     if (remaining.isNotEmpty()) {
                         // Inventory full, drop at feet
-                        player.world.dropItem(player.location, bannerSlotItem)
+                        player.world.dropItem(player.location, bannerToSave)
                         player.sendMessage("§e📦 Banner dropped at your feet (inventory full)")
                     }
 
                     // Clear the slot and close menu
-                    inventory.setItem(0, ItemStack(Material.AIR))
+                    inventory.setItem(bannerSlot, ItemStack(Material.AIR))
                     player.closeInventory()
                 } else {
                     player.sendMessage("§c❌ Failed to set banner. Check permissions.")
@@ -434,6 +399,18 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
             // Give the banner to player
             val bannerCopy = bannerItem.clone()
+
+            // Mark the banner with persistent data to prevent furnace fuel usage
+            val meta = bannerCopy.itemMeta
+            if (meta != null) {
+                meta.persistentDataContainer.set(
+                    PluginKeys.GUILD_BANNER_MARKER,
+                    PersistentDataType.BYTE,
+                    1.toByte()
+                )
+                bannerCopy.itemMeta = meta
+            }
+
             val remaining = player.inventory.addItem(bannerCopy)
 
             if (remaining.isNotEmpty()) {

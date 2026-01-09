@@ -691,3 +691,82 @@ bedrock:
   # Debug and logging
   debug_bedrock_menus: false
   log_form_interactions: false
+
+# ========================================
+# Lunar Client Apollo Integration
+# ========================================
+# Enables enhanced features for Lunar Client users through Apollo API
+# Note: Requires Apollo-Bukkit plugin to be installed
+# Features are optional - non-LC players are unaffected
+apollo:
+  # Global enable/disable for all Apollo features
+  enabled: true
+
+  # Guild Teams Module - Show guild members on minimap/HUD
+  teams:
+    enabled: true
+
+    # Show markers above teammate heads
+    show_markers: true
+
+    # Refresh rate (in ticks, 1 = 50ms, 20 = 1 second)
+    # Lower = more real-time updates, higher = better performance
+    refresh_rate: 1
+
+    # Rank-based colors (true = leaders/officers different colors)
+    rank_based_colors: true
+
+    # Color scheme when rank_based_colors: true (R,G,B format 0-255)
+    colors:
+      leader: "255,215,0"    # Gold
+      officer: "0,150,255"   # Blue
+      member: "0,255,0"      # Green
+      party: "255,0,255"     # Purple (for party members - future)
+
+    # Default guild color (when rank_based_colors: false)
+    default_guild_color: "0,255,0"  # Green
+
+    # Glow effects (makes teammates glow through walls)
+    # WARNING: Can be performance intensive with many players
+    glow:
+      enabled: false
+      use_team_colors: true
+
+  # Waypoints Module - Show waypoints for guild homes
+  waypoints:
+    enabled: true
+    show_guild_homes: true
+    max_distance: 10000  # Max distance to show waypoints (in blocks)
+
+    # Waypoint Colors (R,G,B format)
+    colors:
+      own_guild: "0,255,0"      # Green
+      allied_guild: "0,100,255" # Blue
+      neutral_guild: "255,255,0" # Yellow
+      enemy_guild: "255,0,0"    # Red
+
+  # Beams Module - Show beams at vault locations
+  beams:
+    enabled: true
+
+    vaults:
+      enabled: true
+      use_guild_banner_color: true
+      fallback_color: "255,215,0"  # Gold
+      max_distance: 64  # Max distance to show beams
+
+  # Borders Module - Show borders during wars
+  borders:
+    enabled: true
+    show_war_borders: true
+    show_territory_borders: true
+    war_border_color: "255,0,0"  # Red
+
+  # Notifications Module - Rich notifications for guild events
+  notifications:
+    enabled: true
+    guild_invites: true
+    war_events: true
+    member_events: true
+    progression_events: true
+    display_duration_seconds: 5

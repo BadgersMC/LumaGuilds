@@ -46,49 +46,37 @@ class BannerSelectionListener : Listener, KoinComponent {
         // If slot contains the placeholder or is empty, and player is placing a banner
         val isPlaceholderSlot = bannerItem?.type == Material.LIGHT_GRAY_STAINED_GLASS_PANE
         val isEmptySlot = bannerItem?.type == Material.AIR
+        val slotHasBanner = bannerItem != null && isBanner(bannerItem.type)
 
         if ((isPlaceholderSlot || isEmptySlot) && bannerToPlace != null && isBanner(bannerToPlace.type)) {
             event.isCancelled = true
 
-            // Get guild information from secure holder
-            val guildName = holder.guildName
-            val playerGuilds = guildService.getPlayerGuilds(player.uniqueId)
-            val guild = playerGuilds.firstOrNull { it.name == guildName } ?: return
+            // Only allow placing exactly 1 banner (prevent stacks)
+            val singleBanner = bannerToPlace.clone()
+            singleBanner.amount = 1
 
-            // Set the banner (pass the entire ItemStack to preserve patterns)
-            val success = guildService.setBanner(guild.id, bannerToPlace, player.uniqueId)
+            // Place the single banner in the slot
+            event.currentItem = singleBanner
 
-            if (success) {
-                player.sendMessage("§a✅ Guild banner set to ${bannerToPlace.type.name.lowercase().replace("_", " ")}!")
-
-                // Handle item consumption based on placement method
-                if (cursorItem.type != Material.AIR) {
-                    // Manual placement: consume from cursor
-                    if (cursorItem.amount > 1) {
-                        cursorItem.amount = cursorItem.amount - 1
-                        player.setItemOnCursor(cursorItem)
-                    } else {
-                        player.setItemOnCursor(null)
-                    }
-                } else if (bannerItem?.type?.name?.endsWith("_BANNER") == true) {
-                    // Shift-click placement: consume from slot
-                    if (bannerItem.amount > 1) {
-                        bannerItem.amount = bannerItem.amount - 1
-                        event.currentItem = bannerItem
-                    } else {
-                        event.currentItem = ItemStack(Material.AIR)
-                    }
+            // Remove 1 banner from cursor if that's where it came from
+            if (cursorItem != null && cursorItem.type != Material.AIR) {
+                if (cursorItem.amount > 1) {
+                    cursorItem.amount = cursorItem.amount - 1
+                    player.setItemOnCursor(cursorItem)
+                } else {
+                    player.setItemOnCursor(ItemStack(Material.AIR))
                 }
-
-                // Close and reopen menu to refresh
-                player.closeInventory()
-                // Note: Menu will be reopened by the menu system if needed
-            } else {
-                player.sendMessage("§c❌ Failed to set banner. Check permissions.")
             }
+
+            player.sendMessage("§7📍 Banner placed! Click '§a⏳ APPLY CHANGES§7' to save.")
         }
-        // If player is trying to take something from the slot, prevent it
-        else if (bannerItem?.type != Material.AIR && bannerItem?.type != Material.LIGHT_GRAY_STAINED_GLASS_PANE) {
+        // If player is trying to take a banner from the slot, prevent it
+        else if (slotHasBanner) {
+            event.isCancelled = true
+            player.sendMessage("§c❌ You cannot take banners from this slot! Use '§e📋 GET BANNER COPY§c' instead.")
+        }
+        // If player is trying to take the placeholder, prevent it
+        else if (isPlaceholderSlot) {
             event.isCancelled = true
         }
     }

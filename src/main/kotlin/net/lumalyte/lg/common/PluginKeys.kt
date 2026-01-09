@@ -31,6 +31,14 @@ object PluginKeys {
     }
 
     /**
+     * Key used to mark items as guild banners in persistent data containers.
+     * Used to prevent guild banners from being used as furnace fuel.
+     */
+    val GUILD_BANNER_MARKER: NamespacedKey by lazy {
+        NamespacedKey(pluginInstance, "guild_banner")
+    }
+
+    /**
      * Returns the plugin instance for use in scheduler tasks and event registration.
      */
     fun getPlugin(): Plugin {

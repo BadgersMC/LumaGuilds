@@ -29,8 +29,16 @@ fun ItemStack.name(name: String): ItemStack {
     // Create component and explicitly disable italic formatting to override Minecraft's default italic lore
     val component = Component.text(name).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
     meta.itemName(component)
-    // Hide all item attributes (damage, attack speed, durability, etc.) in menus
-    meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+    // Hide all item attributes and metadata in menus
+    meta.addItemFlags(
+        ItemFlag.HIDE_ATTRIBUTES,
+        ItemFlag.HIDE_ENCHANTS,
+        ItemFlag.HIDE_UNBREAKABLE,
+        ItemFlag.HIDE_DESTROYS,
+        ItemFlag.HIDE_PLACED_ON,
+        ItemFlag.HIDE_ADDITIONAL_TOOLTIP,
+        ItemFlag.HIDE_DYE
+    )
     itemMeta = meta
     return this
 }

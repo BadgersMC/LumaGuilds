@@ -58,7 +58,6 @@ class ChatInputListener : Listener, KoinComponent {
      */
     fun startInputMode(player: Player, handler: ChatInputHandler) {
         inputModePlayers[player.uniqueId] = handler
-        org.bukkit.Bukkit.getLogger().info("[ChatInputListener] Started input mode for ${player.name} (${player.uniqueId})")
     }
 
     /**
@@ -78,9 +77,7 @@ class ChatInputListener : Listener, KoinComponent {
     @EventHandler(priority = EventPriority.HIGHEST) // Note: Priority configurable via party.chat_input_listener_priority in config.yml
     fun onPlayerChat(event: AsyncChatEvent) {
         val player = event.player
-        org.bukkit.Bukkit.getLogger().info("[ChatInputListener] AsyncChatEvent from ${player.name}, in input mode: ${inputModePlayers.containsKey(player.uniqueId)}")
         if (inputModePlayers.containsKey(player.uniqueId)) {
-            org.bukkit.Bukkit.getLogger().info("[ChatInputListener] Handling chat input for ${player.name}")
             handleChatInput(event)
         }
     }
@@ -151,11 +148,8 @@ class ChatInputListener : Listener, KoinComponent {
     }
 
     private fun processChatInput(player: Player, handler: ChatInputHandler?, input: String) {
-        org.bukkit.Bukkit.getLogger().info("[ChatInputListener] Processing chat input for ${player.name}: '$input'")
-
         // Check if player wants to cancel
         if (input.equals("cancel", ignoreCase = true)) {
-            org.bukkit.Bukkit.getLogger().info("[ChatInputListener] Player ${player.name} cancelled input")
             stopInputMode(player)
 
             // Schedule cancel callback on main thread (in case it opens GUIs)
@@ -167,14 +161,11 @@ class ChatInputListener : Listener, KoinComponent {
 
         // Process the input using the handler
         // IMPORTANT: Schedule on main thread because handlers often reopen GUIs
-        org.bukkit.Bukkit.getLogger().info("[ChatInputListener] Calling handler.onChatInput for ${player.name}")
-
         org.bukkit.Bukkit.getScheduler().runTask(net.lumalyte.lg.common.PluginKeys.getPlugin(), Runnable {
             handler?.onChatInput(player, input)
         })
 
         // Remove from input mode
         stopInputMode(player)
-        org.bukkit.Bukkit.getLogger().info("[ChatInputListener] Stopped input mode for ${player.name}")
     }
 }

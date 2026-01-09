@@ -212,8 +212,6 @@ class BedrockGuildHomeMenu(
                     return
                 }
 
-                currentSession.remainingSeconds--
-
                 if (currentSession.remainingSeconds <= 0) {
                     // Teleport the player
                     player.teleport(currentSession.targetLocation)
@@ -224,8 +222,10 @@ class BedrockGuildHomeMenu(
                     activeTeleports.remove(player.uniqueId)
                     cancel() // Stop the task after successful teleport
                 } else {
-                    // Update action bar
+                    // Update action bar with current time remaining
                     player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
+                    // Decrement after showing the message
+                    currentSession.remainingSeconds--
                 }
             }
         }
