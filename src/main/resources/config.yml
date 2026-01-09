@@ -770,3 +770,17 @@ apollo:
     member_events: true
     progression_events: true
     display_duration_seconds: 5
+
+    # Custom notification icons (resource pack textures)
+    # Format: "namespace:path/to/texture.png"
+    # Example: "enthusia:textures/9dbaaab9-0cc8-4606-9e3f-44b4487d5366.png"
+    icons:
+      guild: "minecraft:textures/item/banner.png"
+      invite: "minecraft:textures/item/writable_book.png"
+      join: "minecraft:textures/item/green_banner.png"
+      leave: "minecraft:textures/item/red_banner.png"
+      promotion: "minecraft:textures/item/experience_bottle.png"
+      war: "minecraft:textures/item/netherite_sword.png"
+      peace: "minecraft:textures/item/golden_apple.png"
+      neutral: "minecraft:textures/item/apple.png"
+      koth: "minecraft:textures/item/golden_helmet.png"

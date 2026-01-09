@@ -526,9 +526,19 @@ class LumaGuilds : JavaPlugin() {
                     logColored("✓ Successfully initialized Apollo (Lunar Client) integration!")
                     logColored("Enhanced features available for Lunar Client users")
 
-                    // Log enabled features
+                    // Log enabled features and start services
                     if (config.getBoolean("apollo.teams.enabled", true)) {
                         logColored("  ⭐ Teams Module: Guild members visible on minimap/HUD")
+
+                        // Start GuildTeamService
+                        val guildTeamService = get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()
+                        guildTeamService?.start()
+
+                        // Register GuildTeamListener
+                        val guildTeamListener = get().getOrNull<net.lumalyte.lg.infrastructure.listeners.apollo.GuildTeamListener>()
+                        if (guildTeamListener != null) {
+                            server.pluginManager.registerEvents(guildTeamListener, this)
+                        }
                     }
                     if (config.getBoolean("apollo.waypoints.enabled", true)) {
                         logColored("  📍 Waypoints Module: Guild home navigation")
@@ -541,6 +551,12 @@ class LumaGuilds : JavaPlugin() {
                     }
                     if (config.getBoolean("apollo.notifications.enabled", true)) {
                         logColored("  📢 Notifications Module: Rich guild event alerts")
+
+                        // Register GuildNotificationListener
+                        val notificationListener = get().getOrNull<net.lumalyte.lg.infrastructure.listeners.apollo.GuildNotificationListener>()
+                        if (notificationListener != null) {
+                            server.pluginManager.registerEvents(notificationListener, this)
+                        }
                     }
                 } else {
                     logColored("⚠ Apollo API not responding - features disabled")
@@ -806,6 +822,15 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        // Stop Apollo services
+        try {
+            val guildTeamService = get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()
+            guildTeamService?.stop()
+        } catch (e: Exception) {
+            // Broad exception handling acceptable - shutdown should be resilient
+            logger.warning("Failed to stop guild team service: ${e.message}")
+        }
+
         // Stop vault auto-save service (this will flush all pending writes)
         try {
             val vaultAutoSaveService = get().get<net.lumalyte.lg.application.services.VaultAutoSaveService>()
