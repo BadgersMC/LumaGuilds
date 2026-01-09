@@ -35,6 +35,9 @@ class GuildNotificationService(
     }
 
     // Notification icons - loaded from config with fallbacks
+    private val iconWelcome: String by lazy {
+        plugin.config.getString("apollo.notifications.icons.welcome", "minecraft:textures/item/banner.png") ?: "minecraft:textures/item/banner.png"
+    }
     private val iconGuild: String by lazy {
         plugin.config.getString("apollo.notifications.icons.guild", "minecraft:textures/item/banner.png") ?: "minecraft:textures/item/banner.png"
     }
@@ -127,6 +130,7 @@ class GuildNotificationService(
      * Send welcome notification to Lunar Client users on join.
      */
     fun sendWelcomeNotification(player: Player) {
+        if (!plugin.config.getBoolean("apollo.notifications.welcome_notification", true)) return
         if (!lunarClientService.isLunarClient(player)) return
 
         val title = Component.text("Welcome to the Server!", NamedTextColor.GOLD, TextDecoration.BOLD)
