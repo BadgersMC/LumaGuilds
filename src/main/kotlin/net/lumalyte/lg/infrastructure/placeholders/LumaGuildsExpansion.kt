@@ -24,7 +24,7 @@ import org.koin.core.component.inject
  * - %lumaguilds_guild_kills% - Player's guild total kills
  * - %lumaguilds_guild_deaths% - Player's guild total deaths
  * - %lumaguilds_guild_kdr% - Player's guild K/D ratio
- * - %lumaguilds_rel_<player>_status% - Relationship with another player (🔴 enemy, 🟢 ally, ⚪ truce, blank neutral)
+ * - %lumaguilds_rel_<player>_status% - Relationship with another player (🔴 enemy, 🔵 ally, 🟢 teammate, ⚪ truce, blank neutral)
  */
 class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
@@ -194,7 +194,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     /**
      * Handles relational placeholders for guild relationships
      * Format: %lumaguilds_rel_<playername>_status%
-     * Returns: "🔴" for enemy (at war), "🟢" for ally, "⚪" for truce, "" for neutral
+     * Returns: "🔴" for enemy (at war), "🔵" for ally, "🟢" for teammate (same guild), "⚪" for truce, "" for neutral
      */
     private fun handleRelationalPlaceholder(player: Player?, params: String): String? {
         if (player == null) return ""
@@ -222,8 +222,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         // If either player is not in a guild, they're neutral
         if (playerGuildId == null || otherGuildId == null) return ""
 
-        // Same guild = neutral (not enemy or ally between guilds)
-        if (playerGuildId == otherGuildId) return ""
+        // Same guild = teammate (green dot)
+        if (playerGuildId == otherGuildId) return "🟢"
 
         // Check relations between guilds
         try {
@@ -231,7 +231,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             if (relation != null) {
                 return when (relation.type) {
                     net.lumalyte.lg.domain.entities.RelationType.ENEMY -> "🔴"  // Enemy/War
-                    net.lumalyte.lg.domain.entities.RelationType.ALLY -> "🟢"   // Ally
+                    net.lumalyte.lg.domain.entities.RelationType.ALLY -> "🔵"   // Ally
                     net.lumalyte.lg.domain.entities.RelationType.TRUCE -> "⚪"  // Truce
                     net.lumalyte.lg.domain.entities.RelationType.NEUTRAL -> ""  // Neutral
                 }

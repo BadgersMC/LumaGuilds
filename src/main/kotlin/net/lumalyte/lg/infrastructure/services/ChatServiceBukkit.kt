@@ -8,6 +8,9 @@ import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.*
 import net.lumalyte.lg.utils.GuildDisplayUtils
+import me.clip.placeholderapi.PlaceholderAPI
+import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Sound
 import org.slf4j.LoggerFactory
@@ -286,29 +289,44 @@ class ChatServiceBukkit(
             val party = getCurrentActiveParty(senderId)
             val partyName = party?.name ?: "Party"
 
-            // Get the player's rank status
-            val playerGuilds = memberService.getPlayerGuilds(senderId)
-            val primaryGuild = playerGuilds.firstOrNull()?.let { guildService.getGuild(it) }
-            val playerRank = if (primaryGuild != null) {
-                memberService.getMember(senderId, primaryGuild.id)?.rankId?.let { rankId ->
-                    rankService.getRank(rankId)?.name ?: "Member"
-                } ?: "Member"
-            } else {
-                "Member"
+            // Get the player object for PlaceholderAPI
+            val player = Bukkit.getPlayer(senderId)
+            if (player == null) {
+                logger.warn("Player $senderId not found for party message formatting")
+                return "§d[P] §d$senderName:§r $message"
             }
 
-            // Get LuckPerms suffix if available
-            val luckPermsSuffix = getLuckPermsSuffix(senderId)
+            // Determine if this is a guild-internal party (single guild only)
+            val isGuildInternalParty = party != null && party.guildIds.size == 1
 
-            // Build the format string with placeholders
-            var formattedMessage = config.partyChatFormat
-                .replace("%lumaguilds_party_name%", partyName)
-                .replace("%lumaguilds_rel_<player>_status%", playerRank)
-                .replace("%lumaguilds_guild_emoji%", primaryGuild?.emoji ?: "")
-                .replace("%lumaguilds_guild_tag%", guildTag)
-                .replace("%luckperms-suffix%", luckPermsSuffix)
-                .replace("%player_name%", senderName)
-                .replace("<message>", message)
+            // Choose the appropriate format based on whether it's guild-internal and config setting
+            var chatFormat = if (isGuildInternalParty && config.useSimplifiedGuildPartyFormat) {
+                config.guildPartyChatFormat // Simplified format for Guild_Chat, Officer_Chat, etc.
+            } else {
+                config.partyChatFormat // Full format for multi-guild parties or if simplified format is disabled
+            }
+
+            // Parse MiniMessage from config format string FIRST if enabled
+            // This allows config to have things like: "<gradient:blue:cyan>[{party_name}]</gradient>"
+            if (config.useMiniMessage) {
+                try {
+                    val miniMessage = MiniMessage.miniMessage()
+                    val component = miniMessage.deserialize(chatFormat)
+                    chatFormat = LegacyComponentSerializer.legacySection().serialize(component)
+                } catch (e: Exception) {
+                    logger.warn("Failed to parse MiniMessage in config format: ${e.message}")
+                    // Continue with unparsed format
+                }
+            }
+
+            // Build the format string with internal placeholders (using {} to distinguish from PlaceholderAPI)
+            var formattedMessage = chatFormat
+                .replace("{lumaguilds_party_name}", partyName)
+                .replace("{player_name}", senderName)
+                .replace("{message}", message)
+
+            // Parse all PlaceholderAPI placeholders (including %lumaguilds_guild_rank%, %lumaguilds_rel_<player>_status%, etc.)
+            formattedMessage = PlaceholderAPI.setPlaceholders(player, formattedMessage)
 
             return formattedMessage
         } catch (e: Exception) {
@@ -323,12 +341,6 @@ class ChatServiceBukkit(
         }
     }
 
-    private fun getLuckPermsSuffix(playerId: UUID): String {
-        // LuckPerms integration would require adding LuckPerms as a dependency
-        // For now, return empty string - servers can use PlaceholderAPI or ChatControl
-        // to handle LuckPerms placeholders in their chat format
-        return ""
-    }
 
     override fun canSendAnnouncements(playerId: UUID, guildId: UUID): Boolean {
         return memberService.hasPermission(playerId, guildId, RankPermission.SEND_ANNOUNCEMENTS)
