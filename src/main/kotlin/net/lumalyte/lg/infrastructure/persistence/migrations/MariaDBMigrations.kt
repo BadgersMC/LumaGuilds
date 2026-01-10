@@ -29,6 +29,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(17)
                 currentDbVersion = 17
             }
+            if (currentDbVersion < 18) {
+                migrateToVersion18()
+                updateDatabaseVersion(18)
+                currentDbVersion = 18
+            }
 
             connection.commit()
 
@@ -456,6 +461,56 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 componentLogger.info(Component.text("✓ Fixed $rowsAffected party names by replacing spaces with underscores"))
             } else {
                 componentLogger.info(Component.text("✓ No party names needed repair (migration v17)"))
+            }
+        }
+    }
+
+    private fun migrateToVersion18() {
+        componentLogger.info(Component.text("Migrating to version 18: Adding shop permissions to Owner ranks..."))
+
+        val shopPermissions = listOf("ACCESS_SHOP_CHESTS", "EDIT_SHOP_STOCK", "MODIFY_SHOP_PRICES")
+
+        connection.createStatement().use { statement ->
+            // Get all Owner ranks
+            val rs = statement.executeQuery("SELECT id, permissions FROM ranks WHERE name = 'Owner'")
+            var ranksUpdated = 0
+
+            while (rs.next()) {
+                val rankId = rs.getString("id")
+                val currentPermissions = rs.getString("permissions") ?: ""
+                val permissionsList = if (currentPermissions.isNotBlank()) {
+                    currentPermissions.split(",").toMutableSet()
+                } else {
+                    mutableSetOf()
+                }
+
+                // Add missing shop permissions
+                var permissionsAdded = false
+                for (perm in shopPermissions) {
+                    if (!permissionsList.contains(perm)) {
+                        permissionsList.add(perm)
+                        permissionsAdded = true
+                    }
+                }
+
+                // Update rank if permissions were added
+                if (permissionsAdded) {
+                    val updatedPermissions = permissionsList.joinToString(",")
+                    val updateStmt = connection.prepareStatement("UPDATE ranks SET permissions = ? WHERE id = ?")
+                    updateStmt.setString(1, updatedPermissions)
+                    updateStmt.setString(2, rankId)
+                    updateStmt.executeUpdate()
+                    updateStmt.close()
+                    ranksUpdated++
+                }
+            }
+
+            rs.close()
+
+            if (ranksUpdated > 0) {
+                componentLogger.info(Component.text("✓ Added shop permissions to $ranksUpdated Owner ranks"))
+            } else {
+                componentLogger.info(Component.text("✓ All Owner ranks already have shop permissions (migration v18)"))
             }
         }
     }
