@@ -433,7 +433,10 @@ party:
   # Party Chat
   party_chat_enabled: true
   party_chat_priority: 100
-  party_chat_format: "[%lumaguilds_party_name%] %lumaguilds_rel_<player>_status% %lumaguilds_guild_emoji%%lumaguilds_guild_tag% %luckperms-suffix% %player_name% ⋙ <message>"
+  use_minimessage: true  # Enable MiniMessage formatting support (allows tags like <gradient>, <rainbow>, <bold>, etc.)
+  party_chat_format: "[{lumaguilds_party_name}] %lumaguilds_guild_rank% %lumaguilds_guild_emoji%%lumaguilds_guild_tag% %luckperms-suffix% {player_name} ⋙ {message}"
+  use_simplified_guild_party_format: true  # Use simplified format for guild-internal parties (Guild_Chat, Officer_Chat, etc.)
+  guild_party_chat_format: "[{lumaguilds_party_name}] %lumaguilds_guild_rank% {player_name} ⋙ {message}"  # Simplified format for guild-internal parties - no guild tag/emoji spam
   party_chat_prefix: "[PARTY]"
   party_chat_suffix: ""
   chat_input_listener_priority: "HIGHEST"  # HIGHEST, HIGH, NORMAL, LOW, LOWEST

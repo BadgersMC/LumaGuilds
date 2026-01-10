@@ -44,7 +44,7 @@ All placeholders use the `%lumaguilds_` prefix.
 ### Relational Placeholders
 
 - `%lumaguilds_rel_<player>_status%` - Relationship status with another player
-  - Returns: `🔴` (enemy/at war), `🟢` (ally), `⚪` (truce), `` (neutral/blank)
+  - Returns: `🔴` (enemy/at war), `🔵` (ally), `🟢` (teammate/same guild), `⚪` (truce), `` (neutral/blank)
   - Example: `%lumaguilds_rel_Steve_status%`
 
 ### Formatted Displays
