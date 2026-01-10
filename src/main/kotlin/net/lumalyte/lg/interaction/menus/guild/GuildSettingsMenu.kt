@@ -21,8 +21,6 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -31,12 +29,17 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                       private var guild: Guild): Menu, KoinComponent {
-
-    private val guildService: GuildService by inject()
-    private val menuItemBuilder: MenuItemBuilder by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+class GuildSettingsMenu(
+    private val menuNavigator: MenuNavigator,
+    private val player: Player,
+    private var guild: Guild,
+    private val guildService: GuildService,
+    private val menuItemBuilder: MenuItemBuilder,
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory,
+    private val configService: ConfigService,
+    private val progressionService: ProgressionService,
+    private val progressionRepository: ProgressionRepository
+): Menu {
 
     override fun open() {
         // Refresh guild data from database to ensure we have latest changes
@@ -131,12 +134,9 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
             .name("§b☆ GUILD PROGRESSION")
 
         // Check if claims are enabled in config
-        val configService = getKoin().get<ConfigService>()
         val claimsEnabled = configService.loadConfig().claimsEnabled
 
         // Get actual progression data from ProgressionService
-        val progressionService = getKoin().get<ProgressionService>()
-        val progressionRepository = getKoin().get<ProgressionRepository>()
         
         val progression = progressionRepository.getGuildProgression(guild.id)
         if (progression != null) {
@@ -356,7 +356,7 @@ class GuildSettingsMenu(private val menuNavigator: MenuNavigator, private val pl
         pane.addItem(membersGuiItem, 2, 4)
 
         // Guild Mode
-        val config = getKoin().get<ConfigService>().loadConfig()
+        val config = configService.loadConfig()
         if (config.guild.peacefulModeEnabled) {
             val modeItem = ItemStack(
                 if (guild.mode == GuildMode.PEACEFUL)

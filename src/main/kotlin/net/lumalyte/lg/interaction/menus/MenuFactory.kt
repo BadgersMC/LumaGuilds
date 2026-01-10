@@ -29,18 +29,16 @@ import net.lumalyte.lg.interaction.menus.guild.JoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.guild.LfgBrowserMenu
 import net.lumalyte.lg.interaction.menus.guild.PartyCreationMenu
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
  * Factory for creating platform-specific menu implementations
  */
-class MenuFactory : KoinComponent {
-
-    private val platformDetectionService: PlatformDetectionService by inject()
-    private val configService: net.lumalyte.lg.application.services.ConfigService by inject()
-    private val logger: Logger by inject()
+class MenuFactory(
+    private val platformDetectionService: PlatformDetectionService,
+    private val configService: net.lumalyte.lg.application.services.ConfigService,
+    private val logger: Logger
+) {
 
     /**
      * Determines if Bedrock menus should be used for a player based on configuration and platform detection

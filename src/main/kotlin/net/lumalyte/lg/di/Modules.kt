@@ -208,14 +208,23 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     single<java.util.logging.Logger> { get<LumaGuilds>().logger }
 
     // Virtual thread executors (Java 21+)
+    // IMPORTANT: Lazy creation to avoid polluting main thread context during plugin load
+    // This prevents interference with other plugins (e.g., LuckPerms' ByteBuddy initialization)
     single<ExecutorService>(named("VirtualThreadExecutor")) {
         try {
             // Use virtual threads if available (Java 21+)
-            Executors.newVirtualThreadPerTaskExecutor()
+            val executor = Executors.newVirtualThreadPerTaskExecutor()
+            plugin.logger.info("Virtual threads enabled for async operations")
+            executor
         } catch (e: NoSuchMethodError) {
             // Fallback to cached thread pool for older Java versions
             plugin.logger.warning("Virtual threads not available - falling back to platform threads")
-            Executors.newCachedThreadPool()
+            Executors.newCachedThreadPool { runnable ->
+                Thread(runnable).apply {
+                    isDaemon = true
+                    name = "lumaguilds-async-${threadId()}"
+                }
+            }
         }
     }
 
@@ -252,7 +261,9 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     single<FormValidationService> { FormValidationServiceImpl(get()) }
 
     // Menu factory
-    single<net.lumalyte.lg.interaction.menus.MenuFactory> { net.lumalyte.lg.interaction.menus.MenuFactory() }
+    single<net.lumalyte.lg.interaction.menus.MenuFactory> {
+        net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get())
+    }
 }
 
 /**
@@ -421,6 +432,9 @@ fun socialModule() = module {
 
     // Listeners
     single<ChatInputListener> { ChatInputListener() }
+    single<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener> {
+        net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener(get(), get())
+    }
 }
 
 /**
@@ -508,7 +522,7 @@ fun vaultModule() = module {
         )
     }
     single<net.lumalyte.lg.infrastructure.services.VaultHologramService> {
-        net.lumalyte.lg.infrastructure.services.VaultHologramService(get())
+        net.lumalyte.lg.infrastructure.services.VaultHologramService(get(), get())
     }
 
     // Listeners

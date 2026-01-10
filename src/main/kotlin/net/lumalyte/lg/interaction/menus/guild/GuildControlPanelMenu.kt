@@ -17,22 +17,20 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                           private var guild: Guild): Menu, KoinComponent {
-
-    private val guildService: GuildService by inject()
-    private val rankService: RankService by inject()
-    private val memberService: MemberService by inject()
-    private val partyService: PartyService by inject()
-    private val warService: WarService by inject()
-    private val relationService: RelationService by inject()
-    private val bankService: BankService by inject()
-    private val killService: KillService by inject()
-    private val vaultService: GuildVaultService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+class GuildControlPanelMenu(
+    private val menuNavigator: MenuNavigator,
+    private val player: Player,
+    private var guild: Guild,
+    private val guildService: GuildService,
+    private val rankService: RankService,
+    private val memberService: MemberService,
+    private val vaultService: GuildVaultService,
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory,
+    private val configService: ConfigService,
+    private val progressionService: ProgressionService,
+    private val progressionRepository: ProgressionRepository
+): Menu {
 
     override fun open() {
         val playerId = player.uniqueId
@@ -402,7 +400,6 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7This will delete the guild forever")
             .lore("§7All members will be removed")
         val guiItem = GuiItem(disbandItem) {
-            val menuFactory = MenuFactory()
             menuNavigator.openMenu(menuFactory.createGuildDisbandConfirmationMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
@@ -414,7 +411,6 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .lore("§7Leave the guild")
             .lore("§7You can rejoin later if invited")
         val guiItem = GuiItem(leaveItem) {
-            val menuFactory = MenuFactory()
             menuNavigator.openMenu(menuFactory.createGuildLeaveConfirmationMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
@@ -425,13 +421,10 @@ class GuildControlPanelMenu(private val menuNavigator: MenuNavigator, private va
             .name("§b⭐ GUILD PROGRESSION")
 
         // Check if claims are enabled in config
-        val configService = getKoin().get<ConfigService>()
         val claimsEnabled = configService.loadConfig().claimsEnabled
 
         // Get actual progression data from ProgressionService with safe error handling
         try {
-            val progressionService = getKoin().get<ProgressionService>()
-            val progressionRepository = getKoin().get<ProgressionRepository>()
             
             val progression = progressionRepository.getGuildProgression(guild.id)
             if (progression != null) {

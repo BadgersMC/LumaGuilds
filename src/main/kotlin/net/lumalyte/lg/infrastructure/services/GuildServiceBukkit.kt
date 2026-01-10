@@ -4,17 +4,14 @@ import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.services.GuildService
-import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
-import net.lumalyte.lg.domain.entities.Party
-import net.lumalyte.lg.domain.entities.PartyStatus
-import net.lumalyte.lg.utils.serializeToString
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.events.GuildCreatedEvent
+import net.lumalyte.lg.utils.serializeToString
 import org.bukkit.Bukkit
-import org.koin.java.KoinJavaComponent.getKoin
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
@@ -31,9 +28,6 @@ class GuildServiceBukkit(
 ) : GuildService {
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
-
-    // Lazy initialization to avoid circular dependency with PartyService
-    private val partyService: PartyService by lazy { getKoin().get<PartyService>() }
     
     override fun createGuild(name: String, ownerId: UUID, banner: String?): Guild? {
         // Validate guild name
@@ -71,8 +65,8 @@ class GuildServiceBukkit(
                     memberService.addMember(ownerId, guildId, highestRank.id)
                 }
 
-                // Create default guild channels (Guild Chat, Officer Chat, Leader Chat)
-                createDefaultChannels(guild, ownerId)
+                // Fire event to create default guild channels (decoupled)
+                Bukkit.getPluginManager().callEvent(GuildCreatedEvent(guild, ownerId))
 
                 logger.info("Created guild: $name with owner: $ownerId")
                 return guild
@@ -88,89 +82,6 @@ class GuildServiceBukkit(
         return null
     }
 
-    /**
-     * Creates default guild chat channels when a guild is formed.
-     * Creates: Guild_Chat (all members), Officer_Chat (officer+ ranks), Leader_Chat (leader only).
-     *
-     * @param guild The guild to create channels for.
-     * @param ownerId The UUID of the guild owner who will lead the channels.
-     */
-    private fun createDefaultChannels(guild: Guild, ownerId: UUID) {
-        try {
-            val ranks = rankService.listRanks(guild.id)
-
-            // Find leader rank (name matches "Leader" or "Owner" case-insensitive)
-            val leaderRank = ranks.firstOrNull { rank ->
-                rank.name.equals("Leader", ignoreCase = true) ||
-                rank.name.equals("Owner", ignoreCase = true)
-            }
-
-            // Find officer ranks (name matches common officer/admin/moderator patterns)
-            val officerRanks = ranks.filter { rank ->
-                rank.name.matches(Regex("(?i)(officer|admin|moderator|co-?leader|leader|owner)"))
-            }
-
-            // 1. Guild_Chat - All ranks (no restrictions)
-            val guildChat = Party(
-                id = UUID.randomUUID(),
-                name = "Guild_Chat",
-                guildIds = setOf(guild.id),
-                leaderId = ownerId,
-                status = PartyStatus.ACTIVE,
-                createdAt = Instant.now(),
-                restrictedRoles = null // No restrictions = all members
-            )
-
-            if (partyService.createParty(guildChat, suppressBroadcast = true) != null) {
-                logger.info("Created Guild_Chat channel for guild ${guild.name}")
-            } else {
-                logger.warn("Failed to create Guild_Chat channel for guild ${guild.name}")
-            }
-
-            // 2. Officer_Chat - Officer+ ranks only (if officer ranks exist)
-            if (officerRanks.isNotEmpty()) {
-                val officerChat = Party(
-                    id = UUID.randomUUID(),
-                    name = "Officer_Chat",
-                    guildIds = setOf(guild.id),
-                    leaderId = ownerId,
-                    status = PartyStatus.ACTIVE,
-                    createdAt = Instant.now(),
-                    restrictedRoles = officerRanks.map { it.id }.toSet()
-                )
-
-                if (partyService.createParty(officerChat, suppressBroadcast = true) != null) {
-                    logger.info("Created Officer_Chat channel for guild ${guild.name}")
-                } else {
-                    logger.warn("Failed to create Officer_Chat channel for guild ${guild.name}")
-                }
-            }
-
-            // 3. Leader_Chat - Leader rank only (if leader rank exists)
-            if (leaderRank != null) {
-                val leaderChat = Party(
-                    id = UUID.randomUUID(),
-                    name = "Leader_Chat",
-                    guildIds = setOf(guild.id),
-                    leaderId = ownerId,
-                    status = PartyStatus.ACTIVE,
-                    createdAt = Instant.now(),
-                    restrictedRoles = setOf(leaderRank.id)
-                )
-
-                if (partyService.createParty(leaderChat, suppressBroadcast = true) != null) {
-                    logger.info("Created Leader_Chat channel for guild ${guild.name}")
-                } else {
-                    logger.warn("Failed to create Leader_Chat channel for guild ${guild.name}")
-                }
-            }
-        } catch (e: Exception) {
-            // Non-critical operation - catching all exceptions to prevent service failure
-            // Log error but don't fail guild creation - channels are non-critical
-            logger.error("Failed to create default channels for guild ${guild.name}", e)
-        }
-    }
-    
     override fun disbandGuild(guildId: UUID, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 
