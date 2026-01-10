@@ -22,21 +22,21 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.Duration
 import java.util.*
 
-class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                       private var guild: Guild): Menu, KoinComponent, ChatInputHandler {
-
-    private val guildService: GuildService by inject()
-    private val partyService: PartyService by inject()
-    private val rankService: RankService by inject()
-    private val memberService: MemberService by inject()
-    private val chatInputListener: ChatInputListener by inject()
-    private val configService: ConfigService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+class PartyCreationMenu(
+    private val menuNavigator: MenuNavigator,
+    private val player: Player,
+    private var guild: Guild,
+    private val guildService: GuildService,
+    private val partyService: PartyService,
+    private val rankService: RankService,
+    private val memberService: MemberService,
+    private val chatInputListener: ChatInputListener,
+    private val configService: ConfigService,
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory
+): Menu, ChatInputHandler {
 
     // Creation state
     private var partyName: String = ""
@@ -91,7 +91,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
 
     private fun addPartyTypeSection(pane: StaticPane) {
         // Private party toggle
-        val config = getKoin().get<ConfigService>().loadConfig()
+        val config = configService.loadConfig()
         val privateItem = ItemStack(if (isPrivateParty) Material.RED_CONCRETE else Material.GREEN_CONCRETE)
             .name("${if (isPrivateParty) "§c🔒" else "§a🌐"} Party Type")
             .lore("§7Current: §f${if (isPrivateParty) "Private (Guild Only)" else "Public (Multi-Guild)"}")
@@ -378,7 +378,7 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
 
             // Create the party
             val partyId = UUID.randomUUID()
-            val config = getKoin().get<ConfigService>().loadConfig().party
+            val config = configService.loadConfig().party
             val expiresAt = java.time.Instant.now().plus(Duration.ofHours(config.defaultPartyDurationHours.toLong()))
 
             val party = Party(
@@ -393,7 +393,6 @@ class PartyCreationMenu(private val menuNavigator: MenuNavigator, private val pl
             )
 
             // Use PartyService to create the party
-            val partyService = getKoin().get<PartyService>()
             val createdParty = partyService.createParty(party)
 
             if (createdParty != null) {

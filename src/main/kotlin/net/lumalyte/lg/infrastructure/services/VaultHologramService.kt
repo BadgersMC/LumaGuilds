@@ -9,8 +9,6 @@ import org.bukkit.entity.Player
 import org.bukkit.entity.TextDisplay
 import org.bukkit.plugin.Plugin
 import org.bukkit.util.RayTraceResult
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -19,9 +17,11 @@ import java.util.concurrent.ConcurrentHashMap
  * Manages hologram displays for guild vault chests.
  * Holograms only render when player has line of sight to the chest.
  */
-class VaultHologramService(private val plugin: Plugin) : KoinComponent {
+class VaultHologramService(
+    private val plugin: Plugin,
+    private val guildRepository: GuildRepository
+) {
 
-    private val guildRepository: GuildRepository by inject()
     private val logger = LoggerFactory.getLogger(VaultHologramService::class.java)
 
     // Map of vault location -> hologram entity UUID

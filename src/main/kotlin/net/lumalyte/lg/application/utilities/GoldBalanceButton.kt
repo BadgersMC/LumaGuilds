@@ -9,8 +9,6 @@ import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Utility class for creating and managing the Gold Balance Button.
@@ -19,21 +17,23 @@ import org.koin.core.component.inject
  * The currency material is configured via vault.physical_currency_material (defaults to RAW_GOLD).
  * Uses a 1:1 ratio for simplicity.
  */
-object GoldBalanceButton : KoinComponent {
+object GoldBalanceButton {
 
     private var plugin: JavaPlugin? = null
     private var goldButtonKey: NamespacedKey? = null
-    private val configService: ConfigService by inject()
+    private var configService: ConfigService? = null
 
     /**
-     * Initializes the GoldBalanceButton with the plugin instance.
+     * Initializes the GoldBalanceButton with the plugin instance and config service.
      * Must be called during plugin startup.
      *
      * @param pluginInstance The plugin instance.
+     * @param service The config service.
      */
-    fun initialize(pluginInstance: JavaPlugin) {
+    fun initialize(pluginInstance: JavaPlugin, service: ConfigService) {
         plugin = pluginInstance
         goldButtonKey = NamespacedKey(pluginInstance, "guild_gold_balance")
+        configService = service
     }
 
     /**
@@ -54,7 +54,8 @@ object GoldBalanceButton : KoinComponent {
      * Gets the configured currency material from config.
      */
     private fun getCurrencyMaterial(): Material {
-        val config = configService.loadConfig()
+        val service = configService ?: error("GoldBalanceButton not initialized - call initialize() first")
+        val config = service.loadConfig()
         val materialName = config.vault.physicalCurrencyMaterial
         return try {
             Material.valueOf(materialName.uppercase())

@@ -88,7 +88,7 @@ class LumaGuilds : JavaPlugin() {
         )
 
         // Initialize Gold Balance Button
-        net.lumalyte.lg.application.utilities.GoldBalanceButton.initialize(this)
+        net.lumalyte.lg.application.utilities.GoldBalanceButton.initialize(this, get().get())
 
         // Start vault auto-save service
         val vaultAutoSaveService = get().get<net.lumalyte.lg.application.services.VaultAutoSaveService>()
@@ -782,6 +782,10 @@ class LumaGuilds : JavaPlugin() {
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()
         server.pluginManager.registerEvents(progressionEventListener, this)
+
+        // Register guild channel creation listener (for creating default channels)
+        val guildChannelCreationListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener>()
+        server.pluginManager.registerEvents(guildChannelCreationListener, this)
 
         // Register vault protection listener
         vaultProtectionListener = net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener()

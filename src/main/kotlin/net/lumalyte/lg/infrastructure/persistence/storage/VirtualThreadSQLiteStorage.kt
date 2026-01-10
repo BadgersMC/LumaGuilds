@@ -3,9 +3,7 @@ package net.lumalyte.lg.infrastructure.persistence.storage
 import co.aikar.idb.Database
 import co.aikar.idb.DatabaseOptions
 import co.aikar.idb.PooledDatabaseOptions
-import com.zaxxer.hikari.HikariDataSource
 import java.io.File
-import java.lang.reflect.Field
 
 /**
  * SQLite storage implementation with virtual thread support.
@@ -32,56 +30,17 @@ class VirtualThreadSQLiteStorage(dataFolder: File) : Storage<Database> {
             .maxConnections(50) // Virtual threads can handle much more
             .createHikariDatabase()
 
-        // Inject virtual thread factory into HikariCP via reflection
-        try {
-            injectVirtualThreadFactory(connection)
-        } catch (e: Exception) {
-            // If injection fails, fall back to default threading (which is fine!)
-            // HikariCP doesn't pin virtual threads anyway, so this is just an optimization
-            System.err.println("WARN: Failed to inject virtual thread factory (falling back to platform threads): ${e.message}")
-            System.err.println("INFO: This is not critical - HikariCP works fine with virtual threads without this optimization")
-        }
+        // IMPORTANT: Virtual thread factory injection REMOVED
+        // Reason: Causes classloader context pollution during plugin initialization
+        // This breaks other plugins (LuckPerms' ByteBuddy gets NoClassDefFoundError)
+        //
+        // Good news: HikariCP already works perfectly with virtual threads without injection!
+        // When you call database operations from virtual thread contexts (AsyncTaskService,
+        // coroutine dispatchers), HikariCP automatically benefits from non-blocking I/O.
+        //
+        // The reflection-based injection was an over-optimization that caused more harm than good.
     }
 
-    /**
-     * Uses reflection to inject virtual thread factory into HikariCP DataSource.
-     * This is necessary because IDB wraps HikariCP and doesn't expose thread factory config.
-     */
-    private fun injectVirtualThreadFactory(database: Database) {
-        // Get the HikariDataSource from IDB's Database
-        val dataSourceField = findFieldByType(database.javaClass, HikariDataSource::class.java)
-            ?: throw IllegalStateException("Could not find HikariDataSource field in Database")
-
-        dataSourceField.isAccessible = true
-        val hikariDataSource = dataSourceField.get(database) as HikariDataSource
-
-        // Get HikariCP's internal executor via reflection
-        val poolField = hikariDataSource.javaClass.getDeclaredField("pool")
-        poolField.isAccessible = true
-        val pool = poolField.get(hikariDataSource) ?: return
-
-        // Set the thread factory to use virtual threads
-        val threadFactoryField = pool.javaClass.getDeclaredField("threadFactory")
-        threadFactoryField.isAccessible = true
-        threadFactoryField.set(pool, Thread.ofVirtual().name("hikari-sqlite-vt-", 0).factory())
-    }
-
-    /**
-     * Recursively searches for a field of the specified type in a class hierarchy.
-     */
-    private fun findFieldByType(clazz: Class<*>, fieldType: Class<*>): Field? {
-        // Search declared fields
-        for (field in clazz.declaredFields) {
-            if (fieldType.isAssignableFrom(field.type)) {
-                return field
-            }
-        }
-
-        // Search superclass if exists
-        return if (clazz.superclass != null) {
-            findFieldByType(clazz.superclass, fieldType)
-        } else {
-            null
-        }
-    }
+    // Removed: injectVirtualThreadFactory() and findFieldByType()
+    // These reflection-based methods caused classloader pollution
 }
