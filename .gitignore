@@ -267,3 +267,4 @@ enthusia-currency/gradle/wrapper/gradle-wrapper.properties
 enthusia-currency/gradle/wrapper/gradle-wrapper.jar
 enthusia-currency/gradlew.bat
 build.gradle.kts
+VIRTUAL_THREADS.md

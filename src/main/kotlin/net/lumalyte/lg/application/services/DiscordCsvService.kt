@@ -2,6 +2,7 @@ package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.MemberContribution
+import net.lumalyte.lg.infrastructure.services.AsyncTaskService
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.io.IOException
@@ -17,19 +18,24 @@ import org.json.JSONArray
 import java.util.UUID
 
 /**
- * Service for delivering CSV files via Discord webhooks
- * Provides actual file downloads while maintaining security
+ * Service for delivering CSV files via Discord webhooks.
+ * Uses virtual threads for non-blocking HTTP requests.
+ *
+ * Performance: Virtual threads make HTTP calls essentially free - the thread
+ * just parks while waiting for network I/O instead of blocking a platform thread.
  */
 class DiscordCsvService(
     private val webhookUrl: String,
-    private val httpClient: HttpClient = HttpClient.newHttpClient()
+    private val httpClient: HttpClient = HttpClient.newHttpClient(),
+    private val asyncTaskService: AsyncTaskService
 ) {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         .withZone(ZoneId.systemDefault())
 
     /**
-     * Send transaction history CSV to Discord
+     * Send transaction history CSV to Discord using virtual threads.
+     * Non-blocking - the HTTP request runs on a virtual thread which parks during I/O.
      */
     fun sendTransactionCsvAsync(
         player: Player,
@@ -37,31 +43,22 @@ class DiscordCsvService(
         guildName: String,
         callback: (Result<String>) -> Unit
     ) {
-        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
-            ?: return // Plugin not found, cannot schedule task
-
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
-            try {
+        // Run on virtual thread - HTTP call won't block platform threads
+        asyncTaskService.runAsyncCallback(
+            task = {
                 val csvContent = generateTransactionCsv(transactions)
                 val fileName = "guild_transactions_${guildName}_${System.currentTimeMillis()}.csv"
-
                 val embed = createTransactionEmbed(player, transactions.size, guildName, csvContent.length)
-                val result = sendFileToDiscord(csvContent, fileName, embed)
-
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    callback(result)
-                })
-
-            } catch (e: IOException) {
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    callback(Result.failure(e))
-                })
-            }
-        })
+                sendFileToDiscord(csvContent, fileName, embed)
+            },
+            onSuccess = { result -> callback(result) },
+            onError = { error -> callback(Result.failure(error)) }
+        )
     }
 
     /**
-     * Send member contributions CSV to Discord
+     * Send member contributions CSV to Discord using virtual threads.
+     * Non-blocking - the HTTP request runs on a virtual thread which parks during I/O.
      */
     fun sendContributionsCsvAsync(
         player: Player,
@@ -69,27 +66,17 @@ class DiscordCsvService(
         guildName: String,
         callback: (Result<String>) -> Unit
     ) {
-        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
-            ?: return // Plugin not found, cannot schedule task
-
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
-            try {
+        // Run on virtual thread - HTTP call won't block platform threads
+        asyncTaskService.runAsyncCallback(
+            task = {
                 val csvContent = generateContributionsCsv(contributions)
                 val fileName = "guild_contributions_${guildName}_${System.currentTimeMillis()}.csv"
-
                 val embed = createContributionsEmbed(player, contributions.size, guildName, csvContent.length)
-                val result = sendFileToDiscord(csvContent, fileName, embed)
-
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    callback(result)
-                })
-
-            } catch (e: IOException) {
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    callback(Result.failure(e))
-                })
-            }
-        })
+                sendFileToDiscord(csvContent, fileName, embed)
+            },
+            onSuccess = { result -> callback(result) },
+            onError = { error -> callback(Result.failure(error)) }
+        )
     }
 
     /**
@@ -239,7 +226,8 @@ class DiscordCsvService(
     }
 
     /**
-     * Send file to Discord webhook
+     * Send file to Discord webhook.
+     * This method runs on a virtual thread, so the blocking HTTP call is essentially free.
      */
     private fun sendFileToDiscord(csvContent: String, fileName: String, embed: JSONObject): Result<String> {
         try {
@@ -278,7 +266,8 @@ class DiscordCsvService(
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build()
 
-            // Send request
+            // Send request - this blocks on a virtual thread (which is fine!)
+            // Virtual thread will park during network I/O instead of wasting resources
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
             return if (response.statusCode() in 200..299) {

@@ -183,6 +183,7 @@ import net.lumalyte.lg.application.services.DiscordCsvService
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import net.milkbowl.vault.chat.Chat
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.Plugin
@@ -190,6 +191,8 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.io.File
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Core module - Plugin instance, configuration, storage, and foundational services
@@ -202,8 +205,27 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     single<FileConfiguration> { plugin.config }
     single<Chat?> { plugin.metadata }
     single<CoroutineScope> { plugin.pluginScope }
-    single<CoroutineDispatcher>(named("IODispatcher")) { Dispatchers.IO }
     single<java.util.logging.Logger> { get<LumaGuilds>().logger }
+
+    // Virtual thread executors (Java 21+)
+    single<ExecutorService>(named("VirtualThreadExecutor")) {
+        try {
+            // Use virtual threads if available (Java 21+)
+            Executors.newVirtualThreadPerTaskExecutor()
+        } catch (e: NoSuchMethodError) {
+            // Fallback to cached thread pool for older Java versions
+            plugin.logger.warning("Virtual threads not available - falling back to platform threads")
+            Executors.newCachedThreadPool()
+        }
+    }
+
+    // Virtual thread dispatcher for Kotlin coroutines
+    single<CoroutineDispatcher>(named("VirtualDispatcher")) {
+        get<ExecutorService>(named("VirtualThreadExecutor")).asCoroutineDispatcher()
+    }
+
+    // Keep IO dispatcher for compatibility
+    single<CoroutineDispatcher>(named("IODispatcher")) { Dispatchers.IO }
 
     // Storage
     @Suppress("UNCHECKED_CAST")
@@ -507,11 +529,16 @@ fun vaultModule() = module {
  * Utilities module - Export, teleportation, and map rendering
  */
 fun utilitiesModule() = module {
+    // Async task service for virtual thread I/O operations
+    single<net.lumalyte.lg.infrastructure.services.AsyncTaskService> {
+        net.lumalyte.lg.infrastructure.services.AsyncTaskService()
+    }
+
     // Export services
     single<CsvExportService> { CsvExportService() }
     single<DiscordCsvService> {
         val config = get<ConfigService>().loadConfig()
-        DiscordCsvService(config.discord.webhookUrl)
+        DiscordCsvService(config.discord.webhookUrl, asyncTaskService = get())
     }
     single<FileExportManager> {
         FileExportManager(

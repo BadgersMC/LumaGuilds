@@ -7,6 +7,8 @@ import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
 import net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations
 import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
 import net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadMariaDBStorage
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
 import net.lumalyte.lg.interaction.commands.*
@@ -143,10 +145,11 @@ class LumaGuilds : JavaPlugin() {
 
     /**
      * Creates the appropriate storage instance based on configuration.
-     * Returns either SQLiteStorage or MariaDBStorage.
+     * Returns either SQLiteStorage or MariaDBStorage with virtual thread support.
      */
     private fun createStorage(claimsEnabled: Boolean): Storage<Database> {
         val databaseType = config.getString("database_type", "sqlite")?.lowercase() ?: "sqlite"
+        val useVirtualThreads = config.getBoolean("database.use_virtual_threads", true)
 
         return when (databaseType) {
             "mariadb", "mysql" -> {
@@ -157,25 +160,42 @@ class LumaGuilds : JavaPlugin() {
                 val username = config.getString("mariadb.username", "root") ?: "root"
                 val password = config.getString("mariadb.password", "password") ?: "password"
 
-                val maxPoolSize = config.getInt("mariadb.pool.maximum_pool_size", 10)
-                val minIdle = config.getInt("mariadb.pool.minimum_idle", 2)
+                // Virtual threads allow much higher pool sizes
+                val maxPoolSize = config.getInt("mariadb.pool.maximum_pool_size", if (useVirtualThreads) 50 else 10)
+                val minIdle = config.getInt("mariadb.pool.minimum_idle", if (useVirtualThreads) 10 else 2)
                 val connectionTimeout = config.getLong("mariadb.pool.connection_timeout", 30000)
                 val idleTimeout = config.getLong("mariadb.pool.idle_timeout", 600000)
                 val maxLifetime = config.getLong("mariadb.pool.max_lifetime", 1800000)
 
                 try {
-                    val storage = MariaDBStorage(
-                        host = host,
-                        port = port,
-                        database = database,
-                        username = username,
-                        password = password,
-                        maxPoolSize = maxPoolSize,
-                        minIdle = minIdle,
-                        connectionTimeout = connectionTimeout,
-                        idleTimeout = idleTimeout,
-                        maxLifetime = maxLifetime
-                    )
+                    val storage = if (useVirtualThreads) {
+                        logColored("⚡ Using virtual threads for database operations")
+                        VirtualThreadMariaDBStorage(
+                            host = host,
+                            port = port,
+                            database = database,
+                            username = username,
+                            password = password,
+                            maxPoolSize = maxPoolSize,
+                            minIdle = minIdle,
+                            connectionTimeout = connectionTimeout,
+                            idleTimeout = idleTimeout,
+                            maxLifetime = maxLifetime
+                        )
+                    } else {
+                        MariaDBStorage(
+                            host = host,
+                            port = port,
+                            database = database,
+                            username = username,
+                            password = password,
+                            maxPoolSize = maxPoolSize,
+                            minIdle = minIdle,
+                            connectionTimeout = connectionTimeout,
+                            idleTimeout = idleTimeout,
+                            maxLifetime = maxLifetime
+                        )
+                    }
                     logColored("✓ Successfully connected to MariaDB at $host:$port/$database")
                     storage
                 } catch (e: SQLException) {
@@ -186,12 +206,32 @@ class LumaGuilds : JavaPlugin() {
                     logColored("❌ Invalid MariaDB configuration: ${e.message}")
                     e.printStackTrace()
                     throw RuntimeException("Failed to initialize MariaDB storage - invalid configuration", e)
+                } catch (e: NoSuchMethodError) {
+                    logColored("⚠ Virtual threads not available - falling back to platform threads")
+                    logColored("Upgrade to Java 21+ for better performance")
+                    MariaDBStorage(
+                        host = host,
+                        port = port,
+                        database = database,
+                        username = username,
+                        password = password,
+                        maxPoolSize = 10,
+                        minIdle = 2,
+                        connectionTimeout = connectionTimeout,
+                        idleTimeout = idleTimeout,
+                        maxLifetime = maxLifetime
+                    )
                 }
             }
             else -> {
                 logColored("💾 Using SQLite database...")
                 try {
-                    val storage = SQLiteStorage(dataFolder)
+                    val storage = if (useVirtualThreads) {
+                        logColored("⚡ Using virtual threads for database operations")
+                        VirtualThreadSQLiteStorage(dataFolder)
+                    } else {
+                        SQLiteStorage(dataFolder)
+                    }
                     val databaseFile = File(dataFolder, "lumaguilds.db")
                     logColored("✓ SQLite database initialized at ${databaseFile.absolutePath}")
                     storage
@@ -203,6 +243,10 @@ class LumaGuilds : JavaPlugin() {
                     logColored("❌ Failed to create SQLite database file: ${e.message}")
                     e.printStackTrace()
                     throw RuntimeException("Failed to initialize SQLite storage - file system error", e)
+                } catch (e: NoSuchMethodError) {
+                    logColored("⚠ Virtual threads not available - falling back to platform threads")
+                    logColored("Upgrade to Java 21+ for better performance")
+                    SQLiteStorage(dataFolder)
                 }
             }
         }
@@ -864,6 +908,20 @@ class LumaGuilds : JavaPlugin() {
         // Stop the daily war costs scheduler
         if (::dailyWarCostsScheduler.isInitialized) {
             dailyWarCostsScheduler.stopDailyScheduler()
+        }
+
+        // Shutdown virtual thread executor
+        try {
+            val virtualExecutor = get().getOrNull<java.util.concurrent.ExecutorService>(
+                org.koin.core.qualifier.named("VirtualThreadExecutor")
+            )
+            virtualExecutor?.shutdown()
+            // Wait up to 5 seconds for termination
+            if (virtualExecutor?.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS) == false) {
+                virtualExecutor.shutdownNow()
+            }
+        } catch (e: Exception) {
+            logger.warning("Failed to shutdown virtual thread executor: ${e.message}")
         }
 
         // Cancel any remaining plugin scope tasks
