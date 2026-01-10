@@ -77,7 +77,7 @@ class LumaGuilds : JavaPlugin() {
         // Enable case-insensitive command completion and parsing
         commandManager.enableUnstableAPI("help")
 
-        // Start Koin with storage and claims enabled/disabled
+        // Start Koin with modular architecture
         startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
 
         // Initialize GuildInvitationManager with the repository from Koin
