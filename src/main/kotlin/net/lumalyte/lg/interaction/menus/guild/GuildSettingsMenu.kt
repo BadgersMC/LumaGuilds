@@ -255,7 +255,6 @@ class GuildSettingsMenu(
             .lore("§7Supports MiniMessage formatting")
 
         val tagGuiItem = GuiItem(tagItem) {
-            val menuFactory = MenuFactory()
             menuNavigator.openMenu(menuFactory.createTagEditorMenu(menuNavigator, player, guild))
         }
         pane.addItem(tagGuiItem, 2, 2)

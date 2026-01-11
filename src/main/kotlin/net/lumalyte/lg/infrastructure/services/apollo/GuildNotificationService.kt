@@ -76,12 +76,23 @@ class GuildNotificationService(
         iconPath: String,
         durationSeconds: Int = 5
     ) {
-        if (!isNotificationsEnabled()) return
-        if (!lunarClientService.isLunarClient(player)) return
+        if (!isNotificationsEnabled()) {
+            logger.info("Notifications disabled in config")
+            return
+        }
+        if (!lunarClientService.isLunarClient(player)) {
+            logger.info("${player.name} is not a Lunar Client user")
+            return
+        }
 
         try {
-            val apolloPlayer = lunarClientService.getApolloPlayer(player) ?: return
+            val apolloPlayer = lunarClientService.getApolloPlayer(player)
+            if (apolloPlayer == null) {
+                logger.warn("Could not get ApolloPlayer for ${player.name}")
+                return
+            }
 
+            logger.info("Building notification for ${player.name} with icon: $iconPath")
             val notification = Notification.builder()
                 .titleComponent(title)
                 .descriptionComponent(description)
@@ -89,10 +100,11 @@ class GuildNotificationService(
                 .displayTime(Duration.ofSeconds(durationSeconds.toLong()))
                 .build()
 
+            logger.info("Displaying notification to ${player.name}")
             notificationModule.displayNotification(apolloPlayer, notification)
-            logger.debug("Sent notification to ${player.name}: ${title}")
+            logger.info("Successfully sent notification to ${player.name}")
         } catch (e: Exception) {
-            logger.debug("Failed to send notification to ${player.name}: ${e.message}")
+            logger.error("Failed to send notification to ${player.name}: ${e.message}", e)
         }
     }
 
@@ -130,16 +142,26 @@ class GuildNotificationService(
      * Send welcome notification to Lunar Client users on join.
      */
     fun sendWelcomeNotification(player: Player) {
-        if (!plugin.config.getBoolean("apollo.notifications.welcome_notification", true)) return
-        if (!lunarClientService.isLunarClient(player)) return
+        logger.info("sendWelcomeNotification called for ${player.name}")
 
+        if (!plugin.config.getBoolean("apollo.notifications.welcome_notification", true)) {
+            logger.info("Welcome notification disabled in config")
+            return
+        }
+        if (!lunarClientService.isLunarClient(player)) {
+            logger.info("${player.name} is not using Lunar Client")
+            return
+        }
+
+        logger.info("Sending welcome notification to ${player.name}")
         val title = Component.text("Welcome to the Server!", NamedTextColor.GOLD, TextDecoration.BOLD)
         val description = Component.text("You're using Lunar Client!", NamedTextColor.GRAY)
             .append(Component.text("\n"))
             .append(Component.text("Bonus: ", NamedTextColor.GREEN))
             .append(Component.text("2x Guild Progression XP", NamedTextColor.YELLOW))
 
-        sendNotification(player, title, description, iconGuild, 8)
+        sendNotification(player, title, description, iconWelcome, 8)
+        logger.info("Welcome notification sent to ${player.name}")
     }
 
     // ========================================

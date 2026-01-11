@@ -57,7 +57,7 @@ class BedrockGuildLeaveConfirmationMenu(
             // If owner is leaving, we need special handling
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.owner.warning"))
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.owner.message"))
-            bedrockNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
             return
         }
 
@@ -72,7 +72,7 @@ class BedrockGuildLeaveConfirmationMenu(
             clearMenuStack()
         } else {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.failed"))
-            bedrockNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
     }
 

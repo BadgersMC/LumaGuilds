@@ -55,7 +55,7 @@ class BedrockGuildDisbandConfirmationMenu(
             clearMenuStack()
         } else {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.failed"))
-            bedrockNavigator.openMenu(GuildControlPanelMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
     }
 
