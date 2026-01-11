@@ -102,7 +102,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
                 .lore("§7They will receive an invitation")
 
             val playerGuiItem = GuiItem(playerHead) {
-                val menuFactory = MenuFactory()
+                // menuFactory already injected
                 menuNavigator.openMenu(menuFactory.createGuildInviteConfirmationMenu(menuNavigator, player, guild, onlinePlayer))
             }
             pane.addItem(playerGuiItem, x + index, y)
@@ -150,7 +150,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun invitePlayer(targetPlayer: Player) {
         // Use confirmation menu instead of directly inviting
-        val menuFactory = MenuFactory()
+        // menuFactory already injected
         menuNavigator.openMenu(menuFactory.createGuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer))
     }
 

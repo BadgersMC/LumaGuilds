@@ -118,7 +118,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun kickMember(member: Member) {
         // Show confirmation menu instead of directly kicking
-        val menuFactory = MenuFactory()
+        // menuFactory already injected
         menuNavigator.openMenu(menuFactory.createGuildKickConfirmationMenu(menuNavigator, player, guild, member))
     }
 

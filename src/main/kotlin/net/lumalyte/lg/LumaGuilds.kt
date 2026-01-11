@@ -73,7 +73,6 @@ class LumaGuilds : JavaPlugin() {
         initialiseVaultDependency()
         initialisePlaceholderAPI()
         initialiseAxKothIntegration()
-        initialiseApolloIntegration()
         commandManager = PaperCommandManager(this)
 
         // Enable case-insensitive command completion and parsing
@@ -81,6 +80,9 @@ class LumaGuilds : JavaPlugin() {
 
         // Start Koin with modular architecture
         startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
+
+        // Initialize Apollo AFTER Koin is started (requires Koin DI)
+        initialiseApolloIntegration()
 
         // Initialize GuildInvitationManager with the repository from Koin
         net.lumalyte.lg.infrastructure.services.GuildInvitationManager.initialize(
@@ -600,6 +602,15 @@ class LumaGuilds : JavaPlugin() {
                         val notificationListener = get().getOrNull<net.lumalyte.lg.infrastructure.listeners.apollo.GuildNotificationListener>()
                         if (notificationListener != null) {
                             server.pluginManager.registerEvents(notificationListener, this)
+                        }
+                    }
+                    if (config.getBoolean("apollo.richpresence.enabled", true)) {
+                        logColored("  👥 Rich Presence Module: Discord/Launcher guild status")
+
+                        // Register GuildRichPresenceListener
+                        val richPresenceListener = get().getOrNull<net.lumalyte.lg.infrastructure.listeners.apollo.GuildRichPresenceListener>()
+                        if (richPresenceListener != null) {
+                            server.pluginManager.registerEvents(richPresenceListener, this)
                         }
                     }
                 } else {

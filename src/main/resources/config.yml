@@ -802,3 +802,11 @@ apollo:
       peace: "minecraft:textures/item/golden_apple.png"
       neutral: "minecraft:textures/item/apple.png"
       koth: "minecraft:textures/item/golden_helmet.png"
+
+  # Rich Presence Module - Show guild info on Discord/Lunar Client launcher
+  richpresence:
+    enabled: true
+    # Updates player's Discord and LC launcher status to show their guild
+    # Example: "Playing Guild: MyGuild [TAG] - 5/50 members online"
+    # Server IP shown in rich presence (empty = don't show)
+    server_ip: "play.enthusia.info"

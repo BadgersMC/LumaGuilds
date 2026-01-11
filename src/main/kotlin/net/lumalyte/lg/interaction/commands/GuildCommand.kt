@@ -801,7 +801,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Open confirmation menu
         val menuNavigator = MenuNavigator(player)
-        val menuFactory = MenuFactory()
         menuNavigator.openMenu(menuFactory.createGuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer))
     }
 
@@ -1053,7 +1052,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Open confirmation menu
         val menuNavigator = MenuNavigator(player)
-        val menuFactory = MenuFactory()
         menuNavigator.openMenu(menuFactory.createGuildKickConfirmationMenu(menuNavigator, player, guild, targetMember))
     }
 
@@ -1229,9 +1227,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (tag == null) {
         // Open tag edit menu directly if player has permission
         val menuNavigator = MenuNavigator(player)
-        val menuFactory = MenuFactory()
         menuNavigator.openMenu(menuFactory.createTagEditorMenu(menuNavigator, player, guild))
-            return
+        return
         }
 
         // Validate tag length and format

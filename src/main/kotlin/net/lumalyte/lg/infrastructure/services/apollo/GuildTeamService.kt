@@ -139,6 +139,7 @@ class GuildTeamService(
 
                     if (teamMembers.isNotEmpty()) {
                         teamModule.updateTeamMembers(apolloPlayer, teamMembers)
+                        logger.info("Created team for LC user ${viewer.name} with ${teamMembers.size} teammates")
                     }
                 } catch (e: Exception) {
                     logger.debug("Failed to update team for viewer ${viewer.name}: ${e.message}")
@@ -147,6 +148,7 @@ class GuildTeamService(
 
             // Track this guild as having an active team
             activeTeams[guildId] = onlineMembers.map { it.uniqueId }.toMutableSet()
+            logger.info("Guild team created for $guildId with ${onlineMembers.size} online members")
         } catch (e: Exception) {
             logger.warn("Failed to create guild team for $guildId: ${e.message}")
         }

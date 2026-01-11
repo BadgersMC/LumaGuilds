@@ -120,7 +120,7 @@ class GuildMemberRankMenu(
                     player.sendMessage("§7This is already their current rank!")
                 } else {
                     // Open confirmation menu
-                    val menuFactory = MenuFactory()
+                    // menuFactory already injected
                     menuNavigator.openMenu(menuFactory.createGuildMemberRankConfirmationMenu(
                         menuNavigator, player, guild, targetMember, rank
                     ))

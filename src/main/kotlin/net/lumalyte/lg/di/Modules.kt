@@ -641,6 +641,24 @@ fun integrationModule(plugin: LumaGuilds) = module {
             }
         }
 
+        // Guild Rich Presence
+        if (plugin.config.getBoolean("apollo.richpresence.enabled", true)) {
+            single<net.lumalyte.lg.infrastructure.services.apollo.GuildRichPresenceService> {
+                net.lumalyte.lg.infrastructure.services.apollo.GuildRichPresenceService(
+                    plugin = get(),
+                    lunarClientService = get(),
+                    guildService = get(),
+                    memberService = get()
+                )
+            }
+
+            single<net.lumalyte.lg.infrastructure.listeners.apollo.GuildRichPresenceListener> {
+                net.lumalyte.lg.infrastructure.listeners.apollo.GuildRichPresenceListener(
+                    richPresenceService = get()
+                )
+            }
+        }
+
         plugin.logger.info("✓ Apollo integration enabled - Lunar Client features active")
     } else {
         plugin.logger.info("⚠ Apollo integration disabled - Lunar Client features unavailable")
