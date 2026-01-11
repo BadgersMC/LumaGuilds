@@ -30,6 +30,16 @@ class LunarClientServiceBukkit : LunarClientService {
         }
     }
 
+    override fun isLunarClient(player: Player): Boolean {
+        if (!apolloAvailable) return false
+
+        return try {
+            Apollo.getPlayerManager().getPlayer(player.uniqueId).isPresent
+        } catch (e: Exception) {
+            logger.debug("Error checking if ${player.name} is using Lunar Client: ${e.message}")
+            false
+        }
+    }
 
     override fun getApolloPlayer(player: Player): ApolloPlayer? {
         if (!apolloAvailable) return null
