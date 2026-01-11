@@ -720,6 +720,9 @@ class LumaGuilds : JavaPlugin() {
         // Register Bedrock cache stats command
         getCommand("bedrockcachestats")?.setExecutor(BedrockCacheStatsCommand())
 
+        // Register Apollo debug command
+        getCommand("apollodebug")?.setExecutor(net.lumalyte.lg.interaction.commands.ApolloDebugCommand())
+
         // Register Vault Rollback admin command
         val vaultRollbackCommand = net.lumalyte.lg.interaction.commands.admin.VaultRollbackCommand(
             get().get(),

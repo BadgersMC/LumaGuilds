@@ -36,6 +36,9 @@ class GuildWaypointService(
     // Track which waypoints are active for each player (playerId -> set of waypointNames)
     private val activeWaypoints = ConcurrentHashMap<UUID, MutableSet<String>>()
 
+    // Track guild waypoint mapping (guildId -> set of waypoint display names)
+    private val guildWaypointMapping = ConcurrentHashMap<UUID, MutableSet<String>>()
+
     /**
      * Show all guild home waypoints for a player.
      * This is called on player join and whenever guild homes change.
@@ -64,16 +67,19 @@ class GuildWaypointService(
                     homes.homes.forEach { (homeName, home) ->
                         try {
                             val world = Bukkit.getWorld(home.worldId) ?: return@forEach
-                            val waypointName = "guild_home_${guildId}_${homeName}"
 
+                            // Create display name for the waypoint
                             val displayName = if (homeName == "main") {
                                 "${guild.name} (Home)"
                             } else {
                                 "${guild.name} ($homeName)"
                             }
 
+                            // Use internal ID for tracking/removal
+                            val waypointId = "guild_home_${guildId}_${homeName}"
+
                             val waypoint = Waypoint.builder()
-                                .name(waypointName)
+                                .name(displayName)
                                 .location(
                                     com.lunarclient.apollo.common.location.ApolloBlockLocation.builder()
                                         .world(world.name)
@@ -88,9 +94,13 @@ class GuildWaypointService(
 
                             waypointModule.displayWaypoint(apolloPlayer, waypoint)
 
-                            // Track this waypoint
+                            // Track this waypoint using display name (Apollo uses name as ID)
                             activeWaypoints.computeIfAbsent(player.uniqueId) { ConcurrentHashMap.newKeySet() }
-                                .add(waypointName)
+                                .add(displayName)
+
+                            // Track guild mapping for cleanup
+                            guildWaypointMapping.computeIfAbsent(guildId) { ConcurrentHashMap.newKeySet() }
+                                .add(displayName)
 
                             logger.debug("Displayed waypoint '$displayName' for ${player.name}")
                         } catch (e: Exception) {
@@ -154,23 +164,24 @@ class GuildWaypointService(
      */
     fun clearGuildWaypoints(guildId: UUID) {
         try {
-            val prefix = "guild_home_${guildId}_"
+            // Get all waypoint names for this guild
+            val guildWaypoints = guildWaypointMapping.remove(guildId) ?: return
 
-            activeWaypoints.forEach { (playerId, waypoints) ->
+            activeWaypoints.forEach { (playerId, playerWaypoints) ->
                 val player = Bukkit.getPlayer(playerId) ?: return@forEach
                 if (!lunarClientService.isLunarClient(player)) return@forEach
 
                 val apolloPlayer = lunarClientService.getApolloPlayer(player) ?: return@forEach
 
-                // Find waypoints matching this guild
-                val guildWaypoints = waypoints.filter { it.startsWith(prefix) }
-
+                // Remove waypoints that belong to this guild
                 guildWaypoints.forEach { waypointName ->
-                    try {
-                        waypointModule.removeWaypoint(apolloPlayer, waypointName)
-                        waypoints.remove(waypointName)
-                    } catch (e: Exception) {
-                        logger.debug("Failed to remove waypoint '$waypointName': ${e.message}")
+                    if (playerWaypoints.contains(waypointName)) {
+                        try {
+                            waypointModule.removeWaypoint(apolloPlayer, waypointName)
+                            playerWaypoints.remove(waypointName)
+                        } catch (e: Exception) {
+                            logger.debug("Failed to remove waypoint '$waypointName': ${e.message}")
+                        }
                     }
                 }
             }

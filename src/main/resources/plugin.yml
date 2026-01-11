@@ -47,6 +47,10 @@ commands:
     description: Forcibly remove a guild's vault
     usage: /removevault <guild> [dropItems]
     permission: lumaguilds.admin.vault.remove
+  apollodebug:
+    description: Debug and manually trigger Apollo integrations
+    usage: /apollodebug [status|refresh|help]
+    permission: lumalyte.apollo.debug
 
 permissions:
   # Guild Management Permissions
@@ -230,4 +234,9 @@ permissions:
   # Remove Vault Permissions
   lumaguilds.admin.vault.remove:
     description: Forcibly remove a guild's vault
+    default: op
+
+  # Apollo Debug Permissions
+  lumalyte.apollo.debug:
+    description: Use Apollo debug commands
     default: op
