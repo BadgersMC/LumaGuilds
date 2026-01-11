@@ -4,9 +4,21 @@
 
 LumaGuilds is architected using onion/port-and-adapter architecture, which provides excellent separation between business logic and platform-specific code. This enables a clean migration path to Hytale.
 
-**Estimated Effort Distribution:**
-- **60-70% reusable** - Domain, application, database layers (no changes needed)
-- **30-40% platform-specific** - Infrastructure implementations, commands, listeners, UI (needs Hytale versions)
+**🚨 UPDATE 2026-01-11: HYTALE API INTEL CONFIRMED**
+
+**Critical Findings:**
+- ✅ **Hytale server is Java-based** (not C++) - Direct compatibility with our Kotlin codebase
+- ✅ **"Shared Source" model** - Read access to server code for API understanding
+- ✅ **ECS architecture** (Flecs) - Aligns perfectly with our data-centric domain design
+- ✅ **JSON-driven configs** - Easy migration from YAML
+
+**REVISED Estimated Effort Distribution:**
+- **70-80% reusable** - Domain, application, database layers (no changes needed)
+- **20-30% platform-specific** - Infrastructure implementations, ECS adapters (needs Hytale versions)
+
+**REVISED Timeline:** 3-5 months (reduced from 4.5-6.5 months)
+
+**See `HYTALE_API_INTEL.md` for detailed analysis.**
 
 ## Architecture Overview
 
