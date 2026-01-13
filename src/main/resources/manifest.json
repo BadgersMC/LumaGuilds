@@ -1,11 +1,16 @@
 {
-  "id": "lumaguilds",
-  "name": "LumaGuilds",
-  "version": "2.0.0",
-  "description": "Advanced guild and claims system for Hytale with cross-server support, wars, parties, and economy integration",
-  "authors": [
-    "LumaLyte Development Team"
+  "Group": "LumaLyte",
+  "Name": "LumaGuilds",
+  "Version": "${version}",
+  "Description": "Advanced guild and claims system for Hytale with cross-server support, wars, parties, and economy integration",
+  "Authors": [
+    {
+      "Name": "LumaLyte Development Team",
+      "Url": "https://github.com/BadgersMC/LumaGuilds"
+    }
   ],
-  "main": "net.lumalyte.lg.infrastructure.hytale.LumaGuildsHytale",
-  "dependencies": []
+  "Main": "net.lumalyte.lg.infrastructure.hytale.LumaGuildsHytale",
+  "Dependencies": {},
+  "OptionalDependencies": {},
+  "LoadBefore": {}
 }
