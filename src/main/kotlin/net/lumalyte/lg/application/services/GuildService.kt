@@ -5,6 +5,7 @@ import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.values.Item
 import java.util.UUID
 
 /**
@@ -44,11 +45,11 @@ interface GuildService {
      * Sets the banner for a guild.
      *
      * @param guildId The ID of the guild.
-     * @param banner The banner ItemStack, or null to clear the banner.
+     * @param banner The banner Item, or null to clear the banner.
      * @param actorId The ID of the player performing the action.
      * @return true if successful, false otherwise.
      */
-    fun setBanner(guildId: UUID, banner: org.bukkit.inventory.ItemStack?, actorId: UUID): Boolean
+    fun setBanner(guildId: UUID, banner: Item?, actorId: UUID): Boolean
 
     /**
      * Sets the emoji for a guild.
