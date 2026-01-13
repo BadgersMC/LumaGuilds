@@ -145,5 +145,6 @@ object BukkitItemAdapter {
 // Extension functions for easier usage
 fun ItemStack?.toItem(): Item = BukkitItemAdapter.run { toItem() }
 fun Item.toItemStack(): ItemStack = BukkitItemAdapter.run { toItemStack() }
-fun List<ItemStack?>.toItems(): List<Item> = BukkitItemAdapter.toItems()
-fun List<Item>.toItemStacks(): List<ItemStack> = BukkitItemAdapter.toItemStacks()
+fun List<ItemStack?>.toItems(): List<Item> = BukkitItemAdapter.run { toItems() }
+fun List<Item>.toItemStacks(): List<ItemStack> = BukkitItemAdapter.run { toItemStacks() }
+fun Array<ItemStack?>.toItemMap(): Map<Int, Item> = BukkitItemAdapter.run { toItemMap() }

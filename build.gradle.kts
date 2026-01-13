@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.lumalyte.lg"
-version = "1.1.1"
+version = "2.0.0" // Hytale port
 
 repositories {
     mavenLocal()
@@ -42,7 +42,9 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
 
-    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
+    // Platform-specific dependencies
+    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT") // Bukkit
+    compileOnly(files("D:/BadgersMC-Dev/hytale-server/Server/HytaleServer.jar")) // Hytale
     shadow("org.jetbrains.kotlin:kotlin-stdlib")
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
