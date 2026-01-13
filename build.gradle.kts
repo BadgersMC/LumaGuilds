@@ -88,3 +88,31 @@ tasks.processResources {
         expand(props)
     }
 }
+
+// Task to copy built JAR to Hytale server mods folder for testing
+tasks.register<Copy>("copyToServer") {
+    group = "hytale"
+    description = "Copies the built JAR to the Hytale server mods folder"
+
+    dependsOn(tasks.shadowJar)
+
+    from(tasks.shadowJar.get().archiveFile)
+    into("D:/BadgersMC-Dev/hytale-server/Server/mods")
+
+    doLast {
+        println("✅ Copied ${tasks.shadowJar.get().archiveFileName.get()} to Hytale server mods folder")
+    }
+}
+
+// Task to build and copy in one command
+tasks.register("deployToServer") {
+    group = "hytale"
+    description = "Builds the plugin and deploys it to the Hytale server"
+
+    dependsOn("copyToServer")
+
+    doLast {
+        println("✅ LumaGuilds deployed to Hytale server!")
+        println("   Start the server with: D:/BadgersMC-Dev/hytale-server/Server/start-server.bat")
+    }
+}
