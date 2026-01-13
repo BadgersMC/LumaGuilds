@@ -80,5 +80,5 @@ object BukkitPlayerAdapter {
 // Extension functions for easier usage
 fun Player.toPlayerContext(): PlayerContext = BukkitPlayerAdapter.run { toPlayerContext() }
 fun PlayerContext.toBukkitPlayer(): Player? = BukkitPlayerAdapter.run { toBukkitPlayer() }
-fun PlayerContext.getOnlinePlayer(): Player? = BukkitPlayerAdapter.getOnlinePlayer()
+fun PlayerContext.getOnlinePlayer(): Player? = BukkitPlayerAdapter.run { getOnlinePlayer() }
 fun UUID.toPlayerContext(): PlayerContext? = BukkitPlayerAdapter.fromUUID(this)
