@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.hytale
 import com.hypixel.hytale.server.core.plugin.JavaPlugin
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit
 import net.lumalyte.lg.di.hytaleAppModule
+import net.lumalyte.lg.infrastructure.persistence.schema.SchemaInitializer
 import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -38,6 +39,13 @@ class LumaGuildsHytale(init: JavaPluginInit) : JavaPlugin(init) {
             }
             storage = SQLiteStorage(dataFolder)
             log.info("Database storage initialized at: ${dataFolder.absolutePath}/lumaguilds.db")
+
+            // Initialize database schema
+            log.info("Setting up database schema...")
+            val schemaInitializer = SchemaInitializer(storage.connection)
+            if (!schemaInitializer.initialize()) {
+                throw IllegalStateException("Failed to initialize database schema")
+            }
 
             // Initialize Koin dependency injection
             log.info("Starting Koin dependency injection...")

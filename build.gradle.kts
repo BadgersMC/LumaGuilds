@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.lumalyte.lg"
-version = "2.0.0" // Hytale port
+version = "2.1.0" // Hytale port + Phase 3B/4 complete
 
 repositories {
     mavenLocal()
