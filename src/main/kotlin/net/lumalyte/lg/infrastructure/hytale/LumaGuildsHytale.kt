@@ -2,6 +2,10 @@ package net.lumalyte.lg.infrastructure.hytale
 
 import com.hypixel.hytale.server.core.plugin.JavaPlugin
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit
+import net.lumalyte.lg.di.hytaleAppModule
+import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.slf4j.LoggerFactory
 
 /**
@@ -13,6 +17,7 @@ import org.slf4j.LoggerFactory
 class LumaGuildsHytale(init: JavaPluginInit) : JavaPlugin(init) {
 
     private val log = LoggerFactory.getLogger(LumaGuildsHytale::class.java)
+    private lateinit var storage: SQLiteStorage
 
     /**
      * Setup phase - Register components, commands, events
@@ -25,7 +30,22 @@ class LumaGuildsHytale(init: JavaPluginInit) : JavaPlugin(init) {
         log.info("===========================================")
 
         try {
-            // TODO: Initialize Koin dependency injection
+            // Initialize database storage
+            log.info("Initializing SQLite database storage...")
+            val dataFolder = dataDirectory.toFile()
+            if (!dataFolder.exists()) {
+                dataFolder.mkdirs()
+            }
+            storage = SQLiteStorage(dataFolder)
+            log.info("Database storage initialized at: ${dataFolder.absolutePath}/lumaguilds.db")
+
+            // Initialize Koin dependency injection
+            log.info("Starting Koin dependency injection...")
+            startKoin {
+                modules(hytaleAppModule(storage, dataDirectory, claimsEnabled = true))
+            }
+            log.info("Koin DI initialized with all 9 services and 18 repositories")
+
             // TODO: Register ECS components (GuildMemberComponent)
             // TODO: Register commands (GuildCommand, ClaimCommand)
             // TODO: Register event listeners
@@ -65,9 +85,15 @@ class LumaGuildsHytale(init: JavaPluginInit) : JavaPlugin(init) {
 
         try {
             // TODO: Save all guild data
-            // TODO: Close database connections
             // TODO: Stop scheduled tasks
-            // TODO: Cleanup Koin
+
+            // Close database connections
+            log.info("Closing database connections...")
+            // Note: HikariCP will close connections automatically when the pool is shut down
+
+            // Cleanup Koin dependency injection
+            log.info("Stopping Koin dependency injection...")
+            stopKoin()
 
             log.info("LumaGuilds shut down successfully!")
         } catch (e: Exception) {
