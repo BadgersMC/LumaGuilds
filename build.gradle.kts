@@ -47,6 +47,7 @@ dependencies {
     // Core Dependencies (Platform-Agnostic)
     implementation("org.slf4j:slf4j-nop:2.0.13")
     implementation("com.zaxxer:HikariCP:5.1.0")
+    implementation("org.xerial:sqlite-jdbc:3.45.1.0")  // SQLite JDBC driver
     implementation("org.mariadb.jdbc:mariadb-java-client:3.3.2")
     implementation("co.aikar:idb-core:1.0.0-SNAPSHOT")
     implementation("io.insert-koin:koin-core:4.0.2")
