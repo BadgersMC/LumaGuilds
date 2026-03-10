@@ -81,7 +81,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             else -> Material.PAPER
         }
 
-        val infoItem = ItemStack(categoryIcon)
+        val infoItem = ItemStack.of(categoryIcon)
             .name("§6🔧 $categoryName")
             .lore("§7Managing permissions for: §f${rank.name}")
             .lore("§7Category: §f$categoryName")
@@ -163,7 +163,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             val displayName = permission.name.replace("_", " ").lowercase()
                 .split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
 
-            val permissionItem = ItemStack(
+            val permissionItem = ItemStack.of(
                 if (hasPermission) Material.LIME_CONCRETE_POWDER else Material.RED_CONCRETE_POWDER
             )
                 .name("${if (hasPermission) "§a✓" else "§c✗"} §f$displayName")

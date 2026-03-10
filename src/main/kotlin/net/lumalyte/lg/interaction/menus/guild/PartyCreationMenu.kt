@@ -92,7 +92,7 @@ class PartyCreationMenu(
     private fun addPartyTypeSection(pane: StaticPane) {
         // Private party toggle
         val config = configService.loadConfig()
-        val privateItem = ItemStack(if (isPrivateParty) Material.RED_CONCRETE else Material.GREEN_CONCRETE)
+        val privateItem = ItemStack.of(if (isPrivateParty) Material.RED_CONCRETE else Material.GREEN_CONCRETE)
             .name("${if (isPrivateParty) "§c🔒" else "§a🌐"} Party Type")
             .lore("§7Current: §f${if (isPrivateParty) "Private (Guild Only)" else "Public (Multi-Guild)"}")
             .lore("§7")
@@ -223,7 +223,7 @@ class PartyCreationMenu(
 
     private fun addRoleRestrictionSection(pane: StaticPane) {
         val hasRestrictions = restrictedRoles.isNotEmpty()
-        val restrictionItem = ItemStack(if (hasRestrictions) Material.REDSTONE_TORCH else Material.LEVER)
+        val restrictionItem = ItemStack.of(if (hasRestrictions) Material.REDSTONE_TORCH else Material.LEVER)
             .name("§6🔒 Role Restrictions")
             .lore("§7Status: §f${if (hasRestrictions) "Enabled" else "Disabled"}")
             .lore("§7")
@@ -283,7 +283,7 @@ class PartyCreationMenu(
             val col = 1 + (index % 7)
 
             val isSelected = restrictedRoles.contains(rank.id)
-            val rankItem = ItemStack(if (isSelected) Material.LIME_CONCRETE else Material.RED_CONCRETE)
+            val rankItem = ItemStack.of(if (isSelected) Material.LIME_CONCRETE else Material.RED_CONCRETE)
                 .name("${if (isSelected) "§a✓" else "§c✗"} ${rank.name}")
                 .lore("§7Priority: §f${rank.priority}")
                 .lore("§7Members: §f${memberService.getMembersByRank(guild.id, rank.id).size}")
@@ -307,7 +307,7 @@ class PartyCreationMenu(
     private fun addActionButtons(pane: StaticPane) {
         // Create party - allow single guild for private parties, or 2+ guilds for public
         val canCreate = if (isPrivateParty) selectedGuilds.size >= 1 else selectedGuilds.size >= 2
-        val createItem = ItemStack(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
+        val createItem = ItemStack.of(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
             .name(if (canCreate) "§a✅ Create Party" else "§c❌ Cannot Create")
             .lore("§7Create the party with selected settings")
 

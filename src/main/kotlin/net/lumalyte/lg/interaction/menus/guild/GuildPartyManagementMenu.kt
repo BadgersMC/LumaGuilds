@@ -128,7 +128,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val outgoingRequests = partyService.getPendingRequestsFromGuild(guild.id)
 
         // Incoming requests
-        val incomingItem = ItemStack(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
+        val incomingItem = ItemStack.of(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
             .name("§aIncoming Requests")
             .lore("§7Party invitations to join")
             .lore("§7Count: §f${incomingRequests.size}")
@@ -139,7 +139,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         pane.addItem(incomingGuiItem, 3, 1)
 
         // Outgoing requests
-        val outgoingItem = ItemStack(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
+        val outgoingItem = ItemStack.of(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
             .name("§eOutgoing Requests")
             .lore("§7Your party's sent invitations")
             .lore("§7Count: §f${outgoingRequests.size}")
@@ -154,7 +154,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val canManageParties = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_PARTIES)
 
         // Send party request (Admin+ only)
-        val sendRequestItem = ItemStack(if (canManageParties) Material.FIREWORK_STAR else Material.BARRIER)
+        val sendRequestItem = ItemStack.of(if (canManageParties) Material.FIREWORK_STAR else Material.BARRIER)
             .name(if (canManageParties) "§aSend Party Request" else "§c❌ Send Party Request")
             .lore(if (canManageParties) {
                 listOf("§7Invite another guild to a party", "§7Create new parties or join existing ones")
@@ -172,7 +172,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         pane.addItem(sendRequestGuiItem, 0, 2)
 
         // Create new party (Admin+ only)
-        val createPartyItem = ItemStack(if (canManageParties) Material.NETHER_STAR else Material.BARRIER)
+        val createPartyItem = ItemStack.of(if (canManageParties) Material.NETHER_STAR else Material.BARRIER)
             .name(if (canManageParties) "§6Create New Party" else "§c❌ Create New Party")
             .lore(if (canManageParties) {
                 listOf("§7Start a fresh party", "§7Invite guilds to coordinate events")
@@ -194,7 +194,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val canManageParties = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_PARTIES)
 
         // Party access settings (Admin+ only)
-        val accessSettingsItem = ItemStack(if (canManageParties) Material.COMMAND_BLOCK else Material.BARRIER)
+        val accessSettingsItem = ItemStack.of(if (canManageParties) Material.COMMAND_BLOCK else Material.BARRIER)
             .name(if (canManageParties) "§bParty Access Settings" else "§c❌ Party Access Settings")
             .lore("§7Configure who can join parties")
             .lore("§7Default: All guild members")

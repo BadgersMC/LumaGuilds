@@ -307,7 +307,7 @@ class GuildSettingsMenu(
         pane.addItem(homeGuiItem, 0, 4)
 
         // Guild Open/Closed Toggle
-        val openClosedItem = ItemStack(
+        val openClosedItem = ItemStack.of(
             if (guild.isOpen) Material.LIME_DYE else Material.GRAY_DYE
         )
             .name("§f🚪 GUILD ACCESS")
@@ -357,7 +357,7 @@ class GuildSettingsMenu(
         // Guild Mode
         val config = configService.loadConfig()
         if (config.guild.peacefulModeEnabled) {
-            val modeItem = ItemStack(
+            val modeItem = ItemStack.of(
                 if (guild.mode == GuildMode.PEACEFUL)
                     Material.GREEN_WOOL else Material.RED_WOOL
             )

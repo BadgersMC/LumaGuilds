@@ -59,7 +59,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
                 return@setOnClick
             }
 
-            inputPane.addItem(GuiItem(ItemStack(cursor)), 0, 0)
+            inputPane.addItem(GuiItem(ItemStack.of(cursor)), 0, 0)
             gui.update()
             thread(start = true) {
                 Thread.sleep(1)

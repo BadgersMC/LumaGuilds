@@ -131,7 +131,7 @@ class OutgoingRequestsMenu(
         // Calculate time ago
         val timeAgo = formatTimeAgo(relation.createdAt)
 
-        val item = ItemStack(material)
+        val item = ItemStack.of(material)
             .name("$typeColor$typeName")
             .lore("§7To: §f$guildName")
             .lore("§7Members: §f$memberCount")

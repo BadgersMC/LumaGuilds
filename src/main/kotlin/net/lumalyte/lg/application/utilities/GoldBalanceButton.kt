@@ -85,7 +85,7 @@ object GoldBalanceButton {
         val currencyMaterial = getCurrencyMaterial()
         val currencyName = getCurrencyName()
 
-        val item = ItemStack(currencyMaterial, 1)
+        val item = ItemStack.of(currencyMaterial, 1)
         val meta = item.itemMeta ?: return item
 
         // Set display name
@@ -228,7 +228,7 @@ object GoldBalanceButton {
         val currencyMaterial = getCurrencyMaterial()
         while (remaining > 0) {
             val stackSize = minOf(remaining, 64)
-            items.add(ItemStack(currencyMaterial, stackSize.toInt()))
+            items.add(ItemStack.of(currencyMaterial, stackSize.toInt()))
             remaining -= stackSize
         }
 

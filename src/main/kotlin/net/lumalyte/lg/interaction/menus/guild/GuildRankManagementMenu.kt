@@ -86,7 +86,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
             Material.DIAMOND_SWORD
         }
 
-        val rankItem = ItemStack(iconMaterial)
+        val rankItem = ItemStack.of(iconMaterial)
             .name("§6${rank.name}")
             .lore("§7Priority: §f${rank.priority}")
             .lore("§7Members: §f${getMemberCount(rank.id)} players")

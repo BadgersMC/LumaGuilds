@@ -506,7 +506,7 @@ class VaultProtectionListener : Listener, KoinComponent {
                     val pistonLocation = pistonBlock.location
 
                     // Drop the piston as an item
-                    world.dropItemNaturally(pistonLocation, org.bukkit.inventory.ItemStack(pistonBlock.type, 1))
+                    world.dropItemNaturally(pistonLocation, org.bukkit.inventory.ItemStack.of(pistonBlock.type, 1))
 
                     // Break the piston block
                     pistonBlock.type = Material.AIR

@@ -98,7 +98,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val outgoingDeclarations = warService.getDeclarationsByGuild(guild.id).filter { it.isValid }
 
         // Incoming declarations
-        val incomingItem = ItemStack(if (incomingDeclarations.isEmpty()) Material.GRAY_DYE else Material.PAPER)
+        val incomingItem = ItemStack.of(if (incomingDeclarations.isEmpty()) Material.GRAY_DYE else Material.PAPER)
             .name("§aIncoming Declarations")
             .lore("§7War declarations against your guild")
             .lore("§7Count: §f${incomingDeclarations.size}")
@@ -109,7 +109,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(incomingGuiItem, 3, 1)
 
         // Outgoing declarations
-        val outgoingItem = ItemStack(if (outgoingDeclarations.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
+        val outgoingItem = ItemStack.of(if (outgoingDeclarations.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
             .name("§eOutgoing Declarations")
             .lore("§7Your guild's war declarations")
             .lore("§7Count: §f${outgoingDeclarations.size}")

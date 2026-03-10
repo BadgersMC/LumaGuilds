@@ -577,7 +577,7 @@ class GuildVaultServiceBukkit(
             if (inventory.containsKey(slot)) continue
 
             val toAdd = minOf(remaining, maxStackSize)
-            val newItem = ItemStack(material, toAdd)
+            val newItem = ItemStack.of(material, toAdd)
             inventory[slot] = newItem
 
             remaining -= toAdd

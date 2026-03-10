@@ -458,7 +458,7 @@ class GuildMemberContributionsMenu(
      * Create menu item helper
      */
     private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
-        val item = ItemStack(material)
+        val item = ItemStack.of(material)
         val meta = item.itemMeta ?: return item
 
         meta.displayName(Component.text(name))

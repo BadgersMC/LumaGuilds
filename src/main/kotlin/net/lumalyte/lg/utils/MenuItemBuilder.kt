@@ -42,7 +42,7 @@ class MenuItemBuilder(
         }
         
         // Use ItemStack extension functions to avoid deprecated methods
-        var item = ItemStack(material)
+        var item = ItemStack.of(material)
         
         // Set display name using extension function (extension function now handles italic removal)
         val displayName = if (localizationKey != null) {

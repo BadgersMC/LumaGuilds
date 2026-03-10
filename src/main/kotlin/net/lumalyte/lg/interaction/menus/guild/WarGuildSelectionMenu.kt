@@ -84,7 +84,7 @@ class WarGuildSelectionMenu(
             GuildMode.PEACEFUL -> "§a"
         }
 
-        val item = ItemStack(icon)
+        val item = ItemStack.of(icon)
             .name("§6${guild.name}")
             .lore("§7Mode: $modeColor${guild.mode.name}")
             .lore("§7Members: §f$memberCount")

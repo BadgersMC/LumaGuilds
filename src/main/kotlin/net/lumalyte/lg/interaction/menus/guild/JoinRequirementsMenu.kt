@@ -97,7 +97,7 @@ class JoinRequirementsMenu(
                 Material.GOLD_INGOT
             }
 
-            ItemStack(currencyMaterial)
+            ItemStack.of(currencyMaterial)
                 .name("§e💰 JOIN FEE")
                 .lore("§7This guild requires a join fee")
                 .lore("§7")
