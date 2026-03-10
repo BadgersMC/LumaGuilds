@@ -24,6 +24,7 @@ import java.util.UUID
  * @property isOpen Whether the guild is open for anyone to join (true) or invite-only (false).
  * @property joinFeeEnabled Whether the guild requires a join fee for players joining via LFG.
  * @property joinFeeAmount The amount of currency required to join this guild via LFG (0 if no fee).
+ * @property trackingEnabled Whether Lunar Client location tracking (Apollo teams/waypoints) is enabled for this guild.
  */
 data class Guild(
     val id: UUID,
@@ -43,7 +44,8 @@ data class Guild(
     val vaultLocked: Boolean = false,
     val isOpen: Boolean = false,
     val joinFeeEnabled: Boolean = false,
-    val joinFeeAmount: Int = 0
+    val joinFeeAmount: Int = 0,
+    val trackingEnabled: Boolean = true
 ) {
     init {
         require(name.length in 1..32) { "Guild name must be between 1 and 32 characters." }
