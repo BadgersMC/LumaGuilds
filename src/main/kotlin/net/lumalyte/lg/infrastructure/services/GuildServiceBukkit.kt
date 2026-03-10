@@ -10,6 +10,8 @@ import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.events.GuildCreatedEvent
+import net.lumalyte.lg.domain.events.GuildDisbandedEvent
+import net.lumalyte.lg.domain.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.utils.serializeToString
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
@@ -112,10 +114,8 @@ class GuildServiceBukkit(
             }
         }
 
-        // Capture online members before removal so we can close stale guild menus
-        val onlineMembers = memberService.getGuildMembers(guildId)
-            .mapNotNull { Bukkit.getPlayer(it.playerId) }
-            .filter { it.isOnline }
+        // Capture member IDs before removal so the disbandment event carries them
+        val memberIds = memberService.getGuildMembers(guildId).map { it.playerId }.toSet()
 
         // Remove all members
         memberRepository.removeByGuild(guildId)
@@ -127,10 +127,7 @@ class GuildServiceBukkit(
         val result = guildRepository.remove(guildId)
         if (result) {
             logger.info("Guild $guildId disbanded by $actorId")
-            onlineMembers.forEach { member ->
-                member.closeInventory()
-                member.sendMessage("§c✗ Your guild §f${guild.name} §chas been disbanded.")
-            }
+            Bukkit.getPluginManager().callEvent(GuildDisbandedEvent(guild, memberIds, actorId))
         }
         return result
     }
@@ -526,7 +523,11 @@ class GuildServiceBukkit(
         }
 
         val updatedGuild = guild.copy(trackingEnabled = enabled)
-        return guildRepository.update(updatedGuild)
+        val result = guildRepository.update(updatedGuild)
+        if (result) {
+            Bukkit.getPluginManager().callEvent(GuildTrackingChangedEvent(guildId, enabled))
+        }
+        return result
     }
 
     /**

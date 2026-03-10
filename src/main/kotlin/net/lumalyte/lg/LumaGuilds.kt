@@ -812,6 +812,9 @@ class LumaGuilds : JavaPlugin() {
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
 
+        // Close stale guild menus when a guild is disbanded
+        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(), this)
+
         // Register admin override listener (for logout cleanup) - only when claims enabled
         if (claimsEnabled) {
             val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
