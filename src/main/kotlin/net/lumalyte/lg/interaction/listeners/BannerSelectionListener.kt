@@ -32,9 +32,9 @@ class BannerSelectionListener : Listener, KoinComponent {
 
         val slot = event.slot
 
-        // Check if clicked slot is the banner placement slot (position 0,0 in StaticPane)
-        // In a 9-slot wide inventory: slot = y * 9 + x = 0 * 9 + 0 = 0
-        if (slot != 0) return
+        // Check if clicked slot is the banner placement slot (position 2,1 in StaticPane)
+        // In a 9-slot wide inventory: slot = y * 9 + x = 1 * 9 + 2 = 11
+        if (slot != 11) return
 
         // Check if player is placing a banner
         val cursorItem = event.cursor

@@ -68,8 +68,8 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         // Set the holder on the inventory
         holder.setInventory(gui.getInventory())
 
-        // Add banner selection slot FIRST (so it's the first available for shift-clicking)
-        addBannerSelectionSlot(pane, 0, 0)
+        // Add banner selection slot at the position matching the visual border (2,1 = slot 11)
+        addBannerSelectionSlot(pane, 2, 1)
 
         // Add current banner display
         addCurrentBannerDisplay(pane, 2, 0)
@@ -187,9 +187,9 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
             .lore("§7then click here to save it")
 
         val guiItem = GuiItem(applyItem) { event ->
-            // Check the actual inventory contents when clicked (slot 0 is the banner slot)
+            // Check the actual inventory contents when clicked (slot 11 = pane position 2,1)
             val inventory = player.openInventory.topInventory
-            val bannerSlot = 0
+            val bannerSlot = 11
             val bannerItem = inventory.getItem(bannerSlot)
 
             // Check if there's a banner in the slot
