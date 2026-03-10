@@ -3,6 +3,7 @@ package net.lumalyte.lg.interaction.listeners
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.application.services.VaultInventoryManager
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import net.lumalyte.lg.application.utilities.ValuableItemChecker
@@ -38,7 +39,8 @@ class VaultInventoryListener(
     private val transactionLogger: VaultTransactionLogger,
     private val vaultConfig: VaultConfig,
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
-    private val memberService: MemberService
+    private val memberService: MemberService,
+    private val platformDetectionService: PlatformDetectionService
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(VaultInventoryListener::class.java)
@@ -276,12 +278,18 @@ class VaultInventoryListener(
 
         val player = event.whoClicked as? Player ?: return
 
-        // SAFETY: Completely prevent drag-clicking in vaults
-        // Drag operations create race conditions and can cause item deletion
-        // Check if any of the dragged slots are in the vault inventory
-        val affectsVault = event.rawSlots.any { slot ->
-            slot >= 0 && slot < holder.getCapacity()
-        }
+        // SAFETY: Completely prevent drag-clicking in vaults.
+        // Drag operations create race conditions and can cause item deletion.
+        //
+        // Use event.inventory.size as the authoritative slot bound rather than
+        // holder.getCapacity() — Geyser (Bedrock bridge) may fire InventoryDragEvent
+        // with rawSlots empty/missing and newItems.keys populated instead, so we union
+        // both sets. For Bedrock players we also cancel unconditionally as a belt-and-
+        // suspenders measure for Geyser's inconsistent drag event translation.
+        val vaultSize = event.inventory.size
+        val affectedSlots = event.rawSlots + event.newItems.keys
+        val affectsVault = affectedSlots.any { slot -> slot in 0 until vaultSize }
+            || platformDetectionService.isBedrockPlayer(player)
 
         if (affectsVault) {
             event.isCancelled = true
