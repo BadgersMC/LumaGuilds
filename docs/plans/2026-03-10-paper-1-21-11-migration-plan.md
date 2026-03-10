@@ -142,7 +142,7 @@ Manually verify the replacement is correct in:
 
 ### Affected files (70 total)
 
-```
+```text
 src/main/kotlin/net/lumalyte/lg/application/utilities/GoldBalanceButton.kt
 src/main/kotlin/net/lumalyte/lg/infrastructure/services/MapRendererServiceBukkit.kt
 src/main/kotlin/net/lumalyte/lg/infrastructure/services/ToolItemServiceBukkit.kt
@@ -229,7 +229,7 @@ Verify that the `.name(Component)` and `.lore(Component)` Kotlin extension funct
 ### Task 3.2 — Adopt `ItemStack.of()` as canonical factory everywhere
 
 The Phase 2 sed pass replaces `ItemStack(Material.X` patterns. Additionally verify:
-- Any `ItemStack(itemStack)` copy constructor usages → `itemStack.clone()` or `itemStack.copy()` as appropriate
+- Any `ItemStack(itemStack)` copy constructor usages → `itemStack.clone()` (Paper 1.21.11 has no `copy()` method)
 - Any remaining `new ItemStack(...)` patterns not caught by the sed pattern
 
 ### Task 3.3 — Verify IF 0.11.6 MenuType integration

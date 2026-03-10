@@ -135,8 +135,9 @@ class GuildWarAcceptanceMenu(
                 val deserialized = banner.deserializeToItemStack()
                 deserialized?.clone() ?: ItemStack.of(Material.WHITE_BANNER)
             } catch (e: Exception) {
-                // Menu operation - catching all exceptions to prevent UI failure
-            // Menu operation - catching all exceptions to prevent UI failure
+                // Menu operation - log and fall back to white banner to prevent UI failure
+                org.slf4j.LoggerFactory.getLogger(GuildWarAcceptanceMenu::class.java)
+                    .warn("Failed to deserialize guild banner for ${targetGuild.name}: ${e.message}")
                 ItemStack.of(Material.WHITE_BANNER)
             }
         } ?: ItemStack.of(Material.WHITE_BANNER)

@@ -64,7 +64,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
         pane.addItem(guiClaimToolItem, 0, 0)
 
         // Add update icon menu button
-        val iconEditorItem = ItemStack.of(Material.valueOf(claim.icon))
+        val iconEditorItem = ItemStack.of(Material.matchMaterial(claim.icon) ?: Material.GRASS_BLOCK)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_ICON_NAME))
             .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_MANAGEMENT_ITEM_ICON_LORE))
         val guiIconEditorItem = GuiItem(iconEditorItem) {

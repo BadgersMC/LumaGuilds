@@ -285,7 +285,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun addPreviewSection(pane: StaticPane) {
-        val previewItem = ItemStack.of(rankIcon)
+        val previewItem = ItemStack.of(if (rankIcon == Material.AIR) Material.DIAMOND_SWORD else rankIcon)
             .name("§6🔍 Rank Preview")
             .lore("§7Name: ${if (rankName.isNotEmpty()) "§f$rankName" else "§cNot set"}")
             .lore("§7Icon: §f${rankIcon.name}")
