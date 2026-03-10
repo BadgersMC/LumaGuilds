@@ -534,6 +534,7 @@ fun vaultModule() = module {
             get(),
             config.vault,
             get(),
+            get(),
             get()
         )
     }
