@@ -194,8 +194,8 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
         // Show appropriate message based on new state
         if (newVisibilityState) {
-            player.sendMessage("§a✅ Guild chat: §nON")
-            player.sendMessage("§7You will now see guild messages in your chat")
+            player.sendMessage("§a✅ Party chat: §nON")
+            player.sendMessage("§7You will now see party messages in your chat")
             player.sendMessage("§7Use §f/pc switch <party> §7to also send to a party channel")
         } else {
             // When toggling OFF, also clear the active party preference so the player's
@@ -204,10 +204,14 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
             // of their own recipient list.
             val hadActiveParty = preferenceRepository.getByPlayerId(playerId) != null
             if (hadActiveParty) {
-                preferenceRepository.removeByPlayerId(playerId)
+                val removed = preferenceRepository.removeByPlayerId(playerId)
+                if (!removed) {
+                    player.sendMessage("§c❌ Failed to switch to global chat!")
+                    return
+                }
             }
-            player.sendMessage("§e⚠️ Guild chat: §nOFF")
-            player.sendMessage("§7You will no longer see guild messages")
+            player.sendMessage("§e⚠️ Party chat: §nOFF")
+            player.sendMessage("§7You will no longer see party messages")
             player.sendMessage("§7Your messages now go to global chat")
         }
     }

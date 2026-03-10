@@ -59,20 +59,18 @@ compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")   // was 1.21.8
 testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")   // was 1.21.10
 
 // testImplementation — MockBukkit
-// Check https://central.sonatype.com/artifact/org.mockbukkit.mockbukkit/mockbukkit-v1.21/versions
-// for latest version targeting 1.21.11, replace 4.98.0
-testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:<LATEST>")
+testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.107.0")
 
 // IF
 implementation("com.github.stefvanschie.inventoryframework:IF:0.11.6")   // was 0.11.3
 
-// Geyser/Floodgate — check https://repo.opencollab.dev for latest snapshots
-compileOnly("org.geysermc.geyser:api:<LATEST-SNAPSHOT>")
-compileOnly("org.geysermc.floodgate:api:<LATEST-SNAPSHOT>")
-compileOnly("org.geysermc.cumulus:cumulus:<LATEST-SNAPSHOT>")
+// Geyser/Floodgate
+compileOnly("org.geysermc.geyser:api:2.9.4-SNAPSHOT")
+compileOnly("org.geysermc.floodgate:api:2.2.5-SNAPSHOT")
+compileOnly("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
 ```
 
-> **Note on MockBukkit/Geyser versions:** Resolve the exact latest versions from Maven Central / OpenCollab repo before committing. The `<LATEST>` placeholders must be filled in.
+> **Note:** These are the versions resolved at the time of the migration (2026-03-10). Verify they are still current before re-running this migration on a new branch.
 
 ### Task 1.2 — Update `plugin.yml`
 
@@ -222,7 +220,7 @@ src/main/kotlin/net/lumalyte/lg/utils/PlayerHeads.kt
 
 ### Task 3.1 — Verify `.name()` / `.lore()` extension functions
 
-**File:** `src/main/kotlin/net/lumalyte/lg/utils/` (find the extension functions file)
+**File:** `src/main/kotlin/net/lumalyte/lg/utils/ItemStackExtensions.kt`
 
 Verify that the `.name(Component)` and `.lore(Component)` Kotlin extension functions used throughout the menu layer set display name and lore via `DataComponentTypes.ITEM_NAME` and `DataComponentTypes.LORE` rather than via the legacy `ItemMeta.setDisplayName()` / `ItemMeta.setLore()` path. If they use the legacy path, migrate them to DataComponent setters.
 
