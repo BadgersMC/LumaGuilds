@@ -34,7 +34,7 @@ class ClaimPlayerSearchMenu(private val menuNavigator: MenuNavigator, private va
 
         // Add lodestone menu item
         val firstPane = StaticPane(0, 0, 1, 1)
-        val headItem = ItemStack(Material.PLAYER_HEAD)
+        val headItem = ItemStack.of(Material.PLAYER_HEAD)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_PLAYER_SEARCH_ITEM_PLAYER_NAME))
         val guiHeadItem = GuiItem(headItem) { guiEvent -> guiEvent.isCancelled = true }
         firstPane.addItem(guiHeadItem, 0, 0)
@@ -43,7 +43,7 @@ class ClaimPlayerSearchMenu(private val menuNavigator: MenuNavigator, private va
         // Add message menu item if name is already taken
         if (playerDoesNotExist) {
             val secondPane = StaticPane(0, 0, 1, 1)
-            val paperItem = ItemStack(Material.PAPER)
+            val paperItem = ItemStack.of(Material.PAPER)
                 .name(localizationProvider.get(playerId, LocalizationKeys.MENU_PLAYER_SEARCH_ITEM_PLAYER_UNKNOWN_NAME))
                 .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_PLAYER_SEARCH_ITEM_PLAYER_UNKNOWN_LORE))
 
@@ -54,7 +54,7 @@ class ClaimPlayerSearchMenu(private val menuNavigator: MenuNavigator, private va
 
         // Add confirm menu item.
         val thirdPane = StaticPane(0, 0, 1, 1)
-        val confirmItem = ItemStack(Material.NETHER_STAR)
+        val confirmItem = ItemStack.of(Material.NETHER_STAR)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_CONFIRM_NAME))
         val confirmGuiItem = GuiItem(confirmItem) { _ ->
             val player = Bukkit.getOfflinePlayer(gui.renameText)

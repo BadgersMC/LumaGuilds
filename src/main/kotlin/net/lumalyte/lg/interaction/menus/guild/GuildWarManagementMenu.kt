@@ -59,7 +59,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
         if (activeWars.isEmpty()) {
-            val noWarsItem = ItemStack(Material.BARRIER)
+            val noWarsItem = ItemStack.of(Material.BARRIER)
                 .name("§cNo Active Wars")
                 .lore("§7Your guild is not currently at war")
                 .lore("§7Declare war to start conflicts!")
@@ -70,7 +70,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
             val enemyGuildId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
             val enemyGuild = guildService.getGuild(enemyGuildId)
 
-            val warItem = ItemStack(Material.DIAMOND_SWORD)
+            val warItem = ItemStack.of(Material.DIAMOND_SWORD)
                 .name("§cActive War: vs ${enemyGuild?.name ?: "Unknown"}")
                 .lore("§7Duration: §f${war.duration.toDays()} days")
                 .lore("§7Remaining: §f${war.remainingDuration?.toDays() ?: 0} days")
@@ -83,7 +83,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
             // Show war count if more than one
             if (activeWars.size > 1) {
-                val moreWarsItem = ItemStack(Material.BOOK)
+                val moreWarsItem = ItemStack.of(Material.BOOK)
                     .name("§e+${activeWars.size - 1} More Wars")
                     .lore("§7Click to view all active wars")
                 pane.addItem(GuiItem(moreWarsItem) {
@@ -122,7 +122,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     private fun addWarActionsSection(pane: StaticPane) {
         // Declare war
-        val declareWarItem = ItemStack(Material.IRON_SWORD)
+        val declareWarItem = ItemStack.of(Material.IRON_SWORD)
             .name("§4Declare War")
             .lore("§7Declare war on another guild")
             .lore("§7Start a conflict with objectives")
@@ -133,7 +133,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(declareWarGuiItem, 0, 2)
 
         // War statistics
-        val warStatsItem = ItemStack(Material.KNOWLEDGE_BOOK)
+        val warStatsItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
             .name("§6War Statistics")
             .lore("§7View your guild's war performance")
             .lore("§7Win/loss ratio and history")
@@ -144,7 +144,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(warStatsGuiItem, 2, 2)
 
         // War history
-        val warHistoryItem = ItemStack(Material.BOOKSHELF)
+        val warHistoryItem = ItemStack.of(Material.BOOKSHELF)
             .name("§eWar History")
             .lore("§7View past wars and outcomes")
             .lore("§7Learn from previous conflicts")
@@ -155,7 +155,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(warHistoryGuiItem, 4, 2)
 
         // Peace agreements
-        val peaceItem = ItemStack(Material.WHITE_WOOL)
+        val peaceItem = ItemStack.of(Material.WHITE_WOOL)
             .name("§a☮ Peace Agreements")
             .lore("§7Propose peace to end wars")
             .lore("§7Negotiate terms and offerings")
@@ -171,7 +171,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val winLossRatio = warService.getWinLossRatio(guild.id)
         val totalWars = warService.getWarsForGuild(guild.id).size
 
-        val statsItem = ItemStack(Material.TOTEM_OF_UNDYING)
+        val statsItem = ItemStack.of(Material.TOTEM_OF_UNDYING)
             .name("§bQuick Stats")
             .lore("§7Total Wars: §f$totalWars")
             .lore("§7Win/Loss Ratio: §f${String.format("%.2f", winLossRatio)}")
@@ -184,7 +184,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Control Panel")
             .lore("§7Return to guild management")
 

@@ -101,7 +101,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         pane.addItem(trucesGuiItem, 4, 0)
 
         // Diplomatic Status
-        val statusItem = ItemStack(Material.BOOK)
+        val statusItem = ItemStack.of(Material.BOOK)
             .name("§bDiplomatic Status")
             .lore("§7Your guild's diplomatic standing")
             .lore("§7Allies: §a$allies §7| Enemies: §c$enemies §7| Truces: §e$truces")
@@ -143,7 +143,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
     private fun addDiplomaticActionsSection(pane: StaticPane) {
         // Request Alliance
-        val allianceItem = ItemStack(Material.GOLDEN_APPLE)
+        val allianceItem = ItemStack.of(Material.GOLDEN_APPLE)
             .name("§6Request Alliance")
             .lore("§7Propose an alliance with another guild")
             .lore("§7Must be accepted by the target guild")
@@ -159,7 +159,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         pane.addItem(allianceGuiItem, 0, 2)
 
         // Request Truce
-        val truceItem = ItemStack(Material.WHITE_BANNER)
+        val truceItem = ItemStack.of(Material.WHITE_BANNER)
             .name("§fRequest Truce")
             .lore("§7Propose a ceasefire with an enemy")
             .lore("§7Temporary peace agreement")
@@ -175,7 +175,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         pane.addItem(truceGuiItem, 2, 2)
 
         // Declare Enemy
-        val enemyItem = ItemStack(Material.IRON_SWORD)
+        val enemyItem = ItemStack.of(Material.IRON_SWORD)
             .name("§cDeclare Enemy")
             .lore("§7Declare another guild as an enemy")
             .lore("§7No acceptance required")
@@ -193,7 +193,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
     private fun addRelationDetailsSection(pane: StaticPane) {
         // Diplomatic History
-        val historyItem = ItemStack(Material.KNOWLEDGE_BOOK)
+        val historyItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
             .name("§9Diplomatic History")
             .lore("§7View past relations and changes")
             .lore("§7Track diplomatic developments")
@@ -205,7 +205,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         pane.addItem(historyGuiItem, 0, 3)
 
         // Neutral Guilds
-        val neutralItem = ItemStack(Material.BOOKSHELF)
+        val neutralItem = ItemStack.of(Material.BOOKSHELF)
             .name("§7Neutral Guilds")
             .lore("§7Guilds with no special relations")
             .lore("§7Browse available diplomatic partners")
@@ -218,7 +218,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Control Panel")
             .lore("§7Return to guild management")
 

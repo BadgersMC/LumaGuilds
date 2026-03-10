@@ -218,7 +218,7 @@ object GoldBalanceButton {
             var blocksRemaining = numBlocks
             while (blocksRemaining > 0) {
                 val stackSize = minOf(blocksRemaining, 64)
-                items.add(ItemStack(Material.RAW_GOLD_BLOCK, stackSize.toInt()))
+                items.add(ItemStack.of(Material.RAW_GOLD_BLOCK, stackSize.toInt()))
                 blocksRemaining -= stackSize
             }
             remaining %= 9  // Only leftover currency remains

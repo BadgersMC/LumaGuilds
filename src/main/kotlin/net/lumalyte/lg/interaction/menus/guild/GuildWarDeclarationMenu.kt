@@ -101,7 +101,7 @@ class GuildWarDeclarationMenu(
 
     private fun addGuildSelectionSection(pane: StaticPane) {
         // Title
-        val titleItem = ItemStack(Material.DIAMOND_SWORD)
+        val titleItem = ItemStack.of(Material.DIAMOND_SWORD)
             .name("§4⚔ SELECT TARGET GUILD")
             .lore("§7Choose which guild to declare war against")
             .lore("§7")
@@ -125,7 +125,7 @@ class GuildWarDeclarationMenu(
 
         // Show "More Guilds" if there are more than 7
         if (availableGuilds.size > 7) {
-            val moreItem = ItemStack(Material.BOOK)
+            val moreItem = ItemStack.of(Material.BOOK)
                 .name("§e📖 More Guilds (${availableGuilds.size - 7})")
                 .lore("§7Click to see all available guilds")
             val guiItem = GuiItem(moreItem) {
@@ -135,7 +135,7 @@ class GuildWarDeclarationMenu(
         }
 
         // Info section
-        val infoItem = ItemStack(Material.KNOWLEDGE_BOOK)
+        val infoItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
             .name("§6ℹ War Declaration Info")
             .lore("§7• Wars last 1-14 days")
             .lore("§7• Both guilds can set objectives")
@@ -189,7 +189,7 @@ class GuildWarDeclarationMenu(
         val target = targetGuild ?: return // Should never be null when this method is called
         
         // Target guild display
-        val targetItem = ItemStack(Material.TARGET)
+        val targetItem = ItemStack.of(Material.TARGET)
             .name("§c🎯 Target: ${target.name}")
             .lore("§7Declaring war against this guild")
             .lore("§7Members: §f${memberService.getGuildMembers(target.id).size}")
@@ -218,7 +218,7 @@ class GuildWarDeclarationMenu(
     }
 
     private fun addDurationSelection(pane: StaticPane) {
-        val durationItem = ItemStack(Material.CLOCK)
+        val durationItem = ItemStack.of(Material.CLOCK)
             .name("§6◷ War Duration")
             .lore("§7Current: §f${selectedDuration.toDays()} days")
             .lore("§7")
@@ -241,7 +241,7 @@ class GuildWarDeclarationMenu(
         val maxWager = guildBalance // No limits - high stakes gambling!
 
         // Main wager display
-        val wagerItem = ItemStack(Material.GOLD_INGOT)
+        val wagerItem = ItemStack.of(Material.GOLD_INGOT)
             .name("§6$ War Wager")
             .lore("§7Current Wager: §6$wagerAmount coins")
             .lore("§7Guild Bank: §6$guildBalance coins")
@@ -267,7 +267,7 @@ class GuildWarDeclarationMenu(
         // Add wager buttons if there's available balance
         if (guildBalance > 0) {
             // Add 10% button
-            val add10Percent = ItemStack(Material.GREEN_CONCRETE)
+            val add10Percent = ItemStack.of(Material.GREEN_CONCRETE)
                 .name("§a➕ Add 10%")
                 .lore("§7Add 10% of guild bank")
                 .lore("§7Amount: §6${guildBalance / 10} coins")
@@ -287,7 +287,7 @@ class GuildWarDeclarationMenu(
             pane.addItem(add10GuiItem, 5, 2)
 
             // Add 25% button
-            val add25Percent = ItemStack(Material.BLUE_CONCRETE)
+            val add25Percent = ItemStack.of(Material.BLUE_CONCRETE)
                 .name("§9➕ Add 25%")
                 .lore("§7Add 25% of guild bank")
                 .lore("§7Amount: §6${guildBalance / 4} coins")
@@ -307,7 +307,7 @@ class GuildWarDeclarationMenu(
             pane.addItem(add25GuiItem, 6, 2)
 
             // Wager All button
-            val wagerAllItem = ItemStack(Material.RED_CONCRETE)
+            val wagerAllItem = ItemStack.of(Material.RED_CONCRETE)
                 .name("§c$ WAGER ALL")
                 .lore("§7Wager entire guild bank!")
                 .lore("§7Amount: §6$guildBalance coins")
@@ -330,7 +330,7 @@ class GuildWarDeclarationMenu(
             // Wager Enemy Bank button (if enemy guild has funds)
             val enemyBalance = targetGuild?.bankBalance ?: 0
             if (enemyBalance > 0) {
-                val wagerEnemyItem = ItemStack(Material.PURPLE_CONCRETE)
+                val wagerEnemyItem = ItemStack.of(Material.PURPLE_CONCRETE)
                     .name("§5∩ MATCH ENEMY")
                     .lore("§7Wager to match enemy bank!")
                     .lore("§7Enemy Bank: §6$enemyBalance coins")
@@ -358,7 +358,7 @@ class GuildWarDeclarationMenu(
 
             // Remove wager button
             if (wagerAmount > 0) {
-                val removeWager = ItemStack(Material.GRAY_CONCRETE)
+                val removeWager = ItemStack.of(Material.GRAY_CONCRETE)
                     .name("§7➖ Remove All")
                     .lore("§7Remove entire wager")
                     .lore("§7Current: §6$wagerAmount coins")
@@ -385,7 +385,7 @@ class GuildWarDeclarationMenu(
             ))
         }
 
-        val objectivesItem = ItemStack(Material.DIAMOND_SWORD)
+        val objectivesItem = ItemStack.of(Material.DIAMOND_SWORD)
             .name("§c⚔ War Objectives (${selectedObjectives.size})")
             .lore("§7")
 
@@ -416,7 +416,7 @@ class GuildWarDeclarationMenu(
     }
 
     private fun addWarTermsSection(pane: StaticPane) {
-        val termsItem = ItemStack(Material.WRITABLE_BOOK)
+        val termsItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§e§ War Terms")
             .lore(if (warTerms != null) "§7Terms: §f$warTerms" else "§7No terms set")
             .lore("§7")
@@ -442,7 +442,7 @@ class GuildWarDeclarationMenu(
         val hasActiveWar = warService.getCurrentWarBetweenGuilds(guild.id, target.id) != null
 
         val declareItem = if (canDeclare && !hasActiveWar) {
-            ItemStack(Material.DIAMOND_SWORD)
+            ItemStack.of(Material.DIAMOND_SWORD)
                 .name("§4⚔ DECLARE WAR!")
                 .lore("§7Target: §f${target.name}")
                 .lore("§7Duration: §f${selectedDuration.toDays()} days")
@@ -463,7 +463,7 @@ class GuildWarDeclarationMenu(
                 .lore("§7")
                 .lore("§eClick to declare war!")
         } else {
-            ItemStack(Material.BARRIER)
+            ItemStack.of(Material.BARRIER)
                 .name("§c❌ Cannot Declare War")
                 .lore(when {
                     !canDeclare -> "§cYour guild cannot declare war right now"
@@ -789,7 +789,7 @@ class GuildWarDeclarationMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§c⬅ Back")
             .lore("§7Return to war management")
 

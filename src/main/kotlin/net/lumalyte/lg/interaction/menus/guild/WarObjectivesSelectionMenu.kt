@@ -59,7 +59,7 @@ class WarObjectivesSelectionMenu(
     }
 
     private fun addInfoItem(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.BOOK)
+        val item = ItemStack.of(Material.BOOK)
             .name("§e📖 Objective Info")
             .lore("§7Select at least one objective for the war.")
             .lore("§7The first guild to complete any objective wins!")
@@ -228,7 +228,7 @@ class WarObjectivesSelectionMenu(
     }
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.BARRIER)
+        val item = ItemStack.of(Material.BARRIER)
             .name("§c✖ Cancel")
             .lore("§7Discard changes")
 
@@ -240,7 +240,7 @@ class WarObjectivesSelectionMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.ARROW)
+        val item = ItemStack.of(Material.ARROW)
             .name("§e← Back")
             .lore("§7Return without saving")
 

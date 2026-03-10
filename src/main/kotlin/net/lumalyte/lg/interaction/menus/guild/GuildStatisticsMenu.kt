@@ -84,7 +84,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private fun addKillStatsButton(pane: StaticPane, x: Int, y: Int) {
         val killStats = killService.getGuildKillStats(guild.id)
 
-        val item = ItemStack(Material.DIAMOND_SWORD)
+        val item = ItemStack.of(Material.DIAMOND_SWORD)
             .name("§4Kill Statistics")
             .lore("§7Total Kills: §f${killStats.totalKills}")
             .lore("§7Total Deaths: §f${killStats.totalDeaths}")
@@ -108,7 +108,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val losses = warHistory.count { it.winner != null && it.winner != guild.id }
             val draws = warHistory.count { it.winner == null }
 
-            val item = ItemStack(Material.WHITE_BANNER)
+            val item = ItemStack.of(Material.WHITE_BANNER)
                 .name("§4War Statistics")
                 .lore("§7Active Wars: §f${activeWars.size}")
                 .lore("§7Total Wars: §f${warHistory.size}")
@@ -125,7 +125,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             // Fallback to placeholder if war service fails
-            val item = ItemStack(Material.WHITE_BANNER)
+            val item = ItemStack.of(Material.WHITE_BANNER)
                 .name("§4War Statistics")
                 .lore("§7Active Wars: §f0")
                 .lore("§7Total Wars: §f0")
@@ -148,7 +148,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         // Placeholder for online members until MemberService is extended
         val onlineMembers = 0 // memberService.getOnlineMembers(guild.id).size
 
-        val item = ItemStack(Material.PLAYER_HEAD)
+        val item = ItemStack.of(Material.PLAYER_HEAD)
             .name("§bMember Statistics")
             .lore("§7Total Members: §f$memberCount")
             .lore("§7Online Now: §a$onlineMembers")
@@ -170,7 +170,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val avgKillsPerMember = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
         val avgDeathsPerMember = if (memberCount > 0) killStats.totalDeaths.toDouble() / memberCount else 0.0
 
-        val item = ItemStack(Material.EXPERIENCE_BOTTLE)
+        val item = ItemStack.of(Material.EXPERIENCE_BOTTLE)
             .name("§ePerformance Metrics")
             .lore("§7Avg Kills/Member: §f${decimalFormat.format(avgKillsPerMember)}")
             .lore("§7Avg Deaths/Member: §f${decimalFormat.format(avgDeathsPerMember)}")
@@ -185,7 +185,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addGraphPlaceholderButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.FILLED_MAP)
+        val item = ItemStack.of(Material.FILLED_MAP)
             .name("§5📊 Visual Charts")
             .lore("§7Interactive charts & graphs")
             .lore("§7Kill trends over time")
@@ -201,7 +201,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.ARROW)
+        val item = ItemStack.of(Material.ARROW)
             .name("§cBack to Control Panel")
             .lore("§7Return to guild management")
 
@@ -290,7 +290,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private fun addActiveWarsSection(pane: StaticPane) {
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
-        val activeWarsItem = ItemStack(Material.DIAMOND_SWORD)
+        val activeWarsItem = ItemStack.of(Material.DIAMOND_SWORD)
             .name("§4⚔ ACTIVE WARS (${activeWars.size})")
             .lore("§7Currently ongoing conflicts")
 
@@ -327,7 +327,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private fun addWarHistorySection(pane: StaticPane) {
         val warHistory = warService.getWarHistory(guild.id, 5)
 
-        val historyItem = ItemStack(Material.BOOK)
+        val historyItem = ItemStack.of(Material.BOOK)
             .name("§6📜 WAR HISTORY")
             .lore("§7Recent completed wars")
 
@@ -380,7 +380,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         val winRate = calculateWinRate(wins, warHistory.size)
 
-        val statsItem = ItemStack(Material.TOTEM_OF_UNDYING)
+        val statsItem = ItemStack.of(Material.TOTEM_OF_UNDYING)
             .name("§e📊 WAR STATISTICS")
             .lore("§7Overall Performance")
             .lore("")
@@ -409,7 +409,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
         if (activeWars.isNotEmpty()) {
-            val warKillStats = ItemStack(Material.IRON_SWORD)
+            val warKillStats = ItemStack.of(Material.IRON_SWORD)
                 .name("§c⚔ CURRENT WAR KILLS")
                 .lore("§7Kill statistics in active wars")
 
@@ -475,7 +475,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val guildMembers = memberService.getGuildMembers(guild.id).map { it.playerId }
         val topKillers = killService.getTopKillers(guildMembers, 5)
 
-        val item = ItemStack(Material.TOTEM_OF_UNDYING)
+        val item = ItemStack.of(Material.TOTEM_OF_UNDYING)
             .name("§cTop Killers")
             .lore("§7Guild's elite warriors")
 
@@ -502,7 +502,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .sortedByDescending { it.netContribution }
             .take(3)
 
-        val item = ItemStack(Material.GOLD_BLOCK)
+        val item = ItemStack.of(Material.GOLD_BLOCK)
             .name("§6Top Contributors")
             .lore("§7Most generous members")
 
@@ -525,7 +525,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private fun addKillDeathRatiosButton(pane: StaticPane, x: Int, y: Int) {
         val killStats = killService.getGuildKillStats(guild.id)
 
-        val item = ItemStack(Material.COMPARATOR)
+        val item = ItemStack.of(Material.COMPARATOR)
             .name("§dK/D Analysis")
             .lore("§7Kill/Death Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
             .lore("§7Performance Grade: §${getKDRatingColor(killStats.killDeathRatio)}${getKDRating(killStats.killDeathRatio)}")
@@ -542,7 +542,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val recentKills = killService.getRecentGuildKills(guild.id, 10)
         val recentActivity = recentKills.size
 
-        val item = ItemStack(Material.CLOCK)
+        val item = ItemStack.of(Material.CLOCK)
             .name("§fRecent Activity")
             .lore("§7Last 24 hours")
             .lore("§7Kills: §f$recentActivity")
@@ -555,7 +555,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addPeriodStatsButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.BOOK)
+        val item = ItemStack.of(Material.BOOK)
             .name("§3Period Statistics")
             .lore("§7View stats by time period")
             .lore("§7Daily, Weekly, Monthly")
@@ -568,7 +568,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addRivalryStatsButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.RED_BANNER)
+        val item = ItemStack.of(Material.RED_BANNER)
             .name("§4Rivalry Statistics")
             .lore("§7Kills vs other guilds")
             .lore("§7Dominance rankings")
@@ -585,7 +585,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val killStats = killService.getGuildKillStats(guild.id)
         val achievementCount = calculateAchievementCount(killStats)
 
-        val item = ItemStack(Material.TROPICAL_FISH_BUCKET)
+        val item = ItemStack.of(Material.TROPICAL_FISH_BUCKET)
             .name("§eGuild Achievements")
             .lore("§7Milestones unlocked: §f$achievementCount")
             .lore("§7Total Kills: §${getAchievementColor(killStats.totalKills)}${getKillMilestone(killStats.totalKills)}")
@@ -598,7 +598,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addTrendAnalysisButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.REPEATER)
+        val item = ItemStack.of(Material.REPEATER)
             .name("§3📈 Kill Trends")
             .lore("§7Kill performance over time")
             .lore("§7Track improvement patterns")
@@ -611,7 +611,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addComparisonButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.COMPARATOR)
+        val item = ItemStack.of(Material.COMPARATOR)
             .name("§9📊 Member Contributions")
             .lore("§7Compare member contributions")
             .lore("§7Visual ranking chart")
@@ -624,7 +624,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addExportStatsButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.WRITABLE_BOOK)
+        val item = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§fExport Statistics")
             .lore("§7Download detailed stats")
             .lore("§7CSV format for analysis")
@@ -637,7 +637,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addRefreshStatsButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack(Material.KNOWLEDGE_BOOK)
+        val item = ItemStack.of(Material.KNOWLEDGE_BOOK)
             .name("§aRefresh Statistics")
             .lore("§7Update all statistics")
             .lore("§7Fetch latest data")

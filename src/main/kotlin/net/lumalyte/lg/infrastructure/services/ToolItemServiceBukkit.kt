@@ -19,7 +19,7 @@ class ToolItemServiceBukkit(private val localizationProvider: net.lumalyte.lg.ap
                             private val config: MainConfig): ToolItemService {
     override fun giveClaimTool(playerId: UUID): Boolean {
         // Create the claim tool with special metadata
-        val tool = ItemStack(Material.STICK)
+        val tool = ItemStack.of(Material.STICK)
             .name(localizationProvider.get(playerId, LocalizationKeys.ITEM_CLAIM_TOOL_NAME))
             .lore(localizationProvider.get(playerId, LocalizationKeys.ITEM_CLAIM_TOOL_LORE_MAIN_HAND))
             .lore(localizationProvider.get(playerId, LocalizationKeys.ITEM_CLAIM_TOOL_LORE_OFF_HAND))
@@ -42,7 +42,7 @@ class ToolItemServiceBukkit(private val localizationProvider: net.lumalyte.lg.ap
 
     override fun giveMoveTool(playerId: UUID, claim: Claim): Boolean {
         // Create the claim tool with special metadata
-        val tool = ItemStack(Material.BELL)
+        val tool = ItemStack.of(Material.BELL)
             .name(localizationProvider.get(playerId, LocalizationKeys.ITEM_MOVE_TOOL_NAME, claim.name))
             .lore(localizationProvider.get(playerId, LocalizationKeys.ITEM_MOVE_TOOL_LORE))
         val itemMeta = tool.itemMeta

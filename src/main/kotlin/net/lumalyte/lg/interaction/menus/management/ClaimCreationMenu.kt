@@ -42,7 +42,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
         val playerClaimCount = listPlayerClaims.execute(playerId).count()
         if (playerClaimCount >=
                 playerMetadataService.getPlayerClaimLimit(playerId)) {
-            val iconEditorItem = ItemStack(Material.MAGMA_CREAM)
+            val iconEditorItem = ItemStack.of(Material.MAGMA_CREAM)
                 .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CANNOT_CREATE_NAME))
                 .lore(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_CLAIMS))
             val guiIconEditorItem = GuiItem(iconEditorItem) { guiEvent -> guiEvent.isCancelled = true }
@@ -54,7 +54,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
         // Change the button depending on whether the player is able to create the claim or not
         when (isNewClaimLocationValid.execute(location.toPosition2D(), location.world.uid)) {
             IsNewClaimLocationValidResult.Valid -> {
-                val iconEditorItem = ItemStack(Material.BELL)
+                val iconEditorItem = ItemStack.of(Material.BELL)
                     .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CREATE_NAME))
                     .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CREATE_LORE_PROTECTED))
                     .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CREATE_LORE_REMAINING,
@@ -66,7 +66,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
                 gui.show(player)
             }
             IsNewClaimLocationValidResult.Overlap -> {
-                val iconEditorItem = ItemStack(Material.MAGMA_CREAM)
+                val iconEditorItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CANNOT_CREATE_NAME))
                     .lore(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_OVERLAP))
                 val guiIconEditorItem = GuiItem(iconEditorItem) { guiEvent -> guiEvent.isCancelled = true }
@@ -75,7 +75,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
                 return
             }
             IsNewClaimLocationValidResult.TooCloseToWorldBorder -> {
-                val iconEditorItem = ItemStack(Material.MAGMA_CREAM)
+                val iconEditorItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CANNOT_CREATE_NAME))
                     .lore(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_WORLD_BORDER))
                 val guiIconEditorItem = GuiItem(iconEditorItem) { guiEvent -> guiEvent.isCancelled = true }

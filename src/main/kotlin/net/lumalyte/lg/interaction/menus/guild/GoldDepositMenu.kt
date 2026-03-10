@@ -49,7 +49,7 @@ class GoldDepositMenu(
         inventory = Bukkit.createInventory(null, 27, Component.text("Deposit Gold"))
 
         // Add instruction item
-        val instructionItem = ItemStack(Material.PAPER).apply {
+        val instructionItem = ItemStack.of(Material.PAPER).apply {
             itemMeta = itemMeta?.also { meta ->
                 meta.displayName(
                     Component.text("How to Deposit Gold", NamedTextColor.YELLOW)
@@ -79,7 +79,7 @@ class GoldDepositMenu(
         inventory.setItem(13, instructionItem)
 
         // Add deposit all button
-        val depositAllItem = ItemStack(Material.GOLD_BLOCK).apply {
+        val depositAllItem = ItemStack.of(Material.GOLD_BLOCK).apply {
             itemMeta = itemMeta?.also { meta ->
                 meta.displayName(
                     Component.text("Deposit All Gold", NamedTextColor.GREEN)

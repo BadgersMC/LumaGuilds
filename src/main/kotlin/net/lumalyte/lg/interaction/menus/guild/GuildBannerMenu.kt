@@ -103,12 +103,12 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                     .lore("§7This banner represents your guild")
             } else {
                 // Fallback to white banner if deserialization fails
-                ItemStack(Material.WHITE_BANNER)
+                ItemStack.of(Material.WHITE_BANNER)
                     .name("§c⚠ BANNER ERROR")
                     .lore("§cFailed to load banner data")
                     .lore("§7Contact an administrator")
             }
-        } ?: ItemStack(Material.WHITE_BANNER)
+        } ?: ItemStack.of(Material.WHITE_BANNER)
             .name("§c❌ NO BANNER SET")
             .lore("§cNo custom banner configured")
 
@@ -116,7 +116,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addVisualBorder(pane: StaticPane) {
-        val borderItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE)
+        val borderItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE)
             .name("§8")
             .lore("§7Place any banner in the empty slot")
             .lore("§7to set it as your guild banner")
@@ -138,7 +138,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     private fun addBannerSelectionSlot(pane: StaticPane, x: Int, y: Int) {
         // Use a placeholder item that allows banner placement
         // The BannerSelectionListener will handle the actual placement logic
-        val placeholderItem = ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE)
+        val placeholderItem = ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE)
             .name("§7📍 BANNER SLOT")
             .lore("§7Place any banner here")
 
@@ -181,7 +181,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addApplyChangesButton(pane: StaticPane, x: Int, y: Int) {
-        val applyItem = ItemStack(Material.LIME_CONCRETE)
+        val applyItem = ItemStack.of(Material.LIME_CONCRETE)
             .name("§a⏳ APPLY CHANGES")
             .lore("§7Place a banner in the slot,")
             .lore("§7then click here to save it")
@@ -212,7 +212,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                     }
 
                     // Clear the slot and close menu
-                    inventory.setItem(bannerSlot, ItemStack(Material.AIR))
+                    inventory.setItem(bannerSlot, ItemStack.of(Material.AIR))
                     player.closeInventory()
                 } else {
                     player.sendMessage("§c❌ Failed to set banner. Check permissions.")
@@ -226,7 +226,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§c⬅ BACK")
             .lore("§7Return to main menu")
 
@@ -251,7 +251,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         val itemAmount = config.bannerCopyItemAmount
         val itemCustomModelData = config.bannerCopyItemCustomModelData
 
-        val copyItem = ItemStack(Material.WRITABLE_BOOK)
+        val copyItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§e📋 GET BANNER COPY")
             .lore("§7Get a copy of your guild banner")
 

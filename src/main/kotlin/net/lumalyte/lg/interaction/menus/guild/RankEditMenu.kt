@@ -118,7 +118,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
     private fun addRankInfoSection(pane: StaticPane) {
         // Rank name and basic info
-        val infoItem = ItemStack(Material.NAME_TAG)
+        val infoItem = ItemStack.of(Material.NAME_TAG)
             .name("§6📝 Rank Information")
             .lore("§7Name: §f${rank.name}")
             .lore("§7Priority: §f${rank.priority}")
@@ -182,7 +182,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         pane.addItem(iconGuiItem, 3, 0)
 
         // Permission count
-        val permCountItem = ItemStack(Material.BOOK)
+        val permCountItem = ItemStack.of(Material.BOOK)
             .name("§6📊 Permission Summary")
             .lore("§7Total Permissions: §f${rank.permissions.size}")
             .lore("§7")
@@ -291,7 +291,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
     private fun addActionButtons(pane: StaticPane) {
         // Save changes
-        val saveItem = ItemStack(Material.EMERALD_BLOCK)
+        val saveItem = ItemStack.of(Material.EMERALD_BLOCK)
             .name("§a💾 Save Changes")
             .lore("§7Apply all permission changes")
             .lore("§7")
@@ -321,7 +321,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         pane.addItem(saveGuiItem, 1, 5)
 
         // Reset to defaults
-        val resetItem = ItemStack(Material.BARRIER)
+        val resetItem = ItemStack.of(Material.BARRIER)
             .name("§c🔄 Reset Permissions")
             .lore("§7Clear all permissions")
             .lore("§7This cannot be undone")
@@ -335,7 +335,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         pane.addItem(resetGuiItem, 3, 5)
 
         // Delete rank
-        val deleteItem = ItemStack(Material.TNT)
+        val deleteItem = ItemStack.of(Material.TNT)
             .name("§4🗑 Delete Rank")
             .lore("§7Permanently remove this rank")
             .lore("§7Members will be unassigned")
@@ -350,7 +350,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         pane.addItem(deleteGuiItem, 5, 5)
 
         // Back to rank management
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§7⬅ Back")
             .lore("§7Return to rank management")
 

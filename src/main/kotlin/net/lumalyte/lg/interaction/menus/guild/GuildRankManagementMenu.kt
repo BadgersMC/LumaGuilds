@@ -57,7 +57,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         }
 
         // Add new rank button
-        val createRankItem = ItemStack(Material.EMERALD)
+        val createRankItem = ItemStack.of(Material.EMERALD)
             .name("§aCreate New Rank")
             .lore("§7Add a new rank to your guild")
             .lore("§7Maximum 10 ranks per guild")
@@ -67,7 +67,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         pane.addItem(guiCreateItem, 4, 3)
 
         // Back button
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§7← Back to Control Panel")
         val guiBackItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))

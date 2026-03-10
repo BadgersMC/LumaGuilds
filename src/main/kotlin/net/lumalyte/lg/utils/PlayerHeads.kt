@@ -12,7 +12,7 @@ import org.bukkit.inventory.meta.SkullMeta
  * @return The ItemStack of the head.
  */
 fun createHead(player: OfflinePlayer): ItemStack {
-    val head = ItemStack(Material.PLAYER_HEAD)
+    val head = ItemStack.of(Material.PLAYER_HEAD)
     val skullMeta = head.itemMeta as SkullMeta
     skullMeta.owningPlayer = player
     head.setItemMeta(skullMeta)

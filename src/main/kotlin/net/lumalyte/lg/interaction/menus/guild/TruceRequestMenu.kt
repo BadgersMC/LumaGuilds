@@ -99,7 +99,7 @@ class TruceRequestMenu(
 
         if (pageGuilds.isEmpty()) {
             // No enemy guilds
-            val emptyItem = ItemStack(Material.WHITE_BANNER)
+            val emptyItem = ItemStack.of(Material.WHITE_BANNER)
                 .name("§7No Enemy Guilds")
                 .lore("§7You are not at war with any guilds.")
                 .lore("§7Truces can only be requested with enemies.")
@@ -129,9 +129,9 @@ class TruceRequestMenu(
         // Try to use guild banner, fallback to white banner
         val item = if (targetGuild.banner != null) {
             val deserialized = targetGuild.banner.deserializeToItemStack()
-            deserialized ?: ItemStack(Material.WHITE_BANNER)
+            deserialized ?: ItemStack.of(Material.WHITE_BANNER)
         } else {
-            ItemStack(Material.WHITE_BANNER)
+            ItemStack.of(Material.WHITE_BANNER)
         }
 
         item.name("§c${targetGuild.name}")
@@ -155,7 +155,7 @@ class TruceRequestMenu(
         }
 
         // 7 days option
-        val sevenDaysItem = ItemStack(Material.CLOCK)
+        val sevenDaysItem = ItemStack.of(Material.CLOCK)
             .name("§e7 Days")
             .lore("§7Request a 7-day truce")
             .lore("§7with §f${targetGuild.name}")
@@ -166,7 +166,7 @@ class TruceRequestMenu(
         pane.addItem(sevenDaysGuiItem, 1, 1)
 
         // 14 days option (default)
-        val fourteenDaysItem = ItemStack(Material.CLOCK)
+        val fourteenDaysItem = ItemStack.of(Material.CLOCK)
             .name("§e14 Days §7(Recommended)")
             .lore("§7Request a 14-day truce")
             .lore("§7with §f${targetGuild.name}")
@@ -177,7 +177,7 @@ class TruceRequestMenu(
         pane.addItem(fourteenDaysGuiItem, 3, 1)
 
         // 30 days option
-        val thirtyDaysItem = ItemStack(Material.CLOCK)
+        val thirtyDaysItem = ItemStack.of(Material.CLOCK)
             .name("§e30 Days")
             .lore("§7Request a 30-day truce")
             .lore("§7with §f${targetGuild.name}")
@@ -188,7 +188,7 @@ class TruceRequestMenu(
         pane.addItem(thirtyDaysGuiItem, 5, 1)
 
         // Custom duration option
-        val customItem = ItemStack(Material.WRITABLE_BOOK)
+        val customItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§eCustom Duration")
             .lore("§7Enter a custom duration")
             .lore("§7in chat (1-90 days)")
@@ -202,7 +202,7 @@ class TruceRequestMenu(
         pane.addItem(customGuiItem, 7, 1)
 
         // Back button
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack")
             .lore("§7Return to enemy selection")
 
@@ -241,7 +241,7 @@ class TruceRequestMenu(
 
         // Previous page button
         if (currentPage > 0) {
-            val prevItem = ItemStack(Material.ARROW)
+            val prevItem = ItemStack.of(Material.ARROW)
                 .name("§f⬅ PREVIOUS PAGE")
                 .lore("§7Go to previous page")
 
@@ -253,7 +253,7 @@ class TruceRequestMenu(
         }
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name("§ePage ${currentPage + 1} / ${if (totalPages > 0) totalPages else 1}")
             .lore("§7Enemy guilds: §c${allEnemies.size}")
 
@@ -262,7 +262,7 @@ class TruceRequestMenu(
 
         // Next page button
         if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack(Material.ARROW)
+            val nextItem = ItemStack.of(Material.ARROW)
                 .name("§fNEXT PAGE ➡")
                 .lore("§7Go to next page")
 
@@ -275,7 +275,7 @@ class TruceRequestMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Relations")
             .lore("§7Return to relations menu")
 

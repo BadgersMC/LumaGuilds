@@ -52,7 +52,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
             val offlinePlayer = Bukkit.getOfflinePlayer(member.playerId)
             val playerName = offlinePlayer.name ?: "Unknown Player"
 
-            val memberItem = ItemStack(Material.PLAYER_HEAD)
+            val memberItem = ItemStack.of(Material.PLAYER_HEAD)
                 .name("§f$playerName")
                 .lore("§7Rank: §f${rank?.name ?: "Member"}")
 
@@ -83,7 +83,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         // Navigation buttons
         if (paginatedPane.pages > 1) {
             // Previous page button
-            val prevButton = ItemStack(Material.ARROW)
+            val prevButton = ItemStack.of(Material.ARROW)
                 .name("§e⬅ Previous Page")
                 .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
 
@@ -96,7 +96,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
             staticPane.addItem(prevGuiItem, 0, 0)
 
             // Next page button
-            val nextButton = ItemStack(Material.ARROW)
+            val nextButton = ItemStack.of(Material.ARROW)
                 .name("§eNext Page ➡")
                 .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
 
@@ -110,13 +110,13 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         }
 
         // Member count display
-        val infoItem = ItemStack(Material.PLAYER_HEAD)
+        val infoItem = ItemStack.of(Material.PLAYER_HEAD)
             .name("§6Total Members: §f${members.size}")
             .lore("§7Guild: §f${guild.name}")
         staticPane.addItem(GuiItem(infoItem), 4, 0)
 
         // Back button
-        val backButton = ItemStack(Material.BARRIER)
+        val backButton = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK")
             .lore("§7Return to guild info")
 

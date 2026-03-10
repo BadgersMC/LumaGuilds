@@ -72,7 +72,7 @@ class PlayerModerationMenu(
     }
 
     private fun addPlayerInfo(pane: StaticPane) {
-        val head = ItemStack(Material.PLAYER_HEAD)
+        val head = ItemStack.of(Material.PLAYER_HEAD)
         head.setData(
             DataComponentTypes.PROFILE,
             ResolvableProfile.resolvableProfile().uuid(targetPlayerId).build()
@@ -116,7 +116,7 @@ class PlayerModerationMenu(
         // Mute buttons (1h, 1d, 1w, permanent)
         if (!isMuted && !isBanned) {
             // 1 Hour mute
-            val mute1hItem = ItemStack(Material.CLOCK)
+            val mute1hItem = ItemStack.of(Material.CLOCK)
                 .name("§e Mute 1 Hour")
                 .lore("§7Mute player for 1 hour")
                 .lore("§7Player cannot send messages")
@@ -125,7 +125,7 @@ class PlayerModerationMenu(
             }, 0, 1)
 
             // 1 Day mute
-            val mute1dItem = ItemStack(Material.CLOCK)
+            val mute1dItem = ItemStack.of(Material.CLOCK)
                 .name("§e Mute 1 Day")
                 .lore("§7Mute player for 1 day")
                 .lore("§7Player cannot send messages")
@@ -134,7 +134,7 @@ class PlayerModerationMenu(
             }, 1, 1)
 
             // 1 Week mute
-            val mute1wItem = ItemStack(Material.CLOCK)
+            val mute1wItem = ItemStack.of(Material.CLOCK)
                 .name("§e Mute 1 Week")
                 .lore("§7Mute player for 1 week")
                 .lore("§7Player cannot send messages")
@@ -143,7 +143,7 @@ class PlayerModerationMenu(
             }, 2, 1)
 
             // Permanent mute
-            val mutePermItem = ItemStack(Material.BELL)
+            val mutePermItem = ItemStack.of(Material.BELL)
                 .name("§c Permanent Mute")
                 .lore("§7Mute player permanently")
                 .lore("§7Player cannot send messages")
@@ -155,7 +155,7 @@ class PlayerModerationMenu(
 
         // Unmute button (only if muted)
         if (isMuted && !isBanned) {
-            val unmuteItem = ItemStack(Material.LIME_DYE)
+            val unmuteItem = ItemStack.of(Material.LIME_DYE)
                 .name("§a Unmute Player")
                 .lore("§7Remove mute from player")
                 .lore("§7Player can send messages again")
@@ -166,7 +166,7 @@ class PlayerModerationMenu(
 
         // Ban button (only if not banned)
         if (!isBanned) {
-            val banItem = ItemStack(Material.BARRIER)
+            val banItem = ItemStack.of(Material.BARRIER)
                 .name("§c Ban Player")
                 .lore("§7Ban player from this channel")
                 .lore("§7Player cannot see or access channel")
@@ -178,7 +178,7 @@ class PlayerModerationMenu(
 
         // Unban button (only if banned)
         if (isBanned) {
-            val unbanItem = ItemStack(Material.LIME_DYE)
+            val unbanItem = ItemStack.of(Material.LIME_DYE)
                 .name("§a Unban Player")
                 .lore("§7Remove ban from player")
                 .lore("§7Player can access channel again")
@@ -189,7 +189,7 @@ class PlayerModerationMenu(
 
         // Kick button (only if not banned)
         if (!isBanned) {
-            val kickItem = ItemStack(Material.IRON_BOOTS)
+            val kickItem = ItemStack.of(Material.IRON_BOOTS)
                 .name("§c Kick Player")
                 .lore("§7Kick and ban player from channel")
                 .lore("§7Player is removed and banned")
@@ -304,7 +304,7 @@ class PlayerModerationMenu(
     }
 
     private fun addBackButton(pane: StaticPane) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§c Back")
             .lore("§7Return to channel moderation")
 

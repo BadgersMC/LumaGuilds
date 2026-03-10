@@ -82,7 +82,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     }
 
     private fun addCurrentDescriptionDisplay(pane: StaticPane, x: Int, y: Int) {
-        val displayItem = ItemStack(Material.BOOK)
+        val displayItem = ItemStack.of(Material.BOOK)
             .name("§eCurrent Description")
             .lore("§7${parseMiniMessageForDisplay(currentDescription) ?: "§oNone set"}")
             .lore("")
@@ -93,7 +93,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     }
 
     private fun addInputField(pane: StaticPane, x: Int, y: Int) {
-        val inputItem = ItemStack(Material.WRITABLE_BOOK)
+        val inputItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§bDescription Input")
             .lore("§7Click to type your new description")
             .lore("")
@@ -112,11 +112,11 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addValidationStatus(pane: StaticPane, x: Int, y: Int) {
         val statusItem = if (validationError != null) {
-            ItemStack(Material.RED_CONCRETE)
+            ItemStack.of(Material.RED_CONCRETE)
                 .name("§c❌ Validation Error")
                 .lore("§7${validationError}")
         } else {
-            ItemStack(Material.GREEN_CONCRETE)
+            ItemStack.of(Material.GREEN_CONCRETE)
                 .name("§a✅ Valid Description")
                 .lore("§7Description is ready to save")
         }
@@ -125,7 +125,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     }
 
     private fun addSaveButton(pane: StaticPane, x: Int, y: Int) {
-        val saveItem = ItemStack(Material.EMERALD_BLOCK)
+        val saveItem = ItemStack.of(Material.EMERALD_BLOCK)
             .name("§a💾 Save Description")
             .lore("§7Save your changes")
             .lore("")
@@ -151,7 +151,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     }
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
-        val cancelItem = ItemStack(Material.REDSTONE_BLOCK)
+        val cancelItem = ItemStack.of(Material.REDSTONE_BLOCK)
             .name("§c❌ Cancel")
             .lore("§7Discard changes and go back")
 
@@ -162,7 +162,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     }
 
     private fun addPreview(pane: StaticPane, x: Int, y: Int) {
-        val previewItem = ItemStack(Material.ITEM_FRAME)
+        val previewItem = ItemStack.of(Material.ITEM_FRAME)
             .name("§d🔍 Preview")
             .lore("§7How your description will appear:")
 

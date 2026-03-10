@@ -91,7 +91,7 @@ class PartyModerationMenu(
         val pageMembers = if (onlineMembers.isNotEmpty()) onlineMembers.subList(startIndex, endIndex) else emptyList()
 
         if (pageMembers.isEmpty()) {
-            val noPlayersItem = ItemStack(Material.BARRIER)
+            val noPlayersItem = ItemStack.of(Material.BARRIER)
                 .name("§cNo Players Online")
                 .lore("§7No other players are online in this channel")
             pane.addItem(GuiItem(noPlayersItem), 4, 1)
@@ -111,7 +111,7 @@ class PartyModerationMenu(
     }
 
     private fun createPlayerItem(playerId: UUID): ItemStack {
-        val head = ItemStack(Material.PLAYER_HEAD)
+        val head = ItemStack.of(Material.PLAYER_HEAD)
 
         head.setData(
             DataComponentTypes.PROFILE,
@@ -165,7 +165,7 @@ class PartyModerationMenu(
     private fun addModerationStatus(pane: StaticPane) {
         // Muted players count
         val activeMutes = party.getActiveMutes()
-        val mutedItem = ItemStack(Material.BELL)
+        val mutedItem = ItemStack.of(Material.BELL)
             .name("§e Muted Players: ${activeMutes.size}")
             .lore("§7Players currently muted in this channel")
             .apply {
@@ -181,7 +181,7 @@ class PartyModerationMenu(
         pane.addItem(GuiItem(mutedItem), 2, 4)
 
         // Banned players count
-        val bannedItem = ItemStack(Material.BARRIER)
+        val bannedItem = ItemStack.of(Material.BARRIER)
             .name("§c Banned Players: ${party.bannedPlayers.size}")
             .lore("§7Players banned from this channel")
             .apply {
@@ -196,7 +196,7 @@ class PartyModerationMenu(
         pane.addItem(GuiItem(bannedItem), 6, 4)
 
         // Channel info
-        val infoItem = ItemStack(Material.BOOK)
+        val infoItem = ItemStack.of(Material.BOOK)
             .name("§b Channel Info")
             .lore("§7Name: §f${party.name ?: "Unnamed"}")
             .lore("§7Guilds: §f${party.guildIds.size}")
@@ -210,7 +210,7 @@ class PartyModerationMenu(
 
         // Previous page button
         if (currentPage > 0) {
-            val prevItem = ItemStack(Material.ARROW)
+            val prevItem = ItemStack.of(Material.ARROW)
                 .name("§f Previous Page")
                 .lore("§7Go to previous page")
             pane.addItem(GuiItem(prevItem) {
@@ -221,7 +221,7 @@ class PartyModerationMenu(
 
         // Next page button
         if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack(Material.ARROW)
+            val nextItem = ItemStack.of(Material.ARROW)
                 .name("§f Next Page")
                 .lore("§7Go to next page")
             pane.addItem(GuiItem(nextItem) {
@@ -231,12 +231,12 @@ class PartyModerationMenu(
         }
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name("§f Page ${currentPage + 1}/$totalPages")
         pane.addItem(GuiItem(pageItem), 2, 5)
 
         // Back button
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c Back")
             .lore("§7Return to party management")
         pane.addItem(GuiItem(backItem) {
@@ -244,7 +244,7 @@ class PartyModerationMenu(
         }, 4, 5)
 
         // Refresh button
-        val refreshItem = ItemStack(Material.SUNFLOWER)
+        val refreshItem = ItemStack.of(Material.SUNFLOWER)
             .name("§a Refresh")
             .lore("§7Reload player list and status")
         pane.addItem(GuiItem(refreshItem) {

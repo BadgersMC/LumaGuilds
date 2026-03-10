@@ -90,7 +90,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addCurrentTagDisplay(pane: StaticPane, x: Int, y: Int) {
-        val currentTagDisplay = ItemStack(Material.NAME_TAG)
+        val currentTagDisplay = ItemStack.of(Material.NAME_TAG)
             .name("§f🎯 CURRENT TAG")
             .lore("§7Guild: §f${guild.name}")
 
@@ -111,7 +111,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addTagStatusIndicator(pane: StaticPane, x: Int, y: Int) {
         val characterCount = inputTag?.let { countVisibleCharacters(it) } ?: 0
-        val statusItem = ItemStack(Material.PAPER)
+        val statusItem = ItemStack.of(Material.PAPER)
             .name("§a📊 TAG STATUS")
             .lore("§7Characters: §f$characterCount§7/32")
 
@@ -135,7 +135,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addTagInputField(pane: StaticPane, x: Int, y: Int) {
-        val inputItem = ItemStack(Material.WRITABLE_BOOK)
+        val inputItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§f✏ EDIT TAG")
             .lore("§7Format: MiniMessage supported")
             .lore("§7Examples:")
@@ -178,7 +178,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addPreviewSection(pane: StaticPane, x: Int, y: Int) {
         val previewTag = inputTag ?: guild.name
-        val previewItem = ItemStack(Material.PAPER)
+        val previewItem = ItemStack.of(Material.PAPER)
             .name("§a🔍 PREVIEW")
             .lore("§7Chat message:")
 
@@ -208,7 +208,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addSaveButton(pane: StaticPane, x: Int, y: Int) {
-        val saveItem = ItemStack(Material.LIME_WOOL)
+        val saveItem = ItemStack.of(Material.LIME_WOOL)
             .name("§a✅ SAVE TAG")
             .lore("§7Apply the new tag")
 
@@ -268,7 +268,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addClearButton(pane: StaticPane, x: Int, y: Int) {
-        val clearItem = ItemStack(Material.BARRIER)
+        val clearItem = ItemStack.of(Material.BARRIER)
             .name("§c🗑 CLEAR TAG")
             .lore("§7Remove custom tag")
             .lore("§7Will use guild name instead")
@@ -286,7 +286,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
-        val cancelItem = ItemStack(Material.RED_WOOL)
+        val cancelItem = ItemStack.of(Material.RED_WOOL)
             .name("§c❌ CANCEL")
             .lore("§7Discard changes")
 

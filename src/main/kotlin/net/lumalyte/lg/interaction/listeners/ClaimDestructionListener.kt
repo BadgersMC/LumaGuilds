@@ -96,7 +96,7 @@ class ClaimDestructionListener: Listener, KoinComponent {
             val claimId = UUID.fromString(claimText) ?: continue
             if (claimId == claim.id) {
                 if (index == 40) {
-                    event.player.inventory.setItemInOffHand(ItemStack(Material.AIR))
+                    event.player.inventory.setItemInOffHand(ItemStack.of(Material.AIR))
                 }
                 else {
                     event.player.inventory.remove(item)
