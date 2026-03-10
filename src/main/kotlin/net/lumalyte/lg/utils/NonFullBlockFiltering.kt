@@ -64,7 +64,7 @@ val transparentMaterials = arrayOf(
     Material.WARPED_FENCE,
     Material.SOUL_TORCH,
     Material.IRON_BARS,
-    Material.CHAIN,
+    Material.IRON_CHAIN,
     Material.GLASS_PANE,
     Material.VINE,
     Material.GLOW_LICHEN,
