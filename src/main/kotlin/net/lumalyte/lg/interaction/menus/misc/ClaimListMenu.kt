@@ -48,7 +48,7 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Add page item
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("Page $page of ${ceil(claims.count() / 36.0).toInt()}")
+            .name("Page $page of ${maxOf(1, ceil(claims.count() / 36.0).toInt())}")
         val guiPageItem = GuiItem(pageItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPageItem, 7, 0)
 
@@ -74,7 +74,7 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
         var ySlot = 0
         for (claim in claims) {
             val coordinates = listOf(claim.position.x, claim.position.y, claim.position.z)
-            val claimItem = ItemStack.of(Material.valueOf(claim.icon))
+            val claimItem = ItemStack.of(Material.matchMaterial(claim.icon) ?: Material.GRASS_BLOCK)
                 .name(claim.name)
                 .lore(coordinates.joinToString(localizationProvider.get(
                     player.uniqueId, LocalizationKeys.GENERAL_LIST_SEPARATOR)))

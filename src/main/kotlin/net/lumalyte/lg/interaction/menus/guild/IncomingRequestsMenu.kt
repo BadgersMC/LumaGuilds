@@ -259,7 +259,7 @@ class IncomingRequestsMenu(
 
     private fun addNavigationButtons(pane: StaticPane) {
         val allRequests = relationService.getIncomingRequests(guild.id)
-        val totalPages = (allRequests.size + itemsPerPage - 1) / itemsPerPage
+        val totalPages = maxOf(1, (allRequests.size + itemsPerPage - 1) / itemsPerPage)
 
         // Previous page button
         if (currentPage > 0) {

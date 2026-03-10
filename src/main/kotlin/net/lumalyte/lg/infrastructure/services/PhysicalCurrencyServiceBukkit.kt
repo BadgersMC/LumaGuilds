@@ -265,13 +265,18 @@ class PhysicalCurrencyServiceBukkit(
             )
         }
 
-        // Validate material name
+        // Validate material name and ensure it is a holdable item (not AIR, WATER, etc.)
         val materialName = config.physicalCurrencyMaterial
-        try {
+        val material = try {
             Material.valueOf(materialName)
         } catch (e: IllegalArgumentException) {
             return CurrencyResult.Failure(
                 "Invalid physical currency material: '$materialName' is not a valid Bukkit Material"
+            )
+        }
+        if (!material.isItem) {
+            return CurrencyResult.Failure(
+                "Invalid physical currency material: '$materialName' is not a holdable item (e.g. AIR or WATER cannot be currency)"
             )
         }
 
