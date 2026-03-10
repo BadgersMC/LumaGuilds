@@ -343,6 +343,39 @@ class GuildSettingsMenu(
         }
         pane.addItem(openClosedGuiItem, 1, 4)
 
+        // Lunar Tracking Toggle
+        val trackingItem = ItemStack.of(
+            if (guild.trackingEnabled) Material.RECOVERY_COMPASS else Material.COMPASS
+        )
+            .name("§f🗺 LUNAR TRACKING")
+            .lore("§7Current: §f${if (guild.trackingEnabled) "ENABLED" else "DISABLED"}")
+            .lore("§7")
+            .lore("§7Enabled: Guild members visible")
+            .lore("§7on Lunar Client minimap & HUD")
+            .lore("§7Disabled: No location sharing")
+            .lore("§7")
+            .lore("§eClick to toggle Lunar tracking")
+
+        val trackingGuiItem = GuiItem(trackingItem) {
+            if (!hasPermission) {
+                player.sendMessage("§c❌ You don't have permission to change guild settings")
+                player.sendMessage("§7You need the MANAGE_GUILD_SETTINGS permission")
+                return@GuiItem
+            }
+
+            val newTracking = !guild.trackingEnabled
+            val success = guildService.setTrackingEnabled(guild.id, newTracking, player.uniqueId)
+
+            if (success) {
+                guild = guild.copy(trackingEnabled = newTracking)
+                player.sendMessage("§a✅ Lunar tracking is now ${if (newTracking) "§aENABLED" else "§cDISABLED"}")
+                open()
+            } else {
+                player.sendMessage("§c❌ Failed to update tracking settings")
+            }
+        }
+        pane.addItem(trackingGuiItem, 4, 4)
+
         // Guild Members
         val membersItem = ItemStack.of(Material.PLAYER_HEAD)
             .name("§f👥 MANAGE MEMBERS")

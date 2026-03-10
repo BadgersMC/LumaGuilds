@@ -84,6 +84,13 @@ class GuildTeamService(
     }
 
     /**
+     * Returns true if the player is vanished via SuperVanish, PremiumVanish, CMI, or any
+     * plugin that sets the standard "vanished" metadata key.
+     */
+    private fun Player.isVanished(): Boolean =
+        getMetadata("vanished").any { it.asBoolean() }
+
+    /**
      * Create Apollo teams for all existing guilds on startup
      */
     private fun initializeExistingGuilds() {
@@ -110,11 +117,14 @@ class GuildTeamService(
      */
     fun createGuildTeam(guildId: UUID) {
         try {
+            val guild = guildService.getGuild(guildId) ?: return
+            if (!guild.trackingEnabled) return
+
             val members = memberService.getGuildMembers(guildId)
             if (members.isEmpty()) return
 
             val onlineMembers = members.mapNotNull { member ->
-                Bukkit.getPlayer(member.playerId)
+                Bukkit.getPlayer(member.playerId)?.takeUnless { it.isVanished() }
             }
 
             if (onlineMembers.isEmpty()) return
@@ -252,9 +262,16 @@ class GuildTeamService(
      */
     fun refreshGuildTeam(guildId: UUID) {
         try {
+            // If tracking was disabled, clear any existing team and bail
+            val guild = guildService.getGuild(guildId)
+            if (guild == null || !guild.trackingEnabled) {
+                deleteGuildTeam(guildId)
+                return
+            }
+
             val members = memberService.getGuildMembers(guildId)
             val onlineMembers = members.mapNotNull { member ->
-                Bukkit.getPlayer(member.playerId)
+                Bukkit.getPlayer(member.playerId)?.takeUnless { it.isVanished() }
             }
 
             if (onlineMembers.isEmpty()) {
@@ -418,7 +435,7 @@ class GuildTeamService(
 
         try {
             val members = memberService.getGuildMembers(guildId)
-            val onlineMembers = members.mapNotNull { Bukkit.getPlayer(it.playerId) }
+            val onlineMembers = members.mapNotNull { Bukkit.getPlayer(it.playerId)?.takeUnless { p -> p.isVanished() } }
 
             onlineMembers.forEach { viewer ->
                 if (!lunarClientService.isLunarClient(viewer)) return@forEach

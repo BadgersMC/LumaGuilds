@@ -279,4 +279,14 @@ interface GuildService {
      * @return A pair of (joinFeeEnabled, joinFeeAmount), or null if guild not found.
      */
     fun getJoinFeeSettings(guildId: UUID): Pair<Boolean, Int>?
+
+    /**
+     * Enables or disables Lunar Client location tracking (Apollo teams/waypoints) for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param enabled true to enable tracking, false to opt out.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun setTrackingEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean
 }

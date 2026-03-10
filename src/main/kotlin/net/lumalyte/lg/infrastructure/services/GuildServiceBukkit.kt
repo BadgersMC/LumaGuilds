@@ -509,6 +509,17 @@ class GuildServiceBukkit(
         return Pair(guild.joinFeeEnabled, guild.joinFeeAmount)
     }
 
+    override fun setTrackingEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            return false
+        }
+
+        val updatedGuild = guild.copy(trackingEnabled = enabled)
+        return guildRepository.update(updatedGuild)
+    }
+
     /**
      * Counts visible characters in a tag, excluding formatting codes.
      * MiniMessage tags like <color>, <gradient>, etc. are excluded from the count.
