@@ -112,6 +112,11 @@ class GuildServiceBukkit(
             }
         }
 
+        // Capture online members before removal so we can close stale guild menus
+        val onlineMembers = memberService.getGuildMembers(guildId)
+            .mapNotNull { Bukkit.getPlayer(it.playerId) }
+            .filter { it.isOnline }
+
         // Remove all members
         memberRepository.removeByGuild(guildId)
 
@@ -122,6 +127,10 @@ class GuildServiceBukkit(
         val result = guildRepository.remove(guildId)
         if (result) {
             logger.info("Guild $guildId disbanded by $actorId")
+            onlineMembers.forEach { member ->
+                member.closeInventory()
+                member.sendMessage("§c✗ Your guild §f${guild.name} §chas been disbanded.")
+            }
         }
         return result
     }
