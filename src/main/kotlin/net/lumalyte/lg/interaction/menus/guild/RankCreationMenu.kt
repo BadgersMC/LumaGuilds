@@ -110,7 +110,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
 
         // Rank icon selection
         val displayIcon = if (rankIcon == Material.AIR) Material.DIAMOND_SWORD else rankIcon
-        val iconItem = ItemStack(displayIcon)
+        val iconItem = ItemStack.of(displayIcon)
             .name("§6🎨 Rank Icon")
             .lore("§7Current: §f${if (rankIcon == Material.AIR) "Not set" else rankIcon.name}")
             .lore("§7")
@@ -181,7 +181,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         templates.entries.forEachIndexed { index, (templateName, permissions) ->
             val col = index * 2 + 1
 
-            val templateItem = ItemStack(
+            val templateItem = ItemStack.of(
                 when (templateName) {
                     "Banker" -> Material.GOLD_INGOT
                     "Envoy" -> Material.WRITABLE_BOOK
@@ -256,7 +256,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             val hasAnyPermission = permissions.any { selectedPermissions.contains(it) }
             val enabledCount = permissions.count { selectedPermissions.contains(it) }
 
-            val categoryItem = ItemStack(
+            val categoryItem = ItemStack.of(
                 when (categoryName) {
                     "Guild Management" -> Material.GOLDEN_SWORD
                     "Banking" -> Material.GOLD_INGOT
@@ -285,7 +285,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun addPreviewSection(pane: StaticPane) {
-        val previewItem = ItemStack(rankIcon)
+        val previewItem = ItemStack.of(rankIcon)
             .name("§6🔍 Rank Preview")
             .lore("§7Name: ${if (rankName.isNotEmpty()) "§f$rankName" else "§cNot set"}")
             .lore("§7Icon: §f${rankIcon.name}")
@@ -311,7 +311,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     private fun addActionButtons(pane: StaticPane) {
         // Create rank
         val canCreate = rankName.isNotEmpty() && selectedPermissions.isNotEmpty()
-        val createItem = ItemStack(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
+        val createItem = ItemStack.of(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
             .name(if (canCreate) "§a✅ Create Rank" else "§c❌ Cannot Create")
             .lore("§7Create the new rank")
 

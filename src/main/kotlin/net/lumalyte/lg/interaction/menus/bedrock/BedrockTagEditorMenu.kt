@@ -277,7 +277,7 @@ class BedrockTagEditorMenu(
             })
 
             // Create map item
-            val mapItem = org.bukkit.inventory.ItemStack(org.bukkit.Material.FILLED_MAP)
+            val mapItem = org.bukkit.inventory.ItemStack.of(org.bukkit.Material.FILLED_MAP)
             val mapMeta = mapItem.itemMeta as? org.bukkit.inventory.meta.MapMeta
             mapMeta?.mapView = mapView
             mapMeta?.displayName(net.kyori.adventure.text.Component.text("Birdflop Text Generator")

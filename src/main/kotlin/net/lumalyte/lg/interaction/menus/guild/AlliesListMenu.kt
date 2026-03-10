@@ -177,7 +177,7 @@ class AlliesListMenu(
         // Break alliance button (requires MANAGE_RELATIONS permission)
         val hasPermission = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
 
-        val breakItem = ItemStack(if (hasPermission) Material.RED_CONCRETE else Material.BARRIER)
+        val breakItem = ItemStack.of(if (hasPermission) Material.RED_CONCRETE else Material.BARRIER)
             .name(if (hasPermission) "§cBreak Alliance" else "§7Break Alliance")
             .lore(if (hasPermission) "§7End your alliance with" else "§7You need MANAGE_RELATIONS")
             .lore(if (hasPermission) "§f$guildName" else "§7permission to break alliances")

@@ -177,7 +177,7 @@ class EnemiesListMenu(
         // Request truce button (requires MANAGE_RELATIONS permission)
         val hasManagePermission = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
 
-        val truceItem = ItemStack(if (hasManagePermission) Material.WHITE_BANNER else Material.BARRIER)
+        val truceItem = ItemStack.of(if (hasManagePermission) Material.WHITE_BANNER else Material.BARRIER)
             .name(if (hasManagePermission) "§eRequest Truce" else "§7Request Truce")
             .lore(if (hasManagePermission) "§7Request a temporary ceasefire" else "§7You need MANAGE_RELATIONS")
             .lore(if (hasManagePermission) "§7with §f$guildName" else "§7permission to request truces")
@@ -198,7 +198,7 @@ class EnemiesListMenu(
         pane.addItem(truceGuiItem, 3, 1)
 
         // Request peace button (requires MANAGE_RELATIONS permission)
-        val peaceItem = ItemStack(if (hasManagePermission) Material.PAPER else Material.BARRIER)
+        val peaceItem = ItemStack.of(if (hasManagePermission) Material.PAPER else Material.BARRIER)
             .name(if (hasManagePermission) "§fRequest Peace" else "§7Request Peace")
             .lore(if (hasManagePermission) "§7Request to end hostilities" else "§7You need MANAGE_RELATIONS")
             .lore(if (hasManagePermission) "§7permanently with §f$guildName" else "§7permission to request peace")

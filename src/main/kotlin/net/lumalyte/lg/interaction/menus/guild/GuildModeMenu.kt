@@ -70,7 +70,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Current mode display
-        val currentModeItem = ItemStack(
+        val currentModeItem = ItemStack.of(
             if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
         )
             .name("§f📊 CURRENT MODE")
@@ -194,7 +194,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Current Mode Display
-        val currentModeItem = ItemStack(
+        val currentModeItem = ItemStack.of(
             if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
         )
             .name("§f📊 CURRENT MODE")

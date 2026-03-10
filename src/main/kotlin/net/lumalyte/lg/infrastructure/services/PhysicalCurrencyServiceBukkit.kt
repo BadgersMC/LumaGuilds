@@ -219,7 +219,7 @@ class PhysicalCurrencyServiceBukkit(
             val maxStackSize = currencyMaterial.maxStackSize
             val toAdd = minOf(remainingToAdd, maxStackSize)
 
-            val newItem = ItemStack(currencyMaterial, toAdd)
+            val newItem = ItemStack.of(currencyMaterial, toAdd)
             vaultInventory[emptySlot] = newItem
             remainingToAdd -= toAdd
         }
@@ -311,7 +311,7 @@ class PhysicalCurrencyServiceBukkit(
             return null
         }
 
-        return ItemStack(currencyMaterial, amount)
+        return ItemStack.of(currencyMaterial, amount)
     }
 
     override fun calculatePlayerInventoryValue(playerId: UUID): Int {

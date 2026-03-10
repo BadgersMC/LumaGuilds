@@ -65,7 +65,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val truces = relations.count { it.type == RelationType.TRUCE && it.isActive() }
 
         // Allies
-        val alliesItem = ItemStack(if (allies > 0) Material.DIAMOND else Material.GRAY_DYE)
+        val alliesItem = ItemStack.of(if (allies > 0) Material.DIAMOND else Material.GRAY_DYE)
             .name("§aAllies")
             .lore("§7Guilds you are allied with")
             .lore("§7Count: §f$allies")
@@ -77,7 +77,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         pane.addItem(alliesGuiItem, 0, 0)
 
         // Enemies
-        val enemiesItem = ItemStack(if (enemies > 0) Material.REDSTONE else Material.GRAY_DYE)
+        val enemiesItem = ItemStack.of(if (enemies > 0) Material.REDSTONE else Material.GRAY_DYE)
             .name("§cEnemies")
             .lore("§7Guilds you are at war with")
             .lore("§7Count: §f$enemies")
@@ -89,7 +89,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         pane.addItem(enemiesGuiItem, 2, 0)
 
         // Truces
-        val trucesItem = ItemStack(if (truces > 0) Material.CLOCK else Material.GRAY_DYE)
+        val trucesItem = ItemStack.of(if (truces > 0) Material.CLOCK else Material.GRAY_DYE)
             .name("§eTruces")
             .lore("§7Temporary ceasefires")
             .lore("§7Count: §f$truces")
@@ -117,7 +117,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val outgoingRequests = relationService.getOutgoingRequests(guild.id)
 
         // Incoming requests
-        val incomingItem = ItemStack(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
+        val incomingItem = ItemStack.of(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
             .name("§aIncoming Requests")
             .lore("§7Diplomatic requests from other guilds")
             .lore("§7Count: §f${incomingRequests.size}")
@@ -129,7 +129,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         pane.addItem(incomingGuiItem, 1, 1)
 
         // Outgoing requests
-        val outgoingItem = ItemStack(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
+        val outgoingItem = ItemStack.of(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
             .name("§eOutgoing Requests")
             .lore("§7Your guild's pending requests")
             .lore("§7Count: §f${outgoingRequests.size}")

@@ -471,7 +471,7 @@ class GuildBankTransactionHistoryMenu(
      * Create a menu item with consistent formatting
      */
     private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
-        val item = ItemStack(material)
+        val item = ItemStack.of(material)
         val meta = item.itemMeta
 
         meta.displayName(Component.text(name)

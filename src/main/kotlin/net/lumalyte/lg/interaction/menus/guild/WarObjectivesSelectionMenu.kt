@@ -74,7 +74,7 @@ class WarObjectivesSelectionMenu(
         val hasObjective = killObjective != null
         val currentValue = killObjective?.targetValue ?: 10
 
-        val item = ItemStack(if (hasObjective) Material.DIAMOND_SWORD else Material.IRON_SWORD)
+        val item = ItemStack.of(if (hasObjective) Material.DIAMOND_SWORD else Material.IRON_SWORD)
             .name(if (hasObjective) "§a✓ §cKills Objective" else "§7Kills Objective")
             .lore("§7Kill enemy guild members")
             .lore("")
@@ -119,7 +119,7 @@ class WarObjectivesSelectionMenu(
         val hasObjective = timeObjective != null
         val currentValue = timeObjective?.targetValue ?: 24 // hours
 
-        val item = ItemStack(if (hasObjective) Material.CLOCK else Material.STONE)
+        val item = ItemStack.of(if (hasObjective) Material.CLOCK else Material.STONE)
             .name(if (hasObjective) "§a✓ §eTime Survival" else "§7Time Survival")
             .lore("§7Survive for a set duration")
             .lore("")
@@ -162,7 +162,7 @@ class WarObjectivesSelectionMenu(
         val hasObjective = claimObjective != null
         val currentValue = claimObjective?.targetValue ?: 3
 
-        val item = ItemStack(if (hasObjective) Material.GOLDEN_PICKAXE else Material.WOODEN_PICKAXE)
+        val item = ItemStack.of(if (hasObjective) Material.GOLDEN_PICKAXE else Material.WOODEN_PICKAXE)
             .name(if (hasObjective) "§a✓ §6Claims Captured" else "§7Claims Captured")
             .lore("§7Capture enemy territory")
             .lore("")
@@ -203,7 +203,7 @@ class WarObjectivesSelectionMenu(
     private fun addSaveButton(pane: StaticPane, x: Int, y: Int) {
         val canSave = tempObjectives.isNotEmpty()
 
-        val item = ItemStack(if (canSave) Material.LIME_WOOL else Material.GRAY_WOOL)
+        val item = ItemStack.of(if (canSave) Material.LIME_WOOL else Material.GRAY_WOOL)
             .name(if (canSave) "§a✅ Save Objectives" else "§c❌ No Objectives Selected")
             .lore(if (canSave) {
                 "§7Selected: §f${tempObjectives.size} objective(s)"

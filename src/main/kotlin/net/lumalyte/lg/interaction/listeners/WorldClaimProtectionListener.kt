@@ -427,7 +427,7 @@ class WorldClaimProtectionListener: Listener, KoinComponent {
         if (sourceClaim == destinationClaim) return
 
         // Drop the block as an item
-        val itemStack = ItemStack(fallingBlock.blockData.material, 1)
+        val itemStack = ItemStack.of(fallingBlock.blockData.material, 1)
         event.isCancelled = true
         event.block.world.dropItemNaturally(fallingBlock.location, itemStack)
     }

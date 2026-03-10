@@ -107,7 +107,7 @@ class GuildMemberRankMenu(
 
         displayRanks.forEachIndexed { index, rank ->
             val isCurrentRank = rank.id == targetMember.rankId
-            val rankItem = ItemStack(if (isCurrentRank) Material.LIME_CONCRETE else Material.GRAY_CONCRETE)
+            val rankItem = ItemStack.of(if (isCurrentRank) Material.LIME_CONCRETE else Material.GRAY_CONCRETE)
                 .name("${if (isCurrentRank) "§a✓" else "§f"} ${rank.name}")
                 .lore("§7Priority: §f${rank.priority}")
                 .lore("§7Members: §f${memberService.getMembersByRank(guild.id, rank.id).size}")

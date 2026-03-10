@@ -1527,7 +1527,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Create the special Guild Vault chest item
-        val vaultChest = org.bukkit.inventory.ItemStack(org.bukkit.Material.CHEST)
+        val vaultChest = org.bukkit.inventory.ItemStack.of(org.bukkit.Material.CHEST)
         val meta = vaultChest.itemMeta
 
         // Use guild's colored tag if set, otherwise use green name

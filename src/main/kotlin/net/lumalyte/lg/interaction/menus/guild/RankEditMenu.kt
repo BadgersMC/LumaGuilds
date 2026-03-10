@@ -153,7 +153,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Rank icon selection
         val displayIcon = if (selectedIcon == Material.AIR) Material.DIAMOND_SWORD else selectedIcon
-        val iconItem = ItemStack(displayIcon)
+        val iconItem = ItemStack.of(displayIcon)
             .name("§6🎨 Rank Icon")
             .lore("§7Current: §f${if (selectedIcon == Material.AIR) "Not set" else selectedIcon.name}")
             .lore("§7")
@@ -242,7 +242,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             val hasAnyPermission = permissions.any { rank.permissions.contains(it) }
             val hasAllPermissions = permissions.all { rank.permissions.contains(it) }
 
-            val categoryItem = ItemStack(
+            val categoryItem = ItemStack.of(
                 when (categoryName) {
                     "Guild Management" -> Material.GOLDEN_SWORD
                     "Banking" -> Material.GOLD_INGOT

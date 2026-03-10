@@ -149,7 +149,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addClearBannerButton(pane: StaticPane, x: Int, y: Int) {
         val hasBanner = guild.banner != null
-        val clearItem = ItemStack(if (hasBanner) Material.BARRIER else Material.GRAY_DYE)
+        val clearItem = ItemStack.of(if (hasBanner) Material.BARRIER else Material.GRAY_DYE)
             .name(if (hasBanner) "§c🗑 CLEAR BANNER" else "§7🗑 CLEAR BANNER")
             .lore(if (hasBanner) {
                 listOf(
@@ -318,7 +318,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 // Item-based payment
                 try {
                     val material = Material.valueOf(itemMaterial.uppercase())
-                    val requiredItem = ItemStack(material, itemAmount)
+                    val requiredItem = ItemStack.of(material, itemAmount)
 
                     // Apply custom model data if specified (for matching custom items from resource packs)
                     @Suppress("DEPRECATION")

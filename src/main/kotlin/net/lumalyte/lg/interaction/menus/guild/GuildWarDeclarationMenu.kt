@@ -156,14 +156,14 @@ class GuildWarDeclarationMenu(
         val bannerItem = targetGuild.banner?.let { banner ->
             try {
                 val deserialized = banner.deserializeToItemStack()
-                deserialized?.clone() ?: ItemStack(defaultBanner)
+                deserialized?.clone() ?: ItemStack.of(defaultBanner)
             } catch (e: Exception) {
                 // Menu operation - catching all exceptions to prevent UI failure
             // Menu operation - catching all exceptions to prevent UI failure
                 // Fallback on any deserialization error
-                ItemStack(defaultBanner)
+                ItemStack.of(defaultBanner)
             }
-        } ?: ItemStack(defaultBanner)
+        } ?: ItemStack.of(defaultBanner)
 
         // Add guild mode indicator
         val modeColor = if (targetGuild.mode == GuildMode.HOSTILE) "§c" else "§a"
