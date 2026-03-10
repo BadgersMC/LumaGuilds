@@ -64,7 +64,7 @@ class BannerSelectionListener : Listener, KoinComponent {
                     cursorItem.amount = cursorItem.amount - 1
                     player.setItemOnCursor(cursorItem)
                 } else {
-                    player.setItemOnCursor(ItemStack(Material.AIR))
+                    player.setItemOnCursor(ItemStack.of(Material.AIR))
                 }
             }
 

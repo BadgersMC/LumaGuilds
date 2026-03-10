@@ -113,7 +113,7 @@ class WarGuildSelectionMenu(
     }
 
     private fun addInfoItem(pane: StaticPane, totalGuilds: Int, x: Int, y: Int) {
-        val item = ItemStack(Material.BOOK)
+        val item = ItemStack.of(Material.BOOK)
             .name("§e📖 Guild Info")
             .lore("§7Total Available: §f$totalGuilds guilds")
             .lore("")
@@ -125,7 +125,7 @@ class WarGuildSelectionMenu(
     }
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {
-        val prevItem = ItemStack(Material.ARROW)
+        val prevItem = ItemStack.of(Material.ARROW)
             .name("§e← Previous Page")
             .lore("§7Go to page ${currentPage}")
 
@@ -137,7 +137,7 @@ class WarGuildSelectionMenu(
     }
 
     private fun addNextPageButton(pane: StaticPane, x: Int, y: Int) {
-        val nextItem = ItemStack(Material.ARROW)
+        val nextItem = ItemStack.of(Material.ARROW)
             .name("§eNext Page →")
             .lore("§7Go to page ${currentPage + 2}")
 
@@ -149,7 +149,7 @@ class WarGuildSelectionMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c← Back")
             .lore("§7Return to war declaration")
 

@@ -54,7 +54,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
     }
 
     private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
-        val infoItem = ItemStack(Material.BOOK)
+        val infoItem = ItemStack.of(Material.BOOK)
             .name("§a📨 SEND INVITATION")
             .lore("§7Send an invitation to join")
             .lore("§7the guild.")
@@ -69,7 +69,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
     }
 
     private fun addPlayerInfo(pane: StaticPane, x: Int, y: Int) {
-        val head = ItemStack(Material.PLAYER_HEAD)
+        val head = ItemStack.of(Material.PLAYER_HEAD)
         val meta = head.itemMeta as SkullMeta
 
         // Set skull owner
@@ -86,7 +86,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
     }
 
     private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
-        val confirmItem = ItemStack(Material.GREEN_WOOL)
+        val confirmItem = ItemStack.of(Material.GREEN_WOOL)
             .name("§a✅ SEND INVITE")
             .lore("§7Send invitation to player")
             .lore("§7Click to proceed")
@@ -98,7 +98,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
     }
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
-        val cancelItem = ItemStack(Material.RED_WOOL)
+        val cancelItem = ItemStack.of(Material.RED_WOOL)
             .name("§c❌ CANCEL")
             .lore("§7Return to invite menu")
             .lore("§7No invitation will be sent")

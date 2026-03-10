@@ -89,7 +89,7 @@ class LfgBrowserMenu(
         val isPeaceful = guild.mode == net.lumalyte.lg.domain.entities.GuildMode.PEACEFUL
         val joinRequirement = lfgService.getJoinRequirement(guild)
 
-        val item = ItemStack(Material.WHITE_BANNER)
+        val item = ItemStack.of(Material.WHITE_BANNER)
             .name("§e${guild.name}")
             .lore("§7")
             .lore("§7Level: §f${guild.level}")
@@ -111,7 +111,7 @@ class LfgBrowserMenu(
     }
 
     private fun addNoGuildsMessage(pane: StaticPane) {
-        val noGuildsItem = ItemStack(Material.BARRIER)
+        val noGuildsItem = ItemStack.of(Material.BARRIER)
             .name("§cNo Guilds Available")
             .lore("§7There are no open guilds")
             .lore("§7available for joining right now.")
@@ -124,7 +124,7 @@ class LfgBrowserMenu(
 
     private fun addNavigationButtons(pane: StaticPane, paginatedPane: PaginatedPane) {
         // Previous page button
-        val prevItem = ItemStack(Material.ARROW)
+        val prevItem = ItemStack.of(Material.ARROW)
             .name("§e← Previous Page")
             .lore("§7Go to previous page")
 
@@ -138,7 +138,7 @@ class LfgBrowserMenu(
         pane.addItem(prevGuiItem, 3, 0)
 
         // Close button
-        val closeItem = ItemStack(Material.BARRIER)
+        val closeItem = ItemStack.of(Material.BARRIER)
             .name("§cClose")
             .lore("§7Close this menu")
 
@@ -149,7 +149,7 @@ class LfgBrowserMenu(
         pane.addItem(closeGuiItem, 4, 0)
 
         // Next page button
-        val nextItem = ItemStack(Material.ARROW)
+        val nextItem = ItemStack.of(Material.ARROW)
             .name("§eNext Page →")
             .lore("§7Go to next page")
 

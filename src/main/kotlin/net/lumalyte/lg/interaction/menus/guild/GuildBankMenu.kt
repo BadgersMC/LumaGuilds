@@ -803,7 +803,7 @@ class GuildBankMenu(
             .color(color)
             .decoration(TextDecoration.ITALIC, false)
 
-        val item = ItemStack(Material.EMERALD)
+        val item = ItemStack.of(Material.EMERALD)
         val meta = item.itemMeta
 
         meta.displayName(displayName)
@@ -967,7 +967,7 @@ class GuildBankMenu(
         ))
 
         // Set up the anvil with a paper item for input
-        val paper = ItemStack(Material.PAPER)
+        val paper = ItemStack.of(Material.PAPER)
         val meta = paper.itemMeta
         meta?.displayName(Component.text("0"))
         paper.itemMeta = meta

@@ -59,7 +59,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
-        val infoItem = ItemStack(Material.BOOK)
+        val infoItem = ItemStack.of(Material.BOOK)
             .name("§f📋 INVITE PLAYERS")
             .lore("§7Invite players to join your guild")
             .lore("§7Click online players or use manual invite")
@@ -77,7 +77,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
             .take(5) // Limit to 5 for display
 
         if (onlinePlayers.isEmpty()) {
-            val noPlayersItem = ItemStack(Material.BARRIER)
+            val noPlayersItem = ItemStack.of(Material.BARRIER)
                 .name("§c❌ NO PLAYERS AVAILABLE")
                 .lore("§7No online players to invite")
                 .lore("§7Use manual invite instead")
@@ -90,7 +90,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
         for ((index, onlinePlayer) in onlinePlayers.withIndex()) {
             if (index >= 5) break
 
-            val playerHead = ItemStack(Material.PLAYER_HEAD)
+            val playerHead = ItemStack.of(Material.PLAYER_HEAD)
             val meta = playerHead.itemMeta
             if (meta is org.bukkit.inventory.meta.SkullMeta) {
                 meta.owningPlayer = onlinePlayer
@@ -110,7 +110,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addManualInviteButton(pane: StaticPane, x: Int, y: Int) {
-        val manualItem = ItemStack(Material.WRITABLE_BOOK)
+        val manualItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§f✏ MANUAL INVITE")
             .lore("§7Type a player name to invite")
             .lore("§7Works for offline players too")
@@ -134,7 +134,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK")
             .lore("§7Return to member management")
 

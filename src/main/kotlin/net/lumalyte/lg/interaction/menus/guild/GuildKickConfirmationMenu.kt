@@ -55,7 +55,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addWarningDisplay(pane: StaticPane, x: Int, y: Int) {
-        val warningItem = ItemStack(Material.BARRIER)
+        val warningItem = ItemStack.of(Material.BARRIER)
             .name("§c⚠ KICK CONFIRMATION")
             .lore("§cThis action cannot be undone!")
             .lore("§7")
@@ -71,7 +71,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addMemberInfo(pane: StaticPane, x: Int, y: Int) {
-        val head = ItemStack(Material.PLAYER_HEAD)
+        val head = ItemStack.of(Material.PLAYER_HEAD)
 
         head.setData(
             DataComponentTypes.PROFILE,
@@ -94,7 +94,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
-        val confirmItem = ItemStack(Material.RED_WOOL)
+        val confirmItem = ItemStack.of(Material.RED_WOOL)
             .name("§c✅ CONFIRM KICK")
             .lore("§cPermanently remove from guild")
             .lore("§7Click to proceed")
@@ -106,7 +106,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
-        val cancelItem = ItemStack(Material.GREEN_WOOL)
+        val cancelItem = ItemStack.of(Material.GREEN_WOOL)
             .name("§a❌ CANCEL")
             .lore("§7Return to member list")
             .lore("§7No changes will be made")

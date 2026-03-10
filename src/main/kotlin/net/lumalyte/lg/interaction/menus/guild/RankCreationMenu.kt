@@ -81,7 +81,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
 
     private fun addBasicSetupSection(pane: StaticPane) {
         // Rank name input
-        val nameItem = ItemStack(Material.NAME_TAG)
+        val nameItem = ItemStack.of(Material.NAME_TAG)
             .name("§6📝 Rank Name")
             .lore("§7Current: ${if (rankName.isNotEmpty()) "§f$rankName" else "§cNot set"}")
             .lore("§7")
@@ -141,7 +141,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(iconGuiItem, 3, 0)
 
         // Permission count
-        val countItem = ItemStack(Material.BOOK)
+        val countItem = ItemStack.of(Material.BOOK)
             .name("§6📊 Selected Permissions")
             .lore("§7Count: §f${selectedPermissions.size}")
             .lore("§7")
@@ -355,7 +355,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(createGuiItem, 1, 5)
 
         // Clear all
-        val clearItem = ItemStack(Material.BARRIER)
+        val clearItem = ItemStack.of(Material.BARRIER)
             .name("§c🗑 Clear All")
             .lore("§7Reset all selections")
             .lore("§7")
@@ -372,7 +372,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(clearGuiItem, 3, 5)
 
         // Cancel
-        val cancelItem = ItemStack(Material.ARROW)
+        val cancelItem = ItemStack.of(Material.ARROW)
             .name("§7❌ Cancel")
             .lore("§7Return without creating")
 

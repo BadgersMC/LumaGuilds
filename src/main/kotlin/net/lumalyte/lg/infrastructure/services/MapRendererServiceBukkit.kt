@@ -44,7 +44,7 @@ class MapRendererServiceBukkit(
 
         return try {
             // Create a new map item
-            val mapItem = ItemStack(Material.FILLED_MAP)
+            val mapItem = ItemStack.of(Material.FILLED_MAP)
             val mapMeta = mapItem.itemMeta as? MapMeta ?: return null
 
             // TODO: Create and configure the map view with chart renderer
@@ -72,7 +72,7 @@ class MapRendererServiceBukkit(
         logger.info("Rendering trend chart for guild: ${guild.name}, metric: $metric, timeRange: $timeRange")
 
         return try {
-            val mapItem = ItemStack(Material.FILLED_MAP)
+            val mapItem = ItemStack.of(Material.FILLED_MAP)
             val mapMeta = mapItem.itemMeta as? MapMeta ?: return null
 
             // TODO: Implement trend chart rendering with line chart renderer
@@ -99,7 +99,7 @@ class MapRendererServiceBukkit(
         logger.info("Rendering comparison chart for guild: ${guild.name}, dataType: $dataType")
 
         return try {
-            val mapItem = ItemStack(Material.FILLED_MAP)
+            val mapItem = ItemStack.of(Material.FILLED_MAP)
             val mapMeta = mapItem.itemMeta as? MapMeta ?: return null
 
             // TODO: Implement comparison chart rendering with bar chart renderer
@@ -126,7 +126,7 @@ class MapRendererServiceBukkit(
         logger.info("Rendering proportion chart for guild: ${guild.name}, category: $category")
 
         return try {
-            val mapItem = ItemStack(Material.FILLED_MAP)
+            val mapItem = ItemStack.of(Material.FILLED_MAP)
             val mapMeta = mapItem.itemMeta as? MapMeta ?: return null
 
             // TODO: Implement proportion chart rendering with pie chart renderer
@@ -153,7 +153,7 @@ class MapRendererServiceBukkit(
         logger.info("Rendering custom chart: $title, type: $chartType, data points: ${dataPoints.size}")
 
         return try {
-            val mapItem = ItemStack(Material.FILLED_MAP)
+            val mapItem = ItemStack.of(Material.FILLED_MAP)
             val mapMeta = mapItem.itemMeta as? MapMeta ?: return null
 
             // Create map view

@@ -58,12 +58,12 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
             open()
         }
 
-        addSelector(playerId, controlsPane, ItemStack(Material.BELL)
+        addSelector(playerId, controlsPane, ItemStack.of(Material.BELL)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CLAIM_WIDE_PERMISSIONS_ITEM_INFO_NAME)),
             deselectAction, selectAction)
 
         // Add horizontal divider
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE).name(" ")
         val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
 
         // Add vertical divider
@@ -128,7 +128,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
         // Add divider
         val dividerPane = StaticPane(0, 1, 9, 1)
         gui.addPane(dividerPane)
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE).name(" ")
         for (slot in 0..8) {
             val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
             dividerPane.addItem(guiDividerItem, slot, 0)
@@ -139,7 +139,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
         gui.addPane(controlsPane)
 
         // Add go back item
-        val exitItem = ItemStack(Material.NETHER_STAR)
+        val exitItem = ItemStack.of(Material.NETHER_STAR)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_BACK_NAME))
 
         val guiExitItem = GuiItem(exitItem) { backButtonAction() }
@@ -154,13 +154,13 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
         controlsPane.addItem(guiDisplayItem, 4, 0)
 
         // Add deselect all button
-        val deselectItem = ItemStack(Material.HONEY_BLOCK)
+        val deselectItem = ItemStack.of(Material.HONEY_BLOCK)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_DESELECT_ALL_NAME))
         val guiDeselectItem = GuiItem(deselectItem) { deselectAction() }
         controlsPane.addItem(guiDeselectItem, 2, 0)
 
         // Add select all button
-        val selectItem = ItemStack(Material.SLIME_BLOCK)
+        val selectItem = ItemStack.of(Material.SLIME_BLOCK)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_SELECT_ALL_NAME))
         val guiSelectItem = GuiItem(selectItem) { selectAction() }
         controlsPane.addItem(guiSelectItem, 6, 0)

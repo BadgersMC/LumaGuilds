@@ -65,7 +65,7 @@ class JoinRequirementsMenu(
     private fun addGuildInfo(pane: StaticPane, x: Int, y: Int) {
         val isPeaceful = guild.mode == net.lumalyte.lg.domain.entities.GuildMode.PEACEFUL
 
-        val guildItem = ItemStack(Material.WHITE_BANNER)
+        val guildItem = ItemStack.of(Material.WHITE_BANNER)
             .name("§6${guild.name}")
             .lore("§7Guild you are joining")
             .lore("§7")
@@ -107,7 +107,7 @@ class JoinRequirementsMenu(
                 .lore("$statusColor$statusIcon ${if (hasEnough) "You have enough!" else "Insufficient funds!"}")
         } else {
             // No join fee
-            ItemStack(Material.EMERALD)
+            ItemStack.of(Material.EMERALD)
                 .name("§a✓ NO JOIN FEE")
                 .lore("§7This guild has no join fee!")
                 .lore("§7")
@@ -122,13 +122,13 @@ class JoinRequirementsMenu(
         val canJoin = canJoinResult is LfgJoinResult.Success
 
         val confirmItem = if (canJoin) {
-            ItemStack(Material.GREEN_WOOL)
+            ItemStack.of(Material.GREEN_WOOL)
                 .name("§a✅ JOIN GUILD")
                 .lore("§7Click to join ${guild.name}")
                 .lore("§7")
                 .lore("§eClick to proceed")
         } else {
-            ItemStack(Material.GRAY_WOOL)
+            ItemStack.of(Material.GRAY_WOOL)
                 .name("§c❌ CANNOT JOIN")
                 .lore("§7You cannot join this guild")
                 .lore("§7")
@@ -147,7 +147,7 @@ class JoinRequirementsMenu(
     }
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
-        val cancelItem = ItemStack(Material.RED_WOOL)
+        val cancelItem = ItemStack.of(Material.RED_WOOL)
             .name("§c❌ CANCEL")
             .lore("§7Return to guild list")
             .lore("§7No action will be taken")

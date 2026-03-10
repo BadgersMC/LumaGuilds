@@ -39,7 +39,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
         val fuelPane = StaticPane(0, 0, 1, 1)
 
         // Add info paper menu item
-        val paperItem = ItemStack(Material.PAPER)
+        val paperItem = ItemStack.of(Material.PAPER)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_ICON_ITEM_INFO_NAME))
             .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_ICON_ITEM_INFO_LORE))
         val guiIconEditorItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
@@ -70,7 +70,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
 
         // Add confirm menu item
         val outputPane = StaticPane(0, 0, 1, 1)
-        val confirmItem = ItemStack(Material.NETHER_STAR)
+        val confirmItem = ItemStack.of(Material.NETHER_STAR)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_CONFIRM_NAME))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             guiEvent.isCancelled = true
