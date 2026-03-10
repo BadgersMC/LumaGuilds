@@ -536,6 +536,22 @@ class GuildServiceBukkit(
         return result
     }
 
+    override fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            logger.warn("Player $actorId attempted to set bank freeze for guild $guildId without MANAGE_GUILD_SETTINGS permission")
+            return false
+        }
+
+        val updatedGuild = guild.copy(bankFrozen = frozen)
+        val result = guildRepository.update(updatedGuild)
+        if (result) {
+            logger.info("Guild $guildId bank freeze set to $frozen by $actorId")
+        }
+        return result
+    }
+
     /**
      * Counts visible characters in a tag, excluding formatting codes.
      * MiniMessage tags like <color>, <gradient>, etc. are excluded from the count.

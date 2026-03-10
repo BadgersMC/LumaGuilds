@@ -289,4 +289,15 @@ interface GuildService {
      * @return true if successful, false otherwise.
      */
     fun setTrackingEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean
+
+    /**
+     * Activates or deactivates the emergency bank freeze for a guild.
+     * When frozen, all deposits and withdrawals are blocked until unfrozen.
+     *
+     * @param guildId The ID of the guild.
+     * @param frozen true to freeze the bank, false to unfreeze.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean
 }
