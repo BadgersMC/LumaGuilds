@@ -470,7 +470,7 @@ fun economyModule() = module {
     single<BankRepository> { BankRepositorySQLite(get()) }
 
     // Services
-    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get()) }
+    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.PhysicalCurrencyService> {
         net.lumalyte.lg.infrastructure.services.PhysicalCurrencyServiceBukkit(get(), get())
     }

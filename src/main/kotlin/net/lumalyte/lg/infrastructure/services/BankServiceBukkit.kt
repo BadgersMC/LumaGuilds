@@ -25,7 +25,8 @@ class BankServiceBukkit(
     private val rankRepository: net.lumalyte.lg.application.persistence.RankRepository,
     private val progressionRepository: ProgressionRepository,
     private val progressionConfigService: ProgressionConfigService,
-    private val configService: ConfigService
+    private val configService: ConfigService,
+    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository
 ) : BankService {
 
     private val logger = LoggerFactory.getLogger(BankServiceBukkit::class.java)
@@ -90,6 +91,19 @@ class BankServiceBukkit(
             val economy = getEconomy()
             if (economy == null) {
                 logger.error("Cannot process deposit: Vault economy not available")
+                return null
+            }
+
+            // Check emergency freeze
+            val guild = guildRepository.getById(guildId)
+            if (guild?.bankFrozen == true) {
+                logger.warn("Deposit blocked for guild $guildId: emergency freeze is active")
+                recordAudit(BankAudit(
+                    guildId = guildId,
+                    actorId = playerId,
+                    action = AuditAction.PERMISSION_DENIED,
+                    details = "Deposit blocked: emergency bank freeze is active"
+                ))
                 return null
             }
 
@@ -261,6 +275,19 @@ class BankServiceBukkit(
             val economy = getEconomy()
             if (economy == null) {
                 logger.error("Cannot process withdrawal: Vault economy not available")
+                return null
+            }
+
+            // Check emergency freeze
+            val guild = guildRepository.getById(guildId)
+            if (guild?.bankFrozen == true) {
+                logger.warn("Withdrawal blocked for guild $guildId: emergency freeze is active")
+                recordAudit(BankAudit(
+                    guildId = guildId,
+                    actorId = playerId,
+                    action = AuditAction.PERMISSION_DENIED,
+                    details = "Withdrawal blocked: emergency bank freeze is active"
+                ))
                 return null
             }
 
