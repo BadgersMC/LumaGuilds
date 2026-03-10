@@ -155,9 +155,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val guild = guilds.first()
 
         // Check if player has permission to rename guild
-        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_RANKS)) {
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)) {
             player.sendMessage("§c❌ You don't have permission to rename the guild!")
-            player.sendMessage("§7You need the MANAGE_RANKS permission to rename the guild.")
+            player.sendMessage("§7You need the §fMANAGE_GUILD_SETTINGS §7permission to rename the guild.")
             return
         }
 
@@ -204,10 +204,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val success = guildService.renameGuild(guild.id, newName, playerId)
 
         if (success) {
-            player.sendMessage("§a✅ Guild renamed to '$newName' successfully!")
+            player.sendMessage("§a✅ Guild renamed to §f'$newName'§a successfully!")
         } else {
             player.sendMessage("§c❌ Failed to rename guild!")
-            player.sendMessage("§7The name §f'$newName' §7is already taken by another guild.")
+            player.sendMessage("§7The name §f'$newName' §7is already taken by another guild, or you lack the required permission.")
             player.sendMessage("§7Please choose a different name.")
         }
     }

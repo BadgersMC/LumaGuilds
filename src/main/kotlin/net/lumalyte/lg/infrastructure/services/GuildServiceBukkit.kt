@@ -135,6 +135,12 @@ class GuildServiceBukkit(
     override fun renameGuild(guildId: UUID, newName: String, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 
+        // Check if actor has permission to rename the guild
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            logger.warn("Player $actorId attempted to rename guild $guildId without MANAGE_GUILD_SETTINGS permission")
+            return false
+        }
+
         // Validate new name
         if (newName.isBlank() || newName.length > 32) {
             logger.warn("Invalid guild name: $newName")
