@@ -233,6 +233,21 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
         return relation?.type == type && relation.isActive()
     }
     
+    override fun removeByGuild(guildId: UUID): Int {
+        ensureInitialized()
+        val sql = "DELETE FROM relations WHERE guild_a = ? OR guild_b = ?"
+        return try {
+            val rowsAffected = storage.connection.executeUpdate(sql, guildId.toString(), guildId.toString())
+            // Evict from in-memory cache
+            val idsToRemove = relations.values.filter { it.involves(guildId) }.map { it.id }
+            idsToRemove.forEach { relations.remove(it) }
+            logger.info("Removed $rowsAffected relation(s) for disbanded guild $guildId")
+            rowsAffected
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to remove relations for guild $guildId", e)
+        }
+    }
+
     override fun getAll(): Set<Relation> {
         return relations.values.toSet()
     }
