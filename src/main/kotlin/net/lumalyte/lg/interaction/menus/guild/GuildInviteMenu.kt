@@ -11,6 +11,7 @@ import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.findPlayerByName
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -143,7 +144,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
                 chatInputListener.stopInputMode(player)
                 player.sendMessage("§7Invite input cancelled.")
             }
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(backGuiItem, x, y)
     }
@@ -175,8 +176,8 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
             return
         }
 
-        // Find player by name
-        val targetPlayer = Bukkit.getPlayer(input)
+        // Find player by name — uses Floodgate-aware lookup so Bedrock names work without the dot prefix
+        val targetPlayer = findPlayerByName(input)
         if (targetPlayer == null) {
             player.sendMessage("§c❌ Player '$input' is not online!")
             open()

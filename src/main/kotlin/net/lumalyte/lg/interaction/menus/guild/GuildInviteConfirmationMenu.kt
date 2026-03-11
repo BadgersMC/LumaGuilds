@@ -104,7 +104,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
             .lore("§7No invitation will be sent")
 
         val cancelGuiItem = GuiItem(cancelItem) {
-            menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(cancelGuiItem, x, y)
     }
@@ -113,7 +113,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         // Check if player is already in a guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
             player.sendMessage("§c❌ ${targetPlayer.name} is already in your guild!")
-            menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
             return
         }
 
