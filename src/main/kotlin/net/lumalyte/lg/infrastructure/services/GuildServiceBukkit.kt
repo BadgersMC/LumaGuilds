@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RankRepository
+import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
@@ -26,7 +27,8 @@ class GuildServiceBukkit(
     private val memberService: net.lumalyte.lg.application.services.MemberService,
     private val nexoEmojiService: NexoEmojiService,
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService,
-    private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService
+    private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService,
+    private val relationRepository: RelationRepository
 ) : GuildService {
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
@@ -122,6 +124,12 @@ class GuildServiceBukkit(
 
         // Remove all ranks
         rankRepository.removeByGuild(guildId)
+
+        // Remove all relations to prevent stale entries in other guilds' ally/enemy lists
+        val removedRelations = relationRepository.removeByGuild(guildId)
+        if (removedRelations > 0) {
+            logger.info("Removed $removedRelations relation(s) for disbanded guild $guildId")
+        }
 
         // Remove guild
         val result = guildRepository.remove(guildId)

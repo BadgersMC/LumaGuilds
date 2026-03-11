@@ -145,16 +145,17 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private fun addRelationsSection(pane: StaticPane, x: Int, y: Int) {
         val relations = relationService.getGuildRelations(guild.id)
 
-        // Allies
-        val allies = relations.filter { it.type == RelationType.ALLY }
+        // Allies — filter out relations where the allied guild no longer exists (disbanded)
+        val allies = relations.filter {
+            it.type == RelationType.ALLY && guildService.getGuild(it.getOtherGuild(guild.id)) != null
+        }
         val alliesItem = ItemStack.of(Material.LIME_BANNER)
             .name("§aAllies (§f${allies.size}§a)")
 
         if (allies.isNotEmpty()) {
             allies.take(3).forEach { relation ->
-                val allyId = relation.getOtherGuild(guild.id)
-                val allyGuild = guildService.getGuild(allyId)
-                alliesItem.lore("§7• §f${allyGuild?.name ?: "Unknown"}")
+                val allyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
+                alliesItem.lore("§7• §f${allyGuild!!.name}")
             }
             if (allies.size > 3) {
                 alliesItem.lore("§7... and ${allies.size - 3} more")
@@ -165,16 +166,17 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         pane.addItem(GuiItem(alliesItem), x, y)
 
-        // Truces
-        val truces = relations.filter { it.type == RelationType.TRUCE }
+        // Truces — filter out disbanded guilds
+        val truces = relations.filter {
+            it.type == RelationType.TRUCE && guildService.getGuild(it.getOtherGuild(guild.id)) != null
+        }
         val trucesItem = ItemStack.of(Material.WHITE_BANNER)
             .name("§fTruces (§f${truces.size}§f)")
 
         if (truces.isNotEmpty()) {
             truces.take(3).forEach { relation ->
-                val truceId = relation.getOtherGuild(guild.id)
-                val truceGuild = guildService.getGuild(truceId)
-                trucesItem.lore("§7• §f${truceGuild?.name ?: "Unknown"}")
+                val truceGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
+                trucesItem.lore("§7• §f${truceGuild!!.name}")
             }
             if (truces.size > 3) {
                 trucesItem.lore("§7... and ${truces.size - 3} more")
@@ -185,16 +187,17 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         pane.addItem(GuiItem(trucesItem), x, y + 1)
 
-        // Enemies/Wars
-        val enemies = relations.filter { it.type == RelationType.ENEMY }
+        // Enemies/Wars — filter out disbanded guilds
+        val enemies = relations.filter {
+            it.type == RelationType.ENEMY && guildService.getGuild(it.getOtherGuild(guild.id)) != null
+        }
         val enemiesItem = ItemStack.of(Material.RED_BANNER)
             .name("§cWars (§f${enemies.size}§c)")
 
         if (enemies.isNotEmpty()) {
             enemies.take(3).forEach { relation ->
-                val enemyId = relation.getOtherGuild(guild.id)
-                val enemyGuild = guildService.getGuild(enemyId)
-                enemiesItem.lore("§7• §f${enemyGuild?.name ?: "Unknown"}")
+                val enemyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
+                enemiesItem.lore("§7• §f${enemyGuild!!.name}")
             }
             if (enemies.size > 3) {
                 enemiesItem.lore("§7... and ${enemies.size - 3} more")
