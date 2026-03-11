@@ -47,7 +47,6 @@ class GuildBankSecurityMenu(
 
     // Security settings
     private var dualAuthThreshold: Int = 1000
-    private var fraudDetectionEnabled: Boolean = true
     private var emergencyFreeze: Boolean = false
     private var securityAlerts: MutableList<String> = mutableListOf()
 
@@ -70,7 +69,6 @@ class GuildBankSecurityMenu(
             updates.forEach { (setting, value) ->
                 when (setting) {
                     "dualAuthThreshold" -> dualAuthThreshold = value as Int
-                    "fraudDetection" -> fraudDetectionEnabled = value as Boolean
                     "emergencyFreeze" -> emergencyFreeze = value as Boolean
                 }
             }
@@ -85,7 +83,6 @@ class GuildBankSecurityMenu(
      */
     private fun loadSecuritySettings() {
         dualAuthThreshold = 1000
-        fraudDetectionEnabled = true
         // Read persisted freeze state from database via guild entity
         val currentGuild = guildService.getGuild(guild.id)
         emergencyFreeze = currentGuild?.bankFrozen ?: false
@@ -294,25 +291,6 @@ class GuildBankSecurityMenu(
         }
         securityPane.addItem(dualAuthGuiItem, 0, 0)
 
-        // Fraud detection toggle
-        val fraudItem = createMenuItem(
-            if (fraudDetectionEnabled) Material.GREEN_WOOL else Material.RED_WOOL,
-            "Fraud Detection",
-            listOf(
-                "Status: ${if (fraudDetectionEnabled) "Enabled" else "Disabled"}",
-                "Monitors for suspicious patterns",
-                "Click to toggle"
-            )
-        )
-        val fraudGuiItem = GuiItem(fraudItem) { event ->
-            event.isCancelled = true
-            fraudDetectionEnabled = !fraudDetectionEnabled
-            analyzeSecurityRisks()
-            updateSecurityDisplay()
-            gui.update()
-        }
-        securityPane.addItem(fraudGuiItem, 1, 0)
-
         // Emergency freeze toggle
         val freezeItem = createMenuItem(
             if (emergencyFreeze) Material.RED_WOOL else Material.GREEN_WOOL,
@@ -342,7 +320,7 @@ class GuildBankSecurityMenu(
             updateSecurityDisplay()
             gui.update()
         }
-        securityPane.addItem(freezeGuiItem, 2, 0)
+        securityPane.addItem(freezeGuiItem, 1, 0)
 
         // Security status display
         updateSecurityStatus()
