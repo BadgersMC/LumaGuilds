@@ -38,8 +38,7 @@ class GuildControlPanelMenu(
         // Security check: Only guild members can access the control panel
         if (memberService.getMember(playerId, guild.id) == null) {
             player.sendMessage("§c❌ You cannot access the control panel for a guild you're not a member of!")
-            // Redirect to the guild info menu instead
-            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
             return
         }
 
