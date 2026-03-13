@@ -268,3 +268,7 @@ enthusia-currency/gradle/wrapper/gradle-wrapper.jar
 enthusia-currency/gradlew.bat
 build.gradle.kts
 VIRTUAL_THREADS.md
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md
