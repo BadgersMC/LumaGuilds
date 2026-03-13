@@ -2,9 +2,11 @@ package net.lumalyte.lg.interaction.commands
 
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
+import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.services.GuildService
-import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.RankService
+import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 import net.lumalyte.lg.domain.entities.Guild
@@ -41,6 +43,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val configService: ConfigService by inject()
     private val menuFactory: MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
+    private val historyRepository: MembershipHistoryRepository by inject()
 
     // Teleportation tracking for command-based teleports
     private data class TeleportSession(
@@ -653,6 +656,61 @@ class GuildCommand : BaseCommand(), KoinComponent {
         return "${days}d ${hours}h until you can switch to Hostile"
     }
     
+    @Subcommand("history")
+    @CommandPermission("lumaguilds.guild.history")
+    @CommandCompletion("@players")
+    fun onHistory(player: Player, targetPlayerName: String) {
+        val onlineTarget = Bukkit.getPlayerExact(targetPlayerName)
+        val targetId: java.util.UUID
+        val displayName: String
+
+        if (onlineTarget != null) {
+            targetId = onlineTarget.uniqueId
+            displayName = onlineTarget.name
+        } else {
+            @Suppress("DEPRECATION")
+            val offlineTarget = Bukkit.getOfflinePlayer(targetPlayerName)
+            if (!offlineTarget.hasPlayedBefore()) {
+                player.sendMessage("§cPlayer '§6$targetPlayerName§c' has never played on this server.")
+                return
+            }
+            targetId = offlineTarget.uniqueId
+            displayName = offlineTarget.name ?: targetPlayerName
+        }
+
+        val history = historyRepository.getByPlayer(targetId)
+
+        if (history.isEmpty()) {
+            player.sendMessage("§7$displayName has no guild history.")
+            return
+        }
+
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            .withZone(java.time.ZoneId.systemDefault())
+
+        player.sendMessage("§6§l╔══ Guild History: $displayName ══╗")
+        player.sendMessage("§7Total guilds joined: §e${history.size}")
+        player.sendMessage("")
+
+        history.forEachIndexed { index, entry ->
+            val guildName = guildService.getGuild(entry.guildId)?.name
+            val guildDisplay = if (guildName != null) "§a$guildName" else "§8[UNKNOWN]"
+            val joinDate = formatter.format(entry.joinedAt)
+
+            val suffix = when {
+                entry.isOpen -> "§a(current)"
+                entry.departureReason == DepartureReason.LEFT -> "§7Left"
+                entry.departureReason == DepartureReason.KICKED -> "§cKicked"
+                entry.departureReason == DepartureReason.DISBANDED -> "§8Guild Disbanded"
+                else -> ""
+            }
+
+            player.sendMessage("§f${index + 1}. $guildDisplay §7• Joined §e$joinDate §7• $suffix")
+        }
+
+        player.sendMessage("§6§l╚${"═".repeat(20 + displayName.length)}╝")
+    }
+
     @Subcommand("info")
     @CommandCompletion("@guilds")
     fun onInfo(player: Player, @Optional targetGuild: String?) {

@@ -2,8 +2,10 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
+import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.events.GuildMemberJoinEvent
@@ -17,7 +19,8 @@ class MemberServiceBukkit(
     private val rankRepository: RankRepository,
     private val guildRepository: GuildRepository,
     private val progressionRepository: net.lumalyte.lg.application.persistence.ProgressionRepository,
-    private val progressionConfigService: ProgressionConfigService
+    private val progressionConfigService: ProgressionConfigService,
+    private val historyRepository: MembershipHistoryRepository
 ) : MemberService {
 
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
@@ -73,6 +76,9 @@ class MemberServiceBukkit(
             // Fire event for progression system
             Bukkit.getPluginManager().callEvent(GuildMemberJoinEvent(guildId, playerId))
 
+            // Record membership history
+            historyRepository.openStint(playerId, guildId)
+
             // Update Apollo team and waypoints (if available)
             try {
                 val guildTeamService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()
@@ -111,6 +117,10 @@ class MemberServiceBukkit(
 
         val result = memberRepository.remove(playerId, guildId)
         if (result) {
+            // Record membership history (LEFT = voluntary, KICKED = by another player)
+            val reason = if (actorId == playerId) DepartureReason.LEFT else DepartureReason.KICKED
+            historyRepository.closeStint(playerId, guildId, reason)
+
             // Update Apollo team and waypoints (if available)
             try {
                 val guildTeamService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()
