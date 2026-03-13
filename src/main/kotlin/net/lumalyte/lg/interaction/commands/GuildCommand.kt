@@ -210,7 +210,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§a✅ Guild renamed to §f'$newName'§a successfully!")
         } else {
             player.sendMessage("§c❌ Failed to rename guild!")
-            player.sendMessage("§7The name §f'$newName' §7is already taken by another guild, or you lack the required permission.")
+            player.sendMessage("§7The name §f'$newName' §7may already be taken by another guild.")
             player.sendMessage("§7Please choose a different name.")
         }
     }
