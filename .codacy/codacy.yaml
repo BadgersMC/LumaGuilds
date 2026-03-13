@@ -1,0 +1,20 @@
+runtimes:
+    - python@3.11.11
+tools:
+    - lizard@1.17.31
+    - semgrep@1.78.0
+exclude_paths:
+    - "docs/**"
+    - "plans/**"
+    - "*.md"
+    - "*.sql"
+    - "*.json"
+    - "*.log"
+    - ".github/**"
+    - ".codacy/**"
+    - "enthusia-currency/**"
+    - "enthusia-itemshops/**"
+    - "kiro/**"
+    - "libs/**"
+    - "temp-cumulus-study/**"
+    - "bin/**"
