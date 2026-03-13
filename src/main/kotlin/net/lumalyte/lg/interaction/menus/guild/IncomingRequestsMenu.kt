@@ -275,8 +275,9 @@ class IncomingRequestsMenu(
         }
 
         // Page indicator
+        val displayTotalPages = maxOf(totalPages, 1)
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§ePage ${currentPage + 1} / $totalPages")
+            .name("§ePage ${currentPage + 1} / $displayTotalPages")
             .lore("§7Total requests: §f${allRequests.size}")
 
         val pageGuiItem = GuiItem(pageItem) { }

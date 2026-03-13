@@ -568,6 +568,7 @@ class GuildWarDeclarationMenu(
                     notifyGuildsOfWarDeclaration(war)
                     return
                 } else {
+                    refundWager()
                     player.sendMessage("§c❌ Failed to declare war!")
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
@@ -606,6 +607,7 @@ class GuildWarDeclarationMenu(
                     notifyGuildOfWarDeclaration(declaration)
                     return
                 } else {
+                    refundWager()
                     player.sendMessage("§c❌ Failed to send war declaration!")
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
@@ -616,14 +618,17 @@ class GuildWarDeclarationMenu(
             player.sendMessage("§c❌ Error declaring war: ${e.message}")
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
 
-            // Refund wager on error
-            if (wagerAmount > 0) {
-                try {
-                    bankService.deposit(guild.id, player.uniqueId, wagerAmount, "War wager refund (error)")
-                    player.sendMessage("§7Wager funds have been refunded.")
-                } catch (refundError: Exception) {
-                    player.sendMessage("§c❌ Failed to refund wager! Contact an administrator.")
-                }
+            refundWager()
+        }
+    }
+
+    private fun refundWager() {
+        if (wagerAmount > 0) {
+            try {
+                bankService.deposit(guild.id, player.uniqueId, wagerAmount, "War wager refund (declaration failed)")
+                player.sendMessage("§7Wager funds have been refunded.")
+            } catch (refundError: Exception) {
+                player.sendMessage("§c❌ Failed to refund wager! Contact an administrator.")
             }
         }
     }

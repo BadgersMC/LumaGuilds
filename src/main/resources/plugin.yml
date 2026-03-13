@@ -1,6 +1,6 @@
 name: LumaGuilds
 version: ${version}
-api-version: '1.21.4'
+api-version: '1.21.11'
 load: STARTUP
 main: net.lumalyte.lg.LumaGuilds
 softdepend: [Vault, PlaceholderAPI, AxKoth]
@@ -69,6 +69,7 @@ permissions:
       lumaguilds.guild.description: true
       lumaguilds.guild.war: true
       lumaguilds.guild.info: true
+      lumaguilds.guild.history: true
 
   lumaguilds.guild.create:
     description: Create new guilds
@@ -114,6 +115,9 @@ permissions:
     default: true
   lumaguilds.guild.info:
     description: View guild information
+    default: true
+  lumaguilds.guild.history:
+    description: View player guild membership history
     default: true
 
   # Claim Management Permissions

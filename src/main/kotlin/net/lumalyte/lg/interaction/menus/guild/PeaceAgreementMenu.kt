@@ -126,7 +126,7 @@ class PeaceAgreementMenu(
             val war = warService.getWar(agreement.warId)
 
             val agreementItem = ItemStack.of(Material.PAPER)
-                .name("§a§ Peace from ${proposingGuild?.name ?: "Unknown"}")
+                .name("§a☮ Peace from ${proposingGuild?.name ?: "Unknown"}")
                 .lore("§7Terms: ${agreement.peaceTerms}")
                 .lore("§7War: ${war?.let { "vs ${guildService.getGuild(if (it.declaringGuildId == guild.id) it.defendingGuildId else it.declaringGuildId)?.name ?: "Unknown"}" } ?: "Unknown"}")
                 .lore("")
@@ -211,10 +211,13 @@ class PeaceAgreementMenu(
     }
 
     private fun showPeaceProposalMenu(warId: UUID) {
-        currentWarId = warId
-        peaceTerms = ""
-        offeringMoney = 0
-        offeringExp = 0
+        // Only reset state when switching to a different war
+        if (currentWarId != warId) {
+            currentWarId = warId
+            peaceTerms = ""
+            offeringMoney = 0
+            offeringExp = 0
+        }
 
         val gui = ChestGui(4, "§6Propose Peace Agreement")
         val pane = StaticPane(0, 0, 9, 4)
@@ -227,7 +230,7 @@ class PeaceAgreementMenu(
 
         // Peace Terms Input
         val termsItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§f§ Peace Terms")
+            .name("§f✎ Peace Terms")
             .lore("§7Current: ${if (peaceTerms.isNotEmpty()) peaceTerms else "§oNone set"}")
             .lore("")
             .lore("§eClick to set peace terms")
