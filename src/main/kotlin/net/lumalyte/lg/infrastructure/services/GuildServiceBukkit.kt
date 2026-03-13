@@ -2,9 +2,11 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
+import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
@@ -28,7 +30,8 @@ class GuildServiceBukkit(
     private val nexoEmojiService: NexoEmojiService,
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService,
     private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService,
-    private val relationRepository: RelationRepository
+    private val relationRepository: RelationRepository,
+    private val historyRepository: MembershipHistoryRepository
 ) : GuildService {
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
@@ -121,6 +124,11 @@ class GuildServiceBukkit(
 
         // Remove all members
         memberRepository.removeByGuild(guildId)
+
+        // Close membership history stints for all members (guild disbanded)
+        memberIds.forEach { memberId ->
+            historyRepository.closeStint(memberId, guildId, DepartureReason.DISBANDED)
+        }
 
         // Remove all ranks
         rankRepository.removeByGuild(guildId)
