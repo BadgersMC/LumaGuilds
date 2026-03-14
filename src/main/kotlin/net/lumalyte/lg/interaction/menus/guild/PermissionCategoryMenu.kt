@@ -47,6 +47,14 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     override fun open() {
+        // Security check: Only players with MANAGE_RANKS permission can edit ranks
+        if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) {
+            player.sendMessage("§c❌ You don't have permission to edit ranks!")
+            player.sendMessage("§7Required permission: §fMANAGE_RANKS")
+            menuNavigator.openMenu(RankEditMenu(menuNavigator, player, guild, rank))
+            return
+        }
+
         val gui = ChestGui(6, "§6$categoryName - ${rank.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
