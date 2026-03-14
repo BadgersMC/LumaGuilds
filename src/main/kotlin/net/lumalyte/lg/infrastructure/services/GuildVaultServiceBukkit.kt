@@ -193,34 +193,40 @@ class GuildVaultServiceBukkit(
     }
 
     override fun openVaultInventory(player: Player, guild: Guild): VaultResult<Unit> {
-        if (guild.vaultStatus != VaultStatus.AVAILABLE) {
+        // Re-fetch guild from database to get current vault status
+        // This prevents exploits where a player opens /g menu, another player breaks the vault,
+        // and the first player can still access the vault through the stale menu state
+        val currentGuild = guildRepository.getById(guild.id)
+            ?: return VaultResult.Failure("Guild not found")
+
+        if (currentGuild.vaultStatus != VaultStatus.AVAILABLE) {
             return VaultResult.Failure("Guild vault is not available")
         }
 
-        if (guild.vaultLocked) {
+        if (currentGuild.vaultLocked) {
             return VaultResult.Failure("§c⚠ VAULT LOCKED: This vault has been locked by a server administrator for security reasons. Contact staff for more information.")
         }
 
-        if (!hasVaultPermission(player, guild, requireWithdraw = false)) {
+        if (!hasVaultPermission(player, currentGuild, requireWithdraw = false)) {
             return VaultResult.Failure("You don't have permission to access the vault")
         }
 
         // Get capacity for guild level
-        val capacity = getCapacityForLevel(guild.level)
+        val capacity = getCapacityForLevel(currentGuild.level)
 
         // Get or create the SHARED inventory for this guild
         // All players viewing the same guild vault share this single Inventory instance
         // This eliminates synchronization issues - Bukkit handles multi-viewer updates natively
         val sharedInventory = vaultInventoryManager.getOrCreateSharedInventory(
-            guild.id,
-            guild.name,
+            currentGuild.id,
+            currentGuild.name,
             capacity
         )
 
         // Open the SHARED inventory for the player
         // The VaultInventoryListener will handle all click events and viewer registration
         player.openInventory(sharedInventory)
-        logger.debug("${player.name} opened shared vault for guild ${guild.name}")
+        logger.debug("${player.name} opened shared vault for guild ${currentGuild.name}")
 
         return VaultResult.Success(Unit)
     }
