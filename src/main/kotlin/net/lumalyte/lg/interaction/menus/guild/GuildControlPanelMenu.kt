@@ -275,20 +275,27 @@ class GuildControlPanelMenu(
         }
 
         val guiItem = GuiItem(vaultItem) {
-            if (guild.vaultStatus == net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE) {
-                // Open vault
-                player.closeInventory()
-                val result = vaultService.openVaultInventory(player, guild)
-                when (result) {
-                    is VaultResult.Success -> {
-                        // Vault opened successfully
-                    }
-                    is VaultResult.Failure -> {
-                        player.sendMessage("§c❌ ${result.message}")
-                    }
+            // Re-fetch guild to get current vault status — the cached guild object may be stale
+            // if another player broke the vault after this menu was opened
+            val currentGuild = guildService.getGuild(guild.id)
+            if (currentGuild == null) {
+                player.sendMessage("§c❌ Guild no longer exists.")
+                return@GuiItem
+            }
+            if (currentGuild.vaultStatus != net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE) {
+                player.sendMessage("§c❌ Guild vault is no longer available! The physical chest may have been removed.")
+                return@GuiItem
+            }
+            // Only close the menu once we've confirmed the vault is currently available
+            player.closeInventory()
+            val result = vaultService.openVaultInventory(player, currentGuild)
+            when (result) {
+                is VaultResult.Success -> {
+                    // Vault opened successfully
                 }
-            } else {
-                player.sendMessage("§c❌ Guild vault is not placed! Use §f/guild getvault §cto get a vault chest.")
+                is VaultResult.Failure -> {
+                    player.sendMessage("§c❌ ${result.message}")
+                }
             }
         }
         pane.addItem(guiItem, x, y)
