@@ -81,7 +81,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
 
     private fun addBasicSetupSection(pane: StaticPane) {
         // Rank name input
-        val nameItem = ItemStack(Material.NAME_TAG)
+        val nameItem = ItemStack.of(Material.NAME_TAG)
             .name("§6📝 Rank Name")
             .lore("§7Current: ${if (rankName.isNotEmpty()) "§f$rankName" else "§cNot set"}")
             .lore("§7")
@@ -110,7 +110,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
 
         // Rank icon selection
         val displayIcon = if (rankIcon == Material.AIR) Material.DIAMOND_SWORD else rankIcon
-        val iconItem = ItemStack(displayIcon)
+        val iconItem = ItemStack.of(displayIcon)
             .name("§6🎨 Rank Icon")
             .lore("§7Current: §f${if (rankIcon == Material.AIR) "Not set" else rankIcon.name}")
             .lore("§7")
@@ -141,7 +141,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(iconGuiItem, 3, 0)
 
         // Permission count
-        val countItem = ItemStack(Material.BOOK)
+        val countItem = ItemStack.of(Material.BOOK)
             .name("§6📊 Selected Permissions")
             .lore("§7Count: §f${selectedPermissions.size}")
             .lore("§7")
@@ -181,7 +181,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         templates.entries.forEachIndexed { index, (templateName, permissions) ->
             val col = index * 2 + 1
 
-            val templateItem = ItemStack(
+            val templateItem = ItemStack.of(
                 when (templateName) {
                     "Banker" -> Material.GOLD_INGOT
                     "Envoy" -> Material.WRITABLE_BOOK
@@ -256,7 +256,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             val hasAnyPermission = permissions.any { selectedPermissions.contains(it) }
             val enabledCount = permissions.count { selectedPermissions.contains(it) }
 
-            val categoryItem = ItemStack(
+            val categoryItem = ItemStack.of(
                 when (categoryName) {
                     "Guild Management" -> Material.GOLDEN_SWORD
                     "Banking" -> Material.GOLD_INGOT
@@ -285,7 +285,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun addPreviewSection(pane: StaticPane) {
-        val previewItem = ItemStack(rankIcon)
+        val previewItem = ItemStack.of(if (rankIcon == Material.AIR) Material.DIAMOND_SWORD else rankIcon)
             .name("§6🔍 Rank Preview")
             .lore("§7Name: ${if (rankName.isNotEmpty()) "§f$rankName" else "§cNot set"}")
             .lore("§7Icon: §f${rankIcon.name}")
@@ -311,7 +311,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     private fun addActionButtons(pane: StaticPane) {
         // Create rank
         val canCreate = rankName.isNotEmpty() && selectedPermissions.isNotEmpty()
-        val createItem = ItemStack(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
+        val createItem = ItemStack.of(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
             .name(if (canCreate) "§a✅ Create Rank" else "§c❌ Cannot Create")
             .lore("§7Create the new rank")
 
@@ -355,7 +355,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(createGuiItem, 1, 5)
 
         // Clear all
-        val clearItem = ItemStack(Material.BARRIER)
+        val clearItem = ItemStack.of(Material.BARRIER)
             .name("§c🗑 Clear All")
             .lore("§7Reset all selections")
             .lore("§7")
@@ -372,7 +372,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(clearGuiItem, 3, 5)
 
         // Cancel
-        val cancelItem = ItemStack(Material.ARROW)
+        val cancelItem = ItemStack.of(Material.ARROW)
             .name("§7❌ Cancel")
             .lore("§7Return without creating")
 

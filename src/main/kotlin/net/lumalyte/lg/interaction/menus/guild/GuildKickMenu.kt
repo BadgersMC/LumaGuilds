@@ -95,7 +95,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun createMemberKickItem(member: Member): ItemStack {
-        val head = ItemStack(Material.PLAYER_HEAD)
+        val head = ItemStack.of(Material.PLAYER_HEAD)
 
         head.setData(
             DataComponentTypes.PROFILE,
@@ -128,7 +128,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
         val totalPages = (allMembers.size + itemsPerPage - 1) / itemsPerPage
 
         // Previous page button
-        val prevItem = ItemStack(Material.ARROW)
+        val prevItem = ItemStack.of(Material.ARROW)
             .name("§f⬅ PREVIOUS PAGE")
             .lore("§7Go to previous page")
 
@@ -141,7 +141,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(prevGuiItem, 0, 5)
 
         // Next page button
-        val nextItem = ItemStack(Material.ARROW)
+        val nextItem = ItemStack.of(Material.ARROW)
             .name("§fNEXT PAGE ➡")
             .lore("§7Go to next page")
 
@@ -154,7 +154,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(nextGuiItem, 8, 5)
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name("§f📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
             .lore("§7Current page indicator")
 
@@ -162,7 +162,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK")
             .lore("§7Return to guild control panel")
 

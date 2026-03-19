@@ -56,7 +56,7 @@ class GoldWithdrawMenu(
         val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
 
         // Add current balance display
-        val balanceItem = ItemStack(Material.RAW_GOLD).apply {
+        val balanceItem = ItemStack.of(Material.RAW_GOLD).apply {
             itemMeta = itemMeta?.also { meta ->
                 meta.displayName(
                     Component.text("Current Vault Balance", NamedTextColor.YELLOW)
@@ -84,7 +84,7 @@ class GoldWithdrawMenu(
         addQuickWithdrawButton(21, 512, "512 Currency")
 
         // Add withdraw all button
-        val withdrawAllItem = ItemStack(Material.RAW_GOLD).apply {
+        val withdrawAllItem = ItemStack.of(Material.RAW_GOLD).apply {
             itemMeta = itemMeta?.also { meta ->
                 meta.displayName(
                     Component.text("Withdraw All Gold", NamedTextColor.GREEN)
@@ -113,7 +113,7 @@ class GoldWithdrawMenu(
         description: String
     ) {
         val displayAmount = minOf(amount, 64).toInt()
-        val item = ItemStack(Material.RAW_GOLD, displayAmount).apply {
+        val item = ItemStack.of(Material.RAW_GOLD, displayAmount).apply {
             itemMeta = itemMeta?.also { meta ->
                 meta.displayName(
                     Component.text("Withdraw $description", NamedTextColor.YELLOW)

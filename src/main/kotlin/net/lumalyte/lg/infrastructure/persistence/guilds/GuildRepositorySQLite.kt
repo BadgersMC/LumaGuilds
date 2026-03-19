@@ -43,8 +43,18 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         checkColumnExists("guilds", "join_fee_amount")
     }
 
+    private val hasTrackingColumn: Boolean by lazy {
+        checkColumnExists("guilds", "tracking_enabled")
+    }
+
+    private val hasBankFrozenColumn: Boolean by lazy {
+        checkColumnExists("guilds", "bank_frozen")
+    }
+
     init {
         createGuildTable()
+        migrateTrackingColumn()
+        migrateBankFrozenColumn()
         preload()
     }
 
@@ -108,6 +118,36 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         }
     }
     
+    private fun migrateTrackingColumn() {
+        // Always attempt ALTER TABLE; catch "duplicate column" silently so re-runs are safe.
+        try {
+            storage.connection.executeUpdate(
+                "ALTER TABLE guilds ADD COLUMN tracking_enabled INTEGER NOT NULL DEFAULT 1"
+            )
+        } catch (e: Exception) {
+            val msg = e.message.orEmpty()
+            if (!msg.contains("duplicate column", ignoreCase = true) &&
+                !msg.contains("already exists", ignoreCase = true)) {
+                println("WARN [GuildRepositorySQLite] Failed to add tracking_enabled column: $msg")
+            }
+        }
+    }
+
+    private fun migrateBankFrozenColumn() {
+        // Always attempt ALTER TABLE; catch "duplicate column" silently so re-runs are safe.
+        try {
+            storage.connection.executeUpdate(
+                "ALTER TABLE guilds ADD COLUMN bank_frozen INTEGER NOT NULL DEFAULT 0"
+            )
+        } catch (e: Exception) {
+            val msg = e.message.orEmpty()
+            if (!msg.contains("duplicate column", ignoreCase = true) &&
+                !msg.contains("already exists", ignoreCase = true)) {
+                println("WARN [GuildRepositorySQLite] Failed to add bank_frozen column: $msg")
+            }
+        }
+    }
+
     private fun preload() {
         val sql = "SELECT * FROM guilds"
         
@@ -192,6 +232,20 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             0
         }
 
+        // Parse tracking_enabled (default to true for existing guilds)
+        val trackingEnabled = try {
+            rs.get<Int?>("tracking_enabled")?.let { it == 1 } ?: true
+        } catch (e: Exception) {
+            true
+        }
+
+        // Parse bank_frozen (default to false for existing guilds)
+        val bankFrozen = try {
+            rs.get<Int?>("bank_frozen")?.let { it == 1 } ?: false
+        } catch (e: Exception) {
+            false
+        }
+
         // Debug logging for vault data loading
         println("DEBUG [GuildRepositorySQLite] Loading guild '$name'")
         println("  vault_status from DB: '$vaultStatusStr' -> $vaultStatus")
@@ -214,7 +268,9 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             vaultChestLocation = vaultChestLocation,
             isOpen = isOpen,
             joinFeeEnabled = joinFeeEnabled,
-            joinFeeAmount = joinFeeAmount
+            joinFeeAmount = joinFeeAmount,
+            trackingEnabled = trackingEnabled,
+            bankFrozen = bankFrozen
         )
     }
 
@@ -243,13 +299,28 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     
     override fun add(guild: Guild): Boolean {
         // Use cached column existence check
-        val sql = if (hasLfgColumns) {
+        val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
+            """
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled, bank_frozen)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+        } else if (hasLfgColumns && hasTrackingColumn) {
+            """
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+        } else if (hasLfgColumns) {
             """
             INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
+        } else if (hasTrackingColumn) {
+            """
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, tracking_enabled)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
         } else {
-            // Fallback for databases without LFG columns
+            // Fallback for databases without LFG or tracking columns
             """
             INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -260,7 +331,50 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             // Extract main home for backward compatibility with existing schema
             val mainHome = guild.homes.defaultHome
 
-            val rowsAffected = if (hasLfgColumns) {
+            val rowsAffected = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
+                storage.connection.executeUpdate(sql,
+                    guild.id.toString(),
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.createdAt.toSqlDateTime(),
+                    if (guild.isOpen) 1 else 0,
+                    if (guild.joinFeeEnabled) 1 else 0,
+                    guild.joinFeeAmount,
+                    if (guild.trackingEnabled) 1 else 0,
+                    if (guild.bankFrozen) 1 else 0
+                )
+            } else if (hasLfgColumns && hasTrackingColumn) {
+                storage.connection.executeUpdate(sql,
+                    guild.id.toString(),
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.createdAt.toSqlDateTime(),
+                    if (guild.isOpen) 1 else 0,
+                    if (guild.joinFeeEnabled) 1 else 0,
+                    guild.joinFeeAmount,
+                    if (guild.trackingEnabled) 1 else 0
+                )
+            } else if (hasLfgColumns) {
                 storage.connection.executeUpdate(sql,
                     guild.id.toString(),
                     guild.name,
@@ -280,8 +394,26 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount
                 )
+            } else if (hasTrackingColumn) {
+                storage.connection.executeUpdate(sql,
+                    guild.id.toString(),
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.createdAt.toSqlDateTime(),
+                    if (guild.trackingEnabled) 1 else 0
+                )
             } else {
-                // Fallback without LFG columns
+                // Fallback without LFG or tracking columns
                 storage.connection.executeUpdate(sql,
                     guild.id.toString(),
                     guild.name,
@@ -305,10 +437,26 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             false
         }
     }
-    
+
     override fun update(guild: Guild): Boolean {
         // Use cached column existence check
-        val sql = if (hasLfgColumns) {
+        val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
+            """
+            UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
+            level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
+            join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?, bank_frozen = ?
+            WHERE id = ?
+            """.trimIndent()
+        } else if (hasLfgColumns && hasTrackingColumn) {
+            """
+            UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
+            level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
+            join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?
+            WHERE id = ?
+            """.trimIndent()
+        } else if (hasLfgColumns) {
             """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
@@ -316,8 +464,15 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             join_fee_enabled = ?, join_fee_amount = ?
             WHERE id = ?
             """.trimIndent()
+        } else if (hasTrackingColumn) {
+            """
+            UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
+            level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, tracking_enabled = ?
+            WHERE id = ?
+            """.trimIndent()
         } else {
-            // Fallback for databases without LFG columns
+            // Fallback for databases without LFG or tracking columns
             """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
@@ -335,7 +490,58 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             println("  vault_status: ${guild.vaultStatus.name}")
             println("  vault_chest_location: ${guild.vaultChestLocation}")
 
-            val rowsAffected = if (hasLfgColumns) {
+            val rowsAffected = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
+                storage.connection.executeUpdate(sql,
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.vaultStatus.name,
+                    guild.vaultChestLocation?.worldId?.toString(),
+                    guild.vaultChestLocation?.x,
+                    guild.vaultChestLocation?.y,
+                    guild.vaultChestLocation?.z,
+                    if (guild.isOpen) 1 else 0,
+                    if (guild.joinFeeEnabled) 1 else 0,
+                    guild.joinFeeAmount,
+                    if (guild.trackingEnabled) 1 else 0,
+                    if (guild.bankFrozen) 1 else 0,
+                    guild.id.toString()
+                )
+            } else if (hasLfgColumns && hasTrackingColumn) {
+                storage.connection.executeUpdate(sql,
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.vaultStatus.name,
+                    guild.vaultChestLocation?.worldId?.toString(),
+                    guild.vaultChestLocation?.x,
+                    guild.vaultChestLocation?.y,
+                    guild.vaultChestLocation?.z,
+                    if (guild.isOpen) 1 else 0,
+                    if (guild.joinFeeEnabled) 1 else 0,
+                    guild.joinFeeAmount,
+                    if (guild.trackingEnabled) 1 else 0,
+                    guild.id.toString()
+                )
+            } else if (hasLfgColumns) {
                 storage.connection.executeUpdate(sql,
                     guild.name,
                     guild.banner,
@@ -359,8 +565,30 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.joinFeeAmount,
                     guild.id.toString()
                 )
+            } else if (hasTrackingColumn) {
+                storage.connection.executeUpdate(sql,
+                    guild.name,
+                    guild.banner,
+                    guild.emoji,
+                    guild.tag,
+                    mainHome?.worldId?.toString(),
+                    mainHome?.position?.x,
+                    mainHome?.position?.y,
+                    mainHome?.position?.z,
+                    guild.level,
+                    guild.bankBalance,
+                    guild.mode.name.lowercase(),
+                    guild.modeChangedAt?.toSqlDateTime(),
+                    guild.vaultStatus.name,
+                    guild.vaultChestLocation?.worldId?.toString(),
+                    guild.vaultChestLocation?.x,
+                    guild.vaultChestLocation?.y,
+                    guild.vaultChestLocation?.z,
+                    if (guild.trackingEnabled) 1 else 0,
+                    guild.id.toString()
+                )
             } else {
-                // Fallback without LFG columns
+                // Fallback without LFG or tracking columns
                 storage.connection.executeUpdate(sql,
                     guild.name,
                     guild.banner,

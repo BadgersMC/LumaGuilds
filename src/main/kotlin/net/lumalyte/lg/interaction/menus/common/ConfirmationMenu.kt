@@ -30,7 +30,7 @@ class ConfirmationMenu(val menuNavigator: MenuNavigator, val player: Player, val
         val playerId = player.uniqueId
 
         // Add no menu item
-        val noItem = ItemStack(Material.RED_CONCRETE)
+        val noItem = ItemStack.of(Material.RED_CONCRETE)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CONFIRMATION_ITEM_NO_NAME))
             .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CONFIRMATION_ITEM_NO_LORE))
 
@@ -40,7 +40,7 @@ class ConfirmationMenu(val menuNavigator: MenuNavigator, val player: Player, val
         pane.addItem(guiNoItem, 0, 0)
 
         // Add yes menu item
-        val yesItem = ItemStack(Material.GREEN_CONCRETE)
+        val yesItem = ItemStack.of(Material.GREEN_CONCRETE)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CONFIRMATION_ITEM_YES_NAME))
             .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CONFIRMATION_ITEM_YES_LORE))
         val guiYesItem = GuiItem(yesItem) { guiEvent ->

@@ -76,7 +76,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         }.toSet()
 
         if (activeParties.isEmpty()) {
-            val noPartiesItem = ItemStack(Material.BARRIER)
+            val noPartiesItem = ItemStack.of(Material.BARRIER)
                 .name("§cNo Active Parties")
                 .lore("§7Your guild is not in any parties")
                 .lore("§7Create one by sending requests!")
@@ -84,7 +84,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         } else {
             // Display first active party
             val party = activeParties.first()
-            val partyItem = ItemStack(Material.FIREWORK_ROCKET)
+            val partyItem = ItemStack.of(Material.FIREWORK_ROCKET)
                 .name("§bActive Party: ${party.name ?: "Unnamed"}")
                 .lore("§7Members: §f${party.guildIds.size} guilds")
                 .lore("§7Created: §f${party.createdAt.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))}")
@@ -98,7 +98,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
             // Show party member count if more than one party
             if (activeParties.size > 1) {
-                val morePartiesItem = ItemStack(Material.BOOK)
+                val morePartiesItem = ItemStack.of(Material.BOOK)
                     .name("§e+${activeParties.size - 1} More Parties")
                     .lore("§7Click to view all parties")
                 pane.addItem(GuiItem(morePartiesItem) {
@@ -109,7 +109,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             // Add moderation button for each party (if player has permission)
             val canModerate = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
             if (canModerate) {
-                val moderateItem = ItemStack(Material.ANVIL)
+                val moderateItem = ItemStack.of(Material.ANVIL)
                     .name("§6Moderate Channel")
                     .lore("§7Manage mutes, bans, and kicks")
                     .lore("§7for ${party.name ?: "this channel"}")
@@ -128,7 +128,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val outgoingRequests = partyService.getPendingRequestsFromGuild(guild.id)
 
         // Incoming requests
-        val incomingItem = ItemStack(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
+        val incomingItem = ItemStack.of(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
             .name("§aIncoming Requests")
             .lore("§7Party invitations to join")
             .lore("§7Count: §f${incomingRequests.size}")
@@ -139,7 +139,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         pane.addItem(incomingGuiItem, 3, 1)
 
         // Outgoing requests
-        val outgoingItem = ItemStack(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
+        val outgoingItem = ItemStack.of(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
             .name("§eOutgoing Requests")
             .lore("§7Your party's sent invitations")
             .lore("§7Count: §f${outgoingRequests.size}")
@@ -154,7 +154,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val canManageParties = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_PARTIES)
 
         // Send party request (Admin+ only)
-        val sendRequestItem = ItemStack(if (canManageParties) Material.FIREWORK_STAR else Material.BARRIER)
+        val sendRequestItem = ItemStack.of(if (canManageParties) Material.FIREWORK_STAR else Material.BARRIER)
             .name(if (canManageParties) "§aSend Party Request" else "§c❌ Send Party Request")
             .lore(if (canManageParties) {
                 listOf("§7Invite another guild to a party", "§7Create new parties or join existing ones")
@@ -172,7 +172,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         pane.addItem(sendRequestGuiItem, 0, 2)
 
         // Create new party (Admin+ only)
-        val createPartyItem = ItemStack(if (canManageParties) Material.NETHER_STAR else Material.BARRIER)
+        val createPartyItem = ItemStack.of(if (canManageParties) Material.NETHER_STAR else Material.BARRIER)
             .name(if (canManageParties) "§6Create New Party" else "§c❌ Create New Party")
             .lore(if (canManageParties) {
                 listOf("§7Start a fresh party", "§7Invite guilds to coordinate events")
@@ -194,7 +194,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val canManageParties = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_PARTIES)
 
         // Party access settings (Admin+ only)
-        val accessSettingsItem = ItemStack(if (canManageParties) Material.COMMAND_BLOCK else Material.BARRIER)
+        val accessSettingsItem = ItemStack.of(if (canManageParties) Material.COMMAND_BLOCK else Material.BARRIER)
             .name(if (canManageParties) "§bParty Access Settings" else "§c❌ Party Access Settings")
             .lore("§7Configure who can join parties")
             .lore("§7Default: All guild members")
@@ -210,7 +210,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         pane.addItem(accessSettingsGuiItem, 0, 3)
 
         // Party permissions info
-        val permissionsItem = ItemStack(Material.BOOK)
+        val permissionsItem = ItemStack.of(Material.BOOK)
             .name("§eParty Permissions")
             .lore("§7□ View Invites: §fAll members")
             .lore("§7✓ Accept Invites: §fAdmin+ only")
@@ -221,7 +221,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         pane.addItem(GuiItem(permissionsItem), 2, 3)
 
         // Quick info about invite-only system
-        val infoItem = ItemStack(Material.KNOWLEDGE_BOOK)
+        val infoItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
             .name("§6ℹ Invite-Only System")
             .lore("§7All parties are invite-only")
             .lore("§7No public party browser")
@@ -232,7 +232,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Control Panel")
             .lore("§7Return to guild management")
 
@@ -280,7 +280,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         incomingRequests.forEach { request ->
             val fromGuild = guildService.getGuild(request.fromGuildId)
             if (fromGuild != null) {
-                val requestItem = ItemStack(Material.PAPER)
+                val requestItem = ItemStack.of(Material.PAPER)
                     .name("§a✉ Invitation from §f${fromGuild.name}")
                     .lore("§7Message: §f${request.message ?: "No message"}")
                     .lore("")
@@ -326,7 +326,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         }
 
         // Back button
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§c⬅ Back")
             .lore("§7Return to party management")
 
@@ -363,7 +363,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         outgoingRequests.forEach { request ->
             val toGuild = guildService.getGuild(request.toGuildId)
             if (toGuild != null) {
-                val requestItem = ItemStack(Material.WRITABLE_BOOK)
+                val requestItem = ItemStack.of(Material.WRITABLE_BOOK)
                     .name("§e✉ Invitation to §f${toGuild.name}")
                     .lore("§7Message: §f${request.message ?: "No message"}")
                     .lore("")
@@ -397,7 +397,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         }
 
         // Back button
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§c⬅ Back")
             .lore("§7Return to party management")
 

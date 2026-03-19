@@ -87,7 +87,7 @@ class IncomingRequestsMenu(
 
         if (pageRequests.isEmpty()) {
             // No requests - show empty message
-            val emptyItem = ItemStack(Material.BARRIER)
+            val emptyItem = ItemStack.of(Material.BARRIER)
                 .name("§7No Incoming Requests")
                 .lore("§7You don't have any pending relation requests.")
                 .lore("§7When other guilds send you alliance or")
@@ -131,7 +131,7 @@ class IncomingRequestsMenu(
         // Calculate time ago
         val timeAgo = formatTimeAgo(relation.createdAt)
 
-        val item = ItemStack(material)
+        val item = ItemStack.of(material)
             .name("$typeColor$typeName")
             .lore("§7From: §f$guildName")
             .lore("§7Members: §f$memberCount")
@@ -165,7 +165,7 @@ class IncomingRequestsMenu(
         val guildName = otherGuild?.name ?: "Unknown Guild"
 
         // Accept button
-        val acceptItem = ItemStack(Material.LIME_CONCRETE)
+        val acceptItem = ItemStack.of(Material.LIME_CONCRETE)
             .name("§a✓ Accept Request")
             .lore("§7Accept the request from")
             .lore("§f$guildName")
@@ -176,7 +176,7 @@ class IncomingRequestsMenu(
         pane.addItem(acceptGuiItem, 2, 1)
 
         // Reject button
-        val rejectItem = ItemStack(Material.RED_CONCRETE)
+        val rejectItem = ItemStack.of(Material.RED_CONCRETE)
             .name("§c✗ Reject Request")
             .lore("§7Reject the request from")
             .lore("§f$guildName")
@@ -187,7 +187,7 @@ class IncomingRequestsMenu(
         pane.addItem(rejectGuiItem, 6, 1)
 
         // Back button
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack")
             .lore("§7Return to requests list")
 
@@ -259,11 +259,11 @@ class IncomingRequestsMenu(
 
     private fun addNavigationButtons(pane: StaticPane) {
         val allRequests = relationService.getIncomingRequests(guild.id)
-        val totalPages = (allRequests.size + itemsPerPage - 1) / itemsPerPage
+        val totalPages = maxOf(1, (allRequests.size + itemsPerPage - 1) / itemsPerPage)
 
         // Previous page button
         if (currentPage > 0) {
-            val prevItem = ItemStack(Material.ARROW)
+            val prevItem = ItemStack.of(Material.ARROW)
                 .name("§f⬅ PREVIOUS PAGE")
                 .lore("§7Go to previous page")
 
@@ -275,8 +275,9 @@ class IncomingRequestsMenu(
         }
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
-            .name("§ePage ${currentPage + 1} / $totalPages")
+        val displayTotalPages = maxOf(totalPages, 1)
+        val pageItem = ItemStack.of(Material.PAPER)
+            .name("§ePage ${currentPage + 1} / $displayTotalPages")
             .lore("§7Total requests: §f${allRequests.size}")
 
         val pageGuiItem = GuiItem(pageItem) { }
@@ -284,7 +285,7 @@ class IncomingRequestsMenu(
 
         // Next page button
         if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack(Material.ARROW)
+            val nextItem = ItemStack.of(Material.ARROW)
                 .name("§fNEXT PAGE ➡")
                 .lore("§7Go to next page")
 
@@ -297,7 +298,7 @@ class IncomingRequestsMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Relations")
             .lore("§7Return to relations menu")
 

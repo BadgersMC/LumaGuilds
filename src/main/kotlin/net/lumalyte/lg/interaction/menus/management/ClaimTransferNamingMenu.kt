@@ -47,7 +47,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
 
         // Add lodestone menu item
         val firstPane = StaticPane(0, 0, 1, 1)
-        val lodestoneItem = ItemStack(Material.BELL)
+        val lodestoneItem = ItemStack.of(Material.BELL)
             .name(name)
             .lore("${claim.position.x}, ${claim.position.y}, ${claim.position.z}")
         val guiItem = GuiItem(lodestoneItem) { guiEvent -> guiEvent.isCancelled = true }
@@ -59,44 +59,44 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
         gui.secondItemComponent.addPane(secondPane)
         when (previousResult) {
             AcceptTransferRequestResult.NoActiveTransferRequest -> {
-                val paperItem = ItemStack(Material.MAGMA_CREAM)
+                val paperItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(localizationProvider.get(playerId,
                         LocalizationKeys.ACCEPT_TRANSFER_CONDITION_INVALID_REQUEST))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.ClaimNotFound -> {
-                val paperItem = ItemStack(Material.MAGMA_CREAM)
+                val paperItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(localizationProvider.get(playerId, LocalizationKeys.ACCEPT_TRANSFER_CONDITION_INVALID_CLAIM))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.BlockLimitExceeded -> {
-                val paperItem = ItemStack(Material.MAGMA_CREAM)
+                val paperItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_BLOCKS))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.ClaimLimitExceeded -> {
-                val paperItem = ItemStack(Material.MAGMA_CREAM)
+                val paperItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_CLAIMS))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.NameAlreadyExists -> {
-                val paperItem = ItemStack(Material.PAPER)
+                val paperItem = ItemStack.of(Material.PAPER)
                     .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_EXISTING))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.PlayerOwnsClaim -> {
-                val paperItem = ItemStack(Material.MAGMA_CREAM)
+                val paperItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(localizationProvider.get(playerId, LocalizationKeys.ACCEPT_TRANSFER_CONDITION_OWNER))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.StorageError -> {
-                val paperItem = ItemStack(Material.MAGMA_CREAM)
+                val paperItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(localizationProvider.get(playerId, LocalizationKeys.GENERAL_ERROR))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
@@ -106,7 +106,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
 
         // Add confirm menu item.
         val thirdPane = StaticPane(0, 0, 1, 1)
-        val confirmItem = ItemStack(Material.NETHER_STAR)
+        val confirmItem = ItemStack.of(Material.NETHER_STAR)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_CONFIRM_NAME))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             val previousOwnerId = claim.playerId

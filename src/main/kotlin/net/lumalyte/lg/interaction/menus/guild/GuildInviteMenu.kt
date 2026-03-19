@@ -11,6 +11,7 @@ import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.findPlayerByName
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -59,7 +60,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
-        val infoItem = ItemStack(Material.BOOK)
+        val infoItem = ItemStack.of(Material.BOOK)
             .name("§f📋 INVITE PLAYERS")
             .lore("§7Invite players to join your guild")
             .lore("§7Click online players or use manual invite")
@@ -77,7 +78,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
             .take(5) // Limit to 5 for display
 
         if (onlinePlayers.isEmpty()) {
-            val noPlayersItem = ItemStack(Material.BARRIER)
+            val noPlayersItem = ItemStack.of(Material.BARRIER)
                 .name("§c❌ NO PLAYERS AVAILABLE")
                 .lore("§7No online players to invite")
                 .lore("§7Use manual invite instead")
@@ -90,7 +91,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
         for ((index, onlinePlayer) in onlinePlayers.withIndex()) {
             if (index >= 5) break
 
-            val playerHead = ItemStack(Material.PLAYER_HEAD)
+            val playerHead = ItemStack.of(Material.PLAYER_HEAD)
             val meta = playerHead.itemMeta
             if (meta is org.bukkit.inventory.meta.SkullMeta) {
                 meta.owningPlayer = onlinePlayer
@@ -110,7 +111,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addManualInviteButton(pane: StaticPane, x: Int, y: Int) {
-        val manualItem = ItemStack(Material.WRITABLE_BOOK)
+        val manualItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§f✏ MANUAL INVITE")
             .lore("§7Type a player name to invite")
             .lore("§7Works for offline players too")
@@ -134,7 +135,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK")
             .lore("§7Return to member management")
 
@@ -143,7 +144,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
                 chatInputListener.stopInputMode(player)
                 player.sendMessage("§7Invite input cancelled.")
             }
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(backGuiItem, x, y)
     }
@@ -175,8 +176,8 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
             return
         }
 
-        // Find player by name
-        val targetPlayer = Bukkit.getPlayer(input)
+        // Find player by name — uses Floodgate-aware lookup so Bedrock names work without the dot prefix
+        val targetPlayer = findPlayerByName(input)
         if (targetPlayer == null) {
             player.sendMessage("§c❌ Player '$input' is not online!")
             open()

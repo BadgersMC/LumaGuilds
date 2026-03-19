@@ -89,13 +89,13 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         val guiTransferRequestItem: GuiItem
         when (transferRequestResult) {
             is DoesPlayerHaveTransferRequestResult.ClaimNotFound -> {
-                val transferRequestItem = ItemStack(Material.MAGMA_CREAM)
+                val transferRequestItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME)
                     .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_EXIST)
                 guiTransferRequestItem = GuiItem(transferRequestItem)
             }
             is DoesPlayerHaveTransferRequestResult.StorageError -> {
-                val transferRequestItem = ItemStack(Material.MAGMA_CREAM)
+                val transferRequestItem = ItemStack.of(Material.MAGMA_CREAM)
                     .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_ERROR_NAME))
                     .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_ERROR_LORE))
                 guiTransferRequestItem = GuiItem(transferRequestItem)
@@ -107,7 +107,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         controlsPane.addItem(guiTransferRequestItem, 8, 0)
 
         // Add vertical divider
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE).name(" ")
         val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
         val verticalDividerPane = StaticPane(4, 2, 1, 6)
         gui.addPane(verticalDividerPane)
@@ -170,7 +170,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         // Add divider
         val dividerPane = StaticPane(0, 1, 9, 1)
         gui.addPane(dividerPane)
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE).name(" ")
         for (slot in 0..8) {
             val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
             dividerPane.addItem(guiDividerItem, slot, 0)
@@ -181,7 +181,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         gui.addPane(controlsPane)
 
         // Add go back item
-        val exitItem = ItemStack(Material.NETHER_STAR)
+        val exitItem = ItemStack.of(Material.NETHER_STAR)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_BACK_NAME))
 
         val guiExitItem = GuiItem(exitItem) { backButtonAction() }
@@ -196,13 +196,13 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         controlsPane.addItem(guiDisplayItem, 4, 0)
 
         // Add deselect all button
-        val deselectItem = ItemStack(Material.HONEY_BLOCK)
+        val deselectItem = ItemStack.of(Material.HONEY_BLOCK)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_DESELECT_ALL_NAME))
         val guiDeselectItem = GuiItem(deselectItem) { deselectAction() }
         controlsPane.addItem(guiDeselectItem, 2, 0)
 
         // Add select all button
-        val selectItem = ItemStack(Material.SLIME_BLOCK)
+        val selectItem = ItemStack.of(Material.SLIME_BLOCK)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_SELECT_ALL_NAME))
         val guiSelectItem = GuiItem(selectItem) { selectAction() }
         controlsPane.addItem(guiSelectItem, 6, 0)
@@ -212,7 +212,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         val guiTransferRequestItem: GuiItem
         if (hasRequest) {
             // Cancel the transfer request if it is pending
-            val transferClaimItem = ItemStack(Material.BARRIER)
+            val transferClaimItem = ItemStack.of(Material.BARRIER)
                 .name(localizationProvider.get(playerId,
                     LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANCEL_TRANSFER_NAME))
                 .lore(localizationProvider.get(playerId,
@@ -234,7 +234,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
             }
             when (canPlayerReceiveTransferRequest.execute(claim.id, targetPlayer.uniqueId)) {
                 CanPlayerReceiveTransferRequestResult.Success -> {
-                    val transferClaimItem = ItemStack(Material.BELL)
+                    val transferClaimItem = ItemStack.of(Material.BELL)
                         .name(localizationProvider.get(
                             playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_TRANSFER_NAME))
                         .lore(localizationProvider.get(
@@ -243,35 +243,35 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
                     guiTransferRequestItem = GuiItem(transferClaimItem) { transferClaimAction() }
                 }
                 CanPlayerReceiveTransferRequestResult.ClaimLimitExceeded -> {
-                    val transferClaimItem = ItemStack(Material.MAGMA_CREAM)
+                    val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
                         .name(localizationProvider.get(
                             playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME))
                         .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_CLAIMS)
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.BlockLimitExceeded -> {
-                    val transferClaimItem = ItemStack(Material.MAGMA_CREAM)
+                    val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
                         .name(localizationProvider.get(
                             playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME))
                         .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_BLOCKS)
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.ClaimNotFound -> {
-                    val transferClaimItem = ItemStack(Material.MAGMA_CREAM)
+                    val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
                         .name(localizationProvider.get(
                             playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME))
                         .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_EXIST)
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.PlayerOwnsClaim -> {
-                    val transferClaimItem = ItemStack(Material.MAGMA_CREAM)
+                    val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
                         .name(localizationProvider.get(
                             playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME))
                         .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_OWNER)
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.StorageError -> {
-                    val transferClaimItem = ItemStack(Material.MAGMA_CREAM)
+                    val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
                         .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_ERROR_NAME))
                         .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_ERROR_LORE))
                     guiTransferRequestItem = GuiItem(transferClaimItem)

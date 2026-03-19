@@ -5,7 +5,9 @@ import io.mockk.mockk
 import io.mockk.verify
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
+import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.RankRepository
+import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.GuildVaultService
@@ -32,6 +34,8 @@ class GuildServiceJoinFeeTest {
     private lateinit var nexoEmojiService: NexoEmojiService
     private lateinit var vaultService: GuildVaultService
     private lateinit var hologramService: VaultHologramService
+    private lateinit var relationRepository: RelationRepository
+    private lateinit var historyRepository: MembershipHistoryRepository
 
     private lateinit var guildService: GuildServiceBukkit
 
@@ -53,6 +57,8 @@ class GuildServiceJoinFeeTest {
         nexoEmojiService = mockk(relaxed = true)
         vaultService = mockk(relaxed = true)
         hologramService = mockk(relaxed = true)
+        relationRepository = mockk(relaxed = true)
+        historyRepository = mockk(relaxed = true)
 
         // Create service
         guildService = GuildServiceBukkit(
@@ -63,7 +69,9 @@ class GuildServiceJoinFeeTest {
             memberService = memberService,
             nexoEmojiService = nexoEmojiService,
             vaultService = vaultService,
-            hologramService = hologramService
+            hologramService = hologramService,
+            relationRepository = relationRepository,
+            historyRepository = historyRepository
         )
 
         // Set up test data

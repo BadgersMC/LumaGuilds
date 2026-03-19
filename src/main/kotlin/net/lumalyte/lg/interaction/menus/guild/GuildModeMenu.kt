@@ -70,7 +70,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Current mode display
-        val currentModeItem = ItemStack(
+        val currentModeItem = ItemStack.of(
             if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
         )
             .name("§f📊 CURRENT MODE")
@@ -97,7 +97,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Peaceful Mode Option
         if (guild.mode != GuildMode.PEACEFUL) {
-            val peacefulItem = ItemStack(Material.GREEN_WOOL)
+            val peacefulItem = ItemStack.of(Material.GREEN_WOOL)
                 .name("§a☮ SWITCH TO PEACEFUL")
                 .lore("§7Peaceful mode benefits:")
 
@@ -152,7 +152,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Hostile Mode Option
         if (guild.mode != GuildMode.HOSTILE) {
-            val hostileItem = ItemStack(Material.RED_WOOL)
+            val hostileItem = ItemStack.of(Material.RED_WOOL)
                 .name("§c⚔ SWITCH TO HOSTILE")
                 .lore("§7Hostile mode benefits:")
 
@@ -194,7 +194,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Current Mode Display
-        val currentModeItem = ItemStack(
+        val currentModeItem = ItemStack.of(
             if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
         )
             .name("§f📊 CURRENT MODE")
@@ -206,7 +206,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addBackButton(pane: StaticPane) {
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK")
             .lore("§7Return to settings")
 

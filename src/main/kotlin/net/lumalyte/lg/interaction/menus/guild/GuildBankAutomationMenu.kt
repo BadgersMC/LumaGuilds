@@ -41,7 +41,6 @@ class GuildBankAutomationMenu(
     // Automation settings
     private var scheduledDepositsEnabled: Boolean = false
     private var autoRewardsEnabled: Boolean = true
-    private var budgetAlertsEnabled: Boolean = true
     private var recurringPaymentsEnabled: Boolean = false
     private var interestRate: Double = 0.02 // 2% monthly interest
 
@@ -68,7 +67,6 @@ class GuildBankAutomationMenu(
                 when (setting) {
                     "scheduledDeposits" -> scheduledDepositsEnabled = value as Boolean
                     "autoRewards" -> autoRewardsEnabled = value as Boolean
-                    "budgetAlerts" -> budgetAlertsEnabled = value as Boolean
                     "recurringPayments" -> recurringPaymentsEnabled = value as Boolean
                     "interestRate" -> interestRate = value as Double
                 }
@@ -86,7 +84,6 @@ class GuildBankAutomationMenu(
         // TODO: Load from database/configuration
         scheduledDepositsEnabled = false
         autoRewardsEnabled = true
-        budgetAlertsEnabled = true
         recurringPaymentsEnabled = false
         interestRate = 0.02
     }
@@ -102,9 +99,6 @@ class GuildBankAutomationMenu(
         }
         if (autoRewardsEnabled) {
             activeAutomations.add("Auto-Rewards Distribution")
-        }
-        if (budgetAlertsEnabled) {
-            activeAutomations.add("Budget Alerts")
         }
         if (recurringPaymentsEnabled) {
             activeAutomations.add("Recurring Payments")
@@ -209,6 +203,11 @@ class GuildBankAutomationMenu(
         val scheduledGuiItem = GuiItem(scheduledItem) { event ->
             event.isCancelled = true
             scheduledDepositsEnabled = !scheduledDepositsEnabled
+            if (scheduledDepositsEnabled) {
+                player.sendMessage("§aScheduled Deposits enabled.")
+            } else {
+                player.sendMessage("§cScheduled Deposits disabled.")
+            }
             checkActiveAutomations()
             updateAutomationDisplay()
             gui.update()
@@ -228,28 +227,30 @@ class GuildBankAutomationMenu(
         val rewardsGuiItem = GuiItem(rewardsItem) { event ->
             event.isCancelled = true
             autoRewardsEnabled = !autoRewardsEnabled
+            if (autoRewardsEnabled) {
+                player.sendMessage("§aAuto-Rewards Distribution enabled.")
+            } else {
+                player.sendMessage("§cAuto-Rewards Distribution disabled.")
+            }
             checkActiveAutomations()
             updateAutomationDisplay()
             gui.update()
         }
         automationPane.addItem(rewardsGuiItem, 1, 0)
 
-        // Budget alerts toggle
+        // Budget alerts — opens the dedicated Budget Management menu
         val alertsItem = createMenuItem(
-            if (budgetAlertsEnabled) Material.GREEN_WOOL else Material.RED_WOOL,
+            Material.BELL,
             "Budget Alerts",
             listOf(
-                "Status: ${if (budgetAlertsEnabled) "Enabled" else "Disabled"}",
-                "Send notifications when approaching limits",
-                "Click to toggle"
+                "Configure spending limits and alerts",
+                "Set monthly, weekly, and daily budgets",
+                "Click to open Budget Management"
             )
         )
         val alertsGuiItem = GuiItem(alertsItem) { event ->
             event.isCancelled = true
-            budgetAlertsEnabled = !budgetAlertsEnabled
-            checkActiveAutomations()
-            updateAutomationDisplay()
-            gui.update()
+            menuNavigator.openMenu(menuFactory.createGuildBankBudgetMenu(menuNavigator, player, guild))
         }
         automationPane.addItem(alertsGuiItem, 2, 0)
 
@@ -266,6 +267,11 @@ class GuildBankAutomationMenu(
         val recurringGuiItem = GuiItem(recurringItem) { event ->
             event.isCancelled = true
             recurringPaymentsEnabled = !recurringPaymentsEnabled
+            if (recurringPaymentsEnabled) {
+                player.sendMessage("§aRecurring Payments enabled.")
+            } else {
+                player.sendMessage("§cRecurring Payments disabled.")
+            }
             checkActiveAutomations()
             updateAutomationDisplay()
             gui.update()
@@ -450,7 +456,7 @@ class GuildBankAutomationMenu(
      * Create a menu item with consistent formatting
      */
     private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
-        val item = ItemStack(material)
+        val item = ItemStack.of(material)
         val meta = item.itemMeta
 
         meta.displayName(Component.text(name)

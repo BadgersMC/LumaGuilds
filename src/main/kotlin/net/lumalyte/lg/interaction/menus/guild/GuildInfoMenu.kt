@@ -72,7 +72,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addGuildOverview(pane: StaticPane, x: Int, y: Int) {
-        val overviewItem = ItemStack(Material.SHIELD)
+        val overviewItem = ItemStack.of(Material.SHIELD)
             .name("§6Guild Overview")
             .lore("§7Name: §f${guild.name}")
             .lore("§7Level: §e${guild.level}")
@@ -94,7 +94,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addDescriptionSection(pane: StaticPane, x: Int, y: Int) {
-        val descriptionItem = ItemStack(Material.WRITABLE_BOOK)
+        val descriptionItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§6Description")
 
         // Parse and display the description with MiniMessage formatting
@@ -108,7 +108,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addMembersSection(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
-        val membersItem = ItemStack(Material.PLAYER_HEAD)
+        val membersItem = ItemStack.of(Material.PLAYER_HEAD)
             .name("§bMembers (§f$memberCount§b)")
             .lore("§7Click to view member list")
 
@@ -123,7 +123,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             if (index < 3) { // Show only first 3 members to fit
                 val rank = rankService.getPlayerRank(member.playerId, guild.id)
                 val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown Player"
-                val memberItem = ItemStack(Material.PLAYER_HEAD)
+                val memberItem = ItemStack.of(Material.PLAYER_HEAD)
                     .name("§f$playerName")
                     .lore("§7Rank: §f${rank?.name ?: "Member"}")
 
@@ -135,7 +135,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         if (members.size > 3) {
-            val moreItem = ItemStack(Material.PAPER)
+            val moreItem = ItemStack.of(Material.PAPER)
                 .name("§7... and ${members.size - 3} more")
                 .lore("§7Click members button above to see all")
             pane.addItem(GuiItem(moreItem), x, y + 4)
@@ -145,16 +145,17 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private fun addRelationsSection(pane: StaticPane, x: Int, y: Int) {
         val relations = relationService.getGuildRelations(guild.id)
 
-        // Allies
-        val allies = relations.filter { it.type == RelationType.ALLY }
-        val alliesItem = ItemStack(Material.LIME_BANNER)
+        // Allies — filter out relations where the allied guild no longer exists (disbanded)
+        val allies = relations.filter {
+            it.type == RelationType.ALLY && guildService.getGuild(it.getOtherGuild(guild.id)) != null
+        }
+        val alliesItem = ItemStack.of(Material.LIME_BANNER)
             .name("§aAllies (§f${allies.size}§a)")
 
         if (allies.isNotEmpty()) {
             allies.take(3).forEach { relation ->
-                val allyId = relation.getOtherGuild(guild.id)
-                val allyGuild = guildService.getGuild(allyId)
-                alliesItem.lore("§7• §f${allyGuild?.name ?: "Unknown"}")
+                val allyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
+                alliesItem.lore("§7• §f${allyGuild!!.name}")
             }
             if (allies.size > 3) {
                 alliesItem.lore("§7... and ${allies.size - 3} more")
@@ -165,16 +166,17 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         pane.addItem(GuiItem(alliesItem), x, y)
 
-        // Truces
-        val truces = relations.filter { it.type == RelationType.TRUCE }
-        val trucesItem = ItemStack(Material.WHITE_BANNER)
+        // Truces — filter out disbanded guilds
+        val truces = relations.filter {
+            it.type == RelationType.TRUCE && guildService.getGuild(it.getOtherGuild(guild.id)) != null
+        }
+        val trucesItem = ItemStack.of(Material.WHITE_BANNER)
             .name("§fTruces (§f${truces.size}§f)")
 
         if (truces.isNotEmpty()) {
             truces.take(3).forEach { relation ->
-                val truceId = relation.getOtherGuild(guild.id)
-                val truceGuild = guildService.getGuild(truceId)
-                trucesItem.lore("§7• §f${truceGuild?.name ?: "Unknown"}")
+                val truceGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
+                trucesItem.lore("§7• §f${truceGuild!!.name}")
             }
             if (truces.size > 3) {
                 trucesItem.lore("§7... and ${truces.size - 3} more")
@@ -185,16 +187,17 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         pane.addItem(GuiItem(trucesItem), x, y + 1)
 
-        // Enemies/Wars
-        val enemies = relations.filter { it.type == RelationType.ENEMY }
-        val enemiesItem = ItemStack(Material.RED_BANNER)
+        // Enemies/Wars — filter out disbanded guilds
+        val enemies = relations.filter {
+            it.type == RelationType.ENEMY && guildService.getGuild(it.getOtherGuild(guild.id)) != null
+        }
+        val enemiesItem = ItemStack.of(Material.RED_BANNER)
             .name("§cWars (§f${enemies.size}§c)")
 
         if (enemies.isNotEmpty()) {
             enemies.take(3).forEach { relation ->
-                val enemyId = relation.getOtherGuild(guild.id)
-                val enemyGuild = guildService.getGuild(enemyId)
-                enemiesItem.lore("§7• §f${enemyGuild?.name ?: "Unknown"}")
+                val enemyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
+                enemiesItem.lore("§7• §f${enemyGuild!!.name}")
             }
             if (enemies.size > 3) {
                 enemiesItem.lore("§7... and ${enemies.size - 3} more")
@@ -207,7 +210,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addStatisticsSection(pane: StaticPane, x: Int, y: Int) {
-        val statsItem = ItemStack(Material.BOOK)
+        val statsItem = ItemStack.of(Material.BOOK)
             .name("§eStatistics")
             .lore("§7Bank Balance: §6$${guild.bankBalance}")
             .lore("§7Level: §e${guild.level}")
@@ -227,7 +230,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(GuiItem(statsItem), x, y)
 
         // Progression info
-        val progressionItem = ItemStack(Material.EXPERIENCE_BOTTLE)
+        val progressionItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
             .name("§dProgression")
             .lore("§7Level: §e${guild.level}")
             .lore("§7Next Level: §e${guild.level + 1}")
@@ -236,7 +239,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK")
             .lore("§7Return to previous menu")
 

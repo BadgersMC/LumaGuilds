@@ -38,8 +38,7 @@ class GuildControlPanelMenu(
         // Security check: Only guild members can access the control panel
         if (memberService.getMember(playerId, guild.id) == null) {
             player.sendMessage("§c❌ You cannot access the control panel for a guild you're not a member of!")
-            // Redirect to the guild info menu instead
-            menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
             return
         }
 
@@ -88,7 +87,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addGuildSettingsButton(pane: StaticPane, x: Int, y: Int) {
-        val settingsItem = ItemStack(Material.COMMAND_BLOCK)
+        val settingsItem = ItemStack.of(Material.COMMAND_BLOCK)
             .name("§eGuild Settings")
             .lore("§7Manage basic guild information")
             .lore("§7Name, description, and general settings")
@@ -100,7 +99,7 @@ class GuildControlPanelMenu(
 
     private fun addEmojiSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val emoji = guildService.getEmoji(guild.id)
-        val emojiItem = ItemStack(Material.NAME_TAG)
+        val emojiItem = ItemStack.of(Material.NAME_TAG)
             .name("§dGuild Emoji")
             .lore("§7Current: ${emoji ?: "§cNot set"}")
             .lore("§7Set your guild's emoji for chat")
@@ -121,12 +120,12 @@ class GuildControlPanelMenu(
                     .lore("§7Choose your guild's banner")
             } else {
                 // Fallback if deserialization fails
-                ItemStack(Material.WHITE_BANNER)
+                ItemStack.of(Material.WHITE_BANNER)
                     .name("§bGuild Banner")
                     .lore("§7Current: §cError loading banner")
                     .lore("§7Choose your guild's banner")
             }
-        } ?: ItemStack(Material.WHITE_BANNER)
+        } ?: ItemStack.of(Material.WHITE_BANNER)
             .name("§bGuild Banner")
             .lore("§7Current: §cNot set")
             .lore("§7Choose your guild's banner")
@@ -139,8 +138,8 @@ class GuildControlPanelMenu(
 
     private fun addModeSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val modeItem = when (guild.mode) {
-            GuildMode.PEACEFUL -> ItemStack(Material.GREEN_WOOL)
-            GuildMode.HOSTILE -> ItemStack(Material.RED_WOOL)
+            GuildMode.PEACEFUL -> ItemStack.of(Material.GREEN_WOOL)
+            GuildMode.HOSTILE -> ItemStack.of(Material.RED_WOOL)
         }
             .name("§cGuild Mode")
             .lore("§7Current: §f${guild.mode}")
@@ -154,7 +153,7 @@ class GuildControlPanelMenu(
 
     private fun addHomeSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val home = guildService.getHome(guild.id)
-        val homeItem = ItemStack(Material.COMPASS)
+        val homeItem = ItemStack.of(Material.COMPASS)
             .name("§aGuild Home")
             .lore(if (home != null) "§7Set at: ${home.position.x}, ${home.position.y}, ${home.position.z}" else "§cNot set")
             .lore("§7Teleport point for /guild home")
@@ -168,7 +167,7 @@ class GuildControlPanelMenu(
         val rankCount = rankService.listRanks(guild.id).size
         val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
 
-        val rankItem = ItemStack(Material.IRON_SWORD)
+        val rankItem = ItemStack.of(Material.IRON_SWORD)
             .name("§6Rank Management")
             .lore("§7Manage guild ranks and permissions")
             .lore("§7Current ranks: §f$rankCount")
@@ -190,7 +189,7 @@ class GuildControlPanelMenu(
 
     private fun addMemberManagementButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
-        val memberItem = ItemStack(Material.PLAYER_HEAD)
+        val memberItem = ItemStack.of(Material.PLAYER_HEAD)
             .name("§bMember Management")
             .lore("§7Manage guild members and ranks")
             .lore("§7Current members: §f$memberCount")
@@ -201,7 +200,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addPartyManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val partyItem = ItemStack(Material.FIREWORK_ROCKET)
+        val partyItem = ItemStack.of(Material.FIREWORK_ROCKET)
             .name("§dParty Management")
             .lore("§7Start parties and coordinate with allies")
             .lore("§7Invite other guilds to events")
@@ -212,7 +211,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addWarManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val warItem = ItemStack(Material.DIAMOND_SWORD)
+        val warItem = ItemStack.of(Material.DIAMOND_SWORD)
             .name("§4War Management")
             .lore("§7Declare wars and manage conflicts")
             .lore("§7Propose truces and alliances")
@@ -223,7 +222,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addRelationManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val relationItem = ItemStack(Material.BOOK)
+        val relationItem = ItemStack.of(Material.BOOK)
             .name("§eRelations")
             .lore("§7View alliances and rivalries")
             .lore("§7Manage diplomatic relations")
@@ -234,7 +233,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addBankManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val bankItem = ItemStack(Material.GOLD_BLOCK)
+        val bankItem = ItemStack.of(Material.GOLD_BLOCK)
             .name("§6Guild Bank")
             .lore("§7Manage guild treasury")
             .lore("§7View transactions and balance")
@@ -247,7 +246,7 @@ class GuildControlPanelMenu(
     private fun addVaultButton(pane: StaticPane, x: Int, y: Int) {
         val vaultItem = when (guild.vaultStatus) {
             net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE -> {
-                ItemStack(Material.CHEST)
+                ItemStack.of(Material.CHEST)
                     .name("§eGuild Vault")
                     .lore("§7Status: §a✓ Available")
                     .lore("§7Click to open vault")
@@ -256,7 +255,7 @@ class GuildControlPanelMenu(
                     .lore("§7guild's physical vault chest")
             }
             net.lumalyte.lg.domain.entities.VaultStatus.UNAVAILABLE -> {
-                ItemStack(Material.BARRIER)
+                ItemStack.of(Material.BARRIER)
                     .name("§eGuild Vault")
                     .lore("§7Status: §c✗ Not Placed")
                     .lore("§7Use §f/guild getvault §7to get a vault chest")
@@ -265,7 +264,7 @@ class GuildControlPanelMenu(
                     .lore("§7territory to enable the vault")
             }
             net.lumalyte.lg.domain.entities.VaultStatus.NEVER_PLACED -> {
-                ItemStack(Material.BARRIER)
+                ItemStack.of(Material.BARRIER)
                     .name("§eGuild Vault")
                     .lore("§7Status: §c✗ Never Placed")
                     .lore("§7Use §f/guild getvault §7to get a vault chest")
@@ -276,27 +275,34 @@ class GuildControlPanelMenu(
         }
 
         val guiItem = GuiItem(vaultItem) {
-            if (guild.vaultStatus == net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE) {
-                // Open vault
-                player.closeInventory()
-                val result = vaultService.openVaultInventory(player, guild)
-                when (result) {
-                    is VaultResult.Success -> {
-                        // Vault opened successfully
-                    }
-                    is VaultResult.Failure -> {
-                        player.sendMessage("§c❌ ${result.message}")
-                    }
+            // Re-fetch guild to get current vault status — the cached guild object may be stale
+            // if another player broke the vault after this menu was opened
+            val currentGuild = guildService.getGuild(guild.id)
+            if (currentGuild == null) {
+                player.sendMessage("§c❌ Guild no longer exists.")
+                return@GuiItem
+            }
+            if (currentGuild.vaultStatus != net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE) {
+                player.sendMessage("§c❌ Guild vault is no longer available! The physical chest may have been removed.")
+                return@GuiItem
+            }
+            // Only close the menu once we've confirmed the vault is currently available
+            player.closeInventory()
+            val result = vaultService.openVaultInventory(player, currentGuild)
+            when (result) {
+                is VaultResult.Success -> {
+                    // Vault opened successfully
                 }
-            } else {
-                player.sendMessage("§c❌ Guild vault is not placed! Use §f/guild getvault §cto get a vault chest.")
+                is VaultResult.Failure -> {
+                    player.sendMessage("§c❌ ${result.message}")
+                }
             }
         }
         pane.addItem(guiItem, x, y)
     }
 
     private fun addStatisticsButton(pane: StaticPane, x: Int, y: Int) {
-        val statsItem = ItemStack(Material.BOOKSHELF)
+        val statsItem = ItemStack.of(Material.BOOKSHELF)
             .name("§aStatistics")
             .lore("§7View guild performance metrics")
             .lore("§7Kills, deaths, wins, losses")
@@ -313,7 +319,7 @@ class GuildControlPanelMenu(
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             // Fallback if progression system isn't available
-            ItemStack(Material.EXPERIENCE_BOTTLE)
+            ItemStack.of(Material.EXPERIENCE_BOTTLE)
                 .name("§b⭐ GUILD PROGRESSION")
                 .lore("§7Level: §e1 §7(Starting Level)")
                 .lore("§7XP Progress: §e0§7/§e800 §7(§a0%§7)")
@@ -330,7 +336,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addInvitePlayerButton(pane: StaticPane, x: Int, y: Int) {
-        val inviteItem = ItemStack(Material.PAPER)
+        val inviteItem = ItemStack.of(Material.PAPER)
             .name("§aInvite Player")
             .lore("§7Send guild invitation to a player")
         val guiItem = GuiItem(inviteItem) {
@@ -340,7 +346,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addKickPlayerButton(pane: StaticPane, x: Int, y: Int) {
-        val kickItem = ItemStack(Material.BARRIER)
+        val kickItem = ItemStack.of(Material.BARRIER)
             .name("§cKick Player")
             .lore("§7Remove a player from the guild")
         val guiItem = GuiItem(kickItem) {
@@ -350,7 +356,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addPromotePlayerButton(pane: StaticPane, x: Int, y: Int) {
-        val promoteItem = ItemStack(Material.ANVIL)
+        val promoteItem = ItemStack.of(Material.ANVIL)
             .name("§6Promote/Demote")
             .lore("§7Change member ranks")
         val guiItem = GuiItem(promoteItem) {
@@ -360,7 +366,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addGuildInfoButton(pane: StaticPane, x: Int, y: Int) {
-        val infoItem = ItemStack(Material.KNOWLEDGE_BOOK)
+        val infoItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
             .name("§9Guild Info")
             .lore("§7Detailed information about your guild")
         val guiItem = GuiItem(infoItem) {
@@ -371,7 +377,7 @@ class GuildControlPanelMenu(
 
     private fun addMemberListButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
-        val listItem = ItemStack(Material.BOOK)
+        val listItem = ItemStack.of(Material.BOOK)
             .name("§bMember List")
             .lore("§7View all guild members")
             .lore("§7Total: §f$memberCount members")
@@ -383,7 +389,7 @@ class GuildControlPanelMenu(
 
     private fun addRankListButton(pane: StaticPane, x: Int, y: Int) {
         val rankCount = rankService.listRanks(guild.id).size
-        val listItem = ItemStack(Material.WRITABLE_BOOK)
+        val listItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§6Rank List")
             .lore("§7View all guild ranks")
             .lore("§7Total: §f$rankCount ranks")
@@ -394,7 +400,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addDisbandGuildButton(pane: StaticPane, x: Int, y: Int) {
-        val disbandItem = ItemStack(Material.TNT)
+        val disbandItem = ItemStack.of(Material.TNT)
             .name("§4§lDISBAND GUILD")
             .lore("§c§lPERMANENT ACTION")
             .lore("§7This will delete the guild forever")
@@ -406,7 +412,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addLeaveGuildButton(pane: StaticPane, x: Int, y: Int) {
-        val leaveItem = ItemStack(Material.DARK_OAK_DOOR)
+        val leaveItem = ItemStack.of(Material.DARK_OAK_DOOR)
             .name("§eLeave Guild")
             .lore("§7Leave the guild")
             .lore("§7You can rejoin later if invited")
@@ -417,7 +423,7 @@ class GuildControlPanelMenu(
     }
 
     private fun createProgressionInfoItem(): ItemStack {
-        val levelingItem = ItemStack(Material.EXPERIENCE_BOTTLE)
+        val levelingItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
             .name("§b⭐ GUILD PROGRESSION")
 
         // Check if claims are enabled in config

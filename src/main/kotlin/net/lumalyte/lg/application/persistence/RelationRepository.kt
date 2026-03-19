@@ -111,6 +111,15 @@ interface RelationRepository {
     fun hasRelationType(guildA: UUID, guildB: UUID, type: RelationType): Boolean
     
     /**
+     * Removes all relations involving a specific guild.
+     * Should be called when a guild is disbanded to prevent stale relation entries.
+     *
+     * @param guildId The ID of the guild whose relations should be removed.
+     * @return The number of relations removed.
+     */
+    fun removeByGuild(guildId: UUID): Int
+
+    /**
      * Gets all relations in the repository.
      *
      * @return A set of all relations.

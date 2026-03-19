@@ -185,9 +185,6 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
         val playerId = player.uniqueId
 
-        // Note: Toggle controls visibility, not which channel you're sending to
-        // Use /pc switch GLOBAL to send to global chat instead of party chat
-
         // Get current visibility state before toggling
         val currentSettings = chatService.getVisibilitySettings(playerId)
         val wasVisible = currentSettings.partyChatVisible
@@ -197,14 +194,25 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
         // Show appropriate message based on new state
         if (newVisibilityState) {
-            player.sendMessage("§a✅ Party chat visibility: §nON")
-            player.sendMessage("§7You will now SEE party messages in your chat")
-            player.sendMessage("§7This does not affect which channel you send to")
+            player.sendMessage("§a✅ Party chat: §nON")
+            player.sendMessage("§7You will now see party messages in your chat")
+            player.sendMessage("§7Use §f/pc switch <party> §7to also send to a party channel")
         } else {
-            player.sendMessage("§e⚠️ Party chat visibility: §nOFF")
-            player.sendMessage("§7You will no longer see party messages in your chat")
-            player.sendMessage("§7This does not affect which channel you send to")
-            player.sendMessage("§7Use §f/pc switch GLOBAL §7to send messages to global chat")
+            // When toggling OFF, also clear the active party preference so the player's
+            // messages go to global chat. Leaving the preference while visibility is off
+            // causes "Failed to send party message!" because the sender is filtered out
+            // of their own recipient list.
+            val hadActiveParty = preferenceRepository.getByPlayerId(playerId) != null
+            if (hadActiveParty) {
+                val removed = preferenceRepository.removeByPlayerId(playerId)
+                if (!removed) {
+                    player.sendMessage("§c❌ Failed to switch to global chat!")
+                    return
+                }
+            }
+            player.sendMessage("§e⚠️ Party chat: §nOFF")
+            player.sendMessage("§7You will no longer see party messages")
+            player.sendMessage("§7Your messages now go to global chat")
         }
     }
 

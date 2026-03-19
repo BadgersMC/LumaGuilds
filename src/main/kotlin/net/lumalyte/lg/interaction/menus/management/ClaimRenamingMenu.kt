@@ -49,7 +49,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Add bell menu item
         val firstPane = StaticPane(0, 0, 1, 1)
-        val lodestoneItem = ItemStack(Material.BELL)
+        val lodestoneItem = ItemStack.of(Material.BELL)
             .name(claim.name)
             .lore("${claim.position.x}, ${claim.position.y}, ${claim.position.z}")
         val guiItem = GuiItem(lodestoneItem) { guiEvent -> guiEvent.isCancelled = true }
@@ -62,7 +62,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Add confirm menu item.
         val thirdPane = StaticPane(0, 0, 1, 1)
-        val confirmItem = ItemStack(Material.NETHER_STAR)
+        val confirmItem = ItemStack.of(Material.NETHER_STAR)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_CONFIRM_NAME))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             // Go back to edit menu if the name hasn't changed
@@ -76,7 +76,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
             when (result) {
                 is UpdateClaimNameResult.Success -> menuNavigator.goBackWithData(result.claim)
                 UpdateClaimNameResult.ClaimNotFound -> {
-                    val paperItem = ItemStack(Material.PAPER)
+                    val paperItem = ItemStack.of(Material.PAPER)
                         .name(localizationProvider.get(playerId, LocalizationKeys.MENU_RENAMING_ITEM_UNKNOWN_NAME))
                     val guiPaperItem = GuiItem(paperItem)
                     secondPane.addItem(guiPaperItem, 0, 0)
@@ -85,7 +85,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
                     gui.update()
                 }
                 UpdateClaimNameResult.NameAlreadyExists -> {
-                    val paperItem = ItemStack(Material.PAPER)
+                    val paperItem = ItemStack.of(Material.PAPER)
                         .name(localizationProvider.get(playerId, LocalizationKeys.MENU_RENAMING_ITEM_EXISTING_NAME))
                     val guiPaperItem = GuiItem(paperItem) {guiEvent ->
                         secondPane.removeItem(0, 0)

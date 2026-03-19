@@ -35,25 +35,25 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
         gui.addPane(controlsPane)
 
         // Add go back/exit item
-        val exitItem = ItemStack(Material.NETHER_STAR)
+        val exitItem = ItemStack.of(Material.NETHER_STAR)
             .name(localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_COMMON_ITEM_CLOSE_NAME))
         val guiExitItem = GuiItem(exitItem) { menuNavigator.goBack() }
         controlsPane.addItem(guiExitItem, 0, 0)
 
         // Add prev item
-        val prevItem = ItemStack(Material.ARROW)
+        val prevItem = ItemStack.of(Material.ARROW)
             .name(localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_COMMON_ITEM_PREV_NAME))
         val guiPrevItem = GuiItem(prevItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPrevItem, 6, 0)
 
         // Add page item
-        val pageItem = ItemStack(Material.PAPER)
-            .name("Page $page of ${ceil(claims.count() / 36.0).toInt()}")
+        val pageItem = ItemStack.of(Material.PAPER)
+            .name("Page $page of ${maxOf(1, ceil(claims.count() / 36.0).toInt())}")
         val guiPageItem = GuiItem(pageItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPageItem, 7, 0)
 
         // Add next item
-        val nextItem = ItemStack(Material.ARROW)
+        val nextItem = ItemStack.of(Material.ARROW)
             .name(localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_COMMON_ITEM_NEXT_NAME))
         val guiNextItem = GuiItem(nextItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiNextItem, 8, 0)
@@ -61,7 +61,7 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
         // Add divider
         val dividerPane = StaticPane(0, 1, 9, 1)
         gui.addPane(dividerPane)
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE).name(" ")
         for (slot in 0..8) {
             val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
             dividerPane.addItem(guiDividerItem, slot, 0)
@@ -74,7 +74,7 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
         var ySlot = 0
         for (claim in claims) {
             val coordinates = listOf(claim.position.x, claim.position.y, claim.position.z)
-            val claimItem = ItemStack(Material.valueOf(claim.icon))
+            val claimItem = ItemStack.of(Material.matchMaterial(claim.icon) ?: Material.GRASS_BLOCK)
                 .name(claim.name)
                 .lore(coordinates.joinToString(localizationProvider.get(
                     player.uniqueId, LocalizationKeys.GENERAL_LIST_SEPARATOR)))

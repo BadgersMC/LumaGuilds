@@ -87,7 +87,7 @@ class OutgoingRequestsMenu(
 
         if (pageRequests.isEmpty()) {
             // No requests - show empty message
-            val emptyItem = ItemStack(Material.BARRIER)
+            val emptyItem = ItemStack.of(Material.BARRIER)
                 .name("§7No Outgoing Requests")
                 .lore("§7You haven't sent any relation requests.")
                 .lore("§7Use the diplomatic actions to send")
@@ -131,7 +131,7 @@ class OutgoingRequestsMenu(
         // Calculate time ago
         val timeAgo = formatTimeAgo(relation.createdAt)
 
-        val item = ItemStack(material)
+        val item = ItemStack.of(material)
             .name("$typeColor$typeName")
             .lore("§7To: §f$guildName")
             .lore("§7Members: §f$memberCount")
@@ -166,7 +166,7 @@ class OutgoingRequestsMenu(
         val guildName = otherGuild?.name ?: "Unknown Guild"
 
         // Confirm cancel button
-        val cancelItem = ItemStack(Material.RED_CONCRETE)
+        val cancelItem = ItemStack.of(Material.RED_CONCRETE)
             .name("§c✗ Cancel Request")
             .lore("§7Cancel your request to")
             .lore("§f$guildName")
@@ -179,7 +179,7 @@ class OutgoingRequestsMenu(
         pane.addItem(cancelGuiItem, 3, 1)
 
         // Back button
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack")
             .lore("§7Return to requests list")
 
@@ -224,7 +224,7 @@ class OutgoingRequestsMenu(
 
         // Previous page button
         if (currentPage > 0) {
-            val prevItem = ItemStack(Material.ARROW)
+            val prevItem = ItemStack.of(Material.ARROW)
                 .name("§f⬅ PREVIOUS PAGE")
                 .lore("§7Go to previous page")
 
@@ -236,7 +236,7 @@ class OutgoingRequestsMenu(
         }
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name("§ePage ${currentPage + 1} / ${if (totalPages > 0) totalPages else 1}")
             .lore("§7Total requests: §f${allRequests.size}")
 
@@ -245,7 +245,7 @@ class OutgoingRequestsMenu(
 
         // Next page button
         if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack(Material.ARROW)
+            val nextItem = ItemStack.of(Material.ARROW)
                 .name("§fNEXT PAGE ➡")
                 .lore("§7Go to next page")
 
@@ -258,7 +258,7 @@ class OutgoingRequestsMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Relations")
             .lore("§7Return to relations menu")
 

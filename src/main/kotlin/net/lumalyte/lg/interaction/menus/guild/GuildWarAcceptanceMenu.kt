@@ -90,7 +90,7 @@ class GuildWarAcceptanceMenu(
         pane.addItem(GuiItem(declaringGuildItem), 1, 1)
 
         // VS indicator
-        val vsItem = ItemStack(Material.BARRIER)
+        val vsItem = ItemStack.of(Material.BARRIER)
             .name("§4⚡ VS ⚡")
             .lore("§7War Declaration")
         pane.addItem(GuiItem(vsItem), 4, 1)
@@ -100,7 +100,7 @@ class GuildWarAcceptanceMenu(
         pane.addItem(GuiItem(yourGuildItem), 7, 1)
 
         // War details
-        val detailsItem = ItemStack(Material.WRITTEN_BOOK)
+        val detailsItem = ItemStack.of(Material.WRITTEN_BOOK)
             .name("§e📋 War Details")
             .lore("§7Duration: §f${warDeclaration.proposedDuration.toDays()} days")
             .lore("§7Objectives: §f${warDeclaration.objectives.size}")
@@ -133,13 +133,14 @@ class GuildWarAcceptanceMenu(
         val bannerItem = targetGuild.banner?.let { banner ->
             try {
                 val deserialized = banner.deserializeToItemStack()
-                deserialized?.clone() ?: ItemStack(Material.WHITE_BANNER)
+                deserialized?.clone() ?: ItemStack.of(Material.WHITE_BANNER)
             } catch (e: Exception) {
-                // Menu operation - catching all exceptions to prevent UI failure
-            // Menu operation - catching all exceptions to prevent UI failure
-                ItemStack(Material.WHITE_BANNER)
+                // Menu operation - log and fall back to white banner to prevent UI failure
+                org.slf4j.LoggerFactory.getLogger(GuildWarAcceptanceMenu::class.java)
+                    .warn("Failed to deserialize guild banner for ${targetGuild.name}: ${e.message}")
+                ItemStack.of(Material.WHITE_BANNER)
             }
-        } ?: ItemStack(Material.WHITE_BANNER)
+        } ?: ItemStack.of(Material.WHITE_BANNER)
 
         return bannerItem
             .name(title)
@@ -151,7 +152,7 @@ class GuildWarAcceptanceMenu(
 
     private fun addResponseOptions(pane: StaticPane) {
         // Accept button
-        val acceptItem = ItemStack(Material.EMERALD_BLOCK)
+        val acceptItem = ItemStack.of(Material.EMERALD_BLOCK)
             .name("§a✅ ACCEPT WAR")
             .lore("§7Accept this war declaration")
             .lore("§7and begin the conflict!")
@@ -170,7 +171,7 @@ class GuildWarAcceptanceMenu(
         pane.addItem(acceptGuiItem, 2, 3)
 
         // Reject button
-        val rejectItem = ItemStack(Material.REDSTONE_BLOCK)
+        val rejectItem = ItemStack.of(Material.REDSTONE_BLOCK)
             .name("§c❌ REJECT WAR")
             .lore("§7Reject this war declaration")
             .lore("§7")
@@ -301,7 +302,7 @@ class GuildWarAcceptanceMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§c⬅ Back")
             .lore("§7Return to war management")
 

@@ -92,7 +92,7 @@ class PartyCreationMenu(
     private fun addPartyTypeSection(pane: StaticPane) {
         // Private party toggle
         val config = configService.loadConfig()
-        val privateItem = ItemStack(if (isPrivateParty) Material.RED_CONCRETE else Material.GREEN_CONCRETE)
+        val privateItem = ItemStack.of(if (isPrivateParty) Material.RED_CONCRETE else Material.GREEN_CONCRETE)
             .name("${if (isPrivateParty) "§c🔒" else "§a🌐"} Party Type")
             .lore("§7Current: §f${if (isPrivateParty) "Private (Guild Only)" else "Public (Multi-Guild)"}")
             .lore("§7")
@@ -125,7 +125,7 @@ class PartyCreationMenu(
     }
 
     private fun addPrivatePartyInfo(pane: StaticPane) {
-        val infoItem = ItemStack(Material.SHIELD)
+        val infoItem = ItemStack.of(Material.SHIELD)
             .name("§a✅ Private Guild Party")
             .lore("§7This party will only include")
             .lore("§7members from your guild")
@@ -139,7 +139,7 @@ class PartyCreationMenu(
 
     private fun addPartyInfoSection(pane: StaticPane) {
         // Party name
-        val nameItem = ItemStack(Material.NAME_TAG)
+        val nameItem = ItemStack.of(Material.NAME_TAG)
             .name("§6📝 Party Name")
             .lore("§7Current: ${if (partyName.isNotEmpty()) "§f$partyName" else "§cNot set"}")
             .lore("§7")
@@ -168,7 +168,7 @@ class PartyCreationMenu(
         // Party summary
         val guilds = selectedGuilds.size
         val roles = restrictedRoles.size
-        val summaryItem = ItemStack(Material.BOOK)
+        val summaryItem = ItemStack.of(Material.BOOK)
             .name("§6📊 Party Summary")
             .lore("§7Guilds: §f$guilds")
             .lore("§7Role restrictions: §f${if (roles == 0) "None" else "$roles roles"}")
@@ -181,7 +181,7 @@ class PartyCreationMenu(
 
     private fun addGuildSelectionSection(pane: StaticPane) {
         // Display current guild
-        val currentGuildItem = ItemStack(Material.GREEN_BANNER)
+        val currentGuildItem = ItemStack.of(Material.GREEN_BANNER)
             .name("§a✅ ${guild.name}")
             .lore("§7Your current guild")
             .lore("§7Always included")
@@ -189,7 +189,7 @@ class PartyCreationMenu(
 
         // Guild invitation button
         val selectedCount = selectedGuilds.size - 1 // Subtract 1 for current guild
-        val inviteItem = ItemStack(Material.WRITABLE_BOOK)
+        val inviteItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§6📋 INVITE GUILDS ($selectedCount selected)")
             .lore("§7Click to select guilds to invite")
             .lore("§7Selected guilds will be invited")
@@ -205,7 +205,7 @@ class PartyCreationMenu(
         additionalGuilds.take(4).forEachIndexed { index, guildId ->
             val selectedGuild = guildService.getGuild(guildId)
             if (selectedGuild != null) {
-                val previewItem = ItemStack(Material.LIME_BANNER)
+                val previewItem = ItemStack.of(Material.LIME_BANNER)
                     .name("§a✅ ${selectedGuild.name}")
                     .lore("§7Will be invited to party")
                 pane.addItem(GuiItem(previewItem), 5 + index, 1)
@@ -214,7 +214,7 @@ class PartyCreationMenu(
 
         // Show overflow indicator if more than 4 selected
         if (additionalGuilds.size > 4) {
-            val overflowItem = ItemStack(Material.PAPER)
+            val overflowItem = ItemStack.of(Material.PAPER)
                 .name("§7... and ${additionalGuilds.size - 4} more")
                 .lore("§7Click invite button to see all")
             pane.addItem(GuiItem(overflowItem), 8, 1)
@@ -223,7 +223,7 @@ class PartyCreationMenu(
 
     private fun addRoleRestrictionSection(pane: StaticPane) {
         val hasRestrictions = restrictedRoles.isNotEmpty()
-        val restrictionItem = ItemStack(if (hasRestrictions) Material.REDSTONE_TORCH else Material.LEVER)
+        val restrictionItem = ItemStack.of(if (hasRestrictions) Material.REDSTONE_TORCH else Material.LEVER)
             .name("§6🔒 Role Restrictions")
             .lore("§7Status: §f${if (hasRestrictions) "Enabled" else "Disabled"}")
             .lore("§7")
@@ -251,7 +251,7 @@ class PartyCreationMenu(
         pane.addItem(restrictionGuiItem, 1, 2)
 
         // Role selection button (always visible)
-        val selectRolesItem = ItemStack(Material.BOOK)
+        val selectRolesItem = ItemStack.of(Material.BOOK)
             .name("§6👥 SELECT ROLES")
             .lore("§7Choose which roles can join")
             .lore("§7Only works when restrictions enabled")
@@ -283,7 +283,7 @@ class PartyCreationMenu(
             val col = 1 + (index % 7)
 
             val isSelected = restrictedRoles.contains(rank.id)
-            val rankItem = ItemStack(if (isSelected) Material.LIME_CONCRETE else Material.RED_CONCRETE)
+            val rankItem = ItemStack.of(if (isSelected) Material.LIME_CONCRETE else Material.RED_CONCRETE)
                 .name("${if (isSelected) "§a✓" else "§c✗"} ${rank.name}")
                 .lore("§7Priority: §f${rank.priority}")
                 .lore("§7Members: §f${memberService.getMembersByRank(guild.id, rank.id).size}")
@@ -307,7 +307,7 @@ class PartyCreationMenu(
     private fun addActionButtons(pane: StaticPane) {
         // Create party - allow single guild for private parties, or 2+ guilds for public
         val canCreate = if (isPrivateParty) selectedGuilds.size >= 1 else selectedGuilds.size >= 2
-        val createItem = ItemStack(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
+        val createItem = ItemStack.of(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
             .name(if (canCreate) "§a✅ Create Party" else "§c❌ Cannot Create")
             .lore("§7Create the party with selected settings")
 
@@ -330,7 +330,7 @@ class PartyCreationMenu(
         pane.addItem(createGuiItem, 1, 5)
 
         // Clear all
-        val clearItem = ItemStack(Material.BARRIER)
+        val clearItem = ItemStack.of(Material.BARRIER)
             .name("§c🗑 Clear All")
             .lore("§7Reset all selections")
 
@@ -345,7 +345,7 @@ class PartyCreationMenu(
         pane.addItem(clearGuiItem, 3, 5)
 
         // Back button
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§7⬅ Back")
             .lore("§7Return to party management")
 
