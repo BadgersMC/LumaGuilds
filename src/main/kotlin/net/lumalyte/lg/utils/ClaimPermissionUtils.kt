@@ -12,20 +12,20 @@ import java.util.UUID
  */
 fun ClaimPermission.getIcon(localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider, playerId: UUID): ItemStack {
     var item = when (this) {
-        ClaimPermission.BUILD -> ItemStack(Material.DIAMOND_PICKAXE)
-        ClaimPermission.HARVEST -> ItemStack(Material.WHEAT)
-        ClaimPermission.CONTAINER -> ItemStack(Material.CHEST)
-        ClaimPermission.DISPLAY -> ItemStack(Material.ARMOR_STAND)
-        ClaimPermission.VEHICLE -> ItemStack(Material.MINECART)
-        ClaimPermission.SIGN -> ItemStack(Material.OAK_SIGN)
-        ClaimPermission.REDSTONE -> ItemStack(Material.LEVER)
-        ClaimPermission.DOOR -> ItemStack(Material.ACACIA_DOOR)
-        ClaimPermission.TRADE -> ItemStack(Material.EMERALD)
-        ClaimPermission.HUSBANDRY -> ItemStack(Material.LEAD)
-        ClaimPermission.DETONATE -> ItemStack(Material.TNT)
-        ClaimPermission.EVENT -> ItemStack(Material.OMINOUS_BOTTLE)
-        ClaimPermission.SLEEP -> ItemStack(Material.RED_BED)
-        ClaimPermission.VIEW -> ItemStack(Material.LECTERN)
+        ClaimPermission.BUILD -> ItemStack.of(Material.DIAMOND_PICKAXE)
+        ClaimPermission.HARVEST -> ItemStack.of(Material.WHEAT)
+        ClaimPermission.CONTAINER -> ItemStack.of(Material.CHEST)
+        ClaimPermission.DISPLAY -> ItemStack.of(Material.ARMOR_STAND)
+        ClaimPermission.VEHICLE -> ItemStack.of(Material.MINECART)
+        ClaimPermission.SIGN -> ItemStack.of(Material.OAK_SIGN)
+        ClaimPermission.REDSTONE -> ItemStack.of(Material.LEVER)
+        ClaimPermission.DOOR -> ItemStack.of(Material.ACACIA_DOOR)
+        ClaimPermission.TRADE -> ItemStack.of(Material.EMERALD)
+        ClaimPermission.HUSBANDRY -> ItemStack.of(Material.LEAD)
+        ClaimPermission.DETONATE -> ItemStack.of(Material.TNT)
+        ClaimPermission.EVENT -> ItemStack.of(Material.OMINOUS_BOTTLE)
+        ClaimPermission.SLEEP -> ItemStack.of(Material.RED_BED)
+        ClaimPermission.VIEW -> ItemStack.of(Material.LECTERN)
     }
 
     // Get localized name and lore using the keys from the domain enum

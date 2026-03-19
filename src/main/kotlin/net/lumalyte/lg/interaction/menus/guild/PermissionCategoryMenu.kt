@@ -47,6 +47,14 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     override fun open() {
+        // Security check: Only players with MANAGE_RANKS permission can edit ranks
+        if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) {
+            player.sendMessage("§c❌ You don't have permission to edit ranks!")
+            player.sendMessage("§7Required permission: §fMANAGE_RANKS")
+            menuNavigator.openMenu(RankEditMenu(menuNavigator, player, guild, rank))
+            return
+        }
+
         val gui = ChestGui(6, "§6$categoryName - ${rank.name}")
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -81,7 +89,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             else -> Material.PAPER
         }
 
-        val infoItem = ItemStack(categoryIcon)
+        val infoItem = ItemStack.of(categoryIcon)
             .name("§6🔧 $categoryName")
             .lore("§7Managing permissions for: §f${rank.name}")
             .lore("§7Category: §f$categoryName")
@@ -98,7 +106,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(GuiItem(infoItem), 1, 0)
 
         // Enable all button
-        val enableAllItem = ItemStack(Material.LIME_CONCRETE)
+        val enableAllItem = ItemStack.of(Material.LIME_CONCRETE)
             .name("§a✅ Enable All")
             .lore("§7Grant all $categoryName permissions")
             .lore("§7to this rank")
@@ -120,7 +128,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(enableAllGuiItem, 3, 0)
 
         // Disable all button
-        val disableAllItem = ItemStack(Material.RED_CONCRETE)
+        val disableAllItem = ItemStack.of(Material.RED_CONCRETE)
             .name("§c❌ Disable All")
             .lore("§7Remove all $categoryName permissions")
             .lore("§7from this rank")
@@ -143,7 +151,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         // Permission count
         val enabledCount = categoryPermissions.count { modifiedPermissions.contains(it) }
-        val countItem = ItemStack(Material.BOOK)
+        val countItem = ItemStack.of(Material.BOOK)
             .name("§6📊 Permission Status")
             .lore("§7Enabled: §a$enabledCount§7/§f${categoryPermissions.size}")
             .lore("§7")
@@ -163,7 +171,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             val displayName = permission.name.replace("_", " ").lowercase()
                 .split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
 
-            val permissionItem = ItemStack(
+            val permissionItem = ItemStack.of(
                 if (hasPermission) Material.LIME_CONCRETE_POWDER else Material.RED_CONCRETE_POWDER
             )
                 .name("${if (hasPermission) "§a✓" else "§c✗"} §f$displayName")
@@ -197,7 +205,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
     private fun addActionButtons(pane: StaticPane) {
         // Save changes
-        val saveItem = ItemStack(Material.EMERALD_BLOCK)
+        val saveItem = ItemStack.of(Material.EMERALD_BLOCK)
             .name("§a💾 Save Changes")
             .lore("§7Apply permission changes")
             .lore("§7")
@@ -225,7 +233,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(saveGuiItem, 1, 5)
 
         // Cancel changes
-        val cancelItem = ItemStack(Material.BARRIER)
+        val cancelItem = ItemStack.of(Material.BARRIER)
             .name("§c❌ Cancel Changes")
             .lore("§7Discard all changes")
             .lore("§7Return to rank editing")
@@ -246,7 +254,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(cancelGuiItem, 3, 5)
 
         // Reset to original
-        val resetItem = ItemStack(Material.YELLOW_CONCRETE)
+        val resetItem = ItemStack.of(Material.YELLOW_CONCRETE)
             .name("§e🔄 Reset to Original")
             .lore("§7Restore original permissions")
             .lore("§7for this category")
@@ -268,7 +276,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(resetGuiItem, 5, 5)
 
         // Back to rank edit
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§7⬅ Back")
             .lore("§7Return to rank editing")
             .lore("§7(changes will be saved)")

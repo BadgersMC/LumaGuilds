@@ -72,7 +72,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val allHomes = guildService.getHomes(guild.id)
         val availableSlots = guildService.getAvailableHomeSlots(guild.id)
 
-        val slotsItem = ItemStack(Material.BOOK)
+        val slotsItem = ItemStack.of(Material.BOOK)
             .name("§e🏠 Guild Home Slots")
             .lore("§7Homes Set: §f${allHomes.size}§7/${availableSlots}")
             .lore("§7")
@@ -106,7 +106,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Set Main Home button
         if (!allHomes.homes.containsKey("main")) {
-            val setMainItem = ItemStack(Material.GREEN_WOOL)
+            val setMainItem = ItemStack.of(Material.GREEN_WOOL)
                 .name("§aSet Main Home")
                 .lore("§7Set your current location as main home")
                 .lore("§7Allows §6/guild home §7teleportation")
@@ -119,7 +119,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Set Additional Home button (if slots available)
         if (allHomes.size < availableSlots) {
-            val setAdditionalItem = ItemStack(Material.LIME_WOOL)
+            val setAdditionalItem = ItemStack.of(Material.LIME_WOOL)
                 .name("§eSet Additional Home")
                 .lore("§7Set a named home location")
                 .lore("§7Allows §6/guild home <name> §7teleportation")
@@ -135,7 +135,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Remove Homes button
         if (allHomes.hasHomes()) {
-            val removeItem = ItemStack(Material.RED_WOOL)
+            val removeItem = ItemStack.of(Material.RED_WOOL)
                 .name("§cRemove Homes")
                 .lore("§7Remove guild home locations")
 
@@ -152,7 +152,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         if (hasActiveTeleport) {
             // Show cancel teleport button
-            val cancelItem = ItemStack(Material.CLOCK)
+            val cancelItem = ItemStack.of(Material.CLOCK)
                 .name("§eCancel Teleport")
                 .lore("§7Teleportation in progress...")
                 .lore("§7Remaining: §f${activeTeleports[player.uniqueId]?.remainingSeconds ?: 0} seconds")
@@ -167,7 +167,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             // Show teleport to main home button
             val mainHome = allHomes.defaultHome
             if (mainHome != null) {
-                val teleportItem = ItemStack(Material.ENDER_PEARL)
+                val teleportItem = ItemStack.of(Material.ENDER_PEARL)
                     .name("§bTeleport to Main Home")
                     .lore("§7Click to start teleportation countdown")
                     .lore("§7World: §f${Bukkit.getWorld(mainHome.worldId)?.name ?: "Unknown"}")
@@ -181,7 +181,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
             // Show list homes button if there are multiple homes
             if (allHomes.size > 1) {
-                val listItem = ItemStack(Material.COMPASS)
+                val listItem = ItemStack.of(Material.COMPASS)
                     .name("§eList All Homes")
                     .lore("§7View all available homes")
                     .lore("§7Use §6/guild home <name> §7to teleport")
@@ -193,7 +193,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             }
         } else {
             // No homes set
-            val noHomeItem = ItemStack(Material.GRAY_DYE)
+            val noHomeItem = ItemStack.of(Material.GRAY_DYE)
                 .name("§7No Homes Set")
                 .lore("§7Set a home location first")
 
@@ -225,7 +225,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val name = entry.key
             val home = entry.value
             if (slot < 27) { // Max 27 slots
-                val removeItem = ItemStack(Material.RED_WOOL)
+                val removeItem = ItemStack.of(Material.RED_WOOL)
                     .name("§cRemove '$name'")
                     .lore("§7World: §f${Bukkit.getWorld(home.worldId)?.name ?: "Unknown"}")
                     .lore("§7Location: §f${home.position.x}, ${home.position.y}, ${home.position.z}")
@@ -247,7 +247,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Back button
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Home Menu")
             .lore("§7Return to home management")
 
@@ -313,7 +313,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Control Panel")
             .lore("§7Return to guild management")
 

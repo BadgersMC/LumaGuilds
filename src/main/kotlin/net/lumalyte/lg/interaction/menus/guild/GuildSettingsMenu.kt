@@ -70,7 +70,7 @@ class GuildSettingsMenu(
 
     private fun addGuildInfoSection(pane: StaticPane) {
         // Guild name display (placeholder for now)
-        val nameItem = ItemStack(Material.BOOK)
+        val nameItem = ItemStack.of(Material.BOOK)
             .name("§f📖 GUILD NAME")
             .lore("§7Current: §f${guild.name}")
             .lore("§7")
@@ -83,7 +83,7 @@ class GuildSettingsMenu(
         val hasDescriptionPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_DESCRIPTION)
         val currentDescription = guild.description
 
-        val descItem = ItemStack(Material.WRITABLE_BOOK)
+        val descItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name("§f📝 DESCRIPTION")
 
         if (currentDescription != null) {
@@ -117,7 +117,7 @@ class GuildSettingsMenu(
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
-        val createdItem = ItemStack(Material.CLOCK)
+        val createdItem = ItemStack.of(Material.CLOCK)
             .name("§f◷ CREATED")
             .lore("§7Date: §f${localDateTime.format(dateFormatter)}")
             .lore("§7Time: §f${localDateTime.format(timeFormatter)}")
@@ -130,7 +130,7 @@ class GuildSettingsMenu(
     }
 
     private fun createLevelingInfoItem(): ItemStack {
-        val levelingItem = ItemStack(Material.EXPERIENCE_BOTTLE)
+        val levelingItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
             .name("§b☆ GUILD PROGRESSION")
 
         // Check if claims are enabled in config
@@ -217,13 +217,13 @@ class GuildSettingsMenu(
                     .lore("§7")
                     .lore("§7Click to manage banner")
             } else {
-                ItemStack(Material.WHITE_BANNER)
+                ItemStack.of(Material.WHITE_BANNER)
                     .name("§f🏴 BANNER")
                     .lore("§7Status: §cError loading banner")
                     .lore("§7")
                     .lore("§7Click to manage banner")
             }
-        } ?: ItemStack(Material.WHITE_BANNER)
+        } ?: ItemStack.of(Material.WHITE_BANNER)
             .name("§f🏴 BANNER")
             .lore("§7Status: §cNot set")
             .lore("§7")
@@ -235,7 +235,7 @@ class GuildSettingsMenu(
         pane.addItem(bannerGuiItem, 0, 2)
 
         // Guild Emoji
-        val emojiItem = ItemStack(Material.FIREWORK_STAR)
+        val emojiItem = ItemStack.of(Material.FIREWORK_STAR)
             .name("§f☆ EMOJI")
             .lore("§7Current: §f${guild.emoji ?: "§cNot set"}")
             .lore("§7")
@@ -247,7 +247,7 @@ class GuildSettingsMenu(
         pane.addItem(emojiGuiItem, 1, 2)
 
         // Guild Tag - NEW FEATURE
-        val tagItem = ItemStack(Material.NAME_TAG)
+        val tagItem = ItemStack.of(Material.NAME_TAG)
             .name("§f🏷 GUILD TAG")
             .lore("§7Current: §f${guild.tag ?: "§cNot set"}")
             .lore("§7")
@@ -261,7 +261,7 @@ class GuildSettingsMenu(
 
         // Preview section
         val currentTag = guild.tag ?: guild.name
-        val previewItem = ItemStack(Material.PAPER)
+        val previewItem = ItemStack.of(Material.PAPER)
             .name("§a🔍 PREVIEW")
             .lore("§7Chat appearance:")
             .lore("§7[${player.name}] $currentTag §7Hello!")
@@ -271,7 +271,7 @@ class GuildSettingsMenu(
 
     private fun addLocationModeSection(pane: StaticPane) {
         // Guild Home
-        val homeItem = ItemStack(Material.COMPASS)
+        val homeItem = ItemStack.of(Material.COMPASS)
                 .name("§f🏠 HOME MANAGEMENT")
 
         val allHomes = guildService.getHomes(guild.id)
@@ -307,7 +307,7 @@ class GuildSettingsMenu(
         pane.addItem(homeGuiItem, 0, 4)
 
         // Guild Open/Closed Toggle
-        val openClosedItem = ItemStack(
+        val openClosedItem = ItemStack.of(
             if (guild.isOpen) Material.LIME_DYE else Material.GRAY_DYE
         )
             .name("§f🚪 GUILD ACCESS")
@@ -343,8 +343,41 @@ class GuildSettingsMenu(
         }
         pane.addItem(openClosedGuiItem, 1, 4)
 
+        // Lunar Tracking Toggle
+        val trackingItem = ItemStack.of(
+            if (guild.trackingEnabled) Material.RECOVERY_COMPASS else Material.COMPASS
+        )
+            .name("§f🗺 LUNAR TRACKING")
+            .lore("§7Current: §f${if (guild.trackingEnabled) "ENABLED" else "DISABLED"}")
+            .lore("§7")
+            .lore("§7Enabled: Guild members visible")
+            .lore("§7on Lunar Client minimap & HUD")
+            .lore("§7Disabled: No location sharing")
+            .lore("§7")
+            .lore("§eClick to toggle Lunar tracking")
+
+        val trackingGuiItem = GuiItem(trackingItem) {
+            if (!hasPermission) {
+                player.sendMessage("§c❌ You don't have permission to change guild settings")
+                player.sendMessage("§7You need the MANAGE_GUILD_SETTINGS permission")
+                return@GuiItem
+            }
+
+            val newTracking = !guild.trackingEnabled
+            val success = guildService.setTrackingEnabled(guild.id, newTracking, player.uniqueId)
+
+            if (success) {
+                guild = guild.copy(trackingEnabled = newTracking)
+                player.sendMessage("§a✅ Lunar tracking is now ${if (newTracking) "§aENABLED" else "§cDISABLED"}")
+                open()
+            } else {
+                player.sendMessage("§c❌ Failed to update tracking settings")
+            }
+        }
+        pane.addItem(trackingGuiItem, 4, 4)
+
         // Guild Members
-        val membersItem = ItemStack(Material.PLAYER_HEAD)
+        val membersItem = ItemStack.of(Material.PLAYER_HEAD)
             .name("§f👥 MANAGE MEMBERS")
             .lore("§7Invite and kick guild members")
             .lore("§7View member list with pagination")
@@ -357,7 +390,7 @@ class GuildSettingsMenu(
         // Guild Mode
         val config = configService.loadConfig()
         if (config.guild.peacefulModeEnabled) {
-            val modeItem = ItemStack(
+            val modeItem = ItemStack.of(
                 if (guild.mode == GuildMode.PEACEFUL)
                     Material.GREEN_WOOL else Material.RED_WOOL
             )
@@ -402,7 +435,7 @@ class GuildSettingsMenu(
             pane.addItem(modeGuiItem, 3, 4)
         } else {
             // Show disabled mode indicator
-            val modeItem = ItemStack(Material.GRAY_WOOL)
+            val modeItem = ItemStack.of(Material.GRAY_WOOL)
                 .name("§f⚔ GUILD MODE")
                 .lore("§7Current: §fHOSTILE")
                 .lore("§7")
@@ -413,7 +446,7 @@ class GuildSettingsMenu(
         }
 
         // Back button
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK")
             .lore("§7Return to control panel")
 

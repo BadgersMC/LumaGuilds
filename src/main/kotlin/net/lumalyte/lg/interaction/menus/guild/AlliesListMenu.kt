@@ -90,7 +90,7 @@ class AlliesListMenu(
 
         if (pageAllies.isEmpty()) {
             // No allies - show empty message
-            val emptyItem = ItemStack(Material.BARRIER)
+            val emptyItem = ItemStack.of(Material.BARRIER)
                 .name("§7No Allied Guilds")
                 .lore("§7You currently have no alliances.")
                 .lore("§7Use §6/guild ally <guild>§7 or the")
@@ -130,9 +130,9 @@ class AlliesListMenu(
         // Try to use guild banner, fallback to default
         val item = if (otherGuild?.banner != null) {
             val deserialized = otherGuild.banner.deserializeToItemStack()
-            deserialized ?: ItemStack(Material.GREEN_BANNER)
+            deserialized ?: ItemStack.of(Material.GREEN_BANNER)
         } else {
-            ItemStack(Material.GREEN_BANNER)
+            ItemStack.of(Material.GREEN_BANNER)
         }
 
         item.name("§a✦ $guildName")
@@ -162,7 +162,7 @@ class AlliesListMenu(
         }
 
         // View info button
-        val infoItem = ItemStack(Material.BOOK)
+        val infoItem = ItemStack.of(Material.BOOK)
             .name("§eView Guild Info")
             .lore("§7View detailed information about")
             .lore("§f$guildName")
@@ -177,7 +177,7 @@ class AlliesListMenu(
         // Break alliance button (requires MANAGE_RELATIONS permission)
         val hasPermission = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
 
-        val breakItem = ItemStack(if (hasPermission) Material.RED_CONCRETE else Material.BARRIER)
+        val breakItem = ItemStack.of(if (hasPermission) Material.RED_CONCRETE else Material.BARRIER)
             .name(if (hasPermission) "§cBreak Alliance" else "§7Break Alliance")
             .lore(if (hasPermission) "§7End your alliance with" else "§7You need MANAGE_RELATIONS")
             .lore(if (hasPermission) "§f$guildName" else "§7permission to break alliances")
@@ -195,7 +195,7 @@ class AlliesListMenu(
         pane.addItem(breakGuiItem, 6, 1)
 
         // Back button
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack")
             .lore("§7Return to allies list")
 
@@ -220,7 +220,7 @@ class AlliesListMenu(
         }
 
         // Confirm button
-        val confirmItem = ItemStack(Material.RED_CONCRETE)
+        val confirmItem = ItemStack.of(Material.RED_CONCRETE)
             .name("§c✗ Confirm Break Alliance")
             .lore("§7Break your alliance with")
             .lore("§f$guildName")
@@ -233,7 +233,7 @@ class AlliesListMenu(
         pane.addItem(confirmGuiItem, 3, 1)
 
         // Cancel button
-        val cancelItem = ItemStack(Material.ARROW)
+        val cancelItem = ItemStack.of(Material.ARROW)
             .name("§eCancel")
             .lore("§7Return to ally actions")
 
@@ -274,7 +274,7 @@ class AlliesListMenu(
 
         // Previous page button
         if (currentPage > 0) {
-            val prevItem = ItemStack(Material.ARROW)
+            val prevItem = ItemStack.of(Material.ARROW)
                 .name("§f⬅ PREVIOUS PAGE")
                 .lore("§7Go to previous page")
 
@@ -286,7 +286,7 @@ class AlliesListMenu(
         }
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name("§ePage ${currentPage + 1} / ${if (totalPages > 0) totalPages else 1}")
             .lore("§7Total allies: §a${allAllies.size}")
 
@@ -295,7 +295,7 @@ class AlliesListMenu(
 
         // Next page button
         if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack(Material.ARROW)
+            val nextItem = ItemStack.of(Material.ARROW)
                 .name("§fNEXT PAGE ➡")
                 .lore("§7Go to next page")
 
@@ -308,7 +308,7 @@ class AlliesListMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Relations")
             .lore("§7Return to relations menu")
 

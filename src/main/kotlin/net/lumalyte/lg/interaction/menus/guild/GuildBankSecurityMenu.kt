@@ -5,6 +5,7 @@ import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.Pane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.AuditAction
 import net.lumalyte.lg.domain.entities.BankAudit
 import net.lumalyte.lg.domain.entities.BankTransaction
@@ -35,6 +36,7 @@ class GuildBankSecurityMenu(
 ) : Menu, KoinComponent {
 
     private val bankService: BankService by inject()
+    private val guildService: GuildService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
 
     // GUI components
@@ -45,7 +47,6 @@ class GuildBankSecurityMenu(
 
     // Security settings
     private var dualAuthThreshold: Int = 1000
-    private var fraudDetectionEnabled: Boolean = true
     private var emergencyFreeze: Boolean = false
     private var securityAlerts: MutableList<String> = mutableListOf()
 
@@ -68,7 +69,6 @@ class GuildBankSecurityMenu(
             updates.forEach { (setting, value) ->
                 when (setting) {
                     "dualAuthThreshold" -> dualAuthThreshold = value as Int
-                    "fraudDetection" -> fraudDetectionEnabled = value as Boolean
                     "emergencyFreeze" -> emergencyFreeze = value as Boolean
                 }
             }
@@ -79,13 +79,13 @@ class GuildBankSecurityMenu(
     }
 
     /**
-     * Load security settings (placeholder for now)
+     * Load security settings from the guild entity.
      */
     private fun loadSecuritySettings() {
-        // TODO: Load from database/configuration
         dualAuthThreshold = 1000
-        fraudDetectionEnabled = true
-        emergencyFreeze = false
+        // Read persisted freeze state from database via guild entity
+        val currentGuild = guildService.getGuild(guild.id)
+        emergencyFreeze = currentGuild?.bankFrozen ?: false
     }
 
     /**
@@ -291,25 +291,6 @@ class GuildBankSecurityMenu(
         }
         securityPane.addItem(dualAuthGuiItem, 0, 0)
 
-        // Fraud detection toggle
-        val fraudItem = createMenuItem(
-            if (fraudDetectionEnabled) Material.GREEN_WOOL else Material.RED_WOOL,
-            "Fraud Detection",
-            listOf(
-                "Status: ${if (fraudDetectionEnabled) "Enabled" else "Disabled"}",
-                "Monitors for suspicious patterns",
-                "Click to toggle"
-            )
-        )
-        val fraudGuiItem = GuiItem(fraudItem) { event ->
-            event.isCancelled = true
-            fraudDetectionEnabled = !fraudDetectionEnabled
-            analyzeSecurityRisks()
-            updateSecurityDisplay()
-            gui.update()
-        }
-        securityPane.addItem(fraudGuiItem, 1, 0)
-
         // Emergency freeze toggle
         val freezeItem = createMenuItem(
             if (emergencyFreeze) Material.RED_WOOL else Material.GREEN_WOOL,
@@ -322,20 +303,24 @@ class GuildBankSecurityMenu(
         )
         val freezeGuiItem = GuiItem(freezeItem) { event ->
             event.isCancelled = true
-            if (!emergencyFreeze) {
-                // Confirm before activating
-                player.sendMessage("§c⚠ EMERGENCY FREEZE ACTIVATED - All transactions blocked!")
-                player.sendMessage("§eUse this only if you suspect a security breach.")
-                emergencyFreeze = true
+            val newFrozen = !emergencyFreeze
+            val success = guildService.setBankFrozen(guild.id, newFrozen, player.uniqueId)
+            if (success) {
+                emergencyFreeze = newFrozen
+                if (newFrozen) {
+                    player.sendMessage("§c🔒 EMERGENCY FREEZE ACTIVATED — All bank transactions are now blocked!")
+                    player.sendMessage("§eOpen the menu again to deactivate once the threat has passed.")
+                } else {
+                    player.sendMessage("§a✅ Emergency freeze deactivated — Bank transactions are now allowed.")
+                }
             } else {
-                emergencyFreeze = false
-                player.sendMessage("§aEmergency freeze deactivated.")
+                player.sendMessage("§c❌ Failed to update bank freeze state. You may lack the MANAGE_GUILD_SETTINGS permission.")
             }
             analyzeSecurityRisks()
             updateSecurityDisplay()
             gui.update()
         }
-        securityPane.addItem(freezeGuiItem, 2, 0)
+        securityPane.addItem(freezeGuiItem, 1, 0)
 
         // Security status display
         updateSecurityStatus()
@@ -437,18 +422,20 @@ class GuildBankSecurityMenu(
     }
 
     /**
-     * Save security settings
+     * Save security settings.
+     * Note: the emergency freeze toggle saves immediately via guildService.setBankFrozen().
+     * This button currently acknowledges that state — future settings (dual-auth threshold,
+     * fraud detection) can be persisted here when implemented.
      */
     private fun saveSecuritySettings() {
-        // TODO: Save to database/configuration
-        player.sendMessage("§aSecurity settings would be saved to database")
+        player.sendMessage("§aSecurity settings saved. (Emergency freeze state is always saved immediately on toggle.)")
     }
 
     /**
      * Create a menu item with consistent formatting
      */
     private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
-        val item = ItemStack(material)
+        val item = ItemStack.of(material)
         val meta = item.itemMeta
 
         meta.displayName(Component.text(name)

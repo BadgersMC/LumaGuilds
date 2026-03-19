@@ -110,10 +110,10 @@ class GuildSelectionMenu(
             if (deserialized != null) {
                 deserialized.clone()
             } else {
-                ItemStack(Material.WHITE_BANNER)
+                ItemStack.of(Material.WHITE_BANNER)
             }
         } else {
-            ItemStack(Material.WHITE_BANNER)
+            ItemStack.of(Material.WHITE_BANNER)
         }
 
         return bannerItem
@@ -145,7 +145,7 @@ class GuildSelectionMenu(
         val totalPages = (allGuilds.size + itemsPerPage - 1) / itemsPerPage
 
         // Previous page button
-        val prevItem = ItemStack(Material.ARROW)
+        val prevItem = ItemStack.of(Material.ARROW)
             .name("§f⬅ PREVIOUS PAGE")
             .lore("§7Go to previous page")
 
@@ -158,7 +158,7 @@ class GuildSelectionMenu(
         pane.addItem(prevGuiItem, 0, 5)
 
         // Next page button
-        val nextItem = ItemStack(Material.ARROW)
+        val nextItem = ItemStack.of(Material.ARROW)
             .name("§fNEXT PAGE ➡")
             .lore("§7Go to next page")
 
@@ -171,7 +171,7 @@ class GuildSelectionMenu(
         pane.addItem(nextGuiItem, 8, 5)
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name("§f📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
             .lore("§7Current page indicator")
 
@@ -180,7 +180,7 @@ class GuildSelectionMenu(
 
     private fun addSelectedSummary(pane: StaticPane, x: Int, y: Int) {
         val selectedCount = selectedGuilds.size
-        val summaryItem = ItemStack(Material.BOOK)
+        val summaryItem = ItemStack.of(Material.BOOK)
             .name("§6📋 Selected Guilds: $selectedCount")
             .lore("§7Selected guilds will be invited")
             .lore("§7to the party when created")
@@ -189,7 +189,7 @@ class GuildSelectionMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK TO CREATION")
             .lore("§7Return to party creation menu")
 

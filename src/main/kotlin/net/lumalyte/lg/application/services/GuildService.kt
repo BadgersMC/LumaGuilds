@@ -279,4 +279,25 @@ interface GuildService {
      * @return A pair of (joinFeeEnabled, joinFeeAmount), or null if guild not found.
      */
     fun getJoinFeeSettings(guildId: UUID): Pair<Boolean, Int>?
+
+    /**
+     * Enables or disables Lunar Client location tracking (Apollo teams/waypoints) for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @param enabled true to enable tracking, false to opt out.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun setTrackingEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean
+
+    /**
+     * Activates or deactivates the emergency bank freeze for a guild.
+     * When frozen, all deposits and withdrawals are blocked until unfrozen.
+     *
+     * @param guildId The ID of the guild.
+     * @param frozen true to freeze the bank, false to unfreeze.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean
 }

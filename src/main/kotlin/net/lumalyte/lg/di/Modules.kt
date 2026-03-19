@@ -159,6 +159,8 @@ import net.lumalyte.lg.infrastructure.persistence.guilds.ProgressionRepositorySQ
 import net.lumalyte.lg.infrastructure.persistence.guilds.GuildBannerRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.AuditRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.KillRepositorySQLite
+import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
+import net.lumalyte.lg.infrastructure.persistence.guilds.MembershipHistoryRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimFlagRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimPermissionRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimRepositorySQLite
@@ -390,11 +392,12 @@ fun guildsModule() = module {
     single<GuildInvitationRepository> { GuildInvitationRepositorySQLite(get()) }
     single<GuildBannerRepository> { GuildBannerRepositorySQLite(get()) }
     single<AuditRepository> { AuditRepositorySQLite(get()) }
+    single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }
 
     // Services
-    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
-    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get()) }
+    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get()) }
     single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<GuildBannerService> { GuildBannerServiceBukkit() }
@@ -470,7 +473,7 @@ fun economyModule() = module {
     single<BankRepository> { BankRepositorySQLite(get()) }
 
     // Services
-    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get()) }
+    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.PhysicalCurrencyService> {
         net.lumalyte.lg.infrastructure.services.PhysicalCurrencyServiceBukkit(get(), get())
     }
@@ -533,6 +536,7 @@ fun vaultModule() = module {
             get(),
             get(),
             config.vault,
+            get(),
             get(),
             get()
         )

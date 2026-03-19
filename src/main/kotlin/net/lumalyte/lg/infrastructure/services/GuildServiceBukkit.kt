@@ -2,14 +2,19 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
+import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.RankRepository
+import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.events.GuildCreatedEvent
+import net.lumalyte.lg.domain.events.GuildDisbandedEvent
+import net.lumalyte.lg.domain.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.utils.serializeToString
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
@@ -24,7 +29,9 @@ class GuildServiceBukkit(
     private val memberService: net.lumalyte.lg.application.services.MemberService,
     private val nexoEmojiService: NexoEmojiService,
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService,
-    private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService
+    private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService,
+    private val relationRepository: RelationRepository,
+    private val historyRepository: MembershipHistoryRepository
 ) : GuildService {
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
@@ -112,22 +119,43 @@ class GuildServiceBukkit(
             }
         }
 
+        // Capture member IDs before removal so the disbandment event carries them
+        val memberIds = memberService.getGuildMembers(guildId).map { it.playerId }.toSet()
+
         // Remove all members
         memberRepository.removeByGuild(guildId)
 
+        // Close membership history stints for all members (guild disbanded)
+        memberIds.forEach { memberId ->
+            historyRepository.closeStint(memberId, guildId, DepartureReason.DISBANDED)
+        }
+
         // Remove all ranks
         rankRepository.removeByGuild(guildId)
+
+        // Remove all relations to prevent stale entries in other guilds' ally/enemy lists
+        val removedRelations = relationRepository.removeByGuild(guildId)
+        if (removedRelations > 0) {
+            logger.info("Removed $removedRelations relation(s) for disbanded guild $guildId")
+        }
 
         // Remove guild
         val result = guildRepository.remove(guildId)
         if (result) {
             logger.info("Guild $guildId disbanded by $actorId")
+            Bukkit.getPluginManager().callEvent(GuildDisbandedEvent(guild, memberIds, actorId))
         }
         return result
     }
     
     override fun renameGuild(guildId: UUID, newName: String, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
+
+        // Check if actor has permission to rename the guild
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            logger.warn("Player $actorId attempted to rename guild $guildId without MANAGE_GUILD_SETTINGS permission")
+            return false
+        }
 
         // Validate new name
         if (newName.isBlank() || newName.length > 32) {
@@ -507,6 +535,37 @@ class GuildServiceBukkit(
     override fun getJoinFeeSettings(guildId: UUID): Pair<Boolean, Int>? {
         val guild = guildRepository.getById(guildId) ?: return null
         return Pair(guild.joinFeeEnabled, guild.joinFeeAmount)
+    }
+
+    override fun setTrackingEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            return false
+        }
+
+        val updatedGuild = guild.copy(trackingEnabled = enabled)
+        val result = guildRepository.update(updatedGuild)
+        if (result) {
+            Bukkit.getPluginManager().callEvent(GuildTrackingChangedEvent(guildId, enabled))
+        }
+        return result
+    }
+
+    override fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            logger.warn("Player $actorId attempted to set bank freeze for guild $guildId without MANAGE_GUILD_SETTINGS permission")
+            return false
+        }
+
+        val updatedGuild = guild.copy(bankFrozen = frozen)
+        val result = guildRepository.update(updatedGuild)
+        if (result) {
+            logger.info("Guild $guildId bank freeze set to $frozen by $actorId")
+        }
+        return result
     }
 
     /**

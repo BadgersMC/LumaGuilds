@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.lumalyte.lg"
-version = "1.1.1"
+version = "2.0.0"
 
 repositories {
     mavenLocal()
@@ -34,15 +34,15 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.11")
-    testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.98.0")
-    testImplementation("io.papermc.paper:paper-api:1.21.10-R0.1-SNAPSHOT")
+    testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.107.0")
+    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
 
-    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     shadow("org.jetbrains.kotlin:kotlin-stdlib")
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
@@ -50,7 +50,7 @@ dependencies {
     implementation("org.mariadb.jdbc:mariadb-java-client:3.3.2")
     implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
     implementation("co.aikar:idb-core:1.0.0-SNAPSHOT")
-    implementation("com.github.stefvanschie.inventoryframework:IF:0.11.3")
+    implementation("com.github.stefvanschie.inventoryframework:IF:0.11.6")
     implementation("io.insert-koin:koin-core:4.0.2")
     implementation("org.json:json:20240303")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
@@ -67,8 +67,8 @@ dependencies {
     compileOnly("com.artillexstudios:AxKothAPI:4")
 
     // geyser
-    compileOnly("org.geysermc.geyser:api:2.7.0-SNAPSHOT")
-    compileOnly("org.geysermc.floodgate:api:2.2.4-SNAPSHOT")
+    compileOnly("org.geysermc.geyser:api:2.9.4-SNAPSHOT")
+    compileOnly("org.geysermc.floodgate:api:2.2.5-SNAPSHOT")
     compileOnly("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
 
     //adventure
@@ -80,8 +80,8 @@ dependencies {
     compileOnly("com.github.sirblobman.combatlogx:api:11.6-SNAPSHOT")
 
     // Lunar Client Apollo API
-    compileOnly("com.lunarclient:apollo-api:1.2.1")
-    compileOnly("com.lunarclient:apollo-extra-adventure4:1.2.1")
+    compileOnly("com.lunarclient:apollo-api:1.2.3")
+    compileOnly("com.lunarclient:apollo-extra-adventure4:1.2.3")
 
 }
 

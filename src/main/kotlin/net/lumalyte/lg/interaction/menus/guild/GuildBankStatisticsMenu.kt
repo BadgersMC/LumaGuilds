@@ -275,13 +275,17 @@ class GuildBankStatisticsMenu(
         )
         overviewPane.addItem(GuiItem(topItem), 4, 0)
 
-        // Recent activity summary
+        // Recent activity summary — clicking navigates to full transaction history
         val recentItem = createMenuItem(
             Material.WRITABLE_BOOK,
             "Recent Activity",
-            recentActivity.take(3).map { "• $it" }
+            recentActivity.take(3).map { "• $it" } + listOf("", "Click to view full history")
         )
-        overviewPane.addItem(GuiItem(recentItem), 5, 1)
+        val recentGuiItem = GuiItem(recentItem) { event ->
+            event.isCancelled = true
+            menuNavigator.openMenu(menuFactory.createGuildBankTransactionHistoryMenu(menuNavigator, player, guild))
+        }
+        overviewPane.addItem(recentGuiItem, 5, 1)
     }
 
     /**
@@ -398,17 +402,21 @@ class GuildBankStatisticsMenu(
         )
         memberPane.addItem(GuiItem(summaryItem), 6, 0)
 
-        // Tax collection info (placeholder)
+        // Tax collection info
         val taxItem = createMenuItem(
             Material.IRON_INGOT,
             "Tax Collection",
             listOf(
-                "Automatic tax system coming soon",
-                "Collect maintenance fees",
-                "Fund guild projects"
+                "Automatic tax system — coming soon",
+                "Collect maintenance fees from members",
+                "Fund guild projects automatically"
             )
         )
-        memberPane.addItem(GuiItem(taxItem), 7, 0)
+        val taxGuiItem = GuiItem(taxItem) { event ->
+            event.isCancelled = true
+            player.sendMessage("§eTax Collection is not yet available — coming in a future update!")
+        }
+        memberPane.addItem(taxGuiItem, 7, 0)
     }
 
     /**
@@ -523,7 +531,7 @@ class GuildBankStatisticsMenu(
      * Create a menu item with consistent formatting
      */
     private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
-        val item = ItemStack(material)
+        val item = ItemStack.of(material)
         val meta = item.itemMeta
 
         meta.displayName(Component.text(name)

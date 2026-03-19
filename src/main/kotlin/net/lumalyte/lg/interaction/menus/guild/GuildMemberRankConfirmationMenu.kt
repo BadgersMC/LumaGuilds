@@ -68,7 +68,7 @@ class GuildMemberRankConfirmationMenu(
 
         // Member info
         val playerName = Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown Player"
-        val infoItem = ItemStack(Material.PAPER)
+        val infoItem = ItemStack.of(Material.PAPER)
             .name("§f👤 Member Details")
             .lore("§7Player: §f$playerName")
             .lore("§7Guild: §f${guild.name}")
@@ -81,17 +81,17 @@ class GuildMemberRankConfirmationMenu(
 
         // Current rank
         val currentRankItem = if (currentRank != null) {
-            ItemStack(Material.RED_CONCRETE)
+            ItemStack.of(Material.RED_CONCRETE)
                 .name("§c⬇ Current Rank")
                 .lore("§7Rank: §f${currentRank.name}")
                 .lore("§7Priority: §f${currentRank.priority}")
         } else {
-            ItemStack(Material.BARRIER)
+            ItemStack.of(Material.BARRIER)
                 .name("§c❌ Current Rank Error")
         }
 
         // New rank
-        val newRankItem = ItemStack(Material.GREEN_CONCRETE)
+        val newRankItem = ItemStack.of(Material.GREEN_CONCRETE)
             .name("§a⬆ New Rank")
             .lore("§7Rank: §f${newRank.name}")
             .lore("§7Priority: §f${newRank.priority}")
@@ -103,7 +103,7 @@ class GuildMemberRankConfirmationMenu(
             "§c⬇ DEMOTION"
         }
 
-        val summaryItem = ItemStack(Material.BOOK)
+        val summaryItem = ItemStack.of(Material.BOOK)
             .name("§6📋 Rank Change Summary")
             .lore("§7$changeDirection")
             .lore("§7From: §f${currentRank?.name ?: "Unknown"}")
@@ -119,7 +119,7 @@ class GuildMemberRankConfirmationMenu(
 
     private fun addConfirmationButtons(pane: StaticPane) {
         // Confirm button
-        val confirmItem = ItemStack(Material.GREEN_WOOL)
+        val confirmItem = ItemStack.of(Material.GREEN_WOOL)
             .name("§a✅ CONFIRM CHANGE")
             .lore("§7Change ${Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown"}'s rank")
             .lore("§7to ${newRank.name}")
@@ -130,7 +130,7 @@ class GuildMemberRankConfirmationMenu(
         pane.addItem(confirmGuiItem, 2, 2)
 
         // Cancel button
-        val cancelItem = ItemStack(Material.RED_WOOL)
+        val cancelItem = ItemStack.of(Material.RED_WOOL)
             .name("§c❌ CANCEL")
             .lore("§7Return without making changes")
 
@@ -182,7 +182,7 @@ class GuildMemberRankConfirmationMenu(
     }
 
     private fun createMemberHead(): ItemStack {
-        val head = ItemStack(Material.PLAYER_HEAD)
+        val head = ItemStack.of(Material.PLAYER_HEAD)
         val meta = head.itemMeta as SkullMeta
 
         val playerName = Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown Player"

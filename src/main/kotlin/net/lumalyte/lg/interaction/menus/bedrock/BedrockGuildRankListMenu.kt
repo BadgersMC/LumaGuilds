@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Rank
@@ -24,6 +25,23 @@ class BedrockGuildRankListMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val rankService: RankService by inject()
+    private val configService: ConfigService by inject()
+
+    /** Permissions that are irrelevant when the claims system is disabled. */
+    private val claimsPermissions = setOf(
+        RankPermission.MANAGE_CLAIMS,
+        RankPermission.MANAGE_FLAGS,
+        RankPermission.MANAGE_PERMISSIONS,
+        RankPermission.CREATE_CLAIMS,
+        RankPermission.DELETE_CLAIMS
+    )
+
+    /** Returns only the permissions that are meaningful given the current config. */
+    private fun visiblePermissions(rank: Rank): Set<RankPermission> {
+        val claimsEnabled = configService.loadConfig().claimsEnabled
+        return if (claimsEnabled) rank.permissions
+        else rank.permissions.filterNotTo(mutableSetOf()) { it in claimsPermissions }
+    }
 
     override fun getForm(): Form {
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
@@ -37,7 +55,7 @@ class BedrockGuildRankListMenu(
                     button(bedrockLocalization.getBedrockString(player, "guild.rank.list.no.ranks"))
                 } else {
                     ranks.forEach { rank ->
-                        val permissionCount = rank.permissions.size
+                        val permissionCount = visiblePermissions(rank).size
                         val buttonText = buildRankButtonText(rank, permissionCount)
                         button(buttonText)
                     }
@@ -100,10 +118,11 @@ class BedrockGuildRankListMenu(
     }
 
     private fun buildRankDetailsContent(rank: Rank): String {
-        val permissions = if (rank.permissions.isEmpty()) {
+        val visible = visiblePermissions(rank)
+        val permissions = if (visible.isEmpty()) {
             "§7${bedrockLocalization.getBedrockString(player, "guild.rank.details.no.permissions")}"
         } else {
-            rank.permissions.joinToString("\n") { permission ->
+            visible.joinToString("\n") { permission ->
                 "§b• §f${getLocalizedPermissionName(permission)}"
             }
         }
@@ -188,11 +207,12 @@ class BedrockGuildRankListMenu(
         val permissions = bedrockLocalization.getBedrockString(player, "guild.rank.details.permissions")
         player.sendMessage("§7$permissions:")
 
-        if (rank.permissions.isEmpty()) {
+        val visible = visiblePermissions(rank)
+        if (visible.isEmpty()) {
             val noPermissions = bedrockLocalization.getBedrockString(player, "guild.rank.details.no.permissions")
             player.sendMessage("§7• §f$noPermissions")
         } else {
-            rank.permissions.forEach { permission ->
+            visible.forEach { permission ->
                 player.sendMessage("§7• §f${getLocalizedPermissionName(permission)}")
             }
         }

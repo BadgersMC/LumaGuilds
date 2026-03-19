@@ -460,7 +460,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
      * Create a written book with CSV content
      */
     private fun createBookWithContent(fileName: String, content: String): org.bukkit.inventory.ItemStack {
-        val book = org.bukkit.inventory.ItemStack(org.bukkit.Material.WRITTEN_BOOK)
+        val book = org.bukkit.inventory.ItemStack.of(org.bukkit.Material.WRITTEN_BOOK)
         val meta = book.itemMeta as? org.bukkit.inventory.meta.BookMeta ?: return book
 
         // Split content into pages (Minecraft book limit is about 255 chars per page)

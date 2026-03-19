@@ -50,13 +50,13 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
         gui.addPane(controlsPane)
 
         // Add go back item
-        val exitItem = ItemStack(Material.NETHER_STAR)
+        val exitItem = ItemStack.of(Material.NETHER_STAR)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_BACK_NAME))
         val guiExitItem = GuiItem(exitItem) { menuNavigator.goBack() }
         controlsPane.addItem(guiExitItem, 0, 0)
 
         // Add deselect all button
-        val deselectItem = ItemStack(Material.HONEY_BLOCK)
+        val deselectItem = ItemStack.of(Material.HONEY_BLOCK)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_DESELECT_ALL_NAME))
         val guiDeselectItem = GuiItem(deselectItem) {
             disableAllClaimFlags.execute(claim.id)
@@ -65,7 +65,7 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
         controlsPane.addItem(guiDeselectItem, 2, 0)
 
         // Add select all button
-        val selectItem = ItemStack(Material.SLIME_BLOCK)
+        val selectItem = ItemStack.of(Material.SLIME_BLOCK)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_SELECT_ALL_NAME))
         val guiSelectItem = GuiItem(selectItem) {
             enableAllClaimFlags.execute(claim.id)
@@ -74,7 +74,7 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
         controlsPane.addItem(guiSelectItem, 6, 0)
 
         // Add horizontal divider
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE).name(" ")
         val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
         val horizontalDividerPane = StaticPane(0, 1, 9, 1)
         gui.addPane(horizontalDividerPane)

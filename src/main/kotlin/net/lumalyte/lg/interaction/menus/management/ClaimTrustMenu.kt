@@ -50,7 +50,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
         addPaginator(playerId, controlsPane, page, ceil(trustedPlayers.count() / 36.0).toInt())
 
         // Add default permissions button
-        val defaultPermsItem = ItemStack(Material.LECTERN)
+        val defaultPermsItem = ItemStack.of(Material.LECTERN)
             .name(localizationProvider.get(playerId,
                 LocalizationKeys.MENU_TRUSTED_PLAYERS_ITEM_DEFAULT_PERMISSIONS_NAME))
             .lore(localizationProvider.get(playerId,
@@ -60,7 +60,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
         controlsPane.addItem(guiDefaultPermsItem, 2, 0)
 
         // Add all players menu
-        val allPlayersItem = ItemStack(Material.PLAYER_HEAD)
+        val allPlayersItem = ItemStack.of(Material.PLAYER_HEAD)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_TRUSTED_PLAYERS_ITEM_ALL_PLAYERS_NAME))
             .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_TRUSTED_PLAYERS_ITEM_ALL_PLAYERS_LORE))
         val guiAllPlayersItem = GuiItem(allPlayersItem) {
@@ -98,7 +98,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
         // Add divider
         val dividerPane = StaticPane(0, 1, 9, 1)
         gui.addPane(dividerPane)
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE).name(" ")
         for (slot in 0..8) {
             val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
             dividerPane.addItem(guiDividerItem, slot, 0)
@@ -109,7 +109,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
         gui.addPane(controlsPane)
 
         // Add go back item
-        val exitItem = ItemStack(Material.NETHER_STAR)
+        val exitItem = ItemStack.of(Material.NETHER_STAR)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_BACK_NAME))
 
         val guiExitItem = GuiItem(exitItem) { backButtonAction() }
@@ -119,20 +119,20 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addPaginator(playerId: UUID, controlsPane: StaticPane, currentPage: Int, totalPages: Int) {
         // Add prev item
-        val prevItem = ItemStack(Material.ARROW)
+        val prevItem = ItemStack.of(Material.ARROW)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_PREV_NAME))
         val guiPrevItem = GuiItem(prevItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPrevItem, 6, 0)
 
         // Add page item
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_PAGE_NAME,
                 currentPage, totalPages))
         val guiPageItem = GuiItem(pageItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPageItem, 7, 0)
 
         // Add next item
-        val nextItem = ItemStack(Material.ARROW)
+        val nextItem = ItemStack.of(Material.ARROW)
             .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_NEXT_NAME))
         val guiNextItem = GuiItem(nextItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiNextItem, 8, 0)

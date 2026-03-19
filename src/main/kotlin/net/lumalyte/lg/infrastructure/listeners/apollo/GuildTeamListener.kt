@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.listeners.apollo
 
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService
 import net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService
 import org.bukkit.event.EventHandler
@@ -55,6 +56,19 @@ class GuildTeamListener(
             guildWaypointService?.onPlayerQuit(playerId)
         } catch (e: Exception) {
             logger.error("Error handling player quit for Apollo services: ${e.message}", e)
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onGuildTrackingChanged(event: GuildTrackingChangedEvent) {
+        try {
+            if (event.enabled) {
+                guildTeamService.refreshGuildTeam(event.guildId)
+            } else {
+                guildTeamService.deleteGuildTeam(event.guildId)
+            }
+        } catch (e: Exception) {
+            logger.error("Error handling tracking change for guild ${event.guildId}: ${e.message}", e)
         }
     }
 }

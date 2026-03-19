@@ -3,7 +3,7 @@ package net.lumalyte.lg.interaction.menus.bedrock
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import org.bukkit.Bukkit
+import net.lumalyte.lg.utils.findPlayerByName
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
@@ -78,8 +78,8 @@ class BedrockGuildInviteMenu(
             return
         }
 
-        // Check if player is online
-        val targetPlayer = Bukkit.getPlayer(playerName)
+        // Check if player is online — uses Floodgate-aware lookup so Bedrock names work without the dot prefix
+        val targetPlayer = findPlayerByName(playerName)
         if (targetPlayer == null) {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.validation.player.not.found"))
             bedrockNavigator.goBack()

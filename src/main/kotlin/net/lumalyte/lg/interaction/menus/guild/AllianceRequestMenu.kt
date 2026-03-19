@@ -103,7 +103,7 @@ class AllianceRequestMenu(
 
         if (pageGuilds.isEmpty()) {
             // No available guilds
-            val emptyItem = ItemStack(Material.BARRIER)
+            val emptyItem = ItemStack.of(Material.BARRIER)
                 .name("§7No Guilds Available")
                 .lore("§7All guilds already have relations")
                 .lore("§7with your guild or have pending requests.")
@@ -133,9 +133,9 @@ class AllianceRequestMenu(
         // Try to use guild banner, fallback to green banner
         val item = if (targetGuild.banner != null) {
             val deserialized = targetGuild.banner.deserializeToItemStack()
-            deserialized ?: ItemStack(Material.GREEN_BANNER)
+            deserialized ?: ItemStack.of(Material.GREEN_BANNER)
         } else {
-            ItemStack(Material.GREEN_BANNER)
+            ItemStack.of(Material.GREEN_BANNER)
         }
 
         item.name("§a${targetGuild.name}")
@@ -181,7 +181,7 @@ class AllianceRequestMenu(
 
         // Previous page button
         if (currentPage > 0) {
-            val prevItem = ItemStack(Material.ARROW)
+            val prevItem = ItemStack.of(Material.ARROW)
                 .name("§f⬅ PREVIOUS PAGE")
                 .lore("§7Go to previous page")
 
@@ -193,7 +193,7 @@ class AllianceRequestMenu(
         }
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name("§ePage ${currentPage + 1} / ${if (totalPages > 0) totalPages else 1}")
             .lore("§7Available guilds: §f${allGuilds.size}")
 
@@ -202,7 +202,7 @@ class AllianceRequestMenu(
 
         // Next page button
         if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack(Material.ARROW)
+            val nextItem = ItemStack.of(Material.ARROW)
                 .name("§fNEXT PAGE ➡")
                 .lore("§7Go to next page")
 
@@ -215,7 +215,7 @@ class AllianceRequestMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Relations")
             .lore("§7Return to relations menu")
 

@@ -100,7 +100,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun createMemberHead(member: Member): ItemStack {
-        val head = ItemStack(Material.PLAYER_HEAD)
+        val head = ItemStack.of(Material.PLAYER_HEAD)
 
         head.setData(
             DataComponentTypes.PROFILE,
@@ -125,7 +125,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         val totalPages = (allMembers.size + itemsPerPage - 1) / itemsPerPage
 
         // Previous page button
-        val prevItem = ItemStack(Material.ARROW)
+        val prevItem = ItemStack.of(Material.ARROW)
             .name("§f⬅ PREVIOUS PAGE")
             .lore("§7Go to previous page")
 
@@ -138,7 +138,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         pane.addItem(prevGuiItem, 0, 5)
 
         // Next page button
-        val nextItem = ItemStack(Material.ARROW)
+        val nextItem = ItemStack.of(Material.ARROW)
             .name("§fNEXT PAGE ➡")
             .lore("§7Go to next page")
 
@@ -151,7 +151,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         pane.addItem(nextGuiItem, 8, 5)
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name("§f📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
             .lore("§7Current page indicator")
 
@@ -159,7 +159,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addInviteButton(pane: StaticPane, x: Int, y: Int) {
-        val inviteItem = ItemStack(Material.GREEN_WOOL)
+        val inviteItem = ItemStack.of(Material.GREEN_WOOL)
             .name("§a➕ INVITE PLAYER")
             .lore("§7Invite a new player to the guild")
             .lore("§7Requires INVITE_MEMBERS permission")
@@ -175,7 +175,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addPromoteDemoteButton(pane: StaticPane, x: Int, y: Int) {
-        val promoteItem = ItemStack(Material.GOLDEN_APPLE)
+        val promoteItem = ItemStack.of(Material.GOLDEN_APPLE)
             .name("§6⬆ PROMOTE/DEMOTE")
             .lore("§7Change member ranks")
             .lore("§7Requires MANAGE_MEMBERS permission")
@@ -202,7 +202,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addKickButton(pane: StaticPane, x: Int, y: Int) {
-        val kickItem = ItemStack(Material.RED_WOOL)
+        val kickItem = ItemStack.of(Material.RED_WOOL)
             .name("§c➖ KICK PLAYER")
             .lore("§7Remove a player from the guild")
             .lore("§7Requires KICK_MEMBERS permission")
@@ -218,7 +218,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK")
             .lore("§7Return to guild control panel")
 

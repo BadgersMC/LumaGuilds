@@ -99,7 +99,7 @@ class EnemyDeclarationMenu(
 
         if (pageGuilds.isEmpty()) {
             // No available guilds
-            val emptyItem = ItemStack(Material.BARRIER)
+            val emptyItem = ItemStack.of(Material.BARRIER)
                 .name("§7No Guilds Available")
                 .lore("§7All guilds are either allies,")
                 .lore("§7already enemies, or your own guild.")
@@ -129,9 +129,9 @@ class EnemyDeclarationMenu(
         // Try to use guild banner, fallback to red banner
         val item = if (targetGuild.banner != null) {
             val deserialized = targetGuild.banner.deserializeToItemStack()
-            deserialized ?: ItemStack(Material.RED_BANNER)
+            deserialized ?: ItemStack.of(Material.RED_BANNER)
         } else {
-            ItemStack(Material.RED_BANNER)
+            ItemStack.of(Material.RED_BANNER)
         }
 
         item.name("§c${targetGuild.name}")
@@ -155,7 +155,7 @@ class EnemyDeclarationMenu(
         }
 
         // Confirm button
-        val confirmItem = ItemStack(Material.RED_CONCRETE)
+        val confirmItem = ItemStack.of(Material.RED_CONCRETE)
             .name("§c⚔ Confirm Enemy Declaration")
             .lore("§7Declare §f${targetGuild.name}")
             .lore("§7as an enemy guild.")
@@ -168,7 +168,7 @@ class EnemyDeclarationMenu(
         pane.addItem(confirmGuiItem, 3, 1)
 
         // Cancel button
-        val cancelItem = ItemStack(Material.ARROW)
+        val cancelItem = ItemStack.of(Material.ARROW)
             .name("§eCancel")
             .lore("§7Return to guild selection")
 
@@ -216,7 +216,7 @@ class EnemyDeclarationMenu(
 
         // Previous page button
         if (currentPage > 0) {
-            val prevItem = ItemStack(Material.ARROW)
+            val prevItem = ItemStack.of(Material.ARROW)
                 .name("§f⬅ PREVIOUS PAGE")
                 .lore("§7Go to previous page")
 
@@ -228,7 +228,7 @@ class EnemyDeclarationMenu(
         }
 
         // Page indicator
-        val pageItem = ItemStack(Material.PAPER)
+        val pageItem = ItemStack.of(Material.PAPER)
             .name("§ePage ${currentPage + 1} / ${if (totalPages > 0) totalPages else 1}")
             .lore("§7Available guilds: §f${allGuilds.size}")
 
@@ -237,7 +237,7 @@ class EnemyDeclarationMenu(
 
         // Next page button
         if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack(Material.ARROW)
+            val nextItem = ItemStack.of(Material.ARROW)
                 .name("§fNEXT PAGE ➡")
                 .lore("§7Go to next page")
 
@@ -250,7 +250,7 @@ class EnemyDeclarationMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack.of(Material.ARROW)
             .name("§eBack to Relations")
             .lore("§7Return to relations menu")
 

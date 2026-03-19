@@ -70,7 +70,7 @@ class GuildMemberRankMenu(
 
         // Member info
         val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
-        val infoItem = ItemStack(Material.PAPER)
+        val infoItem = ItemStack.of(Material.PAPER)
             .name("§f👤 Member Info")
             .lore("§7Player: §f$playerName")
             .lore("§7Joined: §f${targetMember.joinedAt}")
@@ -84,13 +84,13 @@ class GuildMemberRankMenu(
         val currentRank = rankService.getRank(targetMember.rankId)
 
         val rankItem = if (currentRank != null) {
-            ItemStack(Material.DIAMOND_CHESTPLATE)
+            ItemStack.of(Material.DIAMOND_CHESTPLATE)
                 .name("§6🏆 Current Rank")
                 .lore("§7Rank: §f${currentRank.name}")
                 .lore("§7Priority: §f${currentRank.priority}")
                 .lore("§7Permissions: §f${currentRank.permissions.size}")
         } else {
-            ItemStack(Material.BARRIER)
+            ItemStack.of(Material.BARRIER)
                 .name("§c❌ Rank Error")
                 .lore("§7Could not load current rank")
         }
@@ -107,7 +107,7 @@ class GuildMemberRankMenu(
 
         displayRanks.forEachIndexed { index, rank ->
             val isCurrentRank = rank.id == targetMember.rankId
-            val rankItem = ItemStack(if (isCurrentRank) Material.LIME_CONCRETE else Material.GRAY_CONCRETE)
+            val rankItem = ItemStack.of(if (isCurrentRank) Material.LIME_CONCRETE else Material.GRAY_CONCRETE)
                 .name("${if (isCurrentRank) "§a✓" else "§f"} ${rank.name}")
                 .lore("§7Priority: §f${rank.priority}")
                 .lore("§7Members: §f${memberService.getMembersByRank(guild.id, rank.id).size}")
@@ -135,7 +135,7 @@ class GuildMemberRankMenu(
 
         // Add scroll indicator if there are more ranks
         if (availableRanks.size > 6) {
-            val scrollItem = ItemStack(Material.PAPER)
+            val scrollItem = ItemStack.of(Material.PAPER)
                 .name("§7... and ${availableRanks.size - 6} more")
                 .lore("§7Ranks are ordered by priority")
             pane.addItem(GuiItem(scrollItem), 2, 2)
@@ -143,7 +143,7 @@ class GuildMemberRankMenu(
     }
 
     private fun createMemberHead(): ItemStack {
-        val head = ItemStack(Material.PLAYER_HEAD)
+        val head = ItemStack.of(Material.PLAYER_HEAD)
 
         head.setData(
             DataComponentTypes.PROFILE,
@@ -161,7 +161,7 @@ class GuildMemberRankMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack(Material.BARRIER)
+        val backItem = ItemStack.of(Material.BARRIER)
             .name("§c⬅ BACK")
             .lore("§7Return to guild control panel")
 

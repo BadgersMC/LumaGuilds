@@ -67,7 +67,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         }
 
         // Add mode switch icon
-        val modeSwitchItem = ItemStack(Material.SPYGLASS)
+        val modeSwitchItem = ItemStack.of(Material.SPYGLASS)
             .name(localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_ITEM_CHANGE_MODE_NAME))
         val guiModeSwitchItem: GuiItem
         if (visualiserMode == 0) {
@@ -99,13 +99,13 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         pane.addItem(guiModeSwitchItem, 0, 0)
 
         // Add divider
-        val dividerItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE).name(" ")
+        val dividerItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE).name(" ")
         val guiDividerItem = GuiItem(dividerItem) { guiEvent -> guiEvent.isCancelled = true }
         pane.addItem(guiDividerItem, 1, 0)
 
         // Add a message item if selection is out of any claim
         if (partition == null) {
-            val messageItem = ItemStack(Material.COAL)
+            val messageItem = ItemStack.of(Material.COAL)
                 .name(localizationProvider.get(
                     player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_ITEM_NO_CLAIM_NAME))
                 .lore(localizationProvider.get(
@@ -127,7 +127,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         // Add a message if the player doesn't own the claim
         val claim = getClaimDetails.execute(partition.claimId) ?: return
         if (claim.playerId != player.uniqueId && !hasOverride) {
-            val messageItem = ItemStack(Material.COAL)
+            val messageItem = ItemStack.of(Material.COAL)
                 .name(localizationProvider.get(
                     player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_ITEM_NO_PERMISSION_NAME))
                 .lore(localizationProvider.get(
@@ -142,7 +142,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         // Add a claim information item
         val partitions = getClaimPartitions.execute(claim.id)
         val blockCount = getClaimBlockCount.execute(claim.id)
-        val claimItem = ItemStack(Material.BELL)
+        val claimItem = ItemStack.of(Material.BELL)
             .name(localizationProvider.get(
                 player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_ITEM_CLAIM_NAME))
             .lore(localizationProvider.get(
@@ -158,7 +158,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         pane.addItem(guiClaimItem, 3, 0)
 
         // Add partition information item
-        val partitionItem = ItemStack(Material.PAPER)
+        val partitionItem = ItemStack.of(Material.PAPER)
             .name(localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_ITEM_PARTITION_NAME))
             .lore(localizationProvider.get(
                 player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_ITEM_PARTITION_LORE_LOCATION,
@@ -172,7 +172,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         // Change button depending on if partition can be removed
         when (canRemovePartition.execute(partition.id)) {
             CanRemovePartitionResult.Success -> {
-                val deleteItem = ItemStack(Material.REDSTONE)
+                val deleteItem = ItemStack.of(Material.REDSTONE)
                     .name(localizationProvider.get( player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_ITEM_DELETE_NAME))
                 val deleteTitle = localizationProvider.get(
                     player.uniqueId, LocalizationKeys.MENU_CONFIRM_PARTITION_DELETE_TITLE)
@@ -187,7 +187,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
                 pane.addItem(guiDeleteItem, 7, 0)
             }
             else -> {
-                val deleteItem = ItemStack(Material.GUNPOWDER)
+                val deleteItem = ItemStack.of(Material.GUNPOWDER)
                     .name(localizationProvider.get(
                         player.uniqueId, LocalizationKeys.MENU_EDIT_TOOL_ITEM_CANNOT_DELETE_NAME))
                     .lore(localizationProvider.get(
