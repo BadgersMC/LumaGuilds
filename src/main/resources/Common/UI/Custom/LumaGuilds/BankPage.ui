@@ -1,0 +1,105 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Width: 600, Height: 550);
+  Background: #141c26(0.98);
+  LayoutMode: Top;
+  Padding: (Full: 20);
+
+  // Title
+  Label {
+    Text: "Guild Bank";
+    Anchor: (Height: 40);
+    Style: (FontSize: 24, TextColor: #ffffff, HorizontalAlignment: Center, RenderBold: true);
+  }
+
+  // Separator
+  Group { Anchor: (Height: 1); Background: #2b3542; }
+  Group { Anchor: (Height: 16); }
+
+  // Balance section
+  Group {
+    LayoutMode: Top;
+    Anchor: (Height: 100);
+    Background: #1e2936(0.95);
+    Padding: (Full: 16);
+
+    Label {
+      Text: "Current Balance";
+      Anchor: (Height: 20);
+      Style: (FontSize: 14, TextColor: #96a9be);
+    }
+
+    Group { Anchor: (Height: 4); }
+
+    Label #Balance {
+      Text: "0 coins";
+      Anchor: (Height: 40);
+      Style: (FontSize: 32, TextColor: #4ade80, RenderBold: true);
+    }
+  }
+
+  Group { Anchor: (Height: 16); }
+
+  // Action buttons
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 40);
+
+    $C.@TextButton #DepositBtn {
+      @Text = "Deposit";
+      Anchor: (Width: 140, Height: 40);
+    }
+
+    Group { Anchor: (Width: 12); }
+
+    $C.@SecondaryTextButton #WithdrawBtn {
+      @Text = "Withdraw";
+      Anchor: (Width: 140, Height: 40);
+    }
+
+    Group { FlexWeight: 1; }
+
+    $C.@SmallSecondaryTextButton #StatsBtn {
+      @Text = "Statistics";
+      Anchor: (Width: 120, Height: 40);
+    }
+  }
+
+  Group { Anchor: (Height: 16); }
+
+  // Transaction history label
+  Label {
+    Text: "Recent Transactions";
+    Anchor: (Height: 24);
+    Style: (FontSize: 16, TextColor: #ffffff, RenderBold: true);
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  // Transaction list area
+  Group #TransactionList {
+    FlexWeight: 1;
+    LayoutMode: Top;
+    Padding: (Horizontal: 8);
+  }
+
+  // Footer with back button
+  Group { Anchor: (Height: 12); }
+  Group {
+    LayoutMode: Center;
+    Anchor: (Height: 44);
+
+    $C.@SecondaryTextButton #BackBtn {
+      @Text = "Back";
+      Anchor: (Width: 120, Height: 40);
+    }
+  }
+
+  Group { Anchor: (Height: 8); }
+  Label {
+    Text: "Press ESC to close";
+    Anchor: (Height: 16);
+    Style: (FontSize: 11, TextColor: #555555, HorizontalAlignment: Center);
+  }
+}

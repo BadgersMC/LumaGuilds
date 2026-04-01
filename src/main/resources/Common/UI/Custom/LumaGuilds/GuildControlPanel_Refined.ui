@@ -1,0 +1,48 @@
+$C = "../Common.ui";
+
+// Refined version with better font styling - softer, more professional
+Group {
+    Anchor: (Width: 600, Height: 700);
+    Background: #0f172a;  // Darker, more refined background
+    LayoutMode: Top;
+    Padding: (Full: 20);
+
+    // Header - smaller, softer
+    Label {
+        Text: "Guild Control Panel";
+        Anchor: (Height: 36);
+        Style: (FontSize: 24, TextColor: #f1f5f9, RenderBold: true, HorizontalAlignment: Center);
+    }
+
+    Group { Anchor: (Height: 12); }
+
+    // Guild name display - slightly smaller, gold accent
+    Label #GuildName {
+        Text: "Loading...";
+        Anchor: (Height: 26);
+        Style: (FontSize: 15, TextColor: #fbbf24, HorizontalAlignment: Center);
+    }
+
+    $C.@ContentSeparator { }
+
+    Group { Anchor: (Height: 12); }
+
+    // Scrollable content area for buttons
+    Group #ContentArea {
+        FlexWeight: 1;
+        LayoutMode: Top;
+        Padding: (Full: 10);
+    }
+
+    Group { Anchor: (Height: 10); }
+
+    $C.@ContentSeparator { }
+
+    Group { Anchor: (Height: 10); }
+
+    // Close button
+    $C.@CancelTextButton #CloseButton {
+        @Text = "Close";
+        Anchor: (Height: 44);
+    }
+}

@@ -1,0 +1,62 @@
+$C = "../Common.ui";
+
+Group {
+  LayoutMode: Top;
+  Anchor: (Height: 120);
+  Background: #1a1a2e(0.95);
+  Padding: (Full: 12);
+
+  // Rank name and priority row
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 28);
+
+    Label #RankName {
+      Text: "Rank Name";
+      FlexWeight: 1;
+      Style: (FontSize: 18, TextColor: #ffffff, VerticalAlignment: Center, RenderBold: true);
+    }
+
+    Label #RankPriority {
+      Text: "Priority: 0";
+      Anchor: (Width: 100);
+      Style: (FontSize: 14, TextColor: #96a9be, VerticalAlignment: Center, HorizontalAlignment: Right);
+    }
+  }
+
+  Group { Anchor: (Height: 4); }
+
+  // Permissions summary row
+  Label #PermissionsSummary {
+    Text: "Permissions: 0";
+    Anchor: (Height: 20);
+    Style: (FontSize: 13, TextColor: #96a9be);
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  // Action buttons row
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 32);
+
+    $C.@SmallSecondaryTextButton #EditBtn {
+      @Text = "Edit Permissions";
+      Anchor: (Width: 140, Height: 32);
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    $C.@SmallSecondaryTextButton #RenameBtn {
+      @Text = "Rename";
+      Anchor: (Width: 90, Height: 32);
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    $C.@SmallTertiaryTextButton #DeleteBtn {
+      @Text = "Delete";
+      Anchor: (Width: 80, Height: 32);
+    }
+  }
+}

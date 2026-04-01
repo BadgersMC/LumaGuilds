@@ -1,0 +1,44 @@
+$C = "../Common.ui";
+
+Group {
+    Anchor: (Width: 400, Height: 300);
+    Background: #1a1a2e;
+    LayoutMode: Top;
+    Padding: (Full: 20);
+
+    Label #Title {
+        Text: "LumaGuilds Test Panel";
+        Anchor: (Height: 40);
+        Style: (FontSize: 24, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center);
+    }
+
+    Group { Anchor: (Height: 20); }
+
+    Label #Message {
+        Text: "If you can see this, the UI system is working!";
+        Anchor: (Height: 60);
+        Style: (FontSize: 14, TextColor: #cccccc, HorizontalAlignment: Center, TextWrapping: true);
+    }
+
+    Group { Anchor: (Height: 20); }
+
+    $C.@TextButton #TestButton {
+        @Text = "Click Me!";
+        Anchor: (Height: 44);
+    }
+
+    Group { Anchor: (Height: 10); }
+
+    Label #StatusText {
+        Text: "";
+        Anchor: (Height: 30);
+        Style: (FontSize: 12, TextColor: #00ff00, HorizontalAlignment: Center);
+    }
+
+    Group { FlexWeight: 1; }
+
+    $C.@CancelTextButton #CloseButton {
+        @Text = "Close";
+        Anchor: (Height: 44);
+    }
+}

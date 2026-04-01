@@ -1,0 +1,13 @@
+$C = "../Common.ui";
+
+Group {
+    LayoutMode: Top;
+    Anchor: (Height: 52);
+
+    $C.@TextButton #FeatureBtn {
+        @Text = "Feature";
+        Anchor: (Height: 44);
+    }
+
+    Group { Anchor: (Height: 8); }
+}

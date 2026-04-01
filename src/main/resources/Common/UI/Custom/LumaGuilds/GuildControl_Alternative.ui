@@ -1,0 +1,152 @@
+$C = "../Common.ui";
+
+// Alternative approach: Pre-create all 15 buttons and show/hide them dynamically
+Group {
+    Anchor: (Width: 600, Height: 700);
+    Background: #1a1a2e;
+    LayoutMode: Top;
+    Padding: (Full: 20);
+
+    // Header
+    Label {
+        Text: "Guild Control Panel";
+        Anchor: (Height: 40);
+        Style: (FontSize: 28, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center);
+    }
+
+    Group { Anchor: (Height: 15); }
+
+    // Guild name display
+    Label #GuildName {
+        Text: "Loading...";
+        Anchor: (Height: 30);
+        Style: (FontSize: 16, TextColor: #ffd700, HorizontalAlignment: Center);
+    }
+
+    $C.@ContentSeparator { }
+
+    Group { Anchor: (Height: 15); }
+
+    // Scrollable content area with pre-created buttons
+    Group #ContentArea {
+        FlexWeight: 1;
+        LayoutMode: Top;
+        Padding: (Full: 10);
+
+        // Button 0: Members Management
+        $C.@TextButton #Btn0 {
+            @Text = "Members Management";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 1: Invitations System
+        $C.@TextButton #Btn1 {
+            @Text = "Invitations System";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 2: Ranks & Permissions
+        $C.@TextButton #Btn2 {
+            @Text = "Ranks & Permissions";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 3: Guild Bank
+        $C.@TextButton #Btn3 {
+            @Text = "Guild Bank";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 4: Announcements
+        $C.@TextButton #Btn4 {
+            @Text = "Announcements";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 5: Alliances
+        $C.@TextButton #Btn5 {
+            @Text = "Alliances";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 6: Wars
+        $C.@TextButton #Btn6 {
+            @Text = "Wars";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 7: Statistics
+        $C.@TextButton #Btn7 {
+            @Text = "Statistics";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 8: Guild Settings
+        $C.@TextButton #Btn8 {
+            @Text = "Guild Settings";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 9: Transfer Leadership
+        $C.@TextButton #Btn9 {
+            @Text = "Transfer Leadership";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 10: Disband Guild
+        $C.@TextButton #Btn10 {
+            @Text = "Disband Guild";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 11: Leave Guild
+        $C.@TextButton #Btn11 {
+            @Text = "Leave Guild";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 12: Guild Chat
+        $C.@TextButton #Btn12 {
+            @Text = "Guild Chat";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 13: Territory/Claims
+        $C.@TextButton #Btn13 {
+            @Text = "Territory/Claims";
+            Anchor: (Height: 44);
+        }
+        Group { Anchor: (Height: 8); }
+
+        // Button 14: Guild Info
+        $C.@TextButton #Btn14 {
+            @Text = "Guild Info";
+            Anchor: (Height: 44);
+        }
+    }
+
+    Group { Anchor: (Height: 10); }
+
+    $C.@ContentSeparator { }
+
+    Group { Anchor: (Height: 10); }
+
+    // Close button
+    $C.@CancelTextButton #CloseButton {
+        @Text = "Close";
+        Anchor: (Height: 44);
+    }
+}

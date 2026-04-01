@@ -2,11 +2,21 @@ package net.lumalyte.lg.infrastructure.hytale
 
 import com.hypixel.hytale.server.core.plugin.JavaPlugin
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit
+import net.lumalyte.lg.application.persistence.ClaimRepository
+import net.lumalyte.lg.application.persistence.PartitionRepository
 import net.lumalyte.lg.di.hytaleAppModule
+import net.lumalyte.lg.infrastructure.hytale.commands.ClaimCommand
+import net.lumalyte.lg.infrastructure.hytale.commands.GuildCommand
+import net.lumalyte.lg.infrastructure.hytale.listeners.PlaceBlockProtectionSystem
+import net.lumalyte.lg.infrastructure.hytale.listeners.BreakBlockProtectionSystem
+import net.lumalyte.lg.infrastructure.hytale.listeners.UseBlockProtectionSystem
+import net.lumalyte.lg.infrastructure.hytale.sounds.ClaimSounds
+import net.lumalyte.lg.infrastructure.hytale.sounds.GuildSounds
 import net.lumalyte.lg.infrastructure.persistence.schema.SchemaInitializer
 import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.koin.java.KoinJavaComponent.get
 import org.slf4j.LoggerFactory
 
 /**
@@ -54,9 +64,22 @@ class LumaGuildsHytale(init: JavaPluginInit) : JavaPlugin(init) {
             }
             log.info("Koin DI initialized with all 9 services and 18 repositories")
 
-            // TODO: Register ECS components (GuildMemberComponent)
-            // TODO: Register commands (GuildCommand, ClaimCommand)
-            // TODO: Register event listeners
+            // Register commands
+            log.info("Registering commands...")
+            commandRegistry.registerCommand(ClaimCommand())
+            log.info("Registered ClaimCommand")
+            commandRegistry.registerCommand(GuildCommand())
+            log.info("Registered GuildCommand with menu subcommand")
+
+            // Register event systems for claim protection
+            log.info("Registering claim protection event systems...")
+            val claimRepository = get<ClaimRepository>(ClaimRepository::class.java)
+            val partitionRepository = get<PartitionRepository>(PartitionRepository::class.java)
+
+            entityStoreRegistry.registerSystem(PlaceBlockProtectionSystem(claimRepository, partitionRepository))
+            entityStoreRegistry.registerSystem(BreakBlockProtectionSystem(claimRepository, partitionRepository))
+            entityStoreRegistry.registerSystem(UseBlockProtectionSystem(claimRepository, partitionRepository))
+            log.info("Registered 3 claim protection systems (PlaceBlock, BreakBlock, UseBlock)")
 
             log.info("Setup complete!")
         } catch (e: Exception) {
@@ -73,6 +96,12 @@ class LumaGuildsHytale(init: JavaPluginInit) : JavaPlugin(init) {
         log.info("Starting LumaGuilds...")
 
         try {
+            // Initialize sound effects
+            log.info("Initializing sound effects...")
+            ClaimSounds.initialize()
+            GuildSounds.initialize()
+            log.info("Sound effects initialized successfully!")
+
             // TODO: Start services
             // TODO: Load guild data from database
             // TODO: Sync player guild memberships
