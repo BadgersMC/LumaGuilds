@@ -161,6 +161,18 @@ class BedrockGuildProgressionInfoMenu(
             net.lumalyte.lg.application.services.PerkType.SPECIAL_PARTICLES -> "Special Particles"
             net.lumalyte.lg.application.services.PerkType.ANNOUNCEMENT_SOUND_EFFECTS -> "Announcement Sound Effects"
             net.lumalyte.lg.application.services.PerkType.WAR_DECLARATION_SOUND_EFFECTS -> "War Declaration Sound Effects"
+
+            // Diplomacy perks
+            net.lumalyte.lg.application.services.PerkType.DECLARE_ENEMIES -> "Declare Enemies"
+            net.lumalyte.lg.application.services.PerkType.FORM_ALLIANCES -> "Form Alliances"
+            net.lumalyte.lg.application.services.PerkType.DECLARE_WAR -> "Declare War"
+
+            // Economic perks
+            net.lumalyte.lg.application.services.PerkType.MARKET_STALL_ACCESS -> "Market Stall Access"
+
+            // Social perks
+            net.lumalyte.lg.application.services.PerkType.ALLY_HOME -> "Ally Home Teleport"
+            net.lumalyte.lg.application.services.PerkType.CUSTOM_EMOJI -> "Custom Guild Emoji"
         }
     }
 
