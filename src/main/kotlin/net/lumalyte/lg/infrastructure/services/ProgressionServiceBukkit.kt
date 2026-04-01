@@ -370,6 +370,12 @@ class ProgressionServiceBukkit(
         // Apply any immediate effects of new perks
         applyPerkEffects(guildId, newPerks)
         
+        // Sync Guild.level with authoritative GuildProgression level
+        val currentGuild = guildRepository.getById(guildId)
+        if (currentGuild != null && currentGuild.level != newLevel) {
+            guildRepository.update(currentGuild.copy(level = newLevel))
+        }
+
         return newPerks
     }
 
