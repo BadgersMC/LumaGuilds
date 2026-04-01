@@ -492,6 +492,12 @@ class ProgressionServiceBukkit(
             PerkType.FASTER_CLAIM_REGEN -> "Faster Claim Regeneration"
             PerkType.CUSTOM_BANNER_COLORS -> "Custom Banner Colors"
             PerkType.ANIMATED_EMOJIS -> "Animated Emojis"
+            PerkType.DECLARE_ENEMIES -> "Declare Enemies"
+            PerkType.FORM_ALLIANCES -> "Form Alliances"
+            PerkType.DECLARE_WAR -> "Declare War"
+            PerkType.MARKET_STALL_ACCESS -> "Market Stall Access"
+            PerkType.ALLY_HOME -> "Ally Home Teleport"
+            PerkType.CUSTOM_EMOJI -> "Custom Guild Emoji"
         }
     }
 }

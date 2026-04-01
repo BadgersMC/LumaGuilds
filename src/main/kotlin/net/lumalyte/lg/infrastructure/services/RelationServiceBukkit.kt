@@ -16,7 +16,8 @@ import java.util.UUID
 
 class RelationServiceBukkit(
     private val relationRepository: RelationRepository,
-    private val memberService: MemberService
+    private val memberService: MemberService,
+    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository
 ) : RelationService {
     
     private val logger = LoggerFactory.getLogger(RelationServiceBukkit::class.java)
@@ -26,6 +27,12 @@ class RelationServiceBukkit(
             // Validate permissions
             if (!canManageRelations(actorId, requestingGuildId)) {
                 logger.warn("Player $actorId does not have permission to manage relations for guild $requestingGuildId")
+                return null
+            }
+            
+            // Level 10 required for alliances
+            if (!meetsLevelRequirement(requestingGuildId, 10)) {
+                logger.debug("Guild $requestingGuildId does not meet level 10 requirement for alliances")
                 return null
             }
             
@@ -119,6 +126,12 @@ class RelationServiceBukkit(
             // Validate permissions
             if (!canManageRelations(actorId, declaringGuildId)) {
                 logger.warn("Player $actorId does not have permission to declare war for guild $declaringGuildId")
+                return null
+            }
+            
+            // Level 20 required for war/enemy declarations
+            if (!meetsLevelRequirement(declaringGuildId, 20)) {
+                logger.debug("Guild $declaringGuildId does not meet level 20 requirement for war declarations")
                 return null
             }
             
@@ -561,4 +574,9 @@ class RelationServiceBukkit(
             relation.isActive() && relation.type == RelationType.ENEMY
         }
     }
+    private fun meetsLevelRequirement(guildId: UUID, requiredLevel: Int): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+        return guild.level >= requiredLevel
+    }
+
 }

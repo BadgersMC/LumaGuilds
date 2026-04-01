@@ -1880,6 +1880,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val guild = guilds.first()
 
+        // Level 10 required for alliances
+        if (guild.level < 10) {
+            player.sendMessage("§c❌ Your guild must reach Level 10 to form alliances.")
+            return
+        }
+
         // Check MANAGE_RELATIONS permission
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_RELATIONS)) {
             player.sendMessage("§cYou don't have permission to manage guild relations.")
@@ -1952,6 +1958,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         val guild = guilds.first()
+
+        // Level 20 required for war/enemy declarations
+        if (guild.level < 20) {
+            player.sendMessage("§c❌ Your guild must reach Level 20 to declare war.")
+            return
+        }
 
         // Check DECLARE_WAR permission (specific permission for war)
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.DECLARE_WAR)) {
