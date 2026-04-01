@@ -1,0 +1,25 @@
+$C = "../Common.ui";
+
+// Refined feature button with softer, less "heavy" appearance
+Group {
+    LayoutMode: Top;
+    Anchor: (Height: 50);
+
+    Group {
+        Anchor: (Height: 42);
+        Background: #1e293b;  // Softer dark background
+        LayoutMode: Center;
+        Padding: (Horizontal: 16, Vertical: 10);
+
+        Label #FeatureBtnText {
+            Text: "Feature";
+            Style: (FontSize: 14, TextColor: #cbd5e1, HorizontalAlignment: Center);
+        }
+    }
+
+    Group { Anchor: (Height: 8); }
+}
+
+// Note: This creates a non-interactive label version
+// If you need the actual button functionality, you'll need to use the Common.ui button component
+// But this gives you more control over the text styling

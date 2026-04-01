@@ -1,0 +1,53 @@
+$C = "../Common.ui";
+
+Group {
+  LayoutMode: Top;
+  Anchor: (Height: 80);
+  Background: #1a1a2e(0.95);
+  Padding: (Full: 12);
+
+  // Member info row
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 24);
+
+    Label #MemberName {
+      Text: "Player Name";
+      FlexWeight: 1;
+      Style: (FontSize: 16, TextColor: #ffffff, VerticalAlignment: Center, RenderBold: true);
+    }
+
+    Label #MemberRank {
+      Text: "Rank";
+      Anchor: (Width: 100);
+      Style: (FontSize: 14, TextColor: #96a9be, VerticalAlignment: Center, HorizontalAlignment: Right);
+    }
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  // Action buttons row
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 32);
+
+    $C.@SmallSecondaryTextButton #PromoteBtn {
+      @Text = "Promote";
+      Anchor: (Width: 90, Height: 32);
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    $C.@SmallSecondaryTextButton #DemoteBtn {
+      @Text = "Demote";
+      Anchor: (Width: 90, Height: 32);
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    $C.@SmallTertiaryTextButton #KickBtn {
+      @Text = "Kick";
+      Anchor: (Width: 80, Height: 32);
+    }
+  }
+}

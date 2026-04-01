@@ -1,0 +1,54 @@
+$C = "../Common.ui";
+
+Group {
+  LayoutMode: Top;
+  Anchor: (Height: 100);
+  Background: #1a1a2e(0.95);
+  Padding: (Full: 12);
+
+  // Guild name row
+  Label #GuildName {
+    Text: "Guild Name";
+    Anchor: (Height: 24);
+    Style: (FontSize: 18, TextColor: #ffffff, RenderBold: true);
+  }
+
+  Group { Anchor: (Height: 4); }
+
+  // Inviter info row
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 20);
+
+    Label {
+      Text: "Invited by: ";
+      Style: (FontSize: 13, TextColor: #96a9be);
+    }
+
+    Label #InviterName {
+      Text: "Player Name";
+      FlexWeight: 1;
+      Style: (FontSize: 13, TextColor: #ffffff);
+    }
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  // Action buttons row
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 32);
+
+    $C.@SmallTextButton #AcceptBtn {
+      @Text = "Accept";
+      Anchor: (Width: 100, Height: 32);
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    $C.@SmallSecondaryTextButton #DeclineBtn {
+      @Text = "Decline";
+      Anchor: (Width: 100, Height: 32);
+    }
+  }
+}

@@ -10,6 +10,7 @@
     }
   ],
   "Main": "net.lumalyte.lg.infrastructure.hytale.LumaGuildsHytale",
+  "IncludesAssetPack": true,
   "Dependencies": {},
   "OptionalDependencies": {},
   "LoadBefore": {}

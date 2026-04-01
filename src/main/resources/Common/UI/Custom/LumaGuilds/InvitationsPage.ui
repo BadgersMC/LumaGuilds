@@ -1,0 +1,45 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Width: 600, Height: 500);
+  Background: #141c26(0.98);
+  LayoutMode: Top;
+  Padding: (Full: 20);
+
+  // Title
+  Label {
+    Text: "Guild Invitations";
+    Anchor: (Height: 40);
+    Style: (FontSize: 24, TextColor: #ffffff, HorizontalAlignment: Center, RenderBold: true);
+  }
+
+  // Separator
+  Group { Anchor: (Height: 1); Background: #2b3542; }
+  Group { Anchor: (Height: 16); }
+
+  // Invitation list area
+  Group #InvitationList {
+    FlexWeight: 1;
+    LayoutMode: Top;
+    Padding: (Horizontal: 8);
+  }
+
+  // Footer with back button
+  Group { Anchor: (Height: 12); }
+  Group {
+    LayoutMode: Center;
+    Anchor: (Height: 44);
+
+    $C.@SecondaryTextButton #BackBtn {
+      @Text = "Back";
+      Anchor: (Width: 120, Height: 40);
+    }
+  }
+
+  Group { Anchor: (Height: 8); }
+  Label {
+    Text: "Press ESC to close";
+    Anchor: (Height: 16);
+    Style: (FontSize: 11, TextColor: #555555, HorizontalAlignment: Center);
+  }
+}

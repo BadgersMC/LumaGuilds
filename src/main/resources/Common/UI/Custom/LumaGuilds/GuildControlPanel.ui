@@ -1,0 +1,47 @@
+$C = "../Common.ui";
+
+Group {
+    Anchor: (Width: 600, Height: 700);
+    Background: #1a1a2e;
+    LayoutMode: Top;
+    Padding: (Full: 20);
+
+    // Header
+    Label {
+        Text: "Guild Control Panel";
+        Anchor: (Height: 40);
+        Style: (FontSize: 28, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center);
+    }
+
+    Group { Anchor: (Height: 15); }
+
+    // Guild name display
+    Label #GuildName {
+        Text: "Loading...";
+        Anchor: (Height: 30);
+        Style: (FontSize: 16, TextColor: #ffd700, HorizontalAlignment: Center);
+    }
+
+    $C.@ContentSeparator { }
+
+    Group { Anchor: (Height: 15); }
+
+    // Scrollable content area for buttons
+    Group #ContentArea {
+        FlexWeight: 1;
+        LayoutMode: Top;
+        Padding: (Full: 10);
+    }
+
+    Group { Anchor: (Height: 10); }
+
+    $C.@ContentSeparator { }
+
+    Group { Anchor: (Height: 10); }
+
+    // Close button
+    $C.@CancelTextButton #CloseButton {
+        @Text = "Close";
+        Anchor: (Height: 44);
+    }
+}

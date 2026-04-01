@@ -54,6 +54,27 @@ fun hytaleServicesModule(dataDirectory: java.nio.file.Path) = module {
 
     // Chat service (depends on GuildRepository, MemberRepository, PlayerService)
     single<ChatService> { HytaleChatService(get(), get(), get()) }
+
+    // Guild service (depends on GuildRepository, MemberRepository, RankRepository)
+    single<GuildService> { HytaleGuildService(get(), get(), get()) }
+
+    // Member service (depends on MemberRepository, RankRepository, GuildRepository)
+    single<MemberService> { HytaleMemberService(get(), get(), get()) }
+
+    // Invitation service (depends on GuildInvitationRepository, GuildRepository, MemberRepository, RankRepository, PlayerService)
+    single<InvitationService> { HytaleInvitationService(get(), get(), get(), get(), get()) }
+
+    // Rank service (depends on RankRepository, MemberRepository)
+    single<RankService> { HytaleRankService(get(), get()) }
+
+    // Bank service (depends on BankRepository, GuildRepository, MemberRepository, RankService)
+    single<BankService> { HytaleBankService(get(), get(), get(), get()) }
+
+    // Announcement service (depends on AnnouncementRepository, RankService, PlayerService)
+    single<AnnouncementService> { HytaleAnnouncementService(get(), get(), get()) }
+
+    // Relation service (depends on RelationRepository, RankService)
+    single<RelationService> { HytaleRelationService(get(), get()) }
 }
 
 /**
