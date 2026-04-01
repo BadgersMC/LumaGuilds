@@ -743,7 +743,14 @@ class LumaGuilds : JavaPlugin() {
         getCommand("removevault")?.setExecutor(removeVaultCommand)
         getCommand("removevault")?.tabCompleter = removeVaultCommand
 
-        logColored("✓ Admin commands registered (/lumaguilds, /bellclaims, /vaultrollback, /bankcredit, /removevault)")
+        // Register Custom Emoji admin command
+        val customEmojiCommand = net.lumalyte.lg.interaction.commands.admin.CustomEmojiCommand(
+            get().get()
+        )
+        getCommand("customemoji")?.setExecutor(customEmojiCommand)
+        getCommand("customemoji")?.tabCompleter = customEmojiCommand
+
+        logColored("✓ Admin commands registered (/lumaguilds, /bellclaims, /vaultrollback, /bankcredit, /removevault, /customemoji)")
         logColored("✓ Bedrock cache stats command registered (/bedrockcachestats)")
     }
 

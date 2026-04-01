@@ -176,6 +176,9 @@ interface GuildService {
     /** Checks if a player can access a guild's ally home (must be in an allied guild). */
     fun canAccessAllyHome(actorId: UUID, hostGuildId: UUID): Boolean
 
+    /** Admin override — sets emoji without rank permission check. */
+    fun setEmojiAdmin(guildId: UUID, emoji: String?): Boolean
+
     /**
      * Sets the mode for a guild (Peaceful/Hostile).
      *
