@@ -1944,7 +1944,58 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
-    @Subcommand("enemy")
+    @Subcommand("setallyhome")
+    @CommandPermission("lumaguilds.guild.setallyhome")
+    fun onSetAllyHome(player: Player, @Optional clear: String?) {
+        val playerId = player.uniqueId
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+        val guild = guilds.first()
+        if (guild.level < 25) {
+            player.sendMessage("§c❌ Your guild must reach Level 25 to set an Ally Home.")
+            return
+        }
+        val location = if (clear.equals("clear", ignoreCase = true)) null else player.location
+        val success = guildService.setAllyHome(guild.id, location, playerId)
+        if (success) {
+            if (location == null) player.sendMessage("§a✅ Ally Home cleared.")
+            else player.sendMessage("§a✅ Ally Home set at your location.")
+        } else {
+            player.sendMessage("§c❌ Failed to set Ally Home. Check your permissions.")
+        }
+    }
+
+    @Subcommand("allyhome")
+    @CommandPermission("lumaguilds.guild.allyhome")
+    @CommandCompletion("@guilds")
+    fun onAllyHome(player: Player, guildName: String) {
+        val hostGuild = guildRepository.getByName(guildName)
+        if (hostGuild == null) {
+            player.sendMessage("§cGuild '$guildName' not found.")
+            return
+        }
+        if (!guildService.canAccessAllyHome(player.uniqueId, hostGuild.id)) {
+            player.sendMessage("§c❌ You are not allied with '${hostGuild.name}'.")
+            return
+        }
+        val home = guildService.getAllyHome(hostGuild.id)
+        if (home == null) {
+            player.sendMessage("§c❌ '${hostGuild.name}' has not set an Ally Home.")
+            return
+        }
+        val world = org.bukkit.Bukkit.getWorld(home.worldId)
+        if (world == null) {
+            player.sendMessage("§c❌ Ally Home world is unavailable.")
+            return
+        }
+        val destination = org.bukkit.Location(world, home.position.x.toDouble() + 0.5, home.position.y.toDouble(), home.position.z.toDouble() + 0.5)
+        startTeleportCountdown(player, destination)
+    }
+
+        @Subcommand("enemy")
     @CommandPermission("lumaguilds.guild.enemy")
     @CommandCompletion("@guilds")
     fun onEnemy(player: Player, guildName: String) {

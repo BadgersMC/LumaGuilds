@@ -109,6 +109,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(18)
                 dbVersion = 18
             }
+            if (dbVersion < 19) {
+                migrateToVersion19()
+                updateDatabaseVersion(19)
+                dbVersion = 19
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1323,4 +1328,24 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             componentLogger.warn(Component.text("  Vault will use rollback journal mode (less crash-resistant)"))
         }
     }
+    private fun migrateToVersion19() {
+        componentLogger.info(Component.text("Migrating to version 19: Adding ally home columns to guilds table..."))
+
+        val columns = mapOf(
+            "ally_home_world" to "TEXT",
+            "ally_home_x" to "INTEGER",
+            "ally_home_y" to "INTEGER",
+            "ally_home_z" to "INTEGER"
+        )
+
+        for ((colName, colType) in columns) {
+            if (!columnExists("guilds", colName)) {
+                connection.createStatement().use { stmt ->
+                    stmt.execute("ALTER TABLE guilds ADD COLUMN $colName $colType")
+                }
+                componentLogger.info(Component.text("  Added column guilds.$colName ($colType)"))
+            }
+        }
+    }
+
 }

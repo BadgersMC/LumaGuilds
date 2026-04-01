@@ -420,7 +420,31 @@ class GuildServiceBukkit(
         }
     }
     
-    override fun setMode(guildId: UUID, mode: GuildMode, actorId: UUID): Boolean {
+    override fun setAllyHome(guildId: UUID, location: org.bukkit.Location?, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) return false
+        if (guild.level < 25) return false
+
+        val home = location?.let {
+            GuildHome(it.world.uid, net.lumalyte.lg.domain.values.Position3D(it.blockX, it.blockY, it.blockZ))
+        }
+        return (guildRepository as? net.lumalyte.lg.infrastructure.persistence.guilds.GuildRepositorySQLite)
+            ?.updateAllyHome(guildId, home) ?: guildRepository.update(guild.copy(allyHomeLocation = home))
+    }
+
+    override fun getAllyHome(guildId: UUID): GuildHome? {
+        return guildRepository.getById(guildId)?.allyHomeLocation
+    }
+
+    override fun canAccessAllyHome(actorId: UUID, hostGuildId: UUID): Boolean {
+        val playerGuilds = memberRepository.getGuildsByPlayer(actorId)
+        return playerGuilds.any { playerGuildId ->
+            playerGuildId != hostGuildId &&
+            relationRepository.hasRelationType(playerGuildId, hostGuildId, net.lumalyte.lg.domain.entities.RelationType.ALLY)
+        }
+    }
+
+        override fun setMode(guildId: UUID, mode: GuildMode, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
         
         // Check if actor has permission to change mode
