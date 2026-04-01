@@ -361,6 +361,11 @@ class ProgressionServiceBukkit(
         return maxWars
     }
 
+    override fun hasMarketStallAccess(guildId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+        return guild.level >= 15
+    }
+
     override fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType> {
         val newPerks = getPerksForLevel(newLevel)
         
@@ -370,6 +375,12 @@ class ProgressionServiceBukkit(
         // Apply any immediate effects of new perks
         applyPerkEffects(guildId, newPerks)
         
+        // Sync Guild.level with authoritative GuildProgression level
+        val currentGuild = guildRepository.getById(guildId)
+        if (currentGuild != null && currentGuild.level != newLevel) {
+            guildRepository.update(currentGuild.copy(level = newLevel))
+        }
+
         return newPerks
     }
 
@@ -486,6 +497,12 @@ class ProgressionServiceBukkit(
             PerkType.FASTER_CLAIM_REGEN -> "Faster Claim Regeneration"
             PerkType.CUSTOM_BANNER_COLORS -> "Custom Banner Colors"
             PerkType.ANIMATED_EMOJIS -> "Animated Emojis"
+            PerkType.DECLARE_ENEMIES -> "Declare Enemies"
+            PerkType.FORM_ALLIANCES -> "Form Alliances"
+            PerkType.DECLARE_WAR -> "Declare War"
+            PerkType.MARKET_STALL_ACCESS -> "Market Stall Access"
+            PerkType.ALLY_HOME -> "Ally Home Teleport"
+            PerkType.CUSTOM_EMOJI -> "Custom Guild Emoji"
         }
     }
 }

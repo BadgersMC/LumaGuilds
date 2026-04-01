@@ -167,6 +167,18 @@ interface GuildService {
      */
     fun removeHome(guildId: UUID, actorId: UUID): Boolean
 
+    /** Sets the ally home location for a guild. Requires L25. */
+    fun setAllyHome(guildId: UUID, location: org.bukkit.Location?, actorId: UUID): Boolean
+
+    /** Gets the ally home for a guild. */
+    fun getAllyHome(guildId: UUID): GuildHome?
+
+    /** Checks if a player can access a guild's ally home (must be in an allied guild). */
+    fun canAccessAllyHome(actorId: UUID, hostGuildId: UUID): Boolean
+
+    /** Admin override — sets emoji without rank permission check. */
+    fun setEmojiAdmin(guildId: UUID, emoji: String?): Boolean
+
     /**
      * Sets the mode for a guild (Peaceful/Hostile).
      *

@@ -48,6 +48,11 @@ commands:
     usage: /removevault <guild> [dropItems]
     permission: lumaguilds.admin.vault.remove
 
+  customemoji:
+    description: Set a custom guild emoji (admin only, Level 100 guilds)
+    usage: /customemoji <guildName> <emoji|clear>
+    permission: lumaguilds.admin.emoji.custom
+
 permissions:
   # Guild Management Permissions
   lumaguilds.guild.*:
@@ -70,7 +75,18 @@ permissions:
       lumaguilds.guild.war: true
       lumaguilds.guild.info: true
       lumaguilds.guild.history: true
+      lumaguilds.admin.emoji.custom:
+    description: Set custom emoji for a Level 100 guild
+    default: op
+  lumaguilds.guild.setallyhome: true
+      lumaguilds.guild.allyhome: true
 
+  lumaguilds.guild.setallyhome:
+    description: Set the guild's Ally Home location
+    default: true
+  lumaguilds.guild.allyhome:
+    description: Teleport to an allied guild's Ally Home
+    default: true
   lumaguilds.guild.create:
     description: Create new guilds
     default: true
