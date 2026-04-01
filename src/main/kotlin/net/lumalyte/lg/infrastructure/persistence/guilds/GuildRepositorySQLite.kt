@@ -246,6 +246,23 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             false
         }
 
+        // Parse ally home location
+        val allyHomeLocation = try {
+            val allyWorldStr = rs.getString("ally_home_world")
+            if (allyWorldStr != null) {
+                GuildHome(
+                    worldId = UUID.fromString(allyWorldStr),
+                    position = net.lumalyte.lg.domain.values.Position3D(
+                        rs.getInt("ally_home_x"),
+                        rs.getInt("ally_home_y"),
+                        rs.getInt("ally_home_z")
+                    )
+                )
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+
         // Debug logging for vault data loading
         println("DEBUG [GuildRepositorySQLite] Loading guild '$name'")
         println("  vault_status from DB: '$vaultStatusStr' -> $vaultStatus")
@@ -270,7 +287,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             joinFeeEnabled = joinFeeEnabled,
             joinFeeAmount = joinFeeAmount,
             trackingEnabled = trackingEnabled,
-            bankFrozen = bankFrozen
+            bankFrozen = bankFrozen,
+            allyHomeLocation = allyHomeLocation
         )
     }
 
@@ -641,4 +659,24 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun isNameTaken(name: String): Boolean = getByName(name) != null
     
     override fun getCount(): Int = guilds.size
+    fun updateAllyHome(guildId: UUID, allyHome: GuildHome?): Boolean {
+        val sql = "UPDATE guilds SET ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ? WHERE id = ?"
+        return try {
+            val rowsAffected = storage.connection.executeUpdate(sql,
+                allyHome?.worldId?.toString(),
+                allyHome?.position?.x,
+                allyHome?.position?.y,
+                allyHome?.position?.z,
+                guildId.toString()
+            )
+            // Update cache
+            guilds[guildId]?.let { guild ->
+                guilds[guildId] = guild.copy(allyHomeLocation = allyHome)
+            }
+            rowsAffected > 0
+        } catch (e: java.sql.SQLException) {
+            false
+        }
+    }
+
 }
