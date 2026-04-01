@@ -1,400 +1,1454 @@
-# =====================================
 # LumaGuilds Progression Configuration
-# Fully configurable guild leveling system
-# Made with love by BadgersMC <3
-# =====================================
+# Max level: 100
+# XP formula: base_xp * (level - 1)^level_exponent + (level * linear_bonus)
 
-# =====================================
-# Global Settings
-# =====================================
-enabled: true
+progression:
+  enabled: true
+  max_level: 100
 
-# Use claims-based progression (if false, uses alternative non-claims path)
-claims_based: true
+  xp_formula:
+    base_xp: 500.0
+    level_exponent: 1.15
+    linear_bonus: 150
 
-# Maximum guild level
-max_level: 30
+  xp_sources:
+    kill_player: 50
+    kill_mob: 5
+    block_break: 1
+    block_place: 1
+    farm_harvest: 3
+    fish_catch: 10
+    craft_item: 2
+    smelt_item: 2
+    brew_potion: 5
+    enchant_item: 15
+    form_alliance: 200
+    declare_war: 100
+    win_war: 500
+    bank_deposit: 1
 
-# XP Leveling Formula: base_xp * (level - 1)^level_exponent + (level * linear_bonus)
-leveling:
-  base_xp: 800.0
-  level_exponent: 1.3
-  linear_bonus: 200
-
-# Rate limiting to prevent XP farming
-rate_limiting:
-  xp_cooldown_ms: 5000
-  max_xp_per_batch: 50
-
-# =====================================
-# Experience Sources
-# =====================================
-experience_sources:
-  # Guild-wide activities
-  guild:
-    bank_deposit:
-      enabled: true
-      xp_per_100_coins: 1
-
-    member_joined:
-      enabled: true
-      xp: 50
-
-    war_won:
-      enabled: true
-      xp: 500
-
-    war_lost:
-      enabled: true
-      xp: 100
-
-    claim_created:
-      enabled: true  # Auto-disabled if claims_based: false
-      xp: 100
-
-    alliance_formed:
-      enabled: true
-      xp: 150
-
-    party_created:
-      enabled: true
-      xp: 25
-
-  # Player activities (accumulated for guild)
-  player:
-    player_kill:
-      enabled: true
-      xp: 25
-
-    mob_kill:
-      enabled: true
-      xp: 2
-
-    crop_harvest:
-      enabled: true
-      xp: 1
-
-    block_break:
-      enabled: true
-      xp: 1
-
-    block_place:
-      enabled: true
-      xp: 1
-
-    crafting:
-      enabled: true
-      xp: 2
-
-    smelting:
-      enabled: true
-      xp: 2
-
-    brewing:
-      enabled: true
-      xp: 3
-
-    fishing:
-      enabled: true
-      xp: 3
-
-    enchanting:
-      enabled: true
-      xp: 10
-
-# =====================================
-# Level Rewards (Claims-Based)
-# Used when claims_based: true
-# =====================================
-levels_claims:
+  # Levels when claims system is ENABLED
+  levels_claims:
   1:
-    perks:
-      - CUSTOM_BANNER_COLORS
-      - ANIMATED_EMOJIS
+    perks: [CUSTOM_BANNER_COLORS, ANIMATED_EMOJIS]
     claim_blocks: 0
-    claim_count: 0
+    claim_count: 1
     bank_limit: 50000
-    interest_rate: 0.0
-    homes: 1
-    members: 10
-
-  2:
-    perks:
-      - INCREASED_CLAIM_BLOCKS
-    claim_blocks: 100
-    claim_count: 0
-    bank_limit: 75000
-    interest_rate: 0.0
-    homes: 1
-    members: 10
-
-  3:
-    perks:
-      - FASTER_CLAIM_REGEN
-    claim_blocks: 200
-    claim_count: 0
-    bank_limit: 100000
-    interest_rate: 0.0
-    homes: 1
-    members: 15
-
-  5:
-    perks:
-      - BANK_INTEREST
-      - ANNOUNCEMENT_SOUND_EFFECTS
-    claim_blocks: 500
-    claim_count: 0
-    bank_limit: 150000
-    interest_rate: 0.01
     homes: 1
     members: 20
 
-  7:
-    perks:
-      - REDUCED_WITHDRAWAL_FEES
+  2:
+    perks: []
+    claim_blocks: 500
+    claim_count: 2
+    bank_limit: 54545
+    homes: 1
+    members: 20
+
+  3:
+    perks: []
     claim_blocks: 1000
-    claim_count: 1
-    bank_limit: 200000
-    interest_rate: 0.01
+    claim_count: 3
+    bank_limit: 59090
+    homes: 1
+    members: 20
+
+  4:
+    perks: []
+    claim_blocks: 1500
+    claim_count: 4
+    bank_limit: 63635
+    homes: 1
+    members: 20
+
+  5:
+    perks: [DECLARE_ENEMIES]
+    claim_blocks: 2000
+    claim_count: 5
+    bank_limit: 68180
     homes: 1
     members: 25
-    withdrawal_fee_multiplier: 0.5
+
+  6:
+    perks: []
+    claim_blocks: 2500
+    claim_count: 6
+    bank_limit: 72725
+    homes: 1
+    members: 25
+
+  7:
+    perks: []
+    claim_blocks: 3000
+    claim_count: 7
+    bank_limit: 77270
+    homes: 1
+    members: 25
+
+  8:
+    perks: []
+    claim_blocks: 3500
+    claim_count: 8
+    bank_limit: 81815
+    homes: 1
+    members: 25
+
+  9:
+    perks: []
+    claim_blocks: 4000
+    claim_count: 9
+    bank_limit: 86360
+    homes: 1
+    members: 25
 
   10:
-    perks:
-      - SPECIAL_PARTICLES
-      - HOME_TELEPORT_SOUND_EFFECTS
-    claim_blocks: 2000
-    claim_count: 2
-    bank_limit: 300000
-    interest_rate: 0.015
-    homes: 2
+    perks: [FORM_ALLIANCES]
+    claim_blocks: 4500
+    claim_count: 10
+    bank_limit: 90905
+    homes: 1
+    members: 30
+    withdrawal_fee_multiplier: 0.99
+
+  11:
+    perks: []
+    claim_blocks: 5000
+    claim_count: 11
+    bank_limit: 95450
+    homes: 1
+    members: 30
+
+  12:
+    perks: []
+    claim_blocks: 5500
+    claim_count: 12
+    bank_limit: 99995
+    homes: 1
+    members: 30
+
+  13:
+    perks: []
+    claim_blocks: 6000
+    claim_count: 13
+    bank_limit: 104540
+    homes: 1
+    members: 30
+
+  14:
+    perks: []
+    claim_blocks: 6500
+    claim_count: 14
+    bank_limit: 109085
+    homes: 1
     members: 30
 
   15:
-    perks:
-      - ADDITIONAL_HOMES
-    claim_blocks: 5000
-    claim_count: 3
-    bank_limit: 500000
-    interest_rate: 0.015
-    homes: 3
-    members: 40
+    perks: [MARKET_STALL_ACCESS]
+    claim_blocks: 7000
+    claim_count: 15
+    bank_limit: 113630
+    homes: 1
+    members: 35
+
+  16:
+    perks: []
+    claim_blocks: 7500
+    claim_count: 16
+    bank_limit: 118175
+    homes: 1
+    members: 35
+
+  17:
+    perks: []
+    claim_blocks: 8000
+    claim_count: 17
+    bank_limit: 122720
+    homes: 1
+    members: 35
+
+  18:
+    perks: []
+    claim_blocks: 8500
+    claim_count: 18
+    bank_limit: 127265
+    homes: 1
+    members: 35
+
+  19:
+    perks: []
+    claim_blocks: 9000
+    claim_count: 19
+    bank_limit: 131810
+    homes: 1
+    members: 35
 
   20:
-    perks:
-      - TELEPORT_COOLDOWN_REDUCTION
-      - WAR_DECLARATION_SOUND_EFFECTS
+    perks: [DECLARE_WAR]
+    claim_blocks: 9500
+    claim_count: 20
+    bank_limit: 136355
+    homes: 1
+    members: 40
+    withdrawal_fee_multiplier: 0.98
+
+  21:
+    perks: []
     claim_blocks: 10000
-    claim_count: 5
-    bank_limit: 750000
-    interest_rate: 0.02
-    homes: 4
-    members: 50
-    home_cooldown_multiplier: 0.6
+    claim_count: 21
+    bank_limit: 140900
+    homes: 1
+    members: 40
+
+  22:
+    perks: []
+    claim_blocks: 10500
+    claim_count: 22
+    bank_limit: 145445
+    homes: 1
+    members: 40
+
+  23:
+    perks: []
+    claim_blocks: 11000
+    claim_count: 23
+    bank_limit: 149990
+    homes: 1
+    members: 40
+
+  24:
+    perks: []
+    claim_blocks: 11500
+    claim_count: 24
+    bank_limit: 154535
+    homes: 1
+    members: 40
 
   25:
-    perks:
-      - HIGHER_BANK_BALANCE
-    claim_blocks: 20000
-    claim_count: 8
-    bank_limit: 1000000
-    interest_rate: 0.02
-    homes: 5
-    members: 60
+    perks: [ALLY_HOME]
+    claim_blocks: 12000
+    claim_count: 25
+    bank_limit: 159080
+    homes: 1
+    members: 45
+
+  26:
+    perks: []
+    claim_blocks: 12500
+    claim_count: 26
+    bank_limit: 163625
+    homes: 1
+    members: 45
+
+  27:
+    perks: []
+    claim_blocks: 13000
+    claim_count: 27
+    bank_limit: 168170
+    homes: 1
+    members: 45
+
+  28:
+    perks: []
+    claim_blocks: 13500
+    claim_count: 28
+    bank_limit: 172715
+    homes: 1
+    members: 45
+
+  29:
+    perks: []
+    claim_blocks: 14000
+    claim_count: 29
+    bank_limit: 177260
+    homes: 1
+    members: 45
 
   30:
-    perks:
-      - INCREASED_BANK_LIMIT
-    claim_blocks: 35000
-    claim_count: 12
-    bank_limit: 1500000
-    interest_rate: 0.025
-    homes: 8
+    perks: [INCREASED_CLAIM_BLOCKS]
+    claim_blocks: 14500
+    claim_count: 30
+    bank_limit: 181805
+    homes: 1
+    members: 50
+    withdrawal_fee_multiplier: 0.97
+
+  31:
+    perks: []
+    claim_blocks: 15000
+    claim_count: 31
+    bank_limit: 186350
+    homes: 1
+    members: 50
+
+  32:
+    perks: []
+    claim_blocks: 15500
+    claim_count: 32
+    bank_limit: 190895
+    homes: 1
+    members: 50
+
+  33:
+    perks: []
+    claim_blocks: 16000
+    claim_count: 33
+    bank_limit: 195440
+    homes: 1
+    members: 50
+
+  34:
+    perks: []
+    claim_blocks: 16500
+    claim_count: 34
+    bank_limit: 199985
+    homes: 1
+    members: 50
+
+  35:
+    perks: []
+    claim_blocks: 17000
+    claim_count: 35
+    bank_limit: 204530
+    homes: 1
+    members: 55
+
+  36:
+    perks: []
+    claim_blocks: 17500
+    claim_count: 36
+    bank_limit: 209075
+    homes: 1
+    members: 55
+
+  37:
+    perks: []
+    claim_blocks: 18000
+    claim_count: 37
+    bank_limit: 213620
+    homes: 1
+    members: 55
+
+  38:
+    perks: []
+    claim_blocks: 18500
+    claim_count: 38
+    bank_limit: 218165
+    homes: 1
+    members: 55
+
+  39:
+    perks: []
+    claim_blocks: 19000
+    claim_count: 39
+    bank_limit: 222710
+    homes: 1
+    members: 55
+
+  40:
+    perks: [ADDITIONAL_HOMES]
+    claim_blocks: 19500
+    claim_count: 40
+    bank_limit: 227255
+    homes: 2
+    members: 60
+    withdrawal_fee_multiplier: 0.96
+
+  41:
+    perks: []
+    claim_blocks: 20000
+    claim_count: 41
+    bank_limit: 231800
+    homes: 2
+    members: 60
+
+  42:
+    perks: []
+    claim_blocks: 20500
+    claim_count: 42
+    bank_limit: 236345
+    homes: 2
+    members: 60
+
+  43:
+    perks: []
+    claim_blocks: 21000
+    claim_count: 43
+    bank_limit: 240890
+    homes: 2
+    members: 60
+
+  44:
+    perks: []
+    claim_blocks: 21500
+    claim_count: 44
+    bank_limit: 245435
+    homes: 2
+    members: 60
+
+  45:
+    perks: []
+    claim_blocks: 22000
+    claim_count: 45
+    bank_limit: 249980
+    homes: 2
+    members: 65
+
+  46:
+    perks: []
+    claim_blocks: 22500
+    claim_count: 46
+    bank_limit: 254525
+    homes: 2
+    members: 65
+
+  47:
+    perks: []
+    claim_blocks: 23000
+    claim_count: 47
+    bank_limit: 259070
+    homes: 2
+    members: 65
+
+  48:
+    perks: []
+    claim_blocks: 23500
+    claim_count: 48
+    bank_limit: 263615
+    homes: 2
+    members: 65
+
+  49:
+    perks: []
+    claim_blocks: 24000
+    claim_count: 49
+    bank_limit: 268160
+    homes: 2
+    members: 65
+
+  50:
+    perks: [BANK_INTEREST]
+    claim_blocks: 24500
+    claim_count: 50
+    bank_limit: 272705
+    homes: 2
+    members: 70
+    withdrawal_fee_multiplier: 0.95
+
+  51:
+    perks: []
+    claim_blocks: 25000
+    claim_count: 51
+    bank_limit: 277250
+    homes: 2
+    members: 70
+
+  52:
+    perks: []
+    claim_blocks: 25500
+    claim_count: 52
+    bank_limit: 281795
+    homes: 2
+    members: 70
+
+  53:
+    perks: []
+    claim_blocks: 26000
+    claim_count: 53
+    bank_limit: 286340
+    homes: 2
+    members: 70
+
+  54:
+    perks: []
+    claim_blocks: 26500
+    claim_count: 54
+    bank_limit: 290885
+    homes: 2
+    members: 70
+
+  55:
+    perks: []
+    claim_blocks: 27000
+    claim_count: 55
+    bank_limit: 295430
+    homes: 2
     members: 75
 
-# =====================================
-# Level Rewards (Non-Claims)
-# Used when claims_based: false
-# =====================================
-levels_no_claims:
+  56:
+    perks: []
+    claim_blocks: 27500
+    claim_count: 56
+    bank_limit: 299975
+    homes: 2
+    members: 75
+
+  57:
+    perks: []
+    claim_blocks: 28000
+    claim_count: 57
+    bank_limit: 304520
+    homes: 2
+    members: 75
+
+  58:
+    perks: []
+    claim_blocks: 28500
+    claim_count: 58
+    bank_limit: 309065
+    homes: 2
+    members: 75
+
+  59:
+    perks: []
+    claim_blocks: 29000
+    claim_count: 59
+    bank_limit: 313610
+    homes: 2
+    members: 75
+
+  60:
+    perks: [REDUCED_WITHDRAWAL_FEES]
+    claim_blocks: 29500
+    claim_count: 60
+    bank_limit: 318155
+    homes: 2
+    members: 80
+    withdrawal_fee_multiplier: 0.94
+
+  61:
+    perks: []
+    claim_blocks: 30000
+    claim_count: 61
+    bank_limit: 322700
+    homes: 2
+    members: 80
+
+  62:
+    perks: []
+    claim_blocks: 30500
+    claim_count: 62
+    bank_limit: 327245
+    homes: 2
+    members: 80
+
+  63:
+    perks: []
+    claim_blocks: 31000
+    claim_count: 63
+    bank_limit: 331790
+    homes: 2
+    members: 80
+
+  64:
+    perks: []
+    claim_blocks: 31500
+    claim_count: 64
+    bank_limit: 336335
+    homes: 2
+    members: 80
+
+  65:
+    perks: []
+    claim_blocks: 32000
+    claim_count: 65
+    bank_limit: 340880
+    homes: 2
+    members: 85
+
+  66:
+    perks: []
+    claim_blocks: 32500
+    claim_count: 66
+    bank_limit: 345425
+    homes: 2
+    members: 85
+
+  67:
+    perks: []
+    claim_blocks: 33000
+    claim_count: 67
+    bank_limit: 349970
+    homes: 2
+    members: 85
+
+  68:
+    perks: []
+    claim_blocks: 33500
+    claim_count: 68
+    bank_limit: 354515
+    homes: 2
+    members: 85
+
+  69:
+    perks: []
+    claim_blocks: 34000
+    claim_count: 69
+    bank_limit: 359060
+    homes: 2
+    members: 85
+
+  70:
+    perks: [ADDITIONAL_HOMES]
+    claim_blocks: 34500
+    claim_count: 70
+    bank_limit: 363605
+    homes: 3
+    members: 90
+    withdrawal_fee_multiplier: 0.93
+
+  71:
+    perks: []
+    claim_blocks: 35000
+    claim_count: 71
+    bank_limit: 368150
+    homes: 3
+    members: 90
+
+  72:
+    perks: []
+    claim_blocks: 35500
+    claim_count: 72
+    bank_limit: 372695
+    homes: 3
+    members: 90
+
+  73:
+    perks: []
+    claim_blocks: 36000
+    claim_count: 73
+    bank_limit: 377240
+    homes: 3
+    members: 90
+
+  74:
+    perks: []
+    claim_blocks: 36500
+    claim_count: 74
+    bank_limit: 381785
+    homes: 3
+    members: 90
+
+  75:
+    perks: []
+    claim_blocks: 37000
+    claim_count: 75
+    bank_limit: 386330
+    homes: 3
+    members: 95
+
+  76:
+    perks: []
+    claim_blocks: 37500
+    claim_count: 76
+    bank_limit: 390875
+    homes: 3
+    members: 95
+
+  77:
+    perks: []
+    claim_blocks: 38000
+    claim_count: 77
+    bank_limit: 395420
+    homes: 3
+    members: 95
+
+  78:
+    perks: []
+    claim_blocks: 38500
+    claim_count: 78
+    bank_limit: 399965
+    homes: 3
+    members: 95
+
+  79:
+    perks: []
+    claim_blocks: 39000
+    claim_count: 79
+    bank_limit: 404510
+    homes: 3
+    members: 95
+
+  80:
+    perks: [TELEPORT_COOLDOWN_REDUCTION]
+    claim_blocks: 39500
+    claim_count: 80
+    bank_limit: 409055
+    homes: 3
+    members: 100
+    withdrawal_fee_multiplier: 0.92
+
+  81:
+    perks: []
+    claim_blocks: 40000
+    claim_count: 81
+    bank_limit: 413600
+    homes: 3
+    members: 100
+
+  82:
+    perks: []
+    claim_blocks: 40500
+    claim_count: 82
+    bank_limit: 418145
+    homes: 3
+    members: 100
+
+  83:
+    perks: []
+    claim_blocks: 41000
+    claim_count: 83
+    bank_limit: 422690
+    homes: 3
+    members: 100
+
+  84:
+    perks: []
+    claim_blocks: 41500
+    claim_count: 84
+    bank_limit: 427235
+    homes: 3
+    members: 100
+
+  85:
+    perks: []
+    claim_blocks: 42000
+    claim_count: 85
+    bank_limit: 431780
+    homes: 3
+    members: 100
+
+  86:
+    perks: []
+    claim_blocks: 42500
+    claim_count: 86
+    bank_limit: 436325
+    homes: 3
+    members: 100
+
+  87:
+    perks: []
+    claim_blocks: 43000
+    claim_count: 87
+    bank_limit: 440870
+    homes: 3
+    members: 100
+
+  88:
+    perks: []
+    claim_blocks: 43500
+    claim_count: 88
+    bank_limit: 445415
+    homes: 3
+    members: 100
+
+  89:
+    perks: []
+    claim_blocks: 44000
+    claim_count: 89
+    bank_limit: 449960
+    homes: 3
+    members: 100
+
+  90:
+    perks: [SPECIAL_PARTICLES]
+    claim_blocks: 44500
+    claim_count: 90
+    bank_limit: 454505
+    homes: 3
+    members: 100
+    withdrawal_fee_multiplier: 0.91
+
+  91:
+    perks: []
+    claim_blocks: 45000
+    claim_count: 91
+    bank_limit: 459050
+    homes: 3
+    members: 100
+
+  92:
+    perks: []
+    claim_blocks: 45500
+    claim_count: 92
+    bank_limit: 463595
+    homes: 3
+    members: 100
+
+  93:
+    perks: []
+    claim_blocks: 46000
+    claim_count: 93
+    bank_limit: 468140
+    homes: 3
+    members: 100
+
+  94:
+    perks: []
+    claim_blocks: 46500
+    claim_count: 94
+    bank_limit: 472685
+    homes: 3
+    members: 100
+
+  95:
+    perks: []
+    claim_blocks: 47000
+    claim_count: 95
+    bank_limit: 477230
+    homes: 3
+    members: 100
+
+  96:
+    perks: []
+    claim_blocks: 47500
+    claim_count: 96
+    bank_limit: 481775
+    homes: 3
+    members: 100
+
+  97:
+    perks: []
+    claim_blocks: 48000
+    claim_count: 97
+    bank_limit: 486320
+    homes: 3
+    members: 100
+
+  98:
+    perks: []
+    claim_blocks: 48500
+    claim_count: 98
+    bank_limit: 490865
+    homes: 3
+    members: 100
+
+  99:
+    perks: []
+    claim_blocks: 49000
+    claim_count: 99
+    bank_limit: 495410
+    homes: 3
+    members: 100
+
+  100:
+    perks: [CUSTOM_EMOJI, ANNOUNCEMENT_SOUND_EFFECTS]
+    claim_blocks: 49500
+    claim_count: 100
+    bank_limit: 499955
+    homes: 3
+    members: 100
+    withdrawal_fee_multiplier: 0.9
+
+
+  # Levels when claims system is DISABLED
+  levels_no_claims:
   1:
-    perks:
-      - CUSTOM_BANNER_COLORS
-      - ANIMATED_EMOJIS
+    perks: [CUSTOM_BANNER_COLORS, ANIMATED_EMOJIS]
     bank_limit: 50000
-    interest_rate: 0.0
     homes: 1
-    members: 10
-    war_slots: 3
+    members: 20
 
   2:
-    perks:
-      - HIGHER_BANK_BALANCE
-    bank_limit: 100000
-    interest_rate: 0.005
+    perks: []
+    bank_limit: 54545
     homes: 1
-    members: 15
-    war_slots: 3
+    members: 20
 
   3:
-    perks:
-      - BANK_INTEREST
-    bank_limit: 150000
-    interest_rate: 0.01
+    perks: []
+    bank_limit: 59090
     homes: 1
-    members: 15
-    war_slots: 3
+    members: 20
+
+  4:
+    perks: []
+    bank_limit: 63635
+    homes: 1
+    members: 20
 
   5:
-    perks:
-      - ANNOUNCEMENT_SOUND_EFFECTS
-      - SPECIAL_PARTICLES
-    bank_limit: 250000
-    interest_rate: 0.015
-    homes: 2
-    members: 20
-    war_slots: 4
+    perks: [DECLARE_ENEMIES]
+    bank_limit: 68180
+    homes: 1
+    members: 25
+
+  6:
+    perks: []
+    bank_limit: 72725
+    homes: 1
+    members: 25
 
   7:
-    perks:
-      - REDUCED_WITHDRAWAL_FEES
-      - ADDITIONAL_HOMES
-    bank_limit: 400000
-    interest_rate: 0.015
-    homes: 3
+    perks: []
+    bank_limit: 77270
+    homes: 1
     members: 25
-    war_slots: 4
-    withdrawal_fee_multiplier: 0.5
+
+  8:
+    perks: []
+    bank_limit: 81815
+    homes: 1
+    members: 25
+
+  9:
+    perks: []
+    bank_limit: 86360
+    homes: 1
+    members: 25
 
   10:
-    perks:
-      - HOME_TELEPORT_SOUND_EFFECTS
-      - TELEPORT_COOLDOWN_REDUCTION
-    bank_limit: 600000
-    interest_rate: 0.02
-    homes: 4
+    perks: [FORM_ALLIANCES]
+    bank_limit: 90905
+    homes: 1
     members: 30
-    war_slots: 5
-    home_cooldown_multiplier: 0.6
+    withdrawal_fee_multiplier: 0.99
+
+  11:
+    perks: []
+    bank_limit: 95450
+    homes: 1
+    members: 30
+
+  12:
+    perks: []
+    bank_limit: 99995
+    homes: 1
+    members: 30
+
+  13:
+    perks: []
+    bank_limit: 104540
+    homes: 1
+    members: 30
+
+  14:
+    perks: []
+    bank_limit: 109085
+    homes: 1
+    members: 30
 
   15:
-    perks:
-      - INCREASED_BANK_LIMIT
-    bank_limit: 1000000
-    interest_rate: 0.02
-    homes: 6
+    perks: [MARKET_STALL_ACCESS]
+    bank_limit: 113630
+    homes: 1
+    members: 35
+
+  16:
+    perks: []
+    bank_limit: 118175
+    homes: 1
+    members: 35
+
+  17:
+    perks: []
+    bank_limit: 122720
+    homes: 1
+    members: 35
+
+  18:
+    perks: []
+    bank_limit: 127265
+    homes: 1
+    members: 35
+
+  19:
+    perks: []
+    bank_limit: 131810
+    homes: 1
+    members: 35
+
+  20:
+    perks: [DECLARE_WAR]
+    bank_limit: 136355
+    homes: 1
     members: 40
-    war_slots: 6
+    withdrawal_fee_multiplier: 0.98
 
-  20:
-    perks:
-      - WAR_DECLARATION_SOUND_EFFECTS
-    bank_limit: 1500000
-    interest_rate: 0.025
-    homes: 8
+  21:
+    perks: []
+    bank_limit: 140900
+    homes: 1
+    members: 40
+
+  22:
+    perks: []
+    bank_limit: 145445
+    homes: 1
+    members: 40
+
+  23:
+    perks: []
+    bank_limit: 149990
+    homes: 1
+    members: 40
+
+  24:
+    perks: []
+    bank_limit: 154535
+    homes: 1
+    members: 40
+
+  25:
+    perks: [ALLY_HOME]
+    bank_limit: 159080
+    homes: 1
+    members: 45
+
+  26:
+    perks: []
+    bank_limit: 163625
+    homes: 1
+    members: 45
+
+  27:
+    perks: []
+    bank_limit: 168170
+    homes: 1
+    members: 45
+
+  28:
+    perks: []
+    bank_limit: 172715
+    homes: 1
+    members: 45
+
+  29:
+    perks: []
+    bank_limit: 177260
+    homes: 1
+    members: 45
+
+  30:
+    perks: []
+    bank_limit: 181805
+    homes: 1
     members: 50
-    war_slots: 6
-    war_cost_multiplier: 0.75
+    withdrawal_fee_multiplier: 0.97
 
-  25:
-    perks:
-      - HIGHER_BANK_BALANCE
-    bank_limit: 2500000
-    interest_rate: 0.03
-    homes: 10
+  31:
+    perks: []
+    bank_limit: 186350
+    homes: 1
+    members: 50
+
+  32:
+    perks: []
+    bank_limit: 190895
+    homes: 1
+    members: 50
+
+  33:
+    perks: []
+    bank_limit: 195440
+    homes: 1
+    members: 50
+
+  34:
+    perks: []
+    bank_limit: 199985
+    homes: 1
+    members: 50
+
+  35:
+    perks: []
+    bank_limit: 204530
+    homes: 1
+    members: 55
+
+  36:
+    perks: []
+    bank_limit: 209075
+    homes: 1
+    members: 55
+
+  37:
+    perks: []
+    bank_limit: 213620
+    homes: 1
+    members: 55
+
+  38:
+    perks: []
+    bank_limit: 218165
+    homes: 1
+    members: 55
+
+  39:
+    perks: []
+    bank_limit: 222710
+    homes: 1
+    members: 55
+
+  40:
+    perks: [ADDITIONAL_HOMES]
+    bank_limit: 227255
+    homes: 2
     members: 60
-    war_slots: 8
+    withdrawal_fee_multiplier: 0.96
 
-  30:
-    perks:
-      - INCREASED_BANK_LIMIT
-    bank_limit: 5000000
-    interest_rate: 0.035
-    homes: 12
+  41:
+    perks: []
+    bank_limit: 231800
+    homes: 2
+    members: 60
+
+  42:
+    perks: []
+    bank_limit: 236345
+    homes: 2
+    members: 60
+
+  43:
+    perks: []
+    bank_limit: 240890
+    homes: 2
+    members: 60
+
+  44:
+    perks: []
+    bank_limit: 245435
+    homes: 2
+    members: 60
+
+  45:
+    perks: []
+    bank_limit: 249980
+    homes: 2
+    members: 65
+
+  46:
+    perks: []
+    bank_limit: 254525
+    homes: 2
+    members: 65
+
+  47:
+    perks: []
+    bank_limit: 259070
+    homes: 2
+    members: 65
+
+  48:
+    perks: []
+    bank_limit: 263615
+    homes: 2
+    members: 65
+
+  49:
+    perks: []
+    bank_limit: 268160
+    homes: 2
+    members: 65
+
+  50:
+    perks: [BANK_INTEREST]
+    bank_limit: 272705
+    homes: 2
+    members: 70
+    withdrawal_fee_multiplier: 0.95
+
+  51:
+    perks: []
+    bank_limit: 277250
+    homes: 2
+    members: 70
+
+  52:
+    perks: []
+    bank_limit: 281795
+    homes: 2
+    members: 70
+
+  53:
+    perks: []
+    bank_limit: 286340
+    homes: 2
+    members: 70
+
+  54:
+    perks: []
+    bank_limit: 290885
+    homes: 2
+    members: 70
+
+  55:
+    perks: []
+    bank_limit: 295430
+    homes: 2
+    members: 75
+
+  56:
+    perks: []
+    bank_limit: 299975
+    homes: 2
+    members: 75
+
+  57:
+    perks: []
+    bank_limit: 304520
+    homes: 2
+    members: 75
+
+  58:
+    perks: []
+    bank_limit: 309065
+    homes: 2
+    members: 75
+
+  59:
+    perks: []
+    bank_limit: 313610
+    homes: 2
+    members: 75
+
+  60:
+    perks: [REDUCED_WITHDRAWAL_FEES]
+    bank_limit: 318155
+    homes: 2
+    members: 80
+    withdrawal_fee_multiplier: 0.94
+
+  61:
+    perks: []
+    bank_limit: 322700
+    homes: 2
+    members: 80
+
+  62:
+    perks: []
+    bank_limit: 327245
+    homes: 2
+    members: 80
+
+  63:
+    perks: []
+    bank_limit: 331790
+    homes: 2
+    members: 80
+
+  64:
+    perks: []
+    bank_limit: 336335
+    homes: 2
+    members: 80
+
+  65:
+    perks: []
+    bank_limit: 340880
+    homes: 2
+    members: 85
+
+  66:
+    perks: []
+    bank_limit: 345425
+    homes: 2
+    members: 85
+
+  67:
+    perks: []
+    bank_limit: 349970
+    homes: 2
+    members: 85
+
+  68:
+    perks: []
+    bank_limit: 354515
+    homes: 2
+    members: 85
+
+  69:
+    perks: []
+    bank_limit: 359060
+    homes: 2
+    members: 85
+
+  70:
+    perks: [ADDITIONAL_HOMES]
+    bank_limit: 363605
+    homes: 3
+    members: 90
+    withdrawal_fee_multiplier: 0.93
+
+  71:
+    perks: []
+    bank_limit: 368150
+    homes: 3
+    members: 90
+
+  72:
+    perks: []
+    bank_limit: 372695
+    homes: 3
+    members: 90
+
+  73:
+    perks: []
+    bank_limit: 377240
+    homes: 3
+    members: 90
+
+  74:
+    perks: []
+    bank_limit: 381785
+    homes: 3
+    members: 90
+
+  75:
+    perks: []
+    bank_limit: 386330
+    homes: 3
+    members: 95
+
+  76:
+    perks: []
+    bank_limit: 390875
+    homes: 3
+    members: 95
+
+  77:
+    perks: []
+    bank_limit: 395420
+    homes: 3
+    members: 95
+
+  78:
+    perks: []
+    bank_limit: 399965
+    homes: 3
+    members: 95
+
+  79:
+    perks: []
+    bank_limit: 404510
+    homes: 3
+    members: 95
+
+  80:
+    perks: [TELEPORT_COOLDOWN_REDUCTION]
+    bank_limit: 409055
+    homes: 3
     members: 100
-    war_slots: 10
-    war_cost_multiplier: 0.5
+    withdrawal_fee_multiplier: 0.92
 
-# =====================================
-# Milestone Rewards
-# Special rewards given at certain levels
-# =====================================
-milestones:
-  # Every 5 levels
-  5:
-    broadcast: true
-    message: "&6&l{guild} has reached level {level}!"
-    coins: 1000
+  81:
+    perks: []
+    bank_limit: 413600
+    homes: 3
+    members: 100
 
-  10:
-    broadcast: true
-    message: "&e&l✨ {guild} has achieved level {level}! ✨"
-    coins: 5000
-    items:
-      - material: DIAMOND
-        amount: 10
+  82:
+    perks: []
+    bank_limit: 418145
+    homes: 3
+    members: 100
 
-  15:
-    broadcast: true
-    message: "&d&l{guild} has reached level 15!"
-    coins: 10000
-    items:
-      - material: DIAMOND_BLOCK
-        amount: 5
+  83:
+    perks: []
+    bank_limit: 422690
+    homes: 3
+    members: 100
 
-  20:
-    broadcast: true
-    message: "&b&l{guild} is now level 20!"
-    coins: 15000
+  84:
+    perks: []
+    bank_limit: 427235
+    homes: 3
+    members: 100
 
-  25:
-    broadcast: true
-    message: "&5&l{guild} has reached level 25!"
-    coins: 20000
+  85:
+    perks: []
+    bank_limit: 431780
+    homes: 3
+    members: 100
 
-  # Max level
-  30:
-    broadcast: true
-    message: "&4&l⚡ {guild} has reached MAX LEVEL! ⚡"
-    coins: 50000
-    items:
-      - material: NETHER_STAR
-        amount: 1
-        display_name: "&6&lLegendary Guild Star"
-        lore:
-          - "&7Proof of reaching max level"
-          - "&eGuild: {guild}"
-          - "&7{date}"
+  86:
+    perks: []
+    bank_limit: 436325
+    homes: 3
+    members: 100
 
-# =====================================
-# Activity Tracking
-# =====================================
-activity:
-  enabled: true
-  weekly_reset: true
-  reset_day: MONDAY
+  87:
+    perks: []
+    bank_limit: 440870
+    homes: 3
+    members: 100
 
-  # Activity score weights
-  weights:
-    member_count: 10
-    active_members: 50
-    claims_owned: 20
-    kills_this_week: 25
-    bank_deposits_this_week: 5
-    relations_formed: 75
-    wars_participated: 200
+  88:
+    perks: []
+    bank_limit: 445415
+    homes: 3
+    members: 100
 
-# =====================================
-# Leaderboards
-# =====================================
-leaderboards:
-  enabled: true
-  update_interval_minutes: 5
-  display_size: 10
-  types:
-    - LEVEL
-    - TOTAL_XP
-    - WEEKLY_ACTIVITY
-    - BANK_BALANCE
-    - MEMBER_COUNT
+  89:
+    perks: []
+    bank_limit: 449960
+    homes: 3
+    members: 100
+
+  90:
+    perks: [SPECIAL_PARTICLES]
+    bank_limit: 454505
+    homes: 3
+    members: 100
+    withdrawal_fee_multiplier: 0.91
+
+  91:
+    perks: []
+    bank_limit: 459050
+    homes: 3
+    members: 100
+
+  92:
+    perks: []
+    bank_limit: 463595
+    homes: 3
+    members: 100
+
+  93:
+    perks: []
+    bank_limit: 468140
+    homes: 3
+    members: 100
+
+  94:
+    perks: []
+    bank_limit: 472685
+    homes: 3
+    members: 100
+
+  95:
+    perks: []
+    bank_limit: 477230
+    homes: 3
+    members: 100
+
+  96:
+    perks: []
+    bank_limit: 481775
+    homes: 3
+    members: 100
+
+  97:
+    perks: []
+    bank_limit: 486320
+    homes: 3
+    members: 100
+
+  98:
+    perks: []
+    bank_limit: 490865
+    homes: 3
+    members: 100
+
+  99:
+    perks: []
+    bank_limit: 495410
+    homes: 3
+    members: 100
+
+  100:
+    perks: [CUSTOM_EMOJI, ANNOUNCEMENT_SOUND_EFFECTS]
+    bank_limit: 499955
+    homes: 3
+    members: 100
+    withdrawal_fee_multiplier: 0.9
+
