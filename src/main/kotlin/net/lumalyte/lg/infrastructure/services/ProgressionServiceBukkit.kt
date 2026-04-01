@@ -361,6 +361,11 @@ class ProgressionServiceBukkit(
         return maxWars
     }
 
+    override fun hasMarketStallAccess(guildId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+        return guild.level >= 15
+    }
+
     override fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType> {
         val newPerks = getPerksForLevel(newLevel)
         

@@ -189,6 +189,9 @@ interface ProgressionService {
      * @param newLevel The new level achieved.
      * @return List of newly unlocked perks.
      */
+    /** Returns true if the guild has reached Level 15 for Market Stall access. */
+    fun hasMarketStallAccess(guildId: UUID): Boolean
+
     fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType>
 }
 
