@@ -249,8 +249,17 @@ enum class PerkType {
     ANNOUNCEMENT_SOUND_EFFECTS,
     WAR_DECLARATION_SOUND_EFFECTS,
 
-    // System perks
-    // (No system perks currently defined)
+    // Diplomacy perks (level-gated)
+    DECLARE_ENEMIES,       // Unlocked at Level 5
+    FORM_ALLIANCES,        // Unlocked at Level 10
+    DECLARE_WAR,           // Unlocked at Level 20
+
+    // Economic perks
+    MARKET_STALL_ACCESS,   // Unlocked at Level 15 — read by Guild-ARM integration
+
+    // Social perks
+    ALLY_HOME,             // Unlocked at Level 25
+    CUSTOM_EMOJI,          // Unlocked at Level 100
 }
 
 /**
