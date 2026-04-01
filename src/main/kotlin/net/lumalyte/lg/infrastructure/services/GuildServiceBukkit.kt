@@ -444,7 +444,13 @@ class GuildServiceBukkit(
         }
     }
 
-        override fun setMode(guildId: UUID, mode: GuildMode, actorId: UUID): Boolean {
+        override fun setEmojiAdmin(guildId: UUID, emoji: String?): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+        if (emoji != null && !nexoEmojiService.isValidEmojiFormat(emoji)) return false
+        return guildRepository.update(guild.copy(emoji = emoji))
+    }
+
+    override fun setMode(guildId: UUID, mode: GuildMode, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
         
         // Check if actor has permission to change mode
