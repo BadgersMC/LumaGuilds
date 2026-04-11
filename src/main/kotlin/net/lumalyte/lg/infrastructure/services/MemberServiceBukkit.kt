@@ -9,6 +9,8 @@ import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.events.GuildMemberJoinEvent
+import net.lumalyte.lg.domain.events.GuildMemberRemovedEvent
+import net.lumalyte.lg.domain.events.GuildOwnershipTransferEvent
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -155,6 +157,8 @@ class MemberServiceBukkit(
             } else {
                 logger.info("Player $playerId removed from guild $guildId by $actorId")
             }
+
+            Bukkit.getPluginManager().callEvent(GuildMemberRemovedEvent(guildId, playerId, actorId, actorId != playerId))
 
             // Note: Party preference cleanup is handled by the PartyChatCommand's clearInvalidPartyReferences method
             // which runs periodically and cleans up preferences for disbanded parties
@@ -366,6 +370,7 @@ class MemberServiceBukkit(
             }
 
             logger.info("Ownership of guild $guildId transferred from $currentOwnerId to $newOwnerId")
+            Bukkit.getPluginManager().callEvent(GuildOwnershipTransferEvent(guildId, currentOwnerId, newOwnerId))
             return true
         } catch (e: Exception) {
             // Service operation - catching all exceptions to prevent service failure

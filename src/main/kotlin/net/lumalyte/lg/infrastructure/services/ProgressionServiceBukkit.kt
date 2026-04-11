@@ -7,6 +7,7 @@ import net.kyori.adventure.title.Title
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.*
+import net.lumalyte.lg.domain.events.GuildLevelUpEvent
 import org.bukkit.Bukkit
 import org.bukkit.Sound
 import org.slf4j.LoggerFactory
@@ -366,10 +367,12 @@ class ProgressionServiceBukkit(
         
         // Send notifications to all online guild members
         notifyGuildMembers(guildId, newLevel, newPerks)
-        
+
         // Apply any immediate effects of new perks
         applyPerkEffects(guildId, newPerks)
-        
+
+        Bukkit.getPluginManager().callEvent(GuildLevelUpEvent(guildId, newLevel))
+
         return newPerks
     }
 

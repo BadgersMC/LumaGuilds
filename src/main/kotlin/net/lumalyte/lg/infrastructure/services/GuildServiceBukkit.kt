@@ -12,8 +12,10 @@ import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.events.GuildBannerSetEvent
 import net.lumalyte.lg.domain.events.GuildCreatedEvent
 import net.lumalyte.lg.domain.events.GuildDisbandedEvent
+import net.lumalyte.lg.domain.events.GuildHomeSetEvent
 import net.lumalyte.lg.domain.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.utils.serializeToString
 import org.bukkit.Bukkit
@@ -193,10 +195,11 @@ class GuildServiceBukkit(
         if (result) {
             val bannerText = if (banner != null) "${banner.type.name} with patterns" else "cleared (default white banner)"
             logger.info("Guild $guildId banner set to '$bannerText' by $actorId")
+            Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
         }
         return result
     }
-    
+
     override fun setEmoji(guildId: UUID, emoji: String?, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
         
@@ -331,6 +334,7 @@ class GuildServiceBukkit(
             val result = guildRepository.update(updatedGuild)
             if (result) {
                 logger.info("Guild $guildId home '$homeName' set to ${home.position} in world ${home.worldId} by $actorId")
+                Bukkit.getPluginManager().callEvent(GuildHomeSetEvent(guildId, actorId))
             }
             return result
         } catch (e: Exception) {
