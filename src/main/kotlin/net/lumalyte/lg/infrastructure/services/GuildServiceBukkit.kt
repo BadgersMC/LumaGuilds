@@ -438,6 +438,42 @@ class GuildServiceBukkit(
         }
     }
     
+    override fun getAllyHomes(guildId: UUID): Map<String, GuildHome> {
+        try {
+            val guild = guildRepository.getById(guildId) ?: return emptyMap()
+
+            // Check if requesting guild has the perk
+            val progressionService = org.koin.core.context.GlobalContext.get()
+                .get<net.lumalyte.lg.application.services.ProgressionService>()
+            if (!progressionService.hasPerkUnlocked(guildId, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) {
+                return emptyMap()
+            }
+
+            // Get active ally relations
+            val allyRelations = relationRepository.getByGuildAndType(
+                guildId, net.lumalyte.lg.domain.entities.RelationType.ALLY
+            ).filter { it.isActive() }
+
+            val result = mutableMapOf<String, GuildHome>()
+            for (relation in allyRelations) {
+                val allyGuildId = relation.getOtherGuild(guildId)
+
+                // Ally must also have the perk unlocked (mutual requirement)
+                if (!progressionService.hasPerkUnlocked(allyGuildId, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) {
+                    continue
+                }
+
+                val allyGuild = guildRepository.getById(allyGuildId) ?: continue
+                val defaultHome = allyGuild.homes.defaultHome ?: continue
+                result[allyGuild.name] = defaultHome
+            }
+            return result
+        } catch (e: Exception) {
+            logger.error("Error getting ally homes for guild $guildId", e)
+            return emptyMap()
+        }
+    }
+
     override fun setMode(guildId: UUID, mode: GuildMode, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
         
