@@ -117,6 +117,8 @@ import net.lumalyte.lg.application.services.VisualisationPerformanceService
 import net.lumalyte.lg.application.services.KillService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.application.persistence.KillRepository
+import net.lumalyte.lg.application.persistence.LeaderboardRepository
+import net.lumalyte.lg.application.services.LeaderboardService
 
 import net.lumalyte.lg.infrastructure.services.GuildServiceBukkit
 import net.lumalyte.lg.infrastructure.services.LfgServiceBukkit
@@ -134,6 +136,7 @@ import net.lumalyte.lg.infrastructure.services.CombatServiceBukkit
 import net.lumalyte.lg.infrastructure.services.GuildBannerServiceBukkit
 import net.lumalyte.lg.infrastructure.services.AuditServiceBukkit
 import net.lumalyte.lg.infrastructure.services.KillServiceBukkit
+import net.lumalyte.lg.infrastructure.services.LeaderboardServiceBukkit
 import net.lumalyte.lg.infrastructure.services.MapRendererServiceBukkit
 import net.lumalyte.lg.infrastructure.services.WarServiceBukkit
 import net.lumalyte.lg.infrastructure.services.FloodgatePlatformDetectionService
@@ -159,6 +162,7 @@ import net.lumalyte.lg.infrastructure.persistence.guilds.ProgressionRepositorySQ
 import net.lumalyte.lg.infrastructure.persistence.guilds.GuildBannerRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.AuditRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.KillRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.guilds.LeaderboardRepositorySQLite
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.infrastructure.persistence.guilds.MembershipHistoryRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimFlagRepositorySQLite
@@ -447,12 +451,14 @@ fun progressionModule() = module {
     // Repositories
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get()) }
+    single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
 
     // Services
     single<KillService> { KillServiceBukkit(get()) }
     single<CombatService> { CombatServiceBukkit(get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get()) }
     single<WarService> { WarServiceBukkit(get(), get(), get(), get()) }
+    single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single<ModeService> { ModeServiceBukkit(get(), get(), get(), get()) }
     single<net.lumalyte.lg.infrastructure.services.ProgressionConfigService> {
         net.lumalyte.lg.infrastructure.services.ProgressionConfigService(get())
