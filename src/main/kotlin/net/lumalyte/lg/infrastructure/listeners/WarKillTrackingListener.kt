@@ -4,6 +4,8 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.ObjectiveType
 import net.lumalyte.lg.domain.entities.WarStats
+import net.lumalyte.lg.domain.events.GuildWarKillEvent
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -86,6 +88,7 @@ class WarKillTrackingListener : Listener, KoinComponent {
 
                         // Update the war stats
                         if (warService.updateWarStats(updatedStats)) {
+                            Bukkit.getPluginManager().callEvent(GuildWarKillEvent(war.id, killer.uniqueId, victim.uniqueId, killerGuild, victimGuild))
                             logger.info("War kill recorded: ${killer.name} (guild $killerGuild) killed ${victim.name} (guild $victimGuild) in war ${war.id}")
 
                             // Notify both players
