@@ -489,6 +489,7 @@ class ProgressionServiceBukkit(
             PerkType.FASTER_CLAIM_REGEN -> "Faster Claim Regeneration"
             PerkType.CUSTOM_BANNER_COLORS -> "Custom Banner Colors"
             PerkType.ANIMATED_EMOJIS -> "Animated Emojis"
+            PerkType.ALLY_HOME_ACCESS -> "Ally Home Teleportation"
         }
     }
 }

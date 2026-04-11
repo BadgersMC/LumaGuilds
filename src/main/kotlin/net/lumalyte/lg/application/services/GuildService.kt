@@ -168,6 +168,14 @@ interface GuildService {
     fun removeHome(guildId: UUID, actorId: UUID): Boolean
 
     /**
+     * Gets accessible ally homes for a guild. Both guilds must have ALLY_HOME_ACCESS perk unlocked.
+     *
+     * @param guildId The ID of the requesting guild.
+     * @return Map of ally guild name to their default home, for allies where both guilds have the perk.
+     */
+    fun getAllyHomes(guildId: UUID): Map<String, GuildHome>
+
+    /**
      * Sets the mode for a guild (Peaceful/Hostile).
      *
      * @param guildId The ID of the guild.

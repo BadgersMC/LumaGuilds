@@ -161,6 +161,7 @@ class BedrockGuildProgressionInfoMenu(
             net.lumalyte.lg.application.services.PerkType.SPECIAL_PARTICLES -> "Special Particles"
             net.lumalyte.lg.application.services.PerkType.ANNOUNCEMENT_SOUND_EFFECTS -> "Announcement Sound Effects"
             net.lumalyte.lg.application.services.PerkType.WAR_DECLARATION_SOUND_EFFECTS -> "War Declaration Sound Effects"
+            net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS -> "Ally Home Teleportation"
         }
     }
 

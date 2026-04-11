@@ -241,6 +241,7 @@ enum class PerkType {
     ADDITIONAL_HOMES,
     TELEPORT_COOLDOWN_REDUCTION,
     HOME_TELEPORT_SOUND_EFFECTS,
+    ALLY_HOME_ACCESS,
 
     // Audio/Visual perks (always unlocked)
     CUSTOM_BANNER_COLORS,

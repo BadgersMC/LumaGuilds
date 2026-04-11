@@ -30,6 +30,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private val guildService: GuildService by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
 
     // Teleportation tracking
     private data class TeleportSession(
@@ -62,8 +63,14 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         // Teleport buttons
         addTeleportButtons(pane, 0, 4)
 
-        // Back button
-        addBackButton(pane, 4, 5)
+        // Ally home teleport buttons (if perk unlocked)
+        if (progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) {
+            addAllyHomeButtons(pane, 0, 5)
+        }
+
+        // Back button (shift down if ally homes shown)
+        val backRow = if (progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) 5 else 5
+        addBackButton(pane, 8, backRow)
 
         gui.show(player)
     }
@@ -198,6 +205,37 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                 .lore("§7Set a home location first")
 
             pane.addItem(GuiItem(noHomeItem), x, y)
+        }
+    }
+
+    private fun addAllyHomeButtons(pane: StaticPane, x: Int, y: Int) {
+        val allyHomes = guildService.getAllyHomes(guild.id)
+        if (allyHomes.isEmpty()) {
+            val noAllyItem = ItemStack.of(Material.GRAY_DYE)
+                .name("§7No Ally Homes Available")
+                .lore("§7Allied guilds must also have this perk")
+                .lore("§7and have a home set")
+
+            pane.addItem(GuiItem(noAllyItem), x, y)
+            return
+        }
+
+        var slot = x
+        for ((guildName, home) in allyHomes) {
+            if (slot >= 7) break // Max 7 ally homes on row
+            val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
+            val allyItem = ItemStack.of(Material.ENDER_EYE)
+                .name("§d⚔ $guildName")
+                .lore("§7Ally guild home")
+                .lore("§7World: §f$worldName")
+                .lore("§7")
+                .lore("§eClick to teleport")
+
+            val guiItem = GuiItem(allyItem) {
+                startTeleportCountdown(home)
+            }
+            pane.addItem(guiItem, slot, y)
+            slot++
         }
     }
 
