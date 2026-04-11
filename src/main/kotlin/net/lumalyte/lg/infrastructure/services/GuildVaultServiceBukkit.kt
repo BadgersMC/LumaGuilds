@@ -14,6 +14,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildVaultLocation
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.entities.VaultStatus
+import net.lumalyte.lg.domain.events.GuildVaultPlacedEvent
 import net.lumalyte.lg.interaction.inventory.VaultInventoryHolder
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -111,6 +112,7 @@ class GuildVaultServiceBukkit(
                 logger.info("Guild ${guild.name} vault has existing contents that will be restored")
             }
 
+            Bukkit.getPluginManager().callEvent(GuildVaultPlacedEvent(guild.id, player.uniqueId))
             VaultResult.Success(updatedGuild)
         } else {
             VaultResult.Failure("Failed to save vault location to database")

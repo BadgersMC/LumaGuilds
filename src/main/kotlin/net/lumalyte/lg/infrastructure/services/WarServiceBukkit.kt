@@ -5,6 +5,9 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.*
+import net.lumalyte.lg.domain.events.GuildWarDeclaredEvent
+import net.lumalyte.lg.domain.events.GuildWarEndEvent
+import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -95,6 +98,7 @@ class WarServiceBukkit(
             recordWarDeclaration(declaringGuildId)
 
             logger.info("War declared and ACTIVE by guild $declaringGuildId against guild $defendingGuildId")
+            Bukkit.getPluginManager().callEvent(GuildWarDeclaredEvent(declaringGuildId, defendingGuildId, actorId))
             war
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
@@ -215,6 +219,7 @@ class WarServiceBukkit(
             applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, winnerGuildId)
 
             logger.info("War ended: $warId, winner: $winnerGuildId")
+            Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loserGuildId, war.declaringGuildId, war.defendingGuildId))
             true
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
