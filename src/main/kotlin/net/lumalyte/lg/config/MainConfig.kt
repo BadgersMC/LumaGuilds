@@ -33,7 +33,18 @@ data class MainConfig(
     var ui: UIConfig = UIConfig(),
     var discord: DiscordConfig = DiscordConfig(),
     var party: PartyConfig = PartyConfig(),
-    var bedrock: BedrockConfig = BedrockConfig()
+    var bedrock: BedrockConfig = BedrockConfig(),
+    var webApi: WebApiConfig = WebApiConfig()
+)
+
+data class WebApiConfig(
+    var enabled: Boolean = false,
+    var host: String = "127.0.0.1",
+    var port: Int = 8123,
+    var bearerToken: String = "",
+    var leaderboardLimitMax: Int = 50,
+    var leaderboardLimitDefault: Int = 10,
+    var topMembersPerGuild: Int = 5
 )
 
 data class GuildConfig(

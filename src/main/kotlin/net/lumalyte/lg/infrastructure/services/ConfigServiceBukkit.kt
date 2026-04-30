@@ -30,7 +30,20 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             progression = loadProgressionConfig(),
             ui = loadUIConfig(),
             discord = loadDiscordConfig(),
-            party = loadPartyConfig()
+            party = loadPartyConfig(),
+            webApi = loadWebApiConfig()
+        )
+    }
+
+    private fun loadWebApiConfig(): WebApiConfig {
+        return WebApiConfig(
+            enabled = config.getBoolean("web_api.enabled", false),
+            host = config.getString("web_api.host", "127.0.0.1") ?: "127.0.0.1",
+            port = config.getInt("web_api.port", 8123),
+            bearerToken = config.getString("web_api.bearer_token", "") ?: "",
+            leaderboardLimitMax = config.getInt("web_api.leaderboard_limit_max", 50),
+            leaderboardLimitDefault = config.getInt("web_api.leaderboard_limit_default", 10),
+            topMembersPerGuild = config.getInt("web_api.top_members_per_guild", 5)
         )
     }
 
