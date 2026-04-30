@@ -135,6 +135,13 @@ class LumaGuilds : JavaPlugin() {
         // Initialize daily war costs scheduler
         initDailyWarCostsScheduler()
 
+        // Start Web API (read-only JSON endpoint for the website)
+        try {
+            get().get<net.lumalyte.lg.infrastructure.web.WebApiServer>().start()
+        } catch (e: Exception) {
+            logger.warning("Failed to start Web API server: ${e.message}")
+        }
+
         // Fancy startup message
         displayFancyStartupMessage()
     }
@@ -884,6 +891,13 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        // Stop Web API first so it stops accepting new requests
+        try {
+            get().getOrNull<net.lumalyte.lg.infrastructure.web.WebApiServer>()?.stop()
+        } catch (e: Exception) {
+            logger.warning("Failed to stop Web API server: ${e.message}")
+        }
+
         // Stop Apollo services
         try {
             val guildTeamService = get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()

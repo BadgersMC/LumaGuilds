@@ -459,6 +459,23 @@ fun progressionModule() = module {
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get()) }
     single<WarService> { WarServiceBukkit(get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
+    single {
+        net.lumalyte.lg.infrastructure.web.handlers.GuildLeaderboardHandler(
+            leaderboardService = get(),
+            guildService = get(),
+            memberService = get(),
+            bannerService = get(),
+            progressionRepository = get(),
+            config = get<ConfigService>().loadConfig().webApi
+        )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.web.WebApiServer(
+            plugin = get<LumaGuilds>(),
+            config = get<ConfigService>().loadConfig().webApi,
+            guildLeaderboardHandler = get()
+        )
+    }
     single<ModeService> { ModeServiceBukkit(get(), get(), get(), get()) }
     single<net.lumalyte.lg.infrastructure.services.ProgressionConfigService> {
         net.lumalyte.lg.infrastructure.services.ProgressionConfigService(get())

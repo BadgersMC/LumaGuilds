@@ -102,6 +102,26 @@ discord_webhook_url: ""
 discord_csv_delivery: false
 
 # =====================================
+# Web API (read-only JSON endpoint for the website)
+# =====================================
+# Exposes public leaderboard data (e.g. top guilds) as JSON over HTTP.
+# Intended for the website backend to fetch and cache; do NOT expose this
+# port directly to the browser. Bind to localhost (127.0.0.1) and reverse
+# proxy through the website server, or restrict by firewall.
+web_api:
+  enabled: false
+  host: "127.0.0.1"
+  port: 8123
+  # If set, requests must include "Authorization: Bearer <token>".
+  # Leave empty to disable auth (only safe behind firewall / loopback).
+  bearer_token: ""
+  leaderboard_limit_default: 10
+  leaderboard_limit_max: 50
+  # How many member UUIDs to include per guild (for player-head rotation
+  # on the site if it doesn't render the banner).
+  top_members_per_guild: 5
+
+# =====================================
 # Guild System Configuration
 # =====================================
 
