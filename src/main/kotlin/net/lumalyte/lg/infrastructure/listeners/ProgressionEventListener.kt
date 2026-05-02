@@ -1,7 +1,9 @@
 package net.lumalyte.lg.infrastructure.listeners
 
+import net.lumalyte.lg.application.services.ActivityType
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.ExperienceSource
+import net.lumalyte.lg.application.services.LeaderboardService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.domain.events.GuildBankDepositEvent
@@ -44,6 +46,7 @@ class ProgressionEventListener : Listener, KoinComponent {
     private val memberService: MemberService by inject()
     private val configService: ConfigService by inject()
     private val asyncTaskService: AsyncTaskService by inject()
+    private val leaderboardService: LeaderboardService by inject()
 
     private val logger = LoggerFactory.getLogger(ProgressionEventListener::class.java)
 
@@ -65,6 +68,29 @@ class ProgressionEventListener : Listener, KoinComponent {
         if (killer is Player) {
             awardExperience(killer, getConfig().playerKillXp, ExperienceSource.PLAYER_KILL)
         }
+        recordKillDeathActivity(killer, event.entity)
+    }
+
+    private fun recordKillDeathActivity(killer: Player?, victim: Player) {
+        if (killer != null && killer.uniqueId == victim.uniqueId) return
+        asyncTaskService.runAsyncCallback(
+            task = {
+                try {
+                    if (killer != null) {
+                        memberService.getPlayerGuilds(killer.uniqueId).forEach { gid ->
+                            leaderboardService.recordActivity(gid, ActivityType.KILL, 1)
+                        }
+                    }
+                    memberService.getPlayerGuilds(victim.uniqueId).forEach { gid ->
+                        leaderboardService.recordActivity(gid, ActivityType.DEATH, 1)
+                    }
+                } catch (e: Exception) {
+                    logger.warn("Failed to record kill/death activity", e)
+                }
+            },
+            onSuccess = {},
+            onError = { error -> logger.error("Async kill/death activity failed", error) }
+        )
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -251,6 +277,7 @@ class ProgressionEventListener : Listener, KoinComponent {
                     if (xpAmount > 0) {
                         progressionService.awardExperience(event.guildId, xpAmount, ExperienceSource.BANK_DEPOSIT)
                     }
+                    leaderboardService.recordActivity(event.guildId, ActivityType.BANK_DEPOSIT, event.amount.toInt().coerceAtLeast(1))
                 } catch (e: Exception) {
                     logger.warn("Failed to award progression XP for bank deposit", e)
                 }
@@ -276,6 +303,7 @@ class ProgressionEventListener : Listener, KoinComponent {
                     val config = configService.loadConfig()
                     val memberJoinXp = config.progression.memberJoinedXp
                     progressionService.awardExperience(event.guildId, memberJoinXp, ExperienceSource.MEMBER_JOINED)
+                    leaderboardService.recordActivity(event.guildId, ActivityType.MEMBER_JOINED, 1)
                 } catch (e: Exception) {
                     logger.warn("Failed to award progression XP for member join", e)
                 }
