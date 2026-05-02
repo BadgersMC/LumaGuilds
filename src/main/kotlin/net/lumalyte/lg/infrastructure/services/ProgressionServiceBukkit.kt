@@ -362,8 +362,11 @@ class ProgressionServiceBukkit(
     }
 
     override fun hasMarketStallAccess(guildId: UUID): Boolean {
-        val guild = guildRepository.getById(guildId) ?: return false
-        return guild.level >= 15
+        return getGuildLevel(guildId) >= 15
+    }
+
+    override fun getGuildLevel(guildId: UUID): Int {
+        return progressionRepository.getGuildProgression(guildId)?.currentLevel ?: 1
     }
 
     override fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType> {
@@ -375,9 +378,10 @@ class ProgressionServiceBukkit(
         // Apply any immediate effects of new perks
         applyPerkEffects(guildId, newPerks)
         
-        // Sync Guild.level with authoritative GuildProgression level
+        // Sync Guild.level with authoritative GuildProgression level.
+        // Use < (not !=) so a slow concurrent write can never downgrade the stored level.
         val currentGuild = guildRepository.getById(guildId)
-        if (currentGuild != null && currentGuild.level != newLevel) {
+        if (currentGuild != null && currentGuild.level < newLevel) {
             guildRepository.update(currentGuild.copy(level = newLevel))
         }
 

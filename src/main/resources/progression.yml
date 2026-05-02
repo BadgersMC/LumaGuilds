@@ -2,33 +2,75 @@
 # Max level: 100
 # XP formula: base_xp * (level - 1)^level_exponent + (level * linear_bonus)
 
-progression:
-  enabled: true
-  max_level: 100
+enabled: true
+claims_based: true
+max_level: 100
 
-  xp_formula:
-    base_xp: 500.0
-    level_exponent: 1.15
-    linear_bonus: 150
+leveling:
+  base_xp: 500.0
+  level_exponent: 1.15
+  linear_bonus: 150
 
-  xp_sources:
-    kill_player: 50
-    kill_mob: 5
-    block_break: 1
-    block_place: 1
-    farm_harvest: 3
-    fish_catch: 10
-    craft_item: 2
-    smelt_item: 2
-    brew_potion: 5
-    enchant_item: 15
-    form_alliance: 200
-    declare_war: 100
-    win_war: 500
-    bank_deposit: 1
+rate_limiting:
+  xp_cooldown_ms: 5000
+  max_xp_per_batch: 50
 
-  # Levels when claims system is ENABLED
-  levels_claims:
+experience_sources:
+  guild:
+    bank_deposit:
+      enabled: true
+      xp_per_100_coins: 1
+    member_joined:
+      enabled: true
+      xp: 50
+    war_won:
+      enabled: true
+      xp: 500
+    war_lost:
+      enabled: true
+      xp: 100
+    claim_created:
+      enabled: true
+      xp: 100
+    alliance_formed:
+      enabled: true
+      xp: 200
+    party_created:
+      enabled: true
+      xp: 25
+  player:
+    player_kill:
+      enabled: true
+      xp: 50
+    mob_kill:
+      enabled: true
+      xp: 5
+    crop_harvest:
+      enabled: true
+      xp: 3
+    block_break:
+      enabled: true
+      xp: 1
+    block_place:
+      enabled: true
+      xp: 1
+    crafting:
+      enabled: true
+      xp: 2
+    smelting:
+      enabled: true
+      xp: 2
+    brewing:
+      enabled: true
+      xp: 5
+    fishing:
+      enabled: true
+      xp: 10
+    enchanting:
+      enabled: true
+      xp: 15
+
+levels_claims:
   1:
     perks: [CUSTOM_BANNER_COLORS, ANIMATED_EMOJIS]
     claim_blocks: 0
@@ -840,8 +882,9 @@ progression:
     withdrawal_fee_multiplier: 0.9
 
 
-  # Levels when claims system is DISABLED
-  levels_no_claims:
+# Levels when claims system is DISABLED
+
+levels_no_claims:
   1:
     perks: [CUSTOM_BANNER_COLORS, ANIMATED_EMOJIS]
     bank_limit: 50000

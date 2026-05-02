@@ -1881,7 +1881,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val guild = guilds.first()
 
         // Level 10 required for alliances
-        if (guild.level < 10) {
+        if (progressionService.getGuildLevel(guild.id) < 10) {
             player.sendMessage("§c❌ Your guild must reach Level 10 to form alliances.")
             return
         }
@@ -1954,7 +1954,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
         val guild = guilds.first()
-        if (guild.level < 25) {
+        if (progressionService.getGuildLevel(guild.id) < 25) {
             player.sendMessage("§c❌ Your guild must reach Level 25 to set an Ally Home.")
             return
         }
@@ -2011,7 +2011,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val guild = guilds.first()
 
         // Level 20 required for war/enemy declarations
-        if (guild.level < 20) {
+        if (progressionService.getGuildLevel(guild.id) < 20) {
             player.sendMessage("§c❌ Your guild must reach Level 20 to declare war.")
             return
         }
