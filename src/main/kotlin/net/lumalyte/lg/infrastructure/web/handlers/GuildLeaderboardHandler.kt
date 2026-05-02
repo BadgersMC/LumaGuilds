@@ -54,25 +54,47 @@ class GuildLeaderboardHandler(
 
     fun build(typeParam: String?, periodParam: String?, limitParam: String?): GuildLeaderboardResponse {
         val category = Category.parse(typeParam)
-        val period = parsePeriod(periodParam)
+        val requestedPeriod = parsePeriod(periodParam)
+        val effectivePeriod = effectivePeriodFor(category, requestedPeriod)
         val limit = parseLimit(limitParam)
 
-        val ranked = rankGuilds(category, limit)
+        val ranked = rankGuilds(category, effectivePeriod, limit)
 
-        val entries = ranked.mapIndexedNotNull { idx, (guildId, score) ->
-            buildEntry(guildId, idx + 1, score)
+        // Build entries first (some may be null if a guild lookup fails),
+        // then assign sequential ranks so we never return gaps like 1, 3, 4.
+        var nextRank = 1
+        val entries = ranked.mapNotNull { (guildId, score) ->
+            buildEntry(guildId, nextRank, score)?.also { nextRank++ }
         }
 
         return GuildLeaderboardResponse(
             type = category.id,
-            period = period.name,
+            period = effectivePeriod.name,
             generatedAt = Instant.now().toString(),
             count = entries.size,
             entries = entries
         )
     }
 
-    private fun rankGuilds(category: Category, limit: Int): List<Pair<UUID, Double>> {
+    /**
+     * Returns the period actually applied for a category. Only ACTIVITY varies
+     * by period today (weekly activity tracking); the others are point-in-time
+     * snapshots, so we always report ALL_TIME for them regardless of input.
+     */
+    private fun effectivePeriodFor(category: Category, requested: LeaderboardPeriod): LeaderboardPeriod =
+        when (category) {
+            Category.ACTIVITY -> if (requested == LeaderboardPeriod.ALL_TIME) LeaderboardPeriod.WEEKLY else requested
+            Category.LEVEL,
+            Category.BALANCE,
+            Category.MEMBERS,
+            Category.AGE -> LeaderboardPeriod.ALL_TIME
+        }
+
+    private fun rankGuilds(
+        category: Category,
+        period: LeaderboardPeriod,
+        limit: Int
+    ): List<Pair<UUID, Double>> {
         return when (category) {
             Category.LEVEL -> {
                 guildService.getAllGuilds()
@@ -91,7 +113,10 @@ class GuildLeaderboardHandler(
                     .take(limit)
             }
             Category.ACTIVITY -> {
-                val weekStart = currentWeekStart()
+                // Currently only weekly activity is tracked; map any non-ALL_TIME
+                // period onto the current week for now. Daily/monthly variants
+                // can be added when the repository supports them.
+                val weekStart = activityWindowStart(period)
                 leaderboardRepository.getWeeklyActivityForPeriod(weekStart, 1000)
                     .map { it.guildId to it.totalScore.toDouble() }
                     .sortedByDescending { it.second }
@@ -110,6 +135,16 @@ class GuildLeaderboardHandler(
                     .map { it.id to it.createdAt.epochSecond.toDouble() }
             }
         }
+    }
+
+    private fun activityWindowStart(period: LeaderboardPeriod): Instant = when (period) {
+        // Today the underlying tracking is week-bucketed, so every variant maps
+        // to the current week start. This indirection keeps the call site honest
+        // about what period it asked for.
+        LeaderboardPeriod.WEEKLY,
+        LeaderboardPeriod.DAILY,
+        LeaderboardPeriod.MONTHLY,
+        LeaderboardPeriod.ALL_TIME -> currentWeekStart()
     }
 
     private fun buildEntry(guildId: UUID, rank: Int, score: Double): GuildLeaderboardEntryDto? {

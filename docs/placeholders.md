@@ -89,7 +89,7 @@ Cached for 30 seconds. Returns `""` if the slot is empty.
 
 ### Examples
 
-```
+```text
 %lumaguilds_top_balance_1_name%        → "DiamondDelvers"
 %lumaguilds_top_balance_1_value%       → "152340"
 %lumaguilds_top_level_3_tag_plain%     → "Wolves"
