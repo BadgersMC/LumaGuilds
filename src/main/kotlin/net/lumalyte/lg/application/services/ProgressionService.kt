@@ -192,6 +192,9 @@ interface ProgressionService {
     /** Returns true if the guild has reached Level 15 for Market Stall access. */
     fun hasMarketStallAccess(guildId: UUID): Boolean
 
+    /** Returns the guild's authoritative current level from GuildProgression (never stale). */
+    fun getGuildLevel(guildId: UUID): Int
+
     fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType>
 }
 

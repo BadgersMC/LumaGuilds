@@ -26,8 +26,9 @@ class CustomEmojiCommand(
             return true
         }
 
-        val guildName = args[0]
-        val emojiArg = args[1]
+        // Last arg is emoji/clear; everything before it is the guild name (supports spaces)
+        val guildName = args.dropLast(1).joinToString(" ")
+        val emojiArg = args.last()
 
         val guild = guildService.getGuildByName(guildName)
         if (guild == null) {
