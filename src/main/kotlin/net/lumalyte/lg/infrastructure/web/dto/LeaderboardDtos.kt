@@ -19,9 +19,12 @@ data class GuildLeaderboardEntryDto(
     val experienceThisLevel: Int,
     val experienceForNextLevel: Int,
     val memberCount: Int,
+    val bankBalance: Int,
+    val activityScore: Int,
     val topMemberUuids: List<String>,
     val banner: BannerDto?,
-    val createdAt: String
+    val createdAt: String,
+    val score: Double
 )
 
 data class BannerDto(
