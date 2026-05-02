@@ -18,6 +18,7 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -142,7 +143,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "guild_xp_to_next" -> safeProgression(guildId)?.experienceToNextLevel?.toString() ?: "0"
             "guild_xp_progress_pct" -> {
                 val p = safeProgression(guildId)
-                if (p != null) String.format("%.1f", p.levelProgress * 100.0) else "0.0"
+                if (p != null) String.format(Locale.ROOT, "%.1f", p.levelProgress * 100.0) else "0.0"
             }
 
             // This player's guild rank within each leaderboard
@@ -411,7 +412,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
     private fun formatScore(score: Double): String {
         // age category stores epochSecond — render the level/balance/etc as integer where sensible
-        return if (score % 1.0 == 0.0) score.toLong().toString() else String.format("%.1f", score)
+        return if (score % 1.0 == 0.0) score.toLong().toString() else String.format(Locale.ROOT, "%.1f", score)
     }
 
     private fun rankInTop(category: String, guildId: UUID): String {
