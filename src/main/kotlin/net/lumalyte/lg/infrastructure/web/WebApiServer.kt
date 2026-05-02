@@ -66,6 +66,7 @@ class WebApiServer(
             // expected to be thread-safe — they are also called from PAPI / other
             // async paths in this plugin.
             val response = guildLeaderboardHandler.build(
+                typeParam = params["type"],
                 periodParam = params["period"],
                 limitParam = params["limit"]
             )

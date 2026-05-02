@@ -466,6 +466,8 @@ fun progressionModule() = module {
             memberService = get(),
             bannerService = get(),
             progressionRepository = get(),
+            leaderboardRepository = get(),
+            bankService = get(),
             config = get<ConfigService>().loadConfig().webApi
         )
     }
