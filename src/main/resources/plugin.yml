@@ -70,7 +70,11 @@ permissions:
       lumaguilds.guild.war: true
       lumaguilds.guild.info: true
       lumaguilds.guild.history: true
+      lumaguilds.guild.chat: true
 
+  lumaguilds.guild.chat:
+    description: Toggle guild chat mode (messages go to guild only)
+    default: true
   lumaguilds.guild.create:
     description: Create new guilds
     default: true
