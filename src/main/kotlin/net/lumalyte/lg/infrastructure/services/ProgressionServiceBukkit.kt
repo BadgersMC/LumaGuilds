@@ -364,14 +364,26 @@ class ProgressionServiceBukkit(
 
     override fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType> {
         val newPerks = getPerksForLevel(newLevel)
-        
-        // Send notifications to all online guild members
-        notifyGuildMembers(guildId, newLevel, newPerks)
 
-        // Apply any immediate effects of new perks
-        applyPerkEffects(guildId, newPerks)
+        // Bukkit API (event dispatch, player titles/sounds, online-player iteration) MUST run on the main thread.
+        // awardExperience() is invoked from a virtual thread (see ProgressionEventListener.awardExperience), so
+        // schedule the level-up side effects synchronously to avoid IllegalStateException from non-async events.
+        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
+        val task = Runnable {
+            // Send notifications to all online guild members
+            notifyGuildMembers(guildId, newLevel, newPerks)
 
-        Bukkit.getPluginManager().callEvent(GuildLevelUpEvent(guildId, newLevel))
+            // Apply any immediate effects of new perks
+            applyPerkEffects(guildId, newPerks)
+
+            Bukkit.getPluginManager().callEvent(GuildLevelUpEvent(guildId, newLevel))
+        }
+
+        if (plugin != null && !Bukkit.isPrimaryThread()) {
+            Bukkit.getScheduler().runTask(plugin, task)
+        } else {
+            task.run()
+        }
 
         return newPerks
     }
