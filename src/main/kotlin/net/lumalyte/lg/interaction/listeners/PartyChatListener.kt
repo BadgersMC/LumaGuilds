@@ -66,9 +66,12 @@ class PartyChatListener : Listener, KoinComponent {
         val playerId = player.uniqueId
         val preference = preferenceRepository.getByPlayerId(playerId) ?: return // GLOBAL chat - don't intercept
 
-        // CANCEL THE EVENT IMMEDIATELY to prevent ChatControl or other plugins from processing it
-        // This must happen BEFORE any other checks to ensure the message doesn't leak to global chat
+        // CANCEL THE EVENT IMMEDIATELY and clear viewers.
+        // Clearing viewers stops RoseChat (HIGHEST, ignoreCancelled=false) from
+        // iterating over recipients and delivering the message to main chat — even
+        // though it runs after us at a higher priority.
         event.isCancelled = true
+        event.viewers().clear()
 
         // Get the party
         val party = partyRepository.getById(preference.partyId)
