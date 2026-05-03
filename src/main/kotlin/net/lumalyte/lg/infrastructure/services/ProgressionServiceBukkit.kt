@@ -22,7 +22,8 @@ class ProgressionServiceBukkit(
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
     private val memberRepository: net.lumalyte.lg.application.persistence.MemberRepository,
     private val configService: ConfigService,
-    private val progressionConfigService: ProgressionConfigService
+    private val progressionConfigService: ProgressionConfigService,
+    private val plugin: org.bukkit.plugin.Plugin
 ) : ProgressionService {
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
@@ -371,7 +372,17 @@ class ProgressionServiceBukkit(
         // Apply any immediate effects of new perks
         applyPerkEffects(guildId, newPerks)
 
-        Bukkit.getPluginManager().callEvent(GuildLevelUpEvent(guildId, newLevel))
+        // GuildLevelUpEvent must be fired synchronously. awardExperience may be
+        // invoked from async coroutines (see ProgressionEventListener), so dispatch
+        // the event onto the main thread when needed.
+        val fireEvent = Runnable {
+            Bukkit.getPluginManager().callEvent(GuildLevelUpEvent(guildId, newLevel))
+        }
+        if (Bukkit.isPrimaryThread()) {
+            fireEvent.run()
+        } else {
+            Bukkit.getScheduler().runTask(plugin, fireEvent)
+        }
 
         return newPerks
     }
