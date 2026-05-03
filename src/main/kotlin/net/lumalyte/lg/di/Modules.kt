@@ -266,6 +266,9 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     }
     single<FormValidationService> { FormValidationServiceImpl(get()) }
 
+    // Menu utilities
+    single { net.lumalyte.lg.utils.MenuItemBuilder(get(), get()) }
+
     // Menu factory
     single<net.lumalyte.lg.interaction.menus.MenuFactory> {
         net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get())
