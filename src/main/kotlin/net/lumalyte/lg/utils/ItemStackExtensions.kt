@@ -207,7 +207,38 @@ fun ItemStack.serializeToString(): String {
 }
 
 /**
- * Deserializes a Base64 string back to an ItemStack
+ * Parses the legacy `key=value;key=value` fallback format.
+ *
+ * Returns null if any entry is malformed (missing `=`), instead of throwing
+ * IndexOutOfBoundsException from a destructuring assignment on a 1-element list.
+ * This was the cause of an Alliance/Diplomatic Relations menu crash when a guild's
+ * banner column held arbitrary text that was neither valid Base64 nor key=value pairs.
+ */
+private fun String.tryParseLegacyItemFormat(): ItemStack? {
+    return try {
+        val entries = mutableMapOf<String, Any>()
+        for (entry in this.split(";")) {
+            if (entry.isEmpty()) continue
+            val parts = entry.split("=", limit = 2)
+            if (parts.size != 2) return null // malformed segment, abort fallback
+            entries[parts[0]] = parts[1]
+        }
+        if (entries.isEmpty()) null else ItemStack.deserialize(entries)
+    } catch (e: IllegalArgumentException) {
+        // ItemStack.deserialize rejected the map (missing required keys, bad material, etc.)
+        null
+    } catch (e: ClassCastException) {
+        // Type coercion failed during deserialization
+        null
+    }
+}
+
+/**
+ * Deserializes a Base64 string back to an ItemStack.
+ *
+ * Returns null when the input is neither a valid Base64-encoded ObjectStream
+ * payload nor a parseable legacy `key=value;...` fallback string. Callers should
+ * substitute a default item (e.g. a placeholder banner) when null is returned.
  */
 fun String.deserializeToItemStack(): ItemStack? {
     return try {
@@ -224,29 +255,15 @@ fun String.deserializeToItemStack(): ItemStack? {
         ItemStack.deserialize(serialized)
     } catch (e: IllegalArgumentException) {
         // Invalid Base64 or deserialization data - try fallback to old string format
-        try {
-            val entries = this.split(";").associate { entry ->
-                val (key, value) = entry.split("=", limit = 2)
-                key to value
-            }
-            ItemStack.deserialize(entries)
-        } catch (fallbackException: IllegalArgumentException) {
-            // Old format also invalid
-            null
-        }
+        this.tryParseLegacyItemFormat()
     } catch (e: IOException) {
         // I/O error during deserialization - try fallback to old string format
-        try {
-            val entries = this.split(";").associate { entry ->
-                val (key, value) = entry.split("=", limit = 2)
-                key to value
-            }
-            ItemStack.deserialize(entries)
-        } catch (fallbackException: IllegalArgumentException) {
-            null
-        }
+        this.tryParseLegacyItemFormat()
     } catch (e: ClassNotFoundException) {
         // Serialized class not found - data corrupt or incompatible version
+        null
+    } catch (e: ClassCastException) {
+        // readObject() returned something that isn't Map<String, Any>
         null
     }
 }
