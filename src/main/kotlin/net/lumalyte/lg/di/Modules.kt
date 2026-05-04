@@ -439,6 +439,9 @@ fun socialModule() = module {
 
     // Listeners
     single<ChatInputListener> { ChatInputListener() }
+    single<net.lumalyte.lg.interaction.listeners.GuildChatListener> {
+        net.lumalyte.lg.interaction.listeners.GuildChatListener()
+    }
     single<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener(get(), get())
     }
