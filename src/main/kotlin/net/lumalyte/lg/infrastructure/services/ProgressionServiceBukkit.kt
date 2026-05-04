@@ -22,7 +22,8 @@ class ProgressionServiceBukkit(
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
     private val memberRepository: net.lumalyte.lg.application.persistence.MemberRepository,
     private val configService: ConfigService,
-    private val progressionConfigService: ProgressionConfigService
+    private val progressionConfigService: ProgressionConfigService,
+    private val plugin: org.bukkit.plugin.Plugin
 ) : ProgressionService {
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
@@ -364,14 +365,20 @@ class ProgressionServiceBukkit(
 
     override fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType> {
         val newPerks = getPerksForLevel(newLevel)
-        
-        // Send notifications to all online guild members
-        notifyGuildMembers(guildId, newLevel, newPerks)
 
-        // Apply any immediate effects of new perks
-        applyPerkEffects(guildId, newPerks)
-
-        Bukkit.getPluginManager().callEvent(GuildLevelUpEvent(guildId, newLevel))
+        // Notifications, perk effects, and GuildLevelUpEvent all touch Bukkit API and
+        // must run on the primary thread. awardExperience may be invoked from a virtual
+        // thread (see ProgressionEventListener), so bounce the side effects when needed.
+        val sideEffects = Runnable {
+            notifyGuildMembers(guildId, newLevel, newPerks)
+            applyPerkEffects(guildId, newPerks)
+            Bukkit.getPluginManager().callEvent(GuildLevelUpEvent(guildId, newLevel))
+        }
+        if (Bukkit.isPrimaryThread()) {
+            sideEffects.run()
+        } else {
+            Bukkit.getScheduler().runTask(plugin, sideEffects)
+        }
 
         return newPerks
     }
