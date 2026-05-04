@@ -1,5 +1,6 @@
 package net.lumalyte.lg.utils
 
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.config.MenuItemConfig
 import org.bukkit.Material
@@ -13,9 +14,12 @@ import java.util.UUID
  * Supports custom model data, materials, enchantments, and localized names/lore.
  */
 class MenuItemBuilder(
-    private val config: MainConfig,
+    private val configService: ConfigService,
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider
 ) {
+
+    private val config: MainConfig
+        get() = configService.loadConfig()
     
     /**
      * Creates an ItemStack from a MenuItemConfig with localization.
