@@ -44,6 +44,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val menuFactory: MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
     private val historyRepository: MembershipHistoryRepository by inject()
+    private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
 
     // Teleportation tracking for command-based teleports
     private data class TeleportSession(
@@ -709,6 +710,26 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         player.sendMessage("§6§l╚${"═".repeat(20 + displayName.length)}╝")
+    }
+
+    @Subcommand("chat")
+    @CommandPermission("lumaguilds.guild.chat")
+    fun onGuildChat(player: Player) {
+        val playerId = player.uniqueId
+
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§c❌ You are not in a guild!")
+            return
+        }
+
+        val nowEnabled = guildChatListener.toggleGuildChat(player)
+        if (nowEnabled) {
+            player.sendMessage("§a✅ §2Guild chat §aenabled§a! Your messages go only to guild members.")
+            player.sendMessage("§7Run §f/g chat §7again to return to normal chat.")
+        } else {
+            player.sendMessage("§7Guild chat §cdisabled§7. Your messages go to main chat.")
+        }
     }
 
     @Subcommand("info")

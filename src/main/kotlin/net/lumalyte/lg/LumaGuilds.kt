@@ -780,8 +780,22 @@ class LumaGuilds : JavaPlugin() {
         val chatInputListener = get().get<ChatInputListener>()
         server.pluginManager.registerEvents(chatInputListener, this)
 
-        // Register party chat listener with configurable priority (auto-routes messages to party after /pc switch)
         val config = get().get<ConfigService>().loadConfig()
+
+        // Register guild chat listener at LOWEST so it fires first.
+        // It also clears event.viewers() which prevents RoseChat (HIGHEST) from re-broadcasting to main chat.
+        val guildChatListener = get().get<net.lumalyte.lg.interaction.listeners.GuildChatListener>()
+        server.pluginManager.registerEvent(
+            io.papermc.paper.event.player.AsyncChatEvent::class.java,
+            guildChatListener,
+            org.bukkit.event.EventPriority.LOWEST,
+            { _, event -> guildChatListener.onPlayerChat(event as io.papermc.paper.event.player.AsyncChatEvent) },
+            this,
+            false // ignoreCancelled=false: run even if another plugin already cancelled
+        )
+        logColored("✓ Guild chat toggle registered (/g chat)")
+
+        // Register party chat listener with configurable priority (auto-routes messages to party after /pc switch)
         val partyChatListener = PartyChatListener()
         val priority = parsePriority(config.party.partyChatListenerPriority)
         server.pluginManager.registerEvent(
@@ -790,7 +804,7 @@ class LumaGuilds : JavaPlugin() {
             priority,
             { _, event -> partyChatListener.onPlayerChat(event as io.papermc.paper.event.player.AsyncChatEvent) },
             this,
-            false // ignoreCancelled - MUST be false to ensure we process events even if ChatControl marks them cancelled
+            false // ignoreCancelled=false: run even if RoseChat/other plugins already cancelled
         )
         logColored("✓ Party chat auto-routing registered (priority: ${config.party.partyChatListenerPriority})")
 

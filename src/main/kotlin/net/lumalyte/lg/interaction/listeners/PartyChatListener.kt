@@ -11,6 +11,8 @@ import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.values.ChatChannel
 import org.bukkit.entity.Player
 import org.bukkit.event.Listener
+import org.bukkit.metadata.FixedMetadataValue
+import org.bukkit.plugin.Plugin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
@@ -44,6 +46,9 @@ class PartyChatListener : Listener, KoinComponent {
     private val memberService: MemberService by inject()
     private val configService: ConfigService by inject()
     private val chatInputListener: ChatInputListener by inject()
+    private val plugin: Plugin by inject()
+
+    private val chatClaimMeta = "lumaguilds:chat_claimed"
 
     private val logger = LoggerFactory.getLogger(PartyChatListener::class.java)
 
@@ -66,9 +71,11 @@ class PartyChatListener : Listener, KoinComponent {
         val playerId = player.uniqueId
         val preference = preferenceRepository.getByPlayerId(playerId) ?: return // GLOBAL chat - don't intercept
 
-        // CANCEL THE EVENT IMMEDIATELY to prevent ChatControl or other plugins from processing it
-        // This must happen BEFORE any other checks to ensure the message doesn't leak to global chat
+        // Cancel, clear viewers, and set the chat-claim metadata marker so RoseChat's
+        // legacy AsyncPlayerChatEvent listener skips its pipeline.
         event.isCancelled = true
+        event.viewers().clear()
+        player.setMetadata(chatClaimMeta, FixedMetadataValue(plugin, true))
 
         // Get the party
         val party = partyRepository.getById(preference.partyId)
