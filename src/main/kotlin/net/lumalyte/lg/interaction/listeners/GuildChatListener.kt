@@ -7,6 +7,8 @@ import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.values.ChatChannel
 import org.bukkit.entity.Player
 import org.bukkit.event.Listener
+import org.bukkit.metadata.FixedMetadataValue
+import org.bukkit.plugin.Plugin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
@@ -35,6 +37,10 @@ class GuildChatListener : Listener, KoinComponent {
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
     private val chatInputListener: ChatInputListener by inject()
+    private val plugin: Plugin by inject()
+
+    /** Marker read by RoseChat (and other forks) to skip its pipeline when we've claimed the chat. */
+    private val chatClaimMeta = "lumaguilds:chat_claimed"
 
     private val logger = LoggerFactory.getLogger(GuildChatListener::class.java)
 
@@ -61,11 +67,12 @@ class GuildChatListener : Listener, KoinComponent {
             return
         }
 
-        // CANCEL THE EVENT IMMEDIATELY and clear viewers.
-        // Clearing viewers stops RoseChat (HIGHEST, ignoreCancelled=false) from
-        // iterating over recipients and delivering the message to main chat.
+        // Cancel the event, clear viewers, and set a metadata marker for plugins
+        // that listen on the legacy AsyncPlayerChatEvent (e.g. RoseChat) so they
+        // skip their pipeline instead of re-broadcasting to main chat.
         event.isCancelled = true
         event.viewers().clear()
+        player.setMetadata(chatClaimMeta, FixedMetadataValue(plugin, true))
 
         // Extract plain text from the Adventure component
         val message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim()
