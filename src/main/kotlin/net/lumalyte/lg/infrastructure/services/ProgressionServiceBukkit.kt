@@ -374,10 +374,12 @@ class ProgressionServiceBukkit(
                     if (guildRepository.update(guild.copy(level = computed))) {
                         updated++
                         logger.info("Backfilled Guild.level for ${guild.name} (${guild.id}): ${guild.level} -> $computed")
+                    } else {
+                        logger.warn("Backfill failed to update Guild.level for ${guild.name} (${guild.id}): ${guild.level} -> $computed")
                     }
                 }
                 if (computed != progression.currentLevel) {
-                    progressionRepository.saveGuildProgression(
+                    val saved = progressionRepository.saveGuildProgression(
                         progression.copy(
                             currentLevel = computed,
                             experienceThisLevel = progression.totalExperience - getTotalExperienceForLevel(computed),
@@ -385,6 +387,9 @@ class ProgressionServiceBukkit(
                             lastUpdated = Instant.now()
                         )
                     )
+                    if (!saved) {
+                        logger.warn("Backfill failed to update GuildProgression for ${guild.id}: currentLevel ${progression.currentLevel} -> $computed")
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -397,7 +402,9 @@ class ProgressionServiceBukkit(
         try {
             val guild = guildRepository.getById(guildId) ?: return
             if (guild.level != newLevel) {
-                guildRepository.update(guild.copy(level = newLevel))
+                if (!guildRepository.update(guild.copy(level = newLevel))) {
+                    logger.warn("Failed to persist Guild.level for $guildId: ${guild.level} -> $newLevel")
+                }
             }
         } catch (e: Exception) {
             // Don't let a stale Guild.level write fail the XP award.
