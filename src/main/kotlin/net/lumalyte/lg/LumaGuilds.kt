@@ -132,6 +132,17 @@ class LumaGuilds : JavaPlugin() {
         // Initialize file export cleanup
         get().get<FileExportManager>().cleanupOldFiles()
 
+        // Repair Guild.level drift from XP (one-shot at startup; cheap if already in sync).
+        try {
+            val progressionService = get().get<net.lumalyte.lg.application.services.ProgressionService>()
+            val synced = progressionService.syncGuildLevels()
+            if (synced > 0) {
+                logColored("✓ Synced $synced guild level(s) from stored XP")
+            }
+        } catch (e: Exception) {
+            logger.warning("Failed to sync guild levels from XP: ${e.message}")
+        }
+
         // Initialize daily war costs scheduler
         initDailyWarCostsScheduler()
 
