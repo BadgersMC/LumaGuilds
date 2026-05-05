@@ -83,6 +83,7 @@ class ProgressionServiceBukkit(
             // Process level up if occurred
             if (newLevel > oldLevel) {
                 logger.info("Guild $guildId leveled up from $oldLevel to $newLevel (gained $experience XP from $source)")
+                syncGuildLevelField(guildId, newLevel)
                 processLevelUp(guildId, newLevel)
                 return newLevel
             }
@@ -361,6 +362,54 @@ class ProgressionServiceBukkit(
             if (wars > maxWars) maxWars = wars
         }
         return maxWars
+    }
+
+    override fun syncGuildLevels(): Int {
+        var updated = 0
+        try {
+            for (guild in guildRepository.getAll()) {
+                val progression = progressionRepository.getGuildProgression(guild.id) ?: continue
+                val computed = getLevelFromExperience(progression.totalExperience)
+                if (computed != guild.level) {
+                    if (guildRepository.update(guild.copy(level = computed))) {
+                        updated++
+                        logger.info("Backfilled Guild.level for ${guild.name} (${guild.id}): ${guild.level} -> $computed")
+                    } else {
+                        logger.warn("Backfill failed to update Guild.level for ${guild.name} (${guild.id}): ${guild.level} -> $computed")
+                    }
+                }
+                if (computed != progression.currentLevel) {
+                    val saved = progressionRepository.saveGuildProgression(
+                        progression.copy(
+                            currentLevel = computed,
+                            experienceThisLevel = progression.totalExperience - getTotalExperienceForLevel(computed),
+                            experienceForNextLevel = getExperienceForNextLevel(computed),
+                            lastUpdated = Instant.now()
+                        )
+                    )
+                    if (!saved) {
+                        logger.warn("Backfill failed to update GuildProgression for ${guild.id}: currentLevel ${progression.currentLevel} -> $computed")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to sync guild levels", e)
+        }
+        return updated
+    }
+
+    private fun syncGuildLevelField(guildId: UUID, newLevel: Int) {
+        try {
+            val guild = guildRepository.getById(guildId) ?: return
+            if (guild.level != newLevel) {
+                if (!guildRepository.update(guild.copy(level = newLevel))) {
+                    logger.warn("Failed to persist Guild.level for $guildId: ${guild.level} -> $newLevel")
+                }
+            }
+        } catch (e: Exception) {
+            // Don't let a stale Guild.level write fail the XP award.
+            logger.error("Failed to sync Guild.level for $guildId to $newLevel", e)
+        }
     }
 
     override fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType> {

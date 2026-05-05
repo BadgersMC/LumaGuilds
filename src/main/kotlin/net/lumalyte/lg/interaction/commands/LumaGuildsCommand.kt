@@ -26,7 +26,12 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private val fileExportManager: FileExportManager by inject()
     private val guildService: GuildService by inject()
     private val adminOverrideService: AdminOverrideService by inject()
-    private val guildRolePermissionResolver: GuildRolePermissionResolver by inject()
+
+    // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
+    // claims are enabled. Touching it via `by inject()` would crash the override command
+    // on claims-disabled servers.
+    private val guildRolePermissionResolver: GuildRolePermissionResolver?
+        get() = getKoin().getOrNull()
     private val progressionConfigService: net.lumalyte.lg.infrastructure.services.ProgressionConfigService by inject()
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
@@ -295,8 +300,9 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         // Toggle the override state
         val newState = adminOverrideService.toggleOverride(sender.uniqueId)
 
-        // Invalidate the permission cache to apply changes immediately
-        guildRolePermissionResolver.invalidatePlayerCache(sender.uniqueId)
+        // Invalidate the claim-permission cache so changes apply immediately. Resolver is
+        // null on claims-disabled servers; the override still toggles for guild-level checks.
+        guildRolePermissionResolver?.invalidatePlayerCache(sender.uniqueId)
 
         // Send appropriate message based on new state
         if (newState) {
