@@ -183,6 +183,14 @@ class MemberServiceBukkit(
             return false
         }
 
+        // PRIORITY CHECK: Actor must strictly outrank the target (lower priority number = higher rank)
+        val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
+        val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
+        if (actorRank.priority >= currentRank.priority) {
+            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot manage member $playerId (priority ${currentRank.priority})")
+            return false
+        }
+
         // Check if new rank exists and belongs to the guild
         val newRank = rankRepository.getById(newRankId) ?: return false
         if (newRank.guildId != guildId) {
@@ -193,6 +201,12 @@ class MemberServiceBukkit(
         // OWNER PROTECTION: Prevent promoting anyone to owner rank (priority 0) - use ownership transfer instead
         if (newRank.priority == 0) {
             logger.warn("Cannot directly promote to owner rank - use ownership transfer instead")
+            return false
+        }
+
+        // PRIORITY CHECK: New rank must be strictly lower than actor's rank (cannot promote to own level or above)
+        if (newRank.priority <= actorRank.priority) {
+            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot assign rank with priority ${newRank.priority} — must be greater than actor's own priority")
             return false
         }
 
@@ -253,6 +267,14 @@ class MemberServiceBukkit(
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val currentRank = rankRepository.getById(member.rankId) ?: return false
 
+        // PRIORITY CHECK: Actor must strictly outrank the target
+        val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
+        val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
+        if (actorRank.priority >= currentRank.priority) {
+            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot promote member $playerId (priority ${currentRank.priority})")
+            return false
+        }
+
         // Get all ranks for the guild, sorted by priority (ascending)
         val guildRanks = rankRepository.getByGuild(guildId).sortedBy { it.priority }
 
@@ -268,6 +290,12 @@ class MemberServiceBukkit(
         // OWNER PROTECTION: Prevent promoting anyone to owner rank (priority 0) - use ownership transfer instead
         if (nextRank.priority == 0) {
             logger.warn("Cannot promote to owner rank - use ownership transfer instead")
+            return false
+        }
+
+        // PRIORITY CHECK: Cannot promote target to rank equal to or higher than actor's own rank
+        if (nextRank.priority <= actorRank.priority) {
+            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot promote member $playerId to priority ${nextRank.priority} — must remain greater than actor's own priority")
             return false
         }
 
@@ -292,6 +320,14 @@ class MemberServiceBukkit(
         // OWNER PROTECTION: Prevent owner from demoting themselves
         if (currentRank.priority == 0 && playerId == actorId) {
             logger.warn("Player $actorId (owner) attempted to demote themselves - ownership transfer required")
+            return false
+        }
+
+        // PRIORITY CHECK: Actor must strictly outrank the target (also blocks self-demotion)
+        val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
+        val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
+        if (actorRank.priority >= currentRank.priority) {
+            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot demote member $playerId (priority ${currentRank.priority})")
             return false
         }
 
