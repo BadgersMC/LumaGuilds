@@ -45,6 +45,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
     private val historyRepository: MembershipHistoryRepository by inject()
     private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
+    private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
 
     // Teleportation tracking for command-based teleports
     private data class TeleportSession(
@@ -812,7 +813,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val playerRank = rankService.getPlayerRank(playerId, guild.id)
         val highestRank = rankService.getHighestRank(guild.id)
 
-        if (playerRank?.id != highestRank?.id) {
+        if (!adminOverrideService.hasOverride(playerId) && playerRank?.id != highestRank?.id) {
             // Check if player has management permissions
             val hasManagementPerms = playerRank?.permissions?.any { permission ->
                 permission in setOf(
@@ -905,6 +906,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§cGuild §6$guildName§c doesn't exist!")
             player.sendMessage("§7Check §e/guild list§7 to see available guilds.")
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            return
+        }
+
+        // Admin override bypasses invitation requirements
+        if (adminOverrideService.hasOverride(playerId)) {
+            player.sendMessage("§7[Override] Bypassing invitation check.")
+            joinGuildDirectly(player, guild, isOpenGuild = guild.isOpen)
             return
         }
 
