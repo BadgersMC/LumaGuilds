@@ -190,6 +190,13 @@ interface ProgressionService {
      * @return List of newly unlocked perks.
      */
     fun processLevelUp(guildId: UUID, newLevel: Int): List<PerkType>
+
+    /**
+     * Recomputes Guild.level from each guild's stored XP and writes back any drift.
+     * Cheap repair pass for the bug where Guild.level was never updated alongside
+     * GuildProgression.currentLevel. Returns the number of guild rows updated.
+     */
+    fun syncGuildLevels(): Int
 }
 
 /**
