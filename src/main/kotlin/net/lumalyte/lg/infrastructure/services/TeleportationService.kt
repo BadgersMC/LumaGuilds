@@ -75,10 +75,18 @@ class TeleportationService(private val plugin: Plugin) {
                 }
 
                 if (currentSession.remainingSeconds <= 0) {
-                    // Teleport the player
-                    player.teleport(currentSession.targetLocation)
-                    player.sendMessage("§a✅ Welcome to your guild home!")
-                    player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                    // teleportAsync future may complete off the main thread;
+                    // dispatch Bukkit API calls back to main via the scheduler.
+                    player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
+                        plugin.server.scheduler.runTask(plugin, Runnable {
+                            if (success) {
+                                player.sendMessage("§a✅ Welcome to your guild home!")
+                                player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                            } else {
+                                player.sendMessage("§c❌ Teleport failed — please try again.")
+                            }
+                        })
+                    }
 
                     // Clean up
                     activeTeleports.remove(playerId)
