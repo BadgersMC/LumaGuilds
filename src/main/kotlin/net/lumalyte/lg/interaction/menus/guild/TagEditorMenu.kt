@@ -35,6 +35,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     private var currentTag: String? = null
     private var inputTag: String? = null
     private var validationError: String? = null
+    private var inputInitialized: Boolean = false
 
     override fun open() {
         println("[LumaGuilds] TagEditorMenu: Opening menu for player ${player.name}")
@@ -47,9 +48,12 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             println("[LumaGuilds] TagEditorMenu: Using existing currentTag: '$currentTag'")
         }
 
-        // Initialize inputTag only if it's null (preserve user input)
-        if (inputTag == null) {
+        // Initialize inputTag from currentTag on first open. After that, preserve
+        // user state — including an explicit clear (inputTag == null) — across
+        // re-opens triggered by button clicks.
+        if (!inputInitialized) {
             inputTag = currentTag
+            inputInitialized = true
             println("[LumaGuilds] TagEditorMenu: Initialized inputTag to currentTag: '$inputTag'")
         } else {
             println("[LumaGuilds] TagEditorMenu: Preserving existing inputTag: '$inputTag'")
