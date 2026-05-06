@@ -284,13 +284,18 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
         }
 
-        // Check if guild already has a home (separate from safety confirmation)
-        val currentHome = guildService.getHome(guild.id)
+        // Block only when the *named* home being set already exists. Looking up by guild.id
+        // alone returns the default ("main") home, which incorrectly blocked /g sethome <name>
+        // for any guild that had a main home and tricked players into overwriting main when
+        // they followed the "use /guild sethome confirm" hint.
+        val currentHome = guildService.getHome(guild.id, targetHomeName)
         if (currentHome != null && adjustedConfirm?.lowercase() != "confirm" && adjustedConfirm?.lowercase() != "unsafe") {
-            player.sendMessage("§c⚠️ Your guild already has a home set!")
-            player.sendMessage("§7Current home: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}")
+            val confirmCommand = if (adjustedHomeName != null) "/guild sethome $adjustedHomeName confirm" else "/guild sethome confirm"
+            val homeLabel = if (targetHomeName == "main") "main home" else "home '$targetHomeName'"
+            player.sendMessage("§c⚠️ Your guild already has a $homeLabel set!")
+            player.sendMessage("§7Current location: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}")
             player.sendMessage("§7New location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
-            player.sendMessage("§7Use §6/guild sethome confirm §7to replace the current home")
+            player.sendMessage("§7Use §6$confirmCommand §7to replace it")
             player.sendMessage("§7Or use the guild menu for a confirmation dialog.")
             return
         }
