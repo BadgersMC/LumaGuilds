@@ -67,7 +67,7 @@ class GuildMemberRankConfirmationMenu(
         pane.addItem(GuiItem(headItem), 0, 0)
 
         // Member info
-        val playerName = Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
         val infoItem = ItemStack.of(Material.PAPER)
             .name("§f👤 Member Details")
             .lore("§7Player: §f$playerName")
@@ -121,7 +121,7 @@ class GuildMemberRankConfirmationMenu(
         // Confirm button
         val confirmItem = ItemStack.of(Material.GREEN_WOOL)
             .name("§a✅ CONFIRM CHANGE")
-            .lore("§7Change ${Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown"}'s rank")
+            .lore("§7Change ${Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown"}'s rank")
             .lore("§7to ${newRank.name}")
 
         val confirmGuiItem = GuiItem(confirmItem) {
@@ -150,7 +150,7 @@ class GuildMemberRankConfirmationMenu(
             )
 
             if (success) {
-                val targetName = Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown Player"
+                val targetName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
                 val currentRank = rankService.getRank(targetMember.rankId)
 
                 val changeType = if (newRank.priority < (currentRank?.priority ?: 0)) {
@@ -185,7 +185,7 @@ class GuildMemberRankConfirmationMenu(
         val head = ItemStack.of(Material.PLAYER_HEAD)
         val meta = head.itemMeta as SkullMeta
 
-        val playerName = Bukkit.getPlayer(targetMember.playerId)?.name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
 
         // Set skull owner using Craftatar API URL
         try {

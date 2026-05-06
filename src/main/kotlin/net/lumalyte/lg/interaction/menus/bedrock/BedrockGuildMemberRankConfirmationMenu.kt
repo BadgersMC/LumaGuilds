@@ -34,8 +34,7 @@ class BedrockGuildMemberRankConfirmationMenu(
     private val rankService: RankService by inject()
 
     override fun getForm(): Form {
-        val targetPlayer = Bukkit.getPlayer(targetMember.playerId)
-        val targetName = targetPlayer?.name ?: "Unknown Player"
+        val targetName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
         val currentRank = rankService.getRank(targetMember.rankId)
 
         return SimpleForm.builder()
@@ -77,8 +76,7 @@ class BedrockGuildMemberRankConfirmationMenu(
     }
 
     private fun changeRank() {
-        val targetPlayer = Bukkit.getPlayer(targetMember.playerId)
-        val targetName = targetPlayer?.name ?: "Unknown Player"
+        val targetName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
 
         // Update the member's rank
         val success = memberService.changeMemberRank(targetMember.playerId, guild.id, newRank.id, player.uniqueId)
@@ -87,6 +85,7 @@ class BedrockGuildMemberRankConfirmationMenu(
             player.sendMessage("§a✅ Successfully changed $targetName's rank to ${newRank.name}!")
 
             // Notify the target player if they're online
+            val targetPlayer = Bukkit.getPlayer(targetMember.playerId)
             if (targetPlayer != null) {
                 targetPlayer.sendMessage("§6⚡ Your rank in ${guild.name} has been changed to ${newRank.name}")
             }
