@@ -178,13 +178,31 @@ class MemberServiceBukkit(
         }
 
         // Check if player is a member
-        val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
-        val currentRank = rankRepository.getById(member.rankId) ?: return false
+        val member = memberRepository.getByPlayerAndGuild(playerId, guildId)
+        if (member == null) {
+            logger.warn("changeMemberRank: target $playerId is not a member of guild $guildId (actor=$actorId, override=$isOverride)")
+            return false
+        }
+        val currentRank = rankRepository.getById(member.rankId)
+        if (currentRank == null) {
+            logger.warn("changeMemberRank: current rank ${member.rankId} for $playerId not found (actor=$actorId)")
+            return false
+        }
 
         // Check if new rank exists and belongs to the guild
-        val newRank = rankRepository.getById(newRankId) ?: return false
+        val newRank = rankRepository.getById(newRankId)
+        if (newRank == null) {
+            logger.warn("changeMemberRank: new rank $newRankId not found (actor=$actorId, override=$isOverride)")
+            return false
+        }
         if (newRank.guildId != guildId) {
             logger.warn("Rank $newRankId doesn't belong to guild $guildId")
+            return false
+        }
+
+        // OWNER PROTECTION: even with admin override, ownership must go through ownership-transfer flow
+        if (newRank.priority == 0) {
+            logger.warn("Cannot directly promote to owner rank - use ownership transfer instead (actor=$actorId, override=$isOverride)")
             return false
         }
 
@@ -200,12 +218,6 @@ class MemberServiceBukkit(
             val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
             if (actorRank.priority >= currentRank.priority) {
                 logger.warn("Player $actorId (priority ${actorRank.priority}) cannot manage member $playerId (priority ${currentRank.priority})")
-                return false
-            }
-
-            // OWNER PROTECTION: Prevent promoting anyone to owner rank (priority 0) - use ownership transfer instead
-            if (newRank.priority == 0) {
-                logger.warn("Cannot directly promote to owner rank - use ownership transfer instead")
                 return false
             }
 
