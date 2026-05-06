@@ -56,7 +56,23 @@ class GuildChatListener : Listener, KoinComponent {
         val playerId = player.uniqueId
 
         // Only intercept if player has guild chat mode enabled
-        if (!guildChatPlayers.contains(playerId)) return
+        if (!guildChatPlayers.contains(playerId)) {
+            // Defensive: ensure stale claim metadata never survives a toggle-off.
+            // Without this, RoseChat sees an old `lumaguilds:chat_claimed` marker
+            // and silently drops the first vanilla message after disabling /g chat.
+            if (player.hasMetadata(chatClaimMeta)) {
+                player.removeMetadata(chatClaimMeta, plugin)
+            }
+            return
+        }
+
+        // Claim the event immediately so RoseChat (and any other legacy
+        // AsyncPlayerChatEvent listener) skips its pipeline. Must happen
+        // BEFORE any validation that can early-return, otherwise a transient
+        // empty-guild result leaks the message to global.
+        event.isCancelled = true
+        event.viewers().clear()
+        player.setMetadata(chatClaimMeta, FixedMetadataValue(plugin, true))
 
         // Verify player is still in a guild
         val guilds = guildService.getPlayerGuilds(playerId)
@@ -66,13 +82,6 @@ class GuildChatListener : Listener, KoinComponent {
             player.sendMessage("§c❌ Guild chat disabled — you are no longer in a guild.")
             return
         }
-
-        // Cancel the event, clear viewers, and set a metadata marker for plugins
-        // that listen on the legacy AsyncPlayerChatEvent (e.g. RoseChat) so they
-        // skip their pipeline instead of re-broadcasting to main chat.
-        event.isCancelled = true
-        event.viewers().clear()
-        player.setMetadata(chatClaimMeta, FixedMetadataValue(plugin, true))
 
         // Extract plain text from the Adventure component
         val message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim()
@@ -93,6 +102,10 @@ class GuildChatListener : Listener, KoinComponent {
     fun toggleGuildChat(player: Player): Boolean {
         val playerId = player.uniqueId
         return if (guildChatPlayers.remove(playerId)) {
+            // Clear claim metadata so RoseChat resumes normal handling for this player.
+            if (player.hasMetadata(chatClaimMeta)) {
+                player.removeMetadata(chatClaimMeta, plugin)
+            }
             false // was on, now off
         } else {
             guildChatPlayers.add(playerId)
@@ -105,5 +118,8 @@ class GuildChatListener : Listener, KoinComponent {
     /** Called when a player quits or is removed from a guild. */
     fun removePlayer(playerId: UUID) {
         guildChatPlayers.remove(playerId)
+        org.bukkit.Bukkit.getPlayer(playerId)?.let { p ->
+            if (p.hasMetadata(chatClaimMeta)) p.removeMetadata(chatClaimMeta, plugin)
+        }
     }
 }
