@@ -22,6 +22,8 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                      private var guild: Guild): Menu, KoinComponent {
@@ -32,22 +34,16 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
-    // Custom inventory holder for secure identification
-    class BannerMenuHolder(val guildName: String) : org.bukkit.inventory.InventoryHolder {
-        private var inventory: org.bukkit.inventory.Inventory? = null
-
-        override fun getInventory(): org.bukkit.inventory.Inventory {
-            return inventory ?: throw IllegalStateException("Inventory not set")
-        }
-
-        fun setInventory(inv: org.bukkit.inventory.Inventory) {
-            inventory = inv
-        }
+    companion object {
+        // Tracks which players currently have the Java guild banner menu open. Used by
+        // BannerSelectionListener to identify banner-placement clicks without relying on
+        // InventoryHolder identity (InventoryFramework owns the holder) or the inventory
+        // title (deprecated and exploit-prone).
+        val activeViewers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
     }
 
     override fun open() {
-        // Create secure custom holder to prevent title-based exploits
-        val holder = BannerMenuHolder(guild.name)
+        activeViewers.add(player.uniqueId)
 
         // Create a 3x9 GUI for banner selection
         val gui = ChestGui(3, "§6Guild Banner - ${guild.name}")
@@ -64,9 +60,6 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 guiEvent.isCancelled = true
             }
         }
-
-        // Set the holder on the inventory
-        holder.setInventory(gui.getInventory())
 
         // Add banner selection slot at the position matching the visual border (2,1 = slot 11)
         addBannerSelectionSlot(pane, 2, 1)
