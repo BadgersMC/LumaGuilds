@@ -1462,6 +1462,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.sendMessage("§e◷ Teleportation countdown started! Don't move for 5 seconds...")
         player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
 
+        val pluginRef = player.server.pluginManager.getPlugin("LumaGuilds") ?: return
         val countdownTask = object : BukkitRunnable() {
             override fun run() {
                 val currentSession = activeTeleports[playerId]
@@ -1478,18 +1479,18 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 }
 
                 if (currentSession.remainingSeconds <= 0) {
-                    // Use teleportAsync for reliable cross-dimension teleports.
-                    // Paper's sync teleport() can silently fail when the destination
-                    // chunk isn't loaded — common when going from nether to overworld.
+                    // teleportAsync future may complete off the main thread;
+                    // dispatch Bukkit API calls back to main via the scheduler.
                     player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
-                        if (success) {
-                            player.sendMessage("§a✅ Welcome to your guild home!")
-                            player.sendActionBar(Component.text("§aTeleported to guild home!"))
-                            // Record teleport time for cooldown only on success
-                            lastHomeTeleport[playerId] = System.currentTimeMillis()
-                        } else {
-                            player.sendMessage("§c❌ Teleport failed — please try again.")
-                        }
+                        Bukkit.getScheduler().runTask(pluginRef, Runnable {
+                            if (success) {
+                                player.sendMessage("§a✅ Welcome to your guild home!")
+                                player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                                lastHomeTeleport[playerId] = System.currentTimeMillis()
+                            } else {
+                                player.sendMessage("§c❌ Teleport failed — please try again.")
+                            }
+                        })
                     }
 
                     // Clean up
@@ -1505,9 +1506,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         session.countdownTask = countdownTask
-        val plugin = player.server.pluginManager.getPlugin("LumaGuilds")
-            ?: return // Plugin not found, cannot schedule countdown
-        countdownTask.runTaskTimer(plugin, 0L, 20L) // Start immediately, then every second
+        countdownTask.runTaskTimer(pluginRef, 0L, 20L) // Start immediately, then every second
     }
 
     private fun cancelTeleport(playerId: java.util.UUID) {

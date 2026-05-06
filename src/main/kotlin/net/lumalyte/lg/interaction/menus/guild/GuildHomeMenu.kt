@@ -404,6 +404,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         player.sendMessage("§e⏰ Teleportation countdown started! Don't move for 5 seconds...")
         player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
 
+        val pluginRef = Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return
         val countdownTask = object : BukkitRunnable() {
             override fun run() {
                 val currentSession = activeTeleports[player.uniqueId]
@@ -420,16 +421,17 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                 }
 
                 if (currentSession.remainingSeconds <= 0) {
-                    // Use teleportAsync for reliable cross-dimension teleports.
-                    // Paper's sync teleport() can silently fail when the destination
-                    // chunk isn't loaded — common when going from nether to overworld.
+                    // teleportAsync future may complete off the main thread;
+                    // dispatch Bukkit API calls back to main via the scheduler.
                     player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
-                        if (success) {
-                            player.sendMessage("§a✅ Teleported to guild home!")
-                            player.sendActionBar(Component.text("§aTeleported to guild home!"))
-                        } else {
-                            player.sendMessage("§c❌ Teleport failed — please try again.")
-                        }
+                        Bukkit.getScheduler().runTask(pluginRef, Runnable {
+                            if (success) {
+                                player.sendMessage("§a✅ Teleported to guild home!")
+                                player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                            } else {
+                                player.sendMessage("§c❌ Teleport failed — please try again.")
+                            }
+                        })
                     }
 
                     // Clean up
@@ -445,9 +447,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         session.countdownTask = countdownTask
-        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
-            ?: return // Plugin not found, cannot schedule countdown
-        countdownTask.runTaskTimer(plugin, 0L, 20L) // Start immediately, then every second
+        countdownTask.runTaskTimer(pluginRef, 0L, 20L) // Start immediately, then every second
     }
 
     private fun cancelTeleport(playerId: UUID) {

@@ -75,16 +75,17 @@ class TeleportationService(private val plugin: Plugin) {
                 }
 
                 if (currentSession.remainingSeconds <= 0) {
-                    // Use teleportAsync for reliable cross-dimension teleports.
-                    // Paper's sync teleport() can silently fail when the destination
-                    // chunk isn't loaded — common when going from nether to overworld.
+                    // teleportAsync future may complete off the main thread;
+                    // dispatch Bukkit API calls back to main via the scheduler.
                     player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
-                        if (success) {
-                            player.sendMessage("§a✅ Welcome to your guild home!")
-                            player.sendActionBar(Component.text("§aTeleported to guild home!"))
-                        } else {
-                            player.sendMessage("§c❌ Teleport failed — please try again.")
-                        }
+                        plugin.server.scheduler.runTask(plugin, Runnable {
+                            if (success) {
+                                player.sendMessage("§a✅ Welcome to your guild home!")
+                                player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                            } else {
+                                player.sendMessage("§c❌ Teleport failed — please try again.")
+                            }
+                        })
                     }
 
                     // Clean up
