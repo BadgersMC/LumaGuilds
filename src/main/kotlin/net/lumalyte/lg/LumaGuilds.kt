@@ -821,6 +821,7 @@ class LumaGuilds : JavaPlugin() {
 
         server.pluginManager.registerEvents(BannerSelectionListener(), this)
         server.pluginManager.registerEvents(BannerFuelPreventionListener(), this)
+        server.pluginManager.registerEvents(net.lumalyte.lg.interaction.listeners.GuildVaultCraftingPreventionListener(), this)
 
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()
