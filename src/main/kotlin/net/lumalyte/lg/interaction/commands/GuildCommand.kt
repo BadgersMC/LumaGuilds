@@ -284,20 +284,30 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
         }
 
-        // Check if guild already has a home (separate from safety confirmation)
-        val currentHome = guildService.getHome(guild.id)
+        // Check if a home with this specific name already exists (separate from safety confirmation)
+        val currentHome = guildService.getHome(guild.id, targetHomeName)
         if (currentHome != null && adjustedConfirm?.lowercase() != "confirm" && adjustedConfirm?.lowercase() != "unsafe") {
-            player.sendMessage("§c⚠️ Your guild already has a home set!")
+            val confirmCommand = if (adjustedHomeName != null) {
+                "/guild sethome $adjustedHomeName confirm"
+            } else {
+                "/guild sethome confirm"
+            }
+            player.sendMessage("§c⚠️ Your guild already has a home named '§f$targetHomeName§c'!")
             player.sendMessage("§7Current home: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}")
             player.sendMessage("§7New location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
-            player.sendMessage("§7Use §6/guild sethome confirm §7to replace the current home")
+            player.sendMessage("§7Use §6$confirmCommand §7to replace it")
             player.sendMessage("§7Or use the guild menu for a confirmation dialog.")
             return
         }
 
         // Check safety and handle confirmation system
         if (config.guild.homeTeleportSafetyCheck) {
-            if (!GuildHomeSafety.checkOrAskConfirm(player, location, "/guild sethome unsafe")) {
+            val unsafeCommand = if (adjustedHomeName != null) {
+                "/guild sethome $adjustedHomeName unsafe"
+            } else {
+                "/guild sethome unsafe"
+            }
+            if (!GuildHomeSafety.checkOrAskConfirm(player, location, unsafeCommand)) {
                 return
             }
         }
