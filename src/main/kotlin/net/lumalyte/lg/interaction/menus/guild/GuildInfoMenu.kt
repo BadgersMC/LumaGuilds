@@ -145,9 +145,10 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private fun addRelationsSection(pane: StaticPane, x: Int, y: Int) {
         val relations = relationService.getGuildRelations(guild.id)
 
-        // Allies — filter out relations where the allied guild no longer exists (disbanded)
+        // Allies — only include active alliances; PENDING/REJECTED/EXPIRED requests do not count.
+        // Also filter out relations where the allied guild no longer exists (disbanded).
         val allies = relations.filter {
-            it.type == RelationType.ALLY && guildService.getGuild(it.getOtherGuild(guild.id)) != null
+            it.type == RelationType.ALLY && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
         }
         val alliesItem = ItemStack.of(Material.LIME_BANNER)
             .name("§aAllies (§f${allies.size}§a)")
@@ -166,9 +167,9 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         pane.addItem(GuiItem(alliesItem), x, y)
 
-        // Truces — filter out disbanded guilds
+        // Truces — only include active truces; filter out disbanded guilds.
         val truces = relations.filter {
-            it.type == RelationType.TRUCE && guildService.getGuild(it.getOtherGuild(guild.id)) != null
+            it.type == RelationType.TRUCE && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
         }
         val trucesItem = ItemStack.of(Material.WHITE_BANNER)
             .name("§fTruces (§f${truces.size}§f)")
@@ -187,9 +188,9 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         pane.addItem(GuiItem(trucesItem), x, y + 1)
 
-        // Enemies/Wars — filter out disbanded guilds
+        // Enemies/Wars — only include active wars; filter out disbanded guilds.
         val enemies = relations.filter {
-            it.type == RelationType.ENEMY && guildService.getGuild(it.getOtherGuild(guild.id)) != null
+            it.type == RelationType.ENEMY && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
         }
         val enemiesItem = ItemStack.of(Material.RED_BANNER)
             .name("§cWars (§f${enemies.size}§c)")
