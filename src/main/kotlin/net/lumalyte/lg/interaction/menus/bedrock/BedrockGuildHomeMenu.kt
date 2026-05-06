@@ -196,6 +196,7 @@ class BedrockGuildHomeMenu(
         player.sendMessage("§e⏰ Teleportation countdown started! Don't move for 5 seconds...")
         player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
 
+        val pluginRef = Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return
         val countdownTask = object : BukkitRunnable() {
             override fun run() {
                 val currentSession = activeTeleports[player.uniqueId]
@@ -213,10 +214,18 @@ class BedrockGuildHomeMenu(
                 }
 
                 if (currentSession.remainingSeconds <= 0) {
-                    // Teleport the player
-                    player.teleport(currentSession.targetLocation)
-                    player.sendMessage("§a✅ Teleported to guild home!")
-                    player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                    // teleportAsync future may complete off the main thread;
+                    // dispatch Bukkit API calls back to main via the scheduler.
+                    player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
+                        Bukkit.getScheduler().runTask(pluginRef, Runnable {
+                            if (success) {
+                                player.sendMessage("§a✅ Teleported to guild home!")
+                                player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                            } else {
+                                player.sendMessage("§c❌ Teleport failed — please try again.")
+                            }
+                        })
+                    }
 
                     // Clean up
                     activeTeleports.remove(player.uniqueId)
@@ -231,9 +240,7 @@ class BedrockGuildHomeMenu(
         }
 
         session.countdownTask = countdownTask
-        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds")
-            ?: return // Plugin not found, cannot schedule countdown
-        countdownTask.runTaskTimer(plugin, 0L, 20L) // Start immediately, then every second
+        countdownTask.runTaskTimer(pluginRef, 0L, 20L) // Start immediately, then every second
     }
 
     private fun cancelTeleport(playerId: UUID) {
