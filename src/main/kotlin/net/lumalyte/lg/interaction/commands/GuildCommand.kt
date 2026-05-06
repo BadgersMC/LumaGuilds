@@ -1310,14 +1310,36 @@ class GuildCommand : BaseCommand(), KoinComponent {
         return
         }
 
-        // Validate tag length and format
-        if (tag.length > 5) {
-            player.sendMessage("§cGuild tag must be 5 characters or less.")
+        // Validate tag — mirrors TagEditorMenu.validateTag for consistency
+        if (tag.trim().isEmpty()) {
+            player.sendMessage("§cGuild tag cannot be empty.")
             return
         }
 
-        if (!tag.matches(Regex("^[A-Z0-9]+$"))) {
-            player.sendMessage("§cGuild tag can only contain uppercase letters and numbers.")
+        if (tag.contains("<<") || tag.contains(">>")) {
+            player.sendMessage("§cInvalid tag syntax: double brackets.")
+            return
+        }
+
+        val miniMessage = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+        val visibleChars = try {
+            val component = miniMessage.deserialize(tag)
+            net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+                .serialize(component).length
+        } catch (e: Exception) {
+            val errorMsg = e.message ?: "Invalid format"
+            val msg = when {
+                errorMsg.contains("unclosed", ignoreCase = true) -> "Unclosed tag (missing closing tag)"
+                errorMsg.contains("unknown tag", ignoreCase = true) -> "Unknown tag format"
+                errorMsg.contains("invalid", ignoreCase = true) -> "Invalid MiniMessage syntax"
+                else -> "Format error: ${errorMsg.take(50)}"
+            }
+            player.sendMessage("§c❌ Invalid tag: $msg")
+            return
+        }
+
+        if (visibleChars > 32) {
+            player.sendMessage("§cGuild tag too long ($visibleChars/32 visible characters).")
             return
         }
 
