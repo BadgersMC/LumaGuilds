@@ -7,7 +7,9 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryType
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -23,9 +25,9 @@ class BannerSelectionListener : Listener, KoinComponent {
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
 
-        // Secure check: Use custom holder instead of deprecated title
-        val holder = event.inventory?.holder
-        if (holder !is GuildBannerMenu.BannerMenuHolder) return
+        // Identify the banner menu via the per-player tracker — InventoryFramework owns
+        // the inventory holder, so a custom InventoryHolder cannot be attached.
+        if (!GuildBannerMenu.activeViewers.contains(player.uniqueId)) return
 
         // Only handle clicks in the top inventory (menu)
         if (event.clickedInventory?.type != InventoryType.CHEST) return
@@ -79,6 +81,17 @@ class BannerSelectionListener : Listener, KoinComponent {
         else if (isPlaceholderSlot) {
             event.isCancelled = true
         }
+    }
+
+    @EventHandler
+    fun onInventoryClose(event: InventoryCloseEvent) {
+        val player = event.player as? Player ?: return
+        GuildBannerMenu.activeViewers.remove(player.uniqueId)
+    }
+
+    @EventHandler
+    fun onPlayerQuit(event: PlayerQuitEvent) {
+        GuildBannerMenu.activeViewers.remove(event.player.uniqueId)
     }
 
     private fun isBanner(material: Material): Boolean {
