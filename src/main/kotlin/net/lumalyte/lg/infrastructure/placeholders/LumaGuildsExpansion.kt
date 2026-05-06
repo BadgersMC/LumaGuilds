@@ -319,7 +319,9 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         // Check relations between guilds
         try {
             val relation = relationService.getRelation(playerGuildId, otherGuildId)
-            if (relation != null) {
+            // Only render the indicator for active relations; a PENDING ally request must
+            // not be rendered as accepted, and an EXPIRED truce/enemy must not be rendered.
+            if (relation != null && relation.isActive()) {
                 return when (relation.type) {
                     net.lumalyte.lg.domain.entities.RelationType.ENEMY -> "🔴"  // Enemy/War
                     net.lumalyte.lg.domain.entities.RelationType.ALLY -> "🔵"   // Ally
