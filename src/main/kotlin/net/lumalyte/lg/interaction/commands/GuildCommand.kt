@@ -1478,13 +1478,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 }
 
                 if (currentSession.remainingSeconds <= 0) {
-                    // Teleport the player
-                    player.teleport(currentSession.targetLocation)
-                    player.sendMessage("§a✅ Welcome to your guild home!")
-                    player.sendActionBar(Component.text("§aTeleported to guild home!"))
-
-                    // Record teleport time for cooldown
-                    lastHomeTeleport[playerId] = System.currentTimeMillis()
+                    // Use teleportAsync for reliable cross-dimension teleports.
+                    // Paper's sync teleport() can silently fail when the destination
+                    // chunk isn't loaded — common when going from nether to overworld.
+                    player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
+                        if (success) {
+                            player.sendMessage("§a✅ Welcome to your guild home!")
+                            player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                            // Record teleport time for cooldown only on success
+                            lastHomeTeleport[playerId] = System.currentTimeMillis()
+                        } else {
+                            player.sendMessage("§c❌ Teleport failed — please try again.")
+                        }
+                    }
 
                     // Clean up
                     activeTeleports.remove(playerId)

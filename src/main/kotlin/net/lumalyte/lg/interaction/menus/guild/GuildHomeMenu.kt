@@ -420,10 +420,17 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                 }
 
                 if (currentSession.remainingSeconds <= 0) {
-                    // Teleport the player
-                    player.teleport(currentSession.targetLocation)
-                    player.sendMessage("§a✅ Teleported to guild home!")
-                    player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                    // Use teleportAsync for reliable cross-dimension teleports.
+                    // Paper's sync teleport() can silently fail when the destination
+                    // chunk isn't loaded — common when going from nether to overworld.
+                    player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
+                        if (success) {
+                            player.sendMessage("§a✅ Teleported to guild home!")
+                            player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                        } else {
+                            player.sendMessage("§c❌ Teleport failed — please try again.")
+                        }
+                    }
 
                     // Clean up
                     activeTeleports.remove(player.uniqueId)
