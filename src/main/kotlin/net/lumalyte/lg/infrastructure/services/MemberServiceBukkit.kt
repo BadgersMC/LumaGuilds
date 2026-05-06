@@ -4,6 +4,7 @@ import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.RankRepository
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.Member
@@ -22,7 +23,8 @@ class MemberServiceBukkit(
     private val guildRepository: GuildRepository,
     private val progressionRepository: net.lumalyte.lg.application.persistence.ProgressionRepository,
     private val progressionConfigService: ProgressionConfigService,
-    private val historyRepository: MembershipHistoryRepository
+    private val historyRepository: MembershipHistoryRepository,
+    private val adminOverrideService: AdminOverrideService
 ) : MemberService {
 
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
@@ -167,47 +169,65 @@ class MemberServiceBukkit(
     }
     
     override fun changeMemberRank(playerId: UUID, guildId: UUID, newRankId: UUID, actorId: UUID): Boolean {
+        val isOverride = adminOverrideService.hasOverride(actorId)
+
         // Check if actor has permission to manage members
-        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+        if (!isOverride && !hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
             logger.warn("Player $actorId attempted to change rank for member $playerId without permission")
             return false
         }
 
         // Check if player is a member
-        val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
-        val currentRank = rankRepository.getById(member.rankId) ?: return false
-
-        // OWNER PROTECTION: Prevent owner from changing their own rank
-        if (currentRank.priority == 0 && playerId == actorId) {
-            logger.warn("Player $actorId (owner) attempted to change their own rank - ownership transfer required")
+        val member = memberRepository.getByPlayerAndGuild(playerId, guildId)
+        if (member == null) {
+            logger.warn("changeMemberRank: target $playerId is not a member of guild $guildId (actor=$actorId, override=$isOverride)")
             return false
         }
-
-        // PRIORITY CHECK: Actor must strictly outrank the target (lower priority number = higher rank)
-        val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
-        val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
-        if (actorRank.priority >= currentRank.priority) {
-            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot manage member $playerId (priority ${currentRank.priority})")
+        val currentRank = rankRepository.getById(member.rankId)
+        if (currentRank == null) {
+            logger.warn("changeMemberRank: current rank ${member.rankId} for $playerId not found (actor=$actorId)")
             return false
         }
 
         // Check if new rank exists and belongs to the guild
-        val newRank = rankRepository.getById(newRankId) ?: return false
+        val newRank = rankRepository.getById(newRankId)
+        if (newRank == null) {
+            logger.warn("changeMemberRank: new rank $newRankId not found (actor=$actorId, override=$isOverride)")
+            return false
+        }
         if (newRank.guildId != guildId) {
             logger.warn("Rank $newRankId doesn't belong to guild $guildId")
             return false
         }
 
-        // OWNER PROTECTION: Prevent promoting anyone to owner rank (priority 0) - use ownership transfer instead
+        // OWNER PROTECTION: even with admin override, ownership must go through ownership-transfer flow
         if (newRank.priority == 0) {
-            logger.warn("Cannot directly promote to owner rank - use ownership transfer instead")
+            logger.warn("Cannot directly promote to owner rank - use ownership transfer instead (actor=$actorId, override=$isOverride)")
             return false
         }
 
-        // PRIORITY CHECK: New rank must be strictly lower than actor's rank (cannot promote to own level or above)
-        if (newRank.priority <= actorRank.priority) {
-            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot assign rank with priority ${newRank.priority} — must be greater than actor's own priority")
-            return false
+        if (!isOverride) {
+            // OWNER PROTECTION: Prevent owner from changing their own rank
+            if (currentRank.priority == 0 && playerId == actorId) {
+                logger.warn("Player $actorId (owner) attempted to change their own rank - ownership transfer required")
+                return false
+            }
+
+            // PRIORITY CHECK: Actor must strictly outrank the target (lower priority number = higher rank)
+            val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
+            val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
+            if (actorRank.priority >= currentRank.priority) {
+                logger.warn("Player $actorId (priority ${actorRank.priority}) cannot manage member $playerId (priority ${currentRank.priority})")
+                return false
+            }
+
+            // PRIORITY CHECK: New rank must be strictly lower than actor's rank (cannot promote to own level or above)
+            if (newRank.priority <= actorRank.priority) {
+                logger.warn("Player $actorId (priority ${actorRank.priority}) cannot assign rank with priority ${newRank.priority} — must be greater than actor's own priority")
+                return false
+            }
+        } else {
+            logger.info("Admin override: $actorId changing rank for $playerId to '${newRank.name}' (priority ${newRank.priority}) in guild $guildId")
         }
 
         val updatedMember = member.copy(rankId = newRankId)
@@ -416,6 +436,7 @@ class MemberServiceBukkit(
     }
 
     override fun hasPermission(playerId: UUID, guildId: UUID, permission: RankPermission): Boolean {
+        if (adminOverrideService.hasOverride(playerId)) return true
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val rank = rankRepository.getById(member.rankId) ?: return false
         return rank.permissions.contains(permission)

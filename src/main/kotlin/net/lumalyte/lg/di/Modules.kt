@@ -404,7 +404,7 @@ fun guildsModule() = module {
     // Services
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
-    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get(), get()) }
+    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get()) }
     single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<GuildBannerService> { GuildBannerServiceBukkit() }
