@@ -319,7 +319,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         // Check relations between guilds
         try {
             val relation = relationService.getRelation(playerGuildId, otherGuildId)
-            if (relation != null) {
+            if (relation != null && relation.isActive()) {
                 return when (relation.type) {
                     net.lumalyte.lg.domain.entities.RelationType.ENEMY -> "🔴"  // Enemy/War
                     net.lumalyte.lg.domain.entities.RelationType.ALLY -> "🔵"   // Ally
