@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
 import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import me.clip.placeholderapi.expansion.PlaceholderExpansion
 import org.bukkit.Bukkit
@@ -28,7 +29,9 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Available placeholders:
  * - %lumaguilds_guild_name% - Player's guild name
- * - %lumaguilds_guild_tag% - Player's guild tag (formatted)
+ * - %lumaguilds_guild_tag% - Player's guild tag, MiniMessage rendered to legacy §-codes (chat-safe)
+ * - %lumaguilds_guild_tag_raw% - Raw tag string as stored (may contain MiniMessage tags)
+ * - %lumaguilds_guild_tag_plain% - Tag with all formatting stripped
  * - %lumaguilds_guild_emoji% - Player's guild emoji (converted to %nexo_<emoji>% format for tab/scoreboard)
  * - %lumaguilds_guild_level% - Player's guild level
  * - %lumaguilds_guild_balance% - Player's guild bank balance
@@ -85,6 +88,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
     private val miniMessage = MiniMessage.miniMessage()
     private val plainSerializer = PlainTextComponentSerializer.plainText()
+    private val legacySerializer = LegacyComponentSerializer.legacySection()
 
     // --- Top leaderboard cache (30s TTL) ---
     private data class CachedTop(val expiresAt: Instant, val rows: List<TopRow>)
@@ -128,7 +132,9 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         return when (identifier.lowercase()) {
             // Basic guild info
             "guild_name" -> guild.name
-            "guild_tag" -> guild.tag ?: "§6${guild.name}"
+            "guild_tag" -> renderTagAsLegacy(guild)
+            "guild_tag_raw" -> guild.tag ?: "§6${guild.name}"
+            "guild_tag_plain" -> renderTagAsPlain(guild)
             "guild_emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
             "guild_level" -> guild.level.toString()
             "guild_balance" -> guild.bankBalance.toString()
@@ -253,7 +259,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 }
 
                 // Add tag if available, otherwise name in gold
-                parts.add(guild.tag ?: "§6${guild.name}")
+                parts.add(renderTagAsLegacy(guild))
 
                 // Add level
                 parts.add("[${guild.level}]")
@@ -264,7 +270,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             // Chat format (for use in chat plugins)
             "guild_chat_format" -> {
                 val emoji = convertEmojiToNexoPlaceholder(guild.emoji)
-                val tag = guild.tag ?: "§6${guild.name}"
+                val tag = renderTagAsLegacy(guild)
                 if (emoji.isNotEmpty()) {
                     "$emoji $tag"
                 } else {
@@ -486,6 +492,32 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         } catch (_: Exception) {
             tag
         }
+
+    /**
+     * Converts a guild's tag (which may use MiniMessage syntax) into a chat-renderable
+     * legacy string with section-sign color codes. Falls back to the §-prefixed name
+     * when the guild has no custom tag.
+     *
+     * Used by placeholders consumed by chat plugins like RoseChat that don't parse
+     * MiniMessage on their own.
+     */
+    private fun renderTagAsLegacy(guild: Guild): String {
+        val raw = guild.tag ?: return "§6${guild.name}"
+        return try {
+            legacySerializer.serialize(miniMessage.deserialize(raw))
+        } catch (_: Exception) {
+            raw
+        }
+    }
+
+    private fun renderTagAsPlain(guild: Guild): String {
+        val raw = guild.tag ?: return guild.name
+        return try {
+            plainSerializer.serialize(miniMessage.deserialize(raw))
+        } catch (_: Exception) {
+            raw
+        }
+    }
 
     private fun currentWeekStart(): Instant =
         ZonedDateTime.now(ZoneOffset.UTC)
