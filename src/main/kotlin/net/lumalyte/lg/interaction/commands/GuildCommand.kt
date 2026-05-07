@@ -28,6 +28,7 @@ import org.bukkit.scheduler.BukkitRunnable
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.utils.CombatUtil
 import org.koin.core.component.KoinComponent
+import java.util.UUID
 import org.koin.core.component.inject
 
 @CommandAlias("guild|g")
@@ -294,8 +295,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
             val confirmCommand = if (adjustedHomeName != null) "/guild sethome $adjustedHomeName confirm" else "/guild sethome confirm"
             val homeLabel = if (targetHomeName == "main") "main home" else "home '$targetHomeName'"
             player.sendMessage("§c⚠️ Your guild already has a $homeLabel set!")
-            player.sendMessage("§7Current location: §f${currentHome.position.x}, ${currentHome.position.y}, ${currentHome.position.z}")
-            player.sendMessage("§7New location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
             player.sendMessage("§7Use §6$confirmCommand §7to replace it")
             player.sendMessage("§7Or use the guild menu for a confirmation dialog.")
             return
@@ -425,7 +424,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 val name = entry.key
                 val home = entry.value
                 val marker = if (name == "main") "§e[MAIN]" else ""
-                player.sendMessage("§7• §f$name $marker §7- §f${home.position.x}, ${home.position.y}, ${home.position.z}")
+                val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
+                player.sendMessage("§7• §f$name $marker §7- §f$worldName")
             }
             player.sendMessage("§7Use §6/guild home <name> §7to teleport to a home.")
         } else {
@@ -437,6 +437,74 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§7Use §6/guild sethome <name> §7to set additional homes.")
         }
         player.sendMessage("§6==================")
+    }
+
+    @Subcommand("removehome")
+    @CommandPermission("lumaguilds.guild.sethome")
+    @CommandCompletion("@guildhomes")
+    fun onRemoveHome(player: Player, homeName: String) {
+        val playerId = player.uniqueId
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+        val success = guildService.removeHome(guild.id, homeName, playerId)
+        if (success) {
+            player.sendMessage("§a✅ Home '$homeName' removed.")
+        } else {
+            player.sendMessage("§c❌ Failed to remove home '$homeName'. It may not exist or you lack permission.")
+        }
+    }
+
+    @Subcommand("setallyhome")
+    @CommandPermission("lumaguilds.guild.sethome")
+    fun onSetAllyHome(player: Player) {
+        val playerId = player.uniqueId
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+        val location = player.location
+
+        val home = GuildHome(
+            worldId = location.world.uid,
+            position = net.lumalyte.lg.domain.values.Position3D(
+                location.x.toInt(), location.y.toInt(), location.z.toInt()
+            )
+        )
+
+        val success = guildService.setAllyHome(guild.id, home, playerId)
+        if (success) {
+            player.sendMessage("§a✅ Ally home set to your current location!")
+            player.sendMessage("§7Allied guilds with the ally home perk can now teleport here.")
+        } else {
+            player.sendMessage("§c❌ Failed to set ally home. You may not have permission.")
+        }
+    }
+
+    @Subcommand("removeallyhome")
+    @CommandPermission("lumaguilds.guild.sethome")
+    fun onRemoveAllyHome(player: Player) {
+        val playerId = player.uniqueId
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+        val success = guildService.removeAllyHome(guild.id, playerId)
+        if (success) {
+            player.sendMessage("§a✅ Ally home removed.")
+        } else {
+            player.sendMessage("§c❌ Failed to remove ally home. It may not be set or you lack permission.")
+        }
     }
 
     @Subcommand("ranks")
@@ -735,6 +803,26 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§7Run §f/g chat §7again to return to normal chat.")
         } else {
             player.sendMessage("§7Guild chat §cdisabled§7. Your messages go to main chat.")
+        }
+    }
+
+    @Subcommand("allychat")
+    @CommandPermission("lumaguilds.guild.chat")
+    fun onAllyChat(player: Player) {
+        val playerId = player.uniqueId
+
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§c❌ You are not in a guild!")
+            return
+        }
+
+        val nowEnabled = guildChatListener.toggleAllyChat(player)
+        if (nowEnabled) {
+            player.sendMessage("§d✅ §5Ally chat §denabled§d! Your messages go to guild + allied guild members.")
+            player.sendMessage("§7Run §f/g allychat §7again to return to normal chat.")
+        } else {
+            player.sendMessage("§7Ally chat §cdisabled§7. Your messages go to main chat.")
         }
     }
 
@@ -1123,28 +1211,44 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Find target player - handle Floodgate prefix
+        // Find target player - try online first, then offline
         val targetPlayer = findPlayerByName(targetPlayerName)
-        if (targetPlayer == null) {
-            player.sendMessage("§cPlayer '$targetPlayerName' is not online.")
-            return
-        }
 
-        if (targetPlayer == player) {
-            player.sendMessage("§cYou cannot kick yourself.")
-            return
-        }
+        if (targetPlayer != null) {
+            if (targetPlayer == player) {
+                player.sendMessage("§cYou cannot kick yourself.")
+                return
+            }
 
-        // Check if target is in the guild
-        val targetMember = memberService.getMember(targetPlayer.uniqueId, guild.id)
-        if (targetMember == null) {
-            player.sendMessage("§c${targetPlayer.name} is not in your guild!")
-            return
-        }
+            val targetMember = memberService.getMember(targetPlayer.uniqueId, guild.id)
+            if (targetMember == null) {
+                player.sendMessage("§c${targetPlayer.name} is not in your guild!")
+                return
+            }
 
-        // Open confirmation menu
-        val menuNavigator = MenuNavigator(player)
-        menuNavigator.openMenu(menuFactory.createGuildKickConfirmationMenu(menuNavigator, player, guild, targetMember))
+            val menuNavigator = MenuNavigator(player)
+            menuNavigator.openMenu(menuFactory.createGuildKickConfirmationMenu(menuNavigator, player, guild, targetMember))
+        } else {
+            // Player is offline — resolve from guild member list
+            val targetMember = findGuildMemberByName(guild.id, targetPlayerName)
+            if (targetMember == null) {
+                player.sendMessage("§cNo guild member named '$targetPlayerName' found.")
+                return
+            }
+
+            if (targetMember.playerId == playerId) {
+                player.sendMessage("§cYou cannot kick yourself.")
+                return
+            }
+
+            val success = memberService.removeMember(targetMember.playerId, guild.id, playerId)
+            if (success) {
+                val resolvedName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: targetPlayerName
+                player.sendMessage("§a✅ $resolvedName has been kicked from the guild.")
+            } else {
+                player.sendMessage("§c❌ Failed to kick '$targetPlayerName'.")
+            }
+        }
     }
 
     @Subcommand("leave")
@@ -1463,7 +1567,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (success) {
             val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
             player.sendMessage("§a✅ Guild $homeLabel set successfully!")
-            player.sendMessage("§7Location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
             if (config.claimsEnabled) {
                 player.sendMessage("§7This location is within your guild's claim area.")
             }
@@ -1592,6 +1695,17 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Floodgate not available or failed - that's okay
         }
 
+        return null
+    }
+
+    private fun findGuildMemberByName(guildId: UUID, name: String): net.lumalyte.lg.domain.entities.Member? {
+        val members = memberService.getGuildMembers(guildId)
+        for (member in members) {
+            val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: continue
+            if (playerName.equals(name, ignoreCase = true)) {
+                return member
+            }
+        }
         return null
     }
 

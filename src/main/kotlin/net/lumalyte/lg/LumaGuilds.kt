@@ -660,6 +660,32 @@ class LumaGuilds : JavaPlugin() {
             Bukkit.getOnlinePlayers().map { it.name }
         }
 
+        commandManager.commandCompletions.registerAsyncCompletion("guildmembers") { context ->
+            val player = context.player ?: return@registerAsyncCompletion emptyList()
+            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val memberService = get().get<net.lumalyte.lg.application.services.MemberService>()
+            val guilds = guildService.getPlayerGuilds(player.uniqueId)
+            if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
+            val guild = guilds.first()
+            memberService.getGuildMembers(guild.id)
+                .filter { it.playerId != player.uniqueId }
+                .mapNotNull { Bukkit.getOfflinePlayer(it.playerId).name }
+        }
+
+        commandManager.commandCompletions.registerAsyncCompletion("guilds") { _ ->
+            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
+            guildService.getAllGuilds().map { it.name }
+        }
+
+        commandManager.commandCompletions.registerAsyncCompletion("guildhomes") { context ->
+            val player = context.player ?: return@registerAsyncCompletion emptyList()
+            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val guilds = guildService.getPlayerGuilds(player.uniqueId)
+            if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
+            val guild = guilds.first()
+            guildService.getHomes(guild.id).homeNames.toList()
+        }
+
         // Register unlocked emojis completion (shows only emojis the player has permission to use)
         commandManager.commandCompletions.registerAsyncCompletion("unlockedemojis") { context ->
             val player = context.player ?: return@registerAsyncCompletion emptyList()

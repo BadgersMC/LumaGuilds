@@ -155,7 +155,7 @@ class GuildControlPanelMenu(
         val home = guildService.getHome(guild.id)
         val homeItem = ItemStack.of(Material.COMPASS)
             .name("§aGuild Home")
-            .lore(if (home != null) "§7Set at: ${home.position.x}, ${home.position.y}, ${home.position.z}" else "§cNot set")
+            .lore(if (home != null) "§7Home set §a✓" else "§cNot set")
             .lore("§7Teleport point for /guild home")
         val guiItem = GuiItem(homeItem) {
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
