@@ -793,18 +793,12 @@ class LumaGuilds : JavaPlugin() {
 
         val config = get().get<ConfigService>().loadConfig()
 
-        // Register guild chat listener at LOWEST so it fires first.
-        // It also clears event.viewers() which prevents RoseChat (HIGHEST) from re-broadcasting to main chat.
-        val guildChatListener = get().get<net.lumalyte.lg.interaction.listeners.GuildChatListener>()
-        server.pluginManager.registerEvent(
-            io.papermc.paper.event.player.AsyncChatEvent::class.java,
-            guildChatListener,
-            org.bukkit.event.EventPriority.LOWEST,
-            { _, event -> guildChatListener.onPlayerChat(event as io.papermc.paper.event.player.AsyncChatEvent) },
-            this,
-            false // ignoreCancelled=false: run even if another plugin already cancelled
-        )
-        logColored("✓ Guild chat toggle registered (/g chat)")
+        // Guild chat is owned by RoseChat's LumaGuildsChannel hook. The /g chat command
+        // delegates to GuildChatListener.toggleGuildChat which switches the player's
+        // RoseChat channel — no AsyncChatEvent interception needed here. The listener
+        // is still resolved from DI so the GuildCommand injection remains valid.
+        get().get<net.lumalyte.lg.interaction.listeners.GuildChatListener>()
+        logColored("✓ /g chat wired to RoseChat guild channel")
 
         // Register party chat listener with configurable priority (auto-routes messages to party after /pc switch)
         val partyChatListener = PartyChatListener()

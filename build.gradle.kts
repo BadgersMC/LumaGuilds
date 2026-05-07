@@ -65,6 +65,9 @@ dependencies {
     }
     compileOnly("com.github.placeholderapi:placeholderapi:2.11.6")
     compileOnly("com.artillexstudios:AxKothAPI:4")
+    // RoseChat is required at compile-time for the GuildChatListener channel switch.
+    // Drop the built jar into libs/ from the RoseChat project (libs/ is gitignored).
+    compileOnly(files("libs/RoseChat-RC-2.jar"))
 
     // geyser
     compileOnly("org.geysermc.geyser:api:2.9.4-SNAPSHOT")
