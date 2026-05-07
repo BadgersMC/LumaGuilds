@@ -314,8 +314,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("home")
     @CommandPermission("lumaguilds.guild.home")
     fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
-        // Check if this is a confirmation for an unsafe teleport
-        if (confirm?.lowercase() == "confirm") {
+        // Handle "/guild home confirm" — ACF puts "confirm" into homeName, not confirm param
+        val isConfirm = confirm?.lowercase() == "confirm" || homeName?.lowercase() == "confirm"
+        if (isConfirm) {
             val pendingLocation = GuildHomeSafety.consumePending(player)
             if (pendingLocation != null) {
                 startTeleportCountdown(player, pendingLocation)

@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 object GuildHomeSafety {
 
-    private const val TREAT_ANY_LIQUID_UNSAFE = true
     private const val CONFIRM_TTL_MS = 10_000L
 
     private val DAMAGING = EnumSet.of(
@@ -54,32 +53,15 @@ object GuildHomeSafety {
         if (base.y < minY + 1 || base.y > maxY - 2) return unsafe("Location height is out of range.")
 
         val feetLoc = base.clone()
-        val headLoc = base.clone().add(0.0, 1.0, 0.0)
         val belowLoc = base.clone().add(0.0, -1.0, 0.0)
 
         val feet: Block = feetLoc.block
-        val head: Block = headLoc.block
         val below: Block = belowLoc.block
-
-        if (!feet.isPassable) return unsafe("No space at feet.")
-        if (!head.isPassable) return unsafe("No space at head height.")
-
-        // Only check for long drops if we're actually in the air/void, not on decorative blocks
-        if (below.isPassable && below.type == Material.AIR) {
-            var airBelow = 0
-            for (i in 1..3) {
-                val blockBelow = belowLoc.clone().add(0.0, -i.toDouble(), 0.0).block
-                if (blockBelow.type == Material.AIR || blockBelow.type == Material.CAVE_AIR || blockBelow.type == Material.VOID_AIR) {
-                    airBelow++
-                }
-            }
-            if (airBelow >= 3) return unsafe("Long drop below.")
-        }
 
         if (DAMAGING.contains(feet.type)) return unsafe("Damaging block at feet.")
         if (DAMAGING.contains(below.type)) return unsafe("Damaging block below.")
 
-        if (TREAT_ANY_LIQUID_UNSAFE && (feet.isLiquid || below.isLiquid)) return unsafe("Liquid at/below location.")
+        if (feet.type == Material.LAVA) return unsafe("Lava at feet.")
 
         return safe()
     }
