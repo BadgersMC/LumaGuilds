@@ -47,7 +47,8 @@ data class Guild(
     val joinFeeEnabled: Boolean = false,
     val joinFeeAmount: Int = 0,
     val trackingEnabled: Boolean = true,
-    val bankFrozen: Boolean = false
+    val bankFrozen: Boolean = false,
+    val allyHome: GuildHome? = null
 ) {
     init {
         require(name.length in 1..32) { "Guild name must be between 1 and 32 characters." }

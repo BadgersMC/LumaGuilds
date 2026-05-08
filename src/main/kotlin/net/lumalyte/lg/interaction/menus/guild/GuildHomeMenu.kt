@@ -266,7 +266,6 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                 val removeItem = ItemStack.of(Material.RED_WOOL)
                     .name("§cRemove '$name'")
                     .lore("§7World: §f${Bukkit.getWorld(home.worldId)?.name ?: "Unknown"}")
-                    .lore("§7Location: §f${home.position.x}, ${home.position.y}, ${home.position.z}")
                     .lore("§7")
                     .lore("§eClick to remove this home")
 
@@ -311,7 +310,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val home = entry.value
             val marker = if (name == "main") "§e[MAIN]" else ""
             val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
-            player.sendMessage("§7• §f$name $marker §7- §f$worldName (${home.position.x.toInt()}, ${home.position.y.toInt()}, ${home.position.z.toInt()})")
+            player.sendMessage("§7• §f$name $marker §7- §f$worldName")
         }
         player.sendMessage("§7Use §6/guild home <name> §7to teleport")
         player.sendMessage("§6==================")
@@ -339,7 +338,6 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
             player.sendMessage("§a✅ Guild $homeLabel set to your current location!")
             player.sendMessage("§7Members can now use §6/guild home ${if (homeName == "main") "" else homeName}§7to teleport here.")
-            player.sendMessage("§7Location: §f${location.blockX}, ${location.blockY}, ${location.blockZ}")
 
             // Refresh the guild data and reopen menu
             guild = guildService.getGuild(guild.id) ?: guild

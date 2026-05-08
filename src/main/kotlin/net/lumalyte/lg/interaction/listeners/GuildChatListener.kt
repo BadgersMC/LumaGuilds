@@ -31,7 +31,10 @@ class GuildChatListener : Listener, KoinComponent {
     /** ID of the RoseChat channel that targets the sender's guild. Must match channels.yml. */
     private val guildChannelId = "guild"
 
-    /** Caches the channel a player was in before they switched into guild chat, so toggle-off restores it. */
+    /** ID of the RoseChat channel that targets allied guilds. Must match channels.yml. */
+    private val allyChannelId = "guild-ally"
+
+    /** Caches the channel a player was in before they switched into guild/ally chat, so toggle-off restores it. */
     private val previousChannelId: MutableMap<UUID, String> = ConcurrentHashMap()
 
     /**
@@ -71,6 +74,39 @@ class GuildChatListener : Listener, KoinComponent {
 
         if (current != null) previousChannelId[player.uniqueId] = current.id
         rose.switchChannel(guildChannel)
+        return true
+    }
+
+    fun toggleAllyChat(player: Player): Boolean {
+        val api = RoseChatAPI.getInstance()
+        if (api == null) {
+            player.sendMessage("§c❌ RoseChat is not loaded — ally chat unavailable.")
+            return false
+        }
+
+        val rose = RosePlayer(player)
+        val current: Channel? = rose.playerData?.currentChannel
+        val allyChannel: Channel? = api.channelManager.getChannel(allyChannelId)
+
+        if (allyChannel == null) {
+            player.sendMessage("§c❌ Ally channel '$allyChannelId' is not configured in RoseChat.")
+            return false
+        }
+
+        if (current === allyChannel) {
+            val prevId = previousChannelId.remove(player.uniqueId)
+            val target = prevId?.let { api.channelManager.getChannel(it) } ?: api.defaultChannel
+            if (target != null) rose.switchChannel(target)
+            return false
+        }
+
+        if (guildService.getPlayerGuilds(player.uniqueId).isEmpty()) {
+            player.sendMessage("§c❌ You are not in a guild!")
+            return false
+        }
+
+        if (current != null) previousChannelId[player.uniqueId] = current.id
+        rose.switchChannel(allyChannel)
         return true
     }
 

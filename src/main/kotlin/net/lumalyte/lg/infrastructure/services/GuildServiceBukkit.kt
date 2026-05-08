@@ -464,14 +464,57 @@ class GuildServiceBukkit(
                 }
 
                 val allyGuild = guildRepository.getById(allyGuildId) ?: continue
-                val defaultHome = allyGuild.homes.defaultHome ?: continue
-                result[allyGuild.name] = defaultHome
+                val allyHome = allyGuild.allyHome ?: continue
+                result[allyGuild.name] = allyHome
             }
             return result
         } catch (e: Exception) {
             logger.error("Error getting ally homes for guild $guildId", e)
             return emptyMap()
         }
+    }
+
+    override fun setAllyHome(guildId: UUID, home: GuildHome, actorId: UUID): Boolean {
+        try {
+            val guild = guildRepository.getById(guildId) ?: return false
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+                logger.warn("Player $actorId attempted to set ally home for guild $guildId without permission")
+                return false
+            }
+            val updatedGuild = guild.copy(allyHome = home)
+            val result = guildRepository.update(updatedGuild)
+            if (result) {
+                logger.info("Guild $guildId ally home set by $actorId")
+            }
+            return result
+        } catch (e: Exception) {
+            logger.error("Error setting ally home for guild $guildId", e)
+            return false
+        }
+    }
+
+    override fun removeAllyHome(guildId: UUID, actorId: UUID): Boolean {
+        try {
+            val guild = guildRepository.getById(guildId) ?: return false
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+                logger.warn("Player $actorId attempted to remove ally home for guild $guildId without permission")
+                return false
+            }
+            if (guild.allyHome == null) return false
+            val updatedGuild = guild.copy(allyHome = null)
+            val result = guildRepository.update(updatedGuild)
+            if (result) {
+                logger.info("Guild $guildId ally home removed by $actorId")
+            }
+            return result
+        } catch (e: Exception) {
+            logger.error("Error removing ally home for guild $guildId", e)
+            return false
+        }
+    }
+
+    override fun getAllyHome(guildId: UUID): GuildHome? {
+        return guildRepository.getById(guildId)?.allyHome
     }
 
     override fun setMode(guildId: UUID, mode: GuildMode, actorId: UUID): Boolean {
