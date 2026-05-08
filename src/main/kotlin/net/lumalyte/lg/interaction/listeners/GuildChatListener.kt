@@ -72,7 +72,7 @@ class GuildChatListener : Listener, KoinComponent {
             return false
         }
 
-        if (current != null) previousChannelId[player.uniqueId] = current.id
+        if (current != null && current.id != allyChannelId) previousChannelId[player.uniqueId] = current.id
         rose.switchChannel(guildChannel)
         return true
     }
@@ -105,7 +105,7 @@ class GuildChatListener : Listener, KoinComponent {
             return false
         }
 
-        if (current != null) previousChannelId[player.uniqueId] = current.id
+        if (current != null && current.id != guildChannelId) previousChannelId[player.uniqueId] = current.id
         rose.switchChannel(allyChannel)
         return true
     }
