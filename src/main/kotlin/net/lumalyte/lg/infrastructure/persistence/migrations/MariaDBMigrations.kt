@@ -34,6 +34,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(18)
                 currentDbVersion = 18
             }
+            if (currentDbVersion < 19) {
+                migrateToVersion19()
+                updateDatabaseVersion(19)
+                currentDbVersion = 19
+            }
 
             connection.commit()
 
@@ -512,6 +517,45 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             } else {
                 componentLogger.info(Component.text("✓ All Owner ranks already have shop permissions (migration v18)"))
             }
+        }
+    }
+
+    /**
+     * Migration from version 18 to version 19.
+     *
+     * Introduces the `guild_homes` table so guilds can persist multiple named homes,
+     * not just the single home stored in `guilds.home_*` columns. Backfills the new
+     * table from existing legacy columns as the home named "main". See SQLiteMigrations
+     * for the full bug history.
+     */
+    private fun migrateToVersion19() {
+        componentLogger.info(Component.text("Migrating to version 19: Adding guild_homes table for multiple named homes..."))
+
+        connection.createStatement().use { stmt ->
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS guild_homes (
+                    guild_id VARCHAR(36) NOT NULL,
+                    name VARCHAR(64) NOT NULL,
+                    world_id VARCHAR(36) NOT NULL,
+                    x INT NOT NULL,
+                    y INT NOT NULL,
+                    z INT NOT NULL,
+                    PRIMARY KEY (guild_id, name),
+                    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+                    INDEX idx_guild_homes_guild_id (guild_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """.trimIndent())
+
+            val rows = stmt.executeUpdate("""
+                INSERT IGNORE INTO guild_homes (guild_id, name, world_id, x, y, z)
+                SELECT id, 'main', home_world, home_x, home_y, home_z
+                FROM guilds
+                WHERE home_world IS NOT NULL
+                  AND home_x IS NOT NULL
+                  AND home_y IS NOT NULL
+                  AND home_z IS NOT NULL
+            """.trimIndent())
+            componentLogger.info(Component.text("✓ guild_homes table created; backfilled $rows existing 'main' homes"))
         }
     }
 }

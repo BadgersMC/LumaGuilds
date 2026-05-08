@@ -53,6 +53,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
     init {
         createGuildTable()
+        createGuildHomesTable()
         migrateTrackingColumn()
         migrateBankFrozenColumn()
         migrateAllyHomeColumns()
@@ -119,6 +120,35 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         }
     }
     
+    /**
+     * Creates the `guild_homes` table if it doesn't exist. This is the primary store
+     * for guild homes (introduced in schema v19); the legacy `guilds.home_*` columns
+     * remain in place as a single-home fallback for one release.
+     */
+    private fun createGuildHomesTable() {
+        val sql = """
+            CREATE TABLE IF NOT EXISTS guild_homes (
+                guild_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                world_id TEXT NOT NULL,
+                x INTEGER NOT NULL,
+                y INTEGER NOT NULL,
+                z INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, name),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            );
+        """.trimIndent()
+
+        try {
+            storage.connection.executeUpdate(sql)
+            storage.connection.executeUpdate(
+                "CREATE INDEX IF NOT EXISTS idx_guild_homes_guild_id ON guild_homes(guild_id)"
+            )
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to create guild_homes table", e)
+        }
+    }
+
     private fun migrateTrackingColumn() {
         // Always attempt ALTER TABLE; catch "duplicate column" silently so re-runs are safe.
         try {
@@ -171,19 +201,87 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
     private fun preload() {
         val sql = "SELECT * FROM guilds"
-        
+
         try {
+            // Pre-load every guild's homes from guild_homes in a single pass to avoid
+            // N+1 queries during startup.
+            val homesByGuild = loadAllGuildHomes()
+
             val results = storage.connection.getResults(sql)
             for (result in results) {
-                val guild = mapResultSetToGuild(result)
+                val guild = mapResultSetToGuild(result, homesByGuild)
                 guilds[guild.id] = guild
             }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to preload guilds", e)
         }
     }
-    
-    private fun mapResultSetToGuild(rs: co.aikar.idb.DbRow): Guild {
+
+    /**
+     * Loads every row from `guild_homes` and groups them by guild id. Returns an empty
+     * map if the table doesn't exist (e.g. someone is running this build against an
+     * un-migrated DB) — `mapResultSetToGuild` will fall back to the legacy columns.
+     */
+    private fun loadAllGuildHomes(): Map<UUID, GuildHomes> {
+        val byGuild = mutableMapOf<UUID, MutableMap<String, GuildHome>>()
+        try {
+            val rows = storage.connection.getResults(
+                "SELECT guild_id, name, world_id, x, y, z FROM guild_homes"
+            )
+            for (row in rows) {
+                val guildId = UUID.fromString(row.getString("guild_id"))
+                val homeName = row.getString("name")
+                val worldId = UUID.fromString(row.getString("world_id"))
+                val x = row.getInt("x")
+                val y = row.getInt("y")
+                val z = row.getInt("z")
+                val home = GuildHome(worldId, net.lumalyte.lg.domain.values.Position3D(x, y, z))
+                byGuild.getOrPut(guildId) { mutableMapOf() }[homeName] = home
+            }
+        } catch (e: SQLException) {
+            // Table may not exist on a freshly upgraded plugin running against a stale DB.
+            // Fall back to legacy columns by returning an empty map.
+            println("WARN [GuildRepositorySQLite] guild_homes preload failed (continuing with legacy columns): ${e.message}")
+            return emptyMap()
+        }
+        return byGuild.mapValues { (_, m) -> GuildHomes(m.toMap()) }
+    }
+
+    /**
+     * Replaces all rows for the given guild in `guild_homes` with the entries from
+     * the in-memory model. Called from `add` and `update` after the legacy columns
+     * have been written, so failure here is logged but not propagated — the legacy
+     * columns still hold the default home as a fallback.
+     */
+    private fun writeGuildHomes(guild: Guild) {
+        try {
+            storage.connection.executeUpdate(
+                "DELETE FROM guild_homes WHERE guild_id = ?",
+                guild.id.toString()
+            )
+            for ((homeName, home) in guild.homes.homes) {
+                storage.connection.executeUpdate(
+                    """
+                    INSERT INTO guild_homes (guild_id, name, world_id, x, y, z)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """.trimIndent(),
+                    guild.id.toString(),
+                    homeName,
+                    home.worldId.toString(),
+                    home.position.x,
+                    home.position.y,
+                    home.position.z
+                )
+            }
+        } catch (e: SQLException) {
+            println("WARN [GuildRepositorySQLite] Failed to persist guild_homes for ${guild.id}: ${e.message}")
+        }
+    }
+
+    private fun mapResultSetToGuild(
+        rs: co.aikar.idb.DbRow,
+        homesByGuild: Map<UUID, GuildHomes> = emptyMap()
+    ): Guild {
         val id = UUID.fromString(rs.getString("id"))
         val name = rs.getString("name")
         val banner = rs.getString("banner")
@@ -195,15 +293,21 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         val modeChangedAt = rs.getInstant("mode_changed_at")
         val createdAt = rs.getInstantNotNull("created_at")
 
-        val homes = if (rs.getString("home_world") != null) {
-            val worldId = UUID.fromString(rs.getString("home_world"))
-            val x = rs.getInt("home_x")
-            val y = rs.getInt("home_y")
-            val z = rs.getInt("home_z")
-            val mainHome = GuildHome(worldId, net.lumalyte.lg.domain.values.Position3D(x, y, z))
-            GuildHomes(mapOf("main" to mainHome))
-        } else {
-            GuildHomes.EMPTY
+        // Prefer rows from the new `guild_homes` table (supports multiple named homes).
+        // Fall back to the legacy `guilds.home_*` columns when no rows exist for this guild,
+        // mapping the legacy single home to the name "main" for backward compatibility.
+        val preloadedHomes = homesByGuild[id]
+        val homes = when {
+            preloadedHomes != null && preloadedHomes.hasHomes() -> preloadedHomes
+            rs.getString("home_world") != null -> {
+                val worldId = UUID.fromString(rs.getString("home_world"))
+                val x = rs.getInt("home_x")
+                val y = rs.getInt("home_y")
+                val z = rs.getInt("home_z")
+                val mainHome = GuildHome(worldId, net.lumalyte.lg.domain.values.Position3D(x, y, z))
+                GuildHomes(mapOf("main" to mainHome))
+            }
+            else -> GuildHomes.EMPTY
         }
 
         // Parse vault status
@@ -488,7 +592,11 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.position?.z
                 )
             }
-            guilds[guild.id] = guild
+            if (rowsAffected > 0) {
+                // Persist the full named-home map; legacy home_* columns above only cover the default home.
+                writeGuildHomes(guild)
+                guilds[guild.id] = guild
+            }
             rowsAffected > 0
         } catch (e: SQLException) {
             false
@@ -694,6 +802,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             println("  rows affected: $rowsAffected")
 
             if (rowsAffected > 0) {
+                // Persist the full named-home map; legacy home_* columns above only cover the default home.
+                writeGuildHomes(guild)
                 guilds[guild.id] = guild
             }
             rowsAffected > 0
@@ -703,7 +813,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             false
         }
     }
-    
+
     override fun remove(guildId: UUID): Boolean {
         val sql = "DELETE FROM guilds WHERE id = ?"
         

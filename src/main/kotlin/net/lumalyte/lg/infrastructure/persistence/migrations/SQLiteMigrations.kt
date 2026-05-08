@@ -109,6 +109,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(18)
                 dbVersion = 18
             }
+            if (dbVersion < 19) {
+                migrateToVersion19()
+                updateDatabaseVersion(19)
+                dbVersion = 19
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1225,12 +1230,63 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     }
 
     /**
+     * Migration from version 18 to version 19.
+     *
+     * Fixes the long-standing bug where non-"main" guild homes were silently dropped
+     * on every save and wiped on restart. Previously, guilds had a `homes: Map<String, GuildHome>`
+     * domain model but only a single set of `home_world/home_x/home_y/home_z` columns on the
+     * `guilds` table, so the repository extracted `defaultHome` and discarded the rest.
+     *
+     * v19 introduces a `guild_homes` table keyed by `(guild_id, name)` that can hold every
+     * named home a guild has, and backfills it from the existing legacy columns (mapped as
+     * the home named "main"). The legacy `guilds.home_*` columns are left in place for one
+     * release for backward compatibility — the repository keeps writing the default home to
+     * them on update so older builds can still read at least one home.
+     */
+    private fun migrateToVersion19() {
+        componentLogger.info(Component.text("Migrating to version 19: Adding guild_homes table for multiple named homes..."))
+
+        val sqlCommands = mutableListOf(
+            """
+            CREATE TABLE IF NOT EXISTS guild_homes (
+                guild_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                world_id TEXT NOT NULL,
+                x INTEGER NOT NULL,
+                y INTEGER NOT NULL,
+                z INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, name),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+            """.trimIndent(),
+            "CREATE INDEX IF NOT EXISTS idx_guild_homes_guild_id ON guild_homes(guild_id);"
+        )
+        executeMigrationCommands(sqlCommands)
+
+        // Backfill: copy existing main homes from guilds.home_* into guild_homes as name='main'.
+        val backfill = """
+            INSERT OR IGNORE INTO guild_homes (guild_id, name, world_id, x, y, z)
+            SELECT id, 'main', home_world, home_x, home_y, home_z
+            FROM guilds
+            WHERE home_world IS NOT NULL
+              AND home_x IS NOT NULL
+              AND home_y IS NOT NULL
+              AND home_z IS NOT NULL
+        """.trimIndent()
+
+        connection.createStatement().use { stmt ->
+            val rows = stmt.executeUpdate(backfill)
+            componentLogger.info(Component.text("✓ guild_homes table created; backfilled $rows existing 'main' homes"))
+        }
+    }
+
+    /**
      * Validates that all required tables exist and recreates them if missing.
      * This handles cases where the schema version is correct but tables are missing.
      */
     private fun validateAndRepairSchema() {
         val requiredTables = mutableListOf(
-            "guilds", "members", "relations", "parties", "party_requests",
+            "guilds", "guild_homes", "members", "relations", "parties", "party_requests",
             "player_party_preferences", "bank_tx", "kills",
             "audits", "wars", "leaderboards", "guild_invitations",
             "vault_slots", "vault_gold", "vault_transaction_log"
@@ -1268,6 +1324,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("vault_slots" in missingTables || "vault_gold" in missingTables || "vault_transaction_log" in missingTables) {
                 migrateToVersion12()
                 componentLogger.info(Component.text("✓ Recreated vault system tables"))
+            }
+            if ("guild_homes" in missingTables) {
+                migrateToVersion19()
+                componentLogger.info(Component.text("✓ Recreated guild_homes table"))
             }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {

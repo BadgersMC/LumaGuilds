@@ -1,7 +1,7 @@
 -- =====================================
 -- LumaGuilds MariaDB Schema
 -- Complete database schema for production use
--- Version: 0.5.3 (Schema v15)
+-- Version: 0.5.3 (Schema v19)
 -- =====================================
 
 -- Create schema version table
@@ -9,15 +9,18 @@ CREATE TABLE IF NOT EXISTS schema_version (
     version INT PRIMARY KEY
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Set schema version to 15
+-- Set schema version to 19
 DELETE FROM schema_version;
-INSERT INTO schema_version (version) VALUES (15);
+INSERT INTO schema_version (version) VALUES (19);
 
 -- =====================================
 -- Core Guild Tables
 -- =====================================
 
 -- Guilds table (main guild data)
+-- Note: home_world/home_x/home_y/home_z are legacy single-home columns retained for
+-- backward compatibility. The authoritative store for guild homes is the `guild_homes`
+-- table (added in v19), which supports multiple named homes per guild.
 CREATE TABLE IF NOT EXISTS guilds (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
@@ -46,6 +49,21 @@ CREATE TABLE IF NOT EXISTS guilds (
     INDEX idx_guilds_name (name),
     INDEX idx_guilds_mode (mode),
     INDEX idx_guilds_level (level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Guild homes table (v19)
+-- Stores all named homes for each guild. Replaces the single-home `guilds.home_*` columns
+-- as the authoritative source while those columns are retained for backward compatibility.
+CREATE TABLE IF NOT EXISTS guild_homes (
+    guild_id VARCHAR(36) NOT NULL,
+    name VARCHAR(64) NOT NULL,
+    world_id VARCHAR(36) NOT NULL,
+    x INT NOT NULL,
+    y INT NOT NULL,
+    z INT NOT NULL,
+    PRIMARY KEY (guild_id, name),
+    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+    INDEX idx_guild_homes_guild_id (guild_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Ranks table (guild ranks/roles)
