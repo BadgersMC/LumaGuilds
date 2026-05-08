@@ -30,6 +30,7 @@ class GuildTeamListener(
 
             // Create/refresh teams for player's guilds
             playerGuilds.forEach { guildId ->
+                guildTeamService.invalidateGuildCache(guildId)
                 guildTeamService.refreshGuildTeam(guildId)
             }
 
@@ -62,6 +63,7 @@ class GuildTeamListener(
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildTrackingChanged(event: GuildTrackingChangedEvent) {
         try {
+            guildTeamService.invalidateGuildCache(event.guildId)
             if (event.enabled) {
                 guildTeamService.refreshGuildTeam(event.guildId)
             } else {
