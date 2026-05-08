@@ -31,7 +31,6 @@ class GuildTeamService(
 ) {
     private val logger = LoggerFactory.getLogger(GuildTeamService::class.java)
 
-    // Apollo modules
     private val teamModule: TeamModule by lazy {
         Apollo.getModuleManager().getModule(TeamModule::class.java)
     }
@@ -43,32 +42,33 @@ class GuildTeamService(
     // Track which guilds have active teams (guildId -> set of playerIds)
     private val activeTeams = ConcurrentHashMap<UUID, MutableSet<UUID>>()
 
-    // Refresh task for updating team member locations
+    // Cached marker colors per player — only refreshed on membership/rank changes
+    private val cachedMarkerColors = ConcurrentHashMap<UUID, Color>()
+
+    // Cached guild member lists — only refreshed on membership changes
+    private val cachedGuildMembers = ConcurrentHashMap<UUID, List<UUID>>()
+
+    // Cached guild tracking state
+    private val cachedTrackingEnabled = ConcurrentHashMap<UUID, Boolean>()
+
     private var refreshTaskId: Int? = null
 
-    /**
-     * Initialize the team service and start refresh task
-     */
     fun start() {
         if (!lunarClientService.isApolloAvailable()) {
             logger.warn("Cannot start GuildTeamService - Apollo not available")
             return
         }
 
-        // Check if teams module is enabled
         if (!plugin.config.getBoolean("apollo.teams.enabled", true)) {
             logger.info("Guild teams module disabled in config")
             return
         }
 
         try {
-            // Create teams for all existing guilds
             initializeExistingGuilds()
 
-            // Get refresh rate from config (default: 1 tick = 50ms)
             val refreshRate = plugin.config.getLong("apollo.teams.refresh_rate", 1L)
 
-            // Start refresh task
             refreshTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, {
                 try {
                     refreshAllTeams()
@@ -83,24 +83,22 @@ class GuildTeamService(
         }
     }
 
-    /**
-     * Returns true if the player is vanished via SuperVanish, PremiumVanish, CMI, or any
-     * plugin that sets the standard "vanished" metadata key.
-     */
     private fun Player.isVanished(): Boolean =
         getMetadata("vanished").any { it.asBoolean() }
 
-    /**
-     * Create Apollo teams for all existing guilds on startup
-     */
     private fun initializeExistingGuilds() {
         val allGuilds = guildService.getAllGuilds()
         var teamCount = 0
 
         allGuilds.forEach { guild ->
             try {
+                cachedTrackingEnabled[guild.id] = guild.trackingEnabled
                 val members = memberService.getGuildMembers(guild.id)
                 if (members.isNotEmpty()) {
+                    cachedGuildMembers[guild.id] = members.map { it.playerId }
+                    members.forEach { member ->
+                        cacheMarkerColor(member.playerId, guild.id)
+                    }
                     createGuildTeam(guild.id)
                     teamCount++
                 }
@@ -112,30 +110,62 @@ class GuildTeamService(
         logger.info("Initialized $teamCount guild teams")
     }
 
+    private fun cacheMarkerColor(playerId: UUID, guildId: UUID) {
+        val config = plugin.config
+        if (!config.getBoolean("apollo.teams.rank_based_colors", true)) {
+            cachedMarkerColors[playerId] = getGuildColor(guildId)
+            return
+        }
+        try {
+            val member = memberService.getMember(playerId, guildId)
+            val rank = if (member != null) rankService.getRank(member.rankId) else null
+
+            val leaderColor = parseColor(config.getString("apollo.teams.colors.leader", "255,215,0"))
+            val officerColor = parseColor(config.getString("apollo.teams.colors.officer", "0,150,255"))
+            val memberColor = parseColor(config.getString("apollo.teams.colors.member", "0,255,0"))
+
+            cachedMarkerColors[playerId] = when {
+                rank == null -> memberColor
+                rank.priority >= 90 -> leaderColor
+                rank.priority >= 50 -> officerColor
+                else -> memberColor
+            }
+        } catch (e: Exception) {
+            cachedMarkerColors[playerId] = Color.GREEN
+        }
+    }
+
     /**
-     * Create an Apollo team for a guild
+     * Invalidate caches for a guild so the next event-driven call re-fetches from DB.
+     * Call this on membership/rank changes — NOT on the per-tick refresh path.
      */
+    fun invalidateGuildCache(guildId: UUID) {
+        cachedGuildMembers.remove(guildId)
+        cachedTrackingEnabled.remove(guildId)
+    }
+
     fun createGuildTeam(guildId: UUID) {
         try {
-            val guild = guildService.getGuild(guildId) ?: return
-            if (!guild.trackingEnabled) return
-
-            val members = memberService.getGuildMembers(guildId)
-            if (members.isEmpty()) return
-
-            val onlineMembers = members.mapNotNull { member ->
-                Bukkit.getPlayer(member.playerId)?.takeUnless { it.isVanished() }
+            val trackingEnabled = cachedTrackingEnabled.getOrPut(guildId) {
+                guildService.getGuild(guildId)?.trackingEnabled ?: false
             }
+            if (!trackingEnabled) return
 
+            val memberIds = cachedGuildMembers.getOrPut(guildId) {
+                memberService.getGuildMembers(guildId).map { it.playerId }
+            }
+            if (memberIds.isEmpty()) return
+
+            val onlineMembers = memberIds.mapNotNull { id ->
+                Bukkit.getPlayer(id)?.takeUnless { it.isVanished() }
+            }
             if (onlineMembers.isEmpty()) return
 
-            // Show this team to all Lunar Client players in the guild
             onlineMembers.forEach { viewer ->
                 try {
                     if (!lunarClientService.isLunarClient(viewer)) return@forEach
                     val apolloPlayer = lunarClientService.getApolloPlayer(viewer) ?: return@forEach
 
-                    // Create team members list (excluding self)
                     val teamMembers = onlineMembers
                         .filter { it.uniqueId != viewer.uniqueId }
                         .mapNotNull { teammate ->
@@ -156,7 +186,6 @@ class GuildTeamService(
                 }
             }
 
-            // Track this guild as having an active team
             activeTeams[guildId] = onlineMembers.map { it.uniqueId }.toMutableSet()
             logger.info("Guild team created for $guildId with ${onlineMembers.size} online members")
         } catch (e: Exception) {
@@ -164,11 +193,8 @@ class GuildTeamService(
         }
     }
 
-    /**
-     * Create a team member representation for Apollo
-     */
     private fun createTeamMember(player: Player, guildId: UUID): TeamMember {
-        val markerColor = getMarkerColor(player, guildId)
+        val markerColor = cachedMarkerColors[player.uniqueId] ?: Color.GREEN
         val location = player.location
 
         return TeamMember.builder()
@@ -185,58 +211,18 @@ class GuildTeamService(
             .build()
     }
 
-    /**
-     * Get the marker color for a player based on their rank
-     */
-    private fun getMarkerColor(player: Player, guildId: UUID): Color {
-        val config = plugin.config
-
-        // Check if rank-based colors are enabled
-        if (!config.getBoolean("apollo.teams.rank_based_colors", true)) {
-            // Use guild default color
-            return getGuildColor(guildId)
-        }
-
-        try {
-            // Get player's rank
-            val member = memberService.getMember(player.uniqueId, guildId) ?: return Color.GREEN
-            val rank = rankService.getRank(member.rankId) ?: return Color.GREEN
-
-            // Parse colors from config
-            val leaderColor = parseColor(config.getString("apollo.teams.colors.leader", "255,215,0"))
-            val officerColor = parseColor(config.getString("apollo.teams.colors.officer", "0,150,255"))
-            val memberColor = parseColor(config.getString("apollo.teams.colors.member", "0,255,0"))
-
-            // Color by rank priority
-            return when {
-                rank.priority >= 90 -> leaderColor  // Guild Leader
-                rank.priority >= 50 -> officerColor // Officer
-                else -> memberColor                  // Member
-            }
-        } catch (e: Exception) {
-            logger.debug("Failed to get marker color for ${player.name}: ${e.message}")
-            return Color.GREEN
-        }
-    }
-
-    /**
-     * Get guild's team color from config
-     */
     private fun getGuildColor(guildId: UUID): Color {
         val colorString = plugin.config.getString("apollo.teams.default_guild_color", "0,255,0")
         return parseColor(colorString)
     }
 
-    /**
-     * Parse color from "R,G,B" format
-     */
     private fun parseColor(colorString: String?): Color {
         return try {
             val parts = colorString?.split(",")?.map { it.trim().toInt() }
             if (parts != null && parts.size == 3) {
                 Color(parts[0], parts[1], parts[2])
             } else {
-                Color.GREEN // Default fallback
+                Color.GREEN
             }
         } catch (e: Exception) {
             logger.debug("Failed to parse color '$colorString': ${e.message}")
@@ -245,7 +231,7 @@ class GuildTeamService(
     }
 
     /**
-     * Refresh all team locations (called every tick by default)
+     * Per-tick refresh — only reads cached data and player positions. Zero DB queries.
      */
     private fun refreshAllTeams() {
         activeTeams.keys.toList().forEach { guildId ->
@@ -257,30 +243,37 @@ class GuildTeamService(
         }
     }
 
-    /**
-     * Refresh a specific guild's team
-     */
     fun refreshGuildTeam(guildId: UUID) {
         try {
-            // If tracking was disabled, clear any existing team and bail
-            val guild = guildService.getGuild(guildId)
-            if (guild == null || !guild.trackingEnabled) {
+            val trackingEnabled = cachedTrackingEnabled[guildId] ?: true
+            if (!trackingEnabled) {
                 deleteGuildTeam(guildId)
                 return
             }
 
-            val members = memberService.getGuildMembers(guildId)
-            val onlineMembers = members.mapNotNull { member ->
-                Bukkit.getPlayer(member.playerId)?.takeUnless { it.isVanished() }
+            val memberIds = cachedGuildMembers[guildId]
+            if (memberIds == null) {
+                // No cache — likely a new guild, do a one-time DB fetch and cache it
+                val members = memberService.getGuildMembers(guildId)
+                if (members.isEmpty()) {
+                    deleteGuildTeam(guildId)
+                    return
+                }
+                cachedGuildMembers[guildId] = members.map { it.playerId }
+                members.forEach { cacheMarkerColor(it.playerId, guildId) }
+                refreshGuildTeam(guildId)
+                return
+            }
+
+            val onlineMembers = memberIds.mapNotNull { id ->
+                Bukkit.getPlayer(id)?.takeUnless { it.isVanished() }
             }
 
             if (onlineMembers.isEmpty()) {
-                // No online members - remove team
                 deleteGuildTeam(guildId)
                 return
             }
 
-            // Update each viewer's team view
             onlineMembers.forEach { viewer ->
                 try {
                     if (!lunarClientService.isLunarClient(viewer)) return@forEach
@@ -299,7 +292,6 @@ class GuildTeamService(
                     if (teamMembers.isNotEmpty()) {
                         teamModule.updateTeamMembers(apolloPlayer, teamMembers)
                     } else {
-                        // No teammates - clear team view
                         teamModule.resetTeamMembers(apolloPlayer)
                     }
                 } catch (e: Exception) {
@@ -307,40 +299,40 @@ class GuildTeamService(
                 }
             }
 
-            // Update tracked members
             activeTeams[guildId] = onlineMembers.map { it.uniqueId }.toMutableSet()
         } catch (e: Exception) {
             logger.debug("Failed to refresh guild team for $guildId: ${e.message}")
         }
     }
 
-    /**
-     * Handle player joining a guild
-     */
     fun onPlayerJoinGuild(playerId: UUID, guildId: UUID) {
         try {
-            // Refresh the guild's team to include new member
+            invalidateGuildCache(guildId)
+            cacheMarkerColor(playerId, guildId)
+
+            val members = memberService.getGuildMembers(guildId)
+            cachedGuildMembers[guildId] = members.map { it.playerId }
+            cachedTrackingEnabled[guildId] = guildService.getGuild(guildId)?.trackingEnabled ?: true
+
             refreshGuildTeam(guildId)
 
-            // If player is on LC, show them their team
             val player = Bukkit.getPlayer(playerId) ?: return
             if (!lunarClientService.isLunarClient(player)) return
-
             createGuildTeam(guildId)
         } catch (e: Exception) {
             logger.warn("Failed to handle player join guild: ${e.message}")
         }
     }
 
-    /**
-     * Handle player leaving a guild
-     */
     fun onPlayerLeaveGuild(playerId: UUID, guildId: UUID) {
         try {
-            // Remove player from tracked members
             activeTeams[guildId]?.remove(playerId)
+            cachedMarkerColors.remove(playerId)
+            invalidateGuildCache(guildId)
 
-            // Clear team for leaving player
+            val members = memberService.getGuildMembers(guildId)
+            cachedGuildMembers[guildId] = members.map { it.playerId }
+
             val player = Bukkit.getPlayer(playerId)
             if (player != null && lunarClientService.isLunarClient(player)) {
                 val apolloPlayer = lunarClientService.getApolloPlayer(player)
@@ -349,30 +341,23 @@ class GuildTeamService(
                 }
             }
 
-            // Refresh team for remaining members
             refreshGuildTeam(guildId)
         } catch (e: Exception) {
             logger.warn("Failed to handle player leave guild: ${e.message}")
         }
     }
 
-    /**
-     * Handle player disconnect
-     */
     fun onPlayerQuit(playerId: UUID) {
         try {
-            // Remove from all tracked teams
             activeTeams.values.forEach { members ->
                 members.remove(playerId)
             }
 
-            // Refresh all teams this player was in
             val playerGuilds = memberService.getPlayerGuilds(playerId)
             playerGuilds.forEach { guildId ->
                 refreshGuildTeam(guildId)
             }
 
-            // Clear player from LC service cache
             if (lunarClientService is LunarClientServiceBukkit) {
                 lunarClientService.clearPlayerCache(playerId)
             }
@@ -381,14 +366,10 @@ class GuildTeamService(
         }
     }
 
-    /**
-     * Delete a guild's team
-     */
     fun deleteGuildTeam(guildId: UUID) {
         try {
             val members = activeTeams.remove(guildId) ?: return
 
-            // Clear teams for all members
             members.forEach { memberId ->
                 try {
                     val player = Bukkit.getPlayer(memberId)
@@ -407,17 +388,17 @@ class GuildTeamService(
         }
     }
 
-    /**
-     * Stop the team service and cleanup
-     */
     fun stop() {
         try {
             refreshTaskId?.let { Bukkit.getScheduler().cancelTask(it) }
 
-            // Clear all teams
             activeTeams.keys.toList().forEach { guildId ->
                 deleteGuildTeam(guildId)
             }
+
+            cachedMarkerColors.clear()
+            cachedGuildMembers.clear()
+            cachedTrackingEnabled.clear()
 
             logger.info("Guild team service stopped")
         } catch (e: Exception) {
@@ -425,26 +406,24 @@ class GuildTeamService(
         }
     }
 
-    /**
-     * Apply glow effect to guild members (optional feature)
-     */
     fun enableGuildGlow(guildId: UUID) {
         if (!plugin.config.getBoolean("apollo.teams.glow.enabled", false)) {
             return
         }
 
         try {
-            val members = memberService.getGuildMembers(guildId)
-            val onlineMembers = members.mapNotNull { Bukkit.getPlayer(it.playerId)?.takeUnless { p -> p.isVanished() } }
+            val memberIds = cachedGuildMembers.getOrPut(guildId) {
+                memberService.getGuildMembers(guildId).map { it.playerId }
+            }
+            val onlineMembers = memberIds.mapNotNull { Bukkit.getPlayer(it)?.takeUnless { p -> p.isVanished() } }
 
             onlineMembers.forEach { viewer ->
                 if (!lunarClientService.isLunarClient(viewer)) return@forEach
 
-                // Make other guild members glow for this viewer
                 onlineMembers.forEach { target ->
                     if (target.uniqueId != viewer.uniqueId) {
                         try {
-                            val color = getMarkerColor(target, guildId)
+                            val color = cachedMarkerColors[target.uniqueId] ?: Color.GREEN
                             val apolloViewer = lunarClientService.getApolloPlayer(viewer)
                             apolloViewer?.let {
                                 glowModule.overrideGlow(it, target.uniqueId, color)
@@ -460,13 +439,10 @@ class GuildTeamService(
         }
     }
 
-    /**
-     * Disable glow effects for a guild
-     */
     fun disableGuildGlow(guildId: UUID) {
         try {
-            val members = memberService.getGuildMembers(guildId)
-            val onlineMembers = members.mapNotNull { Bukkit.getPlayer(it.playerId) }
+            val memberIds = cachedGuildMembers[guildId] ?: return
+            val onlineMembers = memberIds.mapNotNull { Bukkit.getPlayer(it) }
 
             onlineMembers.forEach { viewer ->
                 if (!lunarClientService.isLunarClient(viewer)) return@forEach
@@ -489,9 +465,6 @@ class GuildTeamService(
         }
     }
 
-    /**
-     * Get statistics about active teams
-     */
     fun getStats(): Map<String, Any> {
         return mapOf(
             "active_guilds" to activeTeams.size,
