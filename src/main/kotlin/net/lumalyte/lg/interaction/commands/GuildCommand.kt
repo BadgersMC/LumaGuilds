@@ -452,12 +452,22 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         val guild = guilds.first()
-        val success = guildService.removeHome(guild.id, homeName, playerId)
-        if (success) {
-            player.sendMessage("§a✅ Home '$homeName' removed.")
-        } else {
-            player.sendMessage("§c❌ Failed to remove home '$homeName'. It may not exist or you lack permission.")
+        if (guildService.getHome(guild.id, homeName) == null) {
+            player.sendMessage("§c❌ Home '$homeName' does not exist.")
+            return
         }
+
+        val menuNavigator = MenuNavigator(player)
+        menuNavigator.openMenu(net.lumalyte.lg.interaction.menus.common.ConfirmationMenu(
+            menuNavigator, player, "§cRemove home '$homeName'?"
+        ) {
+            val success = guildService.removeHome(guild.id, homeName, playerId)
+            if (success) {
+                player.sendMessage("§a✅ Home '$homeName' removed.")
+            } else {
+                player.sendMessage("§c❌ Failed to remove home '$homeName'.")
+            }
+        })
     }
 
     @Subcommand("setallyhome")
@@ -1239,6 +1249,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
             if (targetMember.playerId == playerId) {
                 player.sendMessage("§cYou cannot kick yourself.")
+                return
+            }
+
+            val kickerRank = rankService.getPlayerRank(playerId, guild.id)
+            val targetRank = rankService.getPlayerRank(targetMember.playerId, guild.id)
+            if (kickerRank == null || targetRank == null || targetRank.priority <= kickerRank.priority) {
+                player.sendMessage("§c❌ You cannot kick a member of equal or higher rank.")
                 return
             }
 
