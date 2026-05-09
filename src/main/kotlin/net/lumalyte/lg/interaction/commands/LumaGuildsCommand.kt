@@ -239,6 +239,9 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
             // Refresh cached configs in listeners
             plugin.vaultProtectionListener.refreshConfig()
+            org.koin.core.context.GlobalContext.get()
+                .getOrNull<net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener>()
+                ?.refreshCaches()
 
             // Note: We don't reinitialize the entire plugin as that would require
             // stopping and restarting schedulers, recreating Koin context, etc.
@@ -269,6 +272,9 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
             // Reload the progression configuration
             progressionConfigService.reloadProgressionConfig()
+            org.koin.core.context.GlobalContext.get()
+                .getOrNull<net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener>()
+                ?.refreshCaches()
 
             sender.sendMessage("§a✅ Progression configuration reloaded successfully!")
             sender.sendMessage("§7💡 Changes to level rewards and XP sources are now active.")
