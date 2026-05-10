@@ -47,6 +47,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val historyRepository: MembershipHistoryRepository by inject()
     private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
+    private val lunarPreferences: net.lumalyte.lg.application.persistence.LunarPreferenceRepository by inject()
 
     // Teleportation tracking for command-based teleports
     private data class TeleportSession(
@@ -835,6 +836,40 @@ class GuildCommand : BaseCommand(), KoinComponent {
         } else {
             player.sendMessage("§7Ally chat §cdisabled§7. Your messages go to main chat.")
         }
+    }
+
+    @Subcommand("lunartracking|lunartrack|lctrack")
+    fun onLunarTracking(player: Player) {
+        val playerId = player.uniqueId
+
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§c❌ You are not in a guild!")
+            return
+        }
+
+        val current = lunarPreferences.isPlayerTeamTrackingEnabled(playerId)
+        val next = !current
+
+        if (!lunarPreferences.setPlayerTeamTrackingEnabled(playerId, next)) {
+            player.sendMessage("§c❌ Failed to save your tracking preference. Try again.")
+            return
+        }
+
+        // Notify the team service so teammates' Lunar overlays update immediately.
+        val teamService = org.koin.core.context.GlobalContext.get()
+            .getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()
+        teamService?.onPlayerTrackingPreferenceChanged(playerId)
+
+        if (next) {
+            player.sendMessage("§a✅ Lunar team tracking §aENABLED§a.")
+            player.sendMessage("§7Your guild teammates running Lunar Client will see you on")
+            player.sendMessage("§7their minimap, direction HUD, and overhead markers.")
+        } else {
+            player.sendMessage("§7Lunar team tracking §cDISABLED§7.")
+            player.sendMessage("§7You are hidden from your guild's Lunar Client overlays.")
+        }
+        player.sendMessage("§8Run §f/g lunartracking §8again to toggle.")
     }
 
     @Subcommand("info")

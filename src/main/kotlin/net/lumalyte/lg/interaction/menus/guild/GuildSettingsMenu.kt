@@ -376,6 +376,44 @@ class GuildSettingsMenu(
         }
         pane.addItem(trackingGuiItem, 4, 4)
 
+        // Waypoint Visibility Toggle (per-guild — owners/admins control whether
+        // guild home pins appear on members' Lunar Client minimaps).
+        val lunarPrefs = org.koin.core.context.GlobalContext.get()
+            .getOrNull<net.lumalyte.lg.application.persistence.LunarPreferenceRepository>()
+        if (lunarPrefs != null) {
+            val waypointsVisible = lunarPrefs.isGuildWaypointsVisible(guild.id)
+            val waypointItem = ItemStack.of(
+                if (waypointsVisible) Material.MAP else Material.PAPER
+            )
+                .name("§f📍 GUILD WAYPOINTS")
+                .lore("§7Current: §f${if (waypointsVisible) "VISIBLE" else "HIDDEN"}")
+                .lore("§7")
+                .lore("§7Visible: Guild home pins appear on")
+                .lore("§7members' Lunar Client minimap")
+                .lore("§7Hidden: No home pins are sent")
+                .lore("§7")
+                .lore("§eClick to toggle waypoint visibility")
+
+            val waypointGuiItem = GuiItem(waypointItem) {
+                if (!hasPermission) {
+                    player.sendMessage("§c❌ You don't have permission to change guild settings")
+                    player.sendMessage("§7You need the MANAGE_GUILD_SETTINGS permission")
+                    return@GuiItem
+                }
+                val newVisible = !waypointsVisible
+                if (lunarPrefs.setGuildWaypointsVisible(guild.id, newVisible)) {
+                    val waypointSvc = org.koin.core.context.GlobalContext.get()
+                        .getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService>()
+                    waypointSvc?.refreshGuildWaypoints(guild.id)
+                    player.sendMessage("§a✅ Guild waypoints are now ${if (newVisible) "§aVISIBLE" else "§cHIDDEN"}")
+                    open()
+                } else {
+                    player.sendMessage("§c❌ Failed to update waypoint visibility")
+                }
+            }
+            pane.addItem(waypointGuiItem, 5, 4)
+        }
+
         // Guild Members
         val membersItem = ItemStack.of(Material.PLAYER_HEAD)
             .name("§f👥 MANAGE MEMBERS")

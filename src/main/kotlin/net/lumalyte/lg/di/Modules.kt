@@ -102,6 +102,7 @@ import net.lumalyte.lg.application.persistence.PartyRepository
 import net.lumalyte.lg.application.persistence.GuildInvitationRepository
 import net.lumalyte.lg.application.persistence.PartyRequestRepository
 import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
+import net.lumalyte.lg.application.persistence.LunarPreferenceRepository
 import net.lumalyte.lg.application.persistence.ChatSettingsRepository
 import net.lumalyte.lg.application.persistence.BankRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
@@ -156,6 +157,7 @@ import net.lumalyte.lg.infrastructure.persistence.guilds.PartyRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.GuildInvitationRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.PartyRequestRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.PlayerPartyPreferenceRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.guilds.LunarPreferenceRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.ChatSettingsRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.BankRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.ProgressionRepositorySQLite
@@ -400,6 +402,7 @@ fun guildsModule() = module {
     single<GuildBannerRepository> { GuildBannerRepositorySQLite(get()) }
     single<AuditRepository> { AuditRepositorySQLite(get()) }
     single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }
+    single<LunarPreferenceRepository> { LunarPreferenceRepositorySQLite(get()) }
 
     // Services
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
@@ -631,7 +634,8 @@ fun integrationModule(plugin: LumaGuilds) = module {
                     lunarClientService = get(),
                     guildService = get(),
                     memberService = get(),
-                    rankService = get()
+                    rankService = get(),
+                    lunarPreferences = get()
                 )
             }
 
@@ -651,7 +655,8 @@ fun integrationModule(plugin: LumaGuilds) = module {
                     plugin = get(),
                     lunarClientService = get(),
                     guildService = get(),
-                    memberService = get()
+                    memberService = get(),
+                    lunarPreferences = get()
                 )
             }
         }

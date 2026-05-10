@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services.apollo
 import com.lunarclient.apollo.Apollo
 import com.lunarclient.apollo.module.waypoint.Waypoint
 import com.lunarclient.apollo.module.waypoint.WaypointModule
+import net.lumalyte.lg.application.persistence.LunarPreferenceRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.apollo.LunarClientService
@@ -24,7 +25,8 @@ class GuildWaypointService(
     private val plugin: Plugin,
     private val lunarClientService: LunarClientService,
     private val guildService: GuildService,
-    private val memberService: MemberService
+    private val memberService: MemberService,
+    private val lunarPreferences: LunarPreferenceRepository
 ) {
     private val logger = LoggerFactory.getLogger(GuildWaypointService::class.java)
 
@@ -55,6 +57,7 @@ class GuildWaypointService(
             // Add waypoints for each guild the player is in
             playerGuilds.forEach { guildId ->
                 try {
+                    if (!lunarPreferences.isGuildWaypointsVisible(guildId)) return@forEach
                     val guild = guildService.getGuild(guildId) ?: return@forEach
                     val homes = guildService.getHomes(guildId)
 
@@ -116,6 +119,12 @@ class GuildWaypointService(
             val onlineMembers = members.mapNotNull { member ->
                 Bukkit.getPlayer(member.playerId)
             }.filter { lunarClientService.isLunarClient(it) }
+
+            // If visibility is off, just clear this guild's waypoints from every member.
+            if (!lunarPreferences.isGuildWaypointsVisible(guildId)) {
+                clearGuildWaypoints(guildId)
+                return
+            }
 
             onlineMembers.forEach { player ->
                 showGuildHomeWaypoints(player)
