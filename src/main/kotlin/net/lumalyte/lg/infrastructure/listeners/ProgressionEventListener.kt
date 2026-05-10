@@ -1,5 +1,16 @@
 package net.lumalyte.lg.infrastructure.listeners
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.lumalyte.lg.application.services.ActivityType
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.ExperienceSource
@@ -29,9 +40,9 @@ import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerFishEvent
 import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.plugin.Plugin
-import org.bukkit.scheduler.BukkitTask
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import org.slf4j.LoggerFactory
 import java.util.Collections
 import java.util.UUID
@@ -57,18 +68,21 @@ class ProgressionEventListener : Listener, KoinComponent {
     private val asyncTaskService: AsyncTaskService by inject()
     private val leaderboardService: LeaderboardService by inject()
     private val plugin: Plugin by inject()
+    private val virtualDispatcher: CoroutineDispatcher by inject(named("VirtualDispatcher"))
 
     private val logger = LoggerFactory.getLogger(ProgressionEventListener::class.java)
 
     // Rate limiting: Track XP per player per source to prevent spam
     private val playerXpCooldowns = ConcurrentHashMap<String, Long>()
-    private val playerXpCounters = ConcurrentHashMap<String, AtomicInteger>()
+    private val playerXpCounters = ConcurrentHashMap<String, CounterEntry>()
 
     private val playerGuildCache = ConcurrentHashMap<UUID, Set<UUID>>()
     private val pendingGuildXp = ConcurrentHashMap<GuildXpKey, AtomicInteger>()
     private val sourceXpValues = ConcurrentHashMap<ExperienceSource, Int>()
     @Volatile private var cachedProgressionConfig: ProgressionConfig = configService.loadConfig().progression
-    private var flushTask: BukkitTask? = null
+
+    private val flushScope = CoroutineScope(SupervisorJob() + virtualDispatcher)
+    @Volatile private var flushJob: Job? = null
 
     init {
         refreshCaches()
@@ -85,10 +99,15 @@ class ProgressionEventListener : Listener, KoinComponent {
     }
 
     fun shutdown() {
-        flushTask?.cancel()
-        flushTask = null
-        flushEligiblePlayerCounters()
+        val job = flushJob
+        flushJob = null
+        if (job != null) {
+            runBlocking { job.cancelAndJoin() }
+        }
+        // Force-drain everything still buffered, ignoring cooldowns, before final guild flush.
+        flushEligiblePlayerCounters(force = true)
         flushPendingGuildXp()
+        flushScope.cancel()
     }
 
     private fun rebuildExperienceSourceCache(config: ProgressionConfig) {
@@ -113,11 +132,20 @@ class ProgressionEventListener : Listener, KoinComponent {
     }
 
     private fun startFlushTask() {
-        flushTask?.cancel()
-        flushTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, Runnable {
-            flushEligiblePlayerCounters()
-            flushPendingGuildXp()
-        }, FLUSH_INTERVAL_TICKS, FLUSH_INTERVAL_TICKS)
+        flushJob?.cancel()
+        flushJob = flushScope.launch {
+            while (isActive) {
+                delay(FLUSH_INTERVAL_MS)
+                try {
+                    flushEligiblePlayerCounters()
+                    flushPendingGuildXp()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    logger.warn("Progression flush cycle failed", e)
+                }
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -258,30 +286,33 @@ class ProgressionEventListener : Listener, KoinComponent {
         val currentTime = System.currentTimeMillis()
         val cooldownMs = cachedProgressionConfig.xpCooldownMs
         val maxXpPerBatch = cachedProgressionConfig.maxXpPerBatch
+        val scaled = amount * multiplier
 
         // Check cooldown
         val lastAward = playerXpCooldowns[key] ?: 0
         if (currentTime - lastAward < cooldownMs) {
-            // Add to counter for batch processing
-            val counter = playerXpCounters.computeIfAbsent(key) { AtomicInteger(0) }
-            val totalAmount = counter.addAndGet(amount * multiplier)
+            // Add to counter for batch processing — guild snapshot fixed at counter creation
+            // so XP earned while in guild G stays credited to G even if membership changes.
+            val entry = playerXpCounters.computeIfAbsent(key) { CounterEntry(source, guildIds) }
+            val totalAmount = entry.amount.addAndGet(scaled)
 
             // Process batch if it reaches the limit
             if (totalAmount >= maxXpPerBatch) {
-                val drained = counter.getAndSet(0)
+                val drained = entry.amount.getAndSet(0)
                 playerXpCooldowns[key] = currentTime
-                enqueueGuildExperience(guildIds, drained, source)
+                if (drained > 0) enqueueGuildExperience(entry.guildIds, drained, source)
             }
             return
         }
 
-        // Process any pending XP from counter
-        val counter = playerXpCounters[key]
-        val pendingXp = counter?.getAndSet(0) ?: 0
-        val totalXp = (amount * multiplier) + pendingXp
-
+        // Cooldown elapsed: drain prior buffer under its stored snapshot, start fresh under current.
+        val previous = playerXpCounters.remove(key)
+        val pendingXp = previous?.amount?.getAndSet(0) ?: 0
         playerXpCooldowns[key] = currentTime
-        enqueueGuildExperience(guildIds, totalXp, source)
+        if (pendingXp > 0 && previous != null) {
+            enqueueGuildExperience(previous.guildIds, pendingXp, source)
+        }
+        enqueueGuildExperience(guildIds, scaled, source)
     }
 
     /**
@@ -363,8 +394,19 @@ class ProgressionEventListener : Listener, KoinComponent {
     @EventHandler(priority = EventPriority.MONITOR)
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val playerId = event.player.uniqueId
-        playerXpCooldowns.keys.removeIf { it.startsWith(playerId.toString()) }
-        playerXpCounters.keys.removeIf { it.startsWith(playerId.toString()) }
+        val prefix = "${playerId}-"
+        // Drain any buffered XP into pendingGuildXp under the stored snapshot before removing keys.
+        val toRemove = mutableListOf<String>()
+        playerXpCounters.forEach { (key, entry) ->
+            if (!key.startsWith(prefix)) return@forEach
+            toRemove.add(key)
+            val amount = entry.amount.getAndSet(0)
+            if (amount > 0 && entry.guildIds.isNotEmpty()) {
+                enqueueGuildExperience(entry.guildIds, amount, entry.source)
+            }
+        }
+        toRemove.forEach { playerXpCounters.remove(it) }
+        playerXpCooldowns.keys.removeIf { it.startsWith(prefix) }
     }
 
     private fun cachedXp(source: ExperienceSource): Int = sourceXpValues[source] ?: 0
@@ -386,48 +428,50 @@ class ProgressionEventListener : Listener, KoinComponent {
         }
     }
 
-    private fun flushEligiblePlayerCounters() {
+    /**
+     * Drains player counters whose cooldowns have elapsed (or all of them when [force] is true,
+     * used during shutdown so XP earned just before stop is not lost).
+     */
+    private fun flushEligiblePlayerCounters(force: Boolean = false) {
         val currentTime = System.currentTimeMillis()
         val cooldownMs = cachedProgressionConfig.xpCooldownMs
-        playerXpCounters.forEach { (key, counter) ->
-            val lastAward = playerXpCooldowns[key] ?: 0
-            if (currentTime - lastAward < cooldownMs) return@forEach
-
-            val amount = counter.getAndSet(0)
-            if (amount <= 0) return@forEach
-
-            val parts = key.split('-', limit = 6)
-            if (parts.size < 6) return@forEach
-            val playerId = try {
-                UUID.fromString(parts.take(5).joinToString("-"))
-            } catch (e: IllegalArgumentException) {
-                return@forEach
+        val toRemove = if (force) mutableListOf<String>() else null
+        playerXpCounters.forEach { (key, entry) ->
+            if (!force) {
+                val lastAward = playerXpCooldowns[key] ?: 0
+                if (currentTime - lastAward < cooldownMs) return@forEach
             }
-            val source = try {
-                ExperienceSource.valueOf(parts[5])
-            } catch (e: IllegalArgumentException) {
-                return@forEach
-            }
-            val guildIds = playerGuildCache[playerId]
-            if (guildIds.isNullOrEmpty()) return@forEach
 
-            playerXpCooldowns[key] = currentTime
-            enqueueGuildExperience(guildIds, amount, source)
+            val amount = entry.amount.getAndSet(0)
+            if (amount > 0 && entry.guildIds.isNotEmpty()) {
+                enqueueGuildExperience(entry.guildIds, amount, entry.source)
+            }
+            if (force) {
+                toRemove?.add(key)
+            } else if (amount > 0) {
+                playerXpCooldowns[key] = currentTime
+            }
         }
+        toRemove?.forEach { playerXpCounters.remove(it) }
     }
 
+    /**
+     * Drains pending guild XP and writes it through the progression service.
+     * Uses CAS so a write failure restores the amount instead of losing it.
+     */
     private fun flushPendingGuildXp() {
-        val snapshot = mutableListOf<Pair<GuildXpKey, Int>>()
         pendingGuildXp.forEach { (key, counter) ->
-            val amount = counter.getAndSet(0)
-            if (amount > 0) snapshot.add(key to amount)
-        }
+            var amount: Int
+            do {
+                amount = counter.get()
+                if (amount <= 0) return@forEach
+            } while (!counter.compareAndSet(amount, 0))
 
-        snapshot.forEach { (key, amount) ->
             try {
                 progressionService.awardExperience(key.guildId, amount, key.source)
             } catch (e: Exception) {
-                logger.warn("Failed to flush $amount XP to guild ${key.guildId} from ${key.source}", e)
+                counter.addAndGet(amount)
+                logger.warn("Failed to flush $amount XP to guild ${key.guildId} from ${key.source}; requeued", e)
             }
         }
     }
@@ -447,7 +491,11 @@ class ProgressionEventListener : Listener, KoinComponent {
 
     private data class GuildXpKey(val guildId: UUID, val source: ExperienceSource)
 
+    private class CounterEntry(val source: ExperienceSource, val guildIds: Set<UUID>) {
+        val amount = AtomicInteger(0)
+    }
+
     companion object {
-        private const val FLUSH_INTERVAL_TICKS = 100L
+        private const val FLUSH_INTERVAL_MS = 5_000L
     }
 }
