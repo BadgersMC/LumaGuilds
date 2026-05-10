@@ -6,8 +6,12 @@ import net.lumalyte.lg.application.services.ExperienceSource
 import net.lumalyte.lg.application.services.LeaderboardService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ProgressionService
+import net.lumalyte.lg.application.persistence.MemberRepository
+import net.lumalyte.lg.config.ProgressionConfig
 import net.lumalyte.lg.domain.events.GuildBankDepositEvent
+import net.lumalyte.lg.domain.events.GuildDisbandedEvent
 import net.lumalyte.lg.domain.events.GuildMemberJoinEvent
+import net.lumalyte.lg.domain.events.GuildMemberRemovedEvent
 import net.lumalyte.lg.infrastructure.services.AsyncTaskService
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -21,11 +25,15 @@ import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.inventory.CraftItemEvent
 import org.bukkit.event.inventory.FurnaceExtractEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerFishEvent
 import org.bukkit.event.player.PlayerHarvestBlockEvent
+import org.bukkit.plugin.Plugin
+import org.bukkit.scheduler.BukkitTask
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
+import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -44,9 +52,11 @@ class ProgressionEventListener : Listener, KoinComponent {
 
     private val progressionService: ProgressionService by inject()
     private val memberService: MemberService by inject()
+    private val memberRepository: MemberRepository by inject()
     private val configService: ConfigService by inject()
     private val asyncTaskService: AsyncTaskService by inject()
     private val leaderboardService: LeaderboardService by inject()
+    private val plugin: Plugin by inject()
 
     private val logger = LoggerFactory.getLogger(ProgressionEventListener::class.java)
 
@@ -54,19 +64,67 @@ class ProgressionEventListener : Listener, KoinComponent {
     private val playerXpCooldowns = ConcurrentHashMap<String, Long>()
     private val playerXpCounters = ConcurrentHashMap<String, AtomicInteger>()
 
-    // Get configuration values
-    private val cooldownMs get() = getConfig().xpCooldownMs
-    private val maxXpPerBatch get() = getConfig().maxXpPerBatch
+    private val playerGuildCache = ConcurrentHashMap<UUID, Set<UUID>>()
+    private val pendingGuildXp = ConcurrentHashMap<GuildXpKey, AtomicInteger>()
+    private val sourceXpValues = ConcurrentHashMap<ExperienceSource, Int>()
+    @Volatile private var cachedProgressionConfig: ProgressionConfig = configService.loadConfig().progression
+    private var flushTask: BukkitTask? = null
 
+    init {
+        refreshCaches()
+        startFlushTask()
+    }
 
-    // Get XP values from config
-    private fun getConfig() = configService.loadConfig().progression
+    /**
+     * Refreshes hot-path caches after startup or /lumaguilds reload.
+     */
+    fun refreshCaches() {
+        cachedProgressionConfig = configService.loadConfig().progression
+        rebuildExperienceSourceCache(cachedProgressionConfig)
+        rebuildMembershipCache()
+    }
+
+    fun shutdown() {
+        flushTask?.cancel()
+        flushTask = null
+        flushEligiblePlayerCounters()
+        flushPendingGuildXp()
+    }
+
+    private fun rebuildExperienceSourceCache(config: ProgressionConfig) {
+        sourceXpValues[ExperienceSource.PLAYER_KILL] = config.playerKillXp
+        sourceXpValues[ExperienceSource.MOB_KILL] = config.mobKillXp
+        sourceXpValues[ExperienceSource.CROP_BREAK] = config.cropBreakXp
+        sourceXpValues[ExperienceSource.BLOCK_BREAK] = config.blockBreakXp
+        sourceXpValues[ExperienceSource.BLOCK_PLACE] = config.blockPlaceXp
+        sourceXpValues[ExperienceSource.CRAFTING] = config.craftingXp
+        sourceXpValues[ExperienceSource.SMELTING] = config.smeltingXp
+        sourceXpValues[ExperienceSource.FISHING] = config.fishingXp
+        sourceXpValues[ExperienceSource.ENCHANTING] = config.enchantingXp
+    }
+
+    private fun rebuildMembershipCache() {
+        playerGuildCache.clear()
+        memberRepository.getAll()
+            .groupBy { it.playerId }
+            .forEach { (playerId, memberships) ->
+                playerGuildCache[playerId] = Collections.unmodifiableSet(memberships.map { it.guildId }.toSet())
+            }
+    }
+
+    private fun startFlushTask() {
+        flushTask?.cancel()
+        flushTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, Runnable {
+            flushEligiblePlayerCounters()
+            flushPendingGuildXp()
+        }, FLUSH_INTERVAL_TICKS, FLUSH_INTERVAL_TICKS)
+    }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerKill(event: PlayerDeathEvent) {
         val killer = event.entity.killer
         if (killer is Player) {
-            awardExperience(killer, getConfig().playerKillXp, ExperienceSource.PLAYER_KILL)
+            awardExperience(killer, cachedXp(ExperienceSource.PLAYER_KILL), ExperienceSource.PLAYER_KILL)
         }
         recordKillDeathActivity(killer, event.entity)
     }
@@ -98,22 +156,28 @@ class ProgressionEventListener : Listener, KoinComponent {
         val killer = event.entity.killer
         if (killer is Player && event.entity !is Player) {
             // Use rate limiting for mob kills to prevent grinding
-            awardExperienceWithCooldown(killer, getConfig().mobKillXp, ExperienceSource.MOB_KILL)
+            awardExperienceWithCooldown(killer, cachedXp(ExperienceSource.MOB_KILL), ExperienceSource.MOB_KILL)
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onCropBreak(event: PlayerHarvestBlockEvent) {
-        awardExperienceWithCooldown(event.player, getConfig().cropBreakXp, ExperienceSource.CROP_BREAK)
+        awardExperienceWithCooldown(event.player, cachedXp(ExperienceSource.CROP_BREAK), ExperienceSource.CROP_BREAK)
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) {
-        // Only award XP for natural blocks to prevent exploit farms
-        if (event.block.type.isBlock && !event.block.hasMetadata("player_placed")) {
-            val blockBreakXp = getConfig().blockBreakXp
-            awardExperienceWithCooldown(event.player, blockBreakXp, ExperienceSource.BLOCK_BREAK)
-        }
+        val xp = cachedXp(ExperienceSource.BLOCK_BREAK)
+        if (xp <= 0) return
+
+        val guildIds = playerGuildCache[event.player.uniqueId]
+        if (guildIds.isNullOrEmpty()) return
+
+        val block = event.block
+        if (!block.type.isBlock) return
+        if (block.hasMetadata("player_placed")) return
+
+        awardExperienceWithCooldown(event.player.uniqueId, guildIds, xp, ExperienceSource.BLOCK_BREAK, lunarMultiplier(event.player))
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -128,7 +192,7 @@ class ProgressionEventListener : Listener, KoinComponent {
 
             event.block.setMetadata("player_placed", org.bukkit.metadata.FixedMetadataValue(plugin, true))
 
-            awardExperienceWithCooldown(event.player, getConfig().blockPlaceXp, ExperienceSource.BLOCK_PLACE)
+            awardExperienceWithCooldown(event.player, cachedXp(ExperienceSource.BLOCK_PLACE), ExperienceSource.BLOCK_PLACE)
         } catch (e: Exception) {
             // Event listener - catching all exceptions to prevent listener failure
             logger.error("Error in onBlockPlace for player ${event.player.name}", e)
@@ -140,25 +204,25 @@ class ProgressionEventListener : Listener, KoinComponent {
         if (event.whoClicked is Player) {
             val player = event.whoClicked as Player
             val amount = event.recipe.result.amount
-            awardExperienceWithCooldown(player, getConfig().craftingXp * amount, ExperienceSource.CRAFTING)
+            awardExperienceWithCooldown(player, cachedXp(ExperienceSource.CRAFTING) * amount, ExperienceSource.CRAFTING)
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onSmelting(event: FurnaceExtractEvent) {
-        awardExperienceWithCooldown(event.player, getConfig().smeltingXp * event.itemAmount, ExperienceSource.SMELTING)
+        awardExperienceWithCooldown(event.player, cachedXp(ExperienceSource.SMELTING) * event.itemAmount, ExperienceSource.SMELTING)
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onFishing(event: PlayerFishEvent) {
         if (event.state == PlayerFishEvent.State.CAUGHT_FISH) {
-            awardExperience(event.player, getConfig().fishingXp, ExperienceSource.FISHING)
+            awardExperience(event.player, cachedXp(ExperienceSource.FISHING), ExperienceSource.FISHING)
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onEnchanting(event: EnchantItemEvent) {
-        awardExperience(event.enchanter, getConfig().enchantingXp * event.expLevelCost, ExperienceSource.ENCHANTING)
+        awardExperience(event.enchanter, cachedXp(ExperienceSource.ENCHANTING) * event.expLevelCost, ExperienceSource.ENCHANTING)
     }
 
     /**
@@ -166,43 +230,9 @@ class ProgressionEventListener : Listener, KoinComponent {
      * Database operations run on virtual threads to avoid blocking main thread.
      */
     private fun awardExperience(player: Player, amount: Int, source: ExperienceSource) {
-        // Run database operations on virtual thread - won't block main thread!
-        asyncTaskService.runAsyncCallback(
-            task = {
-                try {
-                    val guildIds = memberService.getPlayerGuilds(player.uniqueId) // DB query on virtual thread
-
-                    if (guildIds.isEmpty()) {
-                        return@runAsyncCallback
-                    }
-
-                    // Check if player is using Lunar Client for 2x XP bonus
-                    var finalAmount = amount
-                    try {
-                        val lunarClientService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.application.services.apollo.LunarClientService>()
-                        if (lunarClientService != null && lunarClientService.isLunarClient(player)) {
-                            finalAmount = amount * 2
-                            logger.debug("${player.name} earned 2x XP ($finalAmount instead of $amount) from $source due to Lunar Client")
-                        }
-                    } catch (e: Exception) {
-                        // Silently fail if Apollo not available
-                    }
-
-                    guildIds.forEach { guildId ->
-                        progressionService.awardExperience(guildId, finalAmount, source) // DB write on virtual thread
-                    }
-                } catch (e: Exception) {
-                    // Event listener - catching all exceptions to prevent listener failure
-                    logger.error("Failed to award $amount XP to player ${player.name} from $source", e)
-                }
-            },
-            onSuccess = {
-                // Nothing to do on main thread
-            },
-            onError = { error ->
-                logger.error("Async XP award failed for player ${player.name}", error)
-            }
-        )
+        val guildIds = playerGuildCache[player.uniqueId]
+        if (guildIds.isNullOrEmpty()) return
+        enqueueGuildExperience(guildIds, amount * lunarMultiplier(player), source)
     }
 
     /**
@@ -210,21 +240,37 @@ class ProgressionEventListener : Listener, KoinComponent {
      * Batches XP awards and processes them async on virtual threads.
      */
     private fun awardExperienceWithCooldown(player: Player, amount: Int, source: ExperienceSource) {
-        val key = "${player.uniqueId}-${source.name}"
+        val guildIds = playerGuildCache[player.uniqueId]
+        if (guildIds.isNullOrEmpty()) return
+        awardExperienceWithCooldown(player.uniqueId, guildIds, amount, source, lunarMultiplier(player))
+    }
+
+    private fun awardExperienceWithCooldown(
+        playerId: UUID,
+        guildIds: Set<UUID>,
+        amount: Int,
+        source: ExperienceSource,
+        multiplier: Int
+    ) {
+        if (amount <= 0 || guildIds.isEmpty()) return
+
+        val key = "${playerId}-${source.name}"
         val currentTime = System.currentTimeMillis()
+        val cooldownMs = cachedProgressionConfig.xpCooldownMs
+        val maxXpPerBatch = cachedProgressionConfig.maxXpPerBatch
 
         // Check cooldown
         val lastAward = playerXpCooldowns[key] ?: 0
         if (currentTime - lastAward < cooldownMs) {
             // Add to counter for batch processing
             val counter = playerXpCounters.computeIfAbsent(key) { AtomicInteger(0) }
-            val totalAmount = counter.addAndGet(amount)
+            val totalAmount = counter.addAndGet(amount * multiplier)
 
             // Process batch if it reaches the limit
             if (totalAmount >= maxXpPerBatch) {
-                counter.set(0)
+                val drained = counter.getAndSet(0)
                 playerXpCooldowns[key] = currentTime
-                awardExperience(player, totalAmount, source)
+                enqueueGuildExperience(guildIds, drained, source)
             }
             return
         }
@@ -232,10 +278,10 @@ class ProgressionEventListener : Listener, KoinComponent {
         // Process any pending XP from counter
         val counter = playerXpCounters[key]
         val pendingXp = counter?.getAndSet(0) ?: 0
-        val totalXp = amount + pendingXp
+        val totalXp = (amount * multiplier) + pendingXp
 
         playerXpCooldowns[key] = currentTime
-        awardExperience(player, totalXp, source)
+        enqueueGuildExperience(guildIds, totalXp, source)
     }
 
     /**
@@ -250,19 +296,8 @@ class ProgressionEventListener : Listener, KoinComponent {
      * Runs on virtual thread to avoid blocking caller.
      */
     fun awardGuildExperienceByGuildId(guildId: UUID, amount: Int, source: ExperienceSource) {
-        asyncTaskService.runAsyncCallback(
-            task = {
-                try {
-                    progressionService.awardExperience(guildId, amount, source) // DB write on virtual thread
-                } catch (e: Exception) {
-                    logger.warn("Failed to award experience to guild $guildId", e)
-                }
-            },
-            onSuccess = {},
-            onError = { error ->
-                logger.error("Async guild XP award failed for guild $guildId", error)
-            }
-        )
+        if (amount <= 0) return
+        enqueueGuildExperience(setOf(guildId), amount, source)
     }
 
     // Custom event handlers for guild-specific actions
@@ -271,8 +306,7 @@ class ProgressionEventListener : Listener, KoinComponent {
         asyncTaskService.runAsyncCallback(
             task = {
                 try {
-                    val config = configService.loadConfig()
-                    val xpPerHundred = config.progression.bankDepositXpPer100
+                    val xpPerHundred = cachedProgressionConfig.bankDepositXpPer100
                     val xpAmount = (event.amount / 100.0 * xpPerHundred).toInt()
                     if (xpAmount > 0) {
                         progressionService.awardExperience(event.guildId, xpAmount, ExperienceSource.BANK_DEPOSIT)
@@ -291,6 +325,7 @@ class ProgressionEventListener : Listener, KoinComponent {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
+        addPlayerGuild(event.playerId, event.guildId)
         asyncTaskService.runAsyncCallback(
             task = {
                 try {
@@ -300,8 +335,7 @@ class ProgressionEventListener : Listener, KoinComponent {
                         return@runAsyncCallback
                     }
 
-                    val config = configService.loadConfig()
-                    val memberJoinXp = config.progression.memberJoinedXp
+                    val memberJoinXp = cachedProgressionConfig.memberJoinedXp
                     progressionService.awardExperience(event.guildId, memberJoinXp, ExperienceSource.MEMBER_JOINED)
                     leaderboardService.recordActivity(event.guildId, ActivityType.MEMBER_JOINED, 1)
                 } catch (e: Exception) {
@@ -313,5 +347,107 @@ class ProgressionEventListener : Listener, KoinComponent {
                 logger.error("Async member join XP award failed", error)
             }
         )
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onGuildMemberRemoved(event: GuildMemberRemovedEvent) {
+        removePlayerGuild(event.playerId, event.guildId)
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onGuildDisbanded(event: GuildDisbandedEvent) {
+        event.memberIds.forEach { playerId -> removePlayerGuild(playerId, event.guild.id) }
+        pendingGuildXp.keys.removeIf { it.guildId == event.guild.id }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onPlayerQuit(event: PlayerQuitEvent) {
+        val playerId = event.player.uniqueId
+        playerXpCooldowns.keys.removeIf { it.startsWith(playerId.toString()) }
+        playerXpCounters.keys.removeIf { it.startsWith(playerId.toString()) }
+    }
+
+    private fun cachedXp(source: ExperienceSource): Int = sourceXpValues[source] ?: 0
+
+    private fun lunarMultiplier(player: Player): Int {
+        return try {
+            val lunarClientService = org.koin.core.context.GlobalContext.get()
+                .getOrNull<net.lumalyte.lg.application.services.apollo.LunarClientService>()
+            if (lunarClientService != null && lunarClientService.isLunarClient(player)) 2 else 1
+        } catch (e: Exception) {
+            1
+        }
+    }
+
+    private fun enqueueGuildExperience(guildIds: Set<UUID>, amount: Int, source: ExperienceSource) {
+        if (amount <= 0) return
+        guildIds.forEach { guildId ->
+            pendingGuildXp.computeIfAbsent(GuildXpKey(guildId, source)) { AtomicInteger(0) }.addAndGet(amount)
+        }
+    }
+
+    private fun flushEligiblePlayerCounters() {
+        val currentTime = System.currentTimeMillis()
+        val cooldownMs = cachedProgressionConfig.xpCooldownMs
+        playerXpCounters.forEach { (key, counter) ->
+            val lastAward = playerXpCooldowns[key] ?: 0
+            if (currentTime - lastAward < cooldownMs) return@forEach
+
+            val amount = counter.getAndSet(0)
+            if (amount <= 0) return@forEach
+
+            val parts = key.split('-', limit = 6)
+            if (parts.size < 6) return@forEach
+            val playerId = try {
+                UUID.fromString(parts.take(5).joinToString("-"))
+            } catch (e: IllegalArgumentException) {
+                return@forEach
+            }
+            val source = try {
+                ExperienceSource.valueOf(parts[5])
+            } catch (e: IllegalArgumentException) {
+                return@forEach
+            }
+            val guildIds = playerGuildCache[playerId]
+            if (guildIds.isNullOrEmpty()) return@forEach
+
+            playerXpCooldowns[key] = currentTime
+            enqueueGuildExperience(guildIds, amount, source)
+        }
+    }
+
+    private fun flushPendingGuildXp() {
+        val snapshot = mutableListOf<Pair<GuildXpKey, Int>>()
+        pendingGuildXp.forEach { (key, counter) ->
+            val amount = counter.getAndSet(0)
+            if (amount > 0) snapshot.add(key to amount)
+        }
+
+        snapshot.forEach { (key, amount) ->
+            try {
+                progressionService.awardExperience(key.guildId, amount, key.source)
+            } catch (e: Exception) {
+                logger.warn("Failed to flush $amount XP to guild ${key.guildId} from ${key.source}", e)
+            }
+        }
+    }
+
+    private fun addPlayerGuild(playerId: UUID, guildId: UUID) {
+        playerGuildCache.compute(playerId) { _, current ->
+            Collections.unmodifiableSet((current ?: emptySet()).plus(guildId))
+        }
+    }
+
+    private fun removePlayerGuild(playerId: UUID, guildId: UUID) {
+        playerGuildCache.computeIfPresent(playerId) { _, current ->
+            val updated = current.minus(guildId)
+            if (updated.isEmpty()) null else Collections.unmodifiableSet(updated)
+        }
+    }
+
+    private data class GuildXpKey(val guildId: UUID, val source: ExperienceSource)
+
+    companion object {
+        private const val FLUSH_INTERVAL_TICKS = 100L
     }
 }
