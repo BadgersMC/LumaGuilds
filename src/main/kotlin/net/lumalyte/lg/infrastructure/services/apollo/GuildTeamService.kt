@@ -6,6 +6,7 @@ import com.lunarclient.apollo.module.team.TeamMember
 import com.lunarclient.apollo.module.team.TeamModule
 import com.lunarclient.apollo.recipients.Recipients
 import net.kyori.adventure.text.Component
+import net.lumalyte.lg.application.persistence.LunarPreferenceRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
@@ -27,7 +28,8 @@ class GuildTeamService(
     private val lunarClientService: LunarClientService,
     private val guildService: GuildService,
     private val memberService: MemberService,
-    private val rankService: RankService
+    private val rankService: RankService,
+    private val lunarPreferences: LunarPreferenceRepository
 ) {
     private val logger = LoggerFactory.getLogger(GuildTeamService::class.java)
 
@@ -85,6 +87,9 @@ class GuildTeamService(
 
     private fun Player.isVanished(): Boolean =
         getMetadata("vanished").any { it.asBoolean() }
+
+    private fun Player.isTrackingOptedIn(): Boolean =
+        lunarPreferences.isPlayerTeamTrackingEnabled(uniqueId)
 
     private fun initializeExistingGuilds() {
         val allGuilds = guildService.getAllGuilds()
@@ -157,7 +162,7 @@ class GuildTeamService(
             if (memberIds.isEmpty()) return
 
             val onlineMembers = memberIds.mapNotNull { id ->
-                Bukkit.getPlayer(id)?.takeUnless { it.isVanished() }
+                Bukkit.getPlayer(id)?.takeUnless { it.isVanished() || !it.isTrackingOptedIn() }
             }
             if (onlineMembers.isEmpty()) return
 
@@ -266,7 +271,7 @@ class GuildTeamService(
             }
 
             val onlineMembers = memberIds.mapNotNull { id ->
-                Bukkit.getPlayer(id)?.takeUnless { it.isVanished() }
+                Bukkit.getPlayer(id)?.takeUnless { it.isVanished() || !it.isTrackingOptedIn() }
             }
 
             if (onlineMembers.isEmpty()) {
@@ -347,6 +352,27 @@ class GuildTeamService(
         }
     }
 
+    /**
+     * Called when a player toggles their team-tracking opt-in. Resets team data on the
+     * toggling player's own LC client and refreshes team data for all their guilds so
+     * teammates see them appear/disappear immediately.
+     */
+    fun onPlayerTrackingPreferenceChanged(playerId: UUID) {
+        try {
+            val player = Bukkit.getPlayer(playerId)
+            if (player != null && lunarClientService.isLunarClient(player)) {
+                lunarClientService.getApolloPlayer(player)?.let {
+                    teamModule.resetTeamMembers(it)
+                }
+            }
+            memberService.getPlayerGuilds(playerId).forEach { guildId ->
+                refreshGuildTeam(guildId)
+            }
+        } catch (e: Exception) {
+            logger.debug("Failed to handle tracking preference change for $playerId: ${e.message}")
+        }
+    }
+
     fun onPlayerQuit(playerId: UUID) {
         try {
             activeTeams.values.forEach { members ->
@@ -415,7 +441,9 @@ class GuildTeamService(
             val memberIds = cachedGuildMembers.getOrPut(guildId) {
                 memberService.getGuildMembers(guildId).map { it.playerId }
             }
-            val onlineMembers = memberIds.mapNotNull { Bukkit.getPlayer(it)?.takeUnless { p -> p.isVanished() } }
+            val onlineMembers = memberIds.mapNotNull {
+                Bukkit.getPlayer(it)?.takeUnless { p -> p.isVanished() || !p.isTrackingOptedIn() }
+            }
 
             onlineMembers.forEach { viewer ->
                 if (!lunarClientService.isLunarClient(viewer)) return@forEach
