@@ -938,6 +938,12 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        try {
+            get().getOrNull<ProgressionEventListener>()?.shutdown()
+        } catch (e: Exception) {
+            logger.warning("Failed to flush progression XP batches: ${e.message}")
+        }
+
         // Stop Web API first so it stops accepting new requests
         try {
             get().getOrNull<net.lumalyte.lg.infrastructure.web.WebApiServer>()?.stop()
