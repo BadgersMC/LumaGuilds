@@ -27,7 +27,30 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin'
-        
+
+    - name: Resolve RoseChat commit SHA
+      id: rosechat-sha
+      run: |
+        SHA=$(git ls-remote https://github.com/BadgersMC/Enthusia-RoseChat.git refs/heads/master | cut -f1)
+        echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+    - name: Cache RoseChat jar
+      id: rosechat-cache
+      uses: actions/cache@v4
+      with:
+        path: libs/RoseChat-RC-2.jar
+        key: rosechat-jar-${{ steps.rosechat-sha.outputs.sha }}
+
+    - name: Build RoseChat dependency
+      if: steps.rosechat-cache.outputs.cache-hit != 'true'
+      run: |
+        git clone --depth=1 https://github.com/BadgersMC/Enthusia-RoseChat.git /tmp/rosechat
+        cd /tmp/rosechat
+        chmod +x gradlew
+        ./gradlew shadowJar --no-daemon
+        mkdir -p "$GITHUB_WORKSPACE/libs"
+        cp build/libs/RoseChat-RC-2.jar "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
+
     - name: Test with Gradle
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
