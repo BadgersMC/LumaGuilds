@@ -643,6 +643,15 @@ class GuildServiceBukkit(
         return result
     }
 
+    override fun canUseHome(playerId: UUID, guildId: UUID, homeName: String): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+        val home = guild.homes.getHome(homeName) ?: return false
+        val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
+        val ownerRank = rankRepository.getHighestRank(guildId)
+        if (ownerRank != null && member.rankId == ownerRank.id) return true
+        return member.rankId in home.allowedRankIds
+    }
+
     override fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 

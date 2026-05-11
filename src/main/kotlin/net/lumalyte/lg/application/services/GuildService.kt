@@ -315,4 +315,12 @@ interface GuildService {
      * @return true if successful, false otherwise.
      */
     fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean
+
+    /**
+     * Checks whether a player may teleport to the named home. Returns true when:
+     * - the player is in the guild, AND
+     * - the player's rank is the highest-priority (Owner) rank, OR
+     * - the player's rank id is in `home.allowedRankIds`.
+     */
+    fun canUseHome(playerId: UUID, guildId: UUID, homeName: String): Boolean
 }
