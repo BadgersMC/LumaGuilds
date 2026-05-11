@@ -271,7 +271,8 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             "Diplomacy" to listOf(
                 RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
                 RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,
-                RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES
+                RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES,
+                RankPermission.USE_ALLY_HOMES
             ),
             "Communication" to listOf(
                 RankPermission.SEND_ANNOUNCEMENTS, RankPermission.SEND_PINGS,
