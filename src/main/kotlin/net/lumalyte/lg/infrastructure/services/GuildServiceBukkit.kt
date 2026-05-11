@@ -664,6 +664,32 @@ class GuildServiceBukkit(
         return RankPermission.USE_ALLY_HOMES in rank.permissions
     }
 
+    override fun setHomeAllowedRanks(
+        guildId: UUID, homeName: String, allowedRankIds: Set<UUID>, actorId: UUID
+    ): Boolean {
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
+            logger.warn("Player $actorId attempted to set home rank whitelist for guild $guildId without MANAGE_HOME")
+            return false
+        }
+        val guild = guildRepository.getById(guildId) ?: return false
+        val home = guild.homes.getHome(homeName) ?: return false
+        val updatedHome = home.copy(allowedRankIds = allowedRankIds)
+        val updatedGuild = guild.copy(homes = guild.homes.withHome(homeName, updatedHome))
+        return guildRepository.update(updatedGuild)
+    }
+
+    override fun setAllyHomeAllowedGuilds(
+        guildId: UUID, allowedGuildIds: Set<UUID>, actorId: UUID
+    ): Boolean {
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
+            logger.warn("Player $actorId attempted to set ally-home guild whitelist for guild $guildId without MANAGE_HOME")
+            return false
+        }
+        val guild = guildRepository.getById(guildId) ?: return false
+        val updatedGuild = guild.copy(allyHomeAllowedGuilds = allowedGuildIds)
+        return guildRepository.update(updatedGuild)
+    }
+
     override fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 

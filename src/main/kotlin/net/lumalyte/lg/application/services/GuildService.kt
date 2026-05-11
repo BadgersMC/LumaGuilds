@@ -332,4 +332,15 @@ interface GuildService {
      * - (player's rank in source is Owner) OR (rank has USE_ALLY_HOMES permission).
      */
     fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean
+
+    /**
+     * Updates the rank whitelist for a named home. Caller must have MANAGE_HOME.
+     */
+    fun setHomeAllowedRanks(guildId: UUID, homeName: String, allowedRankIds: Set<UUID>, actorId: UUID): Boolean
+
+    /**
+     * Updates the inbound allow-list of guilds whose members may teleport to this guild's
+     * ally-home. Caller must have MANAGE_HOME.
+     */
+    fun setAllyHomeAllowedGuilds(guildId: UUID, allowedGuildIds: Set<UUID>, actorId: UUID): Boolean
 }
