@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RankRepository
+import net.lumalyte.lg.application.services.PriorityDirection
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.entities.RankPermission
@@ -311,5 +312,23 @@ class RankServiceBukkit(
             logger.info("Created default ranks for guild $guildId")
         }
         return success
+    }
+
+    override fun moveRankPriority(rankId: UUID, direction: PriorityDirection, actorId: UUID): Boolean {
+        val target = rankRepository.getById(rankId) ?: return false
+        if (!hasPermission(actorId, target.guildId, RankPermission.MANAGE_RANKS)) {
+            return false
+        }
+        val actorRank = getPlayerRank(actorId, target.guildId) ?: return false
+        if (actorRank.priority >= target.priority) return false
+        val siblings = rankRepository.getByGuild(target.guildId).sortedBy { it.priority }
+        val idx = siblings.indexOfFirst { it.id == target.id }
+        val neighborIdx = when (direction) {
+            PriorityDirection.UP -> idx - 1
+            PriorityDirection.DOWN -> idx + 1
+        }
+        if (neighborIdx !in siblings.indices) return false
+        val neighbor = siblings[neighborIdx]
+        return rankRepository.swapPriorities(target.id, neighbor.id)
     }
 }

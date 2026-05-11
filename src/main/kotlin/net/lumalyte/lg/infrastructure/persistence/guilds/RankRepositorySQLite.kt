@@ -176,4 +176,22 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
     }
     
     override fun getCountByGuild(guildId: UUID): Int = getByGuild(guildId).size
+
+    override fun swapPriorities(rankAId: UUID, rankBId: UUID): Boolean {
+        val rankA = ranks[rankAId] ?: return false
+        val rankB = ranks[rankBId] ?: return false
+        if (rankA.guildId != rankB.guildId) return false
+        val tempPriority = Int.MAX_VALUE
+        val sql = "UPDATE ranks SET priority = ? WHERE id = ?"
+        return try {
+            storage.connection.executeUpdate(sql, tempPriority, rankAId.toString())
+            storage.connection.executeUpdate(sql, rankA.priority, rankBId.toString())
+            storage.connection.executeUpdate(sql, rankB.priority, rankAId.toString())
+            ranks[rankAId] = rankA.copy(priority = rankB.priority)
+            ranks[rankBId] = rankB.copy(priority = rankA.priority)
+            true
+        } catch (e: java.sql.SQLException) {
+            false
+        }
+    }
 }
