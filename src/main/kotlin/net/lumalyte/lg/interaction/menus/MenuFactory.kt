@@ -450,6 +450,16 @@ class MenuFactory(
     }
 
     /**
+     * Creates a home access menu for configuring per-rank access to a guild home
+     */
+    fun createHomeAccessMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild,
+        homeName: String
+    ): Menu = net.lumalyte.lg.interaction.menus.guild.HomeAccessMenu(menuNavigator, player, guild, homeName)
+
+    /**
      * Creates a guild rank management menu appropriate for the player's platform
      */
     fun createGuildRankManagementMenu(
