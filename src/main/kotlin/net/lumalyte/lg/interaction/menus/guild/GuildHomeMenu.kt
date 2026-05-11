@@ -224,14 +224,22 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         for ((guildName, home) in allyHomes) {
             if (slot >= 7) break // Max 7 ally homes on row
             val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
-            val allyItem = ItemStack.of(Material.ENDER_EYE)
-                .name("§d⚔ $guildName")
+            val targetGuild = guildService.getGuildByName(guildName)
+            val allowed = targetGuild != null &&
+                guildService.canUseAllyHome(player.uniqueId, guild.id, targetGuild.id)
+            val allyItem = ItemStack.of(if (allowed) Material.ENDER_EYE else Material.BARRIER)
+                .name(if (allowed) "§d⚔ $guildName" else "§7⚔ $guildName (locked)")
                 .lore("§7Ally guild home")
                 .lore("§7World: §f$worldName")
                 .lore("§7")
-                .lore("§eClick to teleport")
+                .lore(if (allowed) "§eClick to teleport" else "§cYour rank lacks USE_ALLY_HOMES, or this guild has not allowed yours.")
 
             val guiItem = GuiItem(allyItem) {
+                if (!allowed) {
+                    player.sendMessage("§c❌ You cannot use that ally's home.")
+                    player.sendMessage("§7Either your rank lacks USE_ALLY_HOMES, or that guild has not allowed your guild.")
+                    return@GuiItem
+                }
                 startTeleportCountdown(home)
             }
             pane.addItem(guiItem, slot, y)
