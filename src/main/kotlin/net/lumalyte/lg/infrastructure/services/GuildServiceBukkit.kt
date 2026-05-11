@@ -329,7 +329,15 @@ class GuildServiceBukkit(
                 return false
             }
 
-            val updatedHomes = guild.homes.withHome(homeName, home)
+            val existing = guild.homes.getHome(homeName)
+            val effectiveAllowed = if (existing != null) {
+                existing.allowedRankIds
+            } else {
+                val ownerRank = rankRepository.getHighestRank(guildId)
+                if (ownerRank != null) setOf(ownerRank.id) else emptySet()
+            }
+            val effectiveHome = home.copy(allowedRankIds = effectiveAllowed)
+            val updatedHomes = guild.homes.withHome(homeName, effectiveHome)
             val updatedGuild = guild.copy(homes = updatedHomes)
             val result = guildRepository.update(updatedGuild)
             if (result) {
