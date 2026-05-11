@@ -58,6 +58,64 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         return isGuildOwner() && isOwnerRank()
     }
 
+    private fun canActorReorder(): Boolean {
+        val actorRank = rankService.getPlayerRank(player.uniqueId, guild.id) ?: return false
+        return actorRank.priority < rank.priority
+    }
+
+    private fun siblingAt(direction: net.lumalyte.lg.application.services.PriorityDirection): net.lumalyte.lg.domain.entities.Rank? {
+        val siblings = rankService.listRanks(guild.id).sortedBy { it.priority }
+        val idx = siblings.indexOfFirst { it.id == rank.id }
+        val neighborIdx = when (direction) {
+            net.lumalyte.lg.application.services.PriorityDirection.UP -> idx - 1
+            net.lumalyte.lg.application.services.PriorityDirection.DOWN -> idx + 1
+        }
+        return siblings.getOrNull(neighborIdx)
+    }
+
+    private fun addPriorityButtons(pane: StaticPane) {
+        val upNeighbor = siblingAt(net.lumalyte.lg.application.services.PriorityDirection.UP)
+        val downNeighbor = siblingAt(net.lumalyte.lg.application.services.PriorityDirection.DOWN)
+        val canUp = canActorReorder() && upNeighbor != null && !isOwnerRank()
+        val canDown = canActorReorder() && downNeighbor != null && !isOwnerRank()
+
+        val upItem = ItemStack.of(if (canUp) Material.SPECTRAL_ARROW else Material.BARRIER)
+            .name(if (canUp) "§a▲ Move Up" else "§7▲ Move Up (locked)")
+            .lore("§7Current priority: §f${rank.priority}")
+            .lore(if (upNeighbor != null) "§7Above: §f${upNeighbor.name}" else "§7No rank above")
+            .lore("§7")
+            .lore(if (canUp) "§eClick to raise rank" else "§cCannot reorder")
+        pane.addItem(GuiItem(upItem) {
+            if (!canUp) return@GuiItem
+            val ok = rankService.moveRankPriority(rank.id, net.lumalyte.lg.application.services.PriorityDirection.UP, player.uniqueId)
+            if (ok) {
+                player.sendMessage("§a✅ Rank moved up.")
+                rank = rankService.getRank(rank.id) ?: rank
+                open()
+            } else {
+                player.sendMessage("§c❌ Could not move rank.")
+            }
+        }, 0, 0)
+
+        val downItem = ItemStack.of(if (canDown) Material.SPECTRAL_ARROW else Material.BARRIER)
+            .name(if (canDown) "§a▼ Move Down" else "§7▼ Move Down (locked)")
+            .lore("§7Current priority: §f${rank.priority}")
+            .lore(if (downNeighbor != null) "§7Below: §f${downNeighbor.name}" else "§7No rank below")
+            .lore("§7")
+            .lore(if (canDown) "§eClick to lower rank" else "§cCannot reorder")
+        pane.addItem(GuiItem(downItem) {
+            if (!canDown) return@GuiItem
+            val ok = rankService.moveRankPriority(rank.id, net.lumalyte.lg.application.services.PriorityDirection.DOWN, player.uniqueId)
+            if (ok) {
+                player.sendMessage("§a✅ Rank moved down.")
+                rank = rankService.getRank(rank.id) ?: rank
+                open()
+            } else {
+                player.sendMessage("§c❌ Could not move rank.")
+            }
+        }, 8, 0)
+    }
+
     // Load the current rank's icon or default to AIR
     private fun loadRankIcon(): Material {
         return try {
@@ -104,7 +162,8 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         }
         gui.addPane(pane)
 
-        // Row 0: Rank Information
+        // Row 0: Rank Information + priority buttons
+        addPriorityButtons(pane)
         addRankInfoSection(pane)
 
         // Row 1-4: Permission Categories
