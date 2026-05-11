@@ -467,6 +467,12 @@ class MenuFactory(
         }
     }
 
+    /**
+     * Creates an ally-home access menu for configuring which allied guilds are on this
+     * guild's inbound ally-home whitelist. Java players get the toggle ChestGui; Bedrock
+     * players get a chat-message fallback directing them to the Java client (no Bedrock
+     * equivalent UI is provided — light-touch parity per project precedent).
+     */
     fun createAllyHomeAccessMenu(
         menuNavigator: MenuNavigator,
         player: Player,

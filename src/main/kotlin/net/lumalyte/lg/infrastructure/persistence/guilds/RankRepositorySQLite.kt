@@ -185,10 +185,13 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
         val sql = "UPDATE ranks SET priority = ? WHERE id = ?"
         return try {
             val committed = storage.connection.createTransaction { stmt ->
-                stmt.executeUpdateQuery(sql, tempPriority, rankAId.toString())
-                stmt.executeUpdateQuery(sql, rankA.priority, rankBId.toString())
-                stmt.executeUpdateQuery(sql, rankB.priority, rankAId.toString())
-                true
+                val n1 = stmt.executeUpdateQuery(sql, tempPriority, rankAId.toString())
+                val n2 = stmt.executeUpdateQuery(sql, rankA.priority, rankBId.toString())
+                val n3 = stmt.executeUpdateQuery(sql, rankB.priority, rankAId.toString())
+                if (n1 != 1 || n2 != 1 || n3 != 1) {
+                    println("ERROR [RankRepositorySQLite] swapPriorities row counts unexpected (n1=$n1 n2=$n2 n3=$n3) — rolling back")
+                    false
+                } else true
             }
             if (committed) {
                 ranks[rankAId] = rankA.copy(priority = rankB.priority)

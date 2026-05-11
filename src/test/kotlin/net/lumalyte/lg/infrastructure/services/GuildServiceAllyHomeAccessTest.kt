@@ -118,6 +118,13 @@ class GuildServiceAllyHomeAccessTest {
     }
 
     @Test
+    fun `owner denied when source not on inbound whitelist`() {
+        // Whitelist check happens before owner bypass — keep that ordering invariant locked in.
+        val svc = makeService(targetAllyHome = ah, targetAllowedGuilds = emptySet())
+        assertFalse(svc.canUseAllyHome(ownerPlayerId, sourceGuildId, targetGuildId))
+    }
+
+    @Test
     fun `whitelist without active alliance is denied`() {
         val svc = makeService(
             targetAllyHome = ah,

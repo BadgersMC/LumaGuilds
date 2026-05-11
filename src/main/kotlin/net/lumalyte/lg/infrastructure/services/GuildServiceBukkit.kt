@@ -679,7 +679,15 @@ class GuildServiceBukkit(
         }
         val guild = guildRepository.getById(guildId) ?: return false
         val home = guild.homes.getHome(homeName) ?: return false
-        val updatedHome = home.copy(allowedRankIds = allowedRankIds)
+        // Drop any rank IDs that don't belong to this guild — keeps persisted whitelist clean
+        // for downstream iteration/display and rejects malicious or buggy callers.
+        val validIds = rankRepository.getByGuild(guildId).map { it.id }.toSet()
+        val sanitized = allowedRankIds.filter { it in validIds }.toSet()
+        val rejected = allowedRankIds - sanitized
+        if (rejected.isNotEmpty()) {
+            logger.warn("setHomeAllowedRanks: dropping ${rejected.size} non-guild rank id(s) for guild $guildId home '$homeName': $rejected")
+        }
+        val updatedHome = home.copy(allowedRankIds = sanitized)
         val updatedGuild = guild.copy(homes = guild.homes.withHome(homeName, updatedHome))
         return guildRepository.update(updatedGuild)
     }
@@ -692,7 +700,15 @@ class GuildServiceBukkit(
             return false
         }
         val guild = guildRepository.getById(guildId) ?: return false
-        val updatedGuild = guild.copy(allyHomeAllowedGuilds = allowedGuildIds)
+        // Filter to real, currently-existing guilds; canUseAllyHome additionally checks the
+        // active-ALLY relation at teleport time so phantom IDs are inert, but persisting them
+        // pollutes the table over time.
+        val sanitized = allowedGuildIds.filter { it != guildId && guildRepository.getById(it) != null }.toSet()
+        val rejected = allowedGuildIds - sanitized
+        if (rejected.isNotEmpty()) {
+            logger.warn("setAllyHomeAllowedGuilds: dropping ${rejected.size} unknown/self guild id(s) for guild $guildId: $rejected")
+        }
+        val updatedGuild = guild.copy(allyHomeAllowedGuilds = sanitized)
         return guildRepository.update(updatedGuild)
     }
 

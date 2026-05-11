@@ -1428,8 +1428,13 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
      */
     private fun migrateToVersion20() {
         componentLogger.info(Component.text("Migrating to version 20: per-home access perms..."))
+        addV20Columns()
+        backfillHomeAllowedRanks()
+        backfillAllyHomeAllowedGuilds()
+        addUseAllyHomesPermission()
+    }
 
-        // 1. Add columns (idempotent)
+    private fun addV20Columns() {
         for (alter in listOf(
             "ALTER TABLE guild_homes ADD COLUMN allowed_ranks TEXT",
             "ALTER TABLE guilds ADD COLUMN ally_home_allowed_guilds TEXT"
@@ -1440,85 +1445,82 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 if (!e.message.orEmpty().contains("duplicate column", ignoreCase = true)) throw e
             }
         }
+    }
 
-        // 2. Backfill guild_homes.allowed_ranks = CSV of rank IDs for each guild
+    private fun backfillHomeAllowedRanks() {
+        val updates = mutableListOf<Pair<String, String>>()
         connection.createStatement().use { stmt ->
-            val rs = stmt.executeQuery(
+            stmt.executeQuery(
                 "SELECT gh.guild_id, GROUP_CONCAT(r.id, ',') AS rank_csv " +
                 "FROM guild_homes gh JOIN ranks r ON r.guild_id = gh.guild_id " +
                 "WHERE gh.allowed_ranks IS NULL GROUP BY gh.guild_id"
-            )
-            val updates = mutableListOf<Pair<String, String>>()
-            while (rs.next()) {
-                updates.add(rs.getString("guild_id") to (rs.getString("rank_csv") ?: ""))
+            ).use { rs ->
+                while (rs.next()) {
+                    updates.add(rs.getString("guild_id") to (rs.getString("rank_csv") ?: ""))
+                }
             }
-            rs.close()
-            val updateStmt = connection.prepareStatement(
-                "UPDATE guild_homes SET allowed_ranks = ? WHERE guild_id = ? AND allowed_ranks IS NULL"
-            )
-            for ((guildId, csv) in updates) {
-                updateStmt.setString(1, csv)
-                updateStmt.setString(2, guildId)
-                updateStmt.executeUpdate()
-            }
-            updateStmt.close()
-            componentLogger.info(Component.text("✓ Backfilled ${updates.size} guild(s) of home rank whitelists"))
         }
+        connection.prepareStatement(
+            "UPDATE guild_homes SET allowed_ranks = ? WHERE guild_id = ? AND allowed_ranks IS NULL"
+        ).use { ps ->
+            for ((guildId, csv) in updates) {
+                ps.setString(1, csv); ps.setString(2, guildId); ps.executeUpdate()
+            }
+        }
+        componentLogger.info(Component.text("✓ Backfilled ${updates.size} guild(s) of home rank whitelists"))
+    }
 
-        // 3. Backfill guilds.ally_home_allowed_guilds = CSV of current allies
+    private fun backfillAllyHomeAllowedGuilds() {
+        // One query for all active alliances, group in memory — avoids N+1 prepareStatement per guild.
+        val alliesByGuild = mutableMapOf<String, MutableSet<String>>()
         connection.createStatement().use { stmt ->
-            val rs = stmt.executeQuery(
-                "SELECT id FROM guilds WHERE ally_home_allowed_guilds IS NULL"
-            )
-            val guildIds = mutableListOf<String>()
-            while (rs.next()) guildIds.add(rs.getString("id"))
-            rs.close()
-
-            val updateStmt = connection.prepareStatement(
-                "UPDATE guilds SET ally_home_allowed_guilds = ? WHERE id = ?"
-            )
+            stmt.executeQuery(
+                "SELECT guild_a, guild_b FROM relations WHERE type = 'ALLY' AND status = 'ACTIVE'"
+            ).use { rs ->
+                while (rs.next()) {
+                    val a = rs.getString("guild_a")
+                    val b = rs.getString("guild_b")
+                    alliesByGuild.getOrPut(a) { mutableSetOf() }.add(b)
+                    alliesByGuild.getOrPut(b) { mutableSetOf() }.add(a)
+                }
+            }
+        }
+        val guildIds = mutableListOf<String>()
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT id FROM guilds WHERE ally_home_allowed_guilds IS NULL").use { rs ->
+                while (rs.next()) guildIds.add(rs.getString("id"))
+            }
+        }
+        connection.prepareStatement(
+            "UPDATE guilds SET ally_home_allowed_guilds = ? WHERE id = ?"
+        ).use { ps ->
             for (gid in guildIds) {
-                val allies = mutableSetOf<String>()
-                connection.prepareStatement(
-                    "SELECT guild_a, guild_b FROM relations WHERE type = 'ALLY' AND status = 'ACTIVE' AND (guild_a = ? OR guild_b = ?)"
-                ).use { ps ->
-                    ps.setString(1, gid); ps.setString(2, gid)
-                    val r2 = ps.executeQuery()
-                    while (r2.next()) {
-                        val a = r2.getString("guild_a"); val b = r2.getString("guild_b")
-                        if (a != gid) allies.add(a); if (b != gid) allies.add(b)
+                val csv = alliesByGuild[gid].orEmpty().joinToString(",")
+                ps.setString(1, csv); ps.setString(2, gid); ps.executeUpdate()
+            }
+        }
+        componentLogger.info(Component.text("✓ Backfilled ${guildIds.size} guild(s) ally-home allow-lists"))
+    }
+
+    private fun addUseAllyHomesPermission() {
+        val updates = mutableListOf<Pair<String, String>>()
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT id, permissions FROM ranks").use { rs ->
+                while (rs.next()) {
+                    val id = rs.getString("id")
+                    val perms = rs.getString("permissions").orEmpty()
+                    val parts = perms.split(",").filter { it.isNotBlank() }.toMutableSet()
+                    if (parts.add("USE_ALLY_HOMES")) {
+                        updates.add(id to parts.joinToString(","))
                     }
                 }
-                updateStmt.setString(1, allies.joinToString(","))
-                updateStmt.setString(2, gid)
-                updateStmt.executeUpdate()
             }
-            updateStmt.close()
-            componentLogger.info(Component.text("✓ Backfilled ${guildIds.size} guild(s) ally-home allow-lists"))
         }
-
-        // 4. Add USE_ALLY_HOMES to every existing rank (idempotent — skips if already present)
-        connection.createStatement().use { stmt ->
-            val rs = stmt.executeQuery("SELECT id, permissions FROM ranks")
-            val updates = mutableListOf<Pair<String, String>>()
-            while (rs.next()) {
-                val id = rs.getString("id")
-                val perms = rs.getString("permissions").orEmpty()
-                val parts = perms.split(",").filter { it.isNotBlank() }.toMutableSet()
-                if (parts.add("USE_ALLY_HOMES")) {
-                    updates.add(id to parts.joinToString(","))
-                }
-            }
-            rs.close()
-            val updateStmt = connection.prepareStatement(
-                "UPDATE ranks SET permissions = ? WHERE id = ?"
-            )
+        connection.prepareStatement("UPDATE ranks SET permissions = ? WHERE id = ?").use { ps ->
             for ((id, perms) in updates) {
-                updateStmt.setString(1, perms); updateStmt.setString(2, id)
-                updateStmt.executeUpdate()
+                ps.setString(1, perms); ps.setString(2, id); ps.executeUpdate()
             }
-            updateStmt.close()
-            componentLogger.info(Component.text("✓ Added USE_ALLY_HOMES to ${updates.size} ranks"))
         }
+        componentLogger.info(Component.text("✓ Added USE_ALLY_HOMES to ${updates.size} ranks"))
     }
 }
