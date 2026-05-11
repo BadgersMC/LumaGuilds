@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RelationService
@@ -16,7 +17,8 @@ import java.util.UUID
 
 class RelationServiceBukkit(
     private val relationRepository: RelationRepository,
-    private val memberService: MemberService
+    private val memberService: MemberService,
+    private val guildRepository: GuildRepository
 ) : RelationService {
     
     private val logger = LoggerFactory.getLogger(RelationServiceBukkit::class.java)
@@ -98,6 +100,7 @@ class RelationServiceBukkit(
             
             return if (relationRepository.update(updatedRelation)) {
                 logger.info("Alliance accepted between guilds ${relation.guildA} and ${relation.guildB}")
+                addAllyInboundWhitelist(relation.guildA, relation.guildB)
                 // Fire relation change event
                 Bukkit.getPluginManager().callEvent(
                     GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.ALLY, updatedRelation)
@@ -124,7 +127,8 @@ class RelationServiceBukkit(
             
             // Check for existing relation
             val existingRelation = relationRepository.getByGuilds(declaringGuildId, targetGuildId)
-            
+            val wasAlly = existingRelation?.type == RelationType.ALLY && existingRelation.isActive()
+
             val relation = if (existingRelation != null) {
                 // Update existing relation to enemy
                 existingRelation.copy(
@@ -151,6 +155,7 @@ class RelationServiceBukkit(
             
             return if (success) {
                 logger.info("War declared between guilds ${relation.guildA} and ${relation.guildB}")
+                if (wasAlly) removeAllyInboundWhitelist(relation.guildA, relation.guildB)
                 // Fire relation change event
                 Bukkit.getPluginManager().callEvent(
                     GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.ENEMY, relation)
@@ -559,6 +564,28 @@ class RelationServiceBukkit(
         val enemyRelations = relationRepository.getByGuildAndType(guildId, RelationType.ENEMY)
         return enemyRelations.any { relation ->
             relation.isActive() && relation.type == RelationType.ENEMY
+        }
+    }
+
+    private fun addAllyInboundWhitelist(guildA: UUID, guildB: UUID) {
+        val gA = guildRepository.getById(guildA)
+        val gB = guildRepository.getById(guildB)
+        if (gA != null) {
+            guildRepository.update(gA.copy(allyHomeAllowedGuilds = gA.allyHomeAllowedGuilds + guildB))
+        }
+        if (gB != null) {
+            guildRepository.update(gB.copy(allyHomeAllowedGuilds = gB.allyHomeAllowedGuilds + guildA))
+        }
+    }
+
+    private fun removeAllyInboundWhitelist(guildA: UUID, guildB: UUID) {
+        val gA = guildRepository.getById(guildA)
+        val gB = guildRepository.getById(guildB)
+        if (gA != null) {
+            guildRepository.update(gA.copy(allyHomeAllowedGuilds = gA.allyHomeAllowedGuilds - guildB))
+        }
+        if (gB != null) {
+            guildRepository.update(gB.copy(allyHomeAllowedGuilds = gB.allyHomeAllowedGuilds - guildA))
         }
     }
 }
