@@ -567,25 +567,29 @@ class RelationServiceBukkit(
         }
     }
 
+    // Whitelist drift note: canUseAllyHome additionally re-checks the active ALLY relation
+    // at teleport time, so a stale whitelist entry left behind by a failed write below cannot
+    // grant access without a currently active alliance. Failures are logged for operator
+    // visibility — a manager can re-grant via AllyHomeAccessMenu if needed.
     private fun addAllyInboundWhitelist(guildA: UUID, guildB: UUID) {
         val gA = guildRepository.getById(guildA)
         val gB = guildRepository.getById(guildB)
-        if (gA != null) {
-            guildRepository.update(gA.copy(allyHomeAllowedGuilds = gA.allyHomeAllowedGuilds + guildB))
+        if (gA != null && !guildRepository.update(gA.copy(allyHomeAllowedGuilds = gA.allyHomeAllowedGuilds + guildB))) {
+            logger.warn("Failed to add $guildB to $guildA.allyHomeAllowedGuilds after alliance — manager may need to re-grant via AllyHomeAccessMenu")
         }
-        if (gB != null) {
-            guildRepository.update(gB.copy(allyHomeAllowedGuilds = gB.allyHomeAllowedGuilds + guildA))
+        if (gB != null && !guildRepository.update(gB.copy(allyHomeAllowedGuilds = gB.allyHomeAllowedGuilds + guildA))) {
+            logger.warn("Failed to add $guildA to $guildB.allyHomeAllowedGuilds after alliance — manager may need to re-grant via AllyHomeAccessMenu")
         }
     }
 
     private fun removeAllyInboundWhitelist(guildA: UUID, guildB: UUID) {
         val gA = guildRepository.getById(guildA)
         val gB = guildRepository.getById(guildB)
-        if (gA != null) {
-            guildRepository.update(gA.copy(allyHomeAllowedGuilds = gA.allyHomeAllowedGuilds - guildB))
+        if (gA != null && !guildRepository.update(gA.copy(allyHomeAllowedGuilds = gA.allyHomeAllowedGuilds - guildB))) {
+            logger.warn("Failed to remove $guildB from $guildA.allyHomeAllowedGuilds after alliance break — stale entry left behind (canUseAllyHome's active-ally check still gates access)")
         }
-        if (gB != null) {
-            guildRepository.update(gB.copy(allyHomeAllowedGuilds = gB.allyHomeAllowedGuilds - guildA))
+        if (gB != null && !guildRepository.update(gB.copy(allyHomeAllowedGuilds = gB.allyHomeAllowedGuilds - guildA))) {
+            logger.warn("Failed to remove $guildA from $guildB.allyHomeAllowedGuilds after alliance break — stale entry left behind (canUseAllyHome's active-ally check still gates access)")
         }
     }
 }

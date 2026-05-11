@@ -29,7 +29,8 @@ class GuildServiceAllyHomeAccessTest {
     private fun makeService(
         targetAllyHome: GuildHome?,
         targetAllowedGuilds: Set<UUID>,
-        memberRankPerms: Set<RankPermission> = emptySet()
+        memberRankPerms: Set<RankPermission> = emptySet(),
+        activeAlly: Boolean = true
     ): GuildServiceBukkit {
         val ownerRank = Rank(ownerRankId, sourceGuildId, "Owner", 0, RankPermission.values().toSet())
         val memberRank = Rank(memberRankId, sourceGuildId, "Member", 10, memberRankPerms)
@@ -42,6 +43,16 @@ class GuildServiceAllyHomeAccessTest {
         val guildRepository = mockk<GuildRepository>(relaxed = true)
         val rankRepository = mockk<RankRepository>(relaxed = true)
         val memberRepository = mockk<MemberRepository>(relaxed = true)
+        val relationRepository = mockk<RelationRepository>(relaxed = true)
+        every { relationRepository.getByGuildAndType(sourceGuildId, RelationType.ALLY) } returns
+            if (activeAlly) setOf(
+                Relation.create(
+                    guildA = sourceGuildId,
+                    guildB = targetGuildId,
+                    type = RelationType.ALLY,
+                    status = RelationStatus.ACTIVE
+                )
+            ) else emptySet()
         every { guildRepository.getById(sourceGuildId) } returns sourceGuild
         every { guildRepository.getById(targetGuildId) } returns targetGuild
         every { rankRepository.getById(ownerRankId) } returns ownerRank
@@ -61,7 +72,7 @@ class GuildServiceAllyHomeAccessTest {
             nexoEmojiService = mockk(relaxed = true),
             vaultService = mockk<GuildVaultService>(relaxed = true),
             hologramService = mockk(relaxed = true),
-            relationRepository = mockk<RelationRepository>(relaxed = true),
+            relationRepository = relationRepository,
             historyRepository = mockk<MembershipHistoryRepository>(relaxed = true)
         )
     }
@@ -104,5 +115,16 @@ class GuildServiceAllyHomeAccessTest {
     fun `target without ally home is denied`() {
         val svc = makeService(targetAllyHome = null, targetAllowedGuilds = setOf(sourceGuildId))
         assertFalse(svc.canUseAllyHome(ownerPlayerId, sourceGuildId, targetGuildId))
+    }
+
+    @Test
+    fun `whitelist without active alliance is denied`() {
+        val svc = makeService(
+            targetAllyHome = ah,
+            targetAllowedGuilds = setOf(sourceGuildId),
+            memberRankPerms = setOf(RankPermission.USE_ALLY_HOMES),
+            activeAlly = false
+        )
+        assertFalse(svc.canUseAllyHome(memberPlayerId, sourceGuildId, targetGuildId))
     }
 }

@@ -329,6 +329,9 @@ class RankServiceBukkit(
         }
         if (neighborIdx !in siblings.indices) return false
         val neighbor = siblings[neighborIdx]
+        // Block swap when the adjacent rank is at or above the actor's priority — otherwise
+        // an actor at priority 1 could shove a rank UP into their own slot.
+        if (neighbor.priority <= actorRank.priority) return false
         return rankRepository.swapPriorities(target.id, neighbor.id)
     }
 }

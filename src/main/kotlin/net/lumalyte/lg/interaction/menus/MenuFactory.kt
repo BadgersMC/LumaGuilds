@@ -450,20 +450,44 @@ class MenuFactory(
     }
 
     /**
-     * Creates a home access menu for configuring per-rank access to a guild home
+     * Creates a home access menu for configuring per-rank access to a guild home.
+     * Bedrock has no equivalent UI (light-touch parity per project precedent); affected
+     * Bedrock callers get a chat-message fallback directing them to the Java client.
      */
     fun createHomeAccessMenu(
         menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild,
         homeName: String
-    ): Menu = net.lumalyte.lg.interaction.menus.guild.HomeAccessMenu(menuNavigator, player, guild, homeName)
+    ): Menu {
+        return if (shouldUseBedrockMenus(player)) {
+            BedrockAccessUnavailableMenu(player, "home access (per-rank whitelist)")
+        } else {
+            net.lumalyte.lg.interaction.menus.guild.HomeAccessMenu(menuNavigator, player, guild, homeName)
+        }
+    }
 
     fun createAllyHomeAccessMenu(
         menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu = net.lumalyte.lg.interaction.menus.guild.AllyHomeAccessMenu(menuNavigator, player, guild)
+    ): Menu {
+        return if (shouldUseBedrockMenus(player)) {
+            BedrockAccessUnavailableMenu(player, "ally-home access (inbound whitelist)")
+        } else {
+            net.lumalyte.lg.interaction.menus.guild.AllyHomeAccessMenu(menuNavigator, player, guild)
+        }
+    }
+
+    private class BedrockAccessUnavailableMenu(
+        private val player: Player,
+        private val featureLabel: String
+    ) : Menu {
+        override fun open() {
+            player.sendMessage("§eUse the Java client to configure $featureLabel.")
+            player.sendMessage("§7Bedrock support is on the roadmap.")
+        }
+    }
 
     /**
      * Creates a guild rank management menu appropriate for the player's platform

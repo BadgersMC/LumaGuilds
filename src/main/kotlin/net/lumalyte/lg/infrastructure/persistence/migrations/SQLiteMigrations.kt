@@ -1340,6 +1340,31 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 componentLogger.info(Component.text("✓ Recreated claim system tables"))
             }
         }
+
+        // v20 columns can go missing if guild_homes is recreated via v19 above, or if a prior
+        // run was interrupted between updateDatabaseVersion(20) and persistent column writes.
+        // Always reapply v20 — it's fully idempotent (ALTER TABLE wrapped in duplicate-column catch,
+        // backfills only NULL rows, USE_ALLY_HOMES add() is set-deduped).
+        if (!hasColumn("guild_homes", "allowed_ranks") ||
+            !hasColumn("guilds", "ally_home_allowed_guilds")) {
+            componentLogger.info(Component.text("🔧 v20 columns missing — reapplying v20 migration"))
+            migrateToVersion20()
+        }
+    }
+
+    private fun hasColumn(table: String, column: String): Boolean {
+        return try {
+            connection.createStatement().use { stmt ->
+                val rs = stmt.executeQuery("PRAGMA table_info($table)")
+                while (rs.next()) {
+                    if (rs.getString("name").equals(column, ignoreCase = true)) return@use true
+                }
+                false
+            }
+        } catch (e: SQLException) {
+            componentLogger.warn(Component.text("PRAGMA table_info($table) failed: ${e.message}"))
+            false
+        }
     }
 
     /**
@@ -1455,7 +1480,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             for (gid in guildIds) {
                 val allies = mutableSetOf<String>()
                 connection.prepareStatement(
-                    "SELECT guild_a, guild_b FROM relations WHERE type = 'ALLY' AND (guild_a = ? OR guild_b = ?)"
+                    "SELECT guild_a, guild_b FROM relations WHERE type = 'ALLY' AND status = 'ACTIVE' AND (guild_a = ? OR guild_b = ?)"
                 ).use { ps ->
                     ps.setString(1, gid); ps.setString(2, gid)
                     val r2 = ps.executeQuery()

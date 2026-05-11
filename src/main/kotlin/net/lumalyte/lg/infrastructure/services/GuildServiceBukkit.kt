@@ -657,6 +657,12 @@ class GuildServiceBukkit(
         val targetGuild = guildRepository.getById(targetGuildId) ?: return false
         if (targetGuild.allyHome == null) return false
         if (sourceGuildId !in targetGuild.allyHomeAllowedGuilds) return false
+        // Guard against stale or manually-injected whitelist entries: the two guilds must
+        // currently be actively allied, not merely whitelisted from a prior alliance.
+        val activeAlliance = relationRepository
+            .getByGuildAndType(sourceGuildId, net.lumalyte.lg.domain.entities.RelationType.ALLY)
+            .any { rel -> rel.isActive() && (rel.guildA == targetGuildId || rel.guildB == targetGuildId) }
+        if (!activeAlliance) return false
         val member = memberRepository.getByPlayerAndGuild(playerId, sourceGuildId) ?: return false
         val rank = rankRepository.getById(member.rankId) ?: return false
         val ownerRank = rankRepository.getHighestRank(sourceGuildId)

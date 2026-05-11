@@ -184,13 +184,22 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
         val tempPriority = Int.MAX_VALUE
         val sql = "UPDATE ranks SET priority = ? WHERE id = ?"
         return try {
-            storage.connection.executeUpdate(sql, tempPriority, rankAId.toString())
-            storage.connection.executeUpdate(sql, rankA.priority, rankBId.toString())
-            storage.connection.executeUpdate(sql, rankB.priority, rankAId.toString())
-            ranks[rankAId] = rankA.copy(priority = rankB.priority)
-            ranks[rankBId] = rankB.copy(priority = rankA.priority)
-            true
+            val committed = storage.connection.createTransaction { stmt ->
+                stmt.executeUpdateQuery(sql, tempPriority, rankAId.toString())
+                stmt.executeUpdateQuery(sql, rankA.priority, rankBId.toString())
+                stmt.executeUpdateQuery(sql, rankB.priority, rankAId.toString())
+                true
+            }
+            if (committed) {
+                ranks[rankAId] = rankA.copy(priority = rankB.priority)
+                ranks[rankBId] = rankB.copy(priority = rankA.priority)
+                true
+            } else {
+                println("ERROR [RankRepositorySQLite] swapPriorities($rankAId, $rankBId): transaction did not commit")
+                false
+            }
         } catch (e: java.sql.SQLException) {
+            println("ERROR [RankRepositorySQLite] swapPriorities($rankAId, $rankBId) failed: ${e.message}")
             false
         }
     }

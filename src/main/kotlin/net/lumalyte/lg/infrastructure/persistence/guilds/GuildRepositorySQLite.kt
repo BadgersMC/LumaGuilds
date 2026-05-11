@@ -239,8 +239,15 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 val z = row.getInt("z")
                 val allowedCsv = row.getString("allowed_ranks").orEmpty()
                 val allowedRankIds = allowedCsv.split(",")
-                    .filter { it.isNotBlank() }
-                    .map { UUID.fromString(it.trim()) }
+                    .mapNotNull { token ->
+                        val trimmed = token.trim()
+                        if (trimmed.isEmpty()) null else try {
+                            UUID.fromString(trimmed)
+                        } catch (e: IllegalArgumentException) {
+                            println("WARN [GuildRepositorySQLite] Ignoring invalid allowed_ranks UUID '$trimmed' for guild '$guildId' home '$homeName': ${e.message}")
+                            null
+                        }
+                    }
                     .toSet()
                 val home = GuildHome(worldId, net.lumalyte.lg.domain.values.Position3D(x, y, z), allowedRankIds)
                 byGuild.getOrPut(guildId) { mutableMapOf() }[homeName] = home
@@ -396,14 +403,23 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             null
         }
 
-        val allyHomeAllowedGuilds = try {
+        val allyHomeAllowedGuilds: Set<UUID> = try {
             val csv = rs.getString("ally_home_allowed_guilds").orEmpty()
             csv.split(",")
-                .filter { it.isNotBlank() }
-                .map { UUID.fromString(it.trim()) }
+                .mapNotNull { token ->
+                    val trimmed = token.trim()
+                    if (trimmed.isEmpty()) null else try {
+                        UUID.fromString(trimmed)
+                    } catch (ex: IllegalArgumentException) {
+                        println("WARN [GuildRepositorySQLite] Ignoring invalid ally_home_allowed_guilds UUID '$trimmed' for guild '$id': ${ex.message}")
+                        null
+                    }
+                }
                 .toSet()
-        } catch (e: Exception) {
-            emptySet<UUID>()
+        } catch (e: SQLException) {
+            // Column may not exist yet on a freshly upgraded plugin running against a stale DB.
+            println("WARN [GuildRepositorySQLite] Failed to load ally_home_allowed_guilds for guild '$id': ${e.message}")
+            emptySet()
         }
 
         // Debug logging for vault data loading
