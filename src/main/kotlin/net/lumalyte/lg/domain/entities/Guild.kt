@@ -87,7 +87,8 @@ data class Guild(
  */
 data class GuildHome(
     val worldId: UUID,
-    val position: Position3D
+    val position: Position3D,
+    val allowedRankIds: Set<UUID> = emptySet()
 )
 
 /**
