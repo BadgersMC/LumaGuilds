@@ -31,6 +31,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
+    private val rankService: net.lumalyte.lg.application.services.RankService by inject()
 
     // Teleportation tracking
     private data class TeleportSession(
@@ -63,9 +64,13 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         // Teleport buttons
         addTeleportButtons(pane, 0, 4)
 
+        // Per-home access config buttons (row 3) — managers only
+        addHomeAccessButtons(pane)
+
         // Ally home teleport buttons (if perk unlocked)
         if (progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) {
             addAllyHomeButtons(pane, 0, 5)
+            addAllyHomeAccessButton(pane)
         }
 
         // Back button (shift down if ally homes shown)
@@ -206,6 +211,31 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
             pane.addItem(GuiItem(noHomeItem), x, y)
         }
+    }
+
+    private fun addHomeAccessButtons(pane: StaticPane) {
+        if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
+        val homes = guildService.getHomes(guild.id).homes.entries.toList()
+        homes.take(9).forEachIndexed { idx, (homeName, _) ->
+            val item = ItemStack.of(Material.IRON_DOOR)
+                .name("§6🔒 Access: $homeName")
+                .lore("§7Configure which ranks can use this home")
+                .lore("§eClick to manage")
+            pane.addItem(GuiItem(item) {
+                menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
+            }, idx, 3)
+        }
+    }
+
+    private fun addAllyHomeAccessButton(pane: StaticPane) {
+        if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
+        val allyAccessItem = ItemStack.of(Material.IRON_DOOR)
+            .name("§6🔒 Ally-home Access")
+            .lore("§7Configure which allied guilds can use your ally-home")
+            .lore("§eClick to manage")
+        pane.addItem(GuiItem(allyAccessItem) {
+            menuNavigator.openMenu(menuFactory.createAllyHomeAccessMenu(menuNavigator, player, guild))
+        }, 7, 5)
     }
 
     private fun addAllyHomeButtons(pane: StaticPane, x: Int, y: Int) {
