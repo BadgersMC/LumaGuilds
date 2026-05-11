@@ -459,6 +459,12 @@ class MenuFactory(
         homeName: String
     ): Menu = net.lumalyte.lg.interaction.menus.guild.HomeAccessMenu(menuNavigator, player, guild, homeName)
 
+    fun createAllyHomeAccessMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu = net.lumalyte.lg.interaction.menus.guild.AllyHomeAccessMenu(menuNavigator, player, guild)
+
     /**
      * Creates a guild rank management menu appropriate for the player's platform
      */
