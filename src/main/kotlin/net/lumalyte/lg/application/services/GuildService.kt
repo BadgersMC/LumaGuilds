@@ -323,4 +323,13 @@ interface GuildService {
      * - the player's rank id is in `home.allowedRankIds`.
      */
     fun canUseHome(playerId: UUID, guildId: UUID, homeName: String): Boolean
+
+    /**
+     * Checks whether a player may teleport to another guild's ally-home. Returns true when:
+     * - player is in `sourceGuildId`, AND
+     * - target guild has an ally-home set, AND
+     * - source guild is in target.allyHomeAllowedGuilds (inbound), AND
+     * - (player's rank in source is Owner) OR (rank has USE_ALLY_HOMES permission).
+     */
+    fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean
 }

@@ -652,6 +652,18 @@ class GuildServiceBukkit(
         return member.rankId in home.allowedRankIds
     }
 
+    override fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean {
+        if (guildRepository.getById(sourceGuildId) == null) return false
+        val targetGuild = guildRepository.getById(targetGuildId) ?: return false
+        if (targetGuild.allyHome == null) return false
+        if (sourceGuildId !in targetGuild.allyHomeAllowedGuilds) return false
+        val member = memberRepository.getByPlayerAndGuild(playerId, sourceGuildId) ?: return false
+        val rank = rankRepository.getById(member.rankId) ?: return false
+        val ownerRank = rankRepository.getHighestRank(sourceGuildId)
+        if (ownerRank != null && rank.id == ownerRank.id) return true
+        return RankPermission.USE_ALLY_HOMES in rank.permissions
+    }
+
     override fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 
