@@ -134,6 +134,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 x INTEGER NOT NULL,
                 y INTEGER NOT NULL,
                 z INTEGER NOT NULL,
+                allowed_ranks TEXT,
                 PRIMARY KEY (guild_id, name),
                 FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
             );
@@ -226,7 +227,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         val byGuild = mutableMapOf<UUID, MutableMap<String, GuildHome>>()
         try {
             val rows = storage.connection.getResults(
-                "SELECT guild_id, name, world_id, x, y, z FROM guild_homes"
+                "SELECT guild_id, name, world_id, x, y, z, allowed_ranks FROM guild_homes"
             )
             for (row in rows) {
                 val guildId = UUID.fromString(row.getString("guild_id"))
@@ -235,7 +236,12 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 val x = row.getInt("x")
                 val y = row.getInt("y")
                 val z = row.getInt("z")
-                val home = GuildHome(worldId, net.lumalyte.lg.domain.values.Position3D(x, y, z))
+                val allowedCsv = row.getString("allowed_ranks").orEmpty()
+                val allowedRankIds = allowedCsv.split(",")
+                    .filter { it.isNotBlank() }
+                    .map { UUID.fromString(it.trim()) }
+                    .toSet()
+                val home = GuildHome(worldId, net.lumalyte.lg.domain.values.Position3D(x, y, z), allowedRankIds)
                 byGuild.getOrPut(guildId) { mutableMapOf() }[homeName] = home
             }
         } catch (e: SQLException) {
@@ -262,15 +268,16 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             for ((homeName, home) in guild.homes.homes) {
                 storage.connection.executeUpdate(
                     """
-                    INSERT INTO guild_homes (guild_id, name, world_id, x, y, z)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO guild_homes (guild_id, name, world_id, x, y, z, allowed_ranks)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """.trimIndent(),
                     guild.id.toString(),
                     homeName,
                     home.worldId.toString(),
                     home.position.x,
                     home.position.y,
-                    home.position.z
+                    home.position.z,
+                    home.allowedRankIds.joinToString(",") { it.toString() }
                 )
             }
         } catch (e: SQLException) {
