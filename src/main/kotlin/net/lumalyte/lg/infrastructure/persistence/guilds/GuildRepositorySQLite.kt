@@ -185,7 +185,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             "ally_home_world TEXT",
             "ally_home_x INTEGER",
             "ally_home_y INTEGER",
-            "ally_home_z INTEGER"
+            "ally_home_z INTEGER",
+            "ally_home_allowed_guilds TEXT"
         )
         for (colDef in columns) {
             try {
@@ -395,6 +396,16 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             null
         }
 
+        val allyHomeAllowedGuilds = try {
+            val csv = rs.getString("ally_home_allowed_guilds").orEmpty()
+            csv.split(",")
+                .filter { it.isNotBlank() }
+                .map { UUID.fromString(it.trim()) }
+                .toSet()
+        } catch (e: Exception) {
+            emptySet<UUID>()
+        }
+
         // Debug logging for vault data loading
         println("DEBUG [GuildRepositorySQLite] Loading guild '$name'")
         println("  vault_status from DB: '$vaultStatusStr' -> $vaultStatus")
@@ -420,7 +431,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             joinFeeAmount = joinFeeAmount,
             trackingEnabled = trackingEnabled,
             bankFrozen = bankFrozen,
-            allyHome = allyHome
+            allyHome = allyHome,
+            allyHomeAllowedGuilds = allyHomeAllowedGuilds
         )
     }
 
@@ -451,28 +463,28 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         // Use cached column existence check
         val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
             """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled, bank_frozen, ally_home_world, ally_home_x, ally_home_y, ally_home_z)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled, bank_frozen, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
         } else if (hasLfgColumns && hasTrackingColumn) {
             """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled, ally_home_world, ally_home_x, ally_home_y, ally_home_z)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
         } else if (hasLfgColumns) {
             """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, ally_home_world, ally_home_x, ally_home_y, ally_home_z)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
         } else if (hasTrackingColumn) {
             """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, tracking_enabled, ally_home_world, ally_home_x, ally_home_y, ally_home_z)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, tracking_enabled, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
         } else {
             """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, ally_home_world, ally_home_x, ally_home_y, ally_home_z)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
         }
 
@@ -504,7 +516,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
-                    guild.allyHome?.position?.z
+                    guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             } else if (hasLfgColumns && hasTrackingColumn) {
                 storage.connection.executeUpdate(sql,
@@ -529,7 +542,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
-                    guild.allyHome?.position?.z
+                    guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             } else if (hasLfgColumns) {
                 storage.connection.executeUpdate(sql,
@@ -553,7 +567,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
-                    guild.allyHome?.position?.z
+                    guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             } else if (hasTrackingColumn) {
                 storage.connection.executeUpdate(sql,
@@ -575,7 +590,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
-                    guild.allyHome?.position?.z
+                    guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             } else {
                 storage.connection.executeUpdate(sql,
@@ -596,7 +612,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
-                    guild.allyHome?.position?.z
+                    guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             }
             if (rowsAffected > 0) {
@@ -618,7 +635,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
             vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
             join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?, bank_frozen = ?,
-            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?
+            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
             """.trimIndent()
         } else if (hasLfgColumns && hasTrackingColumn) {
@@ -627,7 +644,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
             vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
             join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?,
-            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?
+            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
             """.trimIndent()
         } else if (hasLfgColumns) {
@@ -636,7 +653,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
             vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
             join_fee_enabled = ?, join_fee_amount = ?,
-            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?
+            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
             """.trimIndent()
         } else if (hasTrackingColumn) {
@@ -644,7 +661,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
             vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, tracking_enabled = ?,
-            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?
+            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
             """.trimIndent()
         } else {
@@ -652,7 +669,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
             vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?,
-            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?
+            ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
             """.trimIndent()
         }
@@ -694,6 +711,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
                     guild.id.toString()
                 )
             } else if (hasLfgColumns && hasTrackingColumn) {
@@ -723,6 +741,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
                     guild.id.toString()
                 )
             } else if (hasLfgColumns) {
@@ -751,6 +770,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
                     guild.id.toString()
                 )
             } else if (hasTrackingColumn) {
@@ -777,6 +797,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
                     guild.id.toString()
                 )
             } else {
@@ -802,6 +823,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
                     guild.id.toString()
                 )
             }
