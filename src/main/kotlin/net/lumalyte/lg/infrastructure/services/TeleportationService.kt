@@ -1,21 +1,20 @@
 package net.lumalyte.lg.infrastructure.services
 
-import com.github.sirblobman.combatlogx.api.ICombatLogX
 import net.kyori.adventure.text.Component
+import net.lumalyte.lg.utils.CombatUtil
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
+import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.slf4j.LoggerFactory
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import net.lumalyte.lg.utils.CombatUtil
-
 
 /**
- * Centralized service for managing guild home teleportation countdowns.
- * Prevents conflicts between command-based and menu-based teleports.
+ * Centralized service for guild home teleportation countdowns.
+ * Single source of truth for command, Java menu, and Bedrock menu surfaces.
  */
 class TeleportationService(private val plugin: Plugin) {
 
@@ -26,121 +25,130 @@ class TeleportationService(private val plugin: Plugin) {
         val targetLocation: Location,
         val startLocation: Location,
         var countdownTask: BukkitRunnable? = null,
-        var remainingSeconds: Int = 5
+        var remainingSeconds: Int = 5,
+        val onSuccess: (() -> Unit)? = null
     )
 
     private val activeTeleports = ConcurrentHashMap<UUID, TeleportSession>()
 
-    /**
-     * Start a teleportation countdown for a player.
-     * Cancels any existing teleport for the player.
-     */
-    fun startTeleport(player: Player, targetLocation: Location): Boolean {
-        val playerId = player.uniqueId
+    fun hasActiveTeleport(playerId: UUID): Boolean = activeTeleports.containsKey(playerId)
 
-        // Cancel any existing teleport
+    fun getRemainingSeconds(playerId: UUID): Int? = activeTeleports[playerId]?.remainingSeconds
+
+    fun cancelTeleport(playerId: UUID) {
+        val session = activeTeleports.remove(playerId) ?: return
+        session.countdownTask?.cancel()
+    }
+
+    fun onPlayerQuit(playerId: UUID) = cancelTeleport(playerId)
+
+    /**
+     * Start a guild-home teleport countdown. Safe to call from any thread —
+     * re-dispatches to the main thread if needed.
+     *
+     * @param onSuccess called on main thread after a successful teleport (e.g. to record cooldown).
+     */
+    fun startTeleport(player: Player, targetLocation: Location, onSuccess: (() -> Unit)? = null) {
+        if (!Bukkit.isPrimaryThread()) {
+            Bukkit.getScheduler().runTask(plugin, Runnable { startTeleportInternal(player, targetLocation, onSuccess) })
+        } else {
+            startTeleportInternal(player, targetLocation, onSuccess)
+        }
+    }
+
+    private fun startTeleportInternal(player: Player, targetLocation: Location, onSuccess: (() -> Unit)?) {
+        val playerId = player.uniqueId
         cancelTeleport(playerId)
 
-        if (CombatUtil.isInCombat(player)){
+        if (CombatUtil.isInCombat(player)) {
             player.sendMessage("§e◷ Cannot teleport in combat.")
-            return false
+            return
         }
 
         val session = TeleportSession(
             player = player,
             targetLocation = targetLocation,
             startLocation = player.location.clone(),
-            remainingSeconds = 5
+            remainingSeconds = 5,
+            onSuccess = onSuccess
         )
-
         activeTeleports[playerId] = session
 
         player.sendMessage("§e◷ Teleportation countdown started! Don't move for 5 seconds...")
         player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
 
-        val countdownTask = object : BukkitRunnable() {
+        val task = object : BukkitRunnable() {
             override fun run() {
-                val currentSession = activeTeleports[playerId]
-                if (currentSession == null) {
-                    cancel()
-                    return
-                }
+                val current = activeTeleports[playerId]
+                if (current == null) { cancel(); return }
+                if (!player.isOnline) { cancelTeleport(playerId); cancel(); return }
 
-                // Check if player moved
-                if (hasPlayerMoved(currentSession)) {
+                if (hasPlayerMoved(current)) {
                     cancelTeleport(playerId)
                     player.sendMessage("§c❌ Teleportation canceled - you moved!")
                     cancel()
                     return
                 }
 
-                if (currentSession.remainingSeconds <= 0) {
-                    // teleportAsync future may complete off the main thread;
-                    // dispatch Bukkit API calls back to main via the scheduler.
-                    player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
-                        plugin.server.scheduler.runTask(plugin, Runnable {
-                            if (success) {
-                                player.sendMessage("§a✅ Welcome to your guild home!")
-                                player.sendActionBar(Component.text("§aTeleported to guild home!"))
-                            } else {
-                                player.sendMessage("§c❌ Teleport failed — please try again.")
-                            }
-                        })
-                    }
-
-                    // Clean up
+                if (current.remainingSeconds <= 0) {
+                    performTeleport(player, current.targetLocation, current.onSuccess)
                     activeTeleports.remove(playerId)
                     cancel()
                 } else {
-                    // Update action bar with current time remaining
-                    player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
-                    // Decrement after showing the message
-                    currentSession.remainingSeconds--
+                    player.sendActionBar(Component.text("§eTeleporting to guild home in §f${current.remainingSeconds}§e seconds..."))
+                    current.remainingSeconds--
                 }
             }
         }
-
-        session.countdownTask = countdownTask
-        countdownTask.runTaskTimer(plugin, 0L, 20L) // Start immediately, then every second
-
-        logger.debug("Started teleport countdown for player ${player.name}")
-        return true
+        session.countdownTask = task
+        task.runTaskTimer(plugin, 0L, 20L)
     }
 
-    /**
-     * Cancel any active teleport for a player.
-     */
-    fun cancelTeleport(playerId: UUID) {
-        val session = activeTeleports.remove(playerId) ?: return
-        session.countdownTask?.cancel()
-        logger.debug("Cancelled teleport for player $playerId")
+    private fun performTeleport(player: Player, targetLocation: Location, onSuccess: (() -> Unit)?) {
+        // Eject any vehicle/passengers — teleportAsync rejects entities with passengers
+        // and protection plugins often cancel mounted teleports.
+        player.vehicle?.let { player.leaveVehicle() }
+        if (player.passengers.isNotEmpty()) {
+            player.passengers.toList().forEach { player.removePassenger(it) }
+        }
+
+        // Pass TeleportCause.PLUGIN so region/protection plugins see a known cause
+        // (default UNKNOWN is rejected by many protection plugins, causing silent
+        // PlayerTeleportEvent cancellation -> CompletableFuture(false)).
+        player.teleportAsync(targetLocation, PlayerTeleportEvent.TeleportCause.PLUGIN)
+            .whenComplete { success, throwable ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    when {
+                        throwable != null -> {
+                            logger.warn("Teleport threw for ${player.name} -> $targetLocation", throwable)
+                            if (player.isOnline) player.sendMessage("§c❌ Teleport failed — an error occurred.")
+                        }
+                        success == true -> {
+                            if (player.isOnline) {
+                                player.sendMessage("§a✅ Welcome to your guild home!")
+                                player.sendActionBar(Component.text("§aTeleported to guild home!"))
+                            }
+                            onSuccess?.invoke()
+                        }
+                        else -> {
+                            logger.warn(
+                                "teleportAsync returned false for ${player.name} -> world=${targetLocation.world?.name} " +
+                                    "x=${targetLocation.x} y=${targetLocation.y} z=${targetLocation.z} " +
+                                    "(likely cancelled by another plugin's PlayerTeleportEvent listener)"
+                            )
+                            if (player.isOnline) player.sendMessage("§c❌ Teleport failed — please try again.")
+                        }
+                    }
+                })
+            }
     }
 
-    /**
-     * Check if a player has an active teleport.
-     */
-    fun hasActiveTeleport(playerId: UUID): Boolean {
-        return activeTeleports.containsKey(playerId)
-    }
-
-    /**
-     * Handle player quit - cleanup their teleport tracking.
-     */
-    fun onPlayerQuit(playerId: UUID) {
-        cancelTeleport(playerId)
-    }
-
-    /**
-     * Check if player has moved from their starting location.
-     */
     private fun hasPlayerMoved(session: TeleportSession): Boolean {
-        val currentLocation = session.player.location
-        val startLocation = session.startLocation
-
-        // Check if player moved more than 0.1 blocks in any direction
-        return Math.abs(currentLocation.x - startLocation.x) > 0.1 ||
-               Math.abs(currentLocation.y - startLocation.y) > 0.1 ||
-               Math.abs(currentLocation.z - startLocation.z) > 0.1 ||
-               currentLocation.world != startLocation.world
+        val cur = session.player.location
+        val start = session.startLocation
+        return Math.abs(cur.x - start.x) > 0.1 ||
+            Math.abs(cur.y - start.y) > 0.1 ||
+            Math.abs(cur.z - start.z) > 0.1 ||
+            cur.world != start.world
     }
 }

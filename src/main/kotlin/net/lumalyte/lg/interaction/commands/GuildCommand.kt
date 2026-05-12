@@ -24,9 +24,6 @@ import org.bukkit.Location
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
-import org.bukkit.scheduler.BukkitRunnable
-import net.kyori.adventure.text.Component
-import net.lumalyte.lg.utils.CombatUtil
 import org.koin.core.component.KoinComponent
 import java.util.UUID
 import org.koin.core.component.inject
@@ -47,17 +44,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val historyRepository: MembershipHistoryRepository by inject()
     private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
+    private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
 
-    // Teleportation tracking for command-based teleports
-    private data class TeleportSession(
-        val player: Player,
-        val targetLocation: org.bukkit.Location,
-        val startLocation: org.bukkit.Location,
-        var countdownTask: BukkitRunnable? = null,
-        var remainingSeconds: Int = 5
-    )
-
-    private val activeTeleports = mutableMapOf<java.util.UUID, TeleportSession>()
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
     private fun notifyGuildMembers(guildId: java.util.UUID, message: String) {
@@ -319,7 +307,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (isConfirm) {
             val pendingLocation = GuildHomeSafety.consumePending(player)
             if (pendingLocation != null) {
-                startTeleportCountdown(player, pendingLocation)
+                teleportationService.startTeleport(player, pendingLocation) {
+                    lastHomeTeleport[player.uniqueId] = System.currentTimeMillis()
+                }
                 return
             } else {
                 player.sendMessage("§cNo pending unsafe teleport to confirm, or confirmation expired.")
@@ -342,7 +332,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         if (home != null) {
             // Check if player already has an active teleport
-            if (activeTeleports.containsKey(playerId)) {
+            if (teleportationService.hasActiveTeleport(playerId)) {
                 player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")
                 return
             }
@@ -386,8 +376,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 }
             }
 
-            // Start teleport countdown
-            startTeleportCountdown(player, targetLocation)
+            // Start teleport countdown via centralized service
+            teleportationService.startTeleport(player, targetLocation) {
+                lastHomeTeleport[playerId] = System.currentTimeMillis()
+            }
         } else {
             // Check if the guild has any homes at all
             val allHomes = guildService.getHomes(guild.id)
@@ -1592,95 +1584,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         } else {
             player.sendMessage("§c❌ Failed to set guild home. You may not have permission.")
         }
-    }
-
-    // Teleport countdown helper methods
-    private fun startTeleportCountdown(player: Player, targetLocation: org.bukkit.Location) {
-        val playerId = player.uniqueId
-
-        // Cancel any existing teleport
-        cancelTeleport(playerId)
-
-        if (CombatUtil.isInCombat(player)){
-            player.sendMessage("§e◷ Cannot teleport in combat.")
-            return
-        }
-
-        val session = TeleportSession(
-            player = player,
-            targetLocation = targetLocation,
-            startLocation = player.location.clone(),
-            remainingSeconds = 5
-        )
-
-        activeTeleports[playerId] = session
-
-        player.sendMessage("§e◷ Teleportation countdown started! Don't move for 5 seconds...")
-        player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
-
-        val pluginRef = player.server.pluginManager.getPlugin("LumaGuilds") ?: return
-        val countdownTask = object : BukkitRunnable() {
-            override fun run() {
-                val currentSession = activeTeleports[playerId]
-                if (currentSession == null) {
-                    cancel()
-                    return
-                }
-
-                // Check if player moved
-                if (hasPlayerMoved(currentSession)) {
-                    cancelTeleport(playerId)
-                    player.sendMessage("§c❌ Teleportation canceled - you moved!")
-                    return
-                }
-
-                if (currentSession.remainingSeconds <= 0) {
-                    // teleportAsync future may complete off the main thread;
-                    // dispatch Bukkit API calls back to main via the scheduler.
-                    player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
-                        Bukkit.getScheduler().runTask(pluginRef, Runnable {
-                            if (success) {
-                                player.sendMessage("§a✅ Welcome to your guild home!")
-                                player.sendActionBar(Component.text("§aTeleported to guild home!"))
-                                lastHomeTeleport[playerId] = System.currentTimeMillis()
-                            } else {
-                                player.sendMessage("§c❌ Teleport failed — please try again.")
-                            }
-                        })
-                    }
-
-                    // Clean up
-                    activeTeleports.remove(playerId)
-                    cancel() // Stop the task after successful teleport
-                } else {
-                    // Update action bar with current time remaining
-                    player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
-                    // Decrement after showing the message
-                    currentSession.remainingSeconds--
-                }
-            }
-        }
-
-        session.countdownTask = countdownTask
-        countdownTask.runTaskTimer(pluginRef, 0L, 20L) // Start immediately, then every second
-    }
-
-    private fun cancelTeleport(playerId: java.util.UUID) {
-        val session = activeTeleports[playerId] ?: return
-
-        session.countdownTask?.cancel()
-        activeTeleports.remove(playerId)
-    }
-
-    private fun hasPlayerMoved(session: TeleportSession): Boolean {
-        val currentLocation = session.player.location
-        val startLocation = session.startLocation
-
-        // Check if player moved more than 0.1 blocks in any direction
-        return Math.abs(currentLocation.x - startLocation.x) > 0.1 ||
-               Math.abs(currentLocation.y - startLocation.y) > 0.1 ||
-               Math.abs(currentLocation.z - startLocation.z) > 0.1 ||
-               currentLocation.world != startLocation.world
     }
 
     private fun isLocationSafe(location: org.bukkit.Location): Boolean {
