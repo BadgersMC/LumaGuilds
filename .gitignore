@@ -272,3 +272,6 @@ VIRTUAL_THREADS.md
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+# Local worktrees
+.worktrees/

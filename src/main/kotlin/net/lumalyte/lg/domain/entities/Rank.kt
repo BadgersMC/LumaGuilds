@@ -47,7 +47,8 @@ enum class RankPermission {
     MANAGE_PARTIES,
     SEND_PARTY_REQUESTS,
     ACCEPT_PARTY_INVITES,
-    
+    USE_ALLY_HOMES,
+
     // Banking & Economy
     DEPOSIT_TO_BANK,          // Deposit to virtual bank (Vault economy)
     WITHDRAW_FROM_BANK,       // Withdraw from virtual bank

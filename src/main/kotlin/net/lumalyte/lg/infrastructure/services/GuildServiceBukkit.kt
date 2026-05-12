@@ -329,7 +329,15 @@ class GuildServiceBukkit(
                 return false
             }
 
-            val updatedHomes = guild.homes.withHome(homeName, home)
+            val existing = guild.homes.getHome(homeName)
+            val effectiveAllowed = if (existing != null) {
+                existing.allowedRankIds
+            } else {
+                val ownerRank = rankRepository.getHighestRank(guildId)
+                if (ownerRank != null) setOf(ownerRank.id) else emptySet()
+            }
+            val effectiveHome = home.copy(allowedRankIds = effectiveAllowed)
+            val updatedHomes = guild.homes.withHome(homeName, effectiveHome)
             val updatedGuild = guild.copy(homes = updatedHomes)
             val result = guildRepository.update(updatedGuild)
             if (result) {
@@ -633,6 +641,75 @@ class GuildServiceBukkit(
             Bukkit.getPluginManager().callEvent(GuildTrackingChangedEvent(guildId, enabled))
         }
         return result
+    }
+
+    override fun canUseHome(playerId: UUID, guildId: UUID, homeName: String): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+        val home = guild.homes.getHome(homeName) ?: return false
+        val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
+        val ownerRank = rankRepository.getHighestRank(guildId)
+        if (ownerRank != null && member.rankId == ownerRank.id) return true
+        return member.rankId in home.allowedRankIds
+    }
+
+    override fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean {
+        if (guildRepository.getById(sourceGuildId) == null) return false
+        val targetGuild = guildRepository.getById(targetGuildId) ?: return false
+        if (targetGuild.allyHome == null) return false
+        if (sourceGuildId !in targetGuild.allyHomeAllowedGuilds) return false
+        // Guard against stale or manually-injected whitelist entries: the two guilds must
+        // currently be actively allied, not merely whitelisted from a prior alliance.
+        val activeAlliance = relationRepository
+            .getByGuildAndType(sourceGuildId, net.lumalyte.lg.domain.entities.RelationType.ALLY)
+            .any { rel -> rel.isActive() && (rel.guildA == targetGuildId || rel.guildB == targetGuildId) }
+        if (!activeAlliance) return false
+        val member = memberRepository.getByPlayerAndGuild(playerId, sourceGuildId) ?: return false
+        val rank = rankRepository.getById(member.rankId) ?: return false
+        val ownerRank = rankRepository.getHighestRank(sourceGuildId)
+        if (ownerRank != null && rank.id == ownerRank.id) return true
+        return RankPermission.USE_ALLY_HOMES in rank.permissions
+    }
+
+    override fun setHomeAllowedRanks(
+        guildId: UUID, homeName: String, allowedRankIds: Set<UUID>, actorId: UUID
+    ): Boolean {
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
+            logger.warn("Player $actorId attempted to set home rank whitelist for guild $guildId without MANAGE_HOME")
+            return false
+        }
+        val guild = guildRepository.getById(guildId) ?: return false
+        val home = guild.homes.getHome(homeName) ?: return false
+        // Drop any rank IDs that don't belong to this guild — keeps persisted whitelist clean
+        // for downstream iteration/display and rejects malicious or buggy callers.
+        val validIds = rankRepository.getByGuild(guildId).map { it.id }.toSet()
+        val sanitized = allowedRankIds.filter { it in validIds }.toSet()
+        val rejected = allowedRankIds - sanitized
+        if (rejected.isNotEmpty()) {
+            logger.warn("setHomeAllowedRanks: dropping ${rejected.size} non-guild rank id(s) for guild $guildId home '$homeName': $rejected")
+        }
+        val updatedHome = home.copy(allowedRankIds = sanitized)
+        val updatedGuild = guild.copy(homes = guild.homes.withHome(homeName, updatedHome))
+        return guildRepository.update(updatedGuild)
+    }
+
+    override fun setAllyHomeAllowedGuilds(
+        guildId: UUID, allowedGuildIds: Set<UUID>, actorId: UUID
+    ): Boolean {
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
+            logger.warn("Player $actorId attempted to set ally-home guild whitelist for guild $guildId without MANAGE_HOME")
+            return false
+        }
+        val guild = guildRepository.getById(guildId) ?: return false
+        // Filter to real, currently-existing guilds; canUseAllyHome additionally checks the
+        // active-ALLY relation at teleport time so phantom IDs are inert, but persisting them
+        // pollutes the table over time.
+        val sanitized = allowedGuildIds.filter { it != guildId && guildRepository.getById(it) != null }.toSet()
+        val rejected = allowedGuildIds - sanitized
+        if (rejected.isNotEmpty()) {
+            logger.warn("setAllyHomeAllowedGuilds: dropping ${rejected.size} unknown/self guild id(s) for guild $guildId: $rejected")
+        }
+        val updatedGuild = guild.copy(allyHomeAllowedGuilds = sanitized)
+        return guildRepository.update(updatedGuild)
     }
 
     override fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean {
