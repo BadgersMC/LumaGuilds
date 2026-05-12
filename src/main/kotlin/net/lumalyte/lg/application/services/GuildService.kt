@@ -315,4 +315,32 @@ interface GuildService {
      * @return true if successful, false otherwise.
      */
     fun setBankFrozen(guildId: UUID, frozen: Boolean, actorId: UUID): Boolean
+
+    /**
+     * Checks whether a player may teleport to the named home. Returns true when:
+     * - the player is in the guild, AND
+     * - the player's rank is the highest-priority (Owner) rank, OR
+     * - the player's rank id is in `home.allowedRankIds`.
+     */
+    fun canUseHome(playerId: UUID, guildId: UUID, homeName: String): Boolean
+
+    /**
+     * Checks whether a player may teleport to another guild's ally-home. Returns true when:
+     * - player is in `sourceGuildId`, AND
+     * - target guild has an ally-home set, AND
+     * - source guild is in target.allyHomeAllowedGuilds (inbound), AND
+     * - (player's rank in source is Owner) OR (rank has USE_ALLY_HOMES permission).
+     */
+    fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean
+
+    /**
+     * Updates the rank whitelist for a named home. Caller must have MANAGE_HOME.
+     */
+    fun setHomeAllowedRanks(guildId: UUID, homeName: String, allowedRankIds: Set<UUID>, actorId: UUID): Boolean
+
+    /**
+     * Updates the inbound allow-list of guilds whose members may teleport to this guild's
+     * ally-home. Caller must have MANAGE_HOME.
+     */
+    fun setAllyHomeAllowedGuilds(guildId: UUID, allowedGuildIds: Set<UUID>, actorId: UUID): Boolean
 }

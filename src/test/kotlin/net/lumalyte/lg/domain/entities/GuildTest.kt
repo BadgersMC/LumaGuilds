@@ -314,4 +314,22 @@ class GuildTest {
         assertTrue(guildString.contains("joinFeeAmount=500"),
             "toString should include joinFeeAmount")
     }
+
+    @Test
+    fun `Guild allyHomeAllowedGuilds defaults to empty`() {
+        val guild = Guild(id = UUID.randomUUID(), name = "X", createdAt = Instant.now())
+        assertEquals(emptySet<UUID>(), guild.allyHomeAllowedGuilds)
+    }
+
+    @Test
+    fun `Guild stores supplied allyHomeAllowedGuilds`() {
+        val allyId = UUID.randomUUID()
+        val guild = Guild(
+            id = UUID.randomUUID(),
+            name = "X",
+            createdAt = Instant.now(),
+            allyHomeAllowedGuilds = setOf(allyId)
+        )
+        assertEquals(setOf(allyId), guild.allyHomeAllowedGuilds)
+    }
 }

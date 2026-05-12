@@ -155,6 +155,7 @@ class BedrockGuildRankListMenu(
             RankPermission.MANAGE_PARTIES -> bedrockLocalization.getBedrockString(player, "permission.manage.parties")
             RankPermission.SEND_PARTY_REQUESTS -> bedrockLocalization.getBedrockString(player, "permission.send.party.requests")
             RankPermission.ACCEPT_PARTY_INVITES -> bedrockLocalization.getBedrockString(player, "permission.accept.party.invites")
+            RankPermission.USE_ALLY_HOMES -> bedrockLocalization.getBedrockString(player, "permission.use.ally.homes")
 
             // Banking & Economy
             RankPermission.DEPOSIT_TO_BANK -> bedrockLocalization.getBedrockString(player, "permission.deposit.bank")

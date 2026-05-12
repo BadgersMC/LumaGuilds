@@ -111,4 +111,10 @@ interface RankRepository {
      * @return The total count of ranks.
      */
     fun getCountByGuild(guildId: UUID): Int
+
+    /**
+     * Atomically swaps the `priority` column of two ranks. Three-step swap via a temporary
+     * out-of-range value to remain safe under any future unique-index on (guild_id, priority).
+     */
+    fun swapPriorities(rankAId: UUID, rankBId: UUID): Boolean
 }

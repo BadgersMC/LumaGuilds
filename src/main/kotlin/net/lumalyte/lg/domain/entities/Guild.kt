@@ -48,7 +48,8 @@ data class Guild(
     val joinFeeAmount: Int = 0,
     val trackingEnabled: Boolean = true,
     val bankFrozen: Boolean = false,
-    val allyHome: GuildHome? = null
+    val allyHome: GuildHome? = null,
+    val allyHomeAllowedGuilds: Set<UUID> = emptySet()
 ) {
     init {
         require(name.length in 1..32) { "Guild name must be between 1 and 32 characters." }
@@ -87,7 +88,8 @@ data class Guild(
  */
 data class GuildHome(
     val worldId: UUID,
-    val position: Position3D
+    val position: Position3D,
+    val allowedRankIds: Set<UUID> = emptySet()
 )
 
 /**

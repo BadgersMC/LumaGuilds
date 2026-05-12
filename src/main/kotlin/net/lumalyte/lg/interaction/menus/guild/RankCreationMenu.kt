@@ -399,7 +399,8 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                 
                 RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
                 RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,
-                RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES -> "Diplomacy"
+                RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES,
+                RankPermission.USE_ALLY_HOMES -> "Diplomacy"
                 
                 RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK,
                 RankPermission.VIEW_BANK_TRANSACTIONS, RankPermission.EXPORT_BANK_DATA,

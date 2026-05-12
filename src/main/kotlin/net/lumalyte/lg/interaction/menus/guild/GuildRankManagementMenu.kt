@@ -159,7 +159,8 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.ACCEPT_ALLIANCES,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PARTIES,
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_PARTY_REQUESTS,
-                net.lumalyte.lg.domain.entities.RankPermission.ACCEPT_PARTY_INVITES -> "Diplomacy"
+                net.lumalyte.lg.domain.entities.RankPermission.ACCEPT_PARTY_INVITES,
+                net.lumalyte.lg.domain.entities.RankPermission.USE_ALLY_HOMES -> "Diplomacy"
 
                 net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_BANK,
                 net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK,

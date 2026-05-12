@@ -341,6 +341,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val home = guildService.getHome(guild.id, targetHomeName)
 
         if (home != null) {
+            if (!guildService.canUseHome(playerId, guild.id, targetHomeName)) {
+                player.sendMessage("§c❌ You don't have permission to use the home '$targetHomeName'.")
+                player.sendMessage("§7Ask a guild manager to grant your rank access.")
+                return
+            }
             // Check if player already has an active teleport
             if (activeTeleports.containsKey(playerId)) {
                 player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")

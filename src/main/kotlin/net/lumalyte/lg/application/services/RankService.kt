@@ -164,4 +164,16 @@ interface RankService {
      * @return true if successful, false otherwise.
      */
     fun createDefaultRanks(guildId: UUID, ownerId: UUID): Boolean
+
+    /**
+     * Moves a rank up (lower priority number, higher in hierarchy) or down by one slot,
+     * swapping priorities with the adjacent rank. Returns false if:
+     * - actor lacks MANAGE_RANKS, OR
+     * - actor's rank priority >= target rank priority, OR
+     * - target is the highest-priority rank and direction is UP, OR
+     * - target is the lowest-priority rank and direction is DOWN.
+     */
+    fun moveRankPriority(rankId: UUID, direction: PriorityDirection, actorId: UUID): Boolean
 }
+
+enum class PriorityDirection { UP, DOWN }

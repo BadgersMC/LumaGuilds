@@ -331,6 +331,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             RankPermission.MANAGE_PARTIES -> "§7Create and manage guild parties"
             RankPermission.SEND_PARTY_REQUESTS -> "§7Send party invitations"
             RankPermission.ACCEPT_PARTY_INVITES -> "§7Accept party invitations"
+            RankPermission.USE_ALLY_HOMES -> "§7Use homes from allied guilds"
 
             // Claims
             RankPermission.MANAGE_CLAIMS -> "§7Manage existing guild claims"

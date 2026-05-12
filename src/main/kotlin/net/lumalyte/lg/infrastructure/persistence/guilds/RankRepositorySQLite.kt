@@ -176,4 +176,34 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
     }
     
     override fun getCountByGuild(guildId: UUID): Int = getByGuild(guildId).size
+
+    override fun swapPriorities(rankAId: UUID, rankBId: UUID): Boolean {
+        val rankA = ranks[rankAId] ?: return false
+        val rankB = ranks[rankBId] ?: return false
+        if (rankA.guildId != rankB.guildId) return false
+        val tempPriority = Int.MAX_VALUE
+        val sql = "UPDATE ranks SET priority = ? WHERE id = ?"
+        return try {
+            val committed = storage.connection.createTransaction { stmt ->
+                val n1 = stmt.executeUpdateQuery(sql, tempPriority, rankAId.toString())
+                val n2 = stmt.executeUpdateQuery(sql, rankA.priority, rankBId.toString())
+                val n3 = stmt.executeUpdateQuery(sql, rankB.priority, rankAId.toString())
+                if (n1 != 1 || n2 != 1 || n3 != 1) {
+                    println("ERROR [RankRepositorySQLite] swapPriorities row counts unexpected (n1=$n1 n2=$n2 n3=$n3) — rolling back")
+                    false
+                } else true
+            }
+            if (committed) {
+                ranks[rankAId] = rankA.copy(priority = rankB.priority)
+                ranks[rankBId] = rankB.copy(priority = rankA.priority)
+                true
+            } else {
+                println("ERROR [RankRepositorySQLite] swapPriorities($rankAId, $rankBId): transaction did not commit")
+                false
+            }
+        } catch (e: java.sql.SQLException) {
+            println("ERROR [RankRepositorySQLite] swapPriorities($rankAId, $rankBId) failed: ${e.message}")
+            false
+        }
+    }
 }
