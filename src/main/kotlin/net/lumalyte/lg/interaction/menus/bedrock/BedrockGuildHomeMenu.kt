@@ -8,6 +8,7 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
+import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
@@ -27,6 +28,7 @@ class BedrockGuildHomeMenu(
 
     private val guildService: GuildService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
+    private val plugin: Plugin by inject()
 
     override fun getForm(): Form {
         val homes = guildService.getHomes(guild.id)
@@ -132,13 +134,14 @@ class BedrockGuildHomeMenu(
 
     private fun teleportToHome(home: GuildHome) {
         // Bedrock form response handler runs on a Netty thread; hop to main
-        // before touching Bukkit API (world lookup, Location, teleport service).
-        val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return
+        // before touching Bukkit API (world lookup, Location, teleport service,
+        // and the menu navigator).
         Bukkit.getScheduler().runTask(plugin, Runnable {
             try {
                 val world = player.server.getWorld(home.worldId)
                 if (world == null) {
                     player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.failed"))
+                    bedrockNavigator.goBack()
                     return@Runnable
                 }
 
@@ -148,17 +151,17 @@ class BedrockGuildHomeMenu(
                     home.position.y.toDouble(),
                     home.position.z.toDouble() + 0.5,
                     player.location.yaw,
-                    player.location.pitch
+                    player.location.pitch,
                 )
 
                 teleportationService.startTeleport(player, targetLocation)
+                bedrockNavigator.goBack()
             } catch (e: Exception) {
                 logger.warning("Error teleporting to home: ${e.message}")
                 player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.failed"))
+                bedrockNavigator.goBack()
             }
         })
-
-        bedrockNavigator.goBack()
     }
 
     private fun showSetHomeMenu() {
