@@ -136,32 +136,34 @@ class BedrockGuildHomeMenu(
         // Bedrock form response handler runs on a Netty thread; hop to main
         // before touching Bukkit API (world lookup, Location, teleport service,
         // and the menu navigator).
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            try {
-                val world = player.server.getWorld(home.worldId)
-                if (world == null) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.failed"))
-                    bedrockNavigator.goBack()
-                    return@Runnable
-                }
+        Bukkit.getScheduler().runTask(plugin, Runnable { runTeleportOnMain(home) })
+    }
 
-                val targetLocation = Location(
-                    world,
-                    home.position.x.toDouble() + 0.5,
-                    home.position.y.toDouble(),
-                    home.position.z.toDouble() + 0.5,
-                    player.location.yaw,
-                    player.location.pitch,
-                )
-
-                teleportationService.startTeleport(player, targetLocation)
-                bedrockNavigator.goBack()
-            } catch (e: Exception) {
-                logger.warning("Error teleporting to home: ${e.message}")
+    private fun runTeleportOnMain(home: GuildHome) {
+        try {
+            val targetLocation = buildHomeLocation(home)
+            if (targetLocation == null) {
                 player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.failed"))
-                bedrockNavigator.goBack()
+            } else {
+                teleportationService.startTeleport(player, targetLocation)
             }
-        })
+        } catch (e: Exception) {
+            logger.warning("Error teleporting to home: ${e.message}")
+            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.failed"))
+        }
+        bedrockNavigator.goBack()
+    }
+
+    private fun buildHomeLocation(home: GuildHome): Location? {
+        val world = player.server.getWorld(home.worldId) ?: return null
+        return Location(
+            world,
+            home.position.x.toDouble() + BLOCK_CENTER_OFFSET,
+            home.position.y.toDouble(),
+            home.position.z.toDouble() + BLOCK_CENTER_OFFSET,
+            player.location.yaw,
+            player.location.pitch,
+        )
     }
 
     private fun showSetHomeMenu() {
@@ -235,5 +237,11 @@ class BedrockGuildHomeMenu(
     override fun handleResponse(player: Player, response: Any?) {
         // Handled in the form result handler
         onFormResponseReceived()
+    }
+
+    /** Constants used when building teleport target locations. */
+    companion object {
+        /** Half-block offset so the player spawns centered on the home block. */
+        private const val BLOCK_CENTER_OFFSET = 0.5
     }
 }
