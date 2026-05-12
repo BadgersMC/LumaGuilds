@@ -263,22 +263,26 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
     /**
      * Replaces all rows for the given guild in `guild_homes` with the entries from
-     * the in-memory model. Called from `add` and `update` after the legacy columns
-     * have been written, so failure here is logged but not propagated — the legacy
-     * columns still hold the default home as a fallback.
+     * the in-memory model. Called from `add` and `update`.
+     *
+     * The DELETE + re-INSERT pair runs inside a single SQLite transaction so that a
+     * mid-loop INSERT failure cannot leave the table empty (which would silently
+     * wipe every named home — the legacy `guilds.home_*` columns only cover the
+     * default home). On any failure the transaction is rolled back and the caller
+     * sees a thrown SQLException, which the outer `add`/`update` catch translates
+     * to a `false` return so the in-memory cache stays in sync with the DB.
      */
     private fun writeGuildHomes(guild: Guild) {
-        try {
-            storage.connection.executeUpdate(
-                "DELETE FROM guild_homes WHERE guild_id = ?",
-                guild.id.toString()
-            )
+        val deleteSql = "DELETE FROM guild_homes WHERE guild_id = ?"
+        val insertSql = """
+            INSERT INTO guild_homes (guild_id, name, world_id, x, y, z, allowed_ranks)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """.trimIndent()
+        val committed = storage.connection.createTransaction { stmt ->
+            stmt.executeUpdateQuery(deleteSql, guild.id.toString())
             for ((homeName, home) in guild.homes.homes) {
-                storage.connection.executeUpdate(
-                    """
-                    INSERT INTO guild_homes (guild_id, name, world_id, x, y, z, allowed_ranks)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """.trimIndent(),
+                stmt.executeUpdateQuery(
+                    insertSql,
                     guild.id.toString(),
                     homeName,
                     home.worldId.toString(),
@@ -288,8 +292,10 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     home.allowedRankIds.joinToString(",") { it.toString() }
                 )
             }
-        } catch (e: SQLException) {
-            println("WARN [GuildRepositorySQLite] Failed to persist guild_homes for ${guild.id}: ${e.message}")
+            true
+        }
+        if (!committed) {
+            throw SQLException("guild_homes write transaction did not commit for ${guild.id}")
         }
     }
 

@@ -1450,10 +1450,14 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun backfillHomeAllowedRanks() {
         val updates = mutableListOf<Pair<String, String>>()
         connection.createStatement().use { stmt ->
+            // Aggregate ranks directly from the `ranks` table for guilds that have at least
+            // one home awaiting backfill. Joining guild_homes×ranks then GROUP_CONCAT would
+            // emit each rank ID H times for H homes-per-guild, bloating the persisted CSV.
             stmt.executeQuery(
-                "SELECT gh.guild_id, GROUP_CONCAT(r.id, ',') AS rank_csv " +
-                "FROM guild_homes gh JOIN ranks r ON r.guild_id = gh.guild_id " +
-                "WHERE gh.allowed_ranks IS NULL GROUP BY gh.guild_id"
+                "SELECT r.guild_id, GROUP_CONCAT(r.id, ',') AS rank_csv " +
+                "FROM ranks r " +
+                "WHERE r.guild_id IN (SELECT DISTINCT guild_id FROM guild_homes WHERE allowed_ranks IS NULL) " +
+                "GROUP BY r.guild_id"
             ).use { rs ->
                 while (rs.next()) {
                     updates.add(rs.getString("guild_id") to (rs.getString("rank_csv") ?: ""))
