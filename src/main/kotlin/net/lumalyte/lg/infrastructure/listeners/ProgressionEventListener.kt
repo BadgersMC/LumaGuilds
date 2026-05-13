@@ -150,11 +150,36 @@ class ProgressionEventListener : Listener, KoinComponent {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerKill(event: PlayerDeathEvent) {
-        val killer = event.entity.killer
+        val victim = event.entity
+        val killer = victim.killer
         if (killer is Player) {
-            awardExperience(killer, cachedXp(ExperienceSource.PLAYER_KILL), ExperienceSource.PLAYER_KILL)
+            awardPlayerKillExperienceUnlessSameGuild(killer, victim)
         }
-        recordKillDeathActivity(killer, event.entity)
+        recordKillDeathActivity(killer, victim)
+    }
+
+    /**
+     * Guild PvP may be allowed, but killing a guildmate must not grant progression XP
+     * (prevents friendly-fire farming). Each player is in at most one guild.
+     */
+    private fun awardPlayerKillExperienceUnlessSameGuild(killer: Player, victim: Player) {
+        val baseXp = cachedXp(ExperienceSource.PLAYER_KILL)
+        if (baseXp <= 0) return
+
+        val killerGuilds = playerGuildCache[killer.uniqueId]
+            ?: memberRepository.getGuildsByPlayer(killer.uniqueId)
+        val killerGuildId = killerGuilds.singleOrNull() ?: return
+
+        val victimGuilds = playerGuildCache[victim.uniqueId]
+            ?: memberRepository.getGuildsByPlayer(victim.uniqueId)
+        val victimGuildId = victimGuilds.singleOrNull()
+        if (victimGuildId != null && victimGuildId == killerGuildId) return
+
+        enqueueGuildExperience(
+            setOf(killerGuildId),
+            baseXp * lunarMultiplier(killer),
+            ExperienceSource.PLAYER_KILL
+        )
     }
 
     private fun recordKillDeathActivity(killer: Player?, victim: Player) {
