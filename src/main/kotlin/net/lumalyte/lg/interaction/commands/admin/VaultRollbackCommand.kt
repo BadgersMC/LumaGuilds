@@ -63,7 +63,7 @@ class VaultRollbackCommand(
         }
 
         val guildName = args[1]
-        val guild = guildService.getGuildByName(guildName)
+        val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
 
         if (guild == null) {
             sender.sendMessage("§cGuild '$guildName' not found")
@@ -108,7 +108,7 @@ class VaultRollbackCommand(
         val guildName = args[1]
         val backupId = args[2]
 
-        val guild = guildService.getGuildByName(guildName)
+        val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
 
         if (guild == null) {
             sender.sendMessage("§cGuild '$guildName' not found")
@@ -159,10 +159,8 @@ class VaultRollbackCommand(
 
         return when (args.size) {
             1 -> listOf("list", "restore").filter { it.startsWith(args[0].lowercase()) }
-            2 -> {
-                // Guild name suggestions would go here
-                emptyList()
-            }
+            2 -> net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
+                .filter { it.startsWith(args[1], ignoreCase = true) }
             else -> emptyList()
         }
     }

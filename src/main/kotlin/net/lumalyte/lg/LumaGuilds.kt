@@ -674,7 +674,25 @@ class LumaGuilds : JavaPlugin() {
 
         commandManager.commandCompletions.registerAsyncCompletion("guilds") { _ ->
             val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
-            guildService.getAllGuilds().map { it.name }
+            net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
+        }
+
+        // Pending invites for the executing player (used by /g decline, /g join in closed guilds)
+        commandManager.commandCompletions.registerAsyncCompletion("pendinginvites") { context ->
+            val player = context.player ?: return@registerAsyncCompletion emptyList()
+            net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInvites(player.uniqueId)
+                .map { (_, guildName) -> net.lumalyte.lg.utils.ColorCodeUtils.stripAllFormatting(guildName).trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .sorted()
+        }
+
+        // Guilds OR online player names — used by /g info, which supports both.
+        commandManager.commandCompletions.registerAsyncCompletion("guildsorplayers") { _ ->
+            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val guildNames = net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
+            val playerNames = Bukkit.getOnlinePlayers().mapNotNull { it.name }
+            (guildNames + playerNames).distinct().sorted()
         }
 
         commandManager.commandCompletions.registerAsyncCompletion("guildhomes") { context ->
