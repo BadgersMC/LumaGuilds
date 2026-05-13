@@ -44,4 +44,21 @@ class GuildResolverNormalizeTest {
         assertEquals("", GuildResolver.normalize("   "))
         assertEquals("", GuildResolver.normalize("<red></red>"))
     }
+
+    @Test
+    fun `mixed minimessage and legacy codes`() {
+        assertEquals("knights", GuildResolver.normalize("<red>&cKnights</red>"))
+        assertEquals("knights", GuildResolver.normalize("&l§cKnights"))
+    }
+
+    @Test
+    fun `same normalized form for different formattings`() {
+        // Property the resolver relies on: differently-formatted spellings
+        // of the same plain word collapse to the same key.
+        val a = GuildResolver.normalize("&cKnights")
+        val b = GuildResolver.normalize("<gradient:red:gold>Knights</gradient>")
+        val c = GuildResolver.normalize("knights")
+        assertEquals(a, b)
+        assertEquals(b, c)
+    }
 }
