@@ -103,7 +103,14 @@ class TeleportationService(private val plugin: Plugin) {
         announceCountdownStart(player)
         val task = CountdownTask(playerId)
         session.countdownTask = task
-        task.runTaskTimer(plugin, 0L, TICKS_PER_SECOND)
+        // announceCountdownStart already posts the "5 seconds" action bar; a timer
+        // delay of 0L runs the first tick on the very next scheduler pass, so
+        // tickCountdown would send the same line again immediately (duplicate flash).
+        // Defer the first tick by one second so the action bar only updates once per
+        // real second, matching the countdown display.
+        val initialCountdownDelay = TICKS_PER_SECOND
+        val countdownInterval = TICKS_PER_SECOND
+        task.runTaskTimer(plugin, initialCountdownDelay, countdownInterval)
     }
 
     private fun announceCountdownStart(player: Player) {
