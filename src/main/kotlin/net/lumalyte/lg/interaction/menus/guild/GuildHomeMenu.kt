@@ -12,14 +12,11 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
-import net.kyori.adventure.text.Component
-import net.lumalyte.lg.utils.CombatUtil
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.bukkit.scheduler.BukkitRunnable
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
@@ -31,18 +28,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
+    private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val rankService: net.lumalyte.lg.application.services.RankService by inject()
-
-    // Teleportation tracking
-    private data class TeleportSession(
-        val player: Player,
-        val targetLocation: org.bukkit.Location,
-        val startLocation: org.bukkit.Location,
-        var countdownTask: BukkitRunnable? = null,
-        var remainingSeconds: Int = 5
-    )
-
-    private val activeTeleports = mutableMapOf<UUID, TeleportSession>()
 
     override fun open() {
         val gui = ChestGui(6, "§6Guild Homes - ${guild.name}")
@@ -160,17 +147,17 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addTeleportButtons(pane: StaticPane, x: Int, y: Int) {
         val allHomes = guildService.getHomes(guild.id)
-        val hasActiveTeleport = activeTeleports.containsKey(player.uniqueId)
+        val hasActiveTeleport = teleportationService.hasActiveTeleport(player.uniqueId)
 
         if (hasActiveTeleport) {
             // Show cancel teleport button
             val cancelItem = ItemStack.of(Material.CLOCK)
                 .name("§eCancel Teleport")
                 .lore("§7Teleportation in progress...")
-                .lore("§7Remaining: §f${activeTeleports[player.uniqueId]?.remainingSeconds ?: 0} seconds")
+                .lore("§7Remaining: §f${teleportationService.getRemainingSeconds(player.uniqueId) ?: 0} seconds")
 
             val cancelGuiItem = GuiItem(cancelItem) {
-                cancelTeleport(player.uniqueId)
+                teleportationService.cancelTeleport(player.uniqueId)
                 player.sendMessage("§c❌ Teleportation canceled!")
                 open() // Refresh menu
             }
@@ -406,102 +393,20 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         val targetLocation = org.bukkit.Location(
             world,
-            home.position.x.toDouble() + 0.5,  // Center of block
+            home.position.x.toDouble() + 0.5,
             home.position.y.toDouble(),
-            home.position.z.toDouble() + 0.5,  // Center of block
+            home.position.z.toDouble() + 0.5,
             player.location.yaw,
             player.location.pitch
         )
 
-        // Check if target location is safe (if safety check is enabled)
         if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(targetLocation)) {
             player.sendMessage("§c❌ Guild home location is not safe to teleport to!")
             player.sendMessage("§7Try setting your home on solid ground with space above you.")
             return
         }
 
-        // Cancel any existing teleport
-        cancelTeleport(player.uniqueId)
-
-        if (CombatUtil.isInCombat(player)){
-            player.sendMessage("§e◷ Cannot teleport in combat.")
-            return
-        }
-
-        val session = TeleportSession(
-            player = player,
-            targetLocation = targetLocation,
-            startLocation = player.location.clone(),
-            remainingSeconds = 5
-        )
-
-        activeTeleports[player.uniqueId] = session
-
-        player.sendMessage("§e⏰ Teleportation countdown started! Don't move for 5 seconds...")
-        player.sendActionBar(Component.text("§eTeleporting to guild home in §f5§e seconds..."))
-
-        val pluginRef = Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return
-        val countdownTask = object : BukkitRunnable() {
-            override fun run() {
-                val currentSession = activeTeleports[player.uniqueId]
-                if (currentSession == null) {
-                    cancel()
-                    return
-                }
-
-                // Check if player moved
-                if (hasPlayerMoved(currentSession)) {
-                    cancelTeleport(player.uniqueId)
-                    player.sendMessage("§c❌ Teleportation canceled - you moved!")
-                    return
-                }
-
-                if (currentSession.remainingSeconds <= 0) {
-                    // teleportAsync future may complete off the main thread;
-                    // dispatch Bukkit API calls back to main via the scheduler.
-                    player.teleportAsync(currentSession.targetLocation).thenAccept { success ->
-                        Bukkit.getScheduler().runTask(pluginRef, Runnable {
-                            if (success) {
-                                player.sendMessage("§a✅ Teleported to guild home!")
-                                player.sendActionBar(Component.text("§aTeleported to guild home!"))
-                            } else {
-                                player.sendMessage("§c❌ Teleport failed — please try again.")
-                            }
-                        })
-                    }
-
-                    // Clean up
-                    activeTeleports.remove(player.uniqueId)
-                    cancel() // Stop the task after successful teleport
-                } else {
-                    // Update action bar with current time remaining
-                    player.sendActionBar(Component.text("§eTeleporting to guild home in §f${currentSession.remainingSeconds}§e seconds..."))
-                    // Decrement after showing the message
-                    currentSession.remainingSeconds--
-                }
-            }
-        }
-
-        session.countdownTask = countdownTask
-        countdownTask.runTaskTimer(pluginRef, 0L, 20L) // Start immediately, then every second
-    }
-
-    private fun cancelTeleport(playerId: UUID) {
-        val session = activeTeleports[playerId] ?: return
-
-        session.countdownTask?.cancel()
-        activeTeleports.remove(playerId)
-    }
-
-    private fun hasPlayerMoved(session: TeleportSession): Boolean {
-        val currentLocation = session.player.location
-        val startLocation = session.startLocation
-
-        // Check if player moved more than 0.1 blocks in any direction
-        return Math.abs(currentLocation.x - startLocation.x) > 0.1 ||
-               Math.abs(currentLocation.y - startLocation.y) > 0.1 ||
-               Math.abs(currentLocation.z - startLocation.z) > 0.1 ||
-               currentLocation.world != startLocation.world
+        teleportationService.startTeleport(player, targetLocation)
     }
 
     private fun isLocationSafe(location: org.bukkit.Location): Boolean {

@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm") version "2.0.0"
     id("com.gradleup.shadow") version "8.3.6"
+    idea
 }
 
 group = "net.lumalyte.lg"
@@ -90,6 +91,15 @@ dependencies {
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+}
+
+// Keep local tooling trees (e.g. Claude worktree copies) out of the IDE module so
+// Kotlin does not see duplicate sources like TeleportationService.kt twice.
+idea {
+    module {
+        excludeDirs.add(file(".claude"))
+        excludeDirs.add(file(".worktrees"))
+    }
 }
 
 tasks.test {
