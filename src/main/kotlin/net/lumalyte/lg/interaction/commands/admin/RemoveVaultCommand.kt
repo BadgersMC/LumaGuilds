@@ -45,8 +45,8 @@ class RemoveVaultCommand(
             true // Default to dropping items
         }
 
-        // Find guild
-        val guild = guildService.getGuildByName(guildName)
+        // Find guild (resolve handles exact, case-insensitive, and stripped names)
+        val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
         if (guild == null) {
             sender.sendMessage("§cGuild '$guildName' not found")
             return true
@@ -96,14 +96,9 @@ class RemoveVaultCommand(
         }
 
         return when (args.size) {
-            1 -> {
-                // Guild name suggestions would go here
-                // For now, return empty list
-                emptyList()
-            }
-            2 -> {
-                listOf("true", "false").filter { it.startsWith(args[1], ignoreCase = true) }
-            }
+            1 -> net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
+                .filter { it.startsWith(args[0], ignoreCase = true) }
+            2 -> listOf("true", "false").filter { it.startsWith(args[1], ignoreCase = true) }
             else -> emptyList()
         }
     }

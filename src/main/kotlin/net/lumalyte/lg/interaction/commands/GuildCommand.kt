@@ -301,6 +301,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     
     @Subcommand("home")
     @CommandPermission("lumaguilds.guild.home")
+    @CommandCompletion("@guildhomes")
     fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
         // Handle "/guild home confirm" — ACF puts "confirm" into homeName, not confirm param
         val isConfirm = confirm?.lowercase() == "confirm" || homeName?.lowercase() == "confirm"
@@ -835,17 +836,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
 
     @Subcommand("info")
-    @CommandCompletion("@guilds")
+    @CommandCompletion("@guildsorplayers")
     fun onInfo(player: Player, @Optional targetGuild: String?) {
         val menuNavigator = MenuNavigator(player)
 
         if (targetGuild != null) {
-            // Show info about another guild by name
-            val guilds = guildService.getAllGuilds()
-            val targetGuildObj = guilds.find { it.name.equals(targetGuild, ignoreCase = true) }
+            // Resolve by guild name (exact / normalized) or by player name
+            val targetGuildObj = net.lumalyte.lg.utils.GuildResolver.resolve(targetGuild, guildService)
 
             if (targetGuildObj == null) {
-                player.sendMessage("§cGuild '$targetGuild' not found.")
+                player.sendMessage("§cNo guild or player named '$targetGuild' found.")
                 return
             }
 
@@ -985,7 +985,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         menuNavigator.openMenu(menuFactory.createGuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer))
     }
 
-    @Subcommand("join")
+    @Subcommand("join|accept")
     @CommandPermission("lumaguilds.guild.join")
     @CommandCompletion("@guilds")
     fun onJoin(player: Player, guildName: String) {
@@ -1001,8 +1001,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // First, try to find the guild by name
-        val guild = guildRepository.getByName(guildName)
+        // Resolve guild by name (exact / normalized). Player-name resolution is
+        // intentionally NOT used here — joining via a player's name is ambiguous.
+        val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
         if (guild == null) {
             player.sendMessage("§cGuild §6$guildName§c doesn't exist!")
             player.sendMessage("§7Check §e/guild list§7 to see available guilds.")
@@ -1024,8 +1025,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Closed guild - check for pending invite
-        val invite = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInviteByGuildName(playerId, guildName)
+        // Closed guild - check for pending invite (use canonical guild name, not raw user input)
+        val invite = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInviteByGuildName(playerId, guild.name)
         if (invite == null) {
             player.sendMessage("§cYou don't have an invitation to join §6$guildName§c!")
             player.sendMessage("§7This guild is invite-only. Ask a member to invite you.")
@@ -1152,12 +1153,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     @Subcommand("decline")
     @CommandPermission("lumaguilds.guild.decline")
-    @CommandCompletion("@guilds")
+    @CommandCompletion("@pendinginvites")
     fun onDecline(player: Player, guildName: String) {
         val playerId = player.uniqueId
 
-        // Check if player has a pending invite for this guild
-        val invite = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInviteByGuildName(playerId, guildName)
+        // Resolve invite using exact name first, then normalized name match across
+        // the player's pending invites so colored/lowercased input also works.
+        val invites = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInvites(playerId)
+        val needle = net.lumalyte.lg.utils.GuildResolver.normalize(guildName)
+        val invite = invites.firstOrNull { it.second.equals(guildName, ignoreCase = true) }
+            ?: invites.firstOrNull { net.lumalyte.lg.utils.GuildResolver.normalize(it.second) == needle }
         if (invite == null) {
             player.sendMessage("§cYou don't have an invitation to join §6$guildName§c!")
             player.sendMessage("§7Check §e/guild invites§7 to see your pending invitations.")
@@ -1988,10 +1993,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Find target guild
-        val targetGuild = guildRepository.getByName(guildName)
+        // Resolve target guild (by name or by player name)
+        val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
         if (targetGuild == null) {
-            player.sendMessage("§cGuild '$guildName' not found.")
+            player.sendMessage("§cNo guild or player named '$guildName' found.")
             return
         }
 
@@ -2061,10 +2066,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Find target guild
-        val targetGuild = guildRepository.getByName(guildName)
+        // Resolve target guild (by name or by player name)
+        val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
         if (targetGuild == null) {
-            player.sendMessage("§cGuild '$guildName' not found.")
+            player.sendMessage("§cNo guild or player named '$guildName' found.")
             return
         }
 
@@ -2129,10 +2134,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Find target guild
-        val targetGuild = guildRepository.getByName(guildName)
+        // Resolve target guild (by name or by player name)
+        val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
         if (targetGuild == null) {
-            player.sendMessage("§cGuild '$guildName' not found.")
+            player.sendMessage("§cNo guild or player named '$guildName' found.")
             return
         }
 
@@ -2197,10 +2202,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Find target guild
-        val targetGuild = guildRepository.getByName(guildName)
+        // Resolve target guild (by name or by player name)
+        val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
         if (targetGuild == null) {
-            player.sendMessage("§cGuild '$guildName' not found.")
+            player.sendMessage("§cNo guild or player named '$guildName' found.")
             return
         }
 

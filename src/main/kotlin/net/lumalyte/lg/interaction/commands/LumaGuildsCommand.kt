@@ -183,7 +183,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             args.drop(1).joinToString(" ")
         }
 
-        val guild = guildService.getGuildByName(guildName)
+        val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
 
         if (guild == null) {
             sender.sendMessage("§c❌ Guild not found: $guildName")
@@ -539,9 +539,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                         .toMutableList()
                 }
                 "disband" -> {
-                    // Tab complete guild names
-                    guildService.getAllGuilds()
-                        .map { it.name }
+                    net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
                         .filter { it.contains(args[1], ignoreCase = true) }
                         .toMutableList()
                 }
