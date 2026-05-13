@@ -114,6 +114,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(19)
                 dbVersion = 19
             }
+            if (dbVersion < 20) {
+                migrateToVersion20()
+                updateDatabaseVersion(20)
+                dbVersion = 20
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1335,6 +1340,31 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 componentLogger.info(Component.text("✓ Recreated claim system tables"))
             }
         }
+
+        // v20 columns can go missing if guild_homes is recreated via v19 above, or if a prior
+        // run was interrupted between updateDatabaseVersion(20) and persistent column writes.
+        // Always reapply v20 — it's fully idempotent (ALTER TABLE wrapped in duplicate-column catch,
+        // backfills only NULL rows, USE_ALLY_HOMES add() is set-deduped).
+        if (!hasColumn("guild_homes", "allowed_ranks") ||
+            !hasColumn("guilds", "ally_home_allowed_guilds")) {
+            componentLogger.info(Component.text("🔧 v20 columns missing — reapplying v20 migration"))
+            migrateToVersion20()
+        }
+    }
+
+    private fun hasColumn(table: String, column: String): Boolean {
+        return try {
+            connection.createStatement().use { stmt ->
+                val rs = stmt.executeQuery("PRAGMA table_info($table)")
+                while (rs.next()) {
+                    if (rs.getString("name").equals(column, ignoreCase = true)) return@use true
+                }
+                false
+            }
+        } catch (e: SQLException) {
+            componentLogger.warn(Component.text("PRAGMA table_info($table) failed: ${e.message}"))
+            false
+        }
     }
 
     /**
@@ -1382,5 +1412,119 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             componentLogger.warn(Component.text("⚠ Could not enable WAL mode: ${e.message}"))
             componentLogger.warn(Component.text("  Vault will use rollback journal mode (less crash-resistant)"))
         }
+    }
+
+    /**
+     * v20: per-home rank whitelist + per-ally-guild inbound ally-home whitelist + USE_ALLY_HOMES permission backfill.
+     *
+     * Adds `guild_homes.allowed_ranks` (TEXT, CSV of rank UUIDs) and
+     * `guilds.ally_home_allowed_guilds` (TEXT, CSV of guild UUIDs).
+     * Backfills existing homes with all current ranks of the owning guild (policy B,
+     * see 2026-05-10-rank-and-home-perms-design.md §2.3), and adds USE_ALLY_HOMES
+     * to every existing rank's permissions (§3.1).
+     *
+     * Idempotent: ALTER TABLE wrapped in try/catch for "duplicate column", and
+     * backfill UPDATE only writes rows where the new columns are NULL.
+     */
+    private fun migrateToVersion20() {
+        componentLogger.info(Component.text("Migrating to version 20: per-home access perms..."))
+        addV20Columns()
+        backfillHomeAllowedRanks()
+        backfillAllyHomeAllowedGuilds()
+        addUseAllyHomesPermission()
+    }
+
+    private fun addV20Columns() {
+        for (alter in listOf(
+            "ALTER TABLE guild_homes ADD COLUMN allowed_ranks TEXT",
+            "ALTER TABLE guilds ADD COLUMN ally_home_allowed_guilds TEXT"
+        )) {
+            try {
+                connection.createStatement().use { it.executeUpdate(alter) }
+            } catch (e: SQLException) {
+                if (!e.message.orEmpty().contains("duplicate column", ignoreCase = true)) throw e
+            }
+        }
+    }
+
+    private fun backfillHomeAllowedRanks() {
+        val updates = mutableListOf<Pair<String, String>>()
+        connection.createStatement().use { stmt ->
+            // Aggregate ranks directly from the `ranks` table for guilds that have at least
+            // one home awaiting backfill. Joining guild_homes×ranks then GROUP_CONCAT would
+            // emit each rank ID H times for H homes-per-guild, bloating the persisted CSV.
+            stmt.executeQuery(
+                "SELECT r.guild_id, GROUP_CONCAT(r.id, ',') AS rank_csv " +
+                "FROM ranks r " +
+                "WHERE r.guild_id IN (SELECT DISTINCT guild_id FROM guild_homes WHERE allowed_ranks IS NULL) " +
+                "GROUP BY r.guild_id"
+            ).use { rs ->
+                while (rs.next()) {
+                    updates.add(rs.getString("guild_id") to (rs.getString("rank_csv") ?: ""))
+                }
+            }
+        }
+        connection.prepareStatement(
+            "UPDATE guild_homes SET allowed_ranks = ? WHERE guild_id = ? AND allowed_ranks IS NULL"
+        ).use { ps ->
+            for ((guildId, csv) in updates) {
+                ps.setString(1, csv); ps.setString(2, guildId); ps.executeUpdate()
+            }
+        }
+        componentLogger.info(Component.text("✓ Backfilled ${updates.size} guild(s) of home rank whitelists"))
+    }
+
+    private fun backfillAllyHomeAllowedGuilds() {
+        // One query for all active alliances, group in memory — avoids N+1 prepareStatement per guild.
+        val alliesByGuild = mutableMapOf<String, MutableSet<String>>()
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery(
+                "SELECT guild_a, guild_b FROM relations WHERE type = 'ALLY' AND status = 'ACTIVE'"
+            ).use { rs ->
+                while (rs.next()) {
+                    val a = rs.getString("guild_a")
+                    val b = rs.getString("guild_b")
+                    alliesByGuild.getOrPut(a) { mutableSetOf() }.add(b)
+                    alliesByGuild.getOrPut(b) { mutableSetOf() }.add(a)
+                }
+            }
+        }
+        val guildIds = mutableListOf<String>()
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT id FROM guilds WHERE ally_home_allowed_guilds IS NULL").use { rs ->
+                while (rs.next()) guildIds.add(rs.getString("id"))
+            }
+        }
+        connection.prepareStatement(
+            "UPDATE guilds SET ally_home_allowed_guilds = ? WHERE id = ?"
+        ).use { ps ->
+            for (gid in guildIds) {
+                val csv = alliesByGuild[gid].orEmpty().joinToString(",")
+                ps.setString(1, csv); ps.setString(2, gid); ps.executeUpdate()
+            }
+        }
+        componentLogger.info(Component.text("✓ Backfilled ${guildIds.size} guild(s) ally-home allow-lists"))
+    }
+
+    private fun addUseAllyHomesPermission() {
+        val updates = mutableListOf<Pair<String, String>>()
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT id, permissions FROM ranks").use { rs ->
+                while (rs.next()) {
+                    val id = rs.getString("id")
+                    val perms = rs.getString("permissions").orEmpty()
+                    val parts = perms.split(",").filter { it.isNotBlank() }.toMutableSet()
+                    if (parts.add("USE_ALLY_HOMES")) {
+                        updates.add(id to parts.joinToString(","))
+                    }
+                }
+            }
+        }
+        connection.prepareStatement("UPDATE ranks SET permissions = ? WHERE id = ?").use { ps ->
+            for ((id, perms) in updates) {
+                ps.setString(1, perms); ps.setString(2, id); ps.executeUpdate()
+            }
+        }
+        componentLogger.info(Component.text("✓ Added USE_ALLY_HOMES to ${updates.size} ranks"))
     }
 }

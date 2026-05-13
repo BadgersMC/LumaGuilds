@@ -29,6 +29,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
+    private val rankService: net.lumalyte.lg.application.services.RankService by inject()
 
     override fun open() {
         val gui = ChestGui(6, "§6Guild Homes - ${guild.name}")
@@ -50,9 +51,13 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         // Teleport buttons
         addTeleportButtons(pane, 0, 4)
 
+        // Per-home access config buttons (row 3) — managers only
+        addHomeAccessButtons(pane)
+
         // Ally home teleport buttons (if perk unlocked)
         if (progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) {
             addAllyHomeButtons(pane, 0, 5)
+            addAllyHomeAccessButton(pane)
         }
 
         // Back button (shift down if ally homes shown)
@@ -195,6 +200,31 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
     }
 
+    private fun addHomeAccessButtons(pane: StaticPane) {
+        if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
+        val homes = guildService.getHomes(guild.id).homes.entries.toList()
+        homes.take(9).forEachIndexed { idx, (homeName, _) ->
+            val item = ItemStack.of(Material.IRON_DOOR)
+                .name("§6🔒 Access: $homeName")
+                .lore("§7Configure which ranks can use this home")
+                .lore("§eClick to manage")
+            pane.addItem(GuiItem(item) {
+                menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
+            }, idx, 3)
+        }
+    }
+
+    private fun addAllyHomeAccessButton(pane: StaticPane) {
+        if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
+        val allyAccessItem = ItemStack.of(Material.IRON_DOOR)
+            .name("§6🔒 Ally-home Access")
+            .lore("§7Configure which allied guilds can use your ally-home")
+            .lore("§eClick to manage")
+        pane.addItem(GuiItem(allyAccessItem) {
+            menuNavigator.openMenu(menuFactory.createAllyHomeAccessMenu(menuNavigator, player, guild))
+        }, 7, 5)
+    }
+
     private fun addAllyHomeButtons(pane: StaticPane, x: Int, y: Int) {
         val allyHomes = guildService.getAllyHomes(guild.id)
         if (allyHomes.isEmpty()) {
@@ -211,14 +241,22 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         for ((guildName, home) in allyHomes) {
             if (slot >= 7) break // Max 7 ally homes on row
             val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
-            val allyItem = ItemStack.of(Material.ENDER_EYE)
-                .name("§d⚔ $guildName")
+            val targetGuild = guildService.getGuildByName(guildName)
+            val allowed = targetGuild != null &&
+                guildService.canUseAllyHome(player.uniqueId, guild.id, targetGuild.id)
+            val allyItem = ItemStack.of(if (allowed) Material.ENDER_EYE else Material.BARRIER)
+                .name(if (allowed) "§d⚔ $guildName" else "§7⚔ $guildName (locked)")
                 .lore("§7Ally guild home")
                 .lore("§7World: §f$worldName")
                 .lore("§7")
-                .lore("§eClick to teleport")
+                .lore(if (allowed) "§eClick to teleport" else "§cYour rank lacks USE_ALLY_HOMES, or this guild has not allowed yours.")
 
             val guiItem = GuiItem(allyItem) {
+                if (!allowed) {
+                    player.sendMessage("§c❌ You cannot use that ally's home.")
+                    player.sendMessage("§7Either your rank lacks USE_ALLY_HOMES, or that guild has not allowed your guild.")
+                    return@GuiItem
+                }
                 startTeleportCountdown(home)
             }
             pane.addItem(guiItem, slot, y)

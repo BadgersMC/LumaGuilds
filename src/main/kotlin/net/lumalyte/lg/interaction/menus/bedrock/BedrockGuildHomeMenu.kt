@@ -101,6 +101,10 @@ class BedrockGuildHomeMenu(
             val homeName = homeNames[buttonIndex]
             val home = homes.getHome(homeName)
             if (home != null) {
+                if (!guildService.canUseHome(player.uniqueId, guild.id, homeName)) {
+                    player.sendMessage("§c❌ You don't have permission to use the home '$homeName'.")
+                    return
+                }
                 teleportToHome(home)
             }
             return
