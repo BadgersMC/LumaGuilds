@@ -138,10 +138,9 @@ class BedrockGuildHomeMenu(
     }
 
     private fun teleportToHome(home: GuildHome) {
-        // Bedrock form response handler runs on a Netty thread; hop to main
-        // before touching Bukkit API (world lookup, Location, teleport service,
-        // and the menu navigator).
-        Bukkit.getScheduler().runTask(plugin, Runnable { runTeleportOnMain(home) })
+        // Main form handler already runs on the server thread via runTask in getForm();
+        // no second hop needed here.
+        runTeleportOnMain(home)
     }
 
     private fun runTeleportOnMain(home: GuildHome) {

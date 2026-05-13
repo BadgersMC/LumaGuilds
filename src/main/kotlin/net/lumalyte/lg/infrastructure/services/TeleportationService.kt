@@ -117,11 +117,23 @@ class TeleportationService(private val plugin: Plugin) {
     }
 
     private fun announceCountdownStart(player: Player) {
-        player.sendMessage("§e◷ Teleportation countdown started! Don't move for $COUNTDOWN_SECONDS seconds...")
-        player.sendActionBar(
-            LEGACY.deserialize("§eTeleporting to guild home in §f$COUNTDOWN_SECONDS§e seconds..."),
+        player.sendMessage(
+            "§e◷ Teleportation countdown started! Don't move for ${countdownSecondsPhrase(COUNTDOWN_SECONDS)}...",
         )
+        player.sendActionBar(LEGACY.deserialize(countdownActionBarLegacyString(COUNTDOWN_SECONDS)))
     }
+
+    /** Chat phrase: "1 second" vs "N seconds" for countdown copy. */
+    private fun countdownSecondsPhrase(seconds: Int): String =
+        if (seconds == 1) "1 second" else "$seconds seconds"
+
+    /** Legacy-section action bar string for "N second(s)" remaining. */
+    private fun countdownActionBarLegacyString(remaining: Int): String =
+        if (remaining == 1) {
+            "§eTeleporting to guild home in §f1§e second..."
+        } else {
+            "§eTeleporting to guild home in §f$remaining§e seconds..."
+        }
 
     /** Per-tick (1s) countdown runnable; checks movement, decrements, triggers teleport at 0. */
     private inner class CountdownTask(private val playerId: UUID) : BukkitRunnable() {
@@ -152,11 +164,7 @@ class TeleportationService(private val plugin: Plugin) {
     private fun tickCountdown(session: TeleportSession) {
         session.remainingSeconds--
         if (session.remainingSeconds > 0) {
-            session.player.sendActionBar(
-                LEGACY.deserialize(
-                    "§eTeleporting to guild home in §f${session.remainingSeconds}§e seconds...",
-                ),
-            )
+            session.player.sendActionBar(LEGACY.deserialize(countdownActionBarLegacyString(session.remainingSeconds)))
         }
     }
 
