@@ -11,8 +11,10 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
+import org.geysermc.floodgate.api.FloodgateApi
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.logging.Level
 import java.util.logging.Logger
 
 /**
@@ -60,10 +62,13 @@ class BedrockGuildHomeMenu(
             }
             .validResultHandler { response ->
                 val clickedButton = response.clickedButtonId()
-                handleHomeSelection(clickedButton, homes, maxHomes, availableSlots)
+                Bukkit.getScheduler().runTask(
+                    plugin,
+                    Runnable { handleHomeSelection(clickedButton, homes, maxHomes, availableSlots) },
+                )
             }
             .closedOrInvalidResultHandler { _, _ ->
-                bedrockNavigator.goBack()
+                Bukkit.getScheduler().runTask(plugin, Runnable { bedrockNavigator.goBack() })
             }
             .build()
     }
@@ -148,7 +153,7 @@ class BedrockGuildHomeMenu(
                 teleportationService.startTeleport(player, targetLocation)
             }
         } catch (e: Exception) {
-            logger.warning("Error teleporting to home: ${e.message}")
+            logger.log(Level.WARNING, "Error teleporting to home", e)
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.failed"))
         }
         bedrockNavigator.goBack()
@@ -193,6 +198,9 @@ class BedrockGuildHomeMenu(
     }
 
     private fun showRemoveHomeMenu(homes: net.lumalyte.lg.domain.entities.GuildHomes) {
+        if (!homes.hasHomes()) {
+            return
+        }
         val removeForm = SimpleForm.builder()
             .title("${bedrockLocalization.getBedrockString(player, "guild.home.remove")} - ${guild.name}")
             .content(bedrockLocalization.getBedrockString(player, "guild.home.description"))
@@ -202,24 +210,29 @@ class BedrockGuildHomeMenu(
                 }
             }
             .validResultHandler { response ->
-                val clickedButton = response.clickedButtonId()
-                val homeNames = homes.homeNames.toList()
-                if (clickedButton < homeNames.size) {
-                    val homeName = homeNames[clickedButton]
-                    removeHome(homeName)
-                }
+                Bukkit.getScheduler().runTask(
+                    plugin,
+                    Runnable {
+                        val clickedButton = response.clickedButtonId()
+                        val homeNames = homes.homeNames.toList()
+                        if (clickedButton < homeNames.size) {
+                            val homeName = homeNames[clickedButton]
+                            removeHome(homeName)
+                        }
+                    },
+                )
             }
             .closedOrInvalidResultHandler { _, _ ->
-                bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                Bukkit.getScheduler().runTask(
+                    plugin,
+                    Runnable {
+                        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                    },
+                )
             }
             .build()
 
-        // For Bedrock, we need to handle this differently since we can't show nested forms
-        // Let's just remove the first home for simplicity
-        if (homes.hasHomes()) {
-            val firstHomeName = homes.homeNames.first()
-            removeHome(firstHomeName)
-        }
+        FloodgateApi.getInstance().sendForm(player.uniqueId, removeForm)
     }
 
     private fun removeHome(homeName: String) {

@@ -1,6 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
-import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.lumalyte.lg.utils.CombatUtil
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -11,6 +11,7 @@ import org.bukkit.scheduler.BukkitRunnable
 import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.abs
 
 /**
  * Centralized service for guild home teleportation countdowns.
@@ -42,6 +43,8 @@ class TeleportationService(private val plugin: Plugin) {
         val player: Player,
         val targetLocation: Location,
         val onSuccess: (() -> Unit)?,
+        /** Session still in [activeTeleports] until teleport completes; used to ignore stale callbacks. */
+        val session: TeleportSession,
     )
 
     private val activeTeleports = ConcurrentHashMap<UUID, TeleportSession>()
@@ -116,7 +119,7 @@ class TeleportationService(private val plugin: Plugin) {
     private fun announceCountdownStart(player: Player) {
         player.sendMessage("§e◷ Teleportation countdown started! Don't move for $COUNTDOWN_SECONDS seconds...")
         player.sendActionBar(
-            Component.text("§eTeleporting to guild home in §f$COUNTDOWN_SECONDS§e seconds..."),
+            LEGACY.deserialize("§eTeleporting to guild home in §f$COUNTDOWN_SECONDS§e seconds..."),
         )
     }
 
@@ -136,8 +139,9 @@ class TeleportationService(private val plugin: Plugin) {
                     cancel()
                 }
                 current.remainingSeconds <= 0 -> {
-                    performTeleport(TeleportContext(current.player, current.targetLocation, current.onSuccess))
-                    activeTeleports.remove(playerId)
+                    performTeleport(
+                        TeleportContext(current.player, current.targetLocation, current.onSuccess, current),
+                    )
                     cancel()
                 }
                 else -> tickCountdown(current)
@@ -146,10 +150,14 @@ class TeleportationService(private val plugin: Plugin) {
     }
 
     private fun tickCountdown(session: TeleportSession) {
-        session.player.sendActionBar(
-            Component.text("§eTeleporting to guild home in §f${session.remainingSeconds}§e seconds..."),
-        )
         session.remainingSeconds--
+        if (session.remainingSeconds > 0) {
+            session.player.sendActionBar(
+                LEGACY.deserialize(
+                    "§eTeleporting to guild home in §f${session.remainingSeconds}§e seconds...",
+                ),
+            )
+        }
     }
 
     private fun performTeleport(ctx: TeleportContext) {
@@ -166,29 +174,36 @@ class TeleportationService(private val plugin: Plugin) {
     private fun ejectVehicleAndPassengers(player: Player) {
         // teleportAsync rejects entities with passengers; protection plugins often
         // cancel mounted teleports.
-        player.vehicle?.let { player.leaveVehicle() }
-        if (player.passengers.isNotEmpty()) {
-            player.passengers.toList().forEach { player.removePassenger(it) }
+        if (player.vehicle != null) {
+            player.leaveVehicle()
         }
+        player.passengers.toList().forEach { player.removePassenger(it) }
     }
 
     private fun dispatchResult(ctx: TeleportContext, success: Boolean?, throwable: Throwable?) {
-        when {
-            throwable != null -> onTeleportException(ctx, throwable)
-            success == true -> onTeleportSucceeded(ctx)
-            else -> onTeleportRejected(ctx)
+        if (activeTeleports[ctx.player.uniqueId] !== ctx.session) {
+            return
+        }
+        try {
+            when {
+                throwable != null -> onTeleportException(ctx, throwable)
+                success == true -> onTeleportSucceeded(ctx)
+                else -> onTeleportRejected(ctx)
+            }
+        } finally {
+            activeTeleports.remove(ctx.player.uniqueId, ctx.session)
         }
     }
 
     private fun onTeleportException(ctx: TeleportContext, throwable: Throwable) {
         logger.warn("Teleport threw for ${ctx.player.name} -> ${ctx.targetLocation}", throwable)
-        if (ctx.player.isOnline) ctx.player.sendMessage("§c❌ Teleport failed — an error occurred.")
+        if (ctx.player.isOnline) ctx.player.sendMessage("§c❌ Teleport failed — an error occurred. Please show this to an admin.")
     }
 
     private fun onTeleportSucceeded(ctx: TeleportContext) {
         if (ctx.player.isOnline) {
             ctx.player.sendMessage("§a✅ Welcome to your guild home!")
-            ctx.player.sendActionBar(Component.text("§aTeleported to guild home!"))
+            ctx.player.sendActionBar(LEGACY.deserialize("§aTeleported to guild home!"))
         }
         ctx.onSuccess?.invoke()
     }
@@ -200,20 +215,21 @@ class TeleportationService(private val plugin: Plugin) {
                 "(likely cancelled by another plugin's PlayerTeleportEvent listener)",
             ctx.player.name, world, ctx.targetLocation.x, ctx.targetLocation.y, ctx.targetLocation.z,
         )
-        if (ctx.player.isOnline) ctx.player.sendMessage("§c❌ Teleport failed — please try again.")
+        if (ctx.player.isOnline) ctx.player.sendMessage("§c❌ Teleport failed — please show this to an admin.")
     }
 
     private fun hasPlayerMoved(session: TeleportSession): Boolean {
         val cur = session.player.location
         val start = session.startLocation
-        return Math.abs(cur.x - start.x) > MOVEMENT_TOLERANCE ||
-            Math.abs(cur.y - start.y) > MOVEMENT_TOLERANCE ||
-            Math.abs(cur.z - start.z) > MOVEMENT_TOLERANCE ||
+        return abs(cur.x - start.x) > MOVEMENT_TOLERANCE ||
+            abs(cur.y - start.y) > MOVEMENT_TOLERANCE ||
+            abs(cur.z - start.z) > MOVEMENT_TOLERANCE ||
             cur.world != start.world
     }
 
     /** Named magic-number constants used by the countdown and movement check. */
     companion object {
+        private val LEGACY = LegacyComponentSerializer.legacySection()
         private const val COUNTDOWN_SECONDS = 5
         private const val TICKS_PER_SECOND = 20L
         private const val MOVEMENT_TOLERANCE = 0.1
