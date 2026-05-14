@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.persistence.migrations
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger
 import java.sql.Connection
+import java.util.TreeSet
 
 /**
  * Shared backfill that scrubs the `guilds.name` column to match the runtime
@@ -25,7 +26,9 @@ internal object GuildNameSanitizer {
             }
         }
 
-        val used = mutableSetOf<String>()
+        // Case-insensitive set: getByName compares with ignoreCase=true, so two
+        // post-migration names that differ only in case would still collide.
+        val used = TreeSet<String>(String.CASE_INSENSITIVE_ORDER)
         val pending = mutableListOf<Row>()
         for ((id, name) in all) {
             val cleaned = clean(name, id)
@@ -60,13 +63,21 @@ internal object GuildNameSanitizer {
     private fun ensureUnique(base: String, id: String, used: Set<String>): String {
         if (base !in used) return base
         val suffix = id.replace("-", "").take(6)
-        val room = MAX_LEN - suffix.length - 1
-        val prefix = base.take(maxOf(1, room))
-        var candidate = "$prefix $suffix"
+        val room = (MAX_LEN - suffix.length - 1).coerceAtLeast(1)
+        val prefix = base.take(room)
+        var candidate = "$prefix $suffix".take(MAX_LEN)
         var n = 1
         while (candidate in used) {
-            candidate = "${prefix.take(maxOf(1, room - 2))} $suffix$n"
+            val tag = "$suffix$n"
+            val prefixRoom = (MAX_LEN - tag.length - 1).coerceAtLeast(1)
+            candidate = "${prefix.take(prefixRoom)} $tag".take(MAX_LEN)
             n++
+            // Safety: bail after a sane number of attempts to avoid infinite loops
+            // in absurd corner cases. 1000 collisions is way past plausible.
+            if (n > 1000) {
+                candidate = (prefix.take(1) + java.util.UUID.randomUUID().toString().take(MAX_LEN - 2))
+                break
+            }
         }
         return candidate
     }
