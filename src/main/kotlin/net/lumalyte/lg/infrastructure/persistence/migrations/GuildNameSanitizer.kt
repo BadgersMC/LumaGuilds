@@ -14,6 +14,9 @@ import java.util.TreeSet
  */
 internal object GuildNameSanitizer {
     private val ALLOWED = Regex("[^A-Za-z0-9 ]")
+    // Strip legacy color/format markers + the following char so "&rTest" becomes
+    // "Test" instead of leaving an orphaned "rTest" for the player to rename.
+    private val LEGACY_COLOR = Regex("[&§].")
     private const val MAX_LEN = 32
 
     fun sanitizeAll(connection: Connection, logger: ComponentLogger) {
@@ -55,7 +58,16 @@ internal object GuildNameSanitizer {
     }
 
     private fun clean(name: String, id: String): String {
-        val stripped = ALLOWED.replace(name, "").trim().replace(Regex(" +"), " ")
+        // Loop so adjacent codes ("&l&oFoo") and Bukkit hex ("&x&a&a&f&f&c&cMint")
+        // fully collapse instead of leaving the trailing code letters behind.
+        var prev: String
+        var s = name
+        do {
+            prev = s
+            s = LEGACY_COLOR.replace(s, "")
+        } while (s != prev)
+
+        val stripped = ALLOWED.replace(s, "").trim().replace(Regex(" +"), " ")
         val truncated = stripped.take(MAX_LEN)
         return if (truncated.isBlank()) "Guild${id.replace("-", "").take(8)}" else truncated
     }
