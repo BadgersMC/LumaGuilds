@@ -119,6 +119,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(20)
                 dbVersion = 20
             }
+            if (dbVersion < 21) {
+                migrateToVersion21()
+                updateDatabaseVersion(21)
+                dbVersion = 21
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1526,5 +1531,15 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             }
         }
         componentLogger.info(Component.text("✓ Added USE_ALLY_HOMES to ${updates.size} ranks"))
+    }
+
+    /**
+     * Migration from version 20 to version 21.
+     * Sanitizes existing guild names — strips color codes (e.g. `&r`) and any
+     * character outside [A-Za-z0-9 ], truncates to 32, fixes collisions.
+     */
+    private fun migrateToVersion21() {
+        componentLogger.info(Component.text("Migrating to version 21: sanitize guild names..."))
+        GuildNameSanitizer.sanitizeAll(connection, componentLogger)
     }
 }
