@@ -159,23 +159,70 @@ hologram:
   - "Members: %lumaguilds_guild_members%"
 ```
 
-### Player list with relation status
+### Player list (TAB / tab-formatting plugins)
+
+For per-row icons in a tab list, the target player's name goes in via **nested
+PAPI resolution**: write `%player_name%` (PAPI's built-in online-player-name
+placeholder) where the target name should appear. TAB resolves the inner
+placeholder first, producing a resolved outer placeholder which PAPI then
+evaluates.
 
 ```yaml
-# ProtocolLib or similar tab formatter
-format: "%player_name% %lumaguilds_rel_%player_name%_status%"
-# Output: Steve🔴 (if at war) or Alex🟢 (if teammate)
+# tab.yml (NEZNAMY/TAB style)
+tabsuffix: "%lumaguilds_guild_tag% %lumaguilds_rel_%player_name%_status%"
+tagsuffix: "%lumaguilds_guild_tag% %lumaguilds_rel_%player_name%_status%"
+```
+
+For each row in the tab list, TAB substitutes `%player_name%` with that row's
+player → the placeholder becomes e.g. `%lumaguilds_rel_Steve_status%` → PAPI
+resolves it against the *viewer*'s guild to pick the right icon. Result is
+per-row dynamic.
+
+This works because TAB performs nested PAPI resolution. Other tab formatters
+that do the same (some ProtocolLib-based ones) also work. Tab formatters
+that DON'T do nested resolution will show the literal `%player_name%` text
+in the placeholder name and return blank.
+
+### Chat format with relation status
+
+For chat, the chat plugin substitutes the sender's name into the format
+string before PAPI resolves. With RoseChat that's the `{sender}` token:
+
+```yaml
+# RoseChat channel format (sketch)
+format: "[%lumaguilds_guild_tag%]%lumaguilds_rel_{sender}_status% {sender} > {message}"
+```
+
+RoseChat replaces `{sender}` with the speaker's name; PAPI resolves the
+outer placeholder against the viewer's guild. Result for a viewer at war
+with Steve's guild:
+
+```text
+[Knights]🔴 Steve > hello
 ```
 
 ## Gotchas
 
-**MiniMessage tags leak in non-MiniMessage plugins:** If you use `%lumaguilds_guild_tag_raw%` in a plugin that doesn't parse MiniMessage (like vanilla TAB), you'll see raw tags like `<color:#FF5733>Elite</color>` in chat. Use `%lumaguilds_guild_tag%` (the legacy variant) instead—it converts MiniMessage to `§`-codes automatically.
+**`<player>` in the placeholder name is metavariable, not literal.** When
+this doc writes `%lumaguilds_rel_<player>_status%`, it means *"the target
+player's name goes here"*. **Do not put the literal string `<player>` in your
+config.** Where the substitution comes from depends on the consumer:
 
-**Relation indicator returns empty, not a space:** Neutral relations return a completely blank string (not a space). If you're using this in a player list and want consistent spacing, add a space yourself: `%player_name% %lumaguilds_rel_%player_name%_status%` (trailing space).
+- **TAB / tab formatters that do nested PAPI resolution** — use
+  `%player_name%`: `%lumaguilds_rel_%player_name%_status%`.
+- **Chat plugins (RoseChat, etc.)** — use the chat plugin's sender token
+  (e.g. RoseChat's `{sender}`): `%lumaguilds_rel_{sender}_status%`.
+- **Direct lookups (custom plugins / `/papi parse`)** — substitute the actual
+  player's name verbatim: `/papi parse Bob %lumaguilds_rel_Steve_status%`
+  returns Bob's relation to Steve.
+
+**MiniMessage tags leak in non-MiniMessage plugins:** If you use `%lumaguilds_guild_tag_raw%` in a plugin that doesn't parse MiniMessage (like vanilla TAB), you'll see raw tags like `<color:#FF5733>Elite</color>` in chat. Use `%lumaguilds_guild_tag%` (the legacy variant) instead — it converts MiniMessage to `§`-codes automatically.
+
+**Relation indicator returns empty, not a space:** Neutral relations return a completely blank string (not a space). If you want consistent spacing, add a space yourself in the surrounding format.
 
 **Leaderboard placeholders are read-only:** Top-N placeholders cannot be reordered or filtered; they always return top 25 in the hardcoded order (level, balance, activity, members, age).
 
-**Player must be online for relation checks:** `%lumaguilds_rel_<player>_status%` requires the target player to be online at the time of resolution. Offline players return blank.
+**Player must be online for relation checks:** the relation placeholder requires the target player to be online at the time of resolution. Offline players return blank.
 
 ## Related
 
