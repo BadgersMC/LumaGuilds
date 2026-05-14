@@ -42,9 +42,9 @@ Your guild members can now teleport there with `/g home`.
 Once you unlock additional home slots (by leveling your guild), you can create named homes for different purposes:
 
 ```
-/g sethome shop
+/g sethome spawner
 /g sethome mine
-/g sethome enderfarm
+/g sethome goldfarm
 ```
 
 Use `/g homes` to list all homes your guild has set.
@@ -55,7 +55,7 @@ Teleport to your main home with `/g home`. For a named home, use `/g home <name>
 
 ```
 /g home
-/g home shop
+/g home spawner
 ```
 
 There's a short countdown — don't move or the teleport cancels. The destination must be safe (not lava, fire, or cactus right at the spot). Safe blocks like ladders, slabs, and water work fine.
@@ -65,7 +65,7 @@ There's a short countdown — don't move or the teleport cancels. The destinatio
 Use `/g removehome <name>` to delete a named home:
 
 ```
-/g removehome shop
+/g removehome spawner
 ```
 
 You'll get a confirmation prompt. The slot opens up for a new home.
@@ -86,7 +86,7 @@ Open `/g menu` → Homes → pick a home → Access. Choose which ranks can use 
 
 Homes without rank restrictions are accessible to all guild members.
 
-## Gotchas
+## Recently Fixed/Changed
 
 - Nether ↔ Overworld teleports are reliable (fixed in 2026).
 - The destination block must be safe — if a protection plugin still cancels your teleport, contact staff.

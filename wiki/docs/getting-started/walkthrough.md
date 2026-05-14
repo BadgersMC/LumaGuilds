@@ -50,7 +50,7 @@ Once you're in a guild, two things make it feel like home.
 
 Or run `/g tag` with no arguments to open a visual editor. Here are some tools to help you make a tag that stands out:
 
-- [Birdflop RGB / MiniMessage gradient picker](https://www.birdflop.com/resources/rgb/) — visual gradient builder, copy MiniMessage straight into `/g tag`
+- [Birdflop RGB / MiniMessage gradient picker](https://www.birdflop.com/resources/rgb/) — visual gradient builder, copy MiniMessage straight into `/g tag` Note that we only support MiniMessage. Use magic color codes at your own risk.
 - [fsymbols small-caps generator](https://fsymbols.com/generators/smallcaps/) — turn `Lotus` into `ʟᴏᴛᴜs` and similar styles
 - [ETC Gamer Minecraft symbols & emojis](https://etcgamer.com/minecraft-symbols-emojis/) — extra glyphs that render in chat
 

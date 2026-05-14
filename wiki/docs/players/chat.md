@@ -39,7 +39,7 @@ Your guild tag (set via `/g tag`) can include MiniMessage formatting like `<grad
 
 LumaGuilds hands guild chat off to RoseChat as a dedicated channel. RoseChat owns formatting, delivery, and recipients. From a player's perspective, nothing changes — `/g chat` still flips you in and out. Internally, your channel is being switched. See [Identity](identity.md) for how to set and customize your tag.
 
-## Gotchas
+## Recently Fixed/Changed
 
 - Switching between guild chat and ally chat preserves your original channel (e.g. global), so toggling off returns you to where you started, not to the last guild/ally channel you used.
 - The first message after toggling guild chat off is no longer dropped (fixed in 2026 — there was a stale-marker bug).

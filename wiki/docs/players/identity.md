@@ -65,13 +65,14 @@ Renaming doesn't change your tag — those are independent.
 
 ## Setting a banner
 
-Open `/g menu` → Banner. Click to enter the banner selection menu, where you can pattern your banner using Minecraft's standard banner mechanics. The banner is shown in your info card, alliance menus, and on guild-owned shops.
+Open `/g menu` → Banner. Click to enter the banner selection menu, where you can drag your custom banner design into the menu, and show off your desgins. The banner is shown in your info card, alliance menus, and on guild-owned shops. 
 
 ## Gotchas
 
 - The `/g tag` CLI accepts MiniMessage formatting (used to be stricter than the menu — fixed in 2026).
 - The "Clear" button in the tag editor now properly clears the tag (used to silently undo on save).
 - The Guild Banner menu renders correctly (used to open empty — fixed).
+- The Glass Pane can no longer be removed from the menu (sorry toxik)
 - If your colored tag isn't rendering in chat, you may be in a chat channel that doesn't format MiniMessage — try `/g chat` to switch to guild chat.
 
 ## Related

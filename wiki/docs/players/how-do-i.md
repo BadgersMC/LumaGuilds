@@ -59,7 +59,7 @@ Quick index. Scan for your task; click through to the page that answers it.
 
 - [Toggle guild chat](chat.md#toggling-guild-chat)
 - [Toggle ally chat](chat.md#toggling-ally-chat)
-- [Why aren't colors showing in my tag?](../getting-started/faq.md#my-guild-tag-isnt-showing-colors-in-chat)
+- [How tag formatting renders](chat.md#how-tag-formatting-renders)
 
 ## Other
 

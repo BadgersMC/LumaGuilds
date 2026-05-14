@@ -18,17 +18,13 @@ All guild commands work identically on Bedrock and Java. There are no Bedrock-sp
 
 ## How it works
 
-The server supports Bedrock players via Geyser (protocol translation) and Floodgate (account linking). Everything in LumaGuilds works on Bedrock — commands, vaults, homes, alliances, menus, and chat. The only differences are visual: some Java menus open as chat-based forms on Bedrock, and clickable chat buttons render as taps. Behavior is otherwise identical.
+The server supports Bedrock players via Geyser (protocol translation) and Floodgate (Bedrock Forms Menus). Everything in LumaGuilds works on Bedrock — commands, vaults, homes, alliances, menus, and chat. The only differences are visual: some Java menus open as native GUI-based forms on Bedrock, and clickable chat buttons have backup commands (such as `/g ally <them>`). Behavior is otherwise identical.
 
 ## What looks different in menus
 
 Some Java menus (the guild member rank confirmation, the ally-home access editor, the home selection on `/g homes`) open as Floodgate form dialogs on Bedrock instead of inventory GUIs. The functionality is identical — pick options, confirm, done. The UX is slightly different, but you get the same result.
 
 Example: On Java, `/g homes` opens an inventory menu. On Bedrock, it opens a form dialog with the same homes listed and the same buttons to teleport.
-
-## How clickable chat works on Bedrock
-
-Clickable text (in `/g help`, in invite prompts, in confirmation messages) maps to taps on Bedrock. Tapping a `[link]` or button runs the same command a Java player would get from clicking. Hover-for-detail tooltips don't appear on Bedrock — the blurb text shows immediately as part of the message.
 
 ## Known limitations
 
@@ -38,12 +34,9 @@ A few advanced menu features (drag-and-drop banner editing, complex multi-page s
 
 All teleports (including cross-dimensional home teleports from the Overworld to the Nether, or to the End) are dispatched safely on the main thread for Bedrock players. Floodgate threading quirks are handled correctly — you won't see "teleport rejected" or timeout errors (fixed in 2026).
 
-## Gotchas
+## Recently Fixed/Changed
 
-- Commands work identically on Bedrock — no special syntax needed.
-- If a menu doesn't render right, check if it's a known Bedrock limitation (listed above). If not, report it.
-- Chat message length limits still apply (256 characters on both Java and Bedrock).
-- Server-side rank permissions are enforced identically — you can't use Bedrock to bypass restrictions.
+Nothing For Now!
 
 ## Related
 
