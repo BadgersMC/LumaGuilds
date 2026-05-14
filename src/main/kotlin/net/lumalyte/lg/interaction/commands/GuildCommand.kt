@@ -15,6 +15,11 @@ import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.MenuFactory
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.format.NamedTextColor
+import net.lumalyte.lg.interaction.help.HelpTopics
+import net.lumalyte.lg.interaction.help.HelpTopicsRenderer
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.guild.*
 import net.lumalyte.lg.utils.deserializeToItemStack
@@ -2022,106 +2027,29 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     @Subcommand("help")
     @CommandPermission("lumaguilds.guild.help")
-    @CommandCompletion("create|tag|home|relations|chat|vault")
     fun onHelp(player: Player, @Optional topic: String?) {
-        when (topic?.lowercase()) {
-            "create", "name" -> {
-                player.sendMessage("§6§l=== Guild Name & Tag Guide ===")
-                player.sendMessage("§7")
-                player.sendMessage("§e📝 Guild Name (Plain Text)")
-                player.sendMessage("§7 • Command: §f/guild create <name>")
-                player.sendMessage("§7 • Max 32 characters")
-                player.sendMessage("§7 • Letters, numbers, spaces, and: ' & -")
-                player.sendMessage("§7 • No formatting tags allowed")
-                player.sendMessage("§7 • Example: §fWhite Lotus §7or §fFire & Ice")
-                player.sendMessage("§7")
-                player.sendMessage("§e🎨 Guild Tag (Fancy Formatting)")
-                player.sendMessage("§7 • Command: §f/guild tag <formatted_text>")
-                player.sendMessage("§7 • Use MiniMessage formatting")
-                player.sendMessage("§7 • Supports colors, gradients, effects")
-                player.sendMessage("§7 • Examples:")
-                player.sendMessage("§7   §f/guild tag <red>Fire</red><gold>Guild</gold>")
-                player.sendMessage("§7   §f/guild tag <gradient:#FF0000:#00FF00>Rainbow</gradient>")
-                player.sendMessage("§7   §f/guild tag <bold><blue>ELITE</blue></bold>")
-                player.sendMessage("§7")
-                player.sendMessage("§6💡 Remember: Name = Plain, Tag = Fancy!")
-            }
-            "tag" -> {
-                player.sendMessage("§6§l=== Guild Tag Help ===")
-                player.sendMessage("§7")
-                player.sendMessage("§eGuild tags let you add fancy formatting!")
-                player.sendMessage("§7")
-                player.sendMessage("§7Commands:")
-                player.sendMessage("§7 • Set tag: §f/guild tag <formatted_text>")
-                player.sendMessage("§7 • Open menu: §f/guild tag")
-                player.sendMessage("§7")
-                player.sendMessage("§7Examples:")
-                player.sendMessage("§7 • Single color: §f<red>MyGuild</red>")
-                player.sendMessage("§7 • Two colors: §f<red>Fire</red><gold>Guild</gold>")
-                player.sendMessage("§7 • Gradient: §f<gradient:#FF0000:#00FF00>Rainbow</gradient>")
-                player.sendMessage("§7 • Bold: §f<bold><blue>ELITE</blue></bold>")
-                player.sendMessage("§7")
-                player.sendMessage("§6💡 TIP: Visit minimessage.net for more formatting!")
-            }
-            else -> {
-                player.sendMessage("§6§l=== Guild Commands ===")
-                player.sendMessage("§7")
-                player.sendMessage("§eBasic:")
-                player.sendMessage("§7 • §f/g create <name> §7- Create a guild")
-                player.sendMessage("§7 • §f/g menu §7- Open guild menu")
-                player.sendMessage("§7 • §f/g info [guild|player] §7- View guild info")
-                player.sendMessage("§7 • §f/g list §7- List all guilds")
-                player.sendMessage("§7 • §f/g lfg §7- Browse guilds looking for members")
-                player.sendMessage("§7 • §f/g disband §7- Disband your guild")
-                player.sendMessage("§7")
-                player.sendMessage("§eMembership:")
-                player.sendMessage("§7 • §f/g invite <player> §7- Invite a player")
-                player.sendMessage("§7 • §f/g join|accept <guild> §7- Join/accept invite")
-                player.sendMessage("§7 • §f/g decline <guild> §7- Decline an invite")
-                player.sendMessage("§7 • §f/g invites §7- List pending invites")
-                player.sendMessage("§7 • §f/g kick <player> §7- Kick a member")
-                player.sendMessage("§7 • §f/g leave §7- Leave your guild")
-                player.sendMessage("§7 • §f/g transfer <player> §7- Transfer ownership")
-                player.sendMessage("§7 • §f/g history <player> §7- View member history")
-                player.sendMessage("§7 • §f/g ranks §7- List guild ranks")
-                player.sendMessage("§7")
-                player.sendMessage("§eHomes:")
-                player.sendMessage("§7 • §f/g home [name] §7- Teleport to guild home")
-                player.sendMessage("§7 • §f/g homes §7- List guild homes")
-                player.sendMessage("§7 • §f/g sethome [name] §7- Set a guild home")
-                player.sendMessage("§7 • §f/g removehome <name> §7- Remove a guild home")
-                player.sendMessage("§7 • §f/g setallyhome §7- Set the ally home")
-                player.sendMessage("§7 • §f/g removeallyhome §7- Remove the ally home")
-                player.sendMessage("§7 • §f/g allyhome <guild> §7- Teleport to an ally's home")
-                player.sendMessage("§7")
-                player.sendMessage("§eRelations:")
-                player.sendMessage("§7 • §f/g ally <guild> §7- Request alliance")
-                player.sendMessage("§7 • §f/g enemy <guild> §7- Declare war")
-                player.sendMessage("§7 • §f/g truce <guild> [days] §7- Request truce")
-                player.sendMessage("§7 • §f/g neutral <guild> §7- Request peace")
-                player.sendMessage("§7 • §f/g war §7- Open war menu")
-                player.sendMessage("§7")
-                player.sendMessage("§eCustomization:")
-                player.sendMessage("§7 • §f/g tag §7- Set fancy formatted tag")
-                player.sendMessage("§7 • §f/g rename <name> §7- Rename guild")
-                player.sendMessage("§7 • §f/g desc <text> §7- Set description")
-                player.sendMessage("§7 • §f/g emoji [:name:] §7- Set guild emoji")
-                player.sendMessage("§7 • §f/g mode <peaceful|hostile> §7- Switch mode")
-                player.sendMessage("§7")
-                player.sendMessage("§eChat:")
-                player.sendMessage("§7 • §f/g chat §7- Toggle guild chat")
-                player.sendMessage("§7 • §f/g allychat §7- Toggle ally chat")
-                player.sendMessage("§7")
-                player.sendMessage("§eVault & Shop:")
-                player.sendMessage("§7 • §f/g vault §7- Open guild vault")
-                player.sendMessage("§7 • §f/g getvault §7- Get a vault item")
-                player.sendMessage("§7 • §f/g setshop §7- Convert shop to guild shop")
-                player.sendMessage("§7")
-                player.sendMessage("§eFor detailed help:")
-                player.sendMessage("§7 • §f/g help create §7- Guild name & tag guide")
-                player.sendMessage("§7 • §f/g help tag §7- Tag formatting examples")
-            }
+        val renderer = HelpTopicsRenderer
+        if (topic.isNullOrBlank()) {
+            player.sendMessage(renderer.renderTopicMenu())
+            return
         }
+        val found = HelpTopics.bySlug(topic)
+        if (found == null) {
+            player.sendMessage(
+                Component.text()
+                    .append(Component.text("Unknown help topic '", NamedTextColor.RED))
+                    .append(Component.text(topic, NamedTextColor.YELLOW))
+                    .append(Component.text("'. Type ", NamedTextColor.RED))
+                    .append(
+                        Component.text("/g help", NamedTextColor.YELLOW)
+                            .clickEvent(ClickEvent.runCommand("/g help")),
+                    )
+                    .append(Component.text(" to see all topics.", NamedTextColor.RED))
+                    .build(),
+            )
+            return
+        }
+        player.sendMessage(renderer.renderTopicPage(found))
     }
 
     @Subcommand("ally")

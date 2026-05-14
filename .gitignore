@@ -275,3 +275,6 @@ VIRTUAL_THREADS.md
 
 # Local worktrees
 .worktrees/
+
+# MkDocs build output
+site/
