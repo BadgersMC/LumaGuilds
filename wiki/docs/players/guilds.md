@@ -2,12 +2,82 @@
 title: Guilds
 audience: player
 topic: guilds
-summary: Create, join, leave, and disband guilds.
-keywords: []
-related: []
+summary: How to create, join, leave, transfer, and disband guilds.
+keywords: [guilds, create, join, leave, disband, transfer]
+related: [ranks, homes, alliances]
 updated: 2026-05-13
 ---
 
 # Guilds
 
-*This page is a placeholder. Content coming in Phase 2/3.*
+How to create, join, leave, transfer, and disband guilds.
+
+## Quick reference
+
+| Command | Permission | Description |
+|---------|------------|-------------|
+| `/g create <name>` | `lumaguilds.guild.create` | Create a new guild. |
+| `/g join <guild>` | `lumaguilds.guild.join` | Request to join a guild. |
+| `/g leave` | `lumaguilds.guild.leave` | Leave your current guild. |
+| `/g disband` | `lumaguilds.guild.disband` | Disband your guild (owner only). |
+| `/g transfer <player>` | `lumaguilds.guild.transfer` | Transfer ownership. |
+| `/g info [guild]` | `lumaguilds.guild.info` | View guild info. |
+| `/g list` | `lumaguilds.guild.list` | Browse all guilds. |
+
+## How it works
+
+A guild is a named group of players with one owner, optional ranks, shared homes, a shared vault, and relations (allies/enemies/truces) with other guilds. You can be in one guild at a time. Guilds earn XP from member activity and level up to unlock perks like additional home slots and vault space.
+
+## Creating a guild
+
+Pick a name and run `/g create <name>`. Names are plain text only — max 32 characters, using letters, numbers, spaces, and the punctuation `'`, `&`, `-`. No MiniMessage tags (those go in your tag; see the Identity page). Example:
+
+```
+/g create White Lotus
+```
+
+You'll become the owner automatically. Your new guild starts at level 1 with one home slot and basic vault access.
+
+## Joining a guild
+
+For open guilds, just run `/g join <name>`. For invite-only guilds, a member with permission must run `/g invite <you>` first. You'll see a chat prompt or notification; accept it with `/g join <them>` or click the prompt button.
+
+```
+/g join White Lotus
+```
+
+You can only be in one guild at a time.
+
+## Leaving, transferring, and disbanding
+
+Anyone can leave at any time with `/g leave`. If you're the owner, you can't leave directly — you have two options:
+
+- **Transfer ownership:** `/g transfer <player>` hands off the guild to someone else. They become the new owner, and you become a regular member (or leave immediately after).
+- **Disband:** `/g disband` dissolves the guild entirely. This is irreversible. All homes, vault, and guild data are lost.
+
+## Browsing guilds
+
+Use `/g list` to see all guilds on the server with member counts and levels.
+
+```
+/g list
+```
+
+Use `/g info [guild]` to zoom into one guild's details — members, homes, relations, and level.
+
+```
+/g info White Lotus
+```
+
+## Gotchas
+
+- You can only be in one guild at a time. Leaving one guild to join another happens instantly.
+- Disbanding is irreversible — double-check before running `/g disband`.
+- The owner role is single and cannot be transferred except via `/g transfer`. If the owner goes inactive and you're a mod, you cannot promote yourself to owner.
+- Guild XP comes from member activity — the more active your members are, the faster you level.
+
+## Related
+
+- [Ranks & Permissions](ranks.md) — set up roles and permissions
+- [Homes](homes.md) — create shared teleport points
+- [Alliances](alliances.md) — declare allies, enemies, and truces
