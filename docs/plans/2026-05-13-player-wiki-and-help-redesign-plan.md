@@ -17,6 +17,7 @@
 ## File Structure
 
 **New files:**
+
 - `mkdocs.yml` — site config at repo root
 - `wiki/requirements.txt` — Python deps for MkDocs build
 - `wiki/docs/index.md` — landing page
@@ -38,6 +39,7 @@
 - `src/test/kotlin/net/lumalyte/lg/interaction/help/HelpTopicsRendererTest.kt`
 
 **Modified files:**
+
 - `src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt` — `onHelp` refactored to delegate to `HelpTopicsRenderer`
 - `CONTRIBUTING.md` — adds wiki/help sync rule
 - `.gitignore` — exclude MkDocs build output `site/`
@@ -101,6 +103,7 @@ updated: 2026-05-13
 ## Task 1: Add MkDocs scaffold (`mkdocs.yml`, `requirements.txt`, landing page)
 
 **Files:**
+
 - Create: `mkdocs.yml`
 - Create: `wiki/requirements.txt`
 - Create: `wiki/docs/index.md`
@@ -258,6 +261,7 @@ git commit -m "docs(wiki): scaffold MkDocs Material site config"
 ## Task 2: GitHub Action — wiki deploy to GitHub Pages
 
 **Files:**
+
 - Create: `.github/workflows/wiki-deploy.yml`
 
 - [ ] **Step 1: Create the workflow**
@@ -327,6 +331,7 @@ After merge, a maintainer must go to **GitHub Settings → Pages → Source: Git
 ## Task 3: Front-matter schema lint script
 
 **Files:**
+
 - Create: `tools/wiki/lint_frontmatter.py`
 - Create: `tools/wiki/__init__.py` (empty)
 
@@ -486,6 +491,7 @@ updated: 2026-05-13
 - [ ] **Step 1: Getting Started stubs**
 
 Create these with front-matter only (one H1, the placeholder body — content lands in Task 6/7):
+
 - `wiki/docs/getting-started/welcome.md` — `topic: welcome`, `audience: player`
 - `wiki/docs/getting-started/walkthrough.md` — `topic: walkthrough`, `audience: player`
 - `wiki/docs/getting-started/faq.md` — `topic: faq`, `audience: player`
@@ -612,6 +618,7 @@ nav:
 - [ ] **Step 5: Note about slug ↔ filename mismatch**
 
 The Developers section has two slug-vs-filename mismatches:
+
 - `developers/getting-started.md` uses `topic: dev-getting-started` (because `getting-started` is also the folder name for the Getting Started section; we want a unique slug).
 - `developers/placeholders.md` uses `topic: placeholders-internal` (because `players/chat.md` references player-facing placeholders; we want the dev page slug to be unambiguous).
 
@@ -653,6 +660,7 @@ git commit -m "docs(wiki): scaffold nav skeleton with stubbed front-matter pages
 ## Task 5: CI workflow for front-matter lint + (placeholder) parity check
 
 **Files:**
+
 - Create: `.github/workflows/wiki-checks.yml`
 
 The parity-check script is added in Task 11 (after `HelpTopics.kt` exists). For now, the workflow runs the front-matter lint only.
@@ -707,6 +715,7 @@ git commit -m "ci(wiki): run front-matter lint and strict MkDocs build on PRs"
 ## Task 6: Write Getting Started — Welcome page
 
 **Files:**
+
 - Modify: `wiki/docs/getting-started/welcome.md`
 
 The audience for this page is a brand-new player who just joined EnthusiaSMP.
@@ -783,6 +792,7 @@ git commit -m "docs(wiki): write Getting Started welcome page"
 ## Task 7: Write Getting Started — Walkthrough (the 7-step tour)
 
 **Files:**
+
 - Modify: `wiki/docs/getting-started/walkthrough.md`
 
 This is the "first 30 minutes" page. Single page, seven H2 sections (each H2 is one step). Keep it scannable — short paragraphs, code blocks for commands, no walls of text.
@@ -821,7 +831,9 @@ You have three options:
 **Create your own** — pick a name (plain text, max 32 chars, letters/numbers/spaces/`'`/`&`/`-`) and run:
 
 ```
+
 /g create <name>
+
 ```text
 
 Example: `/g create White Lotus`
@@ -837,7 +849,9 @@ Once you're in a guild, two things make it feel like home.
 **Tag** — fancy formatting that appears next to your name in chat. Use MiniMessage:
 
 ```
+
 /g tag <gradient:#FF6A00:#FF1F00>Lotus</gradient>
+
 ```text
 
 Or run `/g tag` with no arguments to open a visual editor.
@@ -845,7 +859,9 @@ Or run `/g tag` with no arguments to open a visual editor.
 **Home** — a teleport point your guild can share. Stand where you want it and run:
 
 ```
+
 /g sethome
+
 ```text
 
 That sets the default home. You can have multiple — `/g sethome shop`, `/g sethome mine`. Teleport with `/g home` or `/g home <name>`. See [Players → Homes](../players/homes.md).
@@ -853,7 +869,9 @@ That sets the default home. You can have multiple — `/g sethome shop`, `/g set
 ## 4. Inviting a friend
 
 ```
+
 /g invite <player>
+
 ```text
 
 They run `/g accept <yourguild>` (or click the chat prompt). Done.
@@ -910,6 +928,7 @@ git commit -m "docs(wiki): write 7-step Getting Started walkthrough"
 ## Task 8: Write Getting Started — FAQ
 
 **Files:**
+
 - Modify: `wiki/docs/getting-started/faq.md`
 
 Short FAQ. Each Q is an H2 (stable anchor — players link friends to specific entries).
@@ -976,6 +995,7 @@ git commit -m "docs(wiki): write Getting Started FAQ"
 ## Task 9: `HelpTopic` and `HelpCommandEntry` data classes (TDD)
 
 **Files:**
+
 - Create: `src/main/kotlin/net/lumalyte/lg/interaction/help/HelpCommandEntry.kt`
 - Create: `src/main/kotlin/net/lumalyte/lg/interaction/help/HelpTopic.kt`
 - Create: `src/test/kotlin/net/lumalyte/lg/interaction/help/HelpTopicTest.kt`
@@ -1118,6 +1138,7 @@ git commit -m "feat(help): add HelpTopic and HelpCommandEntry data classes"
 ## Task 10: `HelpTopics` registry (TDD)
 
 **Files:**
+
 - Create: `src/main/kotlin/net/lumalyte/lg/interaction/help/HelpTopics.kt`
 - Create: `src/test/kotlin/net/lumalyte/lg/interaction/help/HelpTopicsTest.kt`
 
@@ -1379,6 +1400,7 @@ git commit -m "feat(help): add HelpTopics registry (source of truth for help + w
 ## Task 11: Topic-parity CI check
 
 **Files:**
+
 - Create: `tools/wiki/check_topic_parity.py`
 - Modify: `.github/workflows/wiki-checks.yml`
 
@@ -1494,6 +1516,7 @@ git commit -m "ci(wiki): enforce HelpTopics.kt <-> wiki/docs/players/ slug parit
 ## Task 12: `HelpTopicsRenderer` — topic menu (TDD)
 
 **Files:**
+
 - Create: `src/main/kotlin/net/lumalyte/lg/interaction/help/HelpTopicsRenderer.kt`
 - Create: `src/test/kotlin/net/lumalyte/lg/interaction/help/HelpTopicsRendererTest.kt`
 
@@ -1707,6 +1730,7 @@ git commit -m "feat(help): render topic menu via Adventure components"
 ## Task 13: Renderer tests for topic-page output
 
 **Files:**
+
 - Modify: `src/test/kotlin/net/lumalyte/lg/interaction/help/HelpTopicsRendererTest.kt`
 
 - [ ] **Step 1: Add tests for `renderTopicPage`**
@@ -1772,6 +1796,7 @@ git commit -m "test(help): verify topic-page rendering (click events, wiki link,
 ## Task 14: Refactor `GuildCommand.onHelp` to delegate to the renderer
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt` (lines 1905–1967)
 
 - [ ] **Step 1: Replace the existing `onHelp` body**
@@ -1853,6 +1878,7 @@ git commit -m "refactor(help): /g help renders from HelpTopicsRenderer (clickabl
 ## Task 15: Write Players — Guilds page
 
 **Files:**
+
 - Modify: `wiki/docs/players/guilds.md`
 
 Use the page template from "Conventions" above. Content checklist:
@@ -2068,6 +2094,7 @@ git commit -m "docs(wiki): write Players/<topic> page"
 ## Task 28: Write Players — How do I…? index
 
 **Files:**
+
 - Modify: `wiki/docs/players/how-do-i.md`
 
 This is the human-friendly entry point. A flat list of common player tasks, each linking to a specific anchor on a feature page.
@@ -2164,6 +2191,7 @@ git commit -m "docs(wiki): write Players/How-do-I index"
 ## Task 29: Update `CONTRIBUTING.md` with the wiki/help sync rule
 
 **Files:**
+
 - Modify: `CONTRIBUTING.md`
 
 - [ ] **Step 1: Append a section to `CONTRIBUTING.md`**
@@ -2187,10 +2215,12 @@ LumaGuilds enforces parity between the in-game help system and the player wiki. 
 4. Run the checks locally before opening the PR:
 
 ```
+
 python tools/wiki/lint_frontmatter.py
 python tools/wiki/check_topic_parity.py
 mkdocs build --strict
 ./gradlew test
+
 ```text
 
 ### Adding a new topic
@@ -2252,6 +2282,7 @@ mkdocs serve
 ```
 
 Open <http://127.0.0.1:8000/> in a browser. Click through:
+
 - Home → Getting Started → Walkthrough (verify all section anchors).
 - Players → How do I…? → click 3–4 random deep links, verify each lands on the correct anchor.
 - Header nav: confirm Admins and Developers sections show their stubbed pages without errors.
@@ -2265,6 +2296,7 @@ Build the plugin:
 ```
 
 Drop the jar in a local Paper server. Test:
+
 - `/g help` — topic menu renders with all 13 topics; clicking [Homes] runs `/g help homes`.
 - `/g help homes` — topic page renders with all home commands; hovering shows blurb; clicking `/g sethome` prefills the chat box; clicking the wiki URL opens the browser; clicking `[Back to topics]` returns to the menu.
 - `/g help unknown` — friendly error with a clickable `/g help` link.
@@ -2272,6 +2304,7 @@ Drop the jar in a local Paper server. Test:
 - [ ] **Step 5: Open the Phase 1 PR**
 
 Aggregate Tasks 1–29 into a single PR (or a small series). Include in the PR description:
+
 - A reminder that **GitHub Pages must be enabled** in repo settings (Settings → Pages → Source: GitHub Actions) before the deploy is visible.
 - A link to the design doc: [`docs/plans/2026-05-13-player-wiki-and-help-redesign-design.md`](docs/plans/2026-05-13-player-wiki-and-help-redesign-design.md).
 - A note that Phases 2 (Admins content) and 3 (Developers migration) follow as separate plans.

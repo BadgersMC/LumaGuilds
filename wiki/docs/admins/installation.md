@@ -32,9 +32,11 @@ Drop the LumaGuilds JAR into `plugins/`, start the server, and it auto-creates `
 ## Install steps
 
 1. **Verify your Paper version:**
-   ```
+
+   ```bash
    /version
    ```
+
    Confirm you see `Paper 1.21.11` or later. LumaGuilds requires API version `1.21.11` (hardcoded in `plugin.yml`).
 
 2. **Download dependencies into `plugins/`:**
@@ -47,9 +49,11 @@ Drop the LumaGuilds JAR into `plugins/`, start the server, and it auto-creates `
 4. **Start the server.** The plugin creates `plugins/LumaGuilds/` and generates `config.yml` with all defaults.
 
 5. **Verify it loaded:**
-   ```
+
+   ```bash
    /version LumaGuilds
    ```
+
    You should see the plugin version. Check the console for errors; common ones are missing Vault or mismatched Paper version.
 
 6. **Open `plugins/LumaGuilds/config.yml`** and review each section below before restarting again.

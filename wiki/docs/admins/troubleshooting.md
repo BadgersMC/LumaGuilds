@@ -36,7 +36,7 @@ Common LumaGuilds issues and how to fix them. Most issues are self-healing — s
 
 **Fix:** Verify you're on plugin build 2026-05 or later. Confirm the fix is applied by checking your plugin version:
 
-```
+```bash
 /version LumaGuilds
 ```
 
@@ -50,7 +50,7 @@ Should show a build date of 2026-05-13 or later. If you're on an older build, up
 
 **Fix:** See [RoseChat integration](rosechat.md) for the canonical setup. Confirm the LumaGuilds RoseChat channel is registered by running:
 
-```
+```bash
 /papi parse <your_name> %lumaguilds_chat_format%
 ```
 
@@ -66,7 +66,7 @@ Should return a non-empty string (e.g., `[guild_name]`). If it's blank, RoseChat
 
 If you want to clean up the database, you can delete the orphaned row directly:
 
-```
+```bash
 sqlite3 plugins/LumaGuilds/lumaguilds.db "DELETE FROM guild_banners WHERE guild_id = <guild_id>;"
 ```
 
@@ -84,7 +84,7 @@ Replace `<guild_id>` with the guild's ID (visible in `/g info`). Take a backup f
 
 **Symptom:** On server startup, you see warnings like:
 
-```
+```text
 [LumaGuilds] INFO - Running database migration...
 [LumaGuilds] INFO - Migration completed successfully
 ```
@@ -97,7 +97,7 @@ Replace `<guild_id>` with the guild's ID (visible in `/g info`). Take a backup f
 
 **Symptom:** Running `/lumaguilds override` throws a Koin exception:
 
-```
+```text
 org.koin.core.error.NoDefinitionFoundException
 ```
 
@@ -119,7 +119,7 @@ org.koin.core.error.NoDefinitionFoundException
 
 **Inspect the database directly (read-only):** To check guild data without restarting:
 
-```
+```bash
 sqlite3 plugins/LumaGuilds/lumaguilds.db ".tables"
 ```
 
@@ -133,7 +133,7 @@ Shows all tables. Common ones:
 
 View a guild's info:
 
-```
+```bash
 sqlite3 plugins/LumaGuilds/lumaguilds.db "SELECT id, name, owner_id, level, xp FROM guilds WHERE name = 'YourGuild';"
 ```
 

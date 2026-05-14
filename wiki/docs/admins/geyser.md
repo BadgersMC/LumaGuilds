@@ -17,6 +17,7 @@ LumaGuilds detects Bedrock players and automatically adapts the menu experience 
 Geyser translates Bedrock protocol to Java; Floodgate extends that with player detection and the form API. LumaGuilds uses the `FloodgateApi.isFloodgatePlayer(uuid)` method to detect Bedrock players and routes them through Bedrock-flavored menus (chat-based Floodgate forms) instead of inventory GUIs. All commands work identically for Bedrock and Java players—the difference is only the visual menu layer.
 
 **The detection flow:**
+
 1. Player joins the server via Geyser.
 2. Floodgate assigns a prefixed UUID (typically `.<username>`).
 3. When the player opens a guild menu (e.g., `/guild menu`), LumaGuilds checks `isBedrockPlayer()`.
@@ -48,9 +49,11 @@ Additionally, there are 40+ other Bedrock menu variants (for tags, emojis, permi
 1. **Install Geyser-Bukkit** from [Modrinth](https://modrinth.com/plugin/geyser). Drop the JAR into `plugins/`.
 
 2. **Install Floodgate**. Geyser includes Floodgate by default in modern versions; verify:
-   ```
+
+   ```bash
    /version Floodgate
    ```
+
    You should see Floodgate loaded.
 
 3. **Optional: Install Cumulus** for enhanced form stability. Drop the JAR into `plugins/`. LumaGuilds works without it but falls back gracefully.
@@ -63,6 +66,7 @@ Additionally, there are 40+ other Bedrock menu variants (for tags, emojis, permi
    - LumaGuilds requires no Geyser-specific config. Defaults work fine.
 
 6. **No LumaGuilds config changes needed.** Bedrock detection and menu routing are built-in and enabled by default via `config.yml`:
+
    ```yaml
    bedrock:
      bedrock_menus_enabled: true
@@ -74,7 +78,8 @@ Additionally, there are 40+ other Bedrock menu variants (for tags, emojis, permi
 1. **Join with a Bedrock client.** Use Geyser (on the same server port) or any Bedrock Edition client connecting to a Java server running Geyser.
 
 2. **Check the console.** On player join, you should see:
-   ```
+
+   ```text
    [GeyserMC] <player> has connected to the server via Geyser
    ```
 

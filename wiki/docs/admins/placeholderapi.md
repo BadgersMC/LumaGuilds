@@ -68,6 +68,7 @@ Format: `%lumaguilds_top_<category>_<rank>_<field>%`
 **Rank:** `1` to `25` (1 = highest). Returns blank if guild is not in top 25.
 
 **Fields:**
+
 - `name` — Guild name
 - `tag` — Guild tag (MiniMessage→legacy `§`-codes)
 - `tag_plain` — Guild tag (plain text, no formatting)
@@ -81,6 +82,7 @@ Format: `%lumaguilds_top_<category>_<rank>_<field>%`
 - `emoji` — Guild emoji (`%nexo_<name>%`)
 
 **Examples:**
+
 - `%lumaguilds_top_level_1_name%` — Name of the #1 guild by level
 - `%lumaguilds_top_balance_3_value%` — Bank balance of #3 ranked guild
 - `%lumaguilds_top_activity_2_members%` — Member count of #2 guild (by activity)
@@ -102,6 +104,7 @@ Returns an emoji indicating the relationship between the current player and anot
 | (blank) | Neutral or no relation |
 
 **Notes:**
+
 - Only works with **online** target players. Returns blank if the player is offline.
 - Returns blank if either player is not in a guild.
 - Only active relations render. Pending ally requests or expired truces return blank.
@@ -168,7 +171,7 @@ format: "%player_name% %lumaguilds_rel_%player_name%_status%"
 
 **MiniMessage tags leak in non-MiniMessage plugins:** If you use `%lumaguilds_guild_tag_raw%` in a plugin that doesn't parse MiniMessage (like vanilla TAB), you'll see raw tags like `<color:#FF5733>Elite</color>` in chat. Use `%lumaguilds_guild_tag%` (the legacy variant) instead—it converts MiniMessage to `§`-codes automatically.
 
-**Relation indicator returns empty, not a space:** Neutral relations return a completely blank string (not a space). If you're using this in a player list and want consistent spacing, add a space yourself: `%player_name% %lumaguilds_rel_%player_name%_status% ` (trailing space).
+**Relation indicator returns empty, not a space:** Neutral relations return a completely blank string (not a space). If you're using this in a player list and want consistent spacing, add a space yourself: `%player_name% %lumaguilds_rel_%player_name%_status%` (trailing space).
 
 **Leaderboard placeholders are read-only:** Top-N placeholders cannot be reordered or filtered; they always return top 25 in the hardcoded order (level, balance, activity, members, age).
 

@@ -33,12 +33,14 @@ Returns the top guilds ranked by the specified category.
 | `limit` | integer | 10 | 1–50 | Number of entries to return |
 
 **Request example:**
-```
+
+```bash
 GET /api/leaderboards/guilds?type=level&limit=5&period=WEEKLY
 Authorization: Bearer <token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "type": "level",
@@ -85,6 +87,7 @@ Authorization: Bearer <token>
 ```
 
 **Response (401 Unauthorized):** If `bearer_token` is set in config and the request doesn't include a valid token.
+
 ```json
 {
   "error": "unauthorized"
@@ -92,6 +95,7 @@ Authorization: Bearer <token>
 ```
 
 **Response (405 Method Not Allowed):** If you POST or PUT instead of GET.
+
 ```json
 {
   "error": "method_not_allowed"
@@ -99,6 +103,7 @@ Authorization: Bearer <token>
 ```
 
 **Response (500 Internal Server Error):** If the database query fails.
+
 ```json
 {
   "error": "internal_error"
@@ -110,6 +115,7 @@ Authorization: Bearer <token>
 Simple health check. Always returns 200 OK if the server is running.
 
 **Response:**
+
 ```json
 {
   "status": "ok"
@@ -199,7 +205,8 @@ With this config, your website backend can fetch the leaderboard at `https://wik
 ## Authentication
 
 If `bearer_token` is set in `config.yml`, all requests must include the header:
-```
+
+```text
 Authorization: Bearer <your-token-here>
 ```
 
