@@ -58,6 +58,7 @@ permissions:
       lumaguilds.guild.rename: true
       lumaguilds.guild.sethome: true
       lumaguilds.guild.home: true
+      lumaguilds.guild.allyhome: true
       lumaguilds.guild.ranks: true
       lumaguilds.guild.emoji: true
       lumaguilds.guild.mode: true
@@ -86,6 +87,9 @@ permissions:
     default: true
   lumaguilds.guild.home:
     description: Teleport to guild home
+    default: true
+  lumaguilds.guild.allyhome:
+    description: Teleport to an allied guild's ally home
     default: true
   lumaguilds.guild.ranks:
     description: Manage guild ranks
