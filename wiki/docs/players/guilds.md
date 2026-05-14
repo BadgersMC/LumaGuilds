@@ -30,10 +30,11 @@ A guild is a named group of players with one owner, optional ranks, shared homes
 
 ## Creating a guild
 
-Pick a name and run `/g create <name>`. Names are plain text only — max 32 characters, using letters, numbers, spaces, and the punctuation `'`, `&`, `-`. No MiniMessage tags (those go in your tag; see the Identity page). Example:
+Pick a name and run `/g create <name>`. Names are plain text only — max 32 characters, using letters, numbers, and the punctuation `'`, `&`, `-`. **No spaces, no color codes, no MiniMessage tags** (colors and gradients go in your *tag* instead — see the [Identity](identity.md) page). Use `_` or `CamelCase` for multi-word names. Examples:
 
 ```
-/g create White Lotus
+/g create WhiteLotus
+/g create White_Lotus
 ```
 
 You'll become the owner automatically. Your new guild starts at level 1 with one home slot and basic vault access.
@@ -43,7 +44,7 @@ You'll become the owner automatically. Your new guild starts at level 1 with one
 For open guilds, just run `/g join <name>`. For invite-only guilds, a member with permission must run `/g invite <you>` first. You'll see a chat prompt or notification; accept it with `/g join <them>` or click the prompt button.
 
 ```
-/g join White Lotus
+/g join WhiteLotus
 ```
 
 You can only be in one guild at a time.
@@ -66,7 +67,7 @@ Use `/g list` to see all guilds on the server with member counts and levels.
 Use `/g info [guild]` to zoom into one guild's details — members, homes, relations, and level.
 
 ```
-/g info White Lotus
+/g info WhiteLotus
 ```
 
 ## Gotchas

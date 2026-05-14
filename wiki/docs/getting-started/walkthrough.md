@@ -26,15 +26,15 @@ You have three options:
 
 **Join an existing guild** — ask in chat, or browse leaderboards with `/g list`. If a guild is open, you can join directly. If it's invite-only, ask a member to `/g invite` you.
 
-**Create your own** — pick a name (plain text, max 32 chars, letters/numbers/spaces/`'`/`&`/`-`) and run:
+**Create your own** — pick a name (plain text, max 32 chars, letters/numbers and the punctuation `'`, `&`, `-`) and run:
 
 ```
 /g create <name>
 ```
 
-Example: `/g create White Lotus`
+Example: `/g create WhiteLotus` or `/g create White_Lotus` — **no spaces, no color codes**.
 
-**Hold off for now** — you don't have to. You can come back later.
+**Hold off for now** — you don't have to. You can come back later. Don't feel pressured to immediately create or join a guild.
 
 See [Players → Guilds](../players/guilds.md) for the full reference.
 
@@ -48,7 +48,11 @@ Once you're in a guild, two things make it feel like home.
 /g tag <gradient:#FF6A00:#FF1F00>Lotus</gradient>
 ```
 
-Or run `/g tag` with no arguments to open a visual editor.
+Or run `/g tag` with no arguments to open a visual editor. Here are some tools to help you make a tag that stands out:
+
+- [Birdflop RGB / MiniMessage gradient picker](https://www.birdflop.com/resources/rgb/) — visual gradient builder, copy MiniMessage straight into `/g tag`
+- [fsymbols small-caps generator](https://fsymbols.com/generators/smallcaps/) — turn `Lotus` into `ʟᴏᴛᴜs` and similar styles
+- [ETC Gamer Minecraft symbols & emojis](https://etcgamer.com/minecraft-symbols-emojis/) — extra glyphs that render in chat
 
 **Home** — a teleport point your guild can share. Stand where you want it and run:
 
