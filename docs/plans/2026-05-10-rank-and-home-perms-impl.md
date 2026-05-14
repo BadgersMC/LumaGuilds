@@ -17,6 +17,7 @@
 ## Task 1: Add `USE_ALLY_HOMES` to `RankPermission` enum
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/domain/entities/Rank.kt`
 
 - [ ] **Step 1: Add the enum value**
@@ -45,6 +46,7 @@ git commit -m "feat(perms): add USE_ALLY_HOMES rank permission"
 ## Task 2: Extend `GuildHome` with `allowedRankIds`
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/domain/entities/Guild.kt`
 - Test: `src/test/kotlin/net/lumalyte/lg/domain/entities/GuildHomeTest.kt`
 
@@ -125,6 +127,7 @@ git commit -m "feat(home): add allowedRankIds whitelist to GuildHome"
 ## Task 3: Extend `Guild` with `allyHomeAllowedGuilds`
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/domain/entities/Guild.kt`
 - Test: `src/test/kotlin/net/lumalyte/lg/domain/entities/GuildTest.kt`
 
@@ -186,6 +189,7 @@ git commit -m "feat(ally-home): add allyHomeAllowedGuilds whitelist to Guild"
 ## Task 4: Schema migration v20
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/persistence/migrations/SQLiteMigrations.kt`
 
 - [ ] **Step 1: Add the v20 gate in `migrate()`**
@@ -332,6 +336,7 @@ git commit -m "feat(db): v20 migration — home/ally access columns + USE_ALLY_H
 ## Task 5: GuildRepository — persist `allowed_ranks` for homes
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/persistence/guilds/GuildRepositorySQLite.kt`
 
 - [ ] **Step 1: Update `createGuildHomesTable()` (around line 128)**
@@ -418,6 +423,7 @@ git commit -m "feat(db): persist GuildHome.allowedRankIds via guild_homes.allowe
 ## Task 6: GuildRepository — persist `ally_home_allowed_guilds`
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/persistence/guilds/GuildRepositorySQLite.kt`
 
 - [ ] **Step 1: Add fresh-install column to `migrateAllyHomeColumns()` (around line 182)**
@@ -485,6 +491,7 @@ git commit -m "feat(db): persist Guild.allyHomeAllowedGuilds"
 ## Task 7: New-home defaults — Owner-only whitelist
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/services/GuildServiceBukkit.kt`
 
 - [ ] **Step 1: Locate `setHome` (around line 314), find where it constructs the new GuildHome to insert**
@@ -532,6 +539,7 @@ git commit -m "feat(home): default new homes to Owner-only whitelist"
 ## Task 8: `canUseHome` service method
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/application/services/GuildService.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/services/GuildServiceBukkit.kt`
 - Test: `src/test/kotlin/net/lumalyte/lg/infrastructure/services/GuildServiceHomeAccessTest.kt`
@@ -681,6 +689,7 @@ git commit -m "feat(home): GuildService.canUseHome with owner bypass + whitelist
 ## Task 9: `canUseAllyHome` service method
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/application/services/GuildService.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/services/GuildServiceBukkit.kt`
 - Test: `src/test/kotlin/net/lumalyte/lg/infrastructure/services/GuildServiceAllyHomeAccessTest.kt`
@@ -688,6 +697,7 @@ git commit -m "feat(home): GuildService.canUseHome with owner bypass + whitelist
 - [ ] **Step 1: Write failing tests**
 
 Create test file following the same structural pattern as Task 8 step 3. Cover:
+
 - Owner of source guild bypasses outbound `USE_ALLY_HOMES` rank check (still requires inbound whitelist).
 - Non-owner with `USE_ALLY_HOMES` + source guild on target's inbound whitelist → allowed.
 - Non-owner without `USE_ALLY_HOMES` → denied.
@@ -755,6 +765,7 @@ git commit -m "feat(ally-home): GuildService.canUseAllyHome with owner bypass + 
 ## Task 10: Mutator methods — `setHomeAllowedRanks` / `setAllyHomeAllowedGuilds`
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/application/services/GuildService.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/services/GuildServiceBukkit.kt`
 
@@ -825,6 +836,7 @@ git commit -m "feat(home): mutators for home allowedRanks and allyHome allowedGu
 ## Task 11: New ally added → auto-update inbound allow-list
 
 **Files:**
+
 - Modify: wherever alliance acceptance is handled (likely `src/main/kotlin/net/lumalyte/lg/infrastructure/services/RelationServiceBukkit.kt` or `GuildRelationService` — locate by searching `RelationType.ALLY` or `acceptAlliance`).
 
 - [ ] **Step 1: Locate alliance-acceptance code**
@@ -881,6 +893,7 @@ git commit -m "feat(ally-home): auto-add/remove inbound whitelist on alliance ch
 ## Task 12: Enforce home access in `/guild home` command
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt`
 
 - [ ] **Step 1: Add access check in `onHome` (line 314)**
@@ -912,6 +925,7 @@ git commit -m "feat(home): enforce per-home whitelist on /guild home"
 ## Task 13: Enforce ally-home access in ally-home teleport path
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt` (and `GuildHomeMenu.kt`'s ally-home button)
 
 - [ ] **Step 1: Locate ally-home teleport command/button**
@@ -952,6 +966,7 @@ git commit -m "feat(ally-home): enforce canUseAllyHome on command and menu butto
 ## Task 14: `RankRepository.swapPriorities` + `RankService.moveRankPriority`
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/application/persistence/RankRepository.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/persistence/guilds/RankRepositorySQLite.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/application/services/RankService.kt`
@@ -961,6 +976,7 @@ git commit -m "feat(ally-home): enforce canUseAllyHome on command and menu butto
 - [ ] **Step 1: Write failing test for `moveRankPriority`**
 
 Create `src/test/kotlin/net/lumalyte/lg/infrastructure/services/RankServicePriorityTest.kt`. Cover:
+
 - UP succeeds and swaps with neighbor at priority - 1.
 - DOWN succeeds and swaps with neighbor at priority + 1.
 - Fails when actor's priority >= target's priority.
@@ -1096,6 +1112,7 @@ git commit -m "feat(ranks): swapPriorities + moveRankPriority with actor-priorit
 ## Task 15: Add ▲/▼ priority buttons to `RankEditMenu`
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/RankEditMenu.kt`
 
 - [ ] **Step 1: Add helper for current actor rank**
@@ -1193,6 +1210,7 @@ git commit -m "feat(ui): add ▲/▼ priority reorder buttons to RankEditMenu"
 ## Task 16: Surface `USE_ALLY_HOMES` in `RankEditMenu` Diplomacy category
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/RankEditMenu.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildRankManagementMenu.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/RankCreationMenu.kt`
@@ -1235,6 +1253,7 @@ git commit -m "feat(ui): expose USE_ALLY_HOMES in Diplomacy permission category"
 ## Task 17: `HomeAccessMenu` — per-home rank whitelist editor
 
 **Files:**
+
 - Create: `src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/HomeAccessMenu.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/menus/MenuFactory.kt`
 
@@ -1363,6 +1382,7 @@ git commit -m "feat(ui): HomeAccessMenu — per-home rank whitelist editor"
 ## Task 18: `AllyHomeAccessMenu` — inbound ally guild whitelist
 
 **Files:**
+
 - Create: `src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/AllyHomeAccessMenu.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/menus/MenuFactory.kt`
 
@@ -1481,6 +1501,7 @@ git commit -m "feat(ui): AllyHomeAccessMenu — per-ally inbound whitelist edito
 ## Task 19: Wire 🔒 Access buttons into `GuildHomeMenu`
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildHomeMenu.kt`
 
 - [ ] **Step 1: Add per-home access buttons in row 1**
@@ -1540,6 +1561,7 @@ git commit -m "feat(ui): Access buttons in GuildHomeMenu for per-home + ally-hom
 ## Task 20: Bedrock variants
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/menus/bedrock/BedrockGuildHomeMenu.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/menus/bedrock/BedrockRankEditMenu.kt`
 
@@ -1589,6 +1611,7 @@ Expected: BUILD SUCCESSFUL, jar produced under `build/libs/`.
 - [ ] **Step 3: Manual smoke test on dev server (paper-mcp)**
 
 Use `mcp__papermcp__minecraft_execute_command` to:
+
 1. Form a test guild, set a home, set another rank, log in as a member of that rank → `/guild home` should be denied (after granting MANAGE_HOME to founder and using `HomeAccessMenu` to revoke).
 2. Test rank priority: as founder, edit a member-tier rank, click ▲, verify priority change persists across `/reload`.
 3. Test ally home: ally two guilds, verify auto-add to `allyHomeAllowedGuilds`, revoke one side via `AllyHomeAccessMenu`, verify cross-guild teleport denied.
