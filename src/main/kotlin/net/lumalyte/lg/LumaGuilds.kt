@@ -319,7 +319,7 @@ class LumaGuilds : JavaPlugin() {
 
         try {
             when (storage) {
-                is SQLiteStorage -> {
+                is SQLiteStorage, is VirtualThreadSQLiteStorage -> {
                     logColored("🔄 Running SQLite migrations...")
 
                     try {
@@ -335,7 +335,7 @@ class LumaGuilds : JavaPlugin() {
                         throw RuntimeException("Failed to run SQLite migrations - database error", e)
                     }
                 }
-                is MariaDBStorage -> {
+                is MariaDBStorage, is VirtualThreadMariaDBStorage -> {
                     logColored("🔄 Running MariaDB migrations...")
                     // Get MariaDB connection details from config for migration
                     val host = config.getString("mariadb.host", "localhost") ?: "localhost"
@@ -693,6 +693,29 @@ class LumaGuilds : JavaPlugin() {
             val guildNames = net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
             val playerNames = Bukkit.getOnlinePlayers().mapNotNull { it.name }
             (guildNames + playerNames).distinct().sorted()
+        }
+
+        // Ally guilds whose ally-home the executing player can teleport to.
+        // Filters: target must be an active ALLY of player's guild, have ally-home set,
+        // and pass canUseAllyHome (rank perm + inbound whitelist).
+        commandManager.commandCompletions.registerAsyncCompletion("allyguilds") { context ->
+            val player = context.player ?: return@registerAsyncCompletion emptyList()
+            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val relationService = get().get<net.lumalyte.lg.application.services.RelationService>()
+            val guilds = guildService.getPlayerGuilds(player.uniqueId)
+            if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
+            val sourceGuild = guilds.first()
+            relationService
+                .getGuildRelationsByType(sourceGuild.id, net.lumalyte.lg.domain.entities.RelationType.ALLY)
+                .mapNotNull { rel ->
+                    val otherId = rel.getOtherGuild(sourceGuild.id)
+                    val other = guildService.getGuild(otherId) ?: return@mapNotNull null
+                    if (other.allyHome == null) return@mapNotNull null
+                    if (!guildService.canUseAllyHome(player.uniqueId, sourceGuild.id, other.id)) return@mapNotNull null
+                    other.name
+                }
+                .distinct()
+                .sorted()
         }
 
         commandManager.commandCompletions.registerAsyncCompletion("guildhomes") { context ->

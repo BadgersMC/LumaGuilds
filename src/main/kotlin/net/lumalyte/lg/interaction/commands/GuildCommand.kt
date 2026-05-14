@@ -521,6 +521,119 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
+    @Subcommand("allyhome")
+    @CommandPermission("lumaguilds.guild.allyhome")
+    @CommandCompletion("@allyguilds")
+    fun onAllyHome(player: Player, guildName: String, @Optional confirm: String?) {
+        if (guildName.lowercase() == "confirm" || confirm?.lowercase() == "confirm") {
+            handleAllyHomeConfirm(player)
+            return
+        }
+
+        val ownGuild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (ownGuild == null) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val targetGuild = resolveAllyTarget(player, guildName, ownGuild) ?: return
+        val targetLocation = resolveAllyHomeLocation(player, ownGuild, targetGuild) ?: return
+        if (!checkAllyHomeCooldown(player, ownGuild.id)) return
+
+        val config = configService.loadConfig()
+        if (config.guild.homeTeleportSafetyCheck &&
+            !GuildHomeSafety.checkOrAskConfirm(player, targetLocation, "/guild allyhome ${targetGuild.id} confirm")) {
+            return
+        }
+
+        teleportationService.startTeleport(player, targetLocation) {
+            lastHomeTeleport[player.uniqueId] = System.currentTimeMillis()
+            player.sendMessage("§a✅ Teleported to §6${targetGuild.name}§a's ally home.")
+        }
+    }
+
+    private fun handleAllyHomeConfirm(player: Player) {
+        val pendingLocation = GuildHomeSafety.consumePending(player)
+        if (pendingLocation == null) {
+            player.sendMessage("§cNo pending unsafe teleport to confirm, or confirmation expired.")
+            return
+        }
+        teleportationService.startTeleport(player, pendingLocation) {
+            lastHomeTeleport[player.uniqueId] = System.currentTimeMillis()
+        }
+    }
+
+    private fun resolveAllyTarget(
+        player: Player,
+        guildName: String,
+        ownGuild: net.lumalyte.lg.domain.entities.Guild
+    ): net.lumalyte.lg.domain.entities.Guild? {
+        val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
+        if (targetGuild == null) {
+            player.sendMessage("§cNo guild named '$guildName' found.")
+            return null
+        }
+        if (targetGuild.id == ownGuild.id) {
+            player.sendMessage("§cUse §6/guild home §cfor your own guild's home.")
+            return null
+        }
+        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
+        if (relationService.getRelationType(ownGuild.id, targetGuild.id)
+            != net.lumalyte.lg.domain.entities.RelationType.ALLY) {
+            player.sendMessage("§c${targetGuild.name} is not an ally of your guild.")
+            return null
+        }
+        return targetGuild
+    }
+
+    private fun resolveAllyHomeLocation(
+        player: Player,
+        ownGuild: net.lumalyte.lg.domain.entities.Guild,
+        targetGuild: net.lumalyte.lg.domain.entities.Guild
+    ): Location? {
+        val allyHome = guildService.getAllyHome(targetGuild.id)
+        if (allyHome == null) {
+            player.sendMessage("§c${targetGuild.name} has no ally home set.")
+            return null
+        }
+        if (!guildService.canUseAllyHome(player.uniqueId, ownGuild.id, targetGuild.id)) {
+            player.sendMessage("§c❌ You don't have permission to use ${targetGuild.name}'s ally home.")
+            player.sendMessage("§7Your rank may lack USE_ALLY_HOMES, or that guild has not granted access.")
+            return null
+        }
+        if (teleportationService.hasActiveTeleport(player.uniqueId)) {
+            player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")
+            return null
+        }
+        val world = player.server.getWorld(allyHome.worldId)
+        if (world == null) {
+            player.sendMessage("§cAlly guild home world is not available.")
+            return null
+        }
+        return Location(
+            world,
+            allyHome.position.x.toDouble() + 0.5,
+            allyHome.position.y.toDouble(),
+            allyHome.position.z.toDouble() + 0.5,
+            player.location.yaw,
+            player.location.pitch
+        )
+    }
+
+    private fun checkAllyHomeCooldown(player: Player, ownGuildId: java.util.UUID): Boolean {
+        val config = configService.loadConfig()
+        val baseCooldownSeconds = config.guild.homeTeleportCooldownSeconds
+        val cooldownMultiplier = progressionService.getHomeCooldownMultiplier(ownGuildId)
+        val cooldownSeconds = (baseCooldownSeconds * cooldownMultiplier).toLong()
+        val lastTeleport = lastHomeTeleport[player.uniqueId] ?: return true
+        val elapsedSeconds = (System.currentTimeMillis() - lastTeleport) / 1000
+        if (elapsedSeconds < cooldownSeconds) {
+            player.sendMessage("§c◷ Please wait ${cooldownSeconds - elapsedSeconds}s before teleporting again.")
+            return false
+        }
+        return true
+    }
+
     @Subcommand("ranks")
     @CommandPermission("lumaguilds.guild.ranks")
     fun onRanks(player: Player) {
