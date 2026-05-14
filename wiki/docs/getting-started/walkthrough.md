@@ -28,7 +28,7 @@ You have three options:
 
 **Create your own** — pick a name (plain text, max 32 chars, letters/numbers and the punctuation `'`, `&`, `-`) and run:
 
-```
+```text
 /g create <name>
 ```
 
@@ -44,7 +44,7 @@ Once you're in a guild, two things make it feel like home.
 
 **Tag** — fancy formatting that appears next to your name in chat. Use MiniMessage:
 
-```
+```text
 /g tag <gradient:#FF6A00:#FF1F00>Lotus</gradient>
 ```
 
@@ -56,7 +56,7 @@ Or run `/g tag` with no arguments to open a visual editor. Here are some tools t
 
 **Home** — a teleport point your guild can share. Stand where you want it and run:
 
-```
+```text
 /g sethome
 ```
 
@@ -64,7 +64,7 @@ That sets the default home. You can have multiple — `/g sethome shop`, `/g set
 
 ## 4. Inviting a friend
 
-```
+```text
 /g invite <player>
 ```
 

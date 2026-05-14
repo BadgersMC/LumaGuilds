@@ -28,11 +28,11 @@ Every guild is either in **Peaceful** or **Hostile** mode. Peaceful guilds opt o
 
 Run `/g mode`, then click the Peaceful option in the menu. Confirm the switch:
 
-```
+```text
 /g mode
 [Click: Peaceful]
 [Confirm]
-```
+```text
 
 Your guild's enemy relations and pending war declarations clear. Future enemy and war attempts will be blocked while you're peaceful.
 
@@ -40,11 +40,11 @@ Your guild's enemy relations and pending war declarations clear. Future enemy an
 
 Run `/g mode`, then click Hostile in the menu and confirm:
 
-```
+```text
 /g mode
 [Click: Hostile]
 [Confirm]
-```
+```text
 
 Now your guild can be enemied, declare wars, and engage in guild-vs-guild PvP.
 

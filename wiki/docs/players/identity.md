@@ -29,11 +29,11 @@ Four pieces give your guild personality: the *name* (plain text, what shows in `
 
 Run `/g tag <text>` directly with MiniMessage formatting. Examples:
 
-```
+```text
 /g tag <red>FireGuild</red>
 /g tag <gradient:#FF0000:#00FF00>Rainbow</gradient>
 /g tag <bold><blue>ELITE</blue></bold>
-```
+```text
 
 Max 32 visible characters (formatting tags don't count toward the limit).
 
@@ -45,9 +45,9 @@ Run `/g tag` with no arguments to open the visual Tag Editor. You can type your 
 
 Use `/g desc <text>` — appears on your guild's info card and in directory listings. Keep it short and descriptive:
 
-```
+```text
 /g desc A relaxed community for builders and redstoners
-```
+```text
 
 ## Choosing an emoji
 
@@ -55,11 +55,11 @@ Run `/g emoji` to open an emoji picker. The chosen emoji appears in menus, leade
 
 ## Renaming your guild
 
-Use `/g rename <name>` (owner-only typically — check your rank's permissions). Same rules as creation: max 32 plain-text chars, no MiniMessage:
+Use `/g rename <name>` (owner-only typically — check your rank's permissions). Same rules as creation: max 32 characters, using letters, numbers, and the punctuation `'`, `&`, `-` (no MiniMessage):
 
-```
+```text
 /g rename MyGuild
-```
+```text
 
 Renaming doesn't change your tag — those are independent.
 

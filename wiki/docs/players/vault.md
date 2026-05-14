@@ -27,9 +27,9 @@ The guild vault is a shared inventory all members can use, gated by rank permiss
 
 Run `/g vault` from anywhere in the world (you must have the "Use Vault" rank permission). The vault inventory opens like a chest:
 
-```
+```text
 /g vault
-```
+```text
 
 Add items by right-clicking them into the vault, or take items that other members have put there.
 
@@ -37,9 +37,9 @@ Add items by right-clicking them into the vault, or take items that other member
 
 Use `/g getvault` to get a special chest item that, when placed and right-clicked, opens the guild vault from that location:
 
-```
+```text
 /g getvault
-```
+```text
 
 Place it in a dedicated vault room so members can access the vault without using the command. The item is tagged so it can't be repurposed.
 

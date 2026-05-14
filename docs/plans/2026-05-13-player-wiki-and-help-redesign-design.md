@@ -9,6 +9,7 @@
 ## 1. Goals & Non-Goals
 
 ### Goals
+
 - Reduce player confusion about how the plugin works. Establish a single canonical place for "how does X work" answers, accessible both in-game (`/g help`) and in-browser (the wiki).
 - Make `/g help` actually useful: topic-organized, clickable, mirrors the wiki's structure 1:1.
 - Make wiki content retrievable by Hermes Agent with high precision (audience-tagged, well-chunked, predictable structure).
@@ -16,6 +17,7 @@
 - Phased delivery: Players + `/g help` first, Admins later, Devs last.
 
 ### Non-Goals
+
 - Versioned docs. The wiki tracks `main`. Revisit if a multi-version need emerges.
 - Self-hosting on the VPS. GitHub Pages only.
 - A GUI inventory-menu help system. Clickable chat covers Java, Bedrock/Geyser, and console without an extra UI surface to maintain.
@@ -50,7 +52,7 @@
 
 Top-level nav: **Home / Getting Started / Players / Admins / Developers.**
 
-```
+```text
 Home — landing page: "What is LumaGuilds?" + links to the 4 sections.
 
 Getting Started
@@ -167,7 +169,7 @@ updated: 2026-05-13
 
 Shows a topic menu, not a flat command list.
 
-```
+```text
 ─── LumaGuilds Help ───
 Pick a topic:
   [Guilds]        Create, join, leave, disband
@@ -190,7 +192,7 @@ Full wiki: https://badgersmc.github.io/LumaGuilds/
 
 Clickable, one screen.
 
-```
+```text
 ─── Help · Homes ───
 Guild homes are teleport points your guild can share. Each guild can
 have multiple named homes. Access can be restricted per-rank.
