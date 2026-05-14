@@ -516,6 +516,110 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
+    @Subcommand("allyhome")
+    @CommandPermission("lumaguilds.guild.allyhome")
+    @CommandCompletion("@allyguilds")
+    fun onAllyHome(player: Player, guildName: String, @Optional confirm: String?) {
+        if (guildName.lowercase() == "confirm" || confirm?.lowercase() == "confirm") {
+            val pendingLocation = GuildHomeSafety.consumePending(player)
+            if (pendingLocation != null) {
+                teleportationService.startTeleport(player, pendingLocation) {
+                    lastHomeTeleport[player.uniqueId] = System.currentTimeMillis()
+                }
+                return
+            } else {
+                player.sendMessage("§cNo pending unsafe teleport to confirm, or confirmation expired.")
+                return
+            }
+        }
+
+        val playerId = player.uniqueId
+
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+
+        val guild = guilds.first()
+
+        val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
+        if (targetGuild == null) {
+            player.sendMessage("§cNo guild named '$guildName' found.")
+            return
+        }
+
+        if (targetGuild.id == guild.id) {
+            player.sendMessage("§cUse §6/guild home §cfor your own guild's home.")
+            return
+        }
+
+        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
+        val relation = relationService.getRelationType(guild.id, targetGuild.id)
+        if (relation != net.lumalyte.lg.domain.entities.RelationType.ALLY) {
+            player.sendMessage("§c${targetGuild.name} is not an ally of your guild.")
+            return
+        }
+
+        val allyHome = guildService.getAllyHome(targetGuild.id)
+        if (allyHome == null) {
+            player.sendMessage("§c${targetGuild.name} has no ally home set.")
+            return
+        }
+
+        if (!guildService.canUseAllyHome(playerId, guild.id, targetGuild.id)) {
+            player.sendMessage("§c❌ You don't have permission to use ${targetGuild.name}'s ally home.")
+            player.sendMessage("§7Your rank may lack USE_ALLY_HOMES, or that guild has not granted access.")
+            return
+        }
+
+        if (teleportationService.hasActiveTeleport(playerId)) {
+            player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")
+            return
+        }
+
+        val config = configService.loadConfig()
+        val baseCooldownSeconds = config.guild.homeTeleportCooldownSeconds
+        val cooldownMultiplier = progressionService.getHomeCooldownMultiplier(guild.id)
+        val cooldownSeconds = (baseCooldownSeconds * cooldownMultiplier).toLong()
+
+        val lastTeleport = lastHomeTeleport[playerId]
+        if (lastTeleport != null) {
+            val elapsedSeconds = (System.currentTimeMillis() - lastTeleport) / 1000
+            if (elapsedSeconds < cooldownSeconds) {
+                val remainingSeconds = cooldownSeconds - elapsedSeconds
+                player.sendMessage("§c◷ Please wait ${remainingSeconds}s before teleporting again.")
+                return
+            }
+        }
+
+        val world = player.server.getWorld(allyHome.worldId)
+        if (world == null) {
+            player.sendMessage("§cAlly guild home world is not available.")
+            return
+        }
+
+        val targetLocation = Location(
+            world,
+            allyHome.position.x.toDouble() + 0.5,
+            allyHome.position.y.toDouble(),
+            allyHome.position.z.toDouble() + 0.5,
+            player.location.yaw,
+            player.location.pitch
+        )
+
+        if (config.guild.homeTeleportSafetyCheck) {
+            if (!GuildHomeSafety.checkOrAskConfirm(player, targetLocation, "/guild allyhome ${targetGuild.name} confirm")) {
+                return
+            }
+        }
+
+        teleportationService.startTeleport(player, targetLocation) {
+            lastHomeTeleport[playerId] = System.currentTimeMillis()
+            player.sendMessage("§a✅ Teleported to §6${targetGuild.name}§a's ally home.")
+        }
+    }
+
     @Subcommand("ranks")
     @CommandPermission("lumaguilds.guild.ranks")
     fun onRanks(player: Player) {
@@ -1909,6 +2013,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     @Subcommand("help")
     @CommandPermission("lumaguilds.guild.help")
+    @CommandCompletion("create|tag|home|relations|chat|vault")
     fun onHelp(player: Player, @Optional topic: String?) {
         when (topic?.lowercase()) {
             "create", "name" -> {
@@ -1952,21 +2057,60 @@ class GuildCommand : BaseCommand(), KoinComponent {
             else -> {
                 player.sendMessage("§6§l=== Guild Commands ===")
                 player.sendMessage("§7")
-                player.sendMessage("§eBasic Commands:")
-                player.sendMessage("§7 • §f/guild create <name> §7- Create a guild")
-                player.sendMessage("§7 • §f/guild menu §7- Open guild menu")
-                player.sendMessage("§7 • §f/guild info §7- View guild info")
-                player.sendMessage("§7 • §f/guild invite <player> §7- Invite a player")
-                player.sendMessage("§7 • §f/guild leave §7- Leave your guild")
+                player.sendMessage("§eBasic:")
+                player.sendMessage("§7 • §f/g create <name> §7- Create a guild")
+                player.sendMessage("§7 • §f/g menu §7- Open guild menu")
+                player.sendMessage("§7 • §f/g info [guild|player] §7- View guild info")
+                player.sendMessage("§7 • §f/g list §7- List all guilds")
+                player.sendMessage("§7 • §f/g lfg §7- Browse guilds looking for members")
+                player.sendMessage("§7 • §f/g disband §7- Disband your guild")
+                player.sendMessage("§7")
+                player.sendMessage("§eMembership:")
+                player.sendMessage("§7 • §f/g invite <player> §7- Invite a player")
+                player.sendMessage("§7 • §f/g join|accept <guild> §7- Join/accept invite")
+                player.sendMessage("§7 • §f/g decline <guild> §7- Decline an invite")
+                player.sendMessage("§7 • §f/g invites §7- List pending invites")
+                player.sendMessage("§7 • §f/g kick <player> §7- Kick a member")
+                player.sendMessage("§7 • §f/g leave §7- Leave your guild")
+                player.sendMessage("§7 • §f/g transfer <player> §7- Transfer ownership")
+                player.sendMessage("§7 • §f/g history <player> §7- View member history")
+                player.sendMessage("§7 • §f/g ranks §7- List guild ranks")
+                player.sendMessage("§7")
+                player.sendMessage("§eHomes:")
+                player.sendMessage("§7 • §f/g home [name] §7- Teleport to guild home")
+                player.sendMessage("§7 • §f/g homes §7- List guild homes")
+                player.sendMessage("§7 • §f/g sethome [name] §7- Set a guild home")
+                player.sendMessage("§7 • §f/g removehome <name> §7- Remove a guild home")
+                player.sendMessage("§7 • §f/g setallyhome §7- Set the ally home")
+                player.sendMessage("§7 • §f/g removeallyhome §7- Remove the ally home")
+                player.sendMessage("§7 • §f/g allyhome <guild> §7- Teleport to an ally's home")
+                player.sendMessage("§7")
+                player.sendMessage("§eRelations:")
+                player.sendMessage("§7 • §f/g ally <guild> §7- Request alliance")
+                player.sendMessage("§7 • §f/g enemy <guild> §7- Declare war")
+                player.sendMessage("§7 • §f/g truce <guild> [days] §7- Request truce")
+                player.sendMessage("§7 • §f/g neutral <guild> §7- Request peace")
+                player.sendMessage("§7 • §f/g war §7- Open war menu")
                 player.sendMessage("§7")
                 player.sendMessage("§eCustomization:")
-                player.sendMessage("§7 • §f/guild tag §7- Set fancy formatted tag")
-                player.sendMessage("§7 • §f/guild rename <name> §7- Rename guild")
-                player.sendMessage("§7 • §f/guild desc <text> §7- Set description")
+                player.sendMessage("§7 • §f/g tag §7- Set fancy formatted tag")
+                player.sendMessage("§7 • §f/g rename <name> §7- Rename guild")
+                player.sendMessage("§7 • §f/g desc <text> §7- Set description")
+                player.sendMessage("§7 • §f/g emoji [:name:] §7- Set guild emoji")
+                player.sendMessage("§7 • §f/g mode <peaceful|hostile> §7- Switch mode")
+                player.sendMessage("§7")
+                player.sendMessage("§eChat:")
+                player.sendMessage("§7 • §f/g chat §7- Toggle guild chat")
+                player.sendMessage("§7 • §f/g allychat §7- Toggle ally chat")
+                player.sendMessage("§7")
+                player.sendMessage("§eVault & Shop:")
+                player.sendMessage("§7 • §f/g vault §7- Open guild vault")
+                player.sendMessage("§7 • §f/g getvault §7- Get a vault item")
+                player.sendMessage("§7 • §f/g setshop §7- Convert shop to guild shop")
                 player.sendMessage("§7")
                 player.sendMessage("§eFor detailed help:")
-                player.sendMessage("§7 • §f/guild help create §7- Guild name & tag guide")
-                player.sendMessage("§7 • §f/guild help tag §7- Tag formatting examples")
+                player.sendMessage("§7 • §f/g help create §7- Guild name & tag guide")
+                player.sendMessage("§7 • §f/g help tag §7- Tag formatting examples")
             }
         }
     }
