@@ -210,6 +210,47 @@ We use [Mermaid](https://mermaid.js.org/) for diagrams. Test your diagrams at [m
 
 ---
 
+## Keeping `/g help` and the wiki in sync
+
+LumaGuilds enforces parity between the in-game help system and the player wiki. **Any PR that adds, removes, or renames a player-facing command must touch both `HelpTopics.kt` and the matching wiki page in the same PR.** CI rejects PRs that break this rule.
+
+### What CI checks
+
+1. **Front-matter lint** (`tools/wiki/lint_frontmatter.py`): every `wiki/docs/**/*.md` must have a valid front-matter block with `title`, `audience`, `topic`, `summary`, `keywords`, `related`, `updated`.
+2. **Topic parity** (`tools/wiki/check_topic_parity.py`): every `slug = "..."` in [`HelpTopics.kt`](src/main/kotlin/net/lumalyte/lg/interaction/help/HelpTopics.kt) must have a matching `wiki/docs/players/<slug>.md` and vice versa.
+3. **Strict MkDocs build** (`mkdocs build --strict`): no broken internal links, missing nav entries, or malformed markdown.
+
+### Adding a new player-facing command
+
+1. Decide which existing topic in `HelpTopics.kt` the command belongs to. If none fits, you're adding a new topic (rare — see below).
+2. Add a `HelpCommandEntry(syntax, blurb, prefill)` to the topic's `commands` list.
+3. Update the matching `wiki/docs/players/<slug>.md`: add a row to the Quick Reference table, add or expand a "Common task" H2 if needed.
+4. Run the checks locally before opening the PR:
+
+```bash
+python tools/wiki/lint_frontmatter.py
+python tools/wiki/check_topic_parity.py
+mkdocs build --strict
+./gradlew test
+```
+
+### Adding a new topic
+
+1. Add a new `HelpTopic(...)` block to `HelpTopics.all` in `HelpTopics.kt`. Pick a stable lowercase-hyphenated slug — it becomes a URL forever.
+2. Create `wiki/docs/players/<slug>.md` using the wiki page template (see other pages in that folder for the canonical shape).
+3. Add the topic to `wiki/docs/players/.pages` so it appears in the nav.
+4. Update `wiki/docs/players/how-do-i.md` with at least one entry deep-linking into the new page.
+5. Run the checks above.
+
+### Renaming or removing a topic
+
+- **Removing:** delete the `HelpTopic` entry, delete the wiki page, and add a `mkdocs-redirects` entry to `mkdocs.yml` mapping the old URL to wherever the content moved (or to the topic index).
+- **Renaming the slug:** treat as remove + add. The old slug is permanently retired (Hermes Agent and any cached links may still reference it via the redirect).
+
+Slugs are forever. The display name, summary, and command list inside a topic are not — those evolve freely.
+
+---
+
 ## Questions?
 
 Don't hesitate to ask! Open a discussion on GitHub or reach out on Discord. We're happy to help newcomers get started.
