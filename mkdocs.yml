@@ -44,13 +44,13 @@ plugins:
       full_output: llms-full.txt
       sections:
         Getting Started:
-          - getting-started/**/*.md
+          - getting-started/*.md
         Players:
-          - players/**/*.md
+          - players/*.md
         Admins:
-          - admins/**/*.md
+          - admins/*.md
         Developers:
-          - developers/**/*.md
+          - developers/*.md
 
 markdown_extensions:
   - admonition
