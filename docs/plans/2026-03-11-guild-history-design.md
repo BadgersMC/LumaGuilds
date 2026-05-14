@@ -66,20 +66,26 @@ SQLite implementation: `MembershipHistoryRepositorySQLite` at `infrastructure/pe
 ## Recording Hooks
 
 ### On JOIN — `MemberServiceBukkit.addMember()`
+
 After `memberRepository.add(member)` succeeds:
+
 ```kotlin
 historyRepository.openStint(playerId, guildId)
 ```
 
 ### On LEAVE or KICK — `MemberServiceBukkit.removeMember()`
+
 After `memberRepository.remove(playerId, guildId)` succeeds:
+
 ```kotlin
 val reason = if (actorId == playerId) DepartureReason.LEFT else DepartureReason.KICKED
 historyRepository.closeStint(playerId, guildId, reason)
 ```
 
 ### On DISBAND — `GuildServiceBukkit.disbandGuild()`
+
 After `memberRepository.removeByGuild(guildId)`, using the already-captured `memberIds` set:
+
 ```kotlin
 memberIds.forEach { memberId ->
     historyRepository.closeStint(memberId, guildId, DepartureReason.DISBANDED)
@@ -92,7 +98,7 @@ memberIds.forEach { memberId ->
 
 ## Command
 
-```
+```text
 /guild history <player>
 Permission: lumaguilds.guild.history
 Tab-complete: @players (online players)
@@ -108,7 +114,7 @@ Player lookup uses `Bukkit.getOfflinePlayer(name)` so offline players can be que
 
 Entries ordered oldest → newest (so the index numbers match "total guilds joined" naturally).
 
-```
+```text
 §6§l╔══ Guild History: Fain ══╗
 §7Total guilds joined: §e4
 
@@ -120,12 +126,14 @@ Entries ordered oldest → newest (so the index numbers match "total guilds join
 ```
 
 **Color key:**
+
 - `§a` — active guild name
 - `§8[UNKNOWN]` — disbanded guild (intentional mystery)
 - `§c` Kicked / `§7` Left / `§8` Guild Disbanded — departure reasons
 - `§a(current)` — open stint (no `departedAt`)
 
 **Edge cases:**
+
 - Player has never been in a guild → `§7<player> has no guild history.`
 - Player name not found → `§cPlayer '<name>' has never played on this server.`
 - Total count = `history.size` (includes the open/current entry if present)

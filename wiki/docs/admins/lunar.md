@@ -45,12 +45,15 @@ dependencies {
 2. **Drop the JAR into `plugins/`.**
 
 3. **Restart the server.** LumaGuilds will detect Apollo on startup:
-   ```
+
+   ```text
    ✓ Successfully initialized Apollo (Lunar Client) integration!
    Enhanced features available for Lunar Client users
    ```
+
    If Apollo is not found:
-   ```
+
+   ```text
    ⚠ Apollo-Bukkit plugin not found. Lunar Client features unavailable.
    Install Apollo-Bukkit from https://modrinth.com/plugin/lunar-client-apollo
    ```
@@ -123,12 +126,14 @@ apollo:
 ### Teams (Automatic teammate awareness)
 
 When enabled, guild members appear with:
+
 - **Markers above their heads** — visible on LC minimap and direction HUD.
 - **Colors by rank** — leaders glow gold, officers blue, members green.
 - **Location updates every tick** — teammates you see are where they actually are (fresh data).
 - **Automatic cleanup** — no action required from players; works in background.
 
 **Triggered by:**
+
 - Player joins the server (guild teams are shown).
 - Player joins/leaves a guild (team membership updates).
 - Player disconnects (team is cleared for others).
@@ -137,12 +142,14 @@ When enabled, guild members appear with:
 ### Waypoints (Guild home navigation)
 
 When a guild sets a home, all guild members who use Lunar Client see:
+
 - **Waypoint on minimap** — permanently shows the guild home location.
 - **Colorized by relationship** — own guild homes are green, allied blue, neutral yellow, enemy red.
 - **Distance indicator** — LC displays distance from player to waypoint.
 - **Removable by player** — LC users can click the waypoint to remove it (re-added on next home update).
 
 **Triggered by:**
+
 - Player joins the server (shown all guild home waypoints).
 - Player joins/leaves a guild (waypoints update).
 - Guild sets a home via `/guild sethome` (waypoint created; shown to all members).
@@ -151,6 +158,7 @@ When a guild sets a home, all guild members who use Lunar Client see:
 ### Notifications (Rich popup alerts)
 
 LC players receive styled notifications for:
+
 - **Guild invites** — "You've been invited to join [Guild]" (book icon, 5s display).
 - **Member join** — "[Player] joined the guild" (green banner icon).
 - **Member leave** — "[Player] left the guild" (red banner icon).
@@ -162,11 +170,13 @@ LC players receive styled notifications for:
 All other players see the same info as in-game chat. Notifications are non-blocking and expire automatically.
 
 **Triggered by:**
-- Any guild event that sends a chat message (guild.* and war.* events).
+
+- Any guild event that sends a chat message (guild.*and war.* events).
 
 ### Rich Presence (Discord/LC launcher profile)
 
 When enabled, an LC player's Discord/LC launcher profile shows:
+
 - **Guild name** (game name field).
 - **Guild tag** (variant field).
 - **Online members count** (team size).
@@ -175,6 +185,7 @@ When enabled, an LC player's Discord/LC launcher profile shows:
 Example: `"Guild: Mythic (MYTH) - 15/50 online on play.example.com"`
 
 **Triggered by:**
+
 - Player joins the server (presence set to their first guild).
 - Player joins/leaves a guild (presence updates).
 - Player disconnects (presence reset).
@@ -208,7 +219,8 @@ apollo:
 ```
 
 Restart the server. LumaGuilds will log:
-```
+
+```text
 Guild teams module disabled in config
 ```
 

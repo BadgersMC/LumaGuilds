@@ -32,9 +32,11 @@ Two plugins listening to `AsyncChatEvent` cause race conditions: duplicate messa
 2. **Restart the server.** LumaGuilds detects RoseChat and auto-registers the two channels (`guild` and `guild-ally`). No config flag is needed.
 
 3. **Verify the integration** by testing a placeholder:
-   ```
+
+   ```bash
    /papi parse <player> %lumaguilds_guild_tag%
    ```
+
    Should return the guild's tag formatted in MiniMessage syntax (e.g., `<color:#FF5733>Elite</color>`). If empty, check server logs for PAPI errors.
 
 4. **Test in-game:**
@@ -68,6 +70,7 @@ channels:
 ```
 
 **Key placeholders:**
+
 - `%lumaguilds_guild_emoji%` — Guild emoji (converted to Nexo format)
 - `%lumaguilds_guild_tag%` — Guild tag (MiniMessage-formatted)
 - `%lumaguilds_guild_chat_format%` — Combo of emoji + tag (usually simpler)

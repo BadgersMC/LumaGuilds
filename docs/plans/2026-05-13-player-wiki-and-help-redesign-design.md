@@ -112,6 +112,7 @@ Developers
 ```
 
 Notes:
+
 - "How do I…?" is an index page; every entry deep-links to a feature page anchor.
 - "Bedrock differences" exists because Geyser/Floodgate behavior diverges in a few places and players hit those walls.
 - Developers section is largely migration of existing `docs/` content.

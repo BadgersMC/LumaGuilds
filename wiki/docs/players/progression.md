@@ -33,6 +33,7 @@ Higher levels unlock additional member capacity, named home slots, advanced feat
 ## Checking your guild's level
 
 Run `/g info` — it shows:
+
 - Current level
 - Current XP
 - XP needed for the next level

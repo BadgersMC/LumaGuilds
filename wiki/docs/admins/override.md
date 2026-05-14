@@ -32,7 +32,7 @@ When override is enabled, you become the functional owner of every guild on the 
 
 Run the command to toggle:
 
-```
+```bash
 /lumaguilds override
 ```
 
@@ -48,26 +48,32 @@ Check your permission with `/lumaguilds override` again — it prints the new st
 When the guild owner leaves without transferring ownership:
 
 1. **Toggle override on:**
-   ```
+
+   ```bash
    /lumaguilds override
    ```
+
    Confirm you see the "enabled" message.
 
 2. **Join the guild** (no invite needed):
-   ```
+
+   ```bash
    /g join <guild_name>
    ```
 
 3. **Open the guild menu** and navigate to **Ranks**:
-   ```
+
+   ```bash
    /g menu
    ```
+
    → Members → Manage Rank
 
 4. **Assign yourself to the owner rank** (priority 0). If you're still blocked, make sure override is still ON.
 
 5. **Toggle override off** once ownership is transferred:
-   ```
+
+   ```bash
    /lumaguilds override
    ```
 
@@ -78,12 +84,14 @@ Once you own the rank, the guild is recoverable — the new owner can reassign a
 If a member is locked in the guild (e.g. they left but their account is orphaned), use override to force-kick:
 
 1. **Toggle override on:**
-   ```
+
+   ```bash
    /lumaguilds override
    ```
 
 2. **Open the guild menu** and go to **Members**:
-   ```
+
+   ```bash
    /g menu → Members
    ```
 
@@ -103,7 +111,7 @@ If a guild is locked to new joins (invitation-only) and you need to grant access
 
 The `AdminOverrideServiceImpl` logs all toggles at INFO level:
 
-```
+```text
 Player {uuid} enabled admin guild override
 Player {uuid} disabled admin guild override
 ```

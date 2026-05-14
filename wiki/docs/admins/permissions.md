@@ -98,7 +98,7 @@ Example: A player might have `lumaguilds.command.claim: true` (node permission) 
 
 Grant basic guild creation and management to all players:
 
-```
+```bash
 /lp group default permission set lumaguilds.guild.create true
 /lp group default permission set lumaguilds.guild.menu true
 /lp group default permission set lumaguilds.guild.invite true
@@ -119,7 +119,7 @@ Grant basic guild creation and management to all players:
 
 Or use the wildcard:
 
-```
+```bash
 /lp group default permission set lumaguilds.guild.* true
 ```
 
@@ -127,7 +127,7 @@ Or use the wildcard:
 
 Grant staff access to claims, party chat, and admin commands:
 
-```
+```bash
 /lp group staff permission set lumaguilds.guild.* true
 /lp group staff permission set lumaguilds.command.* true
 /lp group staff permission set lumaguilds.partychat.* true

@@ -19,6 +19,7 @@
 ## File Structure
 
 **Modified files (existing stubs — body rewritten to full content):**
+
 - `wiki/docs/admins/installation.md`
 - `wiki/docs/admins/permissions.md`
 - `wiki/docs/admins/override.md`
@@ -31,6 +32,7 @@
 - `wiki/docs/admins/claims.md`
 
 **Read-only content sources (still living at repo root until Phase 3):**
+
 - `PERMISSIONS.md`
 - `PLACEHOLDERAPI_README.md`
 - `PROGRESSION_DESIGN.md` / `PROGRESSION_IMPLEMENTATION_SUMMARY.md`
@@ -91,7 +93,8 @@ updated: 2026-05-14
 **Commits:** one commit per page (small) or one per task batch (still small). Either is fine — match Phase 1 cadence.
 
 **Lint/build before every commit:**
-```
+
+```bash
 cd D:/BadgersMC-Dev/LumaGuilds/.claude/worktrees/wiki-phase2
 python tools/wiki/lint_frontmatter.py
 python tools/wiki/check_topic_parity.py
@@ -133,6 +136,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/installation.md`
 
 **Front-matter values:**
+
 - title: `Installation & config.yml`
 - audience: `admin`
 - topic: `installation`
@@ -158,10 +162,12 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 - [ ] **Step 1:** Read `src/main/resources/config.yml` and `src/main/resources/plugin.yml`.
 - [ ] **Step 2:** Read the existing stub at `wiki/docs/admins/installation.md`, then Write the full content following the checklist above.
 - [ ] **Step 3:** Lint + build:
-  ```
+
+  ```bash
   python tools/wiki/lint_frontmatter.py
   python -m mkdocs build --strict
   ```
+
 - [ ] **Step 4:** Commit: `docs(wiki): write Admins/Installation page`.
 
 ---
@@ -171,6 +177,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/permissions.md`
 
 **Front-matter:**
+
 - title: `Permission nodes reference`
 - topic: `permissions`
 - summary: `Every permission node LumaGuilds defines, what it does, and its default state.`
@@ -200,6 +207,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/override.md`
 
 **Front-matter:**
+
 - title: `/lumaguilds override and recovery`
 - topic: `override`
 - summary: `Use admin override to unstick broken guilds — owner-less, locked-out, or corrupted state.`
@@ -228,6 +236,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/troubleshooting.md`
 
 **Front-matter:**
+
 - title: `Troubleshooting`
 - topic: `troubleshooting`
 - summary: `Operator-facing fixes for common LumaGuilds issues — stuck guilds, broken homes, schema drift, chat leaks.`
@@ -262,6 +271,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/placeholderapi.md`
 
 **Front-matter:**
+
 - title: `PlaceholderAPI placeholders`
 - topic: `placeholderapi`
 - summary: `Every %lumaguilds_…% PAPI placeholder, what it returns, and where to use it.`
@@ -291,6 +301,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/rosechat.md`
 
 **Front-matter:**
+
 - title: `RoseChat integration`
 - topic: `rosechat`
 - summary: `Hook guild chat into RoseChat as a managed channel — formatting, recipients, and toggle behavior.`
@@ -319,6 +330,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/geyser.md`
 
 **Front-matter:**
+
 - title: `Geyser/Floodgate behavior`
 - topic: `geyser`
 - summary: `How LumaGuilds renders menus and dispatches teleports for Bedrock players via Geyser/Floodgate.`
@@ -345,6 +357,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/lunar.md`
 
 **Front-matter:**
+
 - title: `Lunar Client integration`
 - topic: `lunar`
 - summary: `Drive Lunar Client features (cooldowns, mods, server props) from LumaGuilds events.`
@@ -372,6 +385,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/leaderboard-api.md`
 
 **Front-matter:**
+
 - title: `Web leaderboard API`
 - topic: `leaderboard-api`
 - summary: `Public HTTP API exposing guild leaderboard data for external dashboards.`
@@ -400,6 +414,7 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **File:** `wiki/docs/admins/claims.md`
 
 **Front-matter:**
+
 - title: `Claims integration`
 - topic: `claims`
 - summary: `Hook LumaGuilds into the server's claims plugin so guild membership grants claim permissions.`
@@ -428,18 +443,22 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 **Files:** none (verification only).
 
 - [ ] **Step 1:** Full check sequence:
-  ```
+
+  ```bash
   cd D:/BadgersMC-Dev/LumaGuilds/.claude/worktrees/wiki-phase2
   python tools/wiki/lint_frontmatter.py
   python tools/wiki/check_topic_parity.py
   python -m mkdocs build --strict
   ```
+
   All three must pass.
 
 - [ ] **Step 2:** Verify `site/llms.txt` Admins section is now populated:
-  ```
+
+  ```bash
   python -c "print(open('site/llms.txt').read())" | grep -A 12 '^## Admins'
   ```
+
   Expected: 10 entries under `## Admins`, one per page.
 
 - [ ] **Step 3:** Spot-check three pages in `mkdocs serve` at <http://127.0.0.1:8000/admins/installation/>, ensuring rendering, code blocks, and cross-links all work.
