@@ -22,7 +22,8 @@ Install LumaGuilds on Paper 1.21.x, drop in dependencies, and walk through every
 | RoseChat | Plugin | No | Custom chat format & guild chat channels. |
 | Geyser/Floodgate | Plugin | No | Bedrock client support & menus. |
 | Lunar Client SDK (Apollo) | Plugin | No | Lunar Client enhancements (waypoints, teams, beams). |
-| AxKoth / Claims Plugin | Plugin | No | Claim system (if `claims_enabled: true`). |
+
+> **Claims is built in.** LumaGuilds is a fork of [Bell Claims](https://github.com/Mizarc/bell-claims) with the guild system layered on top. The claims subsystem ships inside the plugin — no separate claims plugin to install. Toggle it on or off with `claims_enabled` in `config.yml`. See [Claims (built-in)](claims.md).
 
 ## How it works
 
