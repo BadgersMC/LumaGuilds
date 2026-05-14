@@ -176,7 +176,11 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             // Leveling curve settings
             baseXp = config.getDouble("progression.base_xp", 800.0),
             levelExponent = config.getDouble("progression.level_exponent", 1.3),
-            linearBonusPerLevel = config.getInt("progression.linear_bonus_per_level", 200)
+            linearBonusPerLevel = config.getInt("progression.linear_bonus_per_level", 200),
+
+            // Experience transaction retention
+            transactionRetentionDays = config.getInt("progression.transaction_retention_days", 90),
+            transactionCleanupIntervalHours = config.getInt("progression.transaction_cleanup_interval_hours", 24)
         )
     }
     

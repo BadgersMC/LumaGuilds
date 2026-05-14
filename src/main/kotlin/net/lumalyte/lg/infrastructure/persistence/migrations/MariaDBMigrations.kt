@@ -39,6 +39,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(19)
                 currentDbVersion = 19
             }
+            if (currentDbVersion < 21) {
+                migrateToVersion21()
+                updateDatabaseVersion(21)
+                currentDbVersion = 21
+            }
 
             connection.commit()
 
@@ -557,5 +562,15 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             """.trimIndent())
             componentLogger.info(Component.text("✓ guild_homes table created; backfilled $rows existing 'main' homes"))
         }
+    }
+
+    /**
+     * Migration to version 21.
+     * Sanitizes existing guild names to match the runtime validator: strips
+     * color codes (e.g. `&r`) and any character outside [A-Za-z0-9 ].
+     */
+    private fun migrateToVersion21() {
+        componentLogger.info(Component.text("Migrating to version 21: sanitize guild names..."))
+        GuildNameSanitizer.sanitizeAll(connection, componentLogger)
     }
 }
