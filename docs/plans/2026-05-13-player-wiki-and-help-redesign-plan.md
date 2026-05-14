@@ -90,7 +90,7 @@ updated: 2026-05-13
 ## Related
 
 - [Sibling page](../<other-topic>.md)
-```
+```text
 
 **Topic slug rule:** lowercase, hyphenated, matches `HelpTopics.kt` key exactly. Used as the file name (`<slug>.md`), the URL segment, and the `topic:` field. Stable forever — renaming requires a `mkdocs-redirects` entry.
 
@@ -109,14 +109,14 @@ updated: 2026-05-13
 
 - [ ] **Step 1: Create `wiki/requirements.txt`**
 
-```
+```text
 mkdocs==1.6.1
 mkdocs-material==9.5.49
 mkdocs-material[imaging]==9.5.49
 mkdocs-awesome-pages-plugin==2.9.3
 mkdocs-redirects==1.2.2
 mkdocs-llmstxt==0.2.0
-```
+```text
 
 - [ ] **Step 2: Create `mkdocs.yml`**
 
@@ -188,7 +188,7 @@ markdown_extensions:
       permalink: true
 
 strict: true
-```
+```text
 
 - [ ] **Step 3: Create `wiki/docs/index.md`**
 
@@ -213,7 +213,7 @@ LumaGuilds is the guild plugin powering [EnthusiaSMP](https://enthusiasmp.com). 
 - **[Developers](developers/architecture.md)** — Code-level reference.
 
 In-game, type `/g help` to get a clickable topic menu that mirrors this wiki.
-```
+```text
 
 - [ ] **Step 4: Create `wiki/docs/.pages`**
 
@@ -224,15 +224,15 @@ nav:
   - Players: players
   - Admins: admins
   - Developers: developers
-```
+```text
 
 - [ ] **Step 5: Append to `.gitignore`**
 
 Add this line if not already present:
 
-```
+```text
 site/
-```
+```text
 
 - [ ] **Step 6: Verify MkDocs builds locally**
 
@@ -243,7 +243,7 @@ python -m venv .venv
 . .venv/Scripts/activate   # Windows
 pip install -r wiki/requirements.txt
 mkdocs build --strict
-```
+```text
 
 Expected: build succeeds. Will warn about missing `getting-started/`, `players/`, etc. — that's fine for this step (those folders are created in Task 4). If `--strict` errors on missing pages from nav, temporarily comment the nav lines in `.pages` and re-run. They get uncommented in Task 4.
 
@@ -252,7 +252,7 @@ Expected: build succeeds. Will warn about missing `getting-started/`, `players/`
 ```bash
 git add mkdocs.yml wiki/requirements.txt wiki/docs/index.md wiki/docs/.pages .gitignore
 git commit -m "docs(wiki): scaffold MkDocs Material site config"
-```
+```text
 
 ---
 
@@ -310,14 +310,14 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
-```
+```text
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add .github/workflows/wiki-deploy.yml
 git commit -m "ci(wiki): deploy MkDocs site to GitHub Pages on push to main"
-```
+```text
 
 - [ ] **Step 3: Note for human reviewer**
 
@@ -431,7 +431,7 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-```
+```text
 
 - [ ] **Step 2: Test it locally on `wiki/docs/index.md` only**
 
@@ -440,7 +440,7 @@ Run:
 ```bash
 pip install pyyaml
 python tools/wiki/lint_frontmatter.py
-```
+```text
 
 Expected output: `OK — 1 pages validated.` (index.md is the only file with front-matter at this point).
 
@@ -451,14 +451,14 @@ Temporarily remove the `topic:` line from `wiki/docs/index.md`. Re-run the lint.
 - [ ] **Step 4: Create `tools/wiki/__init__.py` (empty)**
 
 ```python
-```
+```text
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add tools/wiki/__init__.py tools/wiki/lint_frontmatter.py
 git commit -m "ci(wiki): add front-matter schema lint script"
-```
+```text
 
 ---
 
@@ -482,7 +482,7 @@ updated: 2026-05-13
 # <Title>
 
 *This page is a placeholder. Content coming in Phase 2/3.*
-```
+```text
 
 - [ ] **Step 1: Getting Started stubs**
 
@@ -497,7 +497,7 @@ nav:
   - Welcome: welcome.md
   - Your first 30 minutes: walkthrough.md
   - FAQ: faq.md
-```
+```text
 
 - [ ] **Step 2: Players stubs (one per feature page in the design § 3)**
 
@@ -538,7 +538,7 @@ nav:
   - Shop integration: shop.md
   - LFG & Invites: lfg.md
   - Bedrock differences: bedrock.md
-```
+```text
 
 - [ ] **Step 3: Admins stubs**
 
@@ -571,7 +571,7 @@ nav:
   - Lunar Client: lunar.md
   - Web leaderboard API: leaderboard-api.md
   - Claims: claims.md
-```
+```text
 
 - [ ] **Step 4: Developers stubs**
 
@@ -608,7 +608,7 @@ nav:
   - Emoji permissions: emoji-permissions.md
   - Migration safety: migration-safety.md
   - Schema setup: schema-setup.md
-```
+```text
 
 - [ ] **Step 5: Note about slug ↔ filename mismatch**
 
@@ -624,13 +624,13 @@ SLUG_EXEMPT = {
     Path("developers/getting-started.md"),
     Path("developers/placeholders.md"),
 }
-```
+```text
 
 - [ ] **Step 6: Run lint, fix any failures**
 
 ```bash
 python tools/wiki/lint_frontmatter.py
-```
+```text
 
 Expected: all ~40 pages pass.
 
@@ -638,7 +638,7 @@ Expected: all ~40 pages pass.
 
 ```bash
 mkdocs build --strict
-```
+```text
 
 Expected: build succeeds with no warnings.
 
@@ -647,7 +647,7 @@ Expected: build succeeds with no warnings.
 ```bash
 git add wiki/docs/getting-started wiki/docs/players wiki/docs/admins wiki/docs/developers tools/wiki/lint_frontmatter.py
 git commit -m "docs(wiki): scaffold nav skeleton with stubbed front-matter pages"
-```
+```text
 
 ---
 
@@ -694,14 +694,14 @@ jobs:
           cache-dependency-path: wiki/requirements.txt
       - run: pip install -r wiki/requirements.txt
       - run: mkdocs build --strict
-```
+```text
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add .github/workflows/wiki-checks.yml
 git commit -m "ci(wiki): run front-matter lint and strict MkDocs build on PRs"
-```
+```text
 
 ---
 
@@ -759,7 +759,7 @@ In-game, type `/g help` for the same content as a clickable menu.
 - Not a release log. See [`CHANGELOG.md`](https://github.com/BadgersMC/LumaGuilds/blob/main/CHANGELOG.md) on GitHub.
 
 Ready? **[Start the 30-minute walkthrough →](walkthrough.md)**
-```
+```text
 
 The comment block `<!-- ... -->` is a placeholder for content you'll want a human to write — the server pitch. The plan ships with a TODO marker visible in the rendered page only via comment (so MkDocs strict mode still passes). Leave it for the maintainer to fill on first PR review pass; it's not blocking.
 
@@ -768,7 +768,7 @@ The comment block `<!-- ... -->` is a placeholder for content you'll want a huma
 ```bash
 python tools/wiki/lint_frontmatter.py
 mkdocs build --strict
-```
+```text
 
 Expected: both pass.
 
@@ -777,7 +777,7 @@ Expected: both pass.
 ```bash
 git add wiki/docs/getting-started/welcome.md
 git commit -m "docs(wiki): write Getting Started welcome page"
-```
+```text
 
 ---
 
@@ -821,9 +821,9 @@ You have three options:
 
 **Create your own** — pick a name (plain text, max 32 chars, letters/numbers/spaces/`'`/`&`/`-`) and run:
 
-```
+```text
 /g create <name>
-```
+```text
 
 Example: `/g create White Lotus`
 
@@ -837,25 +837,25 @@ Once you're in a guild, two things make it feel like home.
 
 **Tag** — fancy formatting that appears next to your name in chat. Use MiniMessage:
 
-```
+```text
 /g tag <gradient:#FF6A00:#FF1F00>Lotus</gradient>
-```
+```text
 
 Or run `/g tag` with no arguments to open a visual editor.
 
 **Home** — a teleport point your guild can share. Stand where you want it and run:
 
-```
+```text
 /g sethome
-```
+```text
 
 That sets the default home. You can have multiple — `/g sethome shop`, `/g sethome mine`. Teleport with `/g home` or `/g home <name>`. See [Players → Homes](../players/homes.md).
 
 ## 4. Inviting a friend
 
-```
+```text
 /g invite <player>
-```
+```text
 
 They run `/g accept <yourguild>` (or click the chat prompt). Done.
 
@@ -890,21 +890,21 @@ If you got this far you're functional. Pick one:
 - **Read the [How do I…? index](../players/how-do-i.md)** — every common task with a deep link to the right page.
 
 That's the tour. The rest of the wiki is reference — come back as needed.
-```
+```text
 
 - [ ] **Step 2: Lint + build**
 
 ```bash
 python tools/wiki/lint_frontmatter.py
 mkdocs build --strict
-```
+```text
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add wiki/docs/getting-started/walkthrough.md
 git commit -m "docs(wiki): write 7-step Getting Started walkthrough"
-```
+```text
 
 ---
 
@@ -961,7 +961,7 @@ Mostly. A few menus open as chat-based forms instead of inventory GUIs, and clic
 ## Where do I report a bug?
 
 Tell staff in-game or open an issue at <https://github.com/BadgersMC/LumaGuilds/issues>.
-```
+```text
 
 - [ ] **Step 2: Lint + build, commit**
 
@@ -970,7 +970,7 @@ python tools/wiki/lint_frontmatter.py
 mkdocs build --strict
 git add wiki/docs/getting-started/faq.md
 git commit -m "docs(wiki): write Getting Started FAQ"
-```
+```text
 
 ---
 
@@ -1043,13 +1043,13 @@ class HelpTopicTest {
         }
     }
 }
-```
+```text
 
 - [ ] **Step 2: Run test — expect compile failure**
 
 ```bash
 ./gradlew test --tests "net.lumalyte.lg.interaction.help.HelpTopicTest"
-```
+```text
 
 Expected: compile error — classes don't exist yet.
 
@@ -1067,7 +1067,7 @@ data class HelpCommandEntry(
     val blurb: String,
     val prefill: String,
 )
-```
+```text
 
 - [ ] **Step 4: Create `HelpTopic.kt`**
 
@@ -1095,13 +1095,13 @@ data class HelpTopic(
         private val SLUG_REGEX = Regex("^[a-z0-9]+(-[a-z0-9]+)*$")
     }
 }
-```
+```text
 
 - [ ] **Step 5: Run test — expect pass**
 
 ```bash
 ./gradlew test --tests "net.lumalyte.lg.interaction.help.HelpTopicTest"
-```
+```text
 
 Expected: PASS.
 
@@ -1112,7 +1112,7 @@ git add src/main/kotlin/net/lumalyte/lg/interaction/help/HelpCommandEntry.kt \
         src/main/kotlin/net/lumalyte/lg/interaction/help/HelpTopic.kt \
         src/test/kotlin/net/lumalyte/lg/interaction/help/HelpTopicTest.kt
 git commit -m "feat(help): add HelpTopic and HelpCommandEntry data classes"
-```
+```text
 
 ---
 
@@ -1188,13 +1188,13 @@ class HelpTopicsTest {
         }
     }
 }
-```
+```text
 
 - [ ] **Step 2: Run test — expect failure (HelpTopics doesn't exist)**
 
 ```bash
 ./gradlew test --tests "net.lumalyte.lg.interaction.help.HelpTopicsTest"
-```
+```text
 
 Expected: compile error.
 
@@ -1357,13 +1357,13 @@ object HelpTopics {
 
     fun bySlug(slug: String): HelpTopic? = bySlugMap[slug.lowercase()]
 }
-```
+```text
 
 - [ ] **Step 4: Run test — expect failures on ordering**
 
 ```bash
 ./gradlew test --tests "net.lumalyte.lg.interaction.help.HelpTopicsTest"
-```
+```text
 
 Expected: passes. If the ordering test fails, the first-four order must be `guilds, homes, ranks, chat` — that's the order in `all` above.
 
@@ -1373,7 +1373,7 @@ Expected: passes. If the ordering test fails, the first-four order must be `guil
 git add src/main/kotlin/net/lumalyte/lg/interaction/help/HelpTopics.kt \
         src/test/kotlin/net/lumalyte/lg/interaction/help/HelpTopicsTest.kt
 git commit -m "feat(help): add HelpTopics registry (source of truth for help + wiki)"
-```
+```text
 
 ---
 
@@ -1452,13 +1452,13 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-```
+```text
 
 - [ ] **Step 2: Run locally**
 
 ```bash
 python tools/wiki/check_topic_parity.py
-```
+```text
 
 Expected: `OK — 13 topics in parity with wiki.` (all 13 stub pages exist from Task 4; all 13 are registered from Task 10).
 
@@ -1479,7 +1479,7 @@ Add a new job to the existing workflow:
         with:
           python-version: '3.11'
       - run: python tools/wiki/check_topic_parity.py
-```
+```text
 
 Also expand the workflow's `paths:` filter to trigger when `HelpTopics.kt` changes — already covered by `src/main/kotlin/net/lumalyte/lg/interaction/help/**` in Task 5.
 
@@ -1488,7 +1488,7 @@ Also expand the workflow's `paths:` filter to trigger when `HelpTopics.kt` chang
 ```bash
 git add tools/wiki/check_topic_parity.py .github/workflows/wiki-checks.yml
 git commit -m "ci(wiki): enforce HelpTopics.kt <-> wiki/docs/players/ slug parity"
-```
+```text
 
 ---
 
@@ -1566,13 +1566,13 @@ private fun Component.findSuggestCommandClick(value: String): Component? =
         val ce = it.clickEvent()
         ce?.action() == ClickEvent.Action.SUGGEST_COMMAND && ce.value() == value
     }
-```
+```text
 
 - [ ] **Step 2: Run test — expect compile failure**
 
 ```bash
 ./gradlew test --tests "net.lumalyte.lg.interaction.help.HelpTopicsRendererTest"
-```
+```text
 
 Expected: compile error.
 
@@ -1685,13 +1685,13 @@ object HelpTopicsRenderer {
         return out.build()
     }
 }
-```
+```text
 
 - [ ] **Step 4: Run test — expect pass**
 
 ```bash
 ./gradlew test --tests "net.lumalyte.lg.interaction.help.HelpTopicsRendererTest"
-```
+```text
 
 Expected: PASS.
 
@@ -1701,7 +1701,7 @@ Expected: PASS.
 git add src/main/kotlin/net/lumalyte/lg/interaction/help/HelpTopicsRenderer.kt \
         src/test/kotlin/net/lumalyte/lg/interaction/help/HelpTopicsRendererTest.kt
 git commit -m "feat(help): render topic menu via Adventure components"
-```
+```text
 
 ---
 
@@ -1753,20 +1753,20 @@ Append to the existing test class (above the private extension functions at the 
         val back = rendered.findRunCommandClick("/g help")
         assertNotNull(back, "No RUN_COMMAND click for '/g help' (Back action)")
     }
-```
+```text
 
 - [ ] **Step 2: Run — expect pass**
 
 ```bash
 ./gradlew test --tests "net.lumalyte.lg.interaction.help.HelpTopicsRendererTest"
-```
+```text
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add src/test/kotlin/net/lumalyte/lg/interaction/help/HelpTopicsRendererTest.kt
 git commit -m "test(help): verify topic-page rendering (click events, wiki link, back action)"
-```
+```text
 
 ---
 
@@ -1806,7 +1806,7 @@ Locate the method at line 1905. Replace from the `@Subcommand("help")` annotatio
         }
         player.sendMessage(renderer.renderTopicPage(found))
     }
-```
+```text
 
 - [ ] **Step 2: Add the imports near the top of the file**
 
@@ -1818,7 +1818,7 @@ import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.interaction.help.HelpTopics
 import net.lumalyte.lg.interaction.help.HelpTopicsRenderer
-```
+```text
 
 Skip any that are already imported.
 
@@ -1826,7 +1826,7 @@ Skip any that are already imported.
 
 ```bash
 ./gradlew build -x test
-```
+```text
 
 Expected: success.
 
@@ -1834,7 +1834,7 @@ Expected: success.
 
 ```bash
 ./gradlew test
-```
+```text
 
 Expected: all pass, including the new HelpTopics tests.
 
@@ -1847,7 +1847,7 @@ Build the shadow jar (`./gradlew shadowJar`), drop into a local Paper test serve
 ```bash
 git add src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt
 git commit -m "refactor(help): /g help renders from HelpTopicsRenderer (clickable, topic-based)"
-```
+```text
 
 ---
 
@@ -1930,7 +1930,7 @@ How to create, join, leave, transfer, and disband guilds.
 - [Ranks & Permissions](ranks.md)
 - [Homes](homes.md)
 - [Alliances & Diplomacy](alliances.md)
-```
+```text
 
 Source-of-truth check: cross-reference `GuildCommand.kt` lines 61 (`@Subcommand("create")`), 988 (`join`), 1269 (`leave`), 867 (`disband`), 1352 (`transfer`), 837 (`info`), 1103 (`list`) for exact behaviors and permissions.
 
@@ -1941,7 +1941,7 @@ python tools/wiki/lint_frontmatter.py
 mkdocs build --strict
 git add wiki/docs/players/guilds.md
 git commit -m "docs(wiki): write Players/Guilds page"
-```
+```text
 
 ---
 
@@ -2062,7 +2062,7 @@ python tools/wiki/lint_frontmatter.py
 mkdocs build --strict
 git add wiki/docs/players/<topic>.md
 git commit -m "docs(wiki): write Players/<topic> page"
-```
+```text
 
 ---
 
@@ -2143,13 +2143,13 @@ Quick index. Scan for your task; click through to the page that answers it.
 - [Check my guild level / XP](progression.md#checking-your-guilds-level)
 - [Mark a shop as guild-owned](shop.md#marking-a-shop-as-guild-owned)
 - [What's different on Bedrock?](bedrock.md)
-```
+```text
 
 - [ ] **Step 2: Verify all anchor links resolve**
 
 ```bash
 mkdocs build --strict
-```
+```text
 
 Expected: passes. `--strict` will fail on any broken anchor (`#…`) link. If a link points to an H2 that doesn't exist yet, either fix the link (matching the actual H2 in the target page) or add the H2 to the target page.
 
@@ -2158,7 +2158,7 @@ Expected: passes. `--strict` will fail on any broken anchor (`#…`) link. If a 
 ```bash
 git add wiki/docs/players/how-do-i.md
 git commit -m "docs(wiki): write Players/How-do-I index"
-```
+```text
 
 ---
 
@@ -2192,7 +2192,7 @@ python tools/wiki/lint_frontmatter.py
 python tools/wiki/check_topic_parity.py
 mkdocs build --strict
 ./gradlew test
-```
+```text
 
 ### Adding a new topic
 
@@ -2208,14 +2208,14 @@ mkdocs build --strict
 - **Renaming the slug:** treat as remove + add. The old slug is permanently retired (Hermes Agent and any cached links may still reference it via the redirect).
 
 Slugs are forever. The display name, summary, and command list inside a topic are not — those evolve freely.
-```
+```text
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add CONTRIBUTING.md
 git commit -m "docs(contributing): add wiki/help sync rule and CI check overview"
-```
+```text
 
 ---
 
@@ -2231,7 +2231,7 @@ python tools/wiki/check_topic_parity.py
 mkdocs build --strict
 ./gradlew test
 ./gradlew build -x test
-```
+```text
 
 Expected: every step passes.
 
@@ -2242,7 +2242,7 @@ After `mkdocs build`, inspect:
 ```bash
 ls site/llms.txt site/llms-full.txt
 head -40 site/llms.txt
-```
+```text
 
 Expected: both files exist; `llms.txt` lists every page with summaries, organized by the section headers configured in `mkdocs.yml`.
 
@@ -2250,7 +2250,7 @@ Expected: both files exist; `llms.txt` lists every page with summaries, organize
 
 ```bash
 mkdocs serve
-```
+```text
 
 Open <http://127.0.0.1:8000/> in a browser. Click through:
 - Home → Getting Started → Walkthrough (verify all section anchors).
@@ -2263,7 +2263,7 @@ Build the plugin:
 
 ```bash
 ./gradlew shadowJar
-```
+```text
 
 Drop the jar in a local Paper server. Test:
 - `/g help` — topic menu renders with all 13 topics; clicking [Homes] runs `/g help homes`.

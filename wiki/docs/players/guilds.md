@@ -32,10 +32,10 @@ A guild is a named group of players with one owner, optional ranks, shared homes
 
 Pick a name and run `/g create <name>`. Names are plain text only — max 32 characters, using letters, numbers, and the punctuation `'`, `&`, `-`. **No spaces, no color codes, no MiniMessage tags** (colors and gradients go in your *tag* instead — see the [Identity](identity.md) page). Use `_` or `CamelCase` for multi-word names. Examples:
 
-```
+```text
 /g create WhiteLotus
 /g create White_Lotus
-```
+```text
 
 You'll become the owner automatically. Your new guild starts at level 1 with one home slot and basic vault access.
 
@@ -43,9 +43,9 @@ You'll become the owner automatically. Your new guild starts at level 1 with one
 
 For open guilds, just run `/g join <name>`. For invite-only guilds, a member with permission must run `/g invite <you>` first. You'll see a chat prompt or notification; accept it with `/g join <them>` or click the prompt button.
 
-```
+```text
 /g join WhiteLotus
-```
+```text
 
 You can only be in one guild at a time.
 
@@ -60,15 +60,15 @@ Anyone can leave at any time with `/g leave`. If you're the owner, you can't lea
 
 Use `/g list` to see all open guilds... This will be changed to show all guilds. A seperate `/guild lfg` command will take on open guild browsing.
 
-```
+```text
 /g list
-```
+```text
 
 Use `/g info [guild]` to zoom into one guild's details — members, homes, relations, and level.
 
-```
+```text
 /g info WhiteLotus
-```
+```text
 
 ## Gotchas
 

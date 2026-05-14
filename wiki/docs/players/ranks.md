@@ -27,9 +27,9 @@ Every member is assigned a rank. Ranks have a *priority* (0 = owner, higher numb
 
 Use `/g ranks` or `/g menu` → Ranks to access rank management. From there you can create, delete, rename, reorder, and set permissions on ranks.
 
-```
+```text
 /g ranks
-```
+```text
 
 ## Creating a rank
 
@@ -54,21 +54,21 @@ Only give permissions you trust members to use safely.
 
 In the rank menu, use the ▲ / ▼ buttons next to each rank to move it up or down. Higher priority = more trust. The owner rank (priority 0) can't move, and you can't move a rank above your own priority.
 
-```
+```text
 Owner (priority 0)
   ▼
 Moderator (priority 1)
   ▼
 Member (priority 2)
-```
+```text
 
 ## Promoting and demoting members
 
 Open `/g menu` → Members. Click a member and select Promote or Demote. Both online and offline members can be managed.
 
-```
+```text
 /g menu
-```
+```text
 
 The system will confirm the action before applying it. You can't promote someone above your own rank, and you can't demote the owner.
 

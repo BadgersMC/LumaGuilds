@@ -54,4 +54,11 @@ class HelpTopicTest {
             HelpTopic(slug = "x", displayName = "", summary = "y", commands = emptyList())
         }
     }
+
+    @Test
+    fun `HelpTopic rejects a blank summary`() {
+        assertFailsWith<IllegalArgumentException> {
+            HelpTopic(slug = "x", displayName = "y", summary = "", commands = emptyList())
+        }
+    }
 }

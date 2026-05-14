@@ -2,7 +2,7 @@
 title: Lunar Client integration
 audience: admin
 topic: lunar
-summary: Lunar Client features LumaGuilds drives.
+summary: LumaGuilds features available in Lunar Client.
 keywords: []
 related: []
 updated: 2026-05-13

@@ -14,7 +14,7 @@ This page orients you to the server and the guild system in about two minutes. W
 
 ## What is EnthusiaSMP?
 
-<!-- TODO: 2–3 sentence pitch: what kind of server (semi-anarchy SMP), the vibe, who runs it (FainNoir owns; BadgersMC dev). -->
+EnthusiaSMP is a semi-anarchy survival multiplayer server where anything goes — except the systems. Build, raid, ally, and guild up in a true sandbox where only your reputation is safe. Owned and operated by FainNoir with plugin development by BadgersMC.
 
 ## What does LumaGuilds add?
 

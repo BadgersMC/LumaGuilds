@@ -43,7 +43,13 @@ def parse_frontmatter(text: str) -> dict | None:
     end = text.find("\n---", 4)
     if end == -1:
         return None
-    return yaml.safe_load(text[4:end])
+    try:
+        parsed = yaml.safe_load(text[4:end])
+    except yaml.YAMLError:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    return parsed
 
 
 def lint(path: Path) -> list[str]:

@@ -1,7 +1,7 @@
 ---
-title: Placeholders (internal)
+title: Placeholders
 audience: dev
-topic: placeholders-internal
+topic: placeholders
 summary: How placeholder resolution works internally.
 keywords: []
 related: []
