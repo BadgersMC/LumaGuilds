@@ -55,7 +55,7 @@ Allies don't automatically reach your ally-home. You need to:
 
 See [Homes](homes.md) for more detail on setting and managing ally-homes.
 
-## Gotchas
+## Recently Fixed/Changed
 
 - Pending alliance requests no longer auto-display as accepted (fixed in 2026 — they used to appear immediately in the allies list before the other side confirmed).
 - Going neutral cancels pending requests on both sides instantly.

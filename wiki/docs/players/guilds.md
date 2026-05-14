@@ -58,7 +58,7 @@ Anyone can leave at any time with `/g leave`. If you're the owner, you can't lea
 
 ## Browsing guilds
 
-Use `/g list` to see all guilds on the server with member counts and levels.
+Use `/g list` to see all open guilds... This will be changed to show all guilds. A seperate `/guild lfg` command will take on open guild browsing.
 
 ```
 /g list
@@ -74,7 +74,7 @@ Use `/g info [guild]` to zoom into one guild's details — members, homes, relat
 
 - You can only be in one guild at a time. Leaving one guild to join another happens instantly.
 - Disbanding is irreversible — double-check before running `/g disband`.
-- The owner role is single and cannot be transferred except via `/g transfer`. If the owner goes inactive and you're a mod, you cannot promote yourself to owner.
+- The owner role is single and cannot be transferred except via `/g transfer`. If the owner goes inactive and you're a mod, you cannot promote yourself to owner. Contact staff if this is an issue.
 - Guild XP comes from member activity — the more active your members are, the faster you level.
 
 ## Related

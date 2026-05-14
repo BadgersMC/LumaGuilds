@@ -18,11 +18,7 @@ No. You can play the entire server solo. Joining a guild just unlocks the guild-
 
 `/g leave`. If you're the owner, you must transfer ownership first (`/g transfer <player>`) or disband (`/g disband`).
 
-## My guild tag isn't showing colors in chat
-
-The colors are stored as MiniMessage, which the chat plugin converts to display colors. If they're not rendering, you may be in a chat channel that doesn't format them. Try `/g chat` to switch to guild chat — colors render there.
-
-## Why does `/g home` say "teleport failed"?
+## Why does `/g home` say "Unsafe"?
 
 The destination is unsafe (lava/fire/cactus right where the home was set), or a protection plugin blocked the teleport. Move the home (`/g sethome` somewhere safe) and try again.
 
@@ -40,4 +36,4 @@ Mostly. A few menus open as chat-based forms instead of inventory GUIs, and clic
 
 ## Where do I report a bug?
 
-Tell staff in-game or open an issue at <https://github.com/BadgersMC/LumaGuilds/issues>.
+Report it in our Discord, or open an issue at <https://github.com/BadgersMC/LumaGuilds/issues>.

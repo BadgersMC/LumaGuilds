@@ -22,6 +22,8 @@ Switch your guild between Peaceful and Hostile mode to control PvP and conflict 
 
 Every guild is either in **Peaceful** or **Hostile** mode. Peaceful guilds opt out of guild-vs-guild PvP and can't be enemies or be at war. Hostile guilds can be enemied and warred. Switching modes is reversible but may have cooldowns or restrictions configured by the server.
 
+**Note: This is purely for competitive/social purposes, and does not stop Guilds from killing your Guild.**
+
 ## Switching to Peaceful
 
 Run `/g mode`, then click the Peaceful option in the menu. Confirm the switch:
