@@ -40,7 +40,7 @@
 - **Public URL:** `https://badgersmc.github.io/LumaGuilds/` (custom domain optional, deferred).
 - **Key plugins:**
   - `material` theme (search, nav, dark mode).
-  - `mkdocs-material[imaging]` (social cards).
+  - `mkdocs-material` (search, nav, dark mode — social cards deferred).
   - `mkdocs-llmstxt` (auto-generates `/llms.txt` and `/llms-full.txt` for Hermes).
   - `mkdocs-awesome-pages-plugin` (per-folder `.pages` ordering files; keeps `mkdocs.yml` clean).
   - `mkdocs-redirects` (rename pages without breaking external links or Hermes-cached URLs).

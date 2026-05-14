@@ -29,7 +29,7 @@ Run `/g vault` from anywhere in the world (you must have the "Use Vault" rank pe
 
 ```text
 /g vault
-```text
+```
 
 Add items by right-clicking them into the vault, or take items that other members have put there.
 
@@ -39,7 +39,7 @@ Use `/g getvault` to get a special chest item that, when placed and right-clicke
 
 ```text
 /g getvault
-```text
+```
 
 Place it in a dedicated vault room so members can access the vault without using the command. The item is tagged so it can't be repurposed.
 

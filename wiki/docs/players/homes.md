@@ -33,7 +33,7 @@ Stand where you want it and run `/g sethome`. This creates or overwrites the `ma
 
 ```text
 /g sethome
-```text
+```
 
 Your guild members can now teleport there with `/g home`.
 
@@ -45,7 +45,7 @@ Once you unlock additional home slots (by leveling your guild), you can create n
 /g sethome spawner
 /g sethome mine
 /g sethome goldfarm
-```text
+```
 
 Use `/g homes` to list all homes your guild has set.
 
@@ -56,7 +56,7 @@ Teleport to your main home with `/g home`. For a named home, use `/g home <name>
 ```text
 /g home
 /g home spawner
-```text
+```
 
 There's a short countdown — don't move or the teleport cancels. The destination must be safe (not lava, fire, or cactus right at the spot). Safe blocks like ladders, slabs, and water work fine.
 
@@ -66,7 +66,7 @@ Use `/g removehome <name>` to delete a named home:
 
 ```text
 /g removehome spawner
-```text
+```
 
 You'll get a confirmation prompt. The slot opens up for a new home.
 
@@ -76,7 +76,7 @@ Your ally-home is separate from regular homes — it's a spot allied guilds can 
 
 ```text
 /g setallyhome
-```text
+```
 
 Only members with the "Set Ally-Home" permission can do this. Use `/g removeallyhome` to remove it.
 

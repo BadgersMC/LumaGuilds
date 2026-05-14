@@ -35,7 +35,7 @@ Pick a name and run `/g create <name>`. Names are plain text only — max 32 cha
 ```text
 /g create WhiteLotus
 /g create White_Lotus
-```text
+```
 
 You'll become the owner automatically. Your new guild starts at level 1 with one home slot and basic vault access.
 
@@ -45,7 +45,7 @@ For open guilds, just run `/g join <name>`. For invite-only guilds, a member wit
 
 ```text
 /g join WhiteLotus
-```text
+```
 
 You can only be in one guild at a time.
 
@@ -62,13 +62,13 @@ Use `/g list` to see all open guilds... This will be changed to show all guilds.
 
 ```text
 /g list
-```text
+```
 
 Use `/g info [guild]` to zoom into one guild's details — members, homes, relations, and level.
 
 ```text
 /g info WhiteLotus
-```text
+```
 
 ## Gotchas
 

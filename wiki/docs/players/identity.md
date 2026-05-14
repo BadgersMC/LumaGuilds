@@ -33,7 +33,7 @@ Run `/g tag <text>` directly with MiniMessage formatting. Examples:
 /g tag <red>FireGuild</red>
 /g tag <gradient:#FF0000:#00FF00>Rainbow</gradient>
 /g tag <bold><blue>ELITE</blue></bold>
-```text
+```
 
 Max 32 visible characters (formatting tags don't count toward the limit).
 
@@ -47,7 +47,7 @@ Use `/g desc <text>` — appears on your guild's info card and in directory list
 
 ```text
 /g desc A relaxed community for builders and redstoners
-```text
+```
 
 ## Choosing an emoji
 
@@ -59,13 +59,13 @@ Use `/g rename <name>` (owner-only typically — check your rank's permissions).
 
 ```text
 /g rename MyGuild
-```text
+```
 
 Renaming doesn't change your tag — those are independent.
 
 ## Setting a banner
 
-Open `/g menu` → Banner. Click to enter the banner selection menu, where you can drag your custom banner design into the menu, and show off your desgins. The banner is shown in your info card, alliance menus, and on guild-owned shops. 
+Open `/g menu` → Banner. Click to enter the banner selection menu, where you can drag your custom banner design into the menu, and show off your designs. The banner is shown in your info card, alliance menus, and on guild-owned shops. 
 
 ## Gotchas
 

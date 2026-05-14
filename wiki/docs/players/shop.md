@@ -28,7 +28,7 @@ First, set up your shop normally with the shop plugin. Then stand near it (or lo
 
 ```text
 /g setshop
-```text
+```
 
 The shop is now linked to your guild.
 
