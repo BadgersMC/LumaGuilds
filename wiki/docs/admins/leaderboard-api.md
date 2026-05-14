@@ -29,8 +29,16 @@ Returns the top guilds ranked by the specified category.
 | Parameter | Type | Default | Range | Notes |
 |-----------|------|---------|-------|-------|
 | `type` | string | `level` | `level`, `balance`, `activity`, `members`, `age` | Leaderboard category |
-| `period` | string | `ALL_TIME` | `WEEKLY`, `DAILY`, `MONTHLY`, `ALL_TIME` | Activity period (ignored for level/balance/members/age, which are point-in-time snapshots) |
+| `period` | string | `ALL_TIME` | `WEEKLY` (only — see warning below) | Activity period; **currently only `WEEKLY` data exists** — see warning below |
 | `limit` | integer | 10 | 1–50 | Number of entries to return |
+
+!!! warning "`period` is currently advisory only"
+    The endpoint accepts `DAILY`, `MONTHLY`, `WEEKLY`, and `ALL_TIME` to keep the
+    schema forward-compatible, but the underlying activity tracker is bucketed
+    weekly. All four values currently return the **current week's** activity
+    data — they are NOT silently different windows. If your dashboard depends
+    on daily/monthly granularity, do not consume `period` until activity
+    tracking is extended (tracked separately).
 
 **Request example:**
 

@@ -909,7 +909,7 @@ apollo:
   # Rich Presence Module - Show guild info on Discord/Lunar Client launcher
   richpresence:
     enabled: true
-    server_ip: "play.enthusia.info"
+    server_ip: "play.example.com"
 ```
 
 **What it does:** Enables Lunar Client Apollo enhancements for users on LC. Disabling it doesn't break non-LC players. Adjust `refresh_rate: 1` (ticks) to reduce update frequency if performance suffers. Set `server_ip` to your server's public IP for Discord rich presence.
