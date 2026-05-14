@@ -1,0 +1,11 @@
+nav:
+  - Installation: installation.md
+  - Permission nodes: permissions.md
+  - Override & recovery: override.md
+  - Troubleshooting: troubleshooting.md
+  - PlaceholderAPI: placeholderapi.md
+  - RoseChat: rosechat.md
+  - Geyser/Floodgate: geyser.md
+  - Lunar Client: lunar.md
+  - Web leaderboard API: leaderboard-api.md
+  - Claims: claims.md
