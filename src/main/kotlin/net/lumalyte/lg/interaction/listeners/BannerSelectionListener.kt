@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
+import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemStack
@@ -25,9 +26,10 @@ class BannerSelectionListener : Listener, KoinComponent {
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
 
-        // Identify the banner menu via the per-player tracker — InventoryFramework owns
-        // the inventory holder, so a custom InventoryHolder cannot be attached.
-        if (!GuildBannerMenu.activeViewers.contains(player.uniqueId)) return
+        // Verify this click is targeting the player's specific GuildBannerMenu inventory
+        // instance, not some other chest a different plugin opened.
+        val expectedInventory = GuildBannerMenu.activeMenus[player.uniqueId]
+        if (expectedInventory == null || event.view.topInventory != expectedInventory) return
 
         // Only handle clicks in the top inventory (menu)
         if (event.clickedInventory?.type != InventoryType.CHEST) return
@@ -84,14 +86,76 @@ class BannerSelectionListener : Listener, KoinComponent {
     }
 
     @EventHandler
+    fun onInventoryDrag(event: InventoryDragEvent) {
+        val player = event.whoClicked as? Player ?: return
+
+        // Verify this drag is targeting the player's specific GuildBannerMenu inventory
+        val expectedInventory = GuildBannerMenu.activeMenus[player.uniqueId]
+        if (expectedInventory == null || event.view.topInventory != expectedInventory) return
+
+        val topInventory = event.view.topInventory
+        val topSlots = event.rawSlots.filter { it < topInventory.size }
+
+        // Drag doesn't touch the menu — ignore
+        if (topSlots.isEmpty()) return
+
+        // Block any drag touching multiple menu slots
+        if (topSlots.size > 1) {
+            event.isCancelled = true
+            player.sendMessage("§c❌ Drag-clicking across multiple menu slots is disabled.")
+            return
+        }
+
+        // Only allow single-slot drag into slot 11 with a banner
+        val slot = topSlots.first()
+        if (slot != 11) {
+            event.isCancelled = true
+            return
+        }
+
+        val draggedItem = event.oldCursor
+        if (!isBanner(draggedItem.type)) {
+            event.isCancelled = true
+            return
+        }
+
+        val currentItem = topInventory.getItem(slot)
+        val isPlaceholder = currentItem?.type == Material.LIGHT_GRAY_STAINED_GLASS_PANE
+        val isEmpty = currentItem == null || currentItem.type == Material.AIR
+
+        if (!isPlaceholder && !isEmpty) {
+            event.isCancelled = true
+            return
+        }
+
+        // Valid banner placement via drag — cancel vanilla behavior and handle manually
+        event.isCancelled = true
+
+        val singleBanner = draggedItem.clone()
+        singleBanner.amount = 1
+        topInventory.setItem(slot, singleBanner)
+
+        // Remove 1 banner from cursor
+        if (draggedItem.amount > 1) {
+            val remaining = draggedItem.clone()
+            remaining.amount = draggedItem.amount - 1
+            player.setItemOnCursor(remaining)
+        } else {
+            player.setItemOnCursor(ItemStack.of(Material.AIR))
+        }
+
+        player.sendMessage("§7📍 Banner placed! Click '§a⏳ APPLY CHANGES§7' to save.")
+    }
+
+    @EventHandler
     fun onInventoryClose(event: InventoryCloseEvent) {
         val player = event.player as? Player ?: return
-        GuildBannerMenu.activeViewers.remove(player.uniqueId)
+        GuildBannerMenu.activeMenus.remove(player.uniqueId)
     }
 
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
-        GuildBannerMenu.activeViewers.remove(event.player.uniqueId)
+        GuildBannerMenu.activeMenus.remove(event.player.uniqueId)
     }
 
     private fun isBanner(material: Material): Boolean {
