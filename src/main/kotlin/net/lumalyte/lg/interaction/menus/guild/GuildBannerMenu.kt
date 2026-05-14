@@ -24,6 +24,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import org.bukkit.inventory.Inventory
 
 class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                      private var guild: Guild): Menu, KoinComponent {
@@ -35,15 +36,16 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     companion object {
-        // Tracks which players currently have the Java guild banner menu open. Used by
-        // BannerSelectionListener to identify banner-placement clicks without relying on
-        // InventoryHolder identity (InventoryFramework owns the holder) or the inventory
-        // title (deprecated and exploit-prone).
-        val activeViewers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
+        // Maps player UUID -> the specific Inventory instance of their currently-open
+        // GuildBannerMenu. Used by BannerSelectionListener to verify clicks are hitting
+        // THIS menu and not some other chest a different plugin opened.
+        val activeMenus: MutableMap<UUID, Inventory> = ConcurrentHashMap()
     }
 
     override fun open() {
-        activeViewers.add(player.uniqueId)
+        // Clean up any stale tracking for this player before opening a new instance.
+        // A player can only have one inventory open at a time; replaces stale entries.
+        activeMenus.remove(player.uniqueId)
 
         // Create a 3x9 GUI for banner selection
         val gui = ChestGui(3, "§6Guild Banner - ${guild.name}")
@@ -84,6 +86,10 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
         gui.addPane(pane)
         gui.show(player)
+
+        // Record the specific inventory instance so BannerSelectionListener can
+        // distinguish THIS menu from any other chest the player might open.
+        activeMenus[player.uniqueId] = gui.getInventory()
     }
 
     private fun addCurrentBannerDisplay(pane: StaticPane, x: Int, y: Int) {
