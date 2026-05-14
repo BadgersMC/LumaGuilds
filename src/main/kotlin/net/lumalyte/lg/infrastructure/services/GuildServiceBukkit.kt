@@ -37,10 +37,21 @@ class GuildServiceBukkit(
 ) : GuildService {
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
-    
+
+    companion object {
+        // Allow only alphanumerics and spaces. Blocks color codes (&r, etc.),
+        // punctuation [&!@#$%^&*()"',.] and any other non-[a-zA-Z0-9 ] char.
+        private val GUILD_NAME_ALLOWED = Regex("^[A-Za-z0-9 ]+$")
+    }
+
+    private fun isGuildNameValid(name: String): Boolean {
+        if (name.isBlank() || name.length > 32) return false
+        return GUILD_NAME_ALLOWED.matches(name)
+    }
+
     override fun createGuild(name: String, ownerId: UUID, banner: String?): Guild? {
         // Validate guild name
-        if (name.isBlank() || name.length > 32) {
+        if (!isGuildNameValid(name)) {
             logger.warn("Invalid guild name: $name")
             return null
         }
@@ -160,7 +171,7 @@ class GuildServiceBukkit(
         }
 
         // Validate new name
-        if (newName.isBlank() || newName.length > 32) {
+        if (!isGuildNameValid(newName)) {
             logger.warn("Invalid guild name: $newName")
             return false
         }
