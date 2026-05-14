@@ -1,0 +1,67 @@
+site_name: LumaGuilds
+site_url: https://badgersmc.github.io/LumaGuilds/
+site_description: Player wiki and admin/developer reference for the LumaGuilds plugin.
+repo_url: https://github.com/BadgersMC/LumaGuilds
+repo_name: BadgersMC/LumaGuilds
+edit_uri: edit/main/wiki/docs/
+
+docs_dir: wiki/docs
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - awesome-pages
+  - redirects:
+      redirect_maps: {}
+  - llmstxt:
+      full_output: llms-full.txt
+      sections:
+        Getting Started:
+          - getting-started/**/*.md
+        Players:
+          - players/**/*.md
+        Admins:
+          - admins/**/*.md
+        Developers:
+          - developers/**/*.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+strict: true
