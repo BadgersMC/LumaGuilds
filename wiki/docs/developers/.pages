@@ -1,0 +1,13 @@
+nav:
+  - Getting started: getting-started.md
+  - Architecture: architecture.md
+  - Domain layer: domain.md
+  - Application layer: application.md
+  - Infrastructure layer: infrastructure.md
+  - Interaction layer: interaction.md
+  - Master diagram: master-diagram.md
+  - API reference: api-reference.md
+  - Placeholders (internal): placeholders.md
+  - Emoji permissions: emoji-permissions.md
+  - Migration safety: migration-safety.md
+  - Schema setup: schema-setup.md
