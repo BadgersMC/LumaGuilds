@@ -8,6 +8,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import me.clip.placeholderapi.expansion.PlaceholderExpansion
+import me.clip.placeholderapi.expansion.Relational
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
@@ -42,7 +43,8 @@ import java.util.concurrent.ConcurrentHashMap
  * - %lumaguilds_guild_kills% - Player's guild total kills
  * - %lumaguilds_guild_deaths% - Player's guild total deaths
  * - %lumaguilds_guild_kdr% - Player's guild K/D ratio
- * - %lumaguilds_rel_<player>_status% - Relationship with another player (🔴 enemy, 🔵 ally, 🟢 teammate, ⚪ truce, blank neutral)
+ * - %lumaguilds_rel_<player>_status% - Relationship with another player by name (🔴 enemy, 🔵 ally, 🟢 teammate, ⚪ truce, blank neutral). Useful in chat plugins that substitute a sender token.
+ * - %rel_lumaguilds_status% - PAPI *relational* placeholder. Same icon, but the target is supplied by the consumer (e.g. TAB's per-row context) instead of by name. Use this for tab-list per-row icons.
  *
  * Progression detail (player's guild):
  * - %lumaguilds_guild_age_days% - Days since guild creation
@@ -74,7 +76,7 @@ import java.util.concurrent.ConcurrentHashMap
  *     %lumaguilds_top_level_3_value%
  *     %lumaguilds_top_activity_2_members%
  */
-class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
+class LumaGuildsExpansion : PlaceholderExpansion(), Relational, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -309,38 +311,59 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         val otherPlayer = Bukkit.getPlayer(otherPlayerName)
         if (otherPlayer == null) return "" // Player not online
 
-        // Get guild IDs for both players
-        val playerGuilds = memberService.getPlayerGuilds(player.uniqueId)
-        val otherGuilds = memberService.getPlayerGuilds(otherPlayer.uniqueId)
+        return computeRelationIcon(player.uniqueId, otherPlayer.uniqueId)
+    }
 
-        val playerGuildId = playerGuilds.firstOrNull()
-        val otherGuildId = otherGuilds.firstOrNull()
+    /**
+     * PAPI relational placeholder entry point. Called for `%rel_lumaguilds_<key>%`.
+     *
+     * `one` is the viewer; `two` is the target row's player. TAB-style plugins
+     * invoke this once per (viewer, target) pair so each tab-list row can show
+     * the viewer's relation to that specific player.
+     *
+     * Supported keys:
+     *   - `status` — emoji icon: 🔴 enemy, 🔵 ally, 🟢 teammate, ⚪ truce, blank otherwise.
+     */
+    override fun onPlaceholderRequest(one: Player?, two: Player?, identifier: String?): String? {
+        if (one == null || two == null || identifier == null) return ""
+        return when (identifier.lowercase()) {
+            "status" -> computeRelationIcon(one.uniqueId, two.uniqueId)
+            else -> null
+        }
+    }
+
+    /**
+     * Shared core for both the legacy `%lumaguilds_rel_<name>_status%` placeholder
+     * and the relational `%rel_lumaguilds_status%` placeholder.
+     */
+    private fun computeRelationIcon(viewerId: UUID, targetId: UUID): String {
+        if (viewerId == targetId) return "" // Self → no indicator
+
+        val viewerGuildId = memberService.getPlayerGuilds(viewerId).firstOrNull()
+        val targetGuildId = memberService.getPlayerGuilds(targetId).firstOrNull()
 
         // If either player is not in a guild, they're neutral
-        if (playerGuildId == null || otherGuildId == null) return ""
+        if (viewerGuildId == null || targetGuildId == null) return ""
 
         // Same guild = teammate (green dot)
-        if (playerGuildId == otherGuildId) return "🟢"
+        if (viewerGuildId == targetGuildId) return "🟢"
 
-        // Check relations between guilds
         try {
-            val relation = relationService.getRelation(playerGuildId, otherGuildId)
+            val relation = relationService.getRelation(viewerGuildId, targetGuildId)
             // Only render the indicator for active relations; a PENDING ally request must
             // not be rendered as accepted, and an EXPIRED truce/enemy must not be rendered.
             if (relation != null && relation.isActive()) {
                 return when (relation.type) {
-                    net.lumalyte.lg.domain.entities.RelationType.ENEMY -> "🔴"  // Enemy/War
-                    net.lumalyte.lg.domain.entities.RelationType.ALLY -> "🔵"   // Ally
-                    net.lumalyte.lg.domain.entities.RelationType.TRUCE -> "⚪"  // Truce
-                    net.lumalyte.lg.domain.entities.RelationType.NEUTRAL -> ""  // Neutral
+                    net.lumalyte.lg.domain.entities.RelationType.ENEMY -> "🔴"
+                    net.lumalyte.lg.domain.entities.RelationType.ALLY -> "🔵"
+                    net.lumalyte.lg.domain.entities.RelationType.TRUCE -> "⚪"
+                    net.lumalyte.lg.domain.entities.RelationType.NEUTRAL -> ""
                 }
             }
         } catch (e: Exception) {
-                    // PlaceholderAPI requires safe fallback - service errors must not bubble up
-            // Relation service error, return neutral
+            // PlaceholderAPI requires safe fallback — service errors must not bubble up
         }
 
-        // Default to neutral (no relation)
         return ""
     }
 
