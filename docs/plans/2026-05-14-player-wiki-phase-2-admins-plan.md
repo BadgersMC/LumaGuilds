@@ -92,13 +92,13 @@ updated: 2026-05-14
 
 **Commits:** one commit per page (small) or one per task batch (still small). Either is fine — match Phase 1 cadence.
 
-**Lint/build before every commit:**
+**Lint/build before every commit** (run from the repo root or the worktree root — wherever this plan's checkout lives):
 
 ```bash
-cd D:/BadgersMC-Dev/LumaGuilds/.claude/worktrees/wiki-phase2
 python tools/wiki/lint_frontmatter.py
 python tools/wiki/check_topic_parity.py
 python -m mkdocs build --strict
+npx --yes markdownlint-cli2 "wiki/docs/**/*.md" "docs/plans/*.md"
 ```
 
 ---
@@ -442,16 +442,16 @@ A 5–10 line summary, one bullet per Admin page, of which content sources feed 
 
 **Files:** none (verification only).
 
-- [ ] **Step 1:** Full check sequence:
+- [ ] **Step 1:** Full check sequence (run from the repo / worktree root):
 
   ```bash
-  cd D:/BadgersMC-Dev/LumaGuilds/.claude/worktrees/wiki-phase2
   python tools/wiki/lint_frontmatter.py
   python tools/wiki/check_topic_parity.py
   python -m mkdocs build --strict
+  npx --yes markdownlint-cli2 "wiki/docs/**/*.md" "docs/plans/*.md"
   ```
 
-  All three must pass.
+  All four must pass.
 
 - [ ] **Step 2:** Verify `site/llms.txt` Admins section is now populated:
 

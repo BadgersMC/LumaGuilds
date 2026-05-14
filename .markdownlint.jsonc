@@ -1,0 +1,45 @@
+{
+  // Markdownlint config for the LumaGuilds wiki + plan docs.
+  // Tuned for MkDocs Material conventions and prose-heavy documentation.
+
+  "default": true,
+
+  // Line length: prose with code blocks and tables; hard wrap is more pain than benefit.
+  "MD013": false,
+
+  // Single H1 per document: one H1 per page is enforced by our front-matter convention,
+  // but markdownlint MD025 doesn't read front-matter, so we disable it.
+  "MD025": false,
+
+  // Allow inline HTML (MkDocs Material admonitions, kbd, sub/sup).
+  "MD033": false,
+
+  // Bare URLs are fine in changelogs and admonitions.
+  "MD034": false,
+
+  // First-line H1 not enforced — every page starts with YAML front-matter, then H1.
+  "MD041": false,
+
+  // Trailing blank line at EOF — git handles it; don't fail CI on this.
+  "MD047": false,
+
+  // Table column alignment — we don't enforce pipe alignment in source markdown.
+  "MD060": false,
+
+  // Allow duplicate H2s like "Quick reference" / "Gotchas" / "Related" across the same page
+  // when they're under different parent sections (siblings_only). The relevant case here
+  // is repeating these as the page's only H2s — which is allowed.
+  "MD024": { "siblings_only": true },
+
+  // Fenced code blocks MUST declare a language (the rule CodeRabbit hammered).
+  "MD040": true,
+
+  // Fenced code blocks need blank lines around them.
+  "MD031": true,
+
+  // No spaces inside code-span backticks.
+  "MD038": true,
+
+  // Allow ordered list numbering "1." for every item OR sequential — both fine.
+  "MD029": { "style": "one_or_ordered" }
+}

@@ -91,7 +91,7 @@ The actual recipient filtering (who sees the message) is handled by LumaGuilds' 
    - Player B does not see it.
 
 5. **If the message leaks to global:**
-   - Check [Troubleshooting → Chat leaks](#gotchas).
+   - See [Troubleshooting → guild chat leaks to global](troubleshooting.md#guild-chat-leaks-to-global-with-rosechat-installed).
    - Verify RoseChat's `guild` channel is configured in `channels.yml`.
    - Confirm LumaGuilds detected RoseChat (check console at startup for registration logs).
 

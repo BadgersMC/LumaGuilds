@@ -122,12 +122,12 @@ Check your server logs (`logs/latest.log`) for these lines to audit who has used
 
 - **Per-session only:** Restarting the server clears all override flags. Logging out also clears your override state.
 - **Override does NOT bypass `/g transfer`:** The single-owner invariant is still enforced. You can't use override to avoid the transfer-ownership flow; you must properly demote the old owner and promote the new one.
-- **Requires the `bellclaims.admin` permission:** Verify your permission node is set. By default, only OPs have access.
+- **Requires the `lumaguilds.admin` permission:** Verify your permission node is set. By default, only OPs have access. The legacy alias `bellclaims.admin` (inherited from the Bell Claims fork lineage) is still checked by some internal code paths but is granted automatically when you grant `lumaguilds.admin` — see `plugin.yml`.
 - **Override is all-or-nothing:** When ON, you have owner-level access to every guild, not just the broken one. Use caution on semi-anarchy servers where trust is limited.
 - **Claim permission cache:** If claims are enabled and you toggle override, the permission cache is invalidated immediately. No need to rejoin.
 
 ## Related
 
 - [Troubleshooting](troubleshooting.md) — other common issues
-- [Permissions reference](permissions.md) — see `bellclaims.admin` node
+- [Permissions reference](permissions.md) — `lumaguilds.admin` (canonical) and `bellclaims.admin` (legacy alias)
 - [Installation](installation.md) — verify plugin.yml permissions

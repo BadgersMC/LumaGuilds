@@ -8,6 +8,8 @@ on:
       - 'tools/wiki/**'
       - 'src/main/kotlin/net/lumalyte/lg/interaction/help/**'
       - '.github/workflows/wiki-checks.yml'
+      - '.markdownlint.jsonc'
+      - 'docs/plans/*.md'
 
 jobs:
   frontmatter-lint:
@@ -28,6 +30,17 @@ jobs:
         with:
           python-version: '3.11'
       - run: python tools/wiki/check_topic_parity.py
+
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          config: '.markdownlint.jsonc'
+          globs: |
+            wiki/docs/**/*.md
+            docs/plans/*.md
 
   mkdocs-strict-build:
     runs-on: ubuntu-latest

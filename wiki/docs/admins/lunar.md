@@ -32,9 +32,9 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.lunarclient:apollo-api:1.0.9")
-    compileOnly("com.lunarclient:apollo-common:1.0.9")
-    compileOnly("com.lunarclient:apollo-bukkit:1.0.9")
+    compileOnly("com.lunarclient:apollo-api:1.2.3")
+    compileOnly("com.lunarclient:apollo-common:1.2.3")
+    compileOnly("com.lunarclient:apollo-bukkit:1.2.3")
 }
 ```
 
