@@ -357,7 +357,12 @@ data class ProgressionConfig(
     // Leveling curve settings
     var baseXp: Double = 800.0,
     var levelExponent: Double = 1.3,
-    var linearBonusPerLevel: Int = 200
+    var linearBonusPerLevel: Int = 200,
+
+    // Experience transaction retention
+    // 0 in either field disables the cleanup task entirely.
+    var transactionRetentionDays: Int = 90,
+    var transactionCleanupIntervalHours: Int = 24
 )
 
 data class BedrockConfig(

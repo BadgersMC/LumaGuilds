@@ -501,6 +501,12 @@ progression:
   level_exponent: 1.3                 # Exponential growth factor (gentler than 1.5)
   linear_bonus_per_level: 200         # Linear bonus to prevent harsh walls
 
+  # Experience transaction retention
+  # Periodically purges rows from the experience_transactions table to keep it small.
+  # Set either value to 0 to disable cleanup entirely.
+  transaction_retention_days: 90      # Delete transactions older than this many days
+  transaction_cleanup_interval_hours: 24  # How often the cleanup task runs (in hours)
+
 # =====================================
 # UI and Menu Configuration
 # =====================================
