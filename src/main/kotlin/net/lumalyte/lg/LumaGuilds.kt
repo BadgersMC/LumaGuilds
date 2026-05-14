@@ -48,6 +48,7 @@ class LumaGuilds : JavaPlugin() {
     private lateinit var scheduler: BukkitScheduler
     lateinit var pluginScope: CoroutineScope
     private lateinit var dailyWarCostsScheduler: DailyWarCostsScheduler
+    private var experienceTransactionCleanupScheduler: net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     private val componentLogger = getComponentLogger()
 
@@ -145,6 +146,9 @@ class LumaGuilds : JavaPlugin() {
 
         // Initialize daily war costs scheduler
         initDailyWarCostsScheduler()
+
+        // Initialize experience transaction cleanup scheduler
+        initExperienceTransactionCleanupScheduler()
 
         // Start Web API (read-only JSON endpoint for the website)
         try {
@@ -934,6 +938,30 @@ class LumaGuilds : JavaPlugin() {
     }
 
     /**
+     * Initializes the experience transaction cleanup scheduler.
+     * Reads `progression.transaction_retention_days` and
+     * `progression.transaction_cleanup_interval_hours` from config.
+     */
+    private fun initExperienceTransactionCleanupScheduler() {
+        try {
+            val configService = get().get<net.lumalyte.lg.application.services.ConfigService>()
+            val progression = configService.loadConfig().progression
+            val repo = get().get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
+            experienceTransactionCleanupScheduler = net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler(
+                this,
+                repo,
+                progression.transactionRetentionDays,
+                progression.transactionCleanupIntervalHours
+            ).also { it.start() }
+            logColored("✓ Experience transaction cleanup scheduler started")
+        } catch (e: Exception) {
+            // Broad exception handling acceptable - scheduler failure shouldn't prevent plugin load
+            logColored("❌ Failed to initialize experience transaction cleanup scheduler: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    /**
      * Manually triggers daily war costs (for testing/admin use).
      */
     fun triggerDailyWarCosts(): Int {
@@ -1035,6 +1063,9 @@ class LumaGuilds : JavaPlugin() {
         if (::dailyWarCostsScheduler.isInitialized) {
             dailyWarCostsScheduler.stopDailyScheduler()
         }
+
+        // Stop the experience transaction cleanup scheduler
+        experienceTransactionCleanupScheduler?.stop()
 
         // Shutdown virtual thread executor
         try {
