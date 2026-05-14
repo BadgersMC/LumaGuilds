@@ -319,7 +319,7 @@ class LumaGuilds : JavaPlugin() {
 
         try {
             when (storage) {
-                is SQLiteStorage -> {
+                is SQLiteStorage, is VirtualThreadSQLiteStorage -> {
                     logColored("🔄 Running SQLite migrations...")
 
                     try {
