@@ -87,6 +87,7 @@ api-version: '1.21.4'   # was '1.21'
 ```
 
 Fix any compile errors introduced by:
+
 - IF 0.11.6 API changes (check IF release notes for 0.11.4–0.11.6 breaking changes)
 - Geyser/Floodgate API changes if any
 
@@ -132,6 +133,7 @@ find src/main/kotlin/ -name "*.kt" -exec sed -i 's/ItemStack(Material\./ItemStac
 ### Task 2.3 — Spot-check 5 representative files
 
 Manually verify the replacement is correct in:
+
 - `src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildControlPanelMenu.kt`
 - `src/main/kotlin/net/lumalyte/lg/interaction/menus/management/ClaimFlagMenu.kt`
 - `src/main/kotlin/net/lumalyte/lg/utils/ClaimPermissionUtils.kt`
@@ -227,12 +229,14 @@ Verify that the `.name(Component)` and `.lore(Component)` Kotlin extension funct
 ### Task 3.2 — Adopt `ItemStack.of()` as canonical factory everywhere
 
 The Phase 2 sed pass replaces `ItemStack(Material.X` patterns. Additionally verify:
+
 - Any `ItemStack(itemStack)` copy constructor usages → `itemStack.clone()` (Paper 1.21.11 has no `copy()` method)
 - Any remaining `new ItemStack(...)` patterns not caught by the sed pattern
 
 ### Task 3.3 — Verify IF 0.11.6 MenuType integration
 
 Open and spot-test the following GUI classes to confirm they compile and render correctly under IF 0.11.6:
+
 - `GuildControlPanelMenu.kt` (largest, most complex)
 - `ClaimManagementMenu.kt`
 - `ConfirmationMenu.kt`

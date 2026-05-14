@@ -13,9 +13,10 @@
 ## Task 1: Domain entity
 
 **Files:**
+
 - Create: `src/main/kotlin/net/lumalyte/lg/domain/entities/MembershipHistory.kt`
 
-**Step 1: Create the file**
+### Step 1: Create the file
 
 ```kotlin
 package net.lumalyte.lg.domain.entities
@@ -37,12 +38,12 @@ data class MembershipHistory(
 }
 ```
 
-**Step 2: Verify it compiles**
+### Step 2: Verify it compiles
 
 Run: `./gradlew compileKotlin`
 Expected: BUILD SUCCESSFUL
 
-**Step 3: Commit**
+### Step 3: Commit
 
 ```bash
 git add src/main/kotlin/net/lumalyte/lg/domain/entities/MembershipHistory.kt
@@ -54,9 +55,10 @@ git commit -m "feat: add MembershipHistory entity and DepartureReason enum"
 ## Task 2: Repository interface
 
 **Files:**
+
 - Create: `src/main/kotlin/net/lumalyte/lg/application/persistence/MembershipHistoryRepository.kt`
 
-**Step 1: Create the file**
+### Step 1: Create the file
 
 ```kotlin
 package net.lumalyte.lg.application.persistence
@@ -88,12 +90,12 @@ interface MembershipHistoryRepository {
 }
 ```
 
-**Step 2: Verify it compiles**
+### Step 2: Verify it compiles
 
 Run: `./gradlew compileKotlin`
 Expected: BUILD SUCCESSFUL
 
-**Step 3: Commit**
+### Step 3: Commit
 
 ```bash
 git add src/main/kotlin/net/lumalyte/lg/application/persistence/MembershipHistoryRepository.kt
@@ -105,11 +107,12 @@ git commit -m "feat: add MembershipHistoryRepository interface"
 ## Task 3: SQLite implementation
 
 **Files:**
+
 - Create: `src/main/kotlin/net/lumalyte/lg/infrastructure/persistence/guilds/MembershipHistoryRepositorySQLite.kt`
 
 **Reference pattern:** `RelationRepositorySQLite.kt` in the same package — use the same `Storage<Database>`, `ensureInitialized()`, `createTable()` + `preload()` pattern, and the same `getInstant`/`getInstantNotNull` extension functions.
 
-**Step 1: Create the file**
+### Step 1: Create the file
 
 ```kotlin
 package net.lumalyte.lg.infrastructure.persistence.guilds
@@ -230,12 +233,12 @@ class MembershipHistoryRepositorySQLite(
 }
 ```
 
-**Step 2: Verify it compiles**
+### Step 2: Verify it compiles
 
 Run: `./gradlew compileKotlin`
 Expected: BUILD SUCCESSFUL
 
-**Step 3: Commit**
+### Step 3: Commit
 
 ```bash
 git add src/main/kotlin/net/lumalyte/lg/infrastructure/persistence/guilds/MembershipHistoryRepositorySQLite.kt
@@ -247,24 +250,31 @@ git commit -m "feat: add MembershipHistoryRepositorySQLite implementation"
 ## Task 4: Register in Koin DI module
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/di/Modules.kt`
 
 **Context:** The `guildsModule()` function contains all guild-related DI. Find the `// Repositories` block (around line 385) and the `MemberService` and `GuildService` single<> registrations.
 
-**Step 1: Add the import** (with the other persistence imports at the top of the file)
+### Step 1: Add the import
+
+Add with the other persistence imports at the top of the file
 
 ```kotlin
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.infrastructure.persistence.guilds.MembershipHistoryRepositorySQLite
 ```
 
-**Step 2: Register the singleton** — add after `AuditRepository` registration in the `// Repositories` block:
+### Step 2: Register the singleton
+
+Add after `AuditRepository` registration in the `// Repositories` block
 
 ```kotlin
 single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }
 ```
 
-**Step 3: Update `MemberService` registration** — add one more `get()` (6 total):
+### Step 3: Update `MemberService` registration
+
+Add one more `get()` (6 total)
 
 ```kotlin
 // Before:
@@ -273,31 +283,36 @@ single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get()) }
 single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get(), get()) }
 ```
 
-**Step 4: Update `GuildService` registration** — already has 9 `get()` after the RelationRepository change — no change needed here. Verify the current count is 9.
+### Step 4: Update `GuildService` registration
 
-**Step 5: Verify it compiles**
+Already has 9 `get()` after the RelationRepository change — no change needed. Verify the current count is 9
+
+### Step 5: Verify it compiles
 
 Run: `./gradlew compileKotlin`
 Expected: BUILD SUCCESSFUL (will fail after this step because MemberServiceBukkit doesn't have the new param yet — that's fixed in Task 5)
 
-**Step 6: Commit** (after Task 5 compiles cleanly — commit both together)
+### Step 6: Commit (after Task 5 compiles cleanly — commit both together)
 
 ---
 
 ## Task 5: Hook history recording into MemberServiceBukkit
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/services/MemberServiceBukkit.kt`
 
-**Step 1: Add import and constructor parameter**
+### Step 1: Add import and constructor parameter
 
 Add to imports:
+
 ```kotlin
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.domain.entities.DepartureReason
 ```
 
 Add `historyRepository` as the last constructor parameter:
+
 ```kotlin
 class MemberServiceBukkit(
     private val memberRepository: MemberRepository,
@@ -309,7 +324,7 @@ class MemberServiceBukkit(
 ) : MemberService {
 ```
 
-**Step 2: Record history on join** — in `addMember()`, after the `if (result) {` block that calls `Bukkit.getPluginManager().callEvent(GuildMemberJoinEvent(...))`, add:
+### Step 2: Record history on join (in `addMember()`, after the `if (result) {` block that calls `Bukkit.getPluginManager().callEvent(GuildMemberJoinEvent(...))`, add:)
 
 ```kotlin
 // Record membership history
@@ -318,7 +333,9 @@ historyRepository.openStint(playerId, guildId)
 
 Place it just after the `GuildMemberJoinEvent` call, before the Apollo try-catch block.
 
-**Step 3: Record history on leave/kick** — in `removeMember()`, find the `val result = memberRepository.remove(playerId, guildId)` line. After the `if (result) {` block, in the existing logger section (lines ~143-147), add the history recording BEFORE the logger.info calls:
+### Step 3: Record history on leave/kick
+
+In `removeMember()`, find the `val result = memberRepository.remove(playerId, guildId)` line. After the `if (result) {` block, in the existing logger section (lines ~143-147), add the history recording BEFORE the logger.info calls
 
 ```kotlin
 // Record membership history (LEFT = voluntary, KICKED = by another player)
@@ -326,12 +343,12 @@ val reason = if (actorId == playerId) DepartureReason.LEFT else DepartureReason.
 historyRepository.closeStint(playerId, guildId, reason)
 ```
 
-**Step 4: Verify it compiles**
+### Step 4: Verify it compiles
 
 Run: `./gradlew compileKotlin`
 Expected: BUILD SUCCESSFUL
 
-**Step 5: Commit Tasks 4 + 5 together**
+### Step 5: Commit Tasks 4 + 5 together
 
 ```bash
 git add src/main/kotlin/net/lumalyte/lg/di/Modules.kt
@@ -344,19 +361,22 @@ git commit -m "feat: wire MembershipHistoryRepository into DI and hook join/leav
 ## Task 6: Hook DISBANDED recording into GuildServiceBukkit
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/services/GuildServiceBukkit.kt`
 
 **Context:** `GuildServiceBukkit` already has `RelationRepository` injected (added in the previous bug fix). `MembershipHistoryRepository` goes in right after it.
 
-**Step 1: Add import and constructor parameter**
+### Step 1: Add import and constructor parameter
 
 Add to imports:
+
 ```kotlin
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.domain.entities.DepartureReason
 ```
 
 Add `historyRepository` as the last constructor parameter (after `relationRepository`):
+
 ```kotlin
 class GuildServiceBukkit(
     private val guildRepository: GuildRepository,
@@ -372,13 +392,17 @@ class GuildServiceBukkit(
 ) : GuildService {
 ```
 
-**Step 2: Update Koin registration** — `GuildService` in `Modules.kt` now needs 10 `get()` calls (was 9 after RelationRepository was added):
+### Step 2: Update Koin registration
+
+`GuildService` in `Modules.kt` now needs 10 `get()` calls (was 9 after RelationRepository was added)
 
 ```kotlin
 single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 ```
 
-**Step 3: Record DISBANDED for all members** — in `disbandGuild()`, find the existing block that logs and fires the event. Add history recording RIGHT AFTER `memberRepository.removeByGuild(guildId)` and BEFORE `rankRepository.removeByGuild(guildId)` (members are already captured in `memberIds`):
+### Step 3: Record DISBANDED for all members
+
+In `disbandGuild()`, find the existing block that logs and fires the event. Add history recording RIGHT AFTER `memberRepository.removeByGuild(guildId)` and BEFORE `rankRepository.removeByGuild(guildId)` - members are already captured in `memberIds`
 
 ```kotlin
 // Close membership history stints for all members (guild disbanded)
@@ -388,6 +412,7 @@ memberIds.forEach { memberId ->
 ```
 
 The `memberIds` set is already populated just above:
+
 ```kotlin
 // Capture member IDs before removal so the disbandment event carries them
 val memberIds = memberService.getGuildMembers(guildId).map { it.playerId }.toSet()
@@ -398,12 +423,12 @@ memberRepository.removeByGuild(guildId)
 // <-- insert the closeStint loop here
 ```
 
-**Step 4: Verify it compiles**
+### Step 4: Verify it compiles
 
 Run: `./gradlew compileKotlin`
 Expected: BUILD SUCCESSFUL
 
-**Step 5: Commit**
+### Step 5: Commit
 
 ```bash
 git add src/main/kotlin/net/lumalyte/lg/infrastructure/services/GuildServiceBukkit.kt
@@ -416,9 +441,10 @@ git commit -m "feat: hook DISBANDED membership history recording into guild disb
 ## Task 7: Implement /guild history command
 
 **Files:**
+
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt`
 
-**Step 1: Add imports** (near the top with other imports in GuildCommand.kt)
+### Step 1: Add imports (near the top with other imports in GuildCommand.kt)
 
 ```kotlin
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
@@ -433,7 +459,9 @@ private val historyRepository: MembershipHistoryRepository by inject()
 
 Find where the other `by inject()` lines are in `GuildCommand` and add it there.
 
-**Step 2: Add the subcommand handler** — find a logical place near other info-reading subcommands (e.g., near `@Subcommand("info")`):
+### Step 2: Add the subcommand handler
+
+Find a logical place near other info-reading subcommands (e.g., near `@Subcommand("info")`)
 
 ```kotlin
 @Subcommand("history")
@@ -493,12 +521,12 @@ fun onHistory(player: Player, targetPlayerName: String) {
 }
 ```
 
-**Step 3: Verify it compiles**
+### Step 3: Verify it compiles
 
 Run: `./gradlew compileKotlin`
 Expected: BUILD SUCCESSFUL
 
-**Step 4: Commit**
+### Step 4: Commit
 
 ```bash
 git add src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt
@@ -511,45 +539,51 @@ git commit -m "feat: implement /guild history <player> command"
 
 Since this is a Minecraft plugin, test by running the server and executing these scenarios in order:
 
-**Test 1 — No history**
-```
+### Test 1 — No history
+
+```text
 /guild history <new_player>
 Expected: "<player> has no guild history."
 ```
 
-**Test 2 — Join records history (open stint)**
-```
+### Test 2 — Join records history (open stint)
+
+```text
 1. Have a test player join a guild (/guild join <name> or accept invite)
 2. /guild history <test_player>
 Expected: "1. §a<GuildName> • Joined <today> • §a(current)"
    Total guilds joined: 1
 ```
 
-**Test 3 — Leave records reason**
-```
+### Test 3 — Leave records reason
+
+```text
 1. Have the test player /guild leave
 2. /guild history <test_player>
 Expected: "1. §a<GuildName> • Joined <date> • §7Left"
 ```
 
-**Test 4 — Kick records reason**
-```
+### Test 4 — Kick records reason
+
+```text
 1. Re-join a guild, then have an officer /guild kick <test_player>
 2. /guild history <test_player>
 Expected: "2. §a<GuildName> • Joined <date> • §cKicked"
    Total guilds joined: 2
 ```
 
-**Test 5 — Disband shows [UNKNOWN]**
-```
+### Test 5 — Disband shows [UNKNOWN]
+
+```text
 1. Re-join a guild (or create one)
 2. Disband the guild (/guild disband)
 3. /guild history <test_player>
 Expected: last entry shows "§8[UNKNOWN] • Joined <date> • §8Guild Disbanded"
 ```
 
-**Test 6 — Offline player lookup**
-```
+### Test 6 — Offline player lookup
+
+```text
 /guild history <offline_player_who_has_history>
 Expected: history displays correctly without that player being online
 ```

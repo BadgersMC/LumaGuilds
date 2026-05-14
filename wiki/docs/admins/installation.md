@@ -2,12 +2,928 @@
 title: Installation & config.yml
 audience: admin
 topic: installation
-summary: Install LumaGuilds and walk through config.yml.
-keywords: []
-related: []
-updated: 2026-05-13
+summary: Install LumaGuilds on Paper 1.21.x, drop in dependencies, and walk through every config.yml block.
+keywords: [installation, install, setup, config, config.yml, paper, dependencies]
+related: [permissions, claims, rosechat]
+updated: 2026-05-14
 ---
 
 # Installation & config.yml
 
-*This page is a placeholder. Content coming in Phase 2/3.*
+Install LumaGuilds on Paper 1.21.x, drop in dependencies, and walk through every config.yml block.
+
+## Quick reference
+
+| Dependency | Type | Required | Notes |
+|-----------|------|----------|-------|
+| Paper 1.21.11+ | Server | Yes | API version checked at load. |
+| Vault | Plugin | Yes | Economy abstraction layer. |
+| PlaceholderAPI | Plugin | Yes | Player/guild placeholder hooks. |
+| RoseChat | Plugin | No | Custom chat format & guild chat channels. |
+| Geyser/Floodgate | Plugin | No | Bedrock client support & menus. |
+| Lunar Client SDK (Apollo) | Plugin | No | Lunar Client enhancements (waypoints, teams, beams). |
+
+> **Claims is built in.** LumaGuilds is a fork of [Bell Claims](https://github.com/Mizarc/bell-claims) with the guild system layered on top. The claims subsystem ships inside the plugin — no separate claims plugin to install. Toggle it on or off with `claims_enabled` in `config.yml`. See [Claims (built-in)](claims.md).
+
+## How it works
+
+Drop the LumaGuilds JAR into `plugins/`, start the server, and it auto-creates `plugins/LumaGuilds/config.yml` with defaults. The plugin uses SQLite by default (file-based, no external DB needed). On server restart, config changes are reloaded. RoseChat, Geyser, and other integrations are soft dependencies — the plugin works without them but will use them if present.
+
+## Install steps
+
+1. **Verify your Paper version:**
+
+   ```bash
+   /version
+   ```
+
+   Confirm you see `Paper 1.21.11` or later. LumaGuilds requires API version `1.21.11` (hardcoded in `plugin.yml`).
+
+2. **Download dependencies into `plugins/`:**
+   - [Vault](https://www.spigotmc.org/resources/vault.41918/) (latest)
+   - [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) (latest)
+   - Optionally: RoseChat, Geyser/Floodgate, Apollo (Lunar Client SDK)
+
+3. **Download LumaGuilds JAR** and place it in `plugins/`.
+
+4. **Start the server.** The plugin creates `plugins/LumaGuilds/` and generates `config.yml` with all defaults.
+
+5. **Verify it loaded:**
+
+   ```bash
+   /version LumaGuilds
+   ```
+
+   You should see the plugin version. Check the console for errors; common ones are missing Vault or mismatched Paper version.
+
+6. **Open `plugins/LumaGuilds/config.yml`** and review each section below before restarting again.
+
+## Database configuration
+
+Controls how the plugin persists guild, claim, and transaction data.
+
+```yaml
+# Database type: sqlite or mariadb
+# sqlite: Simple file-based database (good for testing/small servers)
+# mariadb: Production-grade MySQL/MariaDB database (recommended for production)
+database_type: sqlite
+
+# Database performance settings
+database:
+  # Enable virtual threads for database operations (Java 21+ only)
+  # Virtual threads provide massive performance improvements for concurrent database operations
+  # - Handles 50-100x more concurrent queries without thread exhaustion
+  # - Automatically falls back to platform threads on Java < 21
+  # - Increases connection pool sizes automatically when enabled
+  # Recommended: true (disable only if you experience issues)
+  use_virtual_threads: true
+
+# MariaDB/MySQL configuration (only used if database_type is mariadb)
+mariadb:
+  host: localhost
+  port: 3306
+  database: lumaguilds
+  username: root
+  password: password
+  # Advanced connection pool settings
+  # Note: Pool sizes are automatically optimized when virtual threads are enabled
+  # With virtual threads: default max_pool_size=50, minimum_idle=10
+  # Without virtual threads: default max_pool_size=10, minimum_idle=2
+  pool:
+    maximum_pool_size: 10  # Will use 50 if virtual threads are enabled
+    minimum_idle: 2        # Will use 10 if virtual threads are enabled
+    connection_timeout: 30000
+    idle_timeout: 600000
+    max_lifetime: 1800000
+```
+
+**What it does:** SQLite is the default and zero-configuration — useful for development and smaller servers. For production, use MariaDB/MySQL and set `use_virtual_threads: true` (Java 21+ only; older Java versions fall back automatically).
+
+## Core claims configuration
+
+Controls the land claim system: how many claims players can make, their size, spacing, and visualization.
+
+```yaml
+# Enable or disable the entire claims system
+# When disabled, all claim-related commands and features are unavailable
+claims_enabled: true
+
+# The amount of claims a player is allowed to create.
+claim_limit: 3
+
+# The amount of blocks a player's claims are allowed to occupy.
+claim_block_limit: 5000
+
+# The initial size of the claim that is created in a square. (Minimum value of 3)
+initial_claim_size: 7
+
+# The minimum size that a claim is allowed to occupy. (Minimum value of 3)
+minimum_partition_size: 3
+
+# The minimum distance there is allowed to be between claims.
+distance_between_claims: 1
+
+# The amount of time in seconds it takes for the visualiser to disappear when the claim tool is unequipped.
+visualiser_hide_delay_period: 2
+
+# The minimum amount of time in seconds the visualiser is allowed to be refreshed to prevent spam.
+visualiser_refresh_period: 1
+
+# Enable right-click harvesting of crops
+right_click_harvest: true
+```
+
+**What it does:** When `claims_enabled: true`, players can create land claims. Set `claim_limit: 0` to disable claims entirely. The visualizer shows claim borders when a player holds the claim tool; adjust `visualiser_hide_delay_period` to control how fast it fades when they unequip it.
+
+## Localization and UI
+
+Language selection and custom model data (resource pack) integration for claim/move tools.
+
+```yaml
+# The language of text elements.
+# EN - Original
+# Add more <?>.properties files in the override folder to support more languages
+plugin_language: EN
+
+# The id value for resource packs that change the model of the claim tool.
+custom_claim_tool_model_id: 732000
+
+# The id value for resource packs that change the model of the move tool.
+custom_move_tool_model_id: 732001
+```
+
+**What it does:** `plugin_language` switches all in-game text. Custom model data IDs link your resource pack models to the claim/move tools. If you're using a resource pack with custom claim tools, match these IDs to your pack.
+
+## Discord integration
+
+Optional webhook for sending claim reports and vault backups to Discord.
+
+```yaml
+# Discord webhook URL for CSV file delivery
+# Create a webhook in your Discord server: Server Settings > Integrations > Webhooks
+# Leave empty to disable Discord integration (falls back to Minecraft books)
+discord_webhook_url: ""
+
+# Enable Discord CSV delivery (requires webhook URL above)
+discord_csv_delivery: false
+```
+
+**What it does:** If set, the plugin can send claim lists and vault backups as CSV files to your Discord server. Leave empty to disable; the plugin will use Minecraft books instead.
+
+## Web API
+
+Read-only JSON endpoint for leaderboard data. Intended for website backends; do NOT expose directly to browsers.
+
+```yaml
+# Web API (read-only JSON endpoint for the website)
+# Exposes public leaderboard data (e.g. top guilds) as JSON over HTTP.
+# Intended for the website backend to fetch and cache; do NOT expose this
+# port directly to the browser. Bind to localhost (127.0.0.1) and reverse
+# proxy through the website server, or restrict by firewall.
+web_api:
+  enabled: false
+  host: "127.0.0.1"
+  port: 8123
+  # If set, requests must include "Authorization: Bearer <token>".
+  # Leave empty to disable auth (only safe behind firewall / loopback).
+  bearer_token: ""
+  leaderboard_limit_default: 10
+  leaderboard_limit_max: 50
+  # How many member UUIDs to include per guild (for player-head rotation
+  # on the site if it doesn't render the banner).
+  top_members_per_guild: 5
+```
+
+**What it does:** Exposes guild leaderboards as JSON. Only enable if you have a website backend that fetches it; always bind to `127.0.0.1` and proxy through a reverse proxy or firewall for security. Leave `bearer_token` empty if it's behind a firewall only.
+
+## Guild system configuration
+
+Guild creation, mode switching (peaceful/hostile), ranks, homes, and banner copying.
+
+```yaml
+guild:
+  # Guild Creation and Management
+  max_name_length: 32
+  min_name_length: 1
+  max_guild_count: 1000
+  create_guild_cost: 0
+  disband_refund_percent: 0.5
+  
+  # Mode Switching (Peaceful/Hostile)
+  peaceful_mode_enabled: true              # Enable peaceful/hostile mode switching
+  mode_switch_cooldown_days: 7             # Days between peaceful mode switches
+  hostile_mode_minimum_days: 7             # Minimum days in hostile mode before switching
+  peaceful_mode_claim_pvp_disabled: true   # Disable PVP in claims when in peaceful mode
+  peaceful_mode_prevent_wars: true         # Prevent war declarations when in peaceful mode
+  peaceful_guild_pvp_opt_in: false         # If true, peaceful guilds can opt-in to PvP; if false, PvP is forced off
+  
+  # Ranks and Members
+  max_custom_ranks: 10
+  max_rank_name_length: 16
+  max_members_per_guild: 50
+  
+  # Home System
+  home_teleport_cooldown_seconds: 5
+  home_set_cooldown_minutes: 10
+  home_teleport_warmup_seconds: 3
+  home_teleport_safety_check: true
+
+  # Banner System
+  banner_copy_enabled: true
+  banner_copy_cost: 100
+  banner_copy_charge_guild_bank: true  # If true, charges guild bank; if false, charges player balance
+  banner_copy_free: false  # If true, banner copies are free regardless of cost setting
+```
+
+**What it does:** Controls guild creation limits, costs, peaceful/hostile mode rules, home teleport behavior, and banner copying costs. Set `peaceful_mode_enabled: false` to disable mode switching entirely. Banner copying uses the economy (Vault).
+
+## Guild vault configuration
+
+Physical vaults (chests) and virtual bank (economy) settings, valuable items, physical currency, and role permissions.
+
+```yaml
+vault:
+  # Bank Mode Selection
+  # VIRTUAL: Only use virtual bank balance (economy plugin required)
+  # PHYSICAL: Only use physical vault chest (no economy)
+  # BOTH: Use both virtual bank and physical vault (recommended)
+  bank_mode: BOTH
+
+  # Physical Vault Settings
+  vault_chest_enabled: true
+
+  # Protection and Security
+  # Time window for confirming vault chest break (prevents accidental breaks)
+  break_warning_timeout_seconds: 5
+
+  # IMPORTANT: Item Drop Behavior
+  # When true: Breaking vault drops all items (old behavior, items lost if not picked up)
+  # When false: Breaking vault preserves items in database for restoration (RECOMMENDED)
+  drop_items_on_break: false
+
+  # When true: Explosions drop all vault items
+  # When false: Explosions preserve items in database
+  drop_items_on_explosion: false
+
+  # Capacity Scaling
+  # Whether vault capacity increases with guild level
+  capacity_scaling_enabled: true
+  base_capacity_slots: 9    # Level 1 guilds (1 row)
+  max_capacity_slots: 54     # Max level guilds (6 rows / full double chest)
+
+  # Virtual Economy Integration
+  require_economy_plugin: true
+  virtual_bank_fallback: true
+
+  # Transaction Logging
+  # Time to retain transaction logs in days
+  transaction_log_retention_days: 30
+
+  # =====================================
+  # Valuable Items Configuration
+  # =====================================
+  # Items that trigger immediate database flush and transaction logging
+  # This prevents data loss for high-value items during crashes
+
+  # Standard valuable materials (by material name)
+  valuable_items:
+    - "NETHERITE_INGOT"
+    - "NETHERITE_BLOCK"
+    - "NETHERITE_SWORD"
+    - "NETHERITE_PICKAXE"
+    - "NETHERITE_AXE"
+    - "NETHERITE_SHOVEL"
+    - "NETHERITE_HOE"
+    - "NETHERITE_HELMET"
+    - "NETHERITE_CHESTPLATE"
+    - "NETHERITE_LEGGINGS"
+    - "NETHERITE_BOOTS"
+    - "DIAMOND"
+    - "DIAMOND_BLOCK"
+    - "ENCHANTED_GOLDEN_APPLE"
+    - "TOTEM_OF_UNDYING"
+    - "ELYTRA"
+    - "NETHER_STAR"
+    - "BEACON"
+    - "DRAGON_EGG"
+    - "TRIDENT"
+    - "MACE"
+    - "HEAVY_CORE"
+    - "SHULKER_BOX"
+    - "WHITE_SHULKER_BOX"
+    - "ORANGE_SHULKER_BOX"
+    - "MAGENTA_SHULKER_BOX"
+    - "LIGHT_BLUE_SHULKER_BOX"
+    - "YELLOW_SHULKER_BOX"
+    - "LIME_SHULKER_BOX"
+    - "PINK_SHULKER_BOX"
+    - "GRAY_SHULKER_BOX"
+    - "LIGHT_GRAY_SHULKER_BOX"
+    - "CYAN_SHULKER_BOX"
+    - "PURPLE_SHULKER_BOX"
+    - "BLUE_SHULKER_BOX"
+    - "BROWN_SHULKER_BOX"
+    - "GREEN_SHULKER_BOX"
+    - "RED_SHULKER_BOX"
+    - "BLACK_SHULKER_BOX"
+
+  # Check if enchanted items should be considered valuable
+  valuable_items_check_enchantments: true
+
+  # Custom model data items (format: "MATERIAL:custom_model_data")
+  # Use this to mark custom server items as valuable
+  # Example: A custom staff item might be "STICK:12345"
+  valuable_custom_model_data_items: []
+
+  # =====================================
+  # Physical Item Currency System
+  # =====================================
+  # Use a single physical item as guild currency instead of Vault economy
+  # When enabled, ALL transactions use this item from the guild vault chest
+  # This mode requires bank_mode to be "PHYSICAL" (not VIRTUAL or BOTH)
+  use_physical_currency: false
+
+  # The Bukkit Material to use as currency (e.g., "RAW_GOLD", "DIAMOND", "EMERALD")
+  physical_currency_material: RAW_GOLD
+
+  # Simple 1:1 ratio - each item = 1 currency unit
+  # Example: If daily_war_cost = 10, it requires 10 RAW_GOLD items
+  physical_currency_item_value: 1
+
+  # Items must be physically in the guild vault chest (not virtual tracking)
+  physical_currency_require_vault_chest: true
+
+  # Physical Currency Fee Settings (flat item amounts)
+  physical_deposit_fee: 0          # Fee when depositing items (0 = no fee)
+  physical_withdrawal_fee: 1       # Fee when withdrawing items
+  physical_transaction_minimum: 1  # Minimum transaction size in items
+
+  # Compressable blocks - Define materials that can be compressed/uncompressed
+  # Format: "COMPRESSED_MATERIAL:BASE_MATERIAL:RATIO"
+  # Example: "RAW_GOLD_BLOCK:RAW_GOLD:9" means 1 RAW_GOLD_BLOCK counts as 9 RAW_GOLD
+  compressable_blocks:
+    - "RAW_GOLD_BLOCK:RAW_GOLD:9"
+
+  # Physical Currency War Costs (in item amounts)
+  physical_daily_war_cost: 10         # Daily cost to maintain war (10 RAW_GOLD)
+  physical_war_declaration_cost: 100  # Cost to declare war (100 RAW_GOLD)
+```
+
+**What it does:** Chooses between virtual (economy plugin) and physical (chest-based) guild banks. Set `bank_mode: PHYSICAL` to use items only; `VIRTUAL` for economy only; `BOTH` for both. Valuable items trigger instant database saves to prevent loss on crash. Physical currency lets you use items (like raw gold) as guild money instead of virtual currency — only works with `bank_mode: PHYSICAL`.
+
+## Guild role permissions configuration
+
+Maps guild ranks (Owner, Co-Owner, Admin, Mod, Member) to claim permissions.
+
+```yaml
+team_role_permissions:
+  # Cache invalidation delay in seconds when role changes occur
+  cache_invalidation_delay_seconds: 5
+  
+  # Default permissions for roles that don't have explicit mappings
+  default_permissions:
+    - "VIEW"
+  
+  # Role to permission mappings
+  # Each role can have multiple permissions
+  roles:
+    Owner:
+      - "BUILD"
+      - "HARVEST"
+      - "CONTAINER"
+      - "DISPLAY"
+      - "VEHICLE"
+      - "SIGN"
+      - "REDSTONE"
+      - "DOOR"
+      - "TRADE"
+      - "HUSBANDRY"
+      - "DETONATE"
+      - "EVENT"
+      - "SLEEP"
+      - "VIEW"
+    "Co-Owner":
+      - "BUILD"
+      - "HARVEST"
+      - "CONTAINER"
+      - "DISPLAY"
+      - "VEHICLE"
+      - "SIGN"
+      - "REDSTONE"
+      - "DOOR"
+      - "TRADE"
+      - "HUSBANDRY"
+      - "DETONATE"
+      - "EVENT"
+      - "SLEEP"
+      - "VIEW"
+    Admin:
+      - "BUILD"
+      - "HARVEST"
+      - "CONTAINER"
+      - "DISPLAY"
+      - "VEHICLE"
+      - "SIGN"
+      - "REDSTONE"
+      - "DOOR"
+      - "TRADE"
+      - "HUSBANDRY"
+      - "VIEW"
+    Mod:
+      - "BUILD"
+      - "HARVEST"
+      - "CONTAINER"
+      - "DISPLAY"
+      - "VEHICLE"
+      - "SIGN"
+      - "VIEW"
+    Member:
+      - "HARVEST"
+      - "CONTAINER"
+      - "VIEW"
+```
+
+**What it does:** Defines which actions (BUILD, CONTAINER, REDSTONE, etc.) each guild rank can perform in guild claims. Add or remove permissions per rank; the `default_permissions` apply to roles not explicitly listed.
+
+## Bank system configuration
+
+Virtual bank transaction limits, fees, interest, and audit settings.
+
+```yaml
+bank:
+  # Transaction Limits
+  min_deposit_amount: 1
+  max_deposit_amount: 100000
+  max_withdrawal_percent: 0.5  # Maximum % of bank balance that can be withdrawn at once
+  daily_withdrawal_limit: 50000
+  
+  # Fees and Taxes
+  deposit_fee_percent: 0.01     # 1% deposit fee
+  withdrawal_fee_percent: 0.02  # 2% withdrawal fee
+  max_deposit_fee: 1000         # Maximum fee for deposits
+  max_withdrawal_fee: 2000      # Maximum fee for withdrawals
+  
+  # Interest and Growth
+  interest_rate_percent: 0.005   # 0.5% interest per compound period
+  interest_compound_period_hours: 24  # Interest calculated every 24 hours
+  max_bank_balance: 1000000
+  
+  # Audit and Security
+  audit_log_retention_days: 30
+  suspicious_transaction_threshold: 50000
+  auto_lock_suspicious_accounts: false
+```
+
+**What it does:** Controls virtual bank limits, deposit/withdrawal fees, interest rates, and audit logging. The plugin calculates interest hourly; increase `interest_compound_period_hours` to reduce interest frequency.
+
+## Combat and war system configuration
+
+Kill farming prevention, war declarations, duration, cooldowns, and XP rewards.
+
+```yaml
+combat:
+  # Anti-farming
+  kill_cooldown_minutes: 5      # Prevent farming same player
+  same_player_kill_limit: 3     # Max kills of same player within cooldown
+  anti_griefing_enabled: true
+  
+  # War System
+  war_declaration_cooldown_hours: 24     # Cooldown between war declarations
+  war_farming_cooldown_hours: 1          # Cooldown to prevent war farming after winning
+  war_duration_hours: 168                # 1 week war duration
+  war_end_grace_period_minutes: 30       # Grace period after war ends
+  max_simultaneous_wars: 3               # Max wars a guild can be in
+  
+  # Experience and Rewards
+  kill_experience: 10           # XP gained for kills
+  war_win_experience: 500       # XP gained for winning a war
+  war_lose_experience: 100      # XP gained for losing a war (participation)
+```
+
+**What it does:** Prevents kill farming by limiting how many times the same player can award XP within a cooldown. Wars last 7 days by default; tweak `war_duration_hours` and cooldowns to match your PvP balance.
+
+## Chat system configuration
+
+Guild announcements, message length, channels (guild, ally, party), emojis, and formatting.
+
+```yaml
+chat:
+  # Rate Limiting
+  announce_cooldown_minutes: 30  # Cooldown for guild announcements
+  ping_cooldown_minutes: 5       # Cooldown for @everyone pings
+  max_message_length: 256
+  
+  # Channels
+  default_channel_visibility: true  # Default visibility of channels for new members
+  ally_chat_enabled: true
+  party_chat_enabled: true
+  guild_chat_enabled: true
+  
+  # Emojis and Formatting
+  enable_emojis: true
+  emoji_permission_prefix: "lumalyte.emoji"  # Permission prefix for emojis
+  max_emojis_per_message: 5
+  colored_chat_enabled: true
+```
+
+**What it does:** Controls chat channels and rate limits. `max_message_length: 256` is the Minecraft chat limit. Set `ally_chat_enabled: false` to disable ally-only chat.
+
+## Party system configuration
+
+Party creation, chat format (with MiniMessage support), and role-based access.
+
+```yaml
+party:
+  # Party Creation
+  max_party_name_length: 32
+  min_party_name_length: 1
+  default_party_duration_hours: 24
+  max_simultaneous_parties_per_guild: 3
+  allow_private_parties: true  # Allow creation of private guild-only parties
+
+  # Party Chat
+  party_chat_enabled: true
+  party_chat_priority: 100
+  use_minimessage: true  # Enable MiniMessage formatting support (allows tags like <gradient>, <rainbow>, <bold>, etc.)
+  party_chat_format: "[{lumaguilds_party_name}] %lumaguilds_guild_rank% %lumaguilds_guild_emoji%%lumaguilds_guild_tag% %luckperms-suffix% {player_name} ⋙ {message}"
+  use_simplified_guild_party_format: true  # Use simplified format for guild-internal parties (Guild_Chat, Officer_Chat, etc.)
+  guild_party_chat_format: "[{lumaguilds_party_name}] %lumaguilds_guild_rank% {player_name} ⋙ {message}"  # Simplified format for guild-internal parties - no guild tag/emoji spam
+  party_chat_prefix: "[PARTY]"
+  party_chat_suffix: ""
+  chat_input_listener_priority: "HIGHEST"  # HIGHEST, HIGH, NORMAL, LOW, LOWEST
+
+  # Party chat auto-routing listener priority (for /pc switch auto-routing)
+  # IMPORTANT: LOWEST priority = executes FIRST (Bukkit priority system is backwards!)
+  # Priority execution order: LOWEST -> LOW -> NORMAL -> HIGH -> HIGHEST
+  # ChatControl uses HIGH priority, so we use LOWEST to run before it and cancel the event
+  # DO NOT RELOAD WHEN CHANGING THIS - RESTART THE SERVER
+  party_chat_listener_priority: "LOWEST"  # LOWEST = runs first, HIGHEST = runs last
+
+  # Role Restrictions
+  allow_role_restrictions: true
+  default_to_all_members: true
+```
+
+**What it does:** Configures party chat channels, format strings with placeholders, and listener priority for chat routing. MiniMessage supports gradient colors, bold, italic, etc. The listener priority controls which plugin's chat handler runs first (set to LOWEST to intercept ChatControl at HIGH).
+
+## Guild progression system configuration
+
+XP values for different activities (farming, killing, crafting, fishing, war), cooldowns, and leveling curve.
+
+```yaml
+progression:
+  # Experience values for different activities
+  bank_deposit_xp_per_100: 1         # XP per 100 coins deposited
+  member_joined_xp: 50                # XP when a new member joins
+  player_kill_xp: 25                  # XP for killing another player
+  mob_kill_xp: 2                      # XP for killing mobs
+  crop_break_xp: 1                    # XP for harvesting crops
+  block_break_xp: 1                   # XP for breaking blocks
+  block_place_xp: 1                   # XP for placing blocks
+  crafting_xp: 2                      # XP per item crafted
+  smelting_xp: 2                      # XP per item smelted
+  fishing_xp: 3                       # XP per fish caught
+  enchanting_xp: 10                   # XP per enchantment level spent
+  claim_created_xp: 100               # XP for creating a claim (if claims enabled)
+  war_won_xp: 500                     # XP for winning a war
+
+  # Rate limiting settings (prevents XP farming/spam)
+  xp_cooldown_ms: 5000                # Milliseconds between XP awards per source per player
+  max_xp_per_batch: 50                # Maximum XP accumulated before forced processing
+
+  # Leveling curve settings (balanced for competitive but fair progression)
+  base_xp: 800.0                      # Base XP requirement
+  level_exponent: 1.3                 # Exponential growth factor (gentler than 1.5)
+  linear_bonus_per_level: 200         # Linear bonus to prevent harsh walls
+```
+
+**What it does:** Sets XP rewards for guild activities and the leveling curve. Lower `xp_cooldown_ms` = faster XP gains but more spam. Adjust `level_exponent` to make leveling faster (< 1.3) or slower (> 1.3).
+
+## UI and menu configuration
+
+Menu items (materials, names, custom model data for resource packs) and animation settings.
+
+```yaml
+ui:
+  # Main Menu Items (supports custom model data for resource packs)
+  guild_menu_item:
+    material: "BANNER"
+    name: "Guild"
+    custom_model_data: 732100
+    enchanted: false
+  
+  bank_menu_item:
+    material: "GOLD_INGOT"
+    name: "Bank"
+    custom_model_data: 732101
+    enchanted: false
+  
+  rank_menu_item:
+    material: "GOLDEN_HELMET"
+    name: "Ranks"
+    custom_model_data: 732102
+    enchanted: false
+  
+  relation_menu_item:
+    material: "COMPASS"
+    name: "Relations"
+    custom_model_data: 732103
+    enchanted: false
+  
+  war_menu_item:
+    material: "DIAMOND_SWORD"
+    name: "Wars"
+    custom_model_data: 732104
+    enchanted: true
+  
+  mode_menu_item:
+    material: "SHIELD"
+    name: "Mode"
+    custom_model_data: 732105
+    enchanted: false
+  
+  home_menu_item:
+    material: "BED"
+    name: "Home"
+    custom_model_data: 732106
+    enchanted: false
+  
+  leaderboard_menu_item:
+    material: "ITEM_FRAME"
+    name: "Leaderboards"
+    custom_model_data: 732107
+    enchanted: false
+  
+  chat_menu_item:
+    material: "WRITABLE_BOOK"
+    name: "Chat"
+    custom_model_data: 732108
+    enchanted: false
+  
+  party_menu_item:
+    material: "CAKE"
+    name: "Party"
+    custom_model_data: 732109
+    enchanted: false
+  
+  # Navigation Items
+  back_button:
+    material: "ARROW"
+    name: "Back"
+    custom_model_data: 732200
+    enchanted: false
+  
+  next_button:
+    material: "ARROW"
+    name: "Next"
+    custom_model_data: 732201
+    enchanted: false
+  
+  confirm_button:
+    material: "EMERALD"
+    name: "Confirm"
+    custom_model_data: 732202
+    enchanted: true
+  
+  cancel_button:
+    material: "REDSTONE"
+    name: "Cancel"
+    custom_model_data: 732203
+    enchanted: false
+  
+  close_button:
+    material: "BARRIER"
+    name: "Close"
+    custom_model_data: 732204
+    enchanted: false
+  
+  # Status Indicators
+  online_indicator:
+    material: "LIME_DYE"
+    name: "Online"
+    custom_model_data: 732300
+    enchanted: false
+  
+  offline_indicator:
+    material: "GRAY_DYE"
+    name: "Offline"
+    custom_model_data: 732301
+    enchanted: false
+  
+  peaceful_mode_indicator:
+    material: "WHITE_BANNER"
+    name: "Peaceful"
+    custom_model_data: 732302
+    enchanted: false
+  
+  hostile_mode_indicator:
+    material: "RED_BANNER"
+    name: "Hostile"
+    custom_model_data: 732303
+    enchanted: false
+  
+  # Rank Icons
+  owner_icon:
+    material: "GOLDEN_CROWN"
+    name: "Owner"
+    custom_model_data: 732400
+    enchanted: true
+  
+  co_owner_icon:
+    material: "GOLDEN_HELMET"
+    name: "Co-Owner"
+    custom_model_data: 732401
+    enchanted: true
+  
+  admin_icon:
+    material: "IRON_HELMET"
+    name: "Admin"
+    custom_model_data: 732402
+    enchanted: false
+  
+  mod_icon:
+    material: "LEATHER_HELMET"
+    name: "Mod"
+    custom_model_data: 732403
+    enchanted: false
+  
+  member_icon:
+    material: "PLAYER_HEAD"
+    name: "Member"
+    custom_model_data: 732404
+    enchanted: false
+  
+  # Menu Settings
+  menu_size: 54                     # Size of inventory menus (9, 18, 27, 36, 45, 54)
+  enable_menu_animations: true       # Enable animated menu items
+  menu_update_interval_ticks: 20     # How often menus update (20 ticks = 1 second)
+```
+
+**What it does:** Defines menu item icons, names, and custom model data for resource pack integration. Customize the materials and model data to match your resource pack. Set `enable_menu_animations: false` to reduce performance overhead.
+
+## Bedrock menu configuration
+
+Bedrock client menu system (for Geyser/Floodgate), form caching, timeouts, and icon sources.
+
+```yaml
+bedrock:
+  # Enable/Disable Bedrock menu system
+  bedrock_menus_enabled: true
+
+  # Force all players to use Bedrock menus (overrides platform detection)
+  force_bedrock_menus: false
+
+  # Fallback behavior when Bedrock menus fail
+  fallback_to_java_menus: true
+  fallback_on_floodgate_unavailable: true
+  fallback_on_cumulus_unavailable: true
+
+  # Performance tuning
+  form_cache_enabled: true
+  form_cache_size: 100
+  form_cache_expiration_minutes: 30
+  max_form_buttons: 8
+  form_timeout_seconds: 300
+
+  # Menu-specific settings
+  enable_bedrock_confirmations: true
+  enable_bedrock_selections: true
+  enable_bedrock_custom_forms: true
+
+  # Image configuration for Bedrock menu icons
+  # Set image_source to "URL" for web-hosted images or "RESOURCE_PACK" for resource pack images
+  image_source: "URL"
+
+  # Default button images (fallback for buttons without specific icons)
+  default_button_image_url: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=ICON"
+  default_button_image_path: "textures/ui/icon.png"
+
+  # Guild-specific menu icons
+  guild_members_icon_url: "https://via.placeholder.com/64x64/2196F3/FFFFFF?text=MEMBERS"
+  guild_members_icon_path: "textures/ui/members.png"
+  guild_settings_icon_url: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=SETTINGS"
+  guild_settings_icon_path: "textures/ui/settings.png"
+  guild_bank_icon_url: "https://via.placeholder.com/64x64/FFC107/FFFFFF?text=BANK"
+  guild_bank_icon_path: "textures/ui/bank.png"
+  guild_wars_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=WARS"
+  guild_wars_icon_path: "textures/ui/wars.png"
+  guild_home_icon_url: "https://via.placeholder.com/64x64/9C27B0/FFFFFF?text=HOME"
+  guild_home_icon_path: "textures/ui/home.png"
+  guild_tag_icon_url: "https://via.placeholder.com/64x64/607D8B/FFFFFF?text=TAG"
+  guild_tag_icon_path: "textures/ui/tag.png"
+
+  # Action-specific menu icons
+  confirm_icon_url: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=✓"
+  confirm_icon_path: "textures/ui/confirm.png"
+  cancel_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=✗"
+  cancel_icon_path: "textures/ui/cancel.png"
+  back_icon_url: "https://via.placeholder.com/64x64/757575/FFFFFF?text=←"
+  back_icon_path: "textures/ui/back.png"
+  close_icon_url: "https://via.placeholder.com/64x64/000000/FFFFFF?text=✕"
+  close_icon_path: "textures/ui/close.png"
+  edit_icon_url: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=EDIT"
+  edit_icon_path: "textures/ui/edit.png"
+  delete_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=DEL"
+  delete_icon_path: "textures/ui/delete.png"
+
+  # Debug and logging
+  debug_bedrock_menus: false
+  log_form_interactions: false
+```
+
+**What it does:** Controls Bedrock-specific menus (for Geyser/Floodgate players). Set `bedrock_menus_enabled: false` to disable Bedrock menus entirely. Form caching speeds up repeated menus; adjust `form_cache_expiration_minutes` to control stale data.
+
+## Lunar Client Apollo integration
+
+Enhancements for Lunar Client users: minimap teams, waypoints, beams at vaults, war borders, and rich notifications.
+
+```yaml
+apollo:
+  # Global enable/disable for all Apollo features
+  enabled: true
+
+  # Guild Teams Module - Show guild members on minimap/HUD
+  teams:
+    enabled: true
+    show_markers: true
+    refresh_rate: 1
+    rank_based_colors: true
+    colors:
+      leader: "255,215,0"    # Gold
+      officer: "0,150,255"   # Blue
+      member: "0,255,0"      # Green
+      party: "255,0,255"     # Purple (for party members - future)
+    default_guild_color: "0,255,0"  # Green
+    glow:
+      enabled: false
+      use_team_colors: true
+
+  # Waypoints Module - Show waypoints for guild homes
+  waypoints:
+    enabled: true
+    show_guild_homes: true
+    max_distance: 10000  # Max distance to show waypoints (in blocks)
+    colors:
+      own_guild: "0,255,0"      # Green
+      allied_guild: "0,100,255" # Blue
+      neutral_guild: "255,255,0" # Yellow
+      enemy_guild: "255,0,0"    # Red
+
+  # Beams Module - Show beams at vault locations
+  beams:
+    enabled: true
+    vaults:
+      enabled: true
+      use_guild_banner_color: true
+      fallback_color: "255,215,0"  # Gold
+      max_distance: 64  # Max distance to show beams
+
+  # Borders Module - Show borders during wars
+  borders:
+    enabled: true
+    show_war_borders: true
+    show_territory_borders: true
+    war_border_color: "255,0,0"  # Red
+
+  # Notifications Module - Rich notifications for guild events
+  notifications:
+    enabled: true
+    welcome_notification: true
+    guild_invites: true
+    war_events: true
+    member_events: true
+    progression_events: true
+    display_duration_seconds: 5
+    icons:
+      welcome: "minecraft:textures/item/banner.png"
+      guild: "minecraft:textures/item/banner.png"
+      invite: "minecraft:textures/item/writable_book.png"
+      join: "minecraft:textures/item/green_banner.png"
+      leave: "minecraft:textures/item/red_banner.png"
+      promotion: "minecraft:textures/item/experience_bottle.png"
+      war: "minecraft:textures/item/netherite_sword.png"
+      peace: "minecraft:textures/item/golden_apple.png"
+      neutral: "minecraft:textures/item/apple.png"
+      koth: "minecraft:textures/item/golden_helmet.png"
+
+  # Rich Presence Module - Show guild info on Discord/Lunar Client launcher
+  richpresence:
+    enabled: true
+    server_ip: "play.example.com"
+```
+
+**What it does:** Enables Lunar Client Apollo enhancements for users on LC. Disabling it doesn't break non-LC players. Adjust `refresh_rate: 1` (ticks) to reduce update frequency if performance suffers. Set `server_ip` to your server's public IP for Discord rich presence.
+
+## Gotchas
+
+- **First-start schema:** Don't pre-create the database schema. The plugin creates it automatically on first launch.
+- **No `/reload`:** The plugin doesn't support PlugMan or `/reload`. Always restart the server to apply config changes. Hot-reloading can cause crashes.
+- **Mixing claims on/off:** If you toggle `claims_enabled` on and off across restarts without wiping the DB, claim data becomes orphaned. Decide early whether you're using claims.
+- **Database credentials:** MariaDB passwords go in plain text. Secure the `plugins/LumaGuilds/config.yml` file (restrict read permissions).
+- **Vault soft dependency:** Vault must be installed and working for economy features. Without it, bank transactions and banner copying fail silently.
+
+## Related
+
+- [Permission nodes reference](permissions.md) — grant players access to commands
+- [Claims](claims.md) — configure the land claim system
+- [RoseChat integration](rosechat.md) — custom chat format and guild chat channels

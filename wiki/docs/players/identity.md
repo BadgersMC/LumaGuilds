@@ -65,7 +65,7 @@ Renaming doesn't change your tag — those are independent.
 
 ## Setting a banner
 
-Open `/g menu` → Banner. Click to enter the banner selection menu, where you can drag your custom banner design into the menu, and show off your designs. The banner is shown in your info card, alliance menus, and on guild-owned shops. 
+Open `/g menu` → Banner. Click to enter the banner selection menu, where you can drag your custom banner design into the menu, and show off your designs. The banner is shown in your info card, alliance menus, and on guild-owned shops.
 
 ## Gotchas
 
