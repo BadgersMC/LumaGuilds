@@ -91,9 +91,15 @@ Top-N placeholders are cached for 30 seconds to reduce database load.
 
 ### Relation indicator placeholder
 
-Format: `%lumaguilds_rel_<player>_status%`
+Two forms — pick the one that fits how your consumer plugin invokes
+placeholders:
 
-Returns an emoji indicating the relationship between the current player and another player:
+| Form | When to use |
+|------|-------------|
+| `%rel_lumaguilds_status%` | **Recommended for tab plugins** (NEZNAMY/TAB and ProtocolLib-based formatters). This is a PAPI *relational* placeholder; PAPI hands LumaGuilds both viewer and target, so each tab row gets the correct per-pair icon without any nested-placeholder workaround. |
+| `%lumaguilds_rel_<player>_status%` | Use in chat formats where the chat plugin substitutes the target's name into the format string (e.g. RoseChat's `{sender}`). `<player>` is metavariable — replace with the actual substitution token your chat plugin uses, or a real name for `/papi parse`. |
+
+Both forms return the same icon set:
 
 | Icon | Meaning |
 |------|---------|
@@ -101,16 +107,14 @@ Returns an emoji indicating the relationship between the current player and anot
 | `🔵` | Ally (guild alliance active) |
 | `🟢` | Teammate (same guild) |
 | `⚪` | Truce (temporary truce active) |
-| (blank) | Neutral or no relation |
+| (blank) | Neutral, no relation, target offline, or either player not in a guild |
 
 **Notes:**
 
-- Only works with **online** target players. Returns blank if the player is offline.
-- Returns blank if either player is not in a guild.
-- Only active relations render. Pending ally requests or expired truces return blank.
+- Only renders for **active** relations. Pending ally requests and expired truces return blank.
 - Same guild always returns `🟢`.
-
-**Example:** `%lumaguilds_rel_Steve_status%` in a player list shows the status icon next to Steve's name.
+- For `%lumaguilds_rel_<player>_status%`, the target must be online — name lookup goes through `Bukkit.getPlayer(name)`.
+- For `%rel_lumaguilds_status%`, PAPI supplies the target directly — no name lookup needed; works as long as the consumer plugin has a target Player in context.
 
 ## Where to use them
 
@@ -161,27 +165,25 @@ hologram:
 
 ### Player list (TAB / tab-formatting plugins)
 
-For per-row icons in a tab list, the target player's name goes in via **nested
-PAPI resolution**: write `%player_name%` (PAPI's built-in online-player-name
-placeholder) where the target name should appear. TAB resolves the inner
-placeholder first, producing a resolved outer placeholder which PAPI then
-evaluates.
+Use the PAPI **relational** placeholder `%rel_lumaguilds_status%`. PAPI hands
+the tab plugin both the viewer and the row's player, and LumaGuilds returns
+the icon for that specific pair. No nested-placeholder substitution needed.
 
 ```yaml
 # tab.yml (NEZNAMY/TAB style)
-tabsuffix: "%lumaguilds_guild_tag% %lumaguilds_rel_%player_name%_status%"
-tagsuffix: "%lumaguilds_guild_tag% %lumaguilds_rel_%player_name%_status%"
+tabsuffix: "%lumaguilds_guild_tag% %rel_lumaguilds_status%"
+tagsuffix: "%lumaguilds_guild_tag% %rel_lumaguilds_status%"
 ```
 
-For each row in the tab list, TAB substitutes `%player_name%` with that row's
-player → the placeholder becomes e.g. `%lumaguilds_rel_Steve_status%` → PAPI
-resolves it against the *viewer*'s guild to pick the right icon. Result is
-per-row dynamic.
+For each row in the tab list, PAPI calls the relational variant of the
+LumaGuilds expansion with `(viewer, target)` from the row context. The icon
+is computed per pair, so each row in the tab list gets the correct relation
+indicator. No `%player_name%` workaround is required.
 
-This works because TAB performs nested PAPI resolution. Other tab formatters
-that do the same (some ProtocolLib-based ones) also work. Tab formatters
-that DON'T do nested resolution will show the literal `%player_name%` text
-in the placeholder name and return blank.
+This is the recommended syntax for tab plugins. The older
+`%lumaguilds_rel_<player>_status%` form (target supplied as part of the
+placeholder name) still works but requires the consumer to substitute the
+target's name into the placeholder string — see the chat example below.
 
 ### Chat format with relation status
 
@@ -203,14 +205,19 @@ with Steve's guild:
 
 ## Gotchas
 
-**`<player>` in the placeholder name is metavariable, not literal.** When
-this doc writes `%lumaguilds_rel_<player>_status%`, it means *"the target
-player's name goes here"*. **Do not put the literal string `<player>` in your
-config.** Where the substitution comes from depends on the consumer:
+**Tab plugins: use `%rel_lumaguilds_status%`, not `%lumaguilds_rel_<player>_status%`.**
+TAB-style plugins don't reliably do nested PAPI resolution, so attempts like
+`%lumaguilds_rel_%player_name%_status%` will fall apart and render the
+literal placeholder string in the tab list. The relational form
+`%rel_lumaguilds_status%` is the correct invocation for those contexts —
+PAPI passes both viewer and target directly.
 
-- **TAB / tab formatters that do nested PAPI resolution** — use
-  `%player_name%`: `%lumaguilds_rel_%player_name%_status%`.
-- **Chat plugins (RoseChat, etc.)** — use the chat plugin's sender token
+**`<player>` in `%lumaguilds_rel_<player>_status%` is metavariable, not literal.**
+When this doc writes `<player>`, it means *"the target player's name goes
+here"*. **Do not put the literal string `<player>` in your config.** Where
+the substitution comes from:
+
+- **Chat plugins (RoseChat, etc.)** — the chat plugin's sender token
   (e.g. RoseChat's `{sender}`): `%lumaguilds_rel_{sender}_status%`.
 - **Direct lookups (custom plugins / `/papi parse`)** — substitute the actual
   player's name verbatim: `/papi parse Bob %lumaguilds_rel_Steve_status%`
