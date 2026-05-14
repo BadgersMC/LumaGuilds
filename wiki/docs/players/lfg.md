@@ -32,7 +32,7 @@ Run `/g invite <player>` to send them an invite:
 
 ```text
 /g invite Steve
-```text
+```
 
 They receive a clickable message. Clicking accept automatically runs `/g join` for them. The invite persists until they accept or decline.
 
@@ -42,7 +42,7 @@ Use `/g invites` to see every guild that has invited you:
 
 ```text
 /g invites
-```text
+```
 
 The list shows clickable accept and decline buttons for each invite.
 
@@ -52,7 +52,7 @@ Click the accept button in your invites list, or manually run `/g join <guild>`:
 
 ```text
 /g join Dragons
-```text
+```
 
 You're now a member of that guild. See [Guilds](guilds.md) for details.
 
@@ -62,7 +62,7 @@ Use `/g decline <guild>` to reject an invite:
 
 ```text
 /g decline Dragons
-```text
+```
 
 The invite is removed. You can re-accept later if the guild invites you again.
 
@@ -72,7 +72,7 @@ Run `/g lfg` to toggle your recruitment status:
 
 ```text
 /g lfg
-```text
+```
 
 While on, your name appears in guild leaders' recruitment lists (if the server supports LFG discovery). Toggle it off once you find a guild.
 
@@ -82,7 +82,7 @@ Run `/g kick <player>` to remove them from your guild:
 
 ```text
 /g kick Steve
-```text
+```
 
 This works whether they're online or offline. Your rank must outrank theirs — otherwise the kick is refused. (See [Ranks & Permissions](ranks.md) for rank hierarchy.)
 

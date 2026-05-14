@@ -45,7 +45,7 @@ All teleports (including cross-dimensional home teleports from the Overworld to 
 
 ## Recently Fixed/Changed
 
-Nothing For Now!
+Nothing for now!
 
 ## Related
 

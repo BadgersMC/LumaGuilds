@@ -29,7 +29,7 @@ Use `/g ranks` or `/g menu` → Ranks to access rank management. From there you 
 
 ```text
 /g ranks
-```text
+```
 
 ## Creating a rank
 
@@ -60,7 +60,7 @@ Owner (priority 0)
 Moderator (priority 1)
   ▼
 Member (priority 2)
-```text
+```
 
 ## Promoting and demoting members
 
@@ -68,7 +68,7 @@ Open `/g menu` → Members. Click a member and select Promote or Demote. Both on
 
 ```text
 /g menu
-```text
+```
 
 The system will confirm the action before applying it. You can't promote someone above your own rank, and you can't demote the owner.
 
