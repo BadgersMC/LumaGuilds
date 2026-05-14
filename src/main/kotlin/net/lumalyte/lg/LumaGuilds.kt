@@ -335,7 +335,7 @@ class LumaGuilds : JavaPlugin() {
                         throw RuntimeException("Failed to run SQLite migrations - database error", e)
                     }
                 }
-                is MariaDBStorage -> {
+                is MariaDBStorage, is VirtualThreadMariaDBStorage -> {
                     logColored("🔄 Running MariaDB migrations...")
                     // Get MariaDB connection details from config for migration
                     val host = config.getString("mariadb.host", "localhost") ?: "localhost"

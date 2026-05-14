@@ -609,7 +609,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         )
 
         if (config.guild.homeTeleportSafetyCheck) {
-            if (!GuildHomeSafety.checkOrAskConfirm(player, targetLocation, "/guild allyhome ${targetGuild.name} confirm")) {
+            if (!GuildHomeSafety.checkOrAskConfirm(player, targetLocation, "/guild allyhome ${targetGuild.id} confirm")) {
                 return
             }
         }
