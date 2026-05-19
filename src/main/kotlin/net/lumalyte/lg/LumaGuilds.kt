@@ -911,8 +911,9 @@ class LumaGuilds : JavaPlugin() {
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
 
-        // Close stale guild menus when a guild is disbanded
-        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(), this)
+        // Close stale guild menus and clean up channels when a guild is disbanded
+        val guildDisbandedListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener>()
+        server.pluginManager.registerEvents(guildDisbandedListener, this)
 
         // Clean up RoseChat channels when guild status changes
         if (server.pluginManager.isPluginEnabled("RoseChat")) {
