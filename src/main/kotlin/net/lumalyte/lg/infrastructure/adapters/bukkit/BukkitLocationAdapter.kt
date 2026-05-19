@@ -7,11 +7,15 @@ import org.bukkit.Location
 import org.bukkit.World
 
 fun Location.toPosition2D(): Position2D {
-    return Position2D(this.x.toInt(), this.z.toInt())
+    // blockX/blockZ floor the coordinate; plain toInt() truncates toward zero,
+    // which picks the wrong block for negative coordinates.
+    return Position2D(this.blockX, this.blockZ)
 }
 
 fun Location.toPosition3D(): Position3D {
-    return Position3D(this.x.toInt(), this.y.toInt(), this.z.toInt())
+    // blockX/Y/Z floor the coordinate; plain toInt() truncates toward zero,
+    // which picks the wrong block for negative coordinates.
+    return Position3D(this.blockX, this.blockY, this.blockZ)
 }
 
 fun Position.toLocation(world: World): Location {
