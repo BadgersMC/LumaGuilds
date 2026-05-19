@@ -917,7 +917,8 @@ class LumaGuilds : JavaPlugin() {
 
         // Clean up RoseChat channels when guild status changes
         if (server.pluginManager.isPluginEnabled("RoseChat")) {
-            server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(), this)
+            val roseChatCleanupListener = get().get<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener>()
+            server.pluginManager.registerEvents(roseChatCleanupListener, this)
             logColored("✓ RoseChat integration registered for chat cleanup")
         }
 

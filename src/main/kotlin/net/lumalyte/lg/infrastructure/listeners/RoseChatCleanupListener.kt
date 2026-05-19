@@ -15,25 +15,23 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.util.UUID
 
 /**
  * Listener to handle RoseChat channel cleanup when players leave, guilds are disbanded,
  * or relationships (allies) change.
- * 
+ *
  * Unlike standard channel identification, this listener verifies if a player is still
  * authorized to be in their current RoseChat channel by checking against LumaGuilds
  * known Party objects and Guild membership status.
  */
-class RoseChatCleanupListener : Listener, KoinComponent {
-
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val partyService: PartyService by inject()
-    private val relationService: RelationService by inject()
+class RoseChatCleanupListener(
+    private val guildService: GuildService,
+    private val memberService: MemberService,
+    private val partyService: PartyService,
+    private val relationService: RelationService
+) : Listener {
 
     private val logger = LoggerFactory.getLogger(RoseChatCleanupListener::class.java)
 
@@ -76,8 +74,43 @@ class RoseChatCleanupListener : Listener, KoinComponent {
     }
 
     /**
-     * Checks if the player's current RoseChat channel is still valid based on their
-     * LumaGuilds status (guild membership and party participation).
+     * Decides whether [playerId] should be removed from the RoseChat channel [channelId]
+     * based purely on their current LumaGuilds status.
+     *
+     * - The fixed `guild` channel is valid only while the player is in a guild.
+     * - The fixed `guild-ally` channel is valid only while one of the player's guilds
+     *   still has at least one active alliance.
+     * - Dynamic party channels are keyed by the party UUID; the player may stay only
+     *   if that UUID is an active party of one of their guilds. Channels whose id is
+     *   not a UUID belong to other plugins and are never touched.
+     */
+    fun shouldLeaveChannel(playerId: UUID, channelId: String): Boolean = when (channelId) {
+        guildChannelId ->
+            guildService.getPlayerGuilds(playerId).isEmpty()
+
+        allyChannelId ->
+            guildService.getPlayerGuilds(playerId).none { guild ->
+                relationService.getGuildRelationsByType(guild.id, RelationType.ALLY)
+                    .any { it.isActive() }
+            }
+
+        else -> {
+            val channelUuid = runCatching { UUID.fromString(channelId) }.getOrNull()
+            if (channelUuid == null) {
+                false
+            } else {
+                val activePartyIds = guildService.getPlayerGuilds(playerId)
+                    .flatMap { partyService.getActivePartiesForGuild(it.id) }
+                    .map { it.id }
+                    .toSet()
+                channelUuid !in activePartyIds
+            }
+        }
+    }
+
+    /**
+     * Moves the player back to the default channel if their current RoseChat channel
+     * is no longer valid for their LumaGuilds status.
      */
     private fun validateAndCleanup(player: Player, api: RoseChatAPI? = RoseChatAPI.getInstance()) {
         if (api == null || !player.isOnline) return
@@ -87,36 +120,7 @@ class RoseChatCleanupListener : Listener, KoinComponent {
             val currentChannel = rosePlayer.playerData?.currentChannel ?: return
             val channelId = currentChannel.id
 
-            val shouldSwitch = when {
-                // Fixed 'guild' channel: valid only while the player is in a guild.
-                channelId == guildChannelId ->
-                    guildService.getPlayerGuilds(player.uniqueId).isEmpty()
-
-                // Fixed 'guild-ally' channel: valid only while one of the player's
-                // guilds still has at least one active alliance.
-                channelId == allyChannelId ->
-                    guildService.getPlayerGuilds(player.uniqueId).none { guild ->
-                        relationService.getGuildRelationsByType(guild.id, RelationType.ALLY)
-                            .any { it.isActive() }
-                    }
-
-                // Dynamic party channels are keyed by the party UUID. Channels whose
-                // ID is not a UUID belong to other plugins and must not be touched.
-                else -> {
-                    val channelUuid = runCatching { UUID.fromString(channelId) }.getOrNull()
-                    if (channelUuid == null) {
-                        false
-                    } else {
-                        val activePartyIds = guildService.getPlayerGuilds(player.uniqueId)
-                            .flatMap { partyService.getActivePartiesForGuild(it.id) }
-                            .map { it.id }
-                            .toSet()
-                        channelUuid !in activePartyIds
-                    }
-                }
-            }
-
-            if (shouldSwitch) {
+            if (shouldLeaveChannel(player.uniqueId, channelId)) {
                 val defaultChannel = api.channelManager.defaultChannel
                 if (defaultChannel != null && channelId != defaultChannel.id) {
                     rosePlayer.switchChannel(defaultChannel)
