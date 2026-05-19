@@ -914,6 +914,12 @@ class LumaGuilds : JavaPlugin() {
         // Close stale guild menus when a guild is disbanded
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(), this)
 
+        // Clean up RoseChat channels when guild status changes
+        if (server.pluginManager.isPluginEnabled("RoseChat")) {
+            server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(), this)
+            logColored("✓ RoseChat integration registered for chat cleanup")
+        }
+
         // Register admin override listener (for logout cleanup) - only when claims enabled
         if (claimsEnabled) {
             val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
