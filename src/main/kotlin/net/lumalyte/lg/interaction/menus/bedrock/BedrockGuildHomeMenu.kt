@@ -3,7 +3,7 @@ package net.lumalyte.lg.interaction.menus.bedrock
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
-import net.lumalyte.lg.domain.values.Position3D
+import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -182,11 +182,7 @@ class BedrockGuildHomeMenu(
 
         val home = GuildHome(
             worldId = currentLocation.world.uid,
-            position = Position3D(
-                currentLocation.x.toInt(),
-                currentLocation.y.toInt(),
-                currentLocation.z.toInt()
-            )
+            position = currentLocation.toPosition3D()
         )
 
         val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
