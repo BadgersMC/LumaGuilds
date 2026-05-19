@@ -44,13 +44,15 @@ class PartyServiceBukkit(
                 return null
             }
 
-            // Check if any of the guilds are already in an active party
-            // For private parties, allow multiple parties per guild (one per player/leader)
+            // A guild may only be in one multi-guild party at a time. Its own internal
+            // single-guild channels (Guild_Chat, Officer_Chat, ...) are also Party rows,
+            // so they must be excluded from this check.
             if (!isPrivateParty) {
                 for (guildId in party.guildIds) {
-                    val existingParties = partyRepository.getActivePartiesByGuild(guildId)
-                    if (existingParties.isNotEmpty()) {
-                        logger.warn("Guild $guildId is already in an active party")
+                    val inMultiGuildParty = partyRepository.getActivePartiesByGuild(guildId)
+                        .any { !it.isPrivateParty() }
+                    if (inMultiGuildParty) {
+                        logger.warn("Guild $guildId is already in an active multi-guild party")
                         return null
                     }
                 }
