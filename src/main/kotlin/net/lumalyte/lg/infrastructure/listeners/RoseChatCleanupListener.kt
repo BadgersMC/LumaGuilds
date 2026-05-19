@@ -5,6 +5,7 @@ import dev.rosewood.rosechat.message.RosePlayer
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PartyService
+import net.lumalyte.lg.application.services.RelationService
 import net.lumalyte.lg.domain.events.GuildDisbandedEvent
 import net.lumalyte.lg.domain.events.GuildMemberRemovedEvent
 import net.lumalyte.lg.domain.events.GuildRelationChangeEvent
@@ -32,6 +33,7 @@ class RoseChatCleanupListener : Listener, KoinComponent {
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val partyService: PartyService by inject()
+    private val relationService: RelationService by inject()
 
     private val logger = LoggerFactory.getLogger(RoseChatCleanupListener::class.java)
 
@@ -77,38 +79,39 @@ class RoseChatCleanupListener : Listener, KoinComponent {
      * Checks if the player's current RoseChat channel is still valid based on their
      * LumaGuilds status (guild membership and party participation).
      */
-    private fun validateAndCleanup(player: Player, api: RoseChatAPI = RoseChatAPI.getInstance() ?: return) {
-        if (!player.isOnline) return
+    private fun validateAndCleanup(player: Player, api: RoseChatAPI? = RoseChatAPI.getInstance()) {
+        if (api == null || !player.isOnline) return
 
         try {
             val rosePlayer = RosePlayer(player)
             val currentChannel = rosePlayer.playerData?.currentChannel ?: return
             val channelId = currentChannel.id
 
-            var shouldSwitch = false
+            val shouldSwitch = when {
+                // Fixed 'guild' channel: valid only while the player is in a guild.
+                channelId == guildChannelId ->
+                    guildService.getPlayerGuilds(player.uniqueId).isEmpty()
 
-            // 1. Check if they are in the fixed 'guild' or 'guild-ally' RoseChat channels
-            if (channelId == guildChannelId || channelId == allyChannelId) {
-                if (guildService.getPlayerGuilds(player.uniqueId).isEmpty()) {
-                    shouldSwitch = true
-                }
-            }
+                // Fixed 'guild-ally' channel: valid only while one of the player's
+                // guilds still has at least one active alliance.
+                channelId == allyChannelId ->
+                    guildService.getPlayerGuilds(player.uniqueId).none { guild ->
+                        relationService.getGuildRelationsByType(guild.id, RelationType.ALLY)
+                            .any { it.isActive() }
+                    }
 
-            // 2. Check if they are in a custom Luma Party channel
-            // A player should only be in a party channel if they have an active Luma Party.
-            if (!shouldSwitch) {
-                val activeParty = partyService.getActivePartyForPlayer(player.uniqueId)
-                if (activeParty == null) {
-                    // If the player has no active Luma Party but is in a dynamic channel,
-                    // check if this channel could be a party channel by verifying against
-                    // all known party IDs for the player's guilds.
-                    val playerGuildIds = guildService.getPlayerGuilds(player.uniqueId).map { it.id }
-                    val knownPartyIds = playerGuildIds.flatMap { gid ->
-                        partyService.getAllPartiesForGuild(gid).map { it.id.toString() }
-                    }.toSet()
-                    // Only switch if the channel ID is NOT in any known party set
-                    if (channelId !in knownPartyIds) {
-                        shouldSwitch = true
+                // Dynamic party channels are keyed by the party UUID. Channels whose
+                // ID is not a UUID belong to other plugins and must not be touched.
+                else -> {
+                    val channelUuid = runCatching { UUID.fromString(channelId) }.getOrNull()
+                    if (channelUuid == null) {
+                        false
+                    } else {
+                        val activePartyIds = guildService.getPlayerGuilds(player.uniqueId)
+                            .flatMap { partyService.getActivePartiesForGuild(it.id) }
+                            .map { it.id }
+                            .toSet()
+                        channelUuid !in activePartyIds
                     }
                 }
             }

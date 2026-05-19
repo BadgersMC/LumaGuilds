@@ -28,12 +28,17 @@ class GuildDisbandedListener(
             player.sendMessage("§c✗ Your guild §f${event.guild.name} §chas been disbanded.")
         }
 
-        // 2. Remove all Party channels associated with this guild
+        // 2. Remove this guild from every party it participates in.
+        //    Single/last-guild parties are dissolved; multi-guild parties survive
+        //    for the remaining guilds. Uses a system removal so the cleanup is not
+        //    blocked by the actor's party-management permissions.
         try {
             val parties = partyService.getActivePartiesForGuild(event.guild.id)
             parties.forEach { party ->
-                if (partyService.dissolveParty(party.id, event.actorId)) {
-                    logger.info("Removed guild channel ${party.name} (${party.id}) for disbanded guild ${event.guild.name}")
+                if (partyService.removeGuildFromPartyAsSystem(party.id, event.guild.id) == null) {
+                    logger.info("Dissolved party channel ${party.name} (${party.id}) for disbanded guild ${event.guild.name}")
+                } else {
+                    logger.info("Removed disbanded guild ${event.guild.name} from party ${party.name} (${party.id})")
                 }
             }
         } catch (e: Exception) {
