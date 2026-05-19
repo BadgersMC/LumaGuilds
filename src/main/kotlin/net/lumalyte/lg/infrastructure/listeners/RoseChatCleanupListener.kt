@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.listeners
 import dev.rosewood.rosechat.api.RoseChatAPI
 import dev.rosewood.rosechat.message.RosePlayer
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.domain.events.GuildDisbandedEvent
 import net.lumalyte.lg.domain.events.GuildMemberRemovedEvent
@@ -15,6 +16,7 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.slf4j.LoggerFactory
 import java.util.UUID
 
 /**
@@ -28,7 +30,10 @@ import java.util.UUID
 class RoseChatCleanupListener : Listener, KoinComponent {
 
     private val guildService: GuildService by inject()
+    private val memberService: MemberService by inject()
     private val partyService: PartyService by inject()
+
+    private val logger = LoggerFactory.getLogger(RoseChatCleanupListener::class.java)
 
     /** IDs of the RoseChat channels defined in LumaGuilds' channels.yml hook. */
     private val guildChannelId = "guild"
@@ -42,19 +47,28 @@ class RoseChatCleanupListener : Listener, KoinComponent {
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildDisbanded(event: GuildDisbandedEvent) {
+        // Batch: resolve RoseChat API once, then process all members
+        val api = RoseChatAPI.getInstance() ?: return
         event.memberIds.forEach { memberId ->
             val player = Bukkit.getPlayer(memberId) ?: return@forEach
-            validateAndCleanup(player)
+            validateAndCleanup(player, api)
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onRelationChange(event: GuildRelationChangeEvent) {
         // If an alliance is broken, refresh all members of both guilds
-        if (event.type == RelationType.NEUTRAL || event.type == RelationType.ENEMY) {
-            (event.sourceGuild.memberIds + event.targetGuild.memberIds).forEach { memberId ->
+        if (event.newRelationType == RelationType.NEUTRAL || event.newRelationType == RelationType.ENEMY) {
+            val api = RoseChatAPI.getInstance() ?: return
+            // Resolve guild UUIDs to Guild objects, then collect member IDs
+            val guild1 = guildService.getGuild(event.guild1)
+            val guild2 = guildService.getGuild(event.guild2)
+            val memberIds = mutableSetOf<UUID>()
+            guild1?.let { memberIds.addAll(memberService.getGuildMembers(it.id).map { m -> m.playerId }) }
+            guild2?.let { memberIds.addAll(memberService.getGuildMembers(it.id).map { m -> m.playerId }) }
+            memberIds.forEach { memberId ->
                 val player = Bukkit.getPlayer(memberId) ?: return@forEach
-                validateAndCleanup(player)
+                validateAndCleanup(player, api)
             }
         }
     }
@@ -63,11 +77,10 @@ class RoseChatCleanupListener : Listener, KoinComponent {
      * Checks if the player's current RoseChat channel is still valid based on their
      * LumaGuilds status (guild membership and party participation).
      */
-    private fun validateAndCleanup(player: Player) {
+    private fun validateAndCleanup(player: Player, api: RoseChatAPI = RoseChatAPI.getInstance() ?: return) {
         if (!player.isOnline) return
 
         try {
-            val api = RoseChatAPI.getInstance() ?: return
             val rosePlayer = RosePlayer(player)
             val currentChannel = rosePlayer.playerData?.currentChannel ?: return
             val channelId = currentChannel.id
@@ -81,19 +94,22 @@ class RoseChatCleanupListener : Listener, KoinComponent {
                 }
             }
 
-            // 2. Check if they are in a custom Luma Party channel (Dynamic IDs)
-            // Luma's Party system uses UUIDs as names in some contexts or metadata.
-            // We check the PartyService to see if they are allowed in any party matching this ID.
+            // 2. Check if they are in a custom Luma Party channel
+            // A player should only be in a party channel if they have an active Luma Party.
             if (!shouldSwitch) {
-                val parties = partyService.getAllPartiesForGuild(UUID.randomUUID()) // Stub for "all parties" check if needed
-                // Actually, the most robust check is: can they still join their active party?
                 val activeParty = partyService.getActivePartyForPlayer(player.uniqueId)
-                
-                // If they are in a channel that looks like a party but don't have an active authorized party
-                if (channelId.length > 30 && activeParty == null) {
-                    // Check if the current channel is a known party channel they are NOT in
-                    // Note: Luma parties often map 1:1 to RoseChat dynamic channels if integrated.
-                    shouldSwitch = true
+                if (activeParty == null) {
+                    // If the player has no active Luma Party but is in a dynamic channel,
+                    // check if this channel could be a party channel by verifying against
+                    // all known party IDs for the player's guilds.
+                    val playerGuildIds = guildService.getPlayerGuilds(player.uniqueId).map { it.id }
+                    val knownPartyIds = playerGuildIds.flatMap { gid ->
+                        partyService.getAllPartiesForGuild(gid).map { it.id.toString() }
+                    }.toSet()
+                    // Only switch if the channel ID is NOT in any known party set
+                    if (channelId !in knownPartyIds) {
+                        shouldSwitch = true
+                    }
                 }
             }
 
@@ -107,7 +123,7 @@ class RoseChatCleanupListener : Listener, KoinComponent {
         } catch (e: NoClassDefFoundError) {
             // RoseChat not loaded
         } catch (e: Exception) {
-            // Ignore
+            logger.debug("Error during RoseChat cleanup for player ${player.uniqueId}", e)
         }
     }
 }

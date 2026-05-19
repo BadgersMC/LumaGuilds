@@ -32,7 +32,7 @@ class GuildDisbandedListener(
         try {
             val parties = partyService.getActivePartiesForGuild(event.guild.id)
             parties.forEach { party ->
-                if (partyService.deleteParty(party.id)) {
+                if (partyService.dissolveParty(party.id, event.actorId)) {
                     logger.info("Removed guild channel ${party.name} (${party.id}) for disbanded guild ${event.guild.name}")
                 }
             }
