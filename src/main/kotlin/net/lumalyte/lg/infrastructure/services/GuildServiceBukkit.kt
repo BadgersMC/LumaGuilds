@@ -208,13 +208,15 @@ class GuildServiceBukkit(
             logger.info("Guild $guildId banner set to '$bannerText' by $actorId")
             Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
 
-            // Notify bannerman renderer to re-render the new banner
+            // Notify bannerman renderer to re-render the new banner. Failures are non-fatal
+            // (Koin may be torn down during shutdown), but we log so operators can diagnose
+            // missing-refresh complaints instead of chasing ghost bug reports.
             try {
                 val bannermanListeners = org.koin.java.KoinJavaComponent.getKoin()
                     .get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
                 bannermanListeners.onGuildBannerChanged(guildId)
-            } catch (_: Exception) {
-                // Koin/bannerman not initialized — fine, the feature just won't refresh
+            } catch (e: Exception) {
+                logger.debug("Bannerman refresh skipped for guild $guildId: ${e.message}")
             }
         }
         return result

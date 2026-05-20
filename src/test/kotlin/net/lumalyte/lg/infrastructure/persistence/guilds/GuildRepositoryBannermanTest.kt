@@ -12,6 +12,9 @@ import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 /**
@@ -114,11 +117,11 @@ class GuildRepositoryBannermanTest {
     }
 
     @Test
-    fun `existing guilds without bannerman column should default to false`() {
-        // Given: A guild row without explicit bannerman value (simulating migration)
+    fun `guilds inserted without explicit bannerman_enabled get column default of false`() {
+        // The table has bannerman_enabled with DEFAULT 0; this test asserts the default actually
+        // applies when the column is omitted from INSERT (i.e. existing rows from before the v22
+        // migration backfill correctly).
         val guildId = UUID.randomUUID()
-
-        // Insert guild using SQL that mimics pre-migration data (defaults apply)
         connection.createStatement().use { stmt ->
             stmt.execute("""
                 INSERT INTO guilds (id, name, level, bank_balance, mode, created_at)
@@ -126,12 +129,71 @@ class GuildRepositoryBannermanTest {
             """.trimIndent())
         }
 
-        // When: Load guild from database
         val guild = loadGuild(guildId)
 
-        // Then: bannermanEnabled should have default value (false)
         assertNotNull(guild)
         assertFalse(guild!!.bannermanEnabled, "bannermanEnabled should default to false")
+    }
+
+    @Test
+    fun `loader treats missing bannerman_enabled column as false`() {
+        // Reproduces a partially-migrated DB (LFG cols present, bannerman col not yet added).
+        // The real GuildRepositorySQLite mapper wraps the column read in try/catch and falls back
+        // to false; this test verifies the same defensive behavior on a schema that genuinely
+        // lacks the column.
+        connection.createStatement().use { stmt -> stmt.execute("DROP TABLE guilds") }
+        createGuildsTableWithoutBannermanColumn()
+
+        val guildId = UUID.randomUUID()
+        connection.createStatement().use { stmt ->
+            stmt.execute("""
+                INSERT INTO guilds (id, name, level, bank_balance, mode, created_at)
+                VALUES ('$guildId', 'Pre-v22 Guild', 1, 0, 'hostile', datetime('now'))
+            """.trimIndent())
+        }
+
+        val guild = loadGuildDefensive(guildId)
+
+        assertNotNull(guild)
+        assertFalse(guild!!.bannermanEnabled)
+    }
+
+    private fun createGuildsTableWithoutBannermanColumn() {
+        connection.createStatement().use { stmt ->
+            stmt.execute("""
+                CREATE TABLE guilds (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    level INTEGER NOT NULL DEFAULT 1,
+                    bank_balance INTEGER NOT NULL DEFAULT 0,
+                    mode TEXT NOT NULL DEFAULT 'hostile',
+                    created_at TEXT NOT NULL
+                )
+            """.trimIndent())
+        }
+    }
+
+    /** Mirrors the real repo's defensive-read of bannerman_enabled when the column may not exist. */
+    private fun loadGuildDefensive(guildId: UUID): Guild? {
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT * FROM guilds WHERE id = '$guildId'").use { rs ->
+                if (!rs.next()) return null
+                val bannermanEnabled = try {
+                    rs.getInt("bannerman_enabled") == 1
+                } catch (_: java.sql.SQLException) {
+                    false
+                }
+                return Guild(
+                    id = guildId,
+                    name = rs.getString("name"),
+                    level = rs.getInt("level"),
+                    bankBalance = rs.getInt("bank_balance"),
+                    mode = GuildMode.valueOf(rs.getString("mode").uppercase()),
+                    createdAt = parseSqlDateTime(rs.getString("created_at")),
+                    bannermanEnabled = bannermanEnabled
+                )
+            }
+        }
     }
 
     @Test
@@ -202,7 +264,8 @@ class GuildRepositoryBannermanTest {
             stmt.setInt(3, guild.level)
             stmt.setInt(4, guild.bankBalance)
             stmt.setString(5, guild.mode.name.lowercase())
-            stmt.setString(6, guild.createdAt.toString())
+            // Production writes "yyyy-MM-dd HH:mm:ss" via toSqlDateTime() — fixture must match.
+            stmt.setString(6, SQL_DATETIME.withZone(ZoneOffset.UTC).format(guild.createdAt))
             stmt.setInt(7, if (guild.bannermanEnabled) 1 else 0)
             stmt.executeUpdate()
         }
@@ -235,12 +298,10 @@ class GuildRepositoryBannermanTest {
                 val level = rs.getInt("level")
                 val bankBalance = rs.getInt("bank_balance")
                 val mode = GuildMode.valueOf(rs.getString("mode").uppercase())
-                val createdAtStr = rs.getString("created_at")
-                val createdAt = try {
-                    Instant.parse(createdAtStr)
-                } catch (e: Exception) {
-                    Instant.now()
-                }
+                // Production stores datetimes as "yyyy-MM-dd HH:mm:ss" (MariaDB-compatible),
+                // NOT ISO-8601. Parsing must match the real format — Instant.parse would
+                // crash here and the silent-catch fallback used to mask that.
+                val createdAt = parseSqlDateTime(rs.getString("created_at"))
                 val bannermanEnabled = rs.getInt("bannerman_enabled") == 1
 
                 return Guild(
@@ -254,5 +315,16 @@ class GuildRepositoryBannermanTest {
                 )
             }
         }
+    }
+
+    /**
+     * Parses the same datetime format the real GuildRepositorySQLite writes
+     * ("yyyy-MM-dd HH:mm:ss" in UTC, MariaDB-compatible). Fails fast on malformed input.
+     */
+    private fun parseSqlDateTime(s: String): Instant =
+        LocalDateTime.parse(s, SQL_DATETIME).toInstant(ZoneOffset.UTC)
+
+    companion object {
+        private val SQL_DATETIME: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     }
 }

@@ -1636,11 +1636,24 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
+        // Persisted state is committed at this point — render-callback failures must not propagate
+        // and crash the command flow, otherwise the player sees an error for a toggle that did save.
+        try {
+            if (newState) {
+                bannermanListeners.onBannermanEnabled(guild.id)
+            } else {
+                bannermanListeners.onBannermanDisabled(guild.id)
+            }
+        } catch (e: Exception) {
+            org.bukkit.Bukkit.getLogger().warning(
+                "Bannerman render callback failed for guild ${guild.id} (newState=$newState): ${e.message}"
+            )
+            player.sendMessage("§eBannerman state was saved, but live refresh failed. Try relogging.")
+            return
+        }
         if (newState) {
-            bannermanListeners.onBannermanEnabled(guild.id)
             player.sendMessage("§a✅ Bannerman enabled — guild members will wear the banner on their backs.")
         } else {
-            bannermanListeners.onBannermanDisabled(guild.id)
             player.sendMessage("§7Bannerman disabled.")
         }
     }
