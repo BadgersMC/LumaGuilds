@@ -38,7 +38,7 @@ class BannermanListeners(
     @EventHandler
     fun onWorldChange(e: PlayerChangedWorldEvent) {
         renderer.despawnFor(e.player.uniqueId)
-        trySpawn(e.player)
+        plugin.server.scheduler.runTask(plugin, Runnable { trySpawn(e.player) })
     }
 
     private fun trySpawn(player: Player) {
