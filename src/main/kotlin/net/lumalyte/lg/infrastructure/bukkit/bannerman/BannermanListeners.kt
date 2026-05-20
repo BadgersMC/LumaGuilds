@@ -61,10 +61,19 @@ class BannermanListeners(
         memberService.getGuildMembers(guildId).forEach { renderer.despawnFor(it.playerId) }
     }
 
-    /** Re-render every online member when the guild banner ItemStack changes. */
+    /**
+     * Re-render every online member when the guild banner ItemStack changes.
+     * If the banner has been cleared (or fails to deserialize) we despawn rather than bail —
+     * leaving stale displays around would mean a removed banner stays visible forever.
+     */
     fun onGuildBannerChanged(guildId: UUID) {
         val guild = guildService.getGuild(guildId) ?: return
-        val banner = guild.banner?.deserializeToItemStack() ?: return
-        memberService.getGuildMembers(guildId).forEach { renderer.updateBanner(it.playerId, banner) }
+        val members = memberService.getGuildMembers(guildId)
+        val banner = guild.banner?.deserializeToItemStack()
+        if (banner == null) {
+            members.forEach { renderer.despawnFor(it.playerId) }
+            return
+        }
+        members.forEach { renderer.updateBanner(it.playerId, banner) }
     }
 }

@@ -194,20 +194,21 @@ class BannermanMigrationTest {
         }
     }
 
+    /**
+     * Fails fast on metadata query errors so genuine DB problems don't masquerade as a missing
+     * column. Test-helper only — production code in GuildRepositorySQLite has its own variant
+     * that logs and returns false because runtime persistence should be resilient.
+     */
     private fun columnExists(tableName: String, columnName: String): Boolean {
-        return try {
-            connection.createStatement().use { stmt ->
-                stmt.executeQuery("PRAGMA table_info($tableName)").use { rs ->
-                    while (rs.next()) {
-                        if (rs.getString("name") == columnName) {
-                            return true
-                        }
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("PRAGMA table_info($tableName)").use { rs ->
+                while (rs.next()) {
+                    if (rs.getString("name") == columnName) {
+                        return true
                     }
-                    false
                 }
+                return false
             }
-        } catch (e: Exception) {
-            false
         }
     }
 }
