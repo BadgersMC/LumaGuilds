@@ -124,6 +124,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(21)
                 dbVersion = 21
             }
+            if (dbVersion < 22) {
+                migrateToVersion22()
+                updateDatabaseVersion(22)
+                dbVersion = 22
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1541,5 +1546,24 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun migrateToVersion21() {
         componentLogger.info(Component.text("Migrating to version 21: sanitize guild names..."))
         GuildNameSanitizer.sanitizeAll(connection, componentLogger)
+    }
+
+    /**
+     * Migration from version 21 to version 22.
+     * Adds bannerman_enabled column to guilds table for bannerman feature.
+     */
+    private fun migrateToVersion22() {
+        val sqlCommands = mutableListOf<String>()
+
+        // Add bannerman_enabled column to guilds table (if not exists)
+        if (!columnExists("guilds", "bannerman_enabled")) {
+            sqlCommands.add("ALTER TABLE guilds ADD COLUMN bannerman_enabled INTEGER DEFAULT 0;")
+        }
+
+        if (sqlCommands.isNotEmpty()) {
+            executeMigrationCommands(sqlCommands)
+        }
+
+        componentLogger.info(Component.text("✓ Migration v22 complete: added bannerman_enabled column"))
     }
 }
