@@ -207,6 +207,15 @@ class GuildServiceBukkit(
             val bannerText = if (banner != null) "${banner.type.name} with patterns" else "cleared (default white banner)"
             logger.info("Guild $guildId banner set to '$bannerText' by $actorId")
             Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
+
+            // Notify bannerman renderer to re-render the new banner
+            try {
+                val bannermanListeners = org.koin.java.KoinJavaComponent.getKoin()
+                    .get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
+                bannermanListeners.onGuildBannerChanged(guildId)
+            } catch (_: Exception) {
+                // Koin/bannerman not initialized — fine, the feature just won't refresh
+            }
         }
         return result
     }
