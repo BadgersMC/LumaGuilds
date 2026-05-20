@@ -44,6 +44,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(21)
                 currentDbVersion = 21
             }
+            if (currentDbVersion < 22) {
+                migrateToVersion22()
+                updateDatabaseVersion(22)
+                currentDbVersion = 22
+            }
 
             connection.commit()
 
@@ -572,5 +577,21 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
     private fun migrateToVersion21() {
         componentLogger.info(Component.text("Migrating to version 21: sanitize guild names..."))
         GuildNameSanitizer.sanitizeAll(connection, componentLogger)
+    }
+
+    /**
+     * Migration to version 22.
+     * Adds the `bannerman_enabled` column to the `guilds` table to support the
+     * Guild Bannerman feature.
+     */
+    private fun migrateToVersion22() {
+        componentLogger.info(Component.text("Migrating to version 22: Adding bannerman_enabled column to guilds table..."))
+
+        connection.createStatement().use { stmt ->
+            stmt.execute("""
+                ALTER TABLE guilds ADD COLUMN IF NOT EXISTS bannerman_enabled TINYINT(1) NOT NULL DEFAULT 0
+            """.trimIndent())
+            componentLogger.info(Component.text("✓ Added bannerman_enabled column to guilds table (migration v22)"))
+        }
     }
 }
