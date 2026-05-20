@@ -296,6 +296,25 @@ interface GuildService {
     fun getJoinFeeSettings(guildId: UUID): Pair<Boolean, Int>?
 
     /**
+     * Enables or disables bannerman rendering (guild banner on player backs) for a guild.
+     * Requires MANAGE_BANNER permission on the actor.
+     *
+     * @param guildId The ID of the guild.
+     * @param enabled true to enable bannerman, false to disable.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise (guild not found or lacks permission).
+     */
+    fun setBannermanEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean
+
+    /**
+     * Gets whether bannerman rendering is enabled for a guild.
+     *
+     * @param guildId The ID of the guild.
+     * @return true if enabled; false if disabled or guild not found.
+     */
+    fun getBannermanEnabled(guildId: UUID): Boolean
+
+    /**
      * Enables or disables Lunar Client location tracking (Apollo teams/waypoints) for a guild.
      *
      * @param guildId The ID of the guild.
