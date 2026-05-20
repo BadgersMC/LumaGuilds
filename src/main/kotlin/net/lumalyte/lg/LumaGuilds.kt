@@ -889,6 +889,13 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(net.lumalyte.lg.interaction.listeners.GuildVaultCraftingPreventionListener(), this)
         server.pluginManager.registerEvents(GuildVaultFuelPreventionListener(), this)
 
+        // Register bannerman listener and tick task
+        val bannermanRenderer = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()
+        val bannermanListeners = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
+        server.pluginManager.registerEvents(bannermanListeners, this)
+        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanTickTask(this, bannermanRenderer).start()
+        bannermanRenderer.sweepOrphans()
+
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()
         server.pluginManager.registerEvents(progressionEventListener, this)
@@ -1057,6 +1064,14 @@ class LumaGuilds : JavaPlugin() {
             // Broad exception handling acceptable - shutdown should be resilient
             logger.severe("Failed to stop vault hologram service: ${e.message}")
             e.printStackTrace()
+        }
+
+        // Despawn all bannerman displays
+        try {
+            val bannermanRenderer = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()
+            bannermanRenderer.despawnAll()
+        } catch (_: Exception) {
+            // Koin already torn down — nothing to clean up
         }
 
         // Stop the daily war costs scheduler
