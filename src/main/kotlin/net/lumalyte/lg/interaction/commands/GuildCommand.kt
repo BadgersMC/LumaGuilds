@@ -50,6 +50,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
+    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
@@ -1606,6 +1607,41 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§7This will be displayed next to guild member names.")
         } else {
             player.sendMessage("§c❌ Failed to set guild tag. The tag may already be taken.")
+        }
+    }
+
+    @Subcommand("bannerman")
+    @CommandPermission("lumaguilds.guild.bannerman")
+    fun onBannerman(player: Player) {
+        val playerId = player.uniqueId
+
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+        val guild = guilds.first()
+
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_BANNER)) {
+            player.sendMessage("§cYou don't have permission to toggle the bannerman.")
+            player.sendMessage("§7You need the MANAGE_BANNER permission.")
+            return
+        }
+
+        val current = guildService.getBannermanEnabled(guild.id)
+        val newState = !current
+        val success = guildService.setBannermanEnabled(guild.id, newState, playerId)
+        if (!success) {
+            player.sendMessage("§c❌ Failed to toggle bannerman.")
+            return
+        }
+
+        if (newState) {
+            bannermanListeners.onBannermanEnabled(guild.id)
+            player.sendMessage("§a✅ Bannerman enabled — guild members will wear the banner on their backs.")
+        } else {
+            bannermanListeners.onBannermanDisabled(guild.id)
+            player.sendMessage("§7Bannerman disabled.")
         }
     }
 

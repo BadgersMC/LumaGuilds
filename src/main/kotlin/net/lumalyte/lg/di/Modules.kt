@@ -416,6 +416,14 @@ fun guildsModule() = module {
     single<net.lumalyte.lg.infrastructure.services.ARMIntegrationService> {
         net.lumalyte.lg.infrastructure.services.ARMIntegrationService()
     }
+
+    // Bannerman services
+    single<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService> {
+        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService(get<LumaGuilds>())
+    }
+    single<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners> {
+        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners(get<LumaGuilds>(), get(), get(), get())
+    }
 }
 
 /**
