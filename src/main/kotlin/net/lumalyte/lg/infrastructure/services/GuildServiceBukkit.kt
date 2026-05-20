@@ -639,6 +639,26 @@ class GuildServiceBukkit(
         return Pair(guild.joinFeeEnabled, guild.joinFeeAmount)
     }
 
+    override fun setBannermanEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_BANNER)) {
+            logger.warn("Player $actorId attempted to toggle bannerman on guild $guildId without permission")
+            return false
+        }
+
+        val updated = guild.copy(bannermanEnabled = enabled)
+        val result = guildRepository.update(updated)
+        if (result) {
+            logger.info("Guild $guildId bannerman ${if (enabled) "enabled" else "disabled"} by $actorId")
+        }
+        return result
+    }
+
+    override fun getBannermanEnabled(guildId: UUID): Boolean {
+        return guildRepository.getById(guildId)?.bannermanEnabled ?: false
+    }
+
     override fun setTrackingEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 
