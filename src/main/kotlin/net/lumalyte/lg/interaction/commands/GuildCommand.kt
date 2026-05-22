@@ -524,6 +524,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("allyhome")
     @CommandPermission("lumaguilds.guild.allyhome")
     @CommandCompletion("@allyguilds")
+    @Syntax("<guildName> [confirm]")
     fun onAllyHome(player: Player, guildName: String, @Optional confirm: String?) {
         if (guildName.lowercase() == "confirm" || confirm?.lowercase() == "confirm") {
             handleAllyHomeConfirm(player)
@@ -1576,6 +1577,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
+        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag)?.let { reason ->
+            player.sendMessage("§c❌ $reason")
+            return
+        }
+
         val miniMessage = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
         val visibleChars = try {
             val component = miniMessage.deserialize(tag)
@@ -1602,7 +1608,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val success = guildService.setTag(guild.id, tag, playerId)
 
         if (success) {
-            player.sendMessage("§a✅ Guild tag set to: §f[$tag]")
+            val rendered = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(tag)
+            player.sendMessage("§a✅ Guild tag set to: §r[$rendered§r]")
             player.sendMessage("§7This will be displayed next to guild member names.")
         } else {
             player.sendMessage("§c❌ Failed to set guild tag. The tag may already be taken.")

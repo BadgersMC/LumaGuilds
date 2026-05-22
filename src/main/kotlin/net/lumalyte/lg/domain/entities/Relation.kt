@@ -12,6 +12,9 @@ import java.util.UUID
  * @property type The type of relation between the guilds.
  * @property status The current status of the relation (for managing request flows).
  * @property expiresAt Optional expiration time for temporary relations like truces.
+ * @property requestingGuildId The guild that initiated a pending request, used to tell
+ *   outgoing requests apart from incoming ones (guildA/guildB are normalized and lose
+ *   sender/receiver direction). Null for legacy rows and non-request relations.
  * @property createdAt The timestamp when the relation was created.
  * @property updatedAt The timestamp when the relation was last updated.
  */
@@ -22,6 +25,7 @@ data class Relation(
     val type: RelationType,
     val status: RelationStatus = RelationStatus.ACTIVE,
     val expiresAt: Instant? = null,
+    val requestingGuildId: UUID? = null,
     val createdAt: Instant,
     val updatedAt: Instant = createdAt
 ) {
@@ -80,6 +84,7 @@ data class Relation(
             type: RelationType,
             status: RelationStatus = RelationStatus.ACTIVE,
             expiresAt: Instant? = null,
+            requestingGuildId: UUID? = null,
             createdAt: Instant = Instant.now()
         ): Relation {
             // Ensure consistent ordering
@@ -88,7 +93,7 @@ data class Relation(
             } else {
                 guildB to guildA
             }
-            
+
             return Relation(
                 id = id,
                 guildA = firstGuild,
@@ -96,6 +101,7 @@ data class Relation(
                 type = type,
                 status = status,
                 expiresAt = expiresAt,
+                requestingGuildId = requestingGuildId,
                 createdAt = createdAt,
                 updatedAt = createdAt
             )

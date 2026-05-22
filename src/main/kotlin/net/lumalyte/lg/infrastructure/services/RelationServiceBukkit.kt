@@ -49,7 +49,8 @@ class RelationServiceBukkit(
                 guildA = requestingGuildId,
                 guildB = targetGuildId,
                 type = RelationType.ALLY,
-                status = RelationStatus.PENDING
+                status = RelationStatus.PENDING,
+                requestingGuildId = requestingGuildId
             )
             
             return if (relationRepository.add(relation)) {
@@ -194,6 +195,7 @@ class RelationServiceBukkit(
                 type = RelationType.TRUCE,
                 status = RelationStatus.PENDING,
                 expiresAt = expiresAt,
+                requestingGuildId = requestingGuildId,
                 updatedAt = Instant.now()
             )
             
@@ -281,6 +283,7 @@ class RelationServiceBukkit(
                 type = RelationType.NEUTRAL,
                 status = RelationStatus.PENDING,
                 expiresAt = null,
+                requestingGuildId = requestingGuildId,
                 updatedAt = Instant.now()
             )
             
@@ -457,20 +460,18 @@ class RelationServiceBukkit(
     }
     
     override fun getIncomingRequests(guildId: UUID): Set<Relation> {
-        // For incoming requests, we need to filter based on which guild can accept
+        // Incoming = pending requests this guild did NOT initiate (the other guild is the requester).
+        // Legacy rows with no recorded requester (null) are surfaced here so they remain actionable.
         return relationRepository.getByGuildAndStatus(guildId, RelationStatus.PENDING).filter { relation ->
-            // The accepting guild depends on the relation type and which guild made the request
-            when (relation.type) {
-                RelationType.ALLY -> true // Both guilds can accept alliance requests
-                RelationType.TRUCE, RelationType.NEUTRAL -> true // Both guilds can accept truce/unenemy requests
-                else -> false
-            }
+            relation.requestingGuildId != guildId
         }.toSet()
     }
-    
+
     override fun getOutgoingRequests(guildId: UUID): Set<Relation> {
-        // For outgoing requests, these are requests the guild has made that are still pending
-        return relationRepository.getByGuildAndStatus(guildId, RelationStatus.PENDING)
+        // Outgoing = pending requests this guild initiated.
+        return relationRepository.getByGuildAndStatus(guildId, RelationStatus.PENDING).filter { relation ->
+            relation.requestingGuildId == guildId
+        }.toSet()
     }
     
     override fun canManageRelations(playerId: UUID, guildId: UUID): Boolean {
