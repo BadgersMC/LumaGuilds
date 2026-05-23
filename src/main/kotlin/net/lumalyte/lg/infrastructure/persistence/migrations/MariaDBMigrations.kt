@@ -588,9 +588,20 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
         componentLogger.info(Component.text("Migrating to version 22: Adding bannerman_enabled column to guilds table..."))
 
         connection.createStatement().use { stmt ->
-            stmt.execute("""
-                ALTER TABLE guilds ADD COLUMN IF NOT EXISTS bannerman_enabled TINYINT(1) NOT NULL DEFAULT 0
-            """.trimIndent())
+            val hasColumn = connection.prepareStatement(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'guilds'
+                  AND column_name = 'bannerman_enabled'
+                """.trimIndent()
+            ).use { ps ->
+                ps.executeQuery().use { rs -> rs.next() && rs.getInt(1) > 0 }
+            }
+            if (!hasColumn) {
+                stmt.execute("ALTER TABLE guilds ADD COLUMN bannerman_enabled TINYINT(1) NOT NULL DEFAULT 0")
+            }
             componentLogger.info(Component.text("✓ Added bannerman_enabled column to guilds table (migration v22)"))
         }
     }

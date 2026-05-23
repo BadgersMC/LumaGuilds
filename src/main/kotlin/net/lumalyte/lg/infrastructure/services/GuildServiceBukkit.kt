@@ -216,7 +216,7 @@ class GuildServiceBukkit(
                     .get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
                 bannermanListeners.onGuildBannerChanged(guildId)
             } catch (e: Exception) {
-                logger.debug("Bannerman refresh skipped for guild $guildId: ${e.message}")
+                logger.debug("Bannerman refresh skipped for guild $guildId", e)
             }
         }
         return result

@@ -38,6 +38,7 @@ class BukkitLocationAdapterTest {
         // toInt() would give (-100, -201) here; the block actually occupied is (-101, -202).
         val pos = Location(world, -100.5, 64.0, -201.5).toPosition3D()
         assertEquals(-101, pos.x)
+        assertEquals(64, pos.y)
         assertEquals(-202, pos.z)
     }
 

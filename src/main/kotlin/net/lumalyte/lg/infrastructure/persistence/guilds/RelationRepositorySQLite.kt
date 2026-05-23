@@ -81,8 +81,14 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
             storage.connection.executeUpdate("ALTER TABLE relations ADD COLUMN requesting_guild TEXT")
             logger.info("Added requesting_guild column to relations table")
         } catch (e: SQLException) {
-            // Column already exists (or backend reports duplicate) — safe to ignore.
-            logger.debug("requesting_guild column already present: ${e.message}")
+            val msg = e.message.orEmpty()
+            if (msg.contains("duplicate column", ignoreCase = true) ||
+                msg.contains("already exists", ignoreCase = true)
+            ) {
+                logger.debug("requesting_guild column already present: $msg")
+            } else {
+                throw e
+            }
         }
     }
     

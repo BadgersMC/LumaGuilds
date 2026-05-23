@@ -431,9 +431,14 @@ class PartyServiceBukkit(
 
             return if (remainingGuilds.size < 2) {
                 // Dissolve party if fewer than 2 guilds remain
-                partyRepository.update(party.copy(status = PartyStatus.DISSOLVED))
-                logger.info("Party $partyId dissolved (system): guild $guildId removed, insufficient guilds remaining")
-                null
+                val dissolved = party.copy(status = PartyStatus.DISSOLVED)
+                if (partyRepository.update(dissolved)) {
+                    logger.info("Party $partyId dissolved (system): guild $guildId removed, insufficient guilds remaining")
+                    null
+                } else {
+                    logger.error("Failed to dissolve party $partyId after system guild removal")
+                    party
+                }
             } else {
                 val updatedParty = party.copy(guildIds = remainingGuilds)
                 if (partyRepository.update(updatedParty)) {
