@@ -196,10 +196,11 @@ class GuildWarAcceptanceMenu(
                 }
 
                 // Check if guild has sufficient funds to match wager
-                if (guild.bankBalance < warDeclaration.wagerAmount) {
+                val currentBalance = bankService.getBalance(guild.id)
+                if (currentBalance < warDeclaration.wagerAmount) {
                     player.sendMessage("§c❌ Insufficient guild bank funds to match wager!")
                     player.sendMessage("§7Need: §6${warDeclaration.wagerAmount} gold")
-                    player.sendMessage("§7Have: §6${guild.bankBalance} gold")
+                    player.sendMessage("§7Have: §6$currentBalance gold")
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }

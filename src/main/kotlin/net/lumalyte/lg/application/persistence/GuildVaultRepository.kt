@@ -112,4 +112,13 @@ interface GuildVaultRepository {
      * @return The new balance, or -1 if failed or insufficient balance.
      */
     fun subtractGoldBalance(guildId: UUID, amount: Long): Long
+
+    /**
+     * Gets the highest-balance guilds, ranked by vault gold balance descending.
+     * Only guilds that have a gold balance entry are included.
+     *
+     * @param limit The maximum number of guilds to return.
+     * @return A list of (guildId, balance) pairs ordered by balance descending.
+     */
+    fun getTopGoldBalances(limit: Int): List<Pair<UUID, Long>>
 }

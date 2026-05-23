@@ -1,6 +1,5 @@
 package net.lumalyte.lg.infrastructure.services
 
-import net.lumalyte.lg.application.persistence.BankRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.WarService
@@ -16,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class WarServiceBukkit(
     private val configService: ConfigService,
-    private val bankRepository: BankRepository,
+    private val bankService: net.lumalyte.lg.application.services.BankService,
     private val progressionRepository: ProgressionRepository,
     private val progressionConfigService: ProgressionConfigService
 ) : WarService {
@@ -439,9 +438,9 @@ class WarServiceBukkit(
                 return null
             }
 
-            // Check if both guilds have sufficient funds
-            val declaringBalance = bankRepository.getGuildBalance(war.declaringGuildId)
-            val defendingBalance = bankRepository.getGuildBalance(war.defendingGuildId)
+            // Check if both guilds have sufficient funds (store B: unified guild balance)
+            val declaringBalance = bankService.getBalance(war.declaringGuildId)
+            val defendingBalance = bankService.getBalance(war.defendingGuildId)
 
             if (declaringBalance < declaringGuildWager) {
                 logger.warn("Declaring guild ${war.declaringGuildId} has insufficient funds for wager: $declaringBalance < $declaringGuildWager")
@@ -453,15 +452,11 @@ class WarServiceBukkit(
                 return null
             }
 
+            val wagerDesc = "War wager for war ${warId.toString().substring(0, 8)}"
+
             // Deduct wager from declaring guild
             val declaringDeductSuccess = if (declaringGuildWager > 0) {
-                val withdrawal = BankTransaction.withdraw(
-                    guildId = war.declaringGuildId,
-                    actorId = UUID.randomUUID(), // System actor
-                    amount = declaringGuildWager,
-                    description = "War wager for war ${warId.toString().substring(0, 8)}"
-                )
-                bankRepository.recordTransaction(withdrawal)
+                bankService.deductFromGuildBank(war.declaringGuildId, declaringGuildWager, wagerDesc)
             } else true
 
             if (!declaringDeductSuccess) {
@@ -471,26 +466,18 @@ class WarServiceBukkit(
 
             // Deduct wager from defending guild
             val defendingDeductSuccess = if (defendingGuildWager > 0) {
-                val withdrawal = BankTransaction.withdraw(
-                    guildId = war.defendingGuildId,
-                    actorId = UUID.randomUUID(), // System actor
-                    amount = defendingGuildWager,
-                    description = "War wager for war ${warId.toString().substring(0, 8)}"
-                )
-                bankRepository.recordTransaction(withdrawal)
+                bankService.deductFromGuildBank(war.defendingGuildId, defendingGuildWager, wagerDesc)
             } else true
 
             if (!defendingDeductSuccess) {
                 logger.error("Failed to deduct wager from defending guild ${war.defendingGuildId}")
                 // ROLLBACK: Refund declaring guild
                 if (declaringGuildWager > 0) {
-                    val deposit = BankTransaction.deposit(
-                        guildId = war.declaringGuildId,
-                        actorId = UUID.randomUUID(), // System actor
-                        amount = declaringGuildWager,
-                        description = "Wager rollback - defending guild deduction failed"
+                    val rollbackSuccess = bankService.creditToGuildBank(
+                        war.declaringGuildId,
+                        declaringGuildWager,
+                        "Wager rollback - defending guild deduction failed"
                     )
-                    val rollbackSuccess = bankRepository.recordTransaction(deposit)
                     if (!rollbackSuccess) {
                         logger.error("CRITICAL: Failed to rollback wager for declaring guild ${war.declaringGuildId}! Manual intervention required.")
                     }
@@ -526,21 +513,16 @@ class WarServiceBukkit(
                 return null
             }
 
-            val systemActor = UUID.fromString("00000000-0000-0000-0000-000000000000") // System UUID
-
             if (winnerGuildId != null) {
                 // War ended with winner - pay out total pot to winner
                 val totalPot = wager.totalPot
 
                 if (totalPot > 0) {
-                    val depositTransaction = net.lumalyte.lg.domain.entities.BankTransaction.deposit(
-                        guildId = winnerGuildId,
-                        actorId = systemActor,
-                        amount = totalPot,
-                        description = "War wager winnings from war ${warId.toString().substring(0, 8)}"
+                    val depositSuccess = bankService.creditToGuildBank(
+                        winnerGuildId,
+                        totalPot,
+                        "War wager winnings from war ${warId.toString().substring(0, 8)}"
                     )
-
-                    val depositSuccess = bankRepository.recordTransaction(depositTransaction)
 
                     if (!depositSuccess) {
                         logger.error("CRITICAL: Failed to deposit wager winnings of $totalPot to winner guild $winnerGuildId! Manual intervention required.")
@@ -565,14 +547,11 @@ class WarServiceBukkit(
 
                 // Refund declaring guild
                 if (wager.declaringGuildWager > 0) {
-                    val declaringRefundTransaction = net.lumalyte.lg.domain.entities.BankTransaction.deposit(
-                        guildId = wager.declaringGuildId,
-                        actorId = systemActor,
-                        amount = wager.declaringGuildWager,
-                        description = "War wager refund (draw) from war ${warId.toString().substring(0, 8)}"
-                    )
-
-                    if (!bankRepository.recordTransaction(declaringRefundTransaction)) {
+                    if (!bankService.creditToGuildBank(
+                            wager.declaringGuildId,
+                            wager.declaringGuildWager,
+                            "War wager refund (draw) from war ${warId.toString().substring(0, 8)}"
+                    )) {
                         logger.error("CRITICAL: Failed to refund wager of ${wager.declaringGuildWager} to declaring guild ${wager.declaringGuildId}! Manual intervention required.")
                         refundSuccess = false
                     } else {
@@ -582,14 +561,11 @@ class WarServiceBukkit(
 
                 // Refund defending guild
                 if (wager.defendingGuildWager > 0) {
-                    val defendingRefundTransaction = net.lumalyte.lg.domain.entities.BankTransaction.deposit(
-                        guildId = wager.defendingGuildId,
-                        actorId = systemActor,
-                        amount = wager.defendingGuildWager,
-                        description = "War wager refund (draw) from war ${warId.toString().substring(0, 8)}"
-                    )
-
-                    if (!bankRepository.recordTransaction(defendingRefundTransaction)) {
+                    if (!bankService.creditToGuildBank(
+                            wager.defendingGuildId,
+                            wager.defendingGuildWager,
+                            "War wager refund (draw) from war ${warId.toString().substring(0, 8)}"
+                    )) {
                         logger.error("CRITICAL: Failed to refund wager of ${wager.defendingGuildWager} to defending guild ${wager.defendingGuildId}! Manual intervention required.")
                         refundSuccess = false
                     } else {
