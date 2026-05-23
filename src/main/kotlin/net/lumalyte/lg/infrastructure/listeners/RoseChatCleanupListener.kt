@@ -26,6 +26,7 @@ import java.util.UUID
  * authorized to be in their current RoseChat channel by checking against LumaGuilds
  * known Party objects and Guild membership status.
  */
+@Suppress("LabeledExpression")
 internal class RoseChatCleanupListener(
     private val guildService: GuildService,
     private val memberService: MemberService,

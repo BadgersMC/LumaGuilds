@@ -207,6 +207,7 @@ internal class BannermanMigrationTest {
      * column. Test-helper only — production code in GuildRepositorySQLite has its own variant
      * that logs and returns false because runtime persistence should be resilient.
      */
+    @Suppress("NestedBlockDepth")
     private fun columnExists(tableName: String, columnName: String): Boolean {
         connection.createStatement().use { stmt ->
             stmt.executeQuery("PRAGMA table_info($tableName)").use { rs ->

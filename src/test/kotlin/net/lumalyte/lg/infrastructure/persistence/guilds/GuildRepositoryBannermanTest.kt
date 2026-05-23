@@ -24,7 +24,7 @@ import java.util.UUID
  * Tests for GuildRepository bannerman_enabled persistence functionality.
  * These tests verify that bannerman_enabled is properly saved to and loaded from the database.
  */
-@Suppress("TooManyFunctions", "LateinitUsage", "MagicNumber")
+@Suppress("TooManyFunctions", "LateinitUsage", "MagicNumber", "StringLiteralDuplication")
 internal class GuildRepositoryBannermanTest {
 
     @TempDir
