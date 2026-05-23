@@ -686,6 +686,17 @@ class GuildServiceBukkit(
         return RankPermission.USE_ALLY_HOMES in rank.permissions
     }
 
+    override fun canUseOwnAllyHome(playerId: UUID, guildId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+        if (guild.allyHome == null) return false
+        val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
+        val rank = rankRepository.getById(member.rankId) ?: return false
+        // Guild owner (highest-priority rank) always has access; otherwise gate on USE_ALLY_HOMES.
+        val ownerRank = rankRepository.getHighestRank(guildId)
+        if (ownerRank != null && rank.id == ownerRank.id) return true
+        return RankPermission.USE_ALLY_HOMES in rank.permissions
+    }
+
     override fun setHomeAllowedRanks(
         guildId: UUID, homeName: String, allowedRankIds: Set<UUID>, actorId: UUID
     ): Boolean {

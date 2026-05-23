@@ -35,6 +35,16 @@ interface BankRepository {
     fun getGuildBalance(guildId: UUID): Int
 
     /**
+     * Gets the highest-balance guilds, ranked by bank balance descending.
+     * Backed by the in-memory balance cache, so it performs no database query and scales to
+     * large guild counts. Only guilds that have had at least one transaction are included.
+     *
+     * @param limit The maximum number of guilds to return.
+     * @return A list of (guildId, balance) pairs ordered by balance descending.
+     */
+    fun getTopBalances(limit: Int): List<Pair<UUID, Int>>
+
+    /**
      * Gets the total amount deposited by a player to a guild.
      *
      * @param playerId The ID of the player.

@@ -50,8 +50,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
+    private val bankService: net.lumalyte.lg.application.services.BankService by inject()
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
+
+    private companion object {
+        const val BALTOP_DISPLAY_LIMIT = 10
+    }
 
     private fun notifyGuildMembers(guildId: java.util.UUID, message: String) {
         val members = memberService.getGuildMembers(guildId)
@@ -574,9 +579,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§cNo guild named '$guildName' found.")
             return null
         }
+        // Own guild's ally-home is a valid target: members with USE_ALLY_HOMES (or the owner)
+        // may teleport to it. The ally-relation check below only applies to other guilds.
         if (targetGuild.id == ownGuild.id) {
-            player.sendMessage("§cUse §6/guild home §cfor your own guild's home.")
-            return null
+            return targetGuild
         }
         val relationService: net.lumalyte.lg.application.services.RelationService by inject()
         if (relationService.getRelationType(ownGuild.id, targetGuild.id)
@@ -597,9 +603,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c${targetGuild.name} has no ally home set.")
             return null
         }
-        if (!guildService.canUseAllyHome(player.uniqueId, ownGuild.id, targetGuild.id)) {
-            player.sendMessage("§c❌ You don't have permission to use ${targetGuild.name}'s ally home.")
-            player.sendMessage("§7Your rank may lack USE_ALLY_HOMES, or that guild has not granted access.")
+        val isOwnGuild = targetGuild.id == ownGuild.id
+        val allowed = if (isOwnGuild) {
+            guildService.canUseOwnAllyHome(player.uniqueId, ownGuild.id)
+        } else {
+            guildService.canUseAllyHome(player.uniqueId, ownGuild.id, targetGuild.id)
+        }
+        if (!allowed) {
+            if (isOwnGuild) {
+                player.sendMessage("§c❌ You don't have permission to use your guild's ally home.")
+                player.sendMessage("§7Your rank needs the USE_ALLY_HOMES permission.")
+            } else {
+                player.sendMessage("§c❌ You don't have permission to use ${targetGuild.name}'s ally home.")
+                player.sendMessage("§7Your rank may lack USE_ALLY_HOMES, or that guild has not granted access.")
+            }
             return null
         }
         if (teleportationService.hasActiveTeleport(player.uniqueId)) {
@@ -634,6 +651,41 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
         return true
     }
+
+    @Subcommand("bal|balance")
+    @CommandPermission("lumaguilds.guild.bal")
+    fun onBalance(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (guild == null) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+        // Bank table is the source of truth for guild balance.
+        val balance = bankService.getBalance(guild.id)
+        player.sendMessage("§6§l${guild.name} §7Bank Balance: §a$${formatMoney(balance)}")
+    }
+
+    @Subcommand("baltop|balancetop")
+    @CommandPermission("lumaguilds.guild.baltop")
+    fun onBalanceTop(player: Player) {
+        val top = bankService.getTopBalances(BALTOP_DISPLAY_LIMIT)
+        if (top.isEmpty()) {
+            player.sendMessage("§7No guild balances to display yet.")
+            return
+        }
+        player.sendMessage("§6§l✦ Top Guilds by Bank Balance ✦")
+        val ownGuildId = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()?.id
+        top.forEachIndexed { index, (guildId, balance) ->
+            val rank = index + 1
+            // Resolve the name lazily; skip rows whose guild was deleted out from under the cache.
+            val name = guildService.getGuild(guildId)?.name ?: return@forEachIndexed
+            val highlight = if (guildId == ownGuildId) "§e" else "§f"
+            player.sendMessage("§7#§f$rank $highlight$name §7- §a$${formatMoney(balance)}")
+        }
+    }
+
+    /** Formats an integer money amount with thousands separators (e.g. 1234567 -> 1,234,567). */
+    private fun formatMoney(amount: Int): String = "%,d".format(amount)
 
     @Subcommand("ranks")
     @CommandPermission("lumaguilds.guild.ranks")
