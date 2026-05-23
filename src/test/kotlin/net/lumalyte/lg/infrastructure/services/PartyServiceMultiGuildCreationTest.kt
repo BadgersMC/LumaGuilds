@@ -22,8 +22,7 @@ import java.util.UUID
  * single-guild [Party] rows. They must not count against the "one multi-guild party per
  * guild" rule, otherwise no guild with default channels can ever be invited into a party.
  */
-class PartyServiceMultiGuildCreationTest {
-
+internal class PartyServiceMultiGuildCreationTest {
     private val partyRepository = mockk<PartyRepository>(relaxed = true)
     private val memberService = mockk<MemberService>(relaxed = true)
     private val service = PartyServiceBukkit(
@@ -46,20 +45,22 @@ class PartyServiceMultiGuildCreationTest {
         createdAt = Instant.now()
     )
 
-    private fun multiGuildParty(vararg guildIds: UUID) = Party(
-        id = UUID.randomUUID(),
-        name = "AllianceParty",
-        guildIds = guildIds.toSet(),
-        leaderId = leaderId,
-        status = PartyStatus.ACTIVE,
-        createdAt = Instant.now()
-    )
+    private fun multiGuildParty(vararg guildIds: UUID) =
+        Party(
+            id = UUID.randomUUID(),
+            name = "AllianceParty",
+            guildIds = guildIds.toSet(),
+            leaderId = leaderId,
+            status = PartyStatus.ACTIVE,
+            createdAt = Instant.now(),
+        )
 
     private fun grantLeaderPermission() {
         every { memberService.getPlayerGuilds(leaderId) } returns setOf(guildA)
         every { memberService.hasPermission(leaderId, guildA, RankPermission.MANAGE_RELATIONS) } returns true
     }
 
+    /** Internal single-guild channels must not block multi-guild party invites. */
     @Test
     fun internalChannelsAllowInvite() {
         grantLeaderPermission()
@@ -73,6 +74,7 @@ class PartyServiceMultiGuildCreationTest {
         assertNotNull(result, "internal channel-parties must not count as an existing multi-guild party")
     }
 
+    /** A guild may only be in one multi-guild party at a time. */
     @Test
     fun multiGuildPartyBlocksJoin() {
         grantLeaderPermission()

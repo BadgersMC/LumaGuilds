@@ -25,6 +25,7 @@ import java.util.UUID
  * in the RoseChat channel they are currently in? The listener uses it to move stale
  * players back to the default channel.
  */
+@Suppress("TooManyFunctions")
 internal class RoseChatCleanupListenerTest {
 
     private val guildService = mockk<GuildService>()
@@ -84,8 +85,10 @@ internal class RoseChatCleanupListenerTest {
         every { guildService.getPlayerGuilds(playerId) } returns setOf(g)
         every { relationService.getGuildRelationsByType(g.id, RelationType.ALLY) } returns setOf(
             Relation.create(
-                guildA = g.id, guildB = UUID.randomUUID(),
-                type = RelationType.ALLY, status = RelationStatus.PENDING
+                guildA = g.id,
+                guildB = UUID.randomUUID(),
+                type = RelationType.ALLY,
+                status = RelationStatus.PENDING,
             )
         )
         assertTrue(listener.shouldLeaveChannel(playerId, "guild-ally"))
@@ -106,14 +109,15 @@ internal class RoseChatCleanupListenerTest {
     @Test
     fun playerLeavesDissolvedParty() {
         val g = guild()
-        val dissolvedParty = Party(
-            id = UUID.randomUUID(),
-            name = "P",
-            guildIds = setOf(g.id),
-            leaderId = UUID.randomUUID(),
-            status = PartyStatus.DISSOLVED,
-            createdAt = Instant.now(),
-        )
+        val dissolvedParty =
+            Party(
+                id = UUID.randomUUID(),
+                name = "P",
+                guildIds = setOf(g.id),
+                leaderId = UUID.randomUUID(),
+                status = PartyStatus.DISSOLVED,
+                createdAt = Instant.now(),
+            )
         every { guildService.getPlayerGuilds(playerId) } returns setOf(g)
         // A dissolved party still appears in the full party list, but not the active one.
         every { partyService.getAllPartiesForGuild(g.id) } returns setOf(dissolvedParty)
@@ -124,10 +128,15 @@ internal class RoseChatCleanupListenerTest {
     @Test
     fun playerStaysInActiveParty() {
         val g = guild()
-        val party = Party(
-            id = UUID.randomUUID(), name = "P", guildIds = setOf(g.id),
-            leaderId = UUID.randomUUID(), status = PartyStatus.ACTIVE, createdAt = Instant.now()
-        )
+        val party =
+            Party(
+                id = UUID.randomUUID(),
+                name = "P",
+                guildIds = setOf(g.id),
+                leaderId = UUID.randomUUID(),
+                status = PartyStatus.ACTIVE,
+                createdAt = Instant.now(),
+            )
         every { guildService.getPlayerGuilds(playerId) } returns setOf(g)
         every { partyService.getActivePartiesForGuild(g.id) } returns setOf(party)
         assertFalse(listener.shouldLeaveChannel(playerId, party.id.toString()))

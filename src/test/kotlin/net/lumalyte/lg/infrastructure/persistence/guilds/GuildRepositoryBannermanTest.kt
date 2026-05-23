@@ -24,7 +24,7 @@ import java.util.UUID
  * Tests for GuildRepository bannerman_enabled persistence functionality.
  * These tests verify that bannerman_enabled is properly saved to and loaded from the database.
  */
-@Suppress("TooManyFunctions", "LateinitUsage")
+@Suppress("TooManyFunctions", "LateinitUsage", "MagicNumber")
 internal class GuildRepositoryBannermanTest {
 
     @TempDir
@@ -53,11 +53,12 @@ internal class GuildRepositoryBannermanTest {
     fun newGuildHasBannermanFalse() {
         // Given: A new guild with default bannermanEnabled
         val guildId = UUID.randomUUID()
-        val guild = Guild(
-            id = guildId,
-            name = "New Guild",
-            createdAt = Instant.now(),
-        )
+        val guild =
+            Guild(
+                id = guildId,
+                name = "New Guild",
+                createdAt = Instant.now(),
+            )
 
         // When: Save guild to database and reload
         insertGuild(guild)
@@ -87,12 +88,13 @@ internal class GuildRepositoryBannermanTest {
     fun saveGuildBannermanTrue() {
         // Given: A guild with bannerman enabled
         val guildId = UUID.randomUUID()
-        val guild = Guild(
-            id = guildId,
-            name = "Bannerman Guild",
-            createdAt = Instant.now(),
-            bannermanEnabled = true
-        )
+        val guild =
+            Guild(
+                id = guildId,
+                name = "Bannerman Guild",
+                createdAt = Instant.now(),
+                bannermanEnabled = true,
+            )
 
         // When: Save guild to database
         insertGuild(guild)
@@ -168,7 +170,8 @@ internal class GuildRepositoryBannermanTest {
 
     private fun createGuildsTableWithoutBannermanColumn() {
         connection.createStatement().use { stmt ->
-            stmt.execute("""
+            stmt.execute(
+                """
                 CREATE TABLE guilds (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -177,7 +180,8 @@ internal class GuildRepositoryBannermanTest {
                     mode TEXT NOT NULL DEFAULT 'hostile',
                     created_at TEXT NOT NULL
                 )
-            """.trimIndent())
+                """.trimIndent(),
+            )
         }
     }
 
@@ -223,7 +227,8 @@ internal class GuildRepositoryBannermanTest {
 
     private fun createGuildsTable() {
         connection.createStatement().use { stmt ->
-            stmt.execute("""
+            stmt.execute(
+                """
                 CREATE TABLE guilds (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -256,15 +261,17 @@ internal class GuildRepositoryBannermanTest {
                     ally_home_z INTEGER,
                     ally_home_allowed_guilds TEXT
                 )
-            """.trimIndent())
+                """.trimIndent(),
+            )
         }
     }
 
     private fun insertGuild(guild: Guild) {
-        val sql = """
+        val sql =
+            """
             INSERT INTO guilds (id, name, level, bank_balance, mode, created_at, bannerman_enabled)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """.trimIndent()
+            """.trimIndent()
 
         connection.prepareStatement(sql).use { stmt ->
             stmt.setString(1, guild.id.toString())
@@ -273,7 +280,10 @@ internal class GuildRepositoryBannermanTest {
             stmt.setInt(4, guild.bankBalance)
             stmt.setString(5, guild.mode.name.lowercase())
             // Production writes "yyyy-MM-dd HH:mm:ss" via toSqlDateTime() — fixture must match.
-            stmt.setString(6, SQL_DATETIME.withZone(ZoneOffset.UTC).format(guild.createdAt))
+            stmt.setString(
+                6,
+                SQL_DATETIME.withZone(ZoneOffset.UTC).format(guild.createdAt),
+            )
             stmt.setInt(7, if (guild.bannermanEnabled) 1 else 0)
             stmt.executeUpdate()
         }
@@ -281,19 +291,23 @@ internal class GuildRepositoryBannermanTest {
 
     private fun insertGuildDirectly(guildId: UUID, name: String, bannermanEnabled: Int) {
         connection.createStatement().use { stmt ->
-            stmt.execute("""
+            stmt.execute(
+                """
                 INSERT INTO guilds (id, name, level, bank_balance, mode, created_at, bannerman_enabled)
                 VALUES ('$guildId', '$name', 1, 0, 'hostile', datetime('now'), $bannermanEnabled)
-            """.trimIndent())
+                """.trimIndent(),
+            )
         }
     }
 
     private fun updateGuildBannerman(guildId: UUID, bannermanEnabled: Boolean) {
         connection.createStatement().use { stmt ->
-            stmt.execute("""
+            stmt.execute(
+                """
                 UPDATE guilds SET bannerman_enabled = ${if (bannermanEnabled) 1 else 0}
                 WHERE id = '$guildId'
-            """.trimIndent())
+                """.trimIndent(),
+            )
         }
     }
 
@@ -322,7 +336,7 @@ internal class GuildRepositoryBannermanTest {
             bankBalance = bankBalance,
             mode = mode,
             createdAt = createdAt,
-            bannermanEnabled = bannermanEnabled
+            bannermanEnabled = bannermanEnabled,
         )
     }
 

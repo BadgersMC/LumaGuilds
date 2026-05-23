@@ -33,18 +33,22 @@ class PartyServiceSystemRemovalTest {
         guildService = mockk<GuildService>(relaxed = true),
     )
 
-    private fun party(vararg guildIds: UUID, status: PartyStatus = PartyStatus.ACTIVE) = Party(
-        id = UUID.randomUUID(),
-        name = "TestParty",
-        guildIds = guildIds.toSet(),
-        leaderId = UUID.randomUUID(),
-        status = status,
-        createdAt = Instant.now()
-    )
+    private fun party(vararg guildIds: UUID, status: PartyStatus = PartyStatus.ACTIVE) =
+        Party(
+            id = UUID.randomUUID(),
+            name = "TestParty",
+            guildIds = guildIds.toSet(),
+            leaderId = UUID.randomUUID(),
+            status = status,
+            createdAt = Instant.now()
+        )
 
+    /** A multi-guild party must survive when one guild leaves. */
     @Test
     fun removeGuildKeepsPartyActive() {
-        val g1 = UUID.randomUUID(); val g2 = UUID.randomUUID(); val g3 = UUID.randomUUID()
+        val g1 = UUID.randomUUID()
+        val g2 = UUID.randomUUID()
+        val g3 = UUID.randomUUID()
         val p = party(g1, g2, g3)
         every { partyRepository.getById(p.id) } returns p
         val saved = slot<Party>()
@@ -59,9 +63,11 @@ class PartyServiceSystemRemovalTest {
         assertEquals(PartyStatus.ACTIVE, saved.captured.status)
     }
 
+    /** A party with fewer than two guilds must be dissolved. */
     @Test
     fun removeGuildDissolvesParty() {
-        val g1 = UUID.randomUUID(); val g2 = UUID.randomUUID()
+        val g1 = UUID.randomUUID()
+        val g2 = UUID.randomUUID()
         val p = party(g1, g2)
         every { partyRepository.getById(p.id) } returns p
         val saved = slot<Party>()
@@ -73,6 +79,7 @@ class PartyServiceSystemRemovalTest {
         assertEquals(PartyStatus.DISSOLVED, saved.captured.status)
     }
 
+    /** A single-guild party must be dissolved when that guild leaves. */
     @Test
     fun removeOnlyGuildDissolves() {
         val g1 = UUID.randomUUID()
@@ -87,9 +94,11 @@ class PartyServiceSystemRemovalTest {
         assertEquals(PartyStatus.DISSOLVED, saved.captured.status)
     }
 
+    /** System removal ignores actor permissions. */
     @Test
     fun systemRemovalIgnoresPermission() {
-        val g1 = UUID.randomUUID(); val g2 = UUID.randomUUID()
+        val g1 = UUID.randomUUID()
+        val g2 = UUID.randomUUID()
         val p = party(g1, g2)
         val unprivilegedActor = UUID.randomUUID() // not the party leader
         every { partyRepository.getById(p.id) } returns p
@@ -103,9 +112,11 @@ class PartyServiceSystemRemovalTest {
         verify { partyRepository.update(match { it.status == PartyStatus.DISSOLVED }) }
     }
 
+    /** Removing a guild not in the party must not change anything. */
     @Test
     fun removeMissingGuildNoChange() {
-        val g1 = UUID.randomUUID(); val g2 = UUID.randomUUID()
+        val g1 = UUID.randomUUID()
+        val g2 = UUID.randomUUID()
         val outsider = UUID.randomUUID()
         val p = party(g1, g2)
         every { partyRepository.getById(p.id) } returns p
@@ -116,9 +127,11 @@ class PartyServiceSystemRemovalTest {
         verify(exactly = 0) { partyRepository.update(any()) }
     }
 
+    /** Removing from a dissolved party must not change anything. */
     @Test
     fun removeFromDissolvedNoChange() {
-        val g1 = UUID.randomUUID(); val g2 = UUID.randomUUID()
+        val g1 = UUID.randomUUID()
+        val g2 = UUID.randomUUID()
         val p = party(g1, g2, status = PartyStatus.DISSOLVED)
         every { partyRepository.getById(p.id) } returns p
 

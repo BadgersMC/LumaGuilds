@@ -25,17 +25,21 @@ class BannermanListeners(
     @EventHandler
     fun onJoin(e: PlayerJoinEvent) = trySpawn(e.player)
 
+    /** Despawn the bannerman display when a player quits. */
     @EventHandler
     fun onQuit(e: PlayerQuitEvent) = renderer.despawnFor(e.player.uniqueId)
 
+    /** Despawn the bannerman display when a player dies. */
     @EventHandler
     fun onDeath(e: PlayerDeathEvent) = renderer.despawnFor(e.entity.uniqueId)
 
+    /** Respawn the bannerman display after a player respawns. */
     @EventHandler
     fun onRespawn(e: PlayerRespawnEvent) {
         plugin.server.scheduler.runTask(plugin, Runnable { trySpawn(e.player) })
     }
 
+    /** Respawn the bannerman display after a player changes worlds. */
     @EventHandler
     fun onWorldChange(e: PlayerChangedWorldEvent) {
         renderer.despawnFor(e.player.uniqueId)

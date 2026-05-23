@@ -11,6 +11,8 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
+private const val MINIMUM_PARTY_GUILDS = 2
+
 class PartyServiceBukkit(
     private val partyRepository: PartyRepository,
     private val partyRequestRepository: PartyRequestRepository,
@@ -415,44 +417,59 @@ class PartyServiceBukkit(
     }
     
     override fun removeGuildFromPartyAsSystem(partyId: UUID, guildId: UUID): Party? {
-        try {
-            val party = partyRepository.getById(partyId)
-            if (party == null || !party.isActive()) {
-                logger.warn("Party $partyId not found or not active")
-                return null
-            }
-
-            if (!party.includesGuild(guildId)) {
-                logger.warn("Guild $guildId is not part of party $partyId")
-                return null
-            }
-
+        return try {
+            val party = fetchActivePartyWithGuild(partyId, guildId) ?: return null
             val remainingGuilds = party.guildIds - guildId
-
-            return if (remainingGuilds.size < 2) {
-                // Dissolve party if fewer than 2 guilds remain
-                val dissolved = party.copy(status = PartyStatus.DISSOLVED)
-                if (partyRepository.update(dissolved)) {
-                    logger.info("Party $partyId dissolved (system): guild $guildId removed, insufficient guilds remaining")
-                    null
-                } else {
-                    logger.error("Failed to dissolve party $partyId after system guild removal")
-                    party
-                }
+            if (remainingGuilds.size < MINIMUM_PARTY_GUILDS) {
+                dissolvePartyAfterRemoval(party, guildId)
             } else {
-                val updatedParty = party.copy(guildIds = remainingGuilds)
-                if (partyRepository.update(updatedParty)) {
-                    logger.info("Guild $guildId removed from party $partyId (system)")
-                    updatedParty
-                } else {
-                    logger.error("Failed to update party $partyId after system guild removal")
-                    null
-                }
+                updatePartyAfterRemoval(party, remainingGuilds, guildId)
             }
         } catch (e: Exception) {
-            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error removing guild from party (system)", e)
+            null
+        }
+    }
+
+    private fun fetchActivePartyWithGuild(partyId: UUID, guildId: UUID): Party? {
+        val party = partyRepository.getById(partyId)
+        if (party == null || !party.isActive()) {
+            logger.warn("Party $partyId not found or not active")
             return null
+        }
+        if (!party.includesGuild(guildId)) {
+            logger.warn("Guild $guildId is not part of party $partyId")
+            return null
+        }
+        return party
+    }
+
+    private fun dissolvePartyAfterRemoval(party: Party, removedGuildId: UUID): Party? {
+        val dissolved = party.copy(status = PartyStatus.DISSOLVED)
+        return if (partyRepository.update(dissolved)) {
+            logger.info(
+                "Party ${party.id} dissolved (system): guild $removedGuildId removed, " +
+                    "insufficient guilds remaining",
+            )
+            null
+        } else {
+            logger.error("Failed to dissolve party ${party.id} after system guild removal")
+            party
+        }
+    }
+
+    private fun updatePartyAfterRemoval(
+        party: Party,
+        remainingGuilds: Set<UUID>,
+        removedGuildId: UUID,
+    ): Party? {
+        val updatedParty = party.copy(guildIds = remainingGuilds)
+        return if (partyRepository.update(updatedParty)) {
+            logger.info("Guild $removedGuildId removed from party ${party.id} (system)")
+            updatedParty
+        } else {
+            logger.error("Failed to update party ${party.id} after system guild removal")
+            null
         }
     }
 

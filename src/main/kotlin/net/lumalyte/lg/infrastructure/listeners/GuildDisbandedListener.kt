@@ -40,15 +40,15 @@ class GuildDisbandedListener(
             parties.forEach { party ->
                 if (partyService.removeGuildFromPartyAsSystem(party.id, event.guild.id) == null) {
                     logger.info(
-                        "Dissolved party channel ${party.name} (${party.id}) for disbanded guild ${event.guild.name}"
+                        "Dissolved party channel ${party.name} (${party.id}) for disbanded guild ${event.guild.name}",
                     )
                 } else {
                     logger.info(
-                        "Removed disbanded guild ${event.guild.name} from party ${party.name} (${party.id})"
+                        "Removed disbanded guild ${event.guild.name} from party ${party.name} (${party.id})",
                     )
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             logger.error("Failed to clean up channels for disbanded guild ${event.guild.name}", e)
         }
 

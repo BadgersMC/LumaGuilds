@@ -70,12 +70,6 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
         }
     }
 
-    /**
-     * Adds the requesting_guild column to pre-existing relations tables that predate it.
-     * The column tracks which guild initiated a pending request so outgoing and incoming
-     * requests can be told apart. Idempotent: a "duplicate column" error is expected and
-     * ignored when the column already exists.
-     */
     private fun ensureRequestingGuildColumn() {
         try {
             storage.connection.executeUpdate("ALTER TABLE relations ADD COLUMN requesting_guild TEXT")

@@ -44,8 +44,10 @@ internal class BannermanMigrationTest {
         migrateToV22()
 
         // Then: bannerman_enabled column should exist
-        assertTrue(columnExists("guilds", "bannerman_enabled"),
-            "bannerman_enabled column should exist after migration")
+        assertTrue(
+            columnExists("guilds", "bannerman_enabled"),
+            "bannerman_enabled column should exist after migration",
+        )
     }
 
     @Test
@@ -56,10 +58,12 @@ internal class BannermanMigrationTest {
 
         // When: Insert a new guild without specifying bannerman_enabled
         connection.createStatement().use { stmt ->
-            stmt.execute("""
+            stmt.execute(
+                """
                 INSERT INTO guilds (id, name, created_at, level, bank_balance, mode)
                 VALUES ('g1', 'G', datetime('now'), 1, 0, 'Hostile')
-            """.trimIndent())
+                """.trimIndent(),
+            )
         }
 
         // Then: bannerman_enabled should default to 0

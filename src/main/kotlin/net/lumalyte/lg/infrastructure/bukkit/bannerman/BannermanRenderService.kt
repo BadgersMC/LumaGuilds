@@ -76,14 +76,15 @@ class BannermanRenderService(private val plugin: JavaPlugin) {
     fun sweepOrphans() {
         for (world in Bukkit.getWorlds()) {
             for (entity in world.entities) {
-                if (entity is ItemDisplay &&
-                    entity.persistentDataContainer.has(tagKey, PersistentDataType.STRING)) {
+                if (entity !is ItemDisplay) continue
+                if (entity.persistentDataContainer.has(tagKey, PersistentDataType.STRING)) {
                     entity.remove()
                 }
             }
         }
     }
 
+    @Suppress("MagicNumber")
     private fun backTransformation(): Transformation = Transformation(
         Vector3f(0f, 0f, -0.25f), // translate behind torso
         Quaternionf().rotateY(Math.PI.toFloat()), // face backwards relative to player

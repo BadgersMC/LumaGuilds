@@ -5,6 +5,8 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.sql.Connection
 import java.sql.SQLException
 
+private const val BANNERMAN_MIGRATION_VERSION = 22
+
 /**
  * MariaDB/MySQL migration manager.
  * Handles database schema versioning and migrations for MariaDB.
@@ -44,10 +46,10 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(21)
                 currentDbVersion = 21
             }
-            if (currentDbVersion < 22) {
+            if (currentDbVersion < BANNERMAN_MIGRATION_VERSION) {
                 migrateToVersion22()
-                updateDatabaseVersion(22)
-                currentDbVersion = 22
+                updateDatabaseVersion(BANNERMAN_MIGRATION_VERSION)
+                currentDbVersion = BANNERMAN_MIGRATION_VERSION
             }
 
             connection.commit()
@@ -579,30 +581,35 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
         GuildNameSanitizer.sanitizeAll(connection, componentLogger)
     }
 
-    /**
-     * Migration to version 22.
-     * Adds the `bannerman_enabled` column to the `guilds` table to support the
-     * Guild Bannerman feature.
-     */
     private fun migrateToVersion22() {
-        componentLogger.info(Component.text("Migrating to version 22: Adding bannerman_enabled column to guilds table..."))
+        componentLogger.info(
+            Component.text(
+                "Migrating to version 22: Adding bannerman_enabled column to guilds table...",
+            ),
+        )
 
         connection.createStatement().use { stmt ->
             val hasColumn = connection.prepareStatement(
                 """
-                SELECT COUNT(*)
-                FROM information_schema.columns
-                WHERE table_schema = DATABASE()
-                  AND table_name = 'guilds'
-                  AND column_name = 'bannerman_enabled'
-                """.trimIndent()
+                    SELECT COUNT(*)
+                    FROM information_schema.columns
+                    WHERE table_schema = DATABASE()
+                      AND table_name = 'guilds'
+                      AND column_name = 'bannerman_enabled'
+                """.trimIndent(),
             ).use { ps ->
                 ps.executeQuery().use { rs -> rs.next() && rs.getInt(1) > 0 }
             }
             if (!hasColumn) {
-                stmt.execute("ALTER TABLE guilds ADD COLUMN bannerman_enabled TINYINT(1) NOT NULL DEFAULT 0")
+                stmt.execute(
+                    "ALTER TABLE guilds ADD COLUMN bannerman_enabled TINYINT(1) NOT NULL DEFAULT 0",
+                )
             }
-            componentLogger.info(Component.text("✓ Added bannerman_enabled column to guilds table (migration v22)"))
+            componentLogger.info(
+                Component.text(
+                    "✓ Added bannerman_enabled column to guilds table (migration v22)",
+                ),
+            )
         }
     }
 }

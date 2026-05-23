@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -69,18 +68,19 @@ internal class GuildServiceBannermanTest {
     }
 
     private fun initService() {
-        guildService = GuildServiceBukkit(
-            guildRepository = guildRepository!!,
-            rankRepository = rankRepository!!,
-            memberRepository = memberRepository,
-            rankService = rankService,
-            memberService = memberService,
-            nexoEmojiService = nexoEmojiService,
-            vaultService = vaultService,
-            hologramService = hologramService,
-            relationRepository = relationRepository,
-            historyRepository = historyRepository
-        )
+        guildService =
+            GuildServiceBukkit(
+                guildRepository = guildRepository!!,
+                rankRepository = rankRepository!!,
+                memberRepository = memberRepository,
+                rankService = rankService,
+                memberService = memberService,
+                nexoEmojiService = nexoEmojiService,
+                vaultService = vaultService,
+                hologramService = hologramService,
+                relationRepository = relationRepository,
+                historyRepository = historyRepository,
+            )
     }
 
     private fun initTestData() {
@@ -88,28 +88,31 @@ internal class GuildServiceBannermanTest {
         ownerId = UUID.randomUUID()
         memberId = UUID.randomUUID()
 
-        testGuild = Guild(
-            id = testGuildId,
-            name = "Test Guild",
-            createdAt = Instant.now(),
-            bannermanEnabled = false,
-        )
+        testGuild =
+            Guild(
+                id = testGuildId,
+                name = "Test Guild",
+                createdAt = Instant.now(),
+                bannermanEnabled = false,
+            )
 
-        ownerRank = Rank(
-            id = UUID.randomUUID(),
-            guildId = testGuildId,
-            name = "Owner",
-            priority = 100,
-            permissions = setOf(RankPermission.MANAGE_BANNER)
-        )
+        ownerRank =
+            Rank(
+                id = UUID.randomUUID(),
+                guildId = testGuildId,
+                name = "Owner",
+                priority = 100,
+                permissions = setOf(RankPermission.MANAGE_BANNER),
+            )
 
-        memberRank = Rank(
-            id = UUID.randomUUID(),
-            guildId = testGuildId,
-            name = "Member",
-            priority = 0,
-            permissions = emptySet()
-        )
+        memberRank =
+            Rank(
+                id = UUID.randomUUID(),
+                guildId = testGuildId,
+                name = "Member",
+                priority = 0,
+                permissions = emptySet(),
+            )
     }
 
     // ===== setBannermanEnabled Tests =====

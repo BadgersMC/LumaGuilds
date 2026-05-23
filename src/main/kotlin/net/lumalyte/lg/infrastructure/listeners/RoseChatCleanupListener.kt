@@ -125,10 +125,6 @@ internal class RoseChatCleanupListener(
         }
     }
 
-    /**
-     * Moves the player back to the default channel if their current RoseChat channel
-     * is no longer valid for their LumaGuilds status.
-     */
     private fun validateAndCleanup(player: Player, api: RoseChatAPI? = RoseChatAPI.getInstance()) {
         if (api == null || !player.isOnline) return
 
