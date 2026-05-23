@@ -889,6 +889,13 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(net.lumalyte.lg.interaction.listeners.GuildVaultCraftingPreventionListener(), this)
         server.pluginManager.registerEvents(GuildVaultFuelPreventionListener(), this)
 
+        // Register bannerman listener and tick task
+        val bannermanRenderer = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()
+        val bannermanListeners = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
+        server.pluginManager.registerEvents(bannermanListeners, this)
+        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanTickTask(this, bannermanRenderer).start()
+        bannermanRenderer.sweepOrphans()
+
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()
         server.pluginManager.registerEvents(progressionEventListener, this)
@@ -911,8 +918,16 @@ class LumaGuilds : JavaPlugin() {
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
 
-        // Close stale guild menus when a guild is disbanded
-        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(), this)
+        // Close stale guild menus, clean up channels, and despawn bannerman displays when a guild is disbanded
+        val guildDisbandedListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener>()
+        server.pluginManager.registerEvents(guildDisbandedListener, this)
+
+        // Clean up RoseChat channels when guild status changes
+        if (server.pluginManager.isPluginEnabled("RoseChat")) {
+            val roseChatCleanupListener = get().get<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener>()
+            server.pluginManager.registerEvents(roseChatCleanupListener, this)
+            logColored("✓ RoseChat integration registered for chat cleanup")
+        }
 
         // Register admin override listener (for logout cleanup) - only when claims enabled
         if (claimsEnabled) {
@@ -1057,6 +1072,14 @@ class LumaGuilds : JavaPlugin() {
             // Broad exception handling acceptable - shutdown should be resilient
             logger.severe("Failed to stop vault hologram service: ${e.message}")
             e.printStackTrace()
+        }
+
+        // Despawn all bannerman displays
+        try {
+            val bannermanRenderer = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()
+            bannermanRenderer.despawnAll()
+        } catch (_: Exception) {
+            // Koin already torn down — nothing to clean up
         }
 
         // Stop the daily war costs scheduler

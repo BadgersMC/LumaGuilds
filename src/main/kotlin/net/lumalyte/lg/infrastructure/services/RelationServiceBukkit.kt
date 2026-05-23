@@ -23,6 +23,10 @@ class RelationServiceBukkit(
     
     private val logger = LoggerFactory.getLogger(RelationServiceBukkit::class.java)
     
+    /** Checks whether [guildId] is the recorded requester of [relation], allowing legacy null rows. */
+    private fun isRequester(relation: Relation, guildId: UUID): Boolean =
+        relation.requestingGuildId == guildId
+    
     override fun requestAlliance(requestingGuildId: UUID, targetGuildId: UUID, actorId: UUID): Relation? {
         try {
             // Validate permissions
@@ -49,7 +53,8 @@ class RelationServiceBukkit(
                 guildA = requestingGuildId,
                 guildB = targetGuildId,
                 type = RelationType.ALLY,
-                status = RelationStatus.PENDING
+                status = RelationStatus.PENDING,
+                requestingGuildId = requestingGuildId,
             )
             
             return if (relationRepository.add(relation)) {
@@ -89,6 +94,13 @@ class RelationServiceBukkit(
             // Validate the relation is pending and of the correct type
             if (relation.status != RelationStatus.PENDING || relation.type != RelationType.ALLY) {
                 logger.warn("Relation $relationId is not a pending alliance request")
+                return null
+            }
+            
+            // Enforce direction: the requester cannot accept their own request
+            // Legacy rows with null requestingGuildId can be accepted by either guild
+            if (relation.requestingGuildId != null && isRequester(relation, acceptingGuildId)) {
+                logger.warn("Guild $acceptingGuildId cannot accept its own alliance request")
                 return null
             }
             
@@ -194,6 +206,7 @@ class RelationServiceBukkit(
                 type = RelationType.TRUCE,
                 status = RelationStatus.PENDING,
                 expiresAt = expiresAt,
+                requestingGuildId = requestingGuildId,
                 updatedAt = Instant.now()
             )
             
@@ -234,6 +247,13 @@ class RelationServiceBukkit(
             // Validate the relation is pending and of the correct type
             if (relation.status != RelationStatus.PENDING || relation.type != RelationType.TRUCE) {
                 logger.warn("Relation $relationId is not a pending truce request")
+                return null
+            }
+            
+            // Enforce direction: the requester cannot accept their own request
+            // Legacy rows with null requestingGuildId can be accepted by either guild
+            if (relation.requestingGuildId != null && isRequester(relation, acceptingGuildId)) {
+                logger.warn("Guild $acceptingGuildId cannot accept its own truce request")
                 return null
             }
             
@@ -281,6 +301,7 @@ class RelationServiceBukkit(
                 type = RelationType.NEUTRAL,
                 status = RelationStatus.PENDING,
                 expiresAt = null,
+                requestingGuildId = requestingGuildId,
                 updatedAt = Instant.now()
             )
             
@@ -321,6 +342,13 @@ class RelationServiceBukkit(
             // Validate the relation is pending neutral request
             if (relation.status != RelationStatus.PENDING || relation.type != RelationType.NEUTRAL) {
                 logger.warn("Relation $relationId is not a pending unenemy request")
+                return null
+            }
+            
+            // Enforce direction: the requester cannot accept their own request
+            // Legacy rows with null requestingGuildId can be accepted by either guild
+            if (relation.requestingGuildId != null && isRequester(relation, acceptingGuildId)) {
+                logger.warn("Guild $acceptingGuildId cannot accept its own unenemy request")
                 return null
             }
             
@@ -370,6 +398,13 @@ class RelationServiceBukkit(
                 return false
             }
             
+            // Enforce direction: only the non-requester can reject
+            // Legacy rows with null requestingGuildId can be rejected by either guild
+            if (relation.requestingGuildId != null && isRequester(relation, rejectingGuildId)) {
+                logger.warn("Guild $rejectingGuildId cannot reject its own request")
+                return false
+            }
+            
             // Update relation to rejected
             val rejectedRelation = relation.copy(
                 status = RelationStatus.REJECTED,
@@ -416,6 +451,13 @@ class RelationServiceBukkit(
                 return false
             }
             
+            // Enforce direction: only the requester can cancel
+            // Legacy rows with null requestingGuildId can be cancelled by either guild
+            if (relation.requestingGuildId != null && !isRequester(relation, cancellingGuildId)) {
+                logger.warn("Guild $cancellingGuildId cannot cancel a request it did not send")
+                return false
+            }
+            
             // Remove the pending relation
             return if (relationRepository.remove(relationId)) {
                 logger.info("Relation request $relationId cancelled by guild $cancellingGuildId")
@@ -457,20 +499,18 @@ class RelationServiceBukkit(
     }
     
     override fun getIncomingRequests(guildId: UUID): Set<Relation> {
-        // For incoming requests, we need to filter based on which guild can accept
+        // Incoming = pending requests this guild did NOT initiate (the other guild is the requester).
+        // Legacy rows with no recorded requester (null) are surfaced here so they remain actionable.
         return relationRepository.getByGuildAndStatus(guildId, RelationStatus.PENDING).filter { relation ->
-            // The accepting guild depends on the relation type and which guild made the request
-            when (relation.type) {
-                RelationType.ALLY -> true // Both guilds can accept alliance requests
-                RelationType.TRUCE, RelationType.NEUTRAL -> true // Both guilds can accept truce/unenemy requests
-                else -> false
-            }
+            relation.requestingGuildId != guildId
         }.toSet()
     }
-    
+
     override fun getOutgoingRequests(guildId: UUID): Set<Relation> {
-        // For outgoing requests, these are requests the guild has made that are still pending
-        return relationRepository.getByGuildAndStatus(guildId, RelationStatus.PENDING)
+        // Outgoing = pending requests this guild initiated.
+        return relationRepository.getByGuildAndStatus(guildId, RelationStatus.PENDING).filter { relation ->
+            relation.requestingGuildId == guildId
+        }.toSet()
     }
     
     override fun canManageRelations(playerId: UUID, guildId: UUID): Boolean {

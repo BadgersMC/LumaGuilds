@@ -19,6 +19,8 @@ import net.lumalyte.lg.domain.events.GuildHomeSetEvent
 import net.lumalyte.lg.domain.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.utils.serializeToString
 import org.bukkit.Bukkit
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
@@ -34,7 +36,11 @@ class GuildServiceBukkit(
     private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService,
     private val relationRepository: RelationRepository,
     private val historyRepository: MembershipHistoryRepository
-) : GuildService {
+) : GuildService, KoinComponent {
+
+    // Lazy because BannermanListeners depends on GuildService, which would create a Koin
+    // resolution cycle if injected eagerly through the constructor.
+    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
 
@@ -207,6 +213,8 @@ class GuildServiceBukkit(
             val bannerText = if (banner != null) "${banner.type.name} with patterns" else "cleared (default white banner)"
             logger.info("Guild $guildId banner set to '$bannerText' by $actorId")
             Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
+
+            bannermanListeners.onGuildBannerChanged(guildId)
         }
         return result
     }
@@ -264,6 +272,11 @@ class GuildServiceBukkit(
 
         // If tag is provided, validate MiniMessage format
         tag?.let { tagValue ->
+            // Reject interactive MiniMessage event tags (click/hover/insertion) — defense in depth
+            net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tagValue)?.let { reason ->
+                logger.warn("Rejected guild tag with interactive MiniMessage tag for guild $guildId: $reason")
+                return false
+            }
             // Validate tag format using MiniMessage
             try {
                 // We'll add MiniMessage validation in the next step
@@ -637,6 +650,26 @@ class GuildServiceBukkit(
     override fun getJoinFeeSettings(guildId: UUID): Pair<Boolean, Int>? {
         val guild = guildRepository.getById(guildId) ?: return null
         return Pair(guild.joinFeeEnabled, guild.joinFeeAmount)
+    }
+
+    override fun setBannermanEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_BANNER)) {
+            logger.warn("Player $actorId attempted to toggle bannerman on guild $guildId without permission")
+            return false
+        }
+
+        val updated = guild.copy(bannermanEnabled = enabled)
+        val result = guildRepository.update(updated)
+        if (result) {
+            logger.info("Guild $guildId bannerman ${if (enabled) "enabled" else "disabled"} by $actorId")
+        }
+        return result
+    }
+
+    override fun getBannermanEnabled(guildId: UUID): Boolean {
+        return guildRepository.getById(guildId)?.bannermanEnabled ?: false
     }
 
     override fun setTrackingEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {

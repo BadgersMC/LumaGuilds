@@ -26,6 +26,7 @@ import java.util.UUID
  * @property joinFeeAmount The amount of currency required to join this guild via LFG (0 if no fee).
  * @property trackingEnabled Whether Lunar Client location tracking (Apollo teams/waypoints) is enabled for this guild.
  * @property bankFrozen Whether the guild bank is emergency-frozen (all deposits and withdrawals blocked).
+ * @property bannermanEnabled Whether members of this guild render the guild banner on their backs.
  */
 data class Guild(
     val id: UUID,
@@ -48,6 +49,7 @@ data class Guild(
     val joinFeeAmount: Int = 0,
     val trackingEnabled: Boolean = true,
     val bankFrozen: Boolean = false,
+    val bannermanEnabled: Boolean = false,
     val allyHome: GuildHome? = null,
     val allyHomeAllowedGuilds: Set<UUID> = emptySet()
 ) {

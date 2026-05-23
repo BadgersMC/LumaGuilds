@@ -32,6 +32,7 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
             logger.info("Initializing relation database...")
             try {
                 createRelationTable()
+                ensureRequestingGuildColumn()
                 preload()
                 isInitialized = true
                 logger.info("Relation database initialized successfully")
@@ -51,6 +52,7 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
                 type TEXT NOT NULL,
                 status TEXT NOT NULL,
                 expires_at TEXT,
+                requesting_guild TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 UNIQUE(guild_a, guild_b),
@@ -67,10 +69,28 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
             throw DatabaseOperationException("Failed to create relations table: ${e.message}", e)
         }
     }
+
+    private fun ensureRequestingGuildColumn() {
+        val hasColumn = try {
+            val rows = storage.connection.getResults("PRAGMA table_info(relations)")
+            rows.any { row ->
+                row.getString("name").equals("requesting_guild", ignoreCase = true)
+            }
+        } catch (e: SQLException) {
+            logger.error("Failed to check relations table schema", e)
+            throw e
+        }
+        if (hasColumn) {
+            logger.debug("requesting_guild column already present")
+            return
+        }
+        storage.connection.executeUpdate("ALTER TABLE relations ADD COLUMN requesting_guild TEXT")
+        logger.info("Added requesting_guild column to relations table")
+    }
     
     private fun preload() {
         val sql = """
-            SELECT id, guild_a, guild_b, type, status, expires_at, created_at, updated_at
+            SELECT id, guild_a, guild_b, type, status, expires_at, requesting_guild, created_at, updated_at
             FROM relations
         """.trimIndent()
 
@@ -98,6 +118,7 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
             type = RelationType.valueOf(rs.getString("type")),
             status = RelationStatus.valueOf(rs.getString("status")),
             expiresAt = rs.getInstant("expires_at"),
+            requestingGuildId = rs.getString("requesting_guild")?.let { UUID.fromString(it) },
             createdAt = rs.getInstantNotNull("created_at"),
             updatedAt = rs.getInstantNotNull("updated_at")
         )
@@ -107,10 +128,10 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
         ensureInitialized()
 
         val sql = """
-            INSERT INTO relations (id, guild_a, guild_b, type, status, expires_at, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO relations (id, guild_a, guild_b, type, status, expires_at, requesting_guild, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
-        
+
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql,
                 relation.id.toString(),
@@ -119,6 +140,7 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
                 relation.type.name,
                 relation.status.name,
                 relation.expiresAt?.toString(),
+                relation.requestingGuildId?.toString(),
                 relation.createdAt.toString(),
                 relation.updatedAt.toString()
             )
@@ -132,11 +154,11 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
     
     override fun update(relation: Relation): Boolean {
         val sql = """
-            UPDATE relations 
-            SET guild_a = ?, guild_b = ?, type = ?, status = ?, expires_at = ?, updated_at = ?
+            UPDATE relations
+            SET guild_a = ?, guild_b = ?, type = ?, status = ?, expires_at = ?, requesting_guild = ?, updated_at = ?
             WHERE id = ?
         """.trimIndent()
-        
+
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql,
                 relation.guildA.toString(),
@@ -144,6 +166,7 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
                 relation.type.name,
                 relation.status.name,
                 relation.expiresAt?.toString(),
+                relation.requestingGuildId?.toString(),
                 relation.updatedAt.toString(),
                 relation.id.toString()
             )

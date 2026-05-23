@@ -50,6 +50,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
+    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
@@ -488,9 +489,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val home = GuildHome(
             worldId = location.world.uid,
-            position = net.lumalyte.lg.domain.values.Position3D(
-                location.x.toInt(), location.y.toInt(), location.z.toInt()
-            )
+            position = location.toPosition3D()
         )
 
         val success = guildService.setAllyHome(guild.id, home, playerId)
@@ -524,6 +523,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("allyhome")
     @CommandPermission("lumaguilds.guild.allyhome")
     @CommandCompletion("@allyguilds")
+    @Syntax("<guildName> [confirm]")
     fun onAllyHome(player: Player, guildName: String, @Optional confirm: String?) {
         if (guildName.lowercase() == "confirm" || confirm?.lowercase() == "confirm") {
             handleAllyHomeConfirm(player)
@@ -1576,6 +1576,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
+        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag)?.let { reason ->
+            player.sendMessage("§c❌ $reason")
+            return
+        }
+
         val miniMessage = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
         val visibleChars = try {
             val component = miniMessage.deserialize(tag)
@@ -1602,10 +1607,61 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val success = guildService.setTag(guild.id, tag, playerId)
 
         if (success) {
-            player.sendMessage("§a✅ Guild tag set to: §f[$tag]")
+            val rendered = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(tag)
+            player.sendMessage("§a✅ Guild tag set to: §r[$rendered§r]")
             player.sendMessage("§7This will be displayed next to guild member names.")
         } else {
             player.sendMessage("§c❌ Failed to set guild tag. The tag may already be taken.")
+        }
+    }
+
+    @Subcommand("bannerman")
+    @CommandPermission("lumaguilds.guild.bannerman")
+    fun onBannerman(player: Player) {
+        val playerId = player.uniqueId
+
+        val guilds = guildService.getPlayerGuilds(playerId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§cYou are not in a guild.")
+            return
+        }
+        val guild = guilds.first()
+
+        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_BANNER)) {
+            player.sendMessage("§cYou don't have permission to toggle the bannerman.")
+            player.sendMessage("§7You need the MANAGE_BANNER permission.")
+            return
+        }
+
+        val current = guildService.getBannermanEnabled(guild.id)
+        val newState = !current
+        val success = guildService.setBannermanEnabled(guild.id, newState, playerId)
+        if (!success) {
+            player.sendMessage("§c❌ Failed to toggle bannerman.")
+            return
+        }
+
+        refreshBannermanDisplay(guild.id, newState, player)
+    }
+
+    private fun refreshBannermanDisplay(guildId: UUID, newState: Boolean, player: Player) {
+        try {
+            if (newState) {
+                bannermanListeners.onBannermanEnabled(guildId)
+            } else {
+                bannermanListeners.onBannermanDisabled(guildId)
+            }
+        } catch (e: Exception) {
+            org.bukkit.Bukkit.getLogger().warning(
+                "Bannerman render callback failed for guild $guildId (newState=$newState): ${e.message}"
+            )
+            player.sendMessage("§eBannerman state was saved, but live refresh failed. Try relogging.")
+            return
+        }
+        if (newState) {
+            player.sendMessage("§a✅ Bannerman enabled — guild members will wear the banner on their backs.")
+        } else {
+            player.sendMessage("§7Bannerman disabled.")
         }
     }
 

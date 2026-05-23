@@ -150,6 +150,11 @@ class BedrockTagEditorMenu(
                             return@getValidator ValidationResult.invalid(localize("guild.tag.validation.too.long", visibleChars, 32))
                         }
 
+                        // Reject interactive MiniMessage event tags (click/hover/insertion)
+                        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(value)?.let {
+                            return@getValidator ValidationResult.invalid(it)
+                        }
+
                         // Allow both § codes (Bedrock) and MiniMessage format
                         if (value.contains("§")) {
                             // Bedrock format - just ensure it's not malformed

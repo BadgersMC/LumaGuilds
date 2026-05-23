@@ -51,6 +51,32 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         checkColumnExists("guilds", "bank_frozen")
     }
 
+    /**
+     * Bannerman column lives on its own flag because LFG persistence MUST NOT be gated on it.
+     * A partially-migrated DB (LFG yes, bannerman no) used to fall back to non-LFG INSERT/UPDATE
+     * variants, silently dropping `is_open` / `join_fee_*` writes. The flag is consulted at
+     * every site that mentions `bannerman_enabled` so an absent column is simply skipped.
+     */
+    private val hasBannermanColumn: Boolean by lazy {
+        checkColumnExists("guilds", "bannerman_enabled")
+    }
+
+    /** SQL column-list fragment for bannerman (leading comma) — empty when the column is missing. */
+    private val bannermanColumnSql: String
+        get() = if (hasBannermanColumn) ", bannerman_enabled" else ""
+
+    /** SQL VALUES-list fragment for bannerman — empty when the column is missing. */
+    private val bannermanValueSql: String
+        get() = if (hasBannermanColumn) ", ?" else ""
+
+    /** SQL UPDATE assignment fragment for bannerman (trailing comma) — empty when the column is missing. */
+    private val bannermanSetSql: String
+        get() = if (hasBannermanColumn) "bannerman_enabled = ?, " else ""
+
+    /** Single-element argument array for the bannerman parameter — empty when the column is missing. */
+    private fun bannermanArg(guild: Guild): Array<Any?> =
+        if (hasBannermanColumn) arrayOf(if (guild.bannermanEnabled) 1 else 0) else emptyArray()
+
     init {
         createGuildTable()
         createGuildHomesTable()
@@ -378,6 +404,12 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             0
         }
 
+        val bannermanEnabled = try {
+            rs.get<Int?>("bannerman_enabled")?.let { it == 1 } ?: false
+        } catch (e: Exception) {
+            false
+        }
+
         // Parse tracking_enabled (default to true for existing guilds)
         val trackingEnabled = try {
             rs.get<Int?>("tracking_enabled")?.let { it == 1 } ?: true
@@ -453,6 +485,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             joinFeeAmount = joinFeeAmount,
             trackingEnabled = trackingEnabled,
             bankFrozen = bankFrozen,
+            bannermanEnabled = bannermanEnabled,
             allyHome = allyHome,
             allyHomeAllowedGuilds = allyHomeAllowedGuilds
         )
@@ -485,18 +518,18 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         // Use cached column existence check
         val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
             """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled, bank_frozen, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled, bank_frozen${bannermanColumnSql}, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${bannermanValueSql}, ?, ?, ?, ?, ?)
             """.trimIndent()
         } else if (hasLfgColumns && hasTrackingColumn) {
             """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, tracking_enabled${bannermanColumnSql}, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${bannermanValueSql}, ?, ?, ?, ?, ?)
             """.trimIndent()
         } else if (hasLfgColumns) {
             """
-            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO guilds (id, name, banner, emoji, tag, home_world, home_x, home_y, home_z, level, bank_balance, mode, mode_changed_at, created_at, is_open, join_fee_enabled, join_fee_amount${bannermanColumnSql}, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${bannermanValueSql}, ?, ?, ?, ?, ?)
             """.trimIndent()
         } else if (hasTrackingColumn) {
             """
@@ -535,6 +568,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.joinFeeAmount,
                     if (guild.trackingEnabled) 1 else 0,
                     if (guild.bankFrozen) 1 else 0,
+                    *bannermanArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
@@ -561,6 +595,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
                     if (guild.trackingEnabled) 1 else 0,
+                    *bannermanArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
@@ -586,6 +621,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     if (guild.isOpen) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
+                    *bannermanArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
@@ -656,7 +692,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
             vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
-            join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?, bank_frozen = ?,
+            join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?, bank_frozen = ?, ${bannermanSetSql}
             ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
             """.trimIndent()
@@ -665,7 +701,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
             vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
-            join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?,
+            join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?, ${bannermanSetSql}
             ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
             """.trimIndent()
@@ -674,7 +710,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
             vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
-            join_fee_enabled = ?, join_fee_amount = ?,
+            join_fee_enabled = ?, join_fee_amount = ?, ${bannermanSetSql}
             ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
             """.trimIndent()
@@ -729,6 +765,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.joinFeeAmount,
                     if (guild.trackingEnabled) 1 else 0,
                     if (guild.bankFrozen) 1 else 0,
+                    *bannermanArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
@@ -759,6 +796,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
                     if (guild.trackingEnabled) 1 else 0,
+                    *bannermanArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
@@ -788,6 +826,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     if (guild.isOpen) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
+                    *bannermanArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,

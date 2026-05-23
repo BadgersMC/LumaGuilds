@@ -12,14 +12,22 @@ object GuildDisplayUtils {
      * Gets the formatted display name for a guild including emoji if set.
      * This is useful for chat, tab list, name tags, etc.
      *
+     * Prefers the guild's custom tag when set, rendered from MiniMessage/legacy input into
+     * §-style legacy text so it displays correctly in Bukkit messages (which interpret §,
+     * not raw MiniMessage). Falls back to the plain guild name when no tag is set.
+     *
      * @param guild The guild to format.
      * @return The formatted display name with emoji prefix if available.
      */
     fun getFormattedGuildName(guild: Guild): String {
+        val baseName = guild.tag
+            ?.takeIf { it.isNotBlank() }
+            ?.let { ColorCodeUtils.renderTagForDisplay(it) }
+            ?: guild.name
         return if (guild.emoji != null && isValidEmojiFormat(guild.emoji)) {
-            "${guild.emoji} ${guild.name}"
+            "${guild.emoji} $baseName"
         } else {
-            guild.name
+            baseName
         }
     }
     
