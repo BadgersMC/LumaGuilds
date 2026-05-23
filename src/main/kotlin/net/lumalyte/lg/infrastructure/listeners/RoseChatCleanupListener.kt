@@ -85,7 +85,7 @@ internal class RoseChatCleanupListener(
      *   if that UUID is an active party of one of their guilds. Channels whose id is
      *   not a UUID belong to other plugins and are never touched.
      */
-    fun shouldLeaveChannel(playerId: UUID, channelId: String): Boolean = when (channelId) {
+    internal fun shouldLeaveChannel(playerId: UUID, channelId: String): Boolean = when (channelId) {
         guildChannelId ->
             guildService.getPlayerGuilds(playerId).isEmpty()
 

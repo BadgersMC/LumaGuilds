@@ -71,19 +71,21 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
     }
 
     private fun ensureRequestingGuildColumn() {
-        try {
-            storage.connection.executeUpdate("ALTER TABLE relations ADD COLUMN requesting_guild TEXT")
-            logger.info("Added requesting_guild column to relations table")
-        } catch (e: SQLException) {
-            val msg = e.message.orEmpty()
-            if (msg.contains("duplicate column", ignoreCase = true) ||
-                msg.contains("already exists", ignoreCase = true)
-            ) {
-                logger.debug("requesting_guild column already present: $msg")
-            } else {
-                throw e
+        val hasColumn = try {
+            val rows = storage.connection.getResults("PRAGMA table_info(relations)")
+            rows.any { row ->
+                row.getString("name").equals("requesting_guild", ignoreCase = true)
             }
+        } catch (e: SQLException) {
+            logger.error("Failed to check relations table schema", e)
+            throw e
         }
+        if (hasColumn) {
+            logger.debug("requesting_guild column already present")
+            return
+        }
+        storage.connection.executeUpdate("ALTER TABLE relations ADD COLUMN requesting_guild TEXT")
+        logger.info("Added requesting_guild column to relations table")
     }
     
     private fun preload() {

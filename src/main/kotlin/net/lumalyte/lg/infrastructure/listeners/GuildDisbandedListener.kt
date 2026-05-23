@@ -35,9 +35,9 @@ internal class GuildDisbandedListener(
         //    Single/last-guild parties are dissolved; multi-guild parties survive
         //    for the remaining guilds. Uses a system removal so the cleanup is not
         //    blocked by the actor's party-management permissions.
-        try {
-            val parties = partyService.getActivePartiesForGuild(event.guild.id)
-            parties.forEach { party ->
+        val parties = partyService.getActivePartiesForGuild(event.guild.id)
+        parties.forEach { party ->
+            try {
                 if (partyService.removeGuildFromPartyAsSystem(party.id, event.guild.id) == null) {
                     logger.info(
                         "Dissolved party channel ${party.name} (${party.id}) for disbanded guild ${event.guild.name}",
@@ -47,9 +47,12 @@ internal class GuildDisbandedListener(
                         "Removed disbanded guild ${event.guild.name} from party ${party.name} (${party.id})",
                     )
                 }
+            } catch (e: IllegalStateException) {
+                logger.error(
+                    "Failed to remove disbanded guild ${event.guild.name} from party ${party.name} (${party.id})",
+                    e,
+                )
             }
-        } catch (e: IllegalStateException) {
-            logger.error("Failed to clean up channels for disbanded guild ${event.guild.name}", e)
         }
 
         // 3. Despawn bannerman displays for every member (online or offline).

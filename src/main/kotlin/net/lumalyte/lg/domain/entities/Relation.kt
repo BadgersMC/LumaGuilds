@@ -36,6 +36,11 @@ data class Relation(
             "Guild IDs must be ordered consistently (guildA < guildB)." 
         }
         
+        // Validate direction tracking
+        require(requestingGuildId == null || requestingGuildId == guildA || requestingGuildId == guildB) {
+            "requestingGuildId must match guildA or guildB when provided."
+        }
+        
         // Validate expiration rules
         if (type == RelationType.TRUCE) {
             requireNotNull(expiresAt) { "Truce relations must have an expiration time." }

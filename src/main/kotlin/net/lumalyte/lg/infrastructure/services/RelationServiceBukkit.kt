@@ -23,6 +23,10 @@ class RelationServiceBukkit(
     
     private val logger = LoggerFactory.getLogger(RelationServiceBukkit::class.java)
     
+    /** Checks whether [guildId] is the recorded requester of [relation], allowing legacy null rows. */
+    private fun isRequester(relation: Relation, guildId: UUID): Boolean =
+        relation.requestingGuildId == guildId
+    
     override fun requestAlliance(requestingGuildId: UUID, targetGuildId: UUID, actorId: UUID): Relation? {
         try {
             // Validate permissions
@@ -90,6 +94,12 @@ class RelationServiceBukkit(
             // Validate the relation is pending and of the correct type
             if (relation.status != RelationStatus.PENDING || relation.type != RelationType.ALLY) {
                 logger.warn("Relation $relationId is not a pending alliance request")
+                return null
+            }
+            
+            // Enforce direction: the requester cannot accept their own request
+            if (isRequester(relation, acceptingGuildId)) {
+                logger.warn("Guild $acceptingGuildId cannot accept its own alliance request")
                 return null
             }
             
@@ -239,6 +249,12 @@ class RelationServiceBukkit(
                 return null
             }
             
+            // Enforce direction: the requester cannot accept their own request
+            if (isRequester(relation, acceptingGuildId)) {
+                logger.warn("Guild $acceptingGuildId cannot accept its own truce request")
+                return null
+            }
+            
             // Update relation to active
             val updatedRelation = relation.copy(
                 status = RelationStatus.ACTIVE,
@@ -327,6 +343,12 @@ class RelationServiceBukkit(
                 return null
             }
             
+            // Enforce direction: the requester cannot accept their own request
+            if (isRequester(relation, acceptingGuildId)) {
+                logger.warn("Guild $acceptingGuildId cannot accept its own unenemy request")
+                return null
+            }
+            
             // Remove the relation (neutral is the default state)
             return if (relationRepository.remove(relationId)) {
                 logger.info("Unenemy accepted, relation removed between guilds ${relation.guildA} and ${relation.guildB}")
@@ -373,6 +395,12 @@ class RelationServiceBukkit(
                 return false
             }
             
+            // Enforce direction: only the non-requester can reject
+            if (isRequester(relation, rejectingGuildId)) {
+                logger.warn("Guild $rejectingGuildId cannot reject its own request")
+                return false
+            }
+            
             // Update relation to rejected
             val rejectedRelation = relation.copy(
                 status = RelationStatus.REJECTED,
@@ -416,6 +444,12 @@ class RelationServiceBukkit(
             // Validate the relation is pending
             if (relation.status != RelationStatus.PENDING) {
                 logger.warn("Relation $relationId is not pending")
+                return false
+            }
+            
+            // Enforce direction: only the requester can cancel
+            if (!isRequester(relation, cancellingGuildId)) {
+                logger.warn("Guild $cancellingGuildId cannot cancel a request it did not send")
                 return false
             }
             
