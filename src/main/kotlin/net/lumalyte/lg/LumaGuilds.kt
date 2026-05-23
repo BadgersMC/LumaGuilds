@@ -150,6 +150,9 @@ class LumaGuilds : JavaPlugin() {
         // Initialize experience transaction cleanup scheduler
         initExperienceTransactionCleanupScheduler()
 
+        // Initialize relation maintenance scheduler (truce expiry + stale-request cleanup)
+        initRelationMaintenanceScheduler()
+
         // Start Web API (read-only JSON endpoint for the website)
         try {
             get().get<net.lumalyte.lg.infrastructure.web.WebApiServer>().start()
@@ -700,8 +703,8 @@ class LumaGuilds : JavaPlugin() {
         }
 
         // Ally guilds whose ally-home the executing player can teleport to.
-        // Filters: target must be an active ALLY of player's guild, have ally-home set,
-        // and pass canUseAllyHome (rank perm + inbound whitelist).
+        // Includes the player's OWN guild (gated by canUseOwnAllyHome) plus every active ALLY
+        // that has an ally-home set and passes canUseAllyHome (rank perm + inbound whitelist).
         commandManager.commandCompletions.registerAsyncCompletion("allyguilds") { context ->
             val player = context.player ?: return@registerAsyncCompletion emptyList()
             val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
@@ -709,17 +712,22 @@ class LumaGuilds : JavaPlugin() {
             val guilds = guildService.getPlayerGuilds(player.uniqueId)
             if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
             val sourceGuild = guilds.first()
+            val results = mutableListOf<String>()
+            // Own guild's ally-home, when set and the player's rank may use it.
+            if (sourceGuild.allyHome != null &&
+                guildService.canUseOwnAllyHome(player.uniqueId, sourceGuild.id)) {
+                results.add(sourceGuild.name)
+            }
             relationService
                 .getGuildRelationsByType(sourceGuild.id, net.lumalyte.lg.domain.entities.RelationType.ALLY)
-                .mapNotNull { rel ->
+                .mapNotNullTo(results) { rel ->
                     val otherId = rel.getOtherGuild(sourceGuild.id)
-                    val other = guildService.getGuild(otherId) ?: return@mapNotNull null
-                    if (other.allyHome == null) return@mapNotNull null
-                    if (!guildService.canUseAllyHome(player.uniqueId, sourceGuild.id, other.id)) return@mapNotNull null
+                    val other = guildService.getGuild(otherId) ?: return@mapNotNullTo null
+                    if (other.allyHome == null) return@mapNotNullTo null
+                    if (!guildService.canUseAllyHome(player.uniqueId, sourceGuild.id, other.id)) return@mapNotNullTo null
                     other.name
                 }
-                .distinct()
-                .sorted()
+            results.distinct().sorted()
         }
 
         commandManager.commandCompletions.registerAsyncCompletion("guildhomes") { context ->
@@ -972,6 +980,38 @@ class LumaGuilds : JavaPlugin() {
         } catch (e: Exception) {
             // Broad exception handling acceptable - scheduler failure shouldn't prevent plugin load
             logColored("❌ Failed to initialize experience transaction cleanup scheduler: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * Initializes the periodic relation maintenance task.
+     *
+     * Runs on the main thread (the relation service fires Bukkit events on truce expiry, which
+     * must not happen off-thread) every 5 minutes after a 1-minute startup delay. It expires due
+     * truces (reverting them to enemy) and clears stale/orphaned relation rows so they can no
+     * longer block new ally/truce requests.
+     */
+    private fun initRelationMaintenanceScheduler() {
+        try {
+            val relationService = get().get<net.lumalyte.lg.application.services.RelationService>()
+            val intervalTicks = 20L * 60L * 5L // every 5 minutes
+            val initialDelayTicks = 20L * 60L  // first run after 1 minute
+            server.scheduler.runTaskTimer(this, Runnable {
+                try {
+                    val expired = relationService.processExpiredRelations()
+                    val cleaned = relationService.cleanupStaleRelations()
+                    if (expired > 0 || cleaned > 0) {
+                        logger.info("Relation maintenance: expired=$expired, cleaned=$cleaned")
+                    }
+                } catch (e: Exception) {
+                    logger.warning("Relation maintenance run failed: ${e.message}")
+                }
+            }, initialDelayTicks, intervalTicks)
+            logColored("✓ Relation maintenance scheduler started")
+        } catch (e: Exception) {
+            // Broad exception handling acceptable - scheduler failure shouldn't prevent plugin load
+            logColored("❌ Failed to initialize relation maintenance scheduler: ${e.message}")
             e.printStackTrace()
         }
     }
