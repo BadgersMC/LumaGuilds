@@ -488,9 +488,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val home = GuildHome(
             worldId = location.world.uid,
-            position = net.lumalyte.lg.domain.values.Position3D(
-                location.x.toInt(), location.y.toInt(), location.z.toInt()
-            )
+            position = location.toPosition3D()
         )
 
         val success = guildService.setAllyHome(guild.id, home, playerId)
