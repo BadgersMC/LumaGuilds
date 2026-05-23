@@ -25,7 +25,7 @@ import java.util.UUID
  * in the RoseChat channel they are currently in? The listener uses it to move stale
  * players back to the default channel.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "StringLiteralDuplication")
 internal class RoseChatCleanupListenerTest {
 
     private val guildService = mockk<GuildService>()

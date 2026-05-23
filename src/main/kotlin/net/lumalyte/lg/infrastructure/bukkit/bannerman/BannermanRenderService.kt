@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Manages one [ItemDisplay] per online player in a bannerman-enabled guild.
  * Each display is tagged with a PDC key so we can sweep orphans after a crash.
  */
-class BannermanRenderService(private val plugin: JavaPlugin) {
+internal class BannermanRenderService(private val plugin: JavaPlugin) {
 
     private val tagKey = NamespacedKey(plugin, "bannerman_owner")
 

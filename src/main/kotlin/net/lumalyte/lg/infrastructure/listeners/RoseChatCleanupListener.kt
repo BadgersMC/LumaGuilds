@@ -131,9 +131,9 @@ internal class RoseChatCleanupListener(
         try {
             trySwitchToDefaultChannel(player, api)
         } catch (e: NoClassDefFoundError) {
-            // RoseChat not loaded
-        } catch (e: RuntimeException) {
-            logger.debug("Error during RoseChat cleanup for player ${player.uniqueId}", e)
+            logger.debug("RoseChat not available for cleanup", e)
+        } catch (e: IllegalStateException) {
+            logger.debug("RoseChat state error during cleanup for player ${player.uniqueId}", e)
         }
     }
 }

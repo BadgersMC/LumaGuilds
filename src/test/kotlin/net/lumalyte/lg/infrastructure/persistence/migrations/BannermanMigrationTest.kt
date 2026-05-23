@@ -14,7 +14,7 @@ import java.sql.DriverManager
 /**
  * Tests for database migration v22 which adds bannerman_enabled column to guilds table.
  */
-@Suppress("LateinitUsage")
+@Suppress("LateinitUsage", "StringLiteralDuplication")
 internal class BannermanMigrationTest {
     @TempDir
     lateinit var tempDir: Path

@@ -15,7 +15,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 
-class BannermanListeners(
+internal class BannermanListeners(
     private val plugin: JavaPlugin,
     private val renderer: BannermanRenderService,
     private val guildService: GuildService,

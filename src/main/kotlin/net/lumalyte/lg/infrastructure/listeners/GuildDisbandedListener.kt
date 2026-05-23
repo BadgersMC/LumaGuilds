@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
  * removes all chat channels (Parties) associated with the guild,
  * and despawns any bannerman displays attached to those members.
  */
-class GuildDisbandedListener(
+internal class GuildDisbandedListener(
     private val partyService: PartyService,
     private val bannermanListeners: BannermanListeners,
 ) : Listener {
@@ -48,7 +48,7 @@ class GuildDisbandedListener(
                     )
                 }
             }
-        } catch (e: RuntimeException) {
+        } catch (e: IllegalStateException) {
             logger.error("Failed to clean up channels for disbanded guild ${event.guild.name}", e)
         }
 

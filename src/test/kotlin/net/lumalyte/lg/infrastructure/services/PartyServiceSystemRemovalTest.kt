@@ -23,7 +23,7 @@ import java.util.UUID
  * guild from its parties without being blocked by the actor's permissions, and
  * without destroying parties that other guilds still rely on.
  */
-class PartyServiceSystemRemovalTest {
+internal class PartyServiceSystemRemovalTest {
     private val partyRepository = mockk<PartyRepository>(relaxed = true)
     private val memberService = mockk<MemberService>(relaxed = true)
     private val service = PartyServiceBukkit(

@@ -25,7 +25,7 @@ import kotlin.test.assertTrue
 /**
  * Tests for GuildService bannerman management methods.
  */
-@Suppress("LateinitUsage")
+@Suppress("LateinitUsage", "TooManyFunctions")
 internal class GuildServiceBannermanTest {
     private var guildRepository: GuildRepository? = null
     private var rankRepository: RankRepository? = null
