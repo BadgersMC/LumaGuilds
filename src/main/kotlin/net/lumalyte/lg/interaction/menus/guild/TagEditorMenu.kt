@@ -356,6 +356,9 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
             return "Invalid tag syntax: double brackets"
         }
 
+        // Reject interactive MiniMessage event tags (click/hover/insertion)
+        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag)?.let { return it }
+
         // Try to parse with MiniMessage
         try {
             val miniMessage = MiniMessage.miniMessage()

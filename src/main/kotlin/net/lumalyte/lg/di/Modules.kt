@@ -416,6 +416,14 @@ fun guildsModule() = module {
     single<net.lumalyte.lg.infrastructure.services.ARMIntegrationService> {
         net.lumalyte.lg.infrastructure.services.ARMIntegrationService()
     }
+
+    // Bannerman services
+    single<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService> {
+        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService(get<LumaGuilds>())
+    }
+    single<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners> {
+        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners(get<LumaGuilds>(), get(), get(), get())
+    }
 }
 
 /**
@@ -447,6 +455,12 @@ fun socialModule() = module {
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener(get(), get())
+    }
+    single<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener> {
+        net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get(), get())
+    }
+    single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
+        net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get())
     }
 }
 

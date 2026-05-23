@@ -94,7 +94,28 @@ interface PartyService {
      * @return true if the party was dissolved successfully, false otherwise.
      */
     fun dissolveParty(partyId: UUID, dissolverId: UUID): Boolean
-    
+
+    /**
+     * Removes a guild from a party as a system operation, bypassing permission checks.
+     *
+     * Intended for automated cleanup such as guild disbandment. If fewer than two
+     * guilds remain afterward, the party is dissolved.
+     *
+     * @param partyId The ID of the party.
+     * @param guildId The ID of the guild to remove.
+     * @return The updated party, or null if the party was dissolved or the operation failed.
+     */
+    fun removeGuildFromPartyAsSystem(partyId: UUID, guildId: UUID): Party?
+
+    /**
+     * Looks up a party by id regardless of status. Used by integrations that need to
+     * confirm whether a UUID belongs to a LumaGuilds party before acting on it.
+     *
+     * @param partyId The party UUID.
+     * @return The party, or null if no party with that id exists.
+     */
+    fun getParty(partyId: UUID): Party?
+
     /**
      * Gets all active parties for a guild.
      *
