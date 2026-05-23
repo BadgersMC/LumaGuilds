@@ -448,6 +448,12 @@ fun socialModule() = module {
     single<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener(get(), get())
     }
+    single<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener> {
+        net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get())
+    }
+    single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
+        net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get())
+    }
 }
 
 /**

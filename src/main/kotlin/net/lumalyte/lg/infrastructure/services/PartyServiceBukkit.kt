@@ -44,13 +44,15 @@ class PartyServiceBukkit(
                 return null
             }
 
-            // Check if any of the guilds are already in an active party
-            // For private parties, allow multiple parties per guild (one per player/leader)
+            // A guild may only be in one multi-guild party at a time. Its own internal
+            // single-guild channels (Guild_Chat, Officer_Chat, ...) are also Party rows,
+            // so they must be excluded from this check.
             if (!isPrivateParty) {
                 for (guildId in party.guildIds) {
-                    val existingParties = partyRepository.getActivePartiesByGuild(guildId)
-                    if (existingParties.isNotEmpty()) {
-                        logger.warn("Guild $guildId is already in an active party")
+                    val inMultiGuildParty = partyRepository.getActivePartiesByGuild(guildId)
+                        .any { !it.isPrivateParty() }
+                    if (inMultiGuildParty) {
+                        logger.warn("Guild $guildId is already in an active multi-guild party")
                         return null
                     }
                 }
@@ -412,6 +414,43 @@ class PartyServiceBukkit(
         }
     }
     
+    override fun removeGuildFromPartyAsSystem(partyId: UUID, guildId: UUID): Party? {
+        try {
+            val party = partyRepository.getById(partyId)
+            if (party == null || !party.isActive()) {
+                logger.warn("Party $partyId not found or not active")
+                return null
+            }
+
+            if (!party.includesGuild(guildId)) {
+                logger.warn("Guild $guildId is not part of party $partyId")
+                return null
+            }
+
+            val remainingGuilds = party.guildIds - guildId
+
+            return if (remainingGuilds.size < 2) {
+                // Dissolve party if fewer than 2 guilds remain
+                partyRepository.update(party.copy(status = PartyStatus.DISSOLVED))
+                logger.info("Party $partyId dissolved (system): guild $guildId removed, insufficient guilds remaining")
+                null
+            } else {
+                val updatedParty = party.copy(guildIds = remainingGuilds)
+                if (partyRepository.update(updatedParty)) {
+                    logger.info("Guild $guildId removed from party $partyId (system)")
+                    updatedParty
+                } else {
+                    logger.error("Failed to update party $partyId after system guild removal")
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            // In-memory operation - catching runtime exceptions from state validation
+            logger.error("Error removing guild from party (system)", e)
+            return null
+        }
+    }
+
     override fun getActivePartiesForGuild(guildId: UUID): Set<Party> {
         return partyRepository.getActivePartiesByGuild(guildId)
     }
