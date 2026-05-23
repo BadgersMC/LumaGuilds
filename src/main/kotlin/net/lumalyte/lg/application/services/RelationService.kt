@@ -181,6 +181,18 @@ interface RelationService {
      * @return The number of relations that were updated.
      */
     fun processExpiredRelations(): Int
+
+    /**
+     * Cleans up stale and orphaned relation rows. This should be called periodically.
+     * - Removes terminal rows (REJECTED/EXPIRED) left behind by older versions, which would
+     *   otherwise occupy the unique guild-pair slot and block new requests.
+     * - Auto-resolves pending requests that have been outstanding longer than the staleness
+     *   window, restoring the pre-request state (war stands for truce/unenemy; alliance drops
+     *   back to neutral).
+     *
+     * @return The number of relations that were cleaned up.
+     */
+    fun cleanupStaleRelations(): Int
     
     /**
      * Validates if a relation change is allowed based on current state and guild rules.

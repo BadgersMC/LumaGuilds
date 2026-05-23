@@ -22,11 +22,20 @@ class RelationServiceBukkit(
 ) : RelationService {
     
     private val logger = LoggerFactory.getLogger(RelationServiceBukkit::class.java)
+<<<<<<< HEAD
     
     /** Checks whether [guildId] is the recorded requester of [relation], allowing legacy null rows. */
     private fun isRequester(relation: Relation, guildId: UUID): Boolean =
         relation.requestingGuildId == guildId
     
+=======
+
+    companion object {
+        /** Pending requests outstanding longer than this are auto-resolved by cleanupStaleRelations. */
+        private val PENDING_REQUEST_TTL: Duration = Duration.ofDays(14)
+    }
+
+>>>>>>> pr-51
     override fun requestAlliance(requestingGuildId: UUID, targetGuildId: UUID, actorId: UUID): Relation? {
         try {
             // Validate permissions
@@ -41,22 +50,52 @@ class RelationServiceBukkit(
                 return null
             }
             
-            // Check for existing relation
+            // Check for existing relation. The relations table has a UNIQUE(guild_a, guild_b)
+            // constraint, so at most one row exists per pair. A live pending request or an
+            // active alliance must block a new request, but a *terminal* row (REJECTED/EXPIRED)
+            // or a superseded one must be reused in place — otherwise the stale row permanently
+            // blocks all future alliance requests (the "request that no longer exists still
+            // blocks new ones" bug).
             val existingRelation = relationRepository.getByGuilds(requestingGuildId, targetGuildId)
             if (existingRelation != null) {
-                logger.warn("Relation already exists between guilds $requestingGuildId and $targetGuildId")
-                return null
+                if (existingRelation.status == RelationStatus.PENDING) {
+                    logger.warn("A pending request already exists between guilds $requestingGuildId and $targetGuildId")
+                    return null
+                }
+                if (existingRelation.isActive() && existingRelation.type == RelationType.ALLY) {
+                    logger.warn("Guilds $requestingGuildId and $targetGuildId are already allied")
+                    return null
+                }
+                // Reuse the stale/inactive row by updating it to a fresh pending alliance request.
+                val reused = existingRelation.copy(
+                    type = RelationType.ALLY,
+                    status = RelationStatus.PENDING,
+                    expiresAt = null,
+                    requestingGuildId = requestingGuildId,
+                    updatedAt = Instant.now()
+                )
+                return if (relationRepository.update(reused)) {
+                    logger.info("Alliance request created (reused stale row) from guild $requestingGuildId to guild $targetGuildId")
+                    reused
+                } else {
+                    logger.error("Failed to save alliance request (reusing stale row)")
+                    null
+                }
             }
-            
+
             // Create pending alliance request
             val relation = Relation.create(
                 guildA = requestingGuildId,
                 guildB = targetGuildId,
                 type = RelationType.ALLY,
                 status = RelationStatus.PENDING,
+<<<<<<< HEAD
                 requestingGuildId = requestingGuildId,
+=======
+                requestingGuildId = requestingGuildId
+>>>>>>> pr-51
             )
-            
+
             return if (relationRepository.add(relation)) {
                 logger.info("Alliance request created from guild $requestingGuildId to guild $targetGuildId")
                 relation
@@ -194,13 +233,23 @@ class RelationServiceBukkit(
             
             // Check that guilds are currently enemies
             val currentRelation = relationRepository.getByGuilds(requestingGuildId, targetGuildId)
-            if (currentRelation?.type != RelationType.ENEMY || !currentRelation.isActive()) {
+            if (currentRelation == null) {
+                logger.warn("Cannot request truce - no relation exists between guilds $requestingGuildId and $targetGuildId")
+                return null
+            }
+            if (currentRelation.status == RelationStatus.PENDING) {
+                logger.warn("Cannot request truce - a request is already pending between guilds $requestingGuildId and $targetGuildId")
+                return null
+            }
+            // effectiveType treats the underlying war as still in force; a stale TRUCE/EXPIRED row
+            // must not be mistaken for a non-war state.
+            if (effectiveType(currentRelation) != RelationType.ENEMY) {
                 logger.warn("Cannot request truce - guilds are not currently at war")
                 return null
             }
-            
+
             val expiresAt = Instant.now().plus(duration)
-            
+
             // Update existing relation to pending truce
             val truceRelation = currentRelation.copy(
                 type = RelationType.TRUCE,
@@ -291,11 +340,19 @@ class RelationServiceBukkit(
             
             // Check that guilds are currently enemies
             val currentRelation = relationRepository.getByGuilds(requestingGuildId, targetGuildId)
-            if (currentRelation?.type != RelationType.ENEMY || !currentRelation.isActive()) {
+            if (currentRelation == null) {
+                logger.warn("Cannot request unenemy - no relation exists between guilds $requestingGuildId and $targetGuildId")
+                return null
+            }
+            if (currentRelation.status == RelationStatus.PENDING) {
+                logger.warn("Cannot request unenemy - a request is already pending between guilds $requestingGuildId and $targetGuildId")
+                return null
+            }
+            if (effectiveType(currentRelation) != RelationType.ENEMY) {
                 logger.warn("Cannot request unenemy - guilds are not currently at war")
                 return null
             }
-            
+
             // Update existing relation to pending neutral request
             val unEnemyRelation = currentRelation.copy(
                 type = RelationType.NEUTRAL,
@@ -397,6 +454,7 @@ class RelationServiceBukkit(
                 logger.warn("Relation $relationId is not pending")
                 return false
             }
+<<<<<<< HEAD
             
             // Enforce direction: only the non-requester can reject
             // Legacy rows with null requestingGuildId can be rejected by either guild
@@ -418,6 +476,14 @@ class RelationServiceBukkit(
                 logger.error("Failed to update rejected relation")
                 false
             }
+=======
+
+            // Rejecting a request must restore the pre-request state, NOT just mark it REJECTED:
+            // a rejected truce/unenemy request leaves the guilds still at war (revert to ENEMY),
+            // while a rejected alliance request returns to neutral (row removed). Leaving a
+            // REJECTED row behind both lost the war state and blocked future requests.
+            return resolvePendingRequest(relation, "rejected by guild $rejectingGuildId")
+>>>>>>> pr-51
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error rejecting request", e)
@@ -450,6 +516,7 @@ class RelationServiceBukkit(
                 logger.warn("Relation $relationId is not pending")
                 return false
             }
+<<<<<<< HEAD
             
             // Enforce direction: only the requester can cancel
             // Legacy rows with null requestingGuildId can be cancelled by either guild
@@ -466,6 +533,13 @@ class RelationServiceBukkit(
                 logger.error("Failed to remove cancelled relation")
                 false
             }
+=======
+
+            // Cancelling restores the pre-request state (same rules as rejection): a cancelled
+            // truce/unenemy request must keep the guilds at war, not silently end it by deleting
+            // the row.
+            return resolvePendingRequest(relation, "cancelled by guild $cancellingGuildId")
+>>>>>>> pr-51
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error cancelling request", e)
@@ -478,11 +552,57 @@ class RelationServiceBukkit(
     }
     
     override fun getRelationType(guildA: UUID, guildB: UUID): RelationType {
-        val relation = relationRepository.getByGuilds(guildA, guildB)
-        return if (relation != null && relation.isActive()) {
-            relation.type
-        } else {
-            RelationType.NEUTRAL
+        val relation = relationRepository.getByGuilds(guildA, guildB) ?: return RelationType.NEUTRAL
+        return effectiveType(relation)
+    }
+
+    /**
+     * Computes the effective relation type for a row, accounting for pending de-escalation
+     * requests. A pending TRUCE or unenemy (NEUTRAL) request is always raised from an active
+     * ENEMY state and does NOT take effect until accepted, so the guilds remain enemies until
+     * then. Inactive/terminal rows (REJECTED/EXPIRED) read as NEUTRAL.
+     */
+    private fun effectiveType(relation: Relation): RelationType = when {
+        relation.isActive() -> relation.type
+        relation.status == RelationStatus.PENDING &&
+            (relation.type == RelationType.TRUCE || relation.type == RelationType.NEUTRAL) ->
+            RelationType.ENEMY
+        else -> RelationType.NEUTRAL
+    }
+
+    /**
+     * Restores the pre-request state when a pending request is rejected, cancelled, or expires.
+     * - Pending TRUCE / unenemy (NEUTRAL): the underlying war stands — revert to active ENEMY.
+     * - Pending ALLY: return to neutral by removing the row.
+     * Returns true on success. [reason] is used only for logging.
+     */
+    private fun resolvePendingRequest(relation: Relation, reason: String): Boolean {
+        return when (relation.type) {
+            RelationType.TRUCE, RelationType.NEUTRAL -> {
+                val reverted = relation.copy(
+                    type = RelationType.ENEMY,
+                    status = RelationStatus.ACTIVE,
+                    expiresAt = null,
+                    requestingGuildId = null,
+                    updatedAt = Instant.now()
+                )
+                if (relationRepository.update(reverted)) {
+                    logger.info("Pending request ${relation.id} $reason - reverted to enemy (war stands)")
+                    true
+                } else {
+                    logger.error("Failed to revert pending request ${relation.id}")
+                    false
+                }
+            }
+            RelationType.ALLY, RelationType.ENEMY -> {
+                if (relationRepository.remove(relation.id)) {
+                    logger.info("Pending request ${relation.id} $reason - removed (back to neutral)")
+                    true
+                } else {
+                    logger.error("Failed to remove pending request ${relation.id}")
+                    false
+                }
+            }
         }
     }
     
@@ -576,6 +696,36 @@ class RelationServiceBukkit(
             return 0
         }
     }
+
+    override fun cleanupStaleRelations(): Int {
+        var cleaned = 0
+        try {
+            // 1) Remove terminal rows (REJECTED/EXPIRED). With the current request flows these are
+            //    no longer produced, but legacy databases may still contain them — and a lingering
+            //    terminal row occupies the UNIQUE(guild_a, guild_b) slot and blocks new requests.
+            val terminal = relationRepository.getByStatus(RelationStatus.REJECTED) +
+                relationRepository.getByStatus(RelationStatus.EXPIRED)
+            for (relation in terminal) {
+                if (relationRepository.remove(relation.id)) {
+                    logger.info("Cleaned up terminal (${relation.status}) relation ${relation.id} between ${relation.guildA} and ${relation.guildB}")
+                    cleaned++
+                }
+            }
+
+            // 2) Auto-resolve pending requests that have been outstanding too long.
+            val cutoff = Instant.now().minus(PENDING_REQUEST_TTL)
+            val stalePending = relationRepository.getByStatus(RelationStatus.PENDING)
+                .filter { it.updatedAt.isBefore(cutoff) }
+            for (relation in stalePending) {
+                if (resolvePendingRequest(relation, "auto-expired after $PENDING_REQUEST_TTL")) {
+                    cleaned++
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Error cleaning up stale relations", e)
+        }
+        return cleaned
+    }
     
     override fun isValidRelationChange(fromGuildId: UUID, toGuildId: UUID, newType: RelationType): Boolean {
         // Basic validation
@@ -601,9 +751,10 @@ class RelationServiceBukkit(
     }
 
     override fun isGuildInActiveWar(guildId: UUID): Boolean {
-        val enemyRelations = relationRepository.getByGuildAndType(guildId, RelationType.ENEMY)
-        return enemyRelations.any { relation ->
-            relation.isActive() && relation.type == RelationType.ENEMY
+        // A guild is at war when it has an active ENEMY relation, OR a pending de-escalation
+        // (truce/unenemy) request that has not yet been accepted — those leave the war in force.
+        return relationRepository.getByGuild(guildId).any { relation ->
+            effectiveType(relation) == RelationType.ENEMY
         }
     }
 

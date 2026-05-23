@@ -20,8 +20,12 @@ object GuildDisplayUtils {
      * @return The formatted display name with emoji prefix if available.
      */
     fun getFormattedGuildName(guild: Guild): String {
+<<<<<<< HEAD
         val baseName = guild.tag
             ?.takeIf { it.isNotBlank() }
+=======
+        val baseName = guild.tag?.takeIf { it.isNotBlank() }
+>>>>>>> pr-51
             ?.let { ColorCodeUtils.renderTagForDisplay(it) }
             ?: guild.name
         return if (guild.emoji != null && isValidEmojiFormat(guild.emoji)) {
