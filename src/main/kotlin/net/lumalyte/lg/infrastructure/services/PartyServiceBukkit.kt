@@ -473,6 +473,8 @@ class PartyServiceBukkit(
         }
     }
 
+    override fun getParty(partyId: UUID): Party? = partyRepository.getById(partyId)
+
     override fun getActivePartiesForGuild(guildId: UUID): Set<Party> {
         return partyRepository.getActivePartiesByGuild(guildId)
     }

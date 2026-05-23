@@ -33,17 +33,24 @@ internal class BannermanListeners(
     @EventHandler
     fun onDeath(e: PlayerDeathEvent) = renderer.despawnFor(e.entity.uniqueId)
 
-    /** Respawn the bannerman display after a player respawns. */
+    /**
+     * Respawn the bannerman display one tick after the player respawns. The respawn-event
+     * location is still in flux on the same tick, so an immediate runTask can land the
+     * display at the death point.
+     */
     @EventHandler
     fun onRespawn(e: PlayerRespawnEvent) {
-        plugin.server.scheduler.runTask(plugin, Runnable { trySpawn(e.player) })
+        plugin.server.scheduler.runTaskLater(plugin, Runnable { trySpawn(e.player) }, 1L)
     }
 
-    /** Respawn the bannerman display after a player changes worlds. */
+    /**
+     * Respawn the bannerman display after a player changes worlds, deferred one tick so
+     * the world transfer is fully applied before we spawn the display in the new world.
+     */
     @EventHandler
     fun onWorldChange(e: PlayerChangedWorldEvent) {
         renderer.despawnFor(e.player.uniqueId)
-        plugin.server.scheduler.runTask(plugin, Runnable { trySpawn(e.player) })
+        plugin.server.scheduler.runTaskLater(plugin, Runnable { trySpawn(e.player) }, 1L)
     }
 
     private fun trySpawn(player: Player) {
@@ -83,6 +90,14 @@ internal class BannermanListeners(
             members.forEach { renderer.despawnFor(it.playerId) }
             return
         }
-        members.forEach { renderer.updateBanner(it.playerId, banner) }
+        // Online members without an existing display (e.g. just joined while the banner was
+        // being edited) need a fresh spawn rather than a silent update on nothing.
+        members.forEach { member ->
+            if (renderer.isTracking(member.playerId)) {
+                renderer.updateBanner(member.playerId, banner)
+            } else {
+                plugin.server.getPlayer(member.playerId)?.let { trySpawn(it) }
+            }
+        }
     }
 }

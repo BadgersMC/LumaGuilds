@@ -108,6 +108,15 @@ interface PartyService {
     fun removeGuildFromPartyAsSystem(partyId: UUID, guildId: UUID): Party?
 
     /**
+     * Looks up a party by id regardless of status. Used by integrations that need to
+     * confirm whether a UUID belongs to a LumaGuilds party before acting on it.
+     *
+     * @param partyId The party UUID.
+     * @return The party, or null if no party with that id exists.
+     */
+    fun getParty(partyId: UUID): Party?
+
+    /**
      * Gets all active parties for a guild.
      *
      * @param guildId The ID of the guild.

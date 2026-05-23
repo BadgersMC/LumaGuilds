@@ -96,8 +96,11 @@ internal class RoseChatCleanupListener(
             }
 
         else -> {
+            // Only treat a UUID-named channel as a party channel when it actually maps to a
+            // LumaGuilds Party. Other plugins also use UUID-named channels; we MUST NOT move
+            // their members out on a false positive.
             val channelUuid = runCatching { UUID.fromString(channelId) }.getOrNull()
-            if (channelUuid == null) {
+            if (channelUuid == null || partyService.getParty(channelUuid) == null) {
                 false
             } else {
                 val activePartyIds = guildService.getPlayerGuilds(playerId)

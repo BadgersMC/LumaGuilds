@@ -19,6 +19,8 @@ import net.lumalyte.lg.domain.events.GuildHomeSetEvent
 import net.lumalyte.lg.domain.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.utils.serializeToString
 import org.bukkit.Bukkit
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
@@ -34,7 +36,11 @@ class GuildServiceBukkit(
     private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService,
     private val relationRepository: RelationRepository,
     private val historyRepository: MembershipHistoryRepository
-) : GuildService {
+) : GuildService, KoinComponent {
+
+    // Lazy because BannermanListeners depends on GuildService, which would create a Koin
+    // resolution cycle if injected eagerly through the constructor.
+    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
 
@@ -208,16 +214,7 @@ class GuildServiceBukkit(
             logger.info("Guild $guildId banner set to '$bannerText' by $actorId")
             Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
 
-            // Notify bannerman renderer to re-render the new banner. Failures are non-fatal
-            // (Koin may be torn down during shutdown), but we log so operators can diagnose
-            // missing-refresh complaints instead of chasing ghost bug reports.
-            try {
-                val bannermanListeners = org.koin.java.KoinJavaComponent.getKoin()
-                    .get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
-                bannermanListeners.onGuildBannerChanged(guildId)
-            } catch (e: Exception) {
-                logger.debug("Bannerman refresh skipped for guild $guildId", e)
-            }
+            bannermanListeners.onGuildBannerChanged(guildId)
         }
         return result
     }

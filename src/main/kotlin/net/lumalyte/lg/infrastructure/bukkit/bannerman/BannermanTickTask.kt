@@ -8,16 +8,24 @@ import org.bukkit.potion.PotionEffectType
 import org.bukkit.scheduler.BukkitRunnable
 
 /**
- * Every 2 ticks: keep each tracked player's bannerman display following the player
- * and toggle visibility based on elytra / invisibility state.
+ * Every 5 ticks: keep each tracked player's bannerman display following the player
+ * and toggle visibility based on elytra / invisibility state. 5 ticks (~0.25s) is fast
+ * enough to look attached without flooding the scheduler with sub-block teleports while
+ * players are walking.
  */
 internal class BannermanTickTask(
     private val plugin: JavaPlugin,
     private val renderer: BannermanRenderService
 ) : BukkitRunnable() {
 
+    companion object {
+        private const val TICK_PERIOD = 5L
+        // ~0.5 block squared: don't re-teleport for sub-block jitter while walking.
+        private const val REPOSITION_THRESHOLD_SQ = 0.25
+    }
+
     fun start() {
-        runTaskTimer(plugin, 0L, 2L)
+        runTaskTimer(plugin, 0L, TICK_PERIOD)
     }
 
     override fun run() {
@@ -40,7 +48,7 @@ internal class BannermanTickTask(
         target.y += 1.0
         target.yaw = player.location.yaw
         target.pitch = 0f
-        if (display.world != player.world || display.location.distanceSquared(target) > 0.0001) {
+        if (display.world != player.world || display.location.distanceSquared(target) > REPOSITION_THRESHOLD_SQ) {
             display.teleport(target)
         }
     }

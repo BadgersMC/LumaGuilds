@@ -122,6 +122,7 @@ internal class RoseChatCleanupListenerTest {
         // A dissolved party still appears in the full party list, but not the active one.
         every { partyService.getAllPartiesForGuild(g.id) } returns setOf(dissolvedParty)
         every { partyService.getActivePartiesForGuild(g.id) } returns emptySet()
+        every { partyService.getParty(dissolvedParty.id) } returns dissolvedParty
         assertTrue(listener.shouldLeaveChannel(playerId, dissolvedParty.id.toString()))
     }
 
@@ -139,6 +140,7 @@ internal class RoseChatCleanupListenerTest {
             )
         every { guildService.getPlayerGuilds(playerId) } returns setOf(g)
         every { partyService.getActivePartiesForGuild(g.id) } returns setOf(party)
+        every { partyService.getParty(party.id) } returns party
         assertFalse(listener.shouldLeaveChannel(playerId, party.id.toString()))
     }
 
@@ -149,8 +151,29 @@ internal class RoseChatCleanupListenerTest {
     }
 
     @Test
-    fun noGuildLeavesPartyChannel() {
+    fun unknownUuidChannelUntouched() {
+        // A UUID-named channel that doesn't map to any LumaGuilds party belongs to another
+        // plugin and must be left alone — moving the player would be a false positive.
+        val foreignChannel = UUID.randomUUID()
+        every { partyService.getParty(foreignChannel) } returns null
+        assertFalse(listener.shouldLeaveChannel(playerId, foreignChannel.toString()))
+    }
+
+    @Test
+    fun guildlessPlayerLeavesKnownPartyChannel() {
+        // The player has no guild, but the channel is a known LumaGuilds party — kick them out.
+        val g = guild()
+        val party =
+            Party(
+                id = UUID.randomUUID(),
+                name = "P",
+                guildIds = setOf(g.id),
+                leaderId = UUID.randomUUID(),
+                status = PartyStatus.ACTIVE,
+                createdAt = Instant.now(),
+            )
         every { guildService.getPlayerGuilds(playerId) } returns emptySet()
-        assertTrue(listener.shouldLeaveChannel(playerId, UUID.randomUUID().toString()))
+        every { partyService.getParty(party.id) } returns party
+        assertTrue(listener.shouldLeaveChannel(playerId, party.id.toString()))
     }
 }
