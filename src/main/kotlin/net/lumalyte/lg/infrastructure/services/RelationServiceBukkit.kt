@@ -98,7 +98,8 @@ class RelationServiceBukkit(
             }
             
             // Enforce direction: the requester cannot accept their own request
-            if (isRequester(relation, acceptingGuildId)) {
+            // Legacy rows with null requestingGuildId can be accepted by either guild
+            if (relation.requestingGuildId != null && isRequester(relation, acceptingGuildId)) {
                 logger.warn("Guild $acceptingGuildId cannot accept its own alliance request")
                 return null
             }
@@ -250,7 +251,8 @@ class RelationServiceBukkit(
             }
             
             // Enforce direction: the requester cannot accept their own request
-            if (isRequester(relation, acceptingGuildId)) {
+            // Legacy rows with null requestingGuildId can be accepted by either guild
+            if (relation.requestingGuildId != null && isRequester(relation, acceptingGuildId)) {
                 logger.warn("Guild $acceptingGuildId cannot accept its own truce request")
                 return null
             }
@@ -344,7 +346,8 @@ class RelationServiceBukkit(
             }
             
             // Enforce direction: the requester cannot accept their own request
-            if (isRequester(relation, acceptingGuildId)) {
+            // Legacy rows with null requestingGuildId can be accepted by either guild
+            if (relation.requestingGuildId != null && isRequester(relation, acceptingGuildId)) {
                 logger.warn("Guild $acceptingGuildId cannot accept its own unenemy request")
                 return null
             }
@@ -396,7 +399,8 @@ class RelationServiceBukkit(
             }
             
             // Enforce direction: only the non-requester can reject
-            if (isRequester(relation, rejectingGuildId)) {
+            // Legacy rows with null requestingGuildId can be rejected by either guild
+            if (relation.requestingGuildId != null && isRequester(relation, rejectingGuildId)) {
                 logger.warn("Guild $rejectingGuildId cannot reject its own request")
                 return false
             }
@@ -448,7 +452,8 @@ class RelationServiceBukkit(
             }
             
             // Enforce direction: only the requester can cancel
-            if (!isRequester(relation, cancellingGuildId)) {
+            // Legacy rows with null requestingGuildId can be cancelled by either guild
+            if (relation.requestingGuildId != null && !isRequester(relation, cancellingGuildId)) {
                 logger.warn("Guild $cancellingGuildId cannot cancel a request it did not send")
                 return false
             }
