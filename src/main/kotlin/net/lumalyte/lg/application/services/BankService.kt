@@ -89,6 +89,17 @@ interface BankService {
     fun deductFromGuildBank(guildId: UUID, amount: Int, reason: String? = null): Boolean
 
     /**
+     * Credits money into a guild's bank without taking it from any player (system credit).
+     * Used for system-driven income such as war wager payouts/refunds.
+     *
+     * @param guildId The ID of the guild.
+     * @param amount The amount to credit.
+     * @param reason Optional reason for the transaction.
+     * @return true if successful, false otherwise.
+     */
+    fun creditToGuildBank(guildId: UUID, amount: Int, reason: String? = null): Boolean
+
+    /**
      * Checks if a player can withdraw from a guild's bank.
      *
      * @param playerId The ID of the player.

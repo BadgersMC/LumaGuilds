@@ -129,6 +129,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(22)
                 dbVersion = 22
             }
+            if (dbVersion < 23) {
+                migrateToVersion23()
+                updateDatabaseVersion(23)
+                dbVersion = 23
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1565,5 +1570,23 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         }
 
         componentLogger.info(Component.text("✓ Migration v22 complete: added bannerman_enabled column"))
+    }
+
+    /**
+     * Migration from version 22 to version 23.
+     *
+     * Unifies the three historical guild-balance stores into a single source of truth:
+     *  - Store A: the bank_transactions ledger sum (server-coin bank)
+     *  - Store C: the guilds.bank_balance column (legacy virtual currency)
+     *  - Store B: the vault_gold.balance column (vault gold counter) — the new canonical store
+     *
+     * For every guild, the ledger sum (A) and legacy column (C) are folded into the vault gold
+     * balance (B), 1:1. The guilds.bank_balance column is then zeroed so it can no longer be
+     * mistaken for a live balance. The bank_transactions ledger is left intact as audit/history.
+     * A per-guild dry-run report is logged before any rows are written.
+     */
+    private fun migrateToVersion23() {
+        componentLogger.info(Component.text("Migrating to version 23: consolidating guild balances into unified vault gold (store B)..."))
+        GuildBalanceConsolidator.consolidate(connection, componentLogger)
     }
 }

@@ -27,24 +27,6 @@ interface BankRepository {
     fun getTransactionsForGuild(guildId: UUID, limit: Int? = null): List<BankTransaction>
 
     /**
-     * Gets the current balance for a guild.
-     *
-     * @param guildId The ID of the guild.
-     * @return The current balance, or 0 if no transactions exist.
-     */
-    fun getGuildBalance(guildId: UUID): Int
-
-    /**
-     * Gets the highest-balance guilds, ranked by bank balance descending.
-     * Backed by the in-memory balance cache, so it performs no database query and scales to
-     * large guild counts. Only guilds that have had at least one transaction are included.
-     *
-     * @param limit The maximum number of guilds to return.
-     * @return A list of (guildId, balance) pairs ordered by balance descending.
-     */
-    fun getTopBalances(limit: Int): List<Pair<UUID, Int>>
-
-    /**
      * Gets the total amount deposited by a player to a guild.
      *
      * @param playerId The ID of the player.
@@ -80,15 +62,6 @@ interface BankRepository {
     fun getAuditForGuild(guildId: UUID, limit: Int? = null): List<BankAudit>
 
     /**
-     * Gets audit entries for a player.
-     *
-     * @param playerId The ID of the player.
-     * @param limit Optional limit for the number of results.
-     * @return List of audit entries for the player.
-     */
-    fun getAuditForPlayer(playerId: UUID, limit: Int? = null): List<BankAudit>
-
-    /**
      * Gets the total number of transactions for a guild.
      *
      * @param guildId The ID of the guild.
@@ -104,20 +77,4 @@ interface BankRepository {
      */
     fun getTotalVolumeForGuild(guildId: UUID): Int
 
-    /**
-     * Clears all transactions for a guild (used for testing or admin operations).
-     *
-     * @param guildId The ID of the guild.
-     * @return true if successful, false otherwise.
-     */
-    fun clearGuildTransactions(guildId: UUID): Boolean
-
-    /**
-     * Deletes a specific transaction by ID.
-     * Used for rolling back failed transactions.
-     *
-     * @param transactionId The ID of the transaction to delete.
-     * @return true if successful, false otherwise.
-     */
-    fun deleteTransaction(transactionId: UUID): Boolean
 }

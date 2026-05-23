@@ -22,20 +22,15 @@ class RelationServiceBukkit(
 ) : RelationService {
     
     private val logger = LoggerFactory.getLogger(RelationServiceBukkit::class.java)
-<<<<<<< HEAD
-    
+
     /** Checks whether [guildId] is the recorded requester of [relation], allowing legacy null rows. */
     private fun isRequester(relation: Relation, guildId: UUID): Boolean =
         relation.requestingGuildId == guildId
-    
-=======
 
     companion object {
         /** Pending requests outstanding longer than this are auto-resolved by cleanupStaleRelations. */
         private val PENDING_REQUEST_TTL: Duration = Duration.ofDays(14)
     }
-
->>>>>>> pr-51
     override fun requestAlliance(requestingGuildId: UUID, targetGuildId: UUID, actorId: UUID): Relation? {
         try {
             // Validate permissions
@@ -89,11 +84,7 @@ class RelationServiceBukkit(
                 guildB = targetGuildId,
                 type = RelationType.ALLY,
                 status = RelationStatus.PENDING,
-<<<<<<< HEAD
                 requestingGuildId = requestingGuildId,
-=======
-                requestingGuildId = requestingGuildId
->>>>>>> pr-51
             )
 
             return if (relationRepository.add(relation)) {
@@ -454,7 +445,6 @@ class RelationServiceBukkit(
                 logger.warn("Relation $relationId is not pending")
                 return false
             }
-<<<<<<< HEAD
             
             // Enforce direction: only the non-requester can reject
             // Legacy rows with null requestingGuildId can be rejected by either guild
@@ -463,27 +453,11 @@ class RelationServiceBukkit(
                 return false
             }
             
-            // Update relation to rejected
-            val rejectedRelation = relation.copy(
-                status = RelationStatus.REJECTED,
-                updatedAt = Instant.now()
-            )
-            
-            return if (relationRepository.update(rejectedRelation)) {
-                logger.info("Relation request $relationId rejected by guild $rejectingGuildId")
-                true
-            } else {
-                logger.error("Failed to update rejected relation")
-                false
-            }
-=======
-
             // Rejecting a request must restore the pre-request state, NOT just mark it REJECTED:
             // a rejected truce/unenemy request leaves the guilds still at war (revert to ENEMY),
             // while a rejected alliance request returns to neutral (row removed). Leaving a
             // REJECTED row behind both lost the war state and blocked future requests.
             return resolvePendingRequest(relation, "rejected by guild $rejectingGuildId")
->>>>>>> pr-51
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error rejecting request", e)
@@ -516,7 +490,6 @@ class RelationServiceBukkit(
                 logger.warn("Relation $relationId is not pending")
                 return false
             }
-<<<<<<< HEAD
             
             // Enforce direction: only the requester can cancel
             // Legacy rows with null requestingGuildId can be cancelled by either guild
@@ -525,21 +498,10 @@ class RelationServiceBukkit(
                 return false
             }
             
-            // Remove the pending relation
-            return if (relationRepository.remove(relationId)) {
-                logger.info("Relation request $relationId cancelled by guild $cancellingGuildId")
-                true
-            } else {
-                logger.error("Failed to remove cancelled relation")
-                false
-            }
-=======
-
             // Cancelling restores the pre-request state (same rules as rejection): a cancelled
             // truce/unenemy request must keep the guilds at war, not silently end it by deleting
             // the row.
             return resolvePendingRequest(relation, "cancelled by guild $cancellingGuildId")
->>>>>>> pr-51
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error cancelling request", e)
