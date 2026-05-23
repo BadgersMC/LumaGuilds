@@ -34,6 +34,16 @@ class BankServiceBukkit(
     // Vault Economy integration
     private var economy: Economy? = null
 
+    // --- Balance leaderboard cache ---
+    // The underlying repository already keeps balances in memory, so this cache only amortizes the
+    // sort. It is invalidated immediately whenever a balance changes (deposit/withdraw/deduct), and
+    // also carries a short TTL as a safety net against any balance path that bypasses this service.
+    private val balanceLeaderboardLock = Any()
+    @Volatile private var cachedTopBalances: List<Pair<UUID, Int>> = emptyList()
+    @Volatile private var balanceLeaderboardExpiresAtMs: Long = 0L
+    private val balanceLeaderboardTtlMs = 30_000L
+    private val balanceLeaderboardCacheSize = 100
+
     init {
         setupEconomy()
     }
@@ -224,6 +234,7 @@ class BankServiceBukkit(
             }
 
             // SUCCESS: Both database record and Vault withdrawal succeeded
+            invalidateBalanceLeaderboard()
             val newBalance = bankRepository.getGuildBalance(guildId)
             recordAudit(BankAudit(
                 transactionId = transaction.id,
@@ -398,6 +409,7 @@ class BankServiceBukkit(
             }
 
             // SUCCESS: Both database record and Vault deposit succeeded
+            invalidateBalanceLeaderboard()
             val newBalance = bankRepository.getGuildBalance(guildId)
             recordAudit(BankAudit(
                 transactionId = transaction.id,
@@ -431,6 +443,25 @@ class BankServiceBukkit(
 
     override fun getBalance(guildId: UUID): Int {
         return bankRepository.getGuildBalance(guildId)
+    }
+
+    override fun getTopBalances(limit: Int): List<Pair<UUID, Int>> {
+        if (limit <= 0) return emptyList()
+        // Cache the largest requested page so callers asking for a smaller N reuse it.
+        val cacheSize = maxOf(limit, balanceLeaderboardCacheSize)
+        val now = System.currentTimeMillis()
+        synchronized(balanceLeaderboardLock) {
+            if (now >= balanceLeaderboardExpiresAtMs || cachedTopBalances.size < limit) {
+                cachedTopBalances = bankRepository.getTopBalances(cacheSize)
+                balanceLeaderboardExpiresAtMs = now + balanceLeaderboardTtlMs
+            }
+            return cachedTopBalances.take(limit)
+        }
+    }
+
+    /** Invalidates the cached balance leaderboard so the next read reflects the change. */
+    private fun invalidateBalanceLeaderboard() {
+        balanceLeaderboardExpiresAtMs = 0L
     }
 
     override fun getPlayerBalance(playerId: UUID): Int {
@@ -644,7 +675,9 @@ class BankServiceBukkit(
                 description = reason ?: "Guild bank deduction"
             )
 
-            return bankRepository.recordTransaction(transaction)
+            val recorded = bankRepository.recordTransaction(transaction)
+            if (recorded) invalidateBalanceLeaderboard()
+            return recorded
         } catch (e: SQLException) {
             logger.error("Database error processing guild bank deduction for guild $guildId", e)
             return false
