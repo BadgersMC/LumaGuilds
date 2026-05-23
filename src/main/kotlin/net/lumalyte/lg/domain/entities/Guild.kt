@@ -189,18 +189,3 @@ enum class VaultStatus {
     /** Guild has never placed a vault chest */
     NEVER_PLACED
 }
-
-/**
- * Represents the bank/vault mode configuration.
- * Determines how guilds store and manage their resources.
- */
-enum class BankMode {
-    /** Use only Vault economy (virtual currency) */
-    VIRTUAL,
-
-    /** Use only physical chest with raw gold items */
-    PHYSICAL,
-
-    /** Use both virtual currency AND physical vault chest */
-    BOTH
-}

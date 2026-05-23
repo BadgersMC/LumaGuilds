@@ -50,11 +50,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
-<<<<<<< HEAD
     private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
-=======
     private val bankService: net.lumalyte.lg.application.services.BankService by inject()
->>>>>>> pr-51
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 

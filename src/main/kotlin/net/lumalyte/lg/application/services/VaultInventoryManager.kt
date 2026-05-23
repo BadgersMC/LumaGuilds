@@ -299,6 +299,17 @@ class VaultInventoryManager(
     }
 
     /**
+     * Gets the top guilds ranked by vault gold balance (descending).
+     * Queries the repository directly so it does not force every vault into the cache.
+     *
+     * @param limit The maximum number of guilds to return.
+     * @return A list of (guildId, balance) pairs ordered by balance descending.
+     */
+    fun getTopGoldBalances(limit: Int): List<Pair<UUID, Long>> {
+        return vaultRepository.getTopGoldBalances(limit)
+    }
+
+    /**
      * Sets the gold balance for a vault.
      * Updates the in-memory cache immediately and queues database write.
      *

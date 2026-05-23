@@ -77,24 +77,6 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
         }
     }
 
-<<<<<<< HEAD
-    private fun ensureRequestingGuildColumn() {
-        val hasColumn = try {
-            val rows = storage.connection.getResults("PRAGMA table_info(relations)")
-            rows.any { row ->
-                row.getString("name").equals("requesting_guild", ignoreCase = true)
-            }
-        } catch (e: SQLException) {
-            logger.error("Failed to check relations table schema", e)
-            throw e
-        }
-        if (hasColumn) {
-            logger.debug("requesting_guild column already present")
-            return
-        }
-        storage.connection.executeUpdate("ALTER TABLE relations ADD COLUMN requesting_guild TEXT")
-        logger.info("Added requesting_guild column to relations table")
-=======
     /**
      * Adds the requesting_guild column to pre-existing relations tables that predate it.
      * The column tracks which guild initiated a pending request so outgoing and incoming
@@ -109,7 +91,6 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
             // Column already exists (or backend reports duplicate) — safe to ignore.
             logger.debug("requesting_guild column already present: ${e.message}")
         }
->>>>>>> pr-51
     }
     
     private fun preload() {
