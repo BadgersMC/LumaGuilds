@@ -35,6 +35,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
     private val relationService: RelationService by inject()
+    private val bankService: net.lumalyte.lg.application.services.BankService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
@@ -213,7 +214,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private fun addStatisticsSection(pane: StaticPane, x: Int, y: Int) {
         val statsItem = ItemStack.of(Material.BOOK)
             .name("§eStatistics")
-            .lore("§7Bank Balance: §6$${guild.bankBalance}")
+            .lore("§7Bank Balance: §6$${bankService.getBalance(guild.id)}")
             .lore("§7Level: §e${guild.level}")
 
         if (guild.home != null) {

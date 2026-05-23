@@ -237,7 +237,7 @@ class GuildWarDeclarationMenu(
     }
 
     private fun addWarWagerSection(pane: StaticPane) {
-        val guildBalance = guild.bankBalance
+        val guildBalance = bankService.getBalance(guild.id)
         val maxWager = guildBalance // No limits - high stakes gambling!
 
         // Main wager display
@@ -328,7 +328,7 @@ class GuildWarDeclarationMenu(
             pane.addItem(wagerAllGuiItem, 7, 2)
 
             // Wager Enemy Bank button (if enemy guild has funds)
-            val enemyBalance = targetGuild?.bankBalance ?: 0
+            val enemyBalance = targetGuild?.let { bankService.getBalance(it.id) } ?: 0
             if (enemyBalance > 0) {
                 val wagerEnemyItem = ItemStack.of(Material.PURPLE_CONCRETE)
                     .name("§5∩ MATCH ENEMY")
@@ -508,10 +508,11 @@ class GuildWarDeclarationMenu(
             // Handle wager escrow if there's a wager
             if (wagerAmount > 0) {
                 // Check if guild has sufficient funds
-                if (guild.bankBalance < wagerAmount) {
+                val currentBalance = bankService.getBalance(guild.id)
+                if (currentBalance < wagerAmount) {
                     player.sendMessage("§c❌ Insufficient guild bank funds for wager!")
                     player.sendMessage("§7Need: §6$wagerAmount coins")
-                    player.sendMessage("§7Have: §6${guild.bankBalance} coins")
+                    player.sendMessage("§7Have: §6$currentBalance coins")
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }

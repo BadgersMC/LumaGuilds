@@ -26,7 +26,8 @@ class BankServiceBukkit(
     private val progressionRepository: ProgressionRepository,
     private val progressionConfigService: ProgressionConfigService,
     private val configService: ConfigService,
-    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository
+    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
+    private val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager
 ) : BankService {
 
     private val logger = LoggerFactory.getLogger(BankServiceBukkit::class.java)
@@ -149,7 +150,7 @@ class BankServiceBukkit(
             }
 
             // Check guild bank balance limit (progression-based)
-            val currentBalance = bankRepository.getGuildBalance(guildId)
+            val currentBalance = getBalance(guildId)
             val progression = progressionRepository.getGuildProgression(guildId)
             val progressionConfig = progressionConfigService.getProgressionConfig()
             val levelRewards = progressionConfig.getActiveLevelRewards()
@@ -183,63 +184,52 @@ class BankServiceBukkit(
                 return null
             }
 
-            // Create transaction object BEFORE withdrawing from player
-            // This ensures we have a transaction ID for crash recovery
+            // Build the audit/history transaction record up front so it carries a stable id.
             val transaction = BankTransaction.deposit(guildId, playerId, amount, description)
 
-            // ATOMICITY IMPROVEMENT: Record pending transaction FIRST
-            // This acts as a write-ahead log (WAL) for crash recovery
-            val pendingRecorded = try {
-                bankRepository.recordTransaction(transaction)
-            } catch (e: Exception) {
-                logger.error("Failed to record pending transaction - aborting deposit", e)
-                return null
-            }
-
-            if (!pendingRecorded) {
-                logger.error("Failed to record pending transaction - aborting deposit")
-                return null
-            }
-
-            // Now withdraw money from player's account
+            // Take money from the player's economy account FIRST.
             val withdrawResult = economy.withdrawPlayer(player, amount.toDouble())
             if (!withdrawResult.transactionSuccess()) {
-                logger.error("Failed to withdraw $amount from player $playerId - ROLLING BACK transaction")
-                // ROLLBACK: Delete the pending transaction we just recorded
-                val rollbackSuccess = try {
-                    bankRepository.deleteTransaction(transaction.id)
-                } catch (e: Exception) {
-                    logger.error("CRITICAL: Failed to rollback transaction ${transaction.id}", e)
-                    false
-                }
+                logger.warn("Failed to withdraw $amount from player $playerId - aborting deposit")
+                recordAudit(BankAudit(
+                    transactionId = transaction.id,
+                    guildId = guildId,
+                    actorId = playerId,
+                    action = AuditAction.INSUFFICIENT_FUNDS,
+                    details = "Failed to withdraw money from player account"
+                ))
+                return null
+            }
 
+            // Credit the unified guild balance (store B: vault gold). This is atomic and the
+            // balance is immediately visible to all readers via VaultInventoryManager.
+            val creditedBalance = try {
+                vaultInventoryManager.depositGold(guildId, playerId, amount.toLong())
+            } catch (e: Exception) {
+                // Credit failed AFTER taking the player's money - refund to avoid loss.
+                logger.error("Failed to credit guild balance for guild $guildId - refunding player $playerId", e)
+                economy.depositPlayer(player, amount.toDouble())
                 recordAudit(BankAudit(
                     transactionId = transaction.id,
                     guildId = guildId,
                     actorId = playerId,
                     action = AuditAction.PERMISSION_DENIED,
-                    details = if (rollbackSuccess) {
-                        "Failed to withdraw money from player account - transaction rolled back successfully"
-                    } else {
-                        "Failed to withdraw money from player account - ROLLBACK FAILED! Manual intervention required"
-                    }
+                    details = "Failed to credit guild balance - player refunded"
                 ))
-
-                if (!rollbackSuccess) {
-                    logger.error("CRITICAL: Transaction ${transaction.id} exists in database but Vault withdrawal failed AND rollback failed - manual cleanup required")
-                    // Ledger row persisted despite payout failure — drop the leaderboard cache so
-                    // /baltop reflects the new (incorrect-but-real) balance until the operator
-                    // resolves it. Stale cached numbers would hide the inconsistency.
-                    invalidateBalanceLeaderboard()
-                } else {
-                    logger.info("Successfully rolled back failed deposit transaction ${transaction.id}")
-                }
                 return null
             }
 
-            // SUCCESS: Both database record and Vault withdrawal succeeded
+            // Record the transaction in the ledger as audit/history (best-effort; the balance
+            // no longer depends on it, so a failure here does not corrupt funds).
+            try {
+                bankRepository.recordTransaction(transaction)
+            } catch (e: Exception) {
+                logger.warn("Failed to record deposit transaction history for ${transaction.id} (balance already updated)", e)
+            }
+
+            // SUCCESS: player debited and guild balance credited
             invalidateBalanceLeaderboard()
-            val newBalance = bankRepository.getGuildBalance(guildId)
+            val newBalance = creditedBalance.toInt()
             recordAudit(BankAudit(
                 transactionId = transaction.id,
                 guildId = guildId,
@@ -352,73 +342,61 @@ class BankServiceBukkit(
 
             // Calculate final amount player receives (after fee)
             val finalAmount = amount
+            val totalDebit = amount + fee
 
-            // Create transaction object BEFORE depositing to player
-            // This ensures we have a transaction ID for crash recovery
+            // Build the audit/history transaction record up front so it carries a stable id.
             val transaction = BankTransaction.withdraw(guildId, playerId, amount, fee, description)
 
-            // ATOMICITY IMPROVEMENT: Record pending transaction FIRST
-            // This acts as a write-ahead log (WAL) for crash recovery
-            // For withdrawals, we record as NEGATIVE in the database first
-            val pendingRecorded = try {
-                bankRepository.recordTransaction(transaction)
-            } catch (e: Exception) {
-                logger.error("Failed to record pending withdrawal transaction - aborting withdrawal", e)
-                return null
-            }
-
-            if (!pendingRecorded) {
-                logger.error("Failed to record pending withdrawal transaction - aborting withdrawal")
-                return null
-            }
-
-            // Record fee transaction if applicable
-            if (fee > 0) {
-                val feeTransaction = BankTransaction(
+            // Debit the unified guild balance (store B: vault gold) FIRST, including the fee.
+            // withdrawGold is atomic and returns -1 if funds are insufficient.
+            val debitedBalance = vaultInventoryManager.withdrawGold(guildId, playerId, totalDebit.toLong())
+            if (debitedBalance == -1L) {
+                logger.warn("Insufficient guild balance for withdrawal of $totalDebit from guild $guildId")
+                recordAudit(BankAudit(
+                    transactionId = transaction.id,
                     guildId = guildId,
                     actorId = playerId,
-                    type = TransactionType.FEE,
-                    amount = fee,
-                    description = "Withdrawal fee"
-                )
-                try {
-                    bankRepository.recordTransaction(feeTransaction)
-                } catch (e: Exception) {
-                    logger.error("Failed to record fee transaction", e)
-                    // Continue anyway - fee is less critical than the main transaction
-                }
+                    action = AuditAction.INSUFFICIENT_FUNDS,
+                    details = "Insufficient guild balance for withdrawal of $amount (+$fee fee)"
+                ))
+                return null
             }
 
-            // Now deposit money to player's account (from guild bank withdrawal)
+            // Now pay the player from the guild withdrawal.
             val depositResult = economy.depositPlayer(player, finalAmount.toDouble())
             if (!depositResult.transactionSuccess()) {
-                logger.error("Failed to deposit $finalAmount to player $playerId - INCOMPLETE WITHDRAWAL")
-                // IMPORTANT: For withdrawals, we do NOT delete the transaction like we do for deposits
-                // The guild bank has already been debited (transaction recorded)
-                // If we delete the transaction, the guild gets their money back for free
-                // This is the SAFER failure mode:
-                //   - Guild bank shows money was withdrawn (correct)
-                //   - Player didn't receive money (needs manual credit by admin)
-                //   - Admin can audit logs and manually credit the player
-                // This prevents money duplication exploits
+                logger.error("Failed to deposit $finalAmount to player $playerId - re-crediting guild balance")
+                // Player payout failed AFTER debiting the guild - re-credit to avoid loss.
+                vaultInventoryManager.depositGold(guildId, playerId, totalDebit.toLong())
                 recordAudit(BankAudit(
                     transactionId = transaction.id,
                     guildId = guildId,
                     actorId = playerId,
                     action = AuditAction.PERMISSION_DENIED,
-                    details = "Failed to deposit money to player account - withdrawal recorded but payout failed, manual payout required"
+                    details = "Failed to deposit money to player account - withdrawal reverted"
                 ))
-                logger.warn("MANUAL ACTION REQUIRED: Withdrawal transaction ${transaction.id} recorded but Vault deposit failed - player $playerId needs manual credit of $finalAmount coins")
-                // Withdrawal ledger row was committed, so the real guild balance dropped even
-                // though payout failed. Invalidate the cache or /baltop keeps the pre-withdrawal
-                // number until TTL expires.
-                invalidateBalanceLeaderboard()
                 return null
             }
 
-            // SUCCESS: Both database record and Vault deposit succeeded
+            // Record the ledger history (best-effort; balance no longer depends on it).
+            try {
+                bankRepository.recordTransaction(transaction)
+                if (fee > 0) {
+                    bankRepository.recordTransaction(BankTransaction(
+                        guildId = guildId,
+                        actorId = playerId,
+                        type = TransactionType.FEE,
+                        amount = fee,
+                        description = "Withdrawal fee"
+                    ))
+                }
+            } catch (e: Exception) {
+                logger.warn("Failed to record withdrawal transaction history for ${transaction.id} (balance already updated)", e)
+            }
+
+            // SUCCESS: guild balance debited and player paid
             invalidateBalanceLeaderboard()
-            val newBalance = bankRepository.getGuildBalance(guildId)
+            val newBalance = debitedBalance.toInt()
             recordAudit(BankAudit(
                 transactionId = transaction.id,
                 guildId = guildId,
@@ -450,7 +428,9 @@ class BankServiceBukkit(
     }
 
     override fun getBalance(guildId: UUID): Int {
-        return bankRepository.getGuildBalance(guildId)
+        // Store B (guild vault gold balance) is the single source of truth for guild funds.
+        // The bank_transactions ledger is retained only as an audit/history trail.
+        return vaultInventoryManager.getGoldBalance(guildId).toInt()
     }
 
     override fun getTopBalances(limit: Int): List<Pair<UUID, Int>> {
@@ -460,7 +440,9 @@ class BankServiceBukkit(
         val now = System.currentTimeMillis()
         synchronized(balanceLeaderboardLock) {
             if (now >= balanceLeaderboardExpiresAtMs || cachedTopBalances.size < limit) {
-                cachedTopBalances = bankRepository.getTopBalances(cacheSize)
+                // Ranked by store B (vault gold balance), the unified source of truth.
+                cachedTopBalances = vaultInventoryManager.getTopGoldBalances(cacheSize)
+                    .map { (id, balance) -> id to balance.toInt() }
                 balanceLeaderboardExpiresAtMs = now + balanceLeaderboardTtlMs
             }
             return cachedTopBalances.take(limit)
@@ -667,27 +649,67 @@ class BankServiceBukkit(
 
     override fun deductFromGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean {
         try {
-            // Check if guild has sufficient balance
-            val currentBalance = getBalance(guildId)
-            if (currentBalance < amount) {
+            val systemActor = UUID.randomUUID() // System deductions have no player actor
+
+            // Debit the unified guild balance (store B). Atomic; -1 if insufficient.
+            val debitedBalance = vaultInventoryManager.withdrawGold(guildId, systemActor, amount.toLong())
+            if (debitedBalance == -1L) {
                 logger.warn("Guild $guildId has insufficient funds for deduction of $amount")
                 return false
             }
 
-            // Record the transaction as a deduction (no player involved)
-            val transaction = BankTransaction(
-                guildId = guildId,
-                actorId = UUID.randomUUID(), // Use random UUID for system deductions
-                type = TransactionType.DEDUCTION,
-                amount = amount, // Positive amount (will be negated in balance calculation)
-                description = reason ?: "Guild bank deduction"
-            )
+            // Record the deduction in the ledger as audit/history (best-effort).
+            try {
+                bankRepository.recordTransaction(BankTransaction(
+                    guildId = guildId,
+                    actorId = systemActor,
+                    type = TransactionType.DEDUCTION,
+                    amount = amount,
+                    description = reason ?: "Guild bank deduction"
+                ))
+            } catch (e: Exception) {
+                logger.warn("Failed to record deduction history for guild $guildId (balance already updated)", e)
+            }
 
-            val recorded = bankRepository.recordTransaction(transaction)
-            if (recorded) invalidateBalanceLeaderboard()
-            return recorded
+            invalidateBalanceLeaderboard()
+            return true
         } catch (e: SQLException) {
             logger.error("Database error processing guild bank deduction for guild $guildId", e)
+            return false
+        }
+    }
+
+    override fun creditToGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean {
+        if (amount <= 0) return false
+        try {
+            val systemActor = UUID.randomUUID() // System credits have no player actor
+
+            // Credit the unified guild balance (store B). Atomic and immediately visible.
+            val newBalance = try {
+                vaultInventoryManager.depositGold(guildId, systemActor, amount.toLong())
+            } catch (e: Exception) {
+                logger.error("Failed to credit guild balance for guild $guildId", e)
+                return false
+            }
+
+            // Record in the ledger as audit/history (best-effort).
+            try {
+                bankRepository.recordTransaction(BankTransaction.deposit(guildId, systemActor, amount, reason))
+                recordAudit(BankAudit(
+                    guildId = guildId,
+                    actorId = systemActor,
+                    action = AuditAction.DEPOSIT,
+                    details = reason ?: "Guild bank credit",
+                    newBalance = newBalance.toInt()
+                ))
+            } catch (e: Exception) {
+                logger.warn("Failed to record credit history for guild $guildId (balance already updated)", e)
+            }
+
+            invalidateBalanceLeaderboard()
+            return true
+        } catch (e: SQLException) {
+            logger.error("Database error processing guild bank credit for guild $guildId", e)
             return false
         }
     }

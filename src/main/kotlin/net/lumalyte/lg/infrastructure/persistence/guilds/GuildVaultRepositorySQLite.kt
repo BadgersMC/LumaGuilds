@@ -214,6 +214,22 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
         }
     }
 
+    override fun getTopGoldBalances(limit: Int): List<Pair<UUID, Long>> {
+        if (limit <= 0) return emptyList()
+        val sql = "SELECT guild_id, balance FROM vault_gold ORDER BY balance DESC LIMIT ?"
+
+        return try {
+            val results = storage.connection.getResults(sql, limit)
+            results.mapNotNull { row ->
+                val id = try { UUID.fromString(row.getString("guild_id")) } catch (e: Exception) { null }
+                id?.let { it to row.getInt("balance").toLong() }
+            }
+        } catch (e: SQLException) {
+            logger.error("Failed to query top gold balances", e)
+            emptyList()
+        }
+    }
+
     /**
      * Serializes an ItemStack to a Base64-encoded string using Paper's native NBT serialization.
      */
