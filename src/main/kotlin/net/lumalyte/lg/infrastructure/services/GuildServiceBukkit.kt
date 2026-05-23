@@ -207,6 +207,17 @@ class GuildServiceBukkit(
             val bannerText = if (banner != null) "${banner.type.name} with patterns" else "cleared (default white banner)"
             logger.info("Guild $guildId banner set to '$bannerText' by $actorId")
             Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
+
+            // Notify bannerman renderer to re-render the new banner. Failures are non-fatal
+            // (Koin may be torn down during shutdown), but we log so operators can diagnose
+            // missing-refresh complaints instead of chasing ghost bug reports.
+            try {
+                val bannermanListeners = org.koin.java.KoinJavaComponent.getKoin()
+                    .get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
+                bannermanListeners.onGuildBannerChanged(guildId)
+            } catch (e: Exception) {
+                logger.debug("Bannerman refresh skipped for guild $guildId: ${e.message}")
+            }
         }
         return result
     }
@@ -642,6 +653,26 @@ class GuildServiceBukkit(
     override fun getJoinFeeSettings(guildId: UUID): Pair<Boolean, Int>? {
         val guild = guildRepository.getById(guildId) ?: return null
         return Pair(guild.joinFeeEnabled, guild.joinFeeAmount)
+    }
+
+    override fun setBannermanEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_BANNER)) {
+            logger.warn("Player $actorId attempted to toggle bannerman on guild $guildId without permission")
+            return false
+        }
+
+        val updated = guild.copy(bannermanEnabled = enabled)
+        val result = guildRepository.update(updated)
+        if (result) {
+            logger.info("Guild $guildId bannerman ${if (enabled) "enabled" else "disabled"} by $actorId")
+        }
+        return result
+    }
+
+    override fun getBannermanEnabled(guildId: UUID): Boolean {
+        return guildRepository.getById(guildId)?.bannermanEnabled ?: false
     }
 
     override fun setTrackingEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {

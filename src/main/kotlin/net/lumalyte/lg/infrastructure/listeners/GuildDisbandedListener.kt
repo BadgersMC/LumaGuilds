@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.listeners
 
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.domain.events.GuildDisbandedEvent
+import net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners
 import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -10,10 +11,12 @@ import org.slf4j.LoggerFactory
 
 /**
  * Closes any open guild menus for members still online when their guild is disbanded,
- * and removes all chat channels (Parties) associated with the guild.
+ * removes all chat channels (Parties) associated with the guild,
+ * and despawns any bannerman displays attached to those members.
  */
 class GuildDisbandedListener(
-    private val partyService: PartyService
+    private val partyService: PartyService,
+    private val bannermanListeners: BannermanListeners
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(GuildDisbandedListener::class.java)
@@ -44,5 +47,8 @@ class GuildDisbandedListener(
         } catch (e: Exception) {
             logger.error("Failed to clean up channels for disbanded guild ${event.guild.name}", e)
         }
+
+        // 3. Despawn bannerman displays for every member (online or offline).
+        bannermanListeners.onBannermanDisabled(event.guild.id)
     }
 }
