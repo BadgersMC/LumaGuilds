@@ -11,6 +11,7 @@ import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerRespawnEvent
+import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 
@@ -18,7 +19,7 @@ class BannermanListeners(
     private val plugin: JavaPlugin,
     private val renderer: BannermanRenderService,
     private val guildService: GuildService,
-    private val memberService: MemberService
+    private val memberService: MemberService,
 ) : Listener {
 
     @EventHandler
@@ -42,11 +43,15 @@ class BannermanListeners(
     }
 
     private fun trySpawn(player: Player) {
-        val guildId = memberService.getPlayerGuilds(player.uniqueId).firstOrNull() ?: return
-        if (!guildService.getBannermanEnabled(guildId)) return
-        val guild = guildService.getGuild(guildId) ?: return
-        val banner = guild.banner?.deserializeToItemStack() ?: return
+        val banner = getBannerForPlayer(player) ?: return
         renderer.spawnFor(player, banner)
+    }
+
+    private fun getBannerForPlayer(player: Player): ItemStack? {
+        val guildId = memberService.getPlayerGuilds(player.uniqueId).firstOrNull() ?: return null
+        if (!guildService.getBannermanEnabled(guildId)) return null
+        val guild = guildService.getGuild(guildId) ?: return null
+        return guild.banner?.deserializeToItemStack()
     }
 
     /** Spawn displays for every online member when a guild flips bannerman ON. */

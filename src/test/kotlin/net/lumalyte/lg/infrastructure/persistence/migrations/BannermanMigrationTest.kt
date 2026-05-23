@@ -1,9 +1,10 @@
 package net.lumalyte.lg.infrastructure.persistence.migrations
 
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.nio.file.Path
@@ -13,8 +14,8 @@ import java.sql.DriverManager
 /**
  * Tests for database migration v22 which adds bannerman_enabled column to guilds table.
  */
-class BannermanMigrationTest {
-
+@Suppress("LateinitUsage")
+internal class BannermanMigrationTest {
     @TempDir
     lateinit var tempDir: Path
 
@@ -35,7 +36,7 @@ class BannermanMigrationTest {
     }
 
     @Test
-    fun `v22 adds bannerman_enabled column to guilds table`() {
+    fun v22AddsBannermanColumn() {
         // Given: Create guilds table without bannerman_enabled (v21 state)
         createGuildsTableV21()
 
@@ -48,7 +49,7 @@ class BannermanMigrationTest {
     }
 
     @Test
-    fun `bannerman_enabled defaults to 0 (false)`() {
+    fun bannermanDefaultsToFalse() {
         // Given: Create guilds table and run migration
         createGuildsTableV21()
         migrateToV22()
@@ -65,14 +66,17 @@ class BannermanMigrationTest {
         connection.createStatement().use { stmt ->
             stmt.executeQuery("SELECT bannerman_enabled FROM guilds WHERE id='g1'").use { rs ->
                 assertTrue(rs.next())
-                assertEquals(0, rs.getInt("bannerman_enabled"),
-                    "bannerman_enabled should default to 0 (false)")
+                assertEquals(
+                    0,
+                    rs.getInt("bannerman_enabled"),
+                    "bannerman_enabled should default to 0 (false)",
+                )
             }
         }
     }
 
     @Test
-    fun `migration preserves existing guild rows`() {
+    fun migrationPreservesRows() {
         // Given: Create guilds table with existing data
         createGuildsTableV21()
 
@@ -98,7 +102,7 @@ class BannermanMigrationTest {
     }
 
     @Test
-    fun `migration is idempotent`() {
+    fun migrationIsIdempotent() {
         // Given: Create guilds table
         createGuildsTableV21()
 
@@ -111,7 +115,7 @@ class BannermanMigrationTest {
     }
 
     @Test
-    fun `bannerman_enabled should accept integer values 0 and 1`() {
+    fun bannermanAcceptsZeroAndOne() {
         // Given: Migrated database
         createGuildsTableV21()
         migrateToV22()

@@ -11,6 +11,5 @@ object BannermanVisibility {
     /**
      * @return true if the banner should be shown to onlookers.
      */
-    fun shouldShow(hasElytra: Boolean, hasInvisibility: Boolean): Boolean =
-        !hasElytra && !hasInvisibility
+    fun shouldShow(hasElytra: Boolean, hasInvisibility: Boolean): Boolean = !hasElytra && !hasInvisibility
 }

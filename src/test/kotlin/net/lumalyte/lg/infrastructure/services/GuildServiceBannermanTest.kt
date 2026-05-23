@@ -19,18 +19,17 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
-import kotlin.test.assertTrue
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Tests for GuildService bannerman management methods.
  */
-class GuildServiceBannermanTest {
-
-    private lateinit var guildRepository: GuildRepository
-    private lateinit var rankRepository: RankRepository
+@Suppress("LateinitUsage")
+internal class GuildServiceBannermanTest {
+    private var guildRepository: GuildRepository? = null
+    private var rankRepository: RankRepository? = null
     private lateinit var memberRepository: MemberRepository
     private lateinit var rankService: RankService
     private lateinit var memberService: MemberService
@@ -45,13 +44,18 @@ class GuildServiceBannermanTest {
     private lateinit var testGuild: Guild
     private lateinit var testGuildId: UUID
     private lateinit var ownerId: UUID
-    private lateinit var memberId: UUID
+    private var memberId: UUID? = null
     private lateinit var ownerRank: Rank
     private lateinit var memberRank: Rank
 
     @BeforeEach
     fun setUp() {
-        // Initialize mocks
+        initMocks()
+        initService()
+        initTestData()
+    }
+
+    private fun initMocks() {
         guildRepository = mockk(relaxed = true)
         rankRepository = mockk(relaxed = true)
         memberRepository = mockk(relaxed = true)
@@ -62,11 +66,12 @@ class GuildServiceBannermanTest {
         hologramService = mockk(relaxed = true)
         relationRepository = mockk(relaxed = true)
         historyRepository = mockk(relaxed = true)
+    }
 
-        // Create service
+    private fun initService() {
         guildService = GuildServiceBukkit(
-            guildRepository = guildRepository,
-            rankRepository = rankRepository,
+            guildRepository = guildRepository!!,
+            rankRepository = rankRepository!!,
             memberRepository = memberRepository,
             rankService = rankService,
             memberService = memberService,
@@ -76,8 +81,9 @@ class GuildServiceBannermanTest {
             relationRepository = relationRepository,
             historyRepository = historyRepository
         )
+    }
 
-        // Set up test data
+    private fun initTestData() {
         testGuildId = UUID.randomUUID()
         ownerId = UUID.randomUUID()
         memberId = UUID.randomUUID()
@@ -86,10 +92,9 @@ class GuildServiceBannermanTest {
             id = testGuildId,
             name = "Test Guild",
             createdAt = Instant.now(),
-            bannermanEnabled = false
+            bannermanEnabled = false,
         )
 
-        // Owner rank with MANAGE_BANNER permission
         ownerRank = Rank(
             id = UUID.randomUUID(),
             guildId = testGuildId,
@@ -98,7 +103,6 @@ class GuildServiceBannermanTest {
             permissions = setOf(RankPermission.MANAGE_BANNER)
         )
 
-        // Member rank without MANAGE_BANNER permission
         memberRank = Rank(
             id = UUID.randomUUID(),
             guildId = testGuildId,
@@ -111,76 +115,76 @@ class GuildServiceBannermanTest {
     // ===== setBannermanEnabled Tests =====
 
     @Test
-    fun `setBannermanEnabled should enable bannerman when actor has MANAGE_BANNER permission`() {
+    fun enableBannermanWithPermission() {
         // Given: Owner with MANAGE_BANNER permission
         val ownerMember = Member(ownerId, testGuildId, ownerRank.id, Instant.now())
-        every { guildRepository.getById(testGuildId) } returns testGuild
+        every { guildRepository!!.getById(testGuildId) } returns testGuild
         every { memberRepository.getByPlayerAndGuild(ownerId, testGuildId) } returns ownerMember
-        every { rankRepository.getById(ownerRank.id) } returns ownerRank
-        every { guildRepository.update(any()) } returns true
+        every { rankRepository!!.getById(ownerRank.id) } returns ownerRank
+        every { guildRepository!!.update(any()) } returns true
 
         // When: Enable bannerman
         val result = guildService.setBannermanEnabled(testGuildId, true, ownerId)
 
         // Then: Should succeed
         assertTrue(result, "setBannermanEnabled should return true")
-        verify { guildRepository.update(match { it.bannermanEnabled }) }
+        verify { guildRepository!!.update(match { it.bannermanEnabled }) }
     }
 
     @Test
-    fun `setBannermanEnabled should disable bannerman when actor has MANAGE_BANNER permission`() {
+    fun disableBannermanWithPermission() {
         // Given: Guild with bannerman enabled
         val guildWithBannerman = testGuild.copy(bannermanEnabled = true)
         val ownerMember = Member(ownerId, testGuildId, ownerRank.id, Instant.now())
-        every { guildRepository.getById(testGuildId) } returns guildWithBannerman
+        every { guildRepository!!.getById(testGuildId) } returns guildWithBannerman
         every { memberRepository.getByPlayerAndGuild(ownerId, testGuildId) } returns ownerMember
-        every { rankRepository.getById(ownerRank.id) } returns ownerRank
-        every { guildRepository.update(any()) } returns true
+        every { rankRepository!!.getById(ownerRank.id) } returns ownerRank
+        every { guildRepository!!.update(any()) } returns true
 
         // When: Disable bannerman
         val result = guildService.setBannermanEnabled(testGuildId, false, ownerId)
 
         // Then: Should succeed
         assertTrue(result, "setBannermanEnabled should return true")
-        verify { guildRepository.update(match { !it.bannermanEnabled }) }
+        verify { guildRepository!!.update(match { !it.bannermanEnabled }) }
     }
 
     @Test
-    fun `setBannermanEnabled should fail when actor lacks MANAGE_BANNER permission`() {
+    fun bannermanFailsWithoutPermission() {
         // Given: Member without MANAGE_BANNER permission
-        val memberMember = Member(memberId, testGuildId, memberRank.id, Instant.now())
-        every { guildRepository.getById(testGuildId) } returns testGuild
-        every { memberRepository.getByPlayerAndGuild(memberId, testGuildId) } returns memberMember
-        every { rankRepository.getById(memberRank.id) } returns memberRank
+        val memberMember = Member(memberId!!, testGuildId, memberRank.id, Instant.now())
+        every { guildRepository!!.getById(testGuildId) } returns testGuild
+        every { memberRepository.getByPlayerAndGuild(memberId!!, testGuildId) } returns memberMember
+        every { rankRepository!!.getById(memberRank.id) } returns memberRank
 
         // When: Try to enable bannerman
-        val result = guildService.setBannermanEnabled(testGuildId, true, memberId)
+        val result = guildService.setBannermanEnabled(testGuildId, true, memberId!!)
 
         // Then: Should fail
         assertFalse(result, "setBannermanEnabled should return false without permission")
-        verify(exactly = 0) { guildRepository.update(any()) }
+        verify(exactly = 0) { guildRepository!!.update(any()) }
     }
 
     @Test
-    fun `setBannermanEnabled should fail when guild does not exist`() {
+    fun bannermanFailsForMissingGuild() {
         // Given: Non-existent guild
-        every { guildRepository.getById(testGuildId) } returns null
+        every { guildRepository!!.getById(testGuildId) } returns null
 
         // When: Try to enable bannerman
         val result = guildService.setBannermanEnabled(testGuildId, true, ownerId)
 
         // Then: Should fail
         assertFalse(result, "setBannermanEnabled should return false for non-existent guild")
-        verify(exactly = 0) { guildRepository.update(any()) }
+        verify(exactly = 0) { guildRepository!!.update(any()) }
     }
 
     // ===== getBannermanEnabled Tests =====
 
     @Test
-    fun `getBannermanEnabled should return true when enabled`() {
+    fun getBannermanWhenEnabled() {
         // Given: Guild with bannerman enabled
         val guildWithBannerman = testGuild.copy(bannermanEnabled = true)
-        every { guildRepository.getById(testGuildId) } returns guildWithBannerman
+        every { guildRepository!!.getById(testGuildId) } returns guildWithBannerman
 
         // When: Get bannerman enabled status
         val result = guildService.getBannermanEnabled(testGuildId)
@@ -190,9 +194,9 @@ class GuildServiceBannermanTest {
     }
 
     @Test
-    fun `getBannermanEnabled should return false when disabled`() {
+    fun getBannermanWhenDisabled() {
         // Given: Guild with bannerman disabled
-        every { guildRepository.getById(testGuildId) } returns testGuild
+        every { guildRepository!!.getById(testGuildId) } returns testGuild
 
         // When: Get bannerman enabled status
         val result = guildService.getBannermanEnabled(testGuildId)
@@ -202,9 +206,9 @@ class GuildServiceBannermanTest {
     }
 
     @Test
-    fun `getBannermanEnabled should return false for non-existent guild`() {
+    fun getBannermanForMissingGuild() {
         // Given: Non-existent guild
-        every { guildRepository.getById(testGuildId) } returns null
+        every { guildRepository!!.getById(testGuildId) } returns null
 
         // When: Get bannerman enabled status
         val result = guildService.getBannermanEnabled(testGuildId)

@@ -182,10 +182,15 @@ class BedrockGuildHomeMenu(
 
         val home = GuildHome(
             worldId = currentLocation.world.uid,
-            position = currentLocation.toPosition3D()
+            position = currentLocation.toPosition3D(),
         )
 
-        val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
+        val success = guildService.setHome(
+            guild.id,
+            homeName,
+            home,
+            player.uniqueId,
+        )
         if (success) {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.home.set"))
         } else {

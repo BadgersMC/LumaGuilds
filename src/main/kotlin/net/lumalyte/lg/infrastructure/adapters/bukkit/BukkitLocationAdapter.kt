@@ -6,19 +6,16 @@ import net.lumalyte.lg.domain.values.Position3D
 import org.bukkit.Location
 import org.bukkit.World
 
-fun Location.toPosition2D(): Position2D {
+fun Location.toPosition2D(): Position2D =
     // blockX/blockZ floor the coordinate; plain toInt() truncates toward zero,
     // which picks the wrong block for negative coordinates.
-    return Position2D(this.blockX, this.blockZ)
-}
+    Position2D(this.blockX, this.blockZ)
 
-fun Location.toPosition3D(): Position3D {
+fun Location.toPosition3D(): Position3D =
     // blockX/Y/Z floor the coordinate; plain toInt() truncates toward zero,
     // which picks the wrong block for negative coordinates.
-    return Position3D(this.blockX, this.blockY, this.blockZ)
-}
+    Position3D(this.blockX, this.blockY, this.blockZ)
 
-fun Position.toLocation(world: World): Location {
+fun Position.toLocation(world: World): Location =
     // Center the location in the block (add 0.5 to x and z coordinates)
-    return Location(world, this.x.toDouble() + 0.5, this.y?.toDouble() ?: 0.0, this.z.toDouble() + 0.5)
-}
+    Location(world, this.x.toDouble() + 0.5, this.y?.toDouble() ?: 0.0, this.z.toDouble() + 0.5)

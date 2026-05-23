@@ -26,7 +26,7 @@ import java.util.UUID
  * authorized to be in their current RoseChat channel by checking against LumaGuilds
  * known Party objects and Guild membership status.
  */
-class RoseChatCleanupListener(
+internal class RoseChatCleanupListener(
     private val guildService: GuildService,
     private val memberService: MemberService,
     private val partyService: PartyService,
@@ -108,6 +108,23 @@ class RoseChatCleanupListener(
         }
     }
 
+    private fun trySwitchToDefaultChannel(player: Player, api: RoseChatAPI) {
+        val rosePlayer = RosePlayer(player)
+        val currentChannel = rosePlayer.playerData?.currentChannel ?: return
+        val channelId = currentChannel.id
+
+        if (shouldLeaveChannel(player.uniqueId, channelId)) {
+            val defaultChannel = api.channelManager.defaultChannel
+            if (defaultChannel != null && channelId != defaultChannel.id) {
+                rosePlayer.switchChannel(defaultChannel)
+                player.sendMessage(
+                    "§7[§6!§7] §eYou have been moved to Global chat because you are no longer in " +
+                        "that channel's guild/party.",
+                )
+            }
+        }
+    }
+
     /**
      * Moves the player back to the default channel if their current RoseChat channel
      * is no longer valid for their LumaGuilds status.
@@ -116,20 +133,10 @@ class RoseChatCleanupListener(
         if (api == null || !player.isOnline) return
 
         try {
-            val rosePlayer = RosePlayer(player)
-            val currentChannel = rosePlayer.playerData?.currentChannel ?: return
-            val channelId = currentChannel.id
-
-            if (shouldLeaveChannel(player.uniqueId, channelId)) {
-                val defaultChannel = api.channelManager.defaultChannel
-                if (defaultChannel != null && channelId != defaultChannel.id) {
-                    rosePlayer.switchChannel(defaultChannel)
-                    player.sendMessage("§7[§6!§7] §eYou have been moved to Global chat because you are no longer in that channel's guild/party.")
-                }
-            }
+            trySwitchToDefaultChannel(player, api)
         } catch (e: NoClassDefFoundError) {
             // RoseChat not loaded
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             logger.debug("Error during RoseChat cleanup for player ${player.uniqueId}", e)
         }
     }

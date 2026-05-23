@@ -11,7 +11,7 @@ import org.bukkit.scheduler.BukkitRunnable
  * Every 2 ticks: keep each tracked player's bannerman display following the player
  * and toggle visibility based on elytra / invisibility state.
  */
-class BannermanTickTask(
+internal class BannermanTickTask(
     private val plugin: JavaPlugin,
     private val renderer: BannermanRenderService
 ) : BukkitRunnable() {
@@ -22,22 +22,26 @@ class BannermanTickTask(
 
     override fun run() {
         for (player in Bukkit.getOnlinePlayers()) {
-            if (!renderer.isTracking(player.uniqueId)) continue
-            val display = renderer.currentDisplay(player.uniqueId) ?: continue
+            updatePlayerBannerman(player)
+        }
+    }
 
-            val shouldShow = BannermanVisibility.shouldShow(
-                hasElytra = isWearingElytra(player),
-                hasInvisibility = player.hasPotionEffect(PotionEffectType.INVISIBILITY)
-            )
-            display.isVisibleByDefault = shouldShow
+    private fun updatePlayerBannerman(player: Player) {
+        if (!renderer.isTracking(player.uniqueId)) return
+        val display = renderer.currentDisplay(player.uniqueId) ?: return
 
-            val target = player.location.clone()
-            target.y += 1.0
-            target.yaw = player.location.yaw
-            target.pitch = 0f
-            if (display.world != player.world || display.location.distanceSquared(target) > 0.0001) {
-                display.teleport(target)
-            }
+        val shouldShow = BannermanVisibility.shouldShow(
+            hasElytra = isWearingElytra(player),
+            hasInvisibility = player.hasPotionEffect(PotionEffectType.INVISIBILITY)
+        )
+        display.isVisibleByDefault = shouldShow
+
+        val target = player.location.clone()
+        target.y += 1.0
+        target.yaw = player.location.yaw
+        target.pitch = 0f
+        if (display.world != player.world || display.location.distanceSquared(target) > 0.0001) {
+            display.teleport(target)
         }
     }
 

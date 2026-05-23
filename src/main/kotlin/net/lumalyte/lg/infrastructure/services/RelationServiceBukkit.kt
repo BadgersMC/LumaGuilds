@@ -50,7 +50,7 @@ class RelationServiceBukkit(
                 guildB = targetGuildId,
                 type = RelationType.ALLY,
                 status = RelationStatus.PENDING,
-                requestingGuildId = requestingGuildId
+                requestingGuildId = requestingGuildId,
             )
             
             return if (relationRepository.add(relation)) {

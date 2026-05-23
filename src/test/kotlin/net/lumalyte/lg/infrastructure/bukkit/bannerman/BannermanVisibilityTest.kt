@@ -7,22 +7,22 @@ import org.junit.jupiter.api.Test
 class BannermanVisibilityTest {
 
     @Test
-    fun `visible when player has no hide condition`() {
+    fun visibleWhenPlayerHasNoHideCondition() {
         assertTrue(BannermanVisibility.shouldShow(hasElytra = false, hasInvisibility = false))
     }
 
     @Test
-    fun `hidden when elytra equipped`() {
+    fun hiddenWhenElytraEquipped() {
         assertFalse(BannermanVisibility.shouldShow(hasElytra = true, hasInvisibility = false))
     }
 
     @Test
-    fun `hidden when invisibility active`() {
+    fun hiddenWhenInvisibilityActive() {
         assertFalse(BannermanVisibility.shouldShow(hasElytra = false, hasInvisibility = true))
     }
 
     @Test
-    fun `hidden when both conditions present`() {
+    fun hiddenWhenBothPresent() {
         assertFalse(BannermanVisibility.shouldShow(hasElytra = true, hasInvisibility = true))
     }
 }

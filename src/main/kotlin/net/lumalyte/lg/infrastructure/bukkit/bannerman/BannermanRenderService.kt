@@ -21,7 +21,6 @@ class BannermanRenderService(private val plugin: JavaPlugin) {
 
     private val tagKey = NamespacedKey(plugin, "bannerman_owner")
 
-    /** player UUID -> spawned display entity UUID */
     private val displays = ConcurrentHashMap<UUID, UUID>()
 
     /**
@@ -30,7 +29,10 @@ class BannermanRenderService(private val plugin: JavaPlugin) {
     fun spawnFor(player: Player, banner: ItemStack) {
         despawnFor(player.uniqueId)
         val location = player.location.clone().add(0.0, 1.0, 0.0)
-        val display = player.world.spawn(location, ItemDisplay::class.java) { d ->
+        val display = player.world.spawn(
+            location,
+            ItemDisplay::class.java,
+        ) { d ->
             d.setItemStack(banner)
             d.isPersistent = false
             d.transformation = backTransformation()
@@ -83,9 +85,9 @@ class BannermanRenderService(private val plugin: JavaPlugin) {
     }
 
     private fun backTransformation(): Transformation = Transformation(
-        Vector3f(0f, 0f, -0.25f),                       // translate behind torso
-        Quaternionf().rotateY(Math.PI.toFloat()),       // face backwards relative to player
-        Vector3f(1.0f, 1.5f, 1.0f),                     // taller than wide
-        Quaternionf()
+        Vector3f(0f, 0f, -0.25f), // translate behind torso
+        Quaternionf().rotateY(Math.PI.toFloat()), // face backwards relative to player
+        Vector3f(1.0f, 1.5f, 1.0f), // taller than wide
+        Quaternionf(),
     )
 }

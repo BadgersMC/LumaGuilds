@@ -18,8 +18,8 @@ object GuildTagValidator {
     private val DISALLOWED_TAGS = listOf("click", "hover", "insertion")
 
     private val disallowedPattern = Regex(
-        "<\\s*/?\\s*(" + DISALLOWED_TAGS.joinToString("|") + ")\\b",
-        RegexOption.IGNORE_CASE
+        """<\s*/?\s*(${DISALLOWED_TAGS.joinToString("|")})\b""",
+        RegexOption.IGNORE_CASE,
     )
 
     /**

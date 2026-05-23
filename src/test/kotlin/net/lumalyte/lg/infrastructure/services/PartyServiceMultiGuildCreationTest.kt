@@ -9,7 +9,8 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Party
 import net.lumalyte.lg.domain.entities.PartyStatus
 import net.lumalyte.lg.domain.entities.RankPermission
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
@@ -29,7 +30,7 @@ class PartyServiceMultiGuildCreationTest {
         partyRepository = partyRepository,
         partyRequestRepository = mockk<PartyRequestRepository>(relaxed = true),
         memberService = memberService,
-        guildService = mockk<GuildService>(relaxed = true)
+        guildService = mockk<GuildService>(relaxed = true),
     )
 
     private val guildA = UUID.randomUUID()
@@ -60,7 +61,7 @@ class PartyServiceMultiGuildCreationTest {
     }
 
     @Test
-    fun `a guild's internal channels do not block being invited into a multi-guild party`() {
+    fun internalChannelsAllowInvite() {
         grantLeaderPermission()
         // Both guilds only have their internal single-guild channels active.
         every { partyRepository.getActivePartiesByGuild(guildA) } returns setOf(internalChannel(guildA))
@@ -73,7 +74,7 @@ class PartyServiceMultiGuildCreationTest {
     }
 
     @Test
-    fun `a guild already in a real multi-guild party cannot join another`() {
+    fun multiGuildPartyBlocksJoin() {
         grantLeaderPermission()
         val guildC = UUID.randomUUID()
         // guildA is already in a genuine multi-guild party.

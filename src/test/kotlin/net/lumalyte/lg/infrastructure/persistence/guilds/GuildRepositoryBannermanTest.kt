@@ -3,9 +3,12 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.nio.file.Path
@@ -21,10 +24,11 @@ import java.util.UUID
  * Tests for GuildRepository bannerman_enabled persistence functionality.
  * These tests verify that bannerman_enabled is properly saved to and loaded from the database.
  */
-class GuildRepositoryBannermanTest {
+@Suppress("TooManyFunctions", "LateinitUsage")
+internal class GuildRepositoryBannermanTest {
 
     @TempDir
-    lateinit var tempDir: Path
+    var tempDir: Path? = null
 
     private lateinit var sqliteFile: File
     private lateinit var connection: Connection
@@ -32,7 +36,7 @@ class GuildRepositoryBannermanTest {
     @BeforeEach
     fun setUp() {
         // Create temporary SQLite database
-        sqliteFile = tempDir.resolve("test.db").toFile()
+        sqliteFile = requireNotNull(tempDir).resolve("test.db").toFile()
         connection = DriverManager.getConnection("jdbc:sqlite:${sqliteFile.absolutePath}")
         connection.autoCommit = true
 
@@ -46,13 +50,13 @@ class GuildRepositoryBannermanTest {
     }
 
     @Test
-    fun `new guild should have bannermanEnabled false after round-trip`() {
+    fun newGuildHasBannermanFalse() {
         // Given: A new guild with default bannermanEnabled
         val guildId = UUID.randomUUID()
         val guild = Guild(
             id = guildId,
             name = "New Guild",
-            createdAt = Instant.now()
+            createdAt = Instant.now(),
         )
 
         // When: Save guild to database and reload
@@ -65,7 +69,7 @@ class GuildRepositoryBannermanTest {
     }
 
     @Test
-    fun `updating guild with bannermanEnabled true should persist correctly`() {
+    fun updateGuildBannermanTrue() {
         // Given: An existing guild with bannermanEnabled false
         val guildId = UUID.randomUUID()
         insertGuildDirectly(guildId, "Test Guild", bannermanEnabled = 0)
@@ -80,7 +84,7 @@ class GuildRepositoryBannermanTest {
     }
 
     @Test
-    fun `saving Guild with bannermanEnabled true should persist correctly`() {
+    fun saveGuildBannermanTrue() {
         // Given: A guild with bannerman enabled
         val guildId = UUID.randomUUID()
         val guild = Guild(
@@ -103,7 +107,7 @@ class GuildRepositoryBannermanTest {
     }
 
     @Test
-    fun `loading Guild with bannermanEnabled false should return correct value`() {
+    fun loadGuildBannermanFalse() {
         // Given: A guild with bannerman disabled in database
         val guildId = UUID.randomUUID()
         insertGuildDirectly(guildId, "Disabled Guild", bannermanEnabled = 0)
@@ -117,16 +121,18 @@ class GuildRepositoryBannermanTest {
     }
 
     @Test
-    fun `guilds inserted without explicit bannerman_enabled get column default of false`() {
+    fun defaultColumnIsFalse() {
         // The table has bannerman_enabled with DEFAULT 0; this test asserts the default actually
         // applies when the column is omitted from INSERT (i.e. existing rows from before the v22
         // migration backfill correctly).
         val guildId = UUID.randomUUID()
         connection.createStatement().use { stmt ->
-            stmt.execute("""
+            stmt.execute(
+                """
                 INSERT INTO guilds (id, name, level, bank_balance, mode, created_at)
                 VALUES ('$guildId', 'Legacy Guild', 1, 0, 'hostile', datetime('now'))
-            """.trimIndent())
+                """.trimIndent(),
+            )
         }
 
         val guild = loadGuild(guildId)
@@ -136,7 +142,7 @@ class GuildRepositoryBannermanTest {
     }
 
     @Test
-    fun `loader treats missing bannerman_enabled column as false`() {
+    fun missingColumnIsFalse() {
         // Reproduces a partially-migrated DB (LFG cols present, bannerman col not yet added).
         // The real GuildRepositorySQLite mapper wraps the column read in try/catch and falls back
         // to false; this test verifies the same defensive behavior on a schema that genuinely
@@ -146,10 +152,12 @@ class GuildRepositoryBannermanTest {
 
         val guildId = UUID.randomUUID()
         connection.createStatement().use { stmt ->
-            stmt.execute("""
+            stmt.execute(
+                """
                 INSERT INTO guilds (id, name, level, bank_balance, mode, created_at)
                 VALUES ('$guildId', 'Pre-v22 Guild', 1, 0, 'hostile', datetime('now'))
-            """.trimIndent())
+                """.trimIndent(),
+            )
         }
 
         val guild = loadGuildDefensive(guildId)
@@ -190,14 +198,14 @@ class GuildRepositoryBannermanTest {
                     bankBalance = rs.getInt("bank_balance"),
                     mode = GuildMode.valueOf(rs.getString("mode").uppercase()),
                     createdAt = parseSqlDateTime(rs.getString("created_at")),
-                    bannermanEnabled = bannermanEnabled
+                    bannermanEnabled = bannermanEnabled,
                 )
             }
         }
     }
 
     @Test
-    fun `toggling bannermanEnabled back to false should persist correctly`() {
+    fun toggleBannermanToFalse() {
         // Given: A guild with bannerman enabled
         val guildId = UUID.randomUUID()
         insertGuildDirectly(guildId, "Toggle Guild", bannermanEnabled = 1)
@@ -292,29 +300,30 @@ class GuildRepositoryBannermanTest {
     private fun loadGuild(guildId: UUID): Guild? {
         connection.createStatement().use { stmt ->
             stmt.executeQuery("SELECT * FROM guilds WHERE id = '$guildId'").use { rs ->
-                if (!rs.next()) return null
-
-                val name = rs.getString("name")
-                val level = rs.getInt("level")
-                val bankBalance = rs.getInt("bank_balance")
-                val mode = GuildMode.valueOf(rs.getString("mode").uppercase())
-                // Production stores datetimes as "yyyy-MM-dd HH:mm:ss" (MariaDB-compatible),
-                // NOT ISO-8601. Parsing must match the real format — Instant.parse would
-                // crash here and the silent-catch fallback used to mask that.
-                val createdAt = parseSqlDateTime(rs.getString("created_at"))
-                val bannermanEnabled = rs.getInt("bannerman_enabled") == 1
-
-                return Guild(
-                    id = guildId,
-                    name = name,
-                    level = level,
-                    bankBalance = bankBalance,
-                    mode = mode,
-                    createdAt = createdAt,
-                    bannermanEnabled = bannermanEnabled
-                )
+                return readGuild(rs, guildId)
             }
         }
+    }
+
+    private fun readGuild(rs: java.sql.ResultSet, guildId: UUID): Guild? {
+        if (!rs.next()) return null
+
+        val name = rs.getString("name")
+        val level = rs.getInt("level")
+        val bankBalance = rs.getInt("bank_balance")
+        val mode = GuildMode.valueOf(rs.getString("mode").uppercase())
+        val createdAt = parseSqlDateTime(rs.getString("created_at"))
+        val bannermanEnabled = rs.getInt("bannerman_enabled") == 1
+
+        return Guild(
+            id = guildId,
+            name = name,
+            level = level,
+            bankBalance = bankBalance,
+            mode = mode,
+            createdAt = createdAt,
+            bannermanEnabled = bannermanEnabled
+        )
     }
 
     /**

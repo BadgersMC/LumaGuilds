@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
  */
 class GuildDisbandedListener(
     private val partyService: PartyService,
-    private val bannermanListeners: BannermanListeners
+    private val bannermanListeners: BannermanListeners,
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(GuildDisbandedListener::class.java)
@@ -39,9 +39,13 @@ class GuildDisbandedListener(
             val parties = partyService.getActivePartiesForGuild(event.guild.id)
             parties.forEach { party ->
                 if (partyService.removeGuildFromPartyAsSystem(party.id, event.guild.id) == null) {
-                    logger.info("Dissolved party channel ${party.name} (${party.id}) for disbanded guild ${event.guild.name}")
+                    logger.info(
+                        "Dissolved party channel ${party.name} (${party.id}) for disbanded guild ${event.guild.name}"
+                    )
                 } else {
-                    logger.info("Removed disbanded guild ${event.guild.name} from party ${party.name} (${party.id})")
+                    logger.info(
+                        "Removed disbanded guild ${event.guild.name} from party ${party.name} (${party.id})"
+                    )
                 }
             }
         } catch (e: Exception) {
