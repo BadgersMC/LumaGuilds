@@ -915,10 +915,6 @@ class LumaGuilds : JavaPlugin() {
         // Register player session cleanup listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
 
-        // Register relation chat cleanup listener (auto-exits ally chat on alliance break)
-        val guildRelationChatListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildRelationChatListener>()
-        server.pluginManager.registerEvents(guildRelationChatListener, this)
-
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
 

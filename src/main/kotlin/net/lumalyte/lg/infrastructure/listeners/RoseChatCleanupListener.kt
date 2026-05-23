@@ -15,6 +15,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerJoinEvent
 import org.slf4j.LoggerFactory
 import java.util.UUID
 
@@ -54,6 +55,15 @@ internal class RoseChatCleanupListener(
             val player = Bukkit.getPlayer(memberId) ?: return@forEach
             validateAndCleanup(player, api)
         }
+    }
+
+    /**
+     * Validate channel membership when a player joins, so members who were offline during
+     * a guild disband / member removal / alliance break get cleaned up at login.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onPlayerJoin(event: PlayerJoinEvent) {
+        validateAndCleanup(event.player)
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
