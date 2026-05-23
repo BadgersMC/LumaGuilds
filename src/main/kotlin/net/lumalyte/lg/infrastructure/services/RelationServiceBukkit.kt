@@ -371,6 +371,39 @@ class RelationServiceBukkit(
             return null
         }
     }
+
+    override fun breakAlliance(guildId: UUID, targetGuildId: UUID, actorId: UUID): Boolean {
+        try {
+            // Validate permissions
+            if (!canManageRelations(actorId, guildId)) {
+                logger.warn("Player $actorId does not have permission to manage relations for guild $guildId")
+                return false
+            }
+
+            // Check that guilds are currently allied
+            val currentRelation = relationRepository.getByGuilds(guildId, targetGuildId)
+            if (currentRelation?.type != RelationType.ALLY || !currentRelation.isActive()) {
+                logger.warn("Cannot break alliance - guilds are not currently allied")
+                return false
+            }
+
+            // Remove the relation (neutral is the default state)
+            return if (relationRepository.remove(currentRelation.id)) {
+                logger.info("Alliance broken between guilds $guildId and $targetGuildId")
+                // Fire relation change event
+                Bukkit.getPluginManager().callEvent(
+                    GuildRelationChangeEvent(currentRelation.guildA, currentRelation.guildB, RelationType.NEUTRAL, currentRelation)
+                )
+                true
+            } else {
+                logger.error("Failed to remove alliance relation")
+                false
+            }
+        } catch (e: Exception) {
+            logger.error("Error breaking alliance", e)
+            return false
+        }
+    }
     
     override fun rejectRequest(relationId: UUID, rejectingGuildId: UUID, actorId: UUID): Boolean {
         try {
