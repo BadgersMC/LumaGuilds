@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class BankRepositorySQLite(private val storage: Storage<Database>) : BankRepository {
 
@@ -21,7 +22,9 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
 
     private val transactions: MutableMap<UUID, BankTransaction> = mutableMapOf()
     private val audits: MutableMap<UUID, BankAudit> = mutableMapOf()
-    private val guildBalances: MutableMap<UUID, Int> = mutableMapOf()
+    // Concurrent: read from async threads (PlaceholderAPI, tab-completion) while the main thread
+    // mutates it during deposits/withdrawals. Also lets getTopBalances iterate without a CME.
+    private val guildBalances: MutableMap<UUID, Int> = ConcurrentHashMap()
 
     init {
         createBankTables()
@@ -411,6 +414,16 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
             logger.error("Failed to delete transaction $transactionId", e)
             throw DatabaseOperationException("Failed to delete transaction", e)
         }
+    }
+
+    override fun getTopBalances(limit: Int): List<Pair<UUID, Int>> {
+        if (limit <= 0) return emptyList()
+        // Snapshot the in-memory cache (authoritative; preloaded and kept current on every
+        // transaction) so ranking needs no database query even for large guild counts.
+        return guildBalances.entries
+            .map { it.key to it.value }
+            .sortedByDescending { it.second }
+            .take(limit)
     }
 
     private fun calculateGuildBalance(guildId: UUID): Int {

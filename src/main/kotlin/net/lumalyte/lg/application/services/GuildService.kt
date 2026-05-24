@@ -353,6 +353,17 @@ interface GuildService {
     fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean
 
     /**
+     * Checks whether a player may teleport to their OWN guild's ally-home. Returns true when:
+     * - the player is a member of the guild, AND
+     * - the guild has an ally-home set, AND
+     * - (player's rank is the highest-priority Owner rank) OR (rank has USE_ALLY_HOMES permission).
+     *
+     * This is distinct from [canUseAllyHome], which gates teleporting to an *allied* guild's
+     * ally-home and therefore requires an active alliance between two different guilds.
+     */
+    fun canUseOwnAllyHome(playerId: UUID, guildId: UUID): Boolean
+
+    /**
      * Updates the rank whitelist for a named home. Caller must have MANAGE_HOME.
      */
     fun setHomeAllowedRanks(guildId: UUID, homeName: String, allowedRankIds: Set<UUID>, actorId: UUID): Boolean

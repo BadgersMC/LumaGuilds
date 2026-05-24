@@ -137,7 +137,10 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "guild_tag_plain" -> renderTagAsPlain(guild)
             "guild_emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
             "guild_level" -> guild.level.toString()
-            "guild_balance" -> guild.bankBalance.toString()
+            // Bank table is the source of truth (Guild.bankBalance is a separate virtual-currency
+            // field that is not kept in sync with deposits/withdrawals). Read it live so the
+            // placeholder always reflects the current bank value.
+            "guild_balance" -> safeBalance(guildId).toString()
             "guild_mode" -> guild.mode.toString()
             "has_guild" -> "true"
 

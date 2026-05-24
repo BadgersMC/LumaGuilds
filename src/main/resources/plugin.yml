@@ -73,6 +73,8 @@ permissions:
       lumaguilds.guild.history: true
       lumaguilds.guild.chat: true
       lumaguilds.guild.bannerman: true
+      lumaguilds.guild.bal: true
+      lumaguilds.guild.baltop: true
 
   lumaguilds.guild.chat:
     description: Toggle guild chat mode (messages go to guild only)
@@ -130,6 +132,12 @@ permissions:
     default: true
   lumaguilds.guild.history:
     description: View player guild membership history
+    default: true
+  lumaguilds.guild.bal:
+    description: View your guild's bank balance
+    default: true
+  lumaguilds.guild.baltop:
+    description: View the guild bank balance leaderboard
     default: true
 
   # Claim Management Permissions

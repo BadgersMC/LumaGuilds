@@ -34,6 +34,16 @@ class BankServiceBukkit(
     // Vault Economy integration
     private var economy: Economy? = null
 
+    // --- Balance leaderboard cache ---
+    // The underlying repository already keeps balances in memory, so this cache only amortizes the
+    // sort. It is invalidated immediately whenever a balance changes (deposit/withdraw/deduct), and
+    // also carries a short TTL as a safety net against any balance path that bypasses this service.
+    private val balanceLeaderboardLock = Any()
+    @Volatile private var cachedTopBalances: List<Pair<UUID, Int>> = emptyList()
+    @Volatile private var balanceLeaderboardExpiresAtMs: Long = 0L
+    private val balanceLeaderboardTtlMs = 30_000L
+    private val balanceLeaderboardCacheSize = 100
+
     init {
         setupEconomy()
     }
@@ -217,6 +227,10 @@ class BankServiceBukkit(
 
                 if (!rollbackSuccess) {
                     logger.error("CRITICAL: Transaction ${transaction.id} exists in database but Vault withdrawal failed AND rollback failed - manual cleanup required")
+                    // Ledger row persisted despite payout failure — drop the leaderboard cache so
+                    // /baltop reflects the new (incorrect-but-real) balance until the operator
+                    // resolves it. Stale cached numbers would hide the inconsistency.
+                    invalidateBalanceLeaderboard()
                 } else {
                     logger.info("Successfully rolled back failed deposit transaction ${transaction.id}")
                 }
@@ -224,6 +238,7 @@ class BankServiceBukkit(
             }
 
             // SUCCESS: Both database record and Vault withdrawal succeeded
+            invalidateBalanceLeaderboard()
             val newBalance = bankRepository.getGuildBalance(guildId)
             recordAudit(BankAudit(
                 transactionId = transaction.id,
@@ -394,10 +409,15 @@ class BankServiceBukkit(
                     details = "Failed to deposit money to player account - withdrawal recorded but payout failed, manual payout required"
                 ))
                 logger.warn("MANUAL ACTION REQUIRED: Withdrawal transaction ${transaction.id} recorded but Vault deposit failed - player $playerId needs manual credit of $finalAmount coins")
+                // Withdrawal ledger row was committed, so the real guild balance dropped even
+                // though payout failed. Invalidate the cache or /baltop keeps the pre-withdrawal
+                // number until TTL expires.
+                invalidateBalanceLeaderboard()
                 return null
             }
 
             // SUCCESS: Both database record and Vault deposit succeeded
+            invalidateBalanceLeaderboard()
             val newBalance = bankRepository.getGuildBalance(guildId)
             recordAudit(BankAudit(
                 transactionId = transaction.id,
@@ -431,6 +451,25 @@ class BankServiceBukkit(
 
     override fun getBalance(guildId: UUID): Int {
         return bankRepository.getGuildBalance(guildId)
+    }
+
+    override fun getTopBalances(limit: Int): List<Pair<UUID, Int>> {
+        if (limit <= 0) return emptyList()
+        // Cache the largest requested page so callers asking for a smaller N reuse it.
+        val cacheSize = maxOf(limit, balanceLeaderboardCacheSize)
+        val now = System.currentTimeMillis()
+        synchronized(balanceLeaderboardLock) {
+            if (now >= balanceLeaderboardExpiresAtMs || cachedTopBalances.size < limit) {
+                cachedTopBalances = bankRepository.getTopBalances(cacheSize)
+                balanceLeaderboardExpiresAtMs = now + balanceLeaderboardTtlMs
+            }
+            return cachedTopBalances.take(limit)
+        }
+    }
+
+    /** Invalidates the cached balance leaderboard so the next read reflects the change. */
+    private fun invalidateBalanceLeaderboard() {
+        balanceLeaderboardExpiresAtMs = 0L
     }
 
     override fun getPlayerBalance(playerId: UUID): Int {
@@ -644,7 +683,9 @@ class BankServiceBukkit(
                 description = reason ?: "Guild bank deduction"
             )
 
-            return bankRepository.recordTransaction(transaction)
+            val recorded = bankRepository.recordTransaction(transaction)
+            if (recorded) invalidateBalanceLeaderboard()
+            return recorded
         } catch (e: SQLException) {
             logger.error("Database error processing guild bank deduction for guild $guildId", e)
             return false

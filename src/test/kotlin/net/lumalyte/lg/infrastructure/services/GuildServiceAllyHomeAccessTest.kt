@@ -30,11 +30,12 @@ class GuildServiceAllyHomeAccessTest {
         targetAllyHome: GuildHome?,
         targetAllowedGuilds: Set<UUID>,
         memberRankPerms: Set<RankPermission> = emptySet(),
-        activeAlly: Boolean = true
+        activeAlly: Boolean = true,
+        sourceAllyHome: GuildHome? = null
     ): GuildServiceBukkit {
         val ownerRank = Rank(ownerRankId, sourceGuildId, "Owner", 0, RankPermission.values().toSet())
         val memberRank = Rank(memberRankId, sourceGuildId, "Member", 10, memberRankPerms)
-        val sourceGuild = Guild(id = sourceGuildId, name = "S", createdAt = Instant.now())
+        val sourceGuild = Guild(id = sourceGuildId, name = "S", createdAt = Instant.now(), allyHome = sourceAllyHome)
         val targetGuild = Guild(
             id = targetGuildId, name = "T", createdAt = Instant.now(),
             allyHome = targetAllyHome,
@@ -133,5 +134,45 @@ class GuildServiceAllyHomeAccessTest {
             activeAlly = false
         )
         assertFalse(svc.canUseAllyHome(memberPlayerId, sourceGuildId, targetGuildId))
+    }
+
+    // --- canUseOwnAllyHome: a member teleporting to their OWN guild's ally home ---
+
+    @Test
+    fun `own ally home - owner can use without USE_ALLY_HOMES`() {
+        val svc = makeService(targetAllyHome = null, targetAllowedGuilds = emptySet(), sourceAllyHome = ah)
+        assertTrue(svc.canUseOwnAllyHome(ownerPlayerId, sourceGuildId))
+    }
+
+    @Test
+    fun `own ally home - member with USE_ALLY_HOMES can use`() {
+        val svc = makeService(
+            targetAllyHome = null, targetAllowedGuilds = emptySet(),
+            memberRankPerms = setOf(RankPermission.USE_ALLY_HOMES),
+            sourceAllyHome = ah
+        )
+        assertTrue(svc.canUseOwnAllyHome(memberPlayerId, sourceGuildId))
+    }
+
+    @Test
+    fun `own ally home - member without USE_ALLY_HOMES is denied`() {
+        val svc = makeService(targetAllyHome = null, targetAllowedGuilds = emptySet(), sourceAllyHome = ah)
+        assertFalse(svc.canUseOwnAllyHome(memberPlayerId, sourceGuildId))
+    }
+
+    @Test
+    fun `own ally home - denied when no ally home set`() {
+        val svc = makeService(targetAllyHome = null, targetAllowedGuilds = emptySet(), sourceAllyHome = null)
+        assertFalse(svc.canUseOwnAllyHome(ownerPlayerId, sourceGuildId))
+    }
+
+    @Test
+    fun `own ally home - denied for non-member`() {
+        // Locks in the access boundary: a player who isn't in the guild at all must be denied
+        // regardless of any other state. memberRepository returns null, so this exercises the
+        // pre-rank early-return that prevents unauthenticated access to the ally home.
+        val svc = makeService(targetAllyHome = null, targetAllowedGuilds = emptySet(), sourceAllyHome = ah)
+        val nonMember = UUID.randomUUID()
+        assertFalse(svc.canUseOwnAllyHome(nonMember, sourceGuildId))
     }
 }
