@@ -49,8 +49,10 @@ class GuildVaultServiceBukkit(
     // Cache for vault location to guild mapping
     private val vaultLocationCache = mutableMapOf<String, UUID>()
 
-    private companion object {
+    companion object {
         // Sentinel actor id for system-driven (non-player) gold movements in the vault ledger.
+        // Public so peer services (BankServiceBukkit, war/cost services) can reuse the same
+        // identifier — every system-driven row in audit/history is then grouped under one UUID.
         val SYSTEM_ACTOR: UUID = UUID(0L, 0L)
     }
 

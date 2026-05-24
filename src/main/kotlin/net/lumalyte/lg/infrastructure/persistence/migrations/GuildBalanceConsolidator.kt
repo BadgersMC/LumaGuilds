@@ -23,8 +23,16 @@ import java.sql.Connection
  */
 internal object GuildBalanceConsolidator {
 
-    /** Result of a single guild's fold, exposed for logging and testing. */
-    data class Fold(val guildId: String, val oldVault: Int, val ledger: Int, val legacy: Int, val newVault: Int)
+    /**
+     * Result of a single guild's fold, exposed for logging and testing.
+     *
+     * All fields are Long because the migration is one-shot and NOT idempotent: an Int
+     * overflow during aggregation would silently truncate the new balance, zero out the
+     * legacy column, and leave no audit trail to recover the original values. SQLite
+     * INTEGER columns hold 8-byte values, so the JDBC reads, in-memory math, and prepared
+     * statement bindings must all stay in 64-bit space end-to-end.
+     */
+    data class Fold(val guildId: String, val oldVault: Long, val ledger: Long, val legacy: Long, val newVault: Long)
 
     /**
      * Computes and applies the consolidation. Returns the list of guilds whose balance changed.
@@ -37,22 +45,22 @@ internal object GuildBalanceConsolidator {
         val now = System.currentTimeMillis()
 
         // Store A: ledger sum per guild (matches BankRepositorySQLite.calculateGuildBalance formula).
-        val ledger = HashMap<String, Int>()
+        val ledger = HashMap<String, Long>()
         if (tableExists(connection, "bank_transactions")) {
             val sql = "SELECT guild_id, COALESCE(SUM(CASE WHEN type='DEPOSIT' THEN amount ELSE -amount - fee END), 0) AS bal " +
                 "FROM bank_transactions GROUP BY guild_id"
             connection.createStatement().use { st ->
                 st.executeQuery(sql).use { rs ->
-                    while (rs.next()) ledger[rs.getString("guild_id")] = rs.getInt("bal")
+                    while (rs.next()) ledger[rs.getString("guild_id")] = rs.getLong("bal")
                 }
             }
         }
 
         // Store B: existing vault gold balances.
-        val vaultB = HashMap<String, Int>()
+        val vaultB = HashMap<String, Long>()
         connection.createStatement().use { st ->
             st.executeQuery("SELECT guild_id, balance FROM vault_gold").use { rs ->
-                while (rs.next()) vaultB[rs.getString("guild_id")] = rs.getInt("balance")
+                while (rs.next()) vaultB[rs.getString("guild_id")] = rs.getLong("balance")
             }
         }
 
@@ -62,11 +70,11 @@ internal object GuildBalanceConsolidator {
             st.executeQuery("SELECT id, bank_balance FROM guilds").use { rs ->
                 while (rs.next()) {
                     val id = rs.getString("id")
-                    val legacy = rs.getInt("bank_balance")
-                    val a = ledger[id] ?: 0
-                    val oldVault = vaultB[id] ?: 0
-                    val newVault = maxOf(0, oldVault + a + legacy)
-                    if (a != 0 || legacy != 0) folds.add(Fold(id, oldVault, a, legacy, newVault))
+                    val legacy = rs.getLong("bank_balance")
+                    val a = ledger[id] ?: 0L
+                    val oldVault = vaultB[id] ?: 0L
+                    val newVault = maxOf(0L, oldVault + a + legacy)
+                    if (a != 0L || legacy != 0L) folds.add(Fold(id, oldVault, a, legacy, newVault))
                 }
             }
         }
@@ -75,7 +83,7 @@ internal object GuildBalanceConsolidator {
             logger.info(Component.text("  No legacy balances to fold; all guilds already unified."))
         } else {
             logger.info(Component.text("  Folding legacy balances for ${folds.size} guild(s):"))
-            var totalFolded = 0
+            var totalFolded = 0L
             for (f in folds) {
                 totalFolded += f.ledger + f.legacy
                 logger.info(Component.text("    guild ${f.guildId.take(8)}: vault=${f.oldVault} + ledger=${f.ledger} + legacy=${f.legacy} -> ${f.newVault}"))
@@ -87,7 +95,7 @@ internal object GuildBalanceConsolidator {
             connection.prepareStatement(upsert).use { ps ->
                 for (f in folds) {
                     ps.setString(1, f.guildId)
-                    ps.setInt(2, f.newVault)
+                    ps.setLong(2, f.newVault)
                     ps.setLong(3, now)
                     ps.addBatch()
                 }

@@ -649,7 +649,10 @@ class BankServiceBukkit(
 
     override fun deductFromGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean {
         try {
-            val systemActor = UUID.randomUUID() // System deductions have no player actor
+            // Reuse the sentinel UUID(0,0) defined by GuildVaultServiceBukkit so every system-driven
+            // gold movement is correlatable in the audit log (grep "all system ops" stays possible).
+            // A fresh randomUUID() per call would scatter system rows across orphan-looking ids.
+            val systemActor = GuildVaultServiceBukkit.SYSTEM_ACTOR
 
             // Debit the unified guild balance (store B). Atomic; -1 if insufficient.
             val debitedBalance = vaultInventoryManager.withdrawGold(guildId, systemActor, amount.toLong())
@@ -682,7 +685,8 @@ class BankServiceBukkit(
     override fun creditToGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean {
         if (amount <= 0) return false
         try {
-            val systemActor = UUID.randomUUID() // System credits have no player actor
+            // Same shared sentinel as deductFromGuildBank above — see comment there.
+            val systemActor = GuildVaultServiceBukkit.SYSTEM_ACTOR
 
             // Credit the unified guild balance (store B). Atomic and immediately visible.
             val newBalance = try {
