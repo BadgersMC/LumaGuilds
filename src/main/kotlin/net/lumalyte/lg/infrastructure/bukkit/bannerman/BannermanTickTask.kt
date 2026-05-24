@@ -8,10 +8,10 @@ import org.bukkit.potion.PotionEffectType
 import org.bukkit.scheduler.BukkitRunnable
 
 /**
- * Every 5 ticks: keep each tracked player's bannerman display following the player
- * and toggle visibility based on elytra / invisibility state. 5 ticks (~0.25s) is fast
- * enough to look attached without flooding the scheduler with sub-block teleports while
- * players are walking.
+ * Position and rotation are handled by passenger-mounting the display on the player
+ * (see [BannermanRenderService.spawnFor]) — the vanilla client keeps them rigidly
+ * attached, so no per-tick teleport is needed. This task only flips visibility based
+ * on elytra / invisibility state, which doesn't need sub-second responsiveness.
  */
 internal class BannermanTickTask(
     private val plugin: JavaPlugin,
@@ -19,9 +19,7 @@ internal class BannermanTickTask(
 ) : BukkitRunnable() {
 
     companion object {
-        private const val TICK_PERIOD = 5L
-        // ~0.5 block squared: don't re-teleport for sub-block jitter while walking.
-        private const val REPOSITION_THRESHOLD_SQ = 0.25
+        private const val TICK_PERIOD = 20L
     }
 
     fun start() {
@@ -38,19 +36,10 @@ internal class BannermanTickTask(
         if (!renderer.isTracking(player.uniqueId)) return
         val display = renderer.currentDisplay(player.uniqueId) ?: return
 
-        val shouldShow = BannermanVisibility.shouldShow(
+        display.isVisibleByDefault = BannermanVisibility.shouldShow(
             hasElytra = isWearingElytra(player),
             hasInvisibility = player.hasPotionEffect(PotionEffectType.INVISIBILITY)
         )
-        display.isVisibleByDefault = shouldShow
-
-        val target = player.location.clone()
-        target.y += 1.0
-        target.yaw = player.location.yaw
-        target.pitch = 0f
-        if (display.world != player.world || display.location.distanceSquared(target) > REPOSITION_THRESHOLD_SQ) {
-            display.teleport(target)
-        }
     }
 
     private fun isWearingElytra(player: Player): Boolean =
