@@ -390,9 +390,23 @@ class RelationServiceBukkit(
             // Remove the relation (neutral is the default state)
             return if (relationRepository.remove(currentRelation.id)) {
                 logger.info("Alliance broken between guilds $guildId and $targetGuildId")
-                // Fire relation change event
+                // Mirror the war-declaration path: strip ally-home inbound whitelist entries
+                // so the now-neutral pair don't retain ACL access.
+                removeAllyInboundWhitelist(currentRelation.guildA, currentRelation.guildB)
+                // Emit a neutral-typed relation so listeners reading event.relation.type see
+                // NEUTRAL consistent with event.newRelationType.
+                val neutralRelation = currentRelation.copy(
+                    type = RelationType.NEUTRAL,
+                    status = RelationStatus.ACTIVE,
+                    updatedAt = Instant.now(),
+                )
                 Bukkit.getPluginManager().callEvent(
-                    GuildRelationChangeEvent(currentRelation.guildA, currentRelation.guildB, RelationType.NEUTRAL, currentRelation)
+                    GuildRelationChangeEvent(
+                        currentRelation.guildA,
+                        currentRelation.guildB,
+                        RelationType.NEUTRAL,
+                        neutralRelation,
+                    )
                 )
                 true
             } else {
