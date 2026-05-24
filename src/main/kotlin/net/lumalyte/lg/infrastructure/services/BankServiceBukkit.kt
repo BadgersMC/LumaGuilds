@@ -206,16 +206,37 @@ class BankServiceBukkit(
             val creditedBalance = try {
                 vaultInventoryManager.depositGold(guildId, playerId, amount.toLong())
             } catch (e: Exception) {
-                // Credit failed AFTER taking the player's money - refund to avoid loss.
-                logger.error("Failed to credit guild balance for guild $guildId - refunding player $playerId", e)
-                economy.depositPlayer(player, amount.toDouble())
-                recordAudit(BankAudit(
-                    transactionId = transaction.id,
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Failed to credit guild balance - player refunded"
-                ))
+                // Credit failed AFTER taking the player's money — the refund is a second external
+                // write that can ALSO fail. Treat it as critical and audit both outcomes so the
+                // operator can see whether the player was made whole.
+                logger.error("Failed to credit guild balance for guild $guildId - attempting to refund player $playerId", e)
+                val refundResult = try {
+                    economy.depositPlayer(player, amount.toDouble())
+                } catch (re: Exception) {
+                    logger.error("CRITICAL: refund call threw for player $playerId transaction ${transaction.id}", re)
+                    null
+                }
+                if (refundResult == null || !refundResult.transactionSuccess()) {
+                    logger.error(
+                        "CRITICAL: Player $playerId lost $amount (transaction ${transaction.id}) - " +
+                            "guild $guildId credit failed AND refund failed. Manual reimbursement required."
+                    )
+                    recordAudit(BankAudit(
+                        transactionId = transaction.id,
+                        guildId = guildId,
+                        actorId = playerId,
+                        action = AuditAction.PERMISSION_DENIED,
+                        details = "Failed to credit guild balance AND refund failed - MANUAL REIMBURSEMENT REQUIRED"
+                    ))
+                } else {
+                    recordAudit(BankAudit(
+                        transactionId = transaction.id,
+                        guildId = guildId,
+                        actorId = playerId,
+                        action = AuditAction.PERMISSION_DENIED,
+                        details = "Failed to credit guild balance - player refunded"
+                    ))
+                }
                 return null
             }
 
@@ -366,15 +387,37 @@ class BankServiceBukkit(
             val depositResult = economy.depositPlayer(player, finalAmount.toDouble())
             if (!depositResult.transactionSuccess()) {
                 logger.error("Failed to deposit $finalAmount to player $playerId - re-crediting guild balance")
-                // Player payout failed AFTER debiting the guild - re-credit to avoid loss.
-                vaultInventoryManager.depositGold(guildId, playerId, totalDebit.toLong())
-                recordAudit(BankAudit(
-                    transactionId = transaction.id,
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Failed to deposit money to player account - withdrawal reverted"
-                ))
+                // Player payout failed AFTER debiting the guild — the re-credit is itself an
+                // external write that can throw or be rejected. If it doesn't succeed the guild
+                // is stranded and the player got nothing; audit it as CRITICAL so the operator
+                // can intervene instead of finding a missing balance days later.
+                val reCreditOk = try {
+                    vaultInventoryManager.depositGold(guildId, playerId, totalDebit.toLong()) >= 0
+                } catch (re: Exception) {
+                    logger.error("CRITICAL: re-credit threw for guild $guildId transaction ${transaction.id}", re)
+                    false
+                }
+                if (!reCreditOk) {
+                    logger.error(
+                        "CRITICAL: Guild $guildId stranded $totalDebit (transaction ${transaction.id}) - " +
+                            "payout to $playerId failed AND re-credit failed. Manual reimbursement required."
+                    )
+                    recordAudit(BankAudit(
+                        transactionId = transaction.id,
+                        guildId = guildId,
+                        actorId = playerId,
+                        action = AuditAction.PERMISSION_DENIED,
+                        details = "Withdrawal payout failed AND re-credit failed - MANUAL REIMBURSEMENT REQUIRED"
+                    ))
+                } else {
+                    recordAudit(BankAudit(
+                        transactionId = transaction.id,
+                        guildId = guildId,
+                        actorId = playerId,
+                        action = AuditAction.PERMISSION_DENIED,
+                        details = "Failed to deposit money to player account - withdrawal reverted"
+                    ))
+                }
                 return null
             }
 
