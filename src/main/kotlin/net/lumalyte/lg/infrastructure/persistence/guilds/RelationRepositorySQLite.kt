@@ -14,12 +14,18 @@ import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class RelationRepositorySQLite(private val storage: Storage<Database>) : RelationRepository {
 
     private val logger = LoggerFactory.getLogger(RelationRepositorySQLite::class.java)
 
-    private val relations: MutableMap<UUID, Relation> = mutableMapOf()
+    // Thread-safe: tab-completions read this map from async threads while the main thread mutates
+    // it during request/accept/cancel flows. A plain HashMap here caused stale/inconsistent reads
+    // between players.
+    private val relations: MutableMap<UUID, Relation> = ConcurrentHashMap()
+
+    @Volatile
     private var isInitialized = false
 
     init {
@@ -27,6 +33,7 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
         // This prevents issues when the database file doesn't exist yet
     }
 
+    @Synchronized
     private fun ensureInitialized() {
         if (!isInitialized) {
             logger.info("Initializing relation database...")
@@ -153,6 +160,8 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
     }
     
     override fun update(relation: Relation): Boolean {
+        ensureInitialized()
+
         val sql = """
             UPDATE relations
             SET guild_a = ?, guild_b = ?, type = ?, status = ?, expires_at = ?, requesting_guild = ?, updated_at = ?
@@ -183,6 +192,7 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
     }
     
     override fun remove(relationId: UUID): Boolean {
+        ensureInitialized()
         val sql = "DELETE FROM relations WHERE id = ?"
         
         return try {
@@ -200,10 +210,12 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
     }
     
     override fun getById(relationId: UUID): Relation? {
+        ensureInitialized()
         return relations[relationId]
     }
-    
+
     override fun getByGuilds(guildA: UUID, guildB: UUID): Relation? {
+        ensureInitialized()
         // Normalize guild order for consistent lookup
         val (firstGuild, secondGuild) = if (guildA.toString() < guildB.toString()) {
             guildA to guildB
@@ -222,18 +234,21 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
     }
     
     override fun getByGuildAndType(guildId: UUID, type: RelationType): Set<Relation> {
-        return relations.values.filter { 
+        ensureInitialized()
+        return relations.values.filter {
             it.involves(guildId) && it.type == type && it.isActive()
         }.toSet()
     }
-    
+
     override fun getByGuildAndStatus(guildId: UUID, status: RelationStatus): Set<Relation> {
-        return relations.values.filter { 
+        ensureInitialized()
+        return relations.values.filter {
             it.involves(guildId) && it.status == status
         }.toSet()
     }
-    
+
     override fun getExpiredRelations(): Set<Relation> {
+        ensureInitialized()
         val now = Instant.now()
         return relations.values.filter { relation ->
             relation.expiresAt != null && relation.expiresAt.isBefore(now) && 
@@ -242,15 +257,17 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
     }
     
     override fun getByType(type: RelationType): Set<Relation> {
-        return relations.values.filter { 
+        ensureInitialized()
+        return relations.values.filter {
             it.type == type && it.isActive()
         }.toSet()
     }
-    
+
     override fun getByStatus(status: RelationStatus): Set<Relation> {
+        ensureInitialized()
         return relations.values.filter { it.status == status }.toSet()
     }
-    
+
     override fun hasRelationType(guildA: UUID, guildB: UUID, type: RelationType): Boolean {
         val relation = getByGuilds(guildA, guildB)
         return relation?.type == type && relation.isActive()
@@ -272,6 +289,7 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
     }
 
     override fun getAll(): Set<Relation> {
+        ensureInitialized()
         return relations.values.toSet()
     }
 }

@@ -20,9 +20,14 @@ object GuildDisplayUtils {
      * @return The formatted display name with emoji prefix if available.
      */
     fun getFormattedGuildName(guild: Guild): String {
+        // A tag that's only formatting (e.g. "<red></red>" or "&l&r") renders to an empty
+        // string after color codes are stripped. Falling through to that empty string would
+        // wipe the guild name in tab lists and chat, so only use the rendered tag when its
+        // visible payload is non-blank.
         val baseName = guild.tag
             ?.takeIf { it.isNotBlank() }
             ?.let { ColorCodeUtils.renderTagForDisplay(it) }
+            ?.takeIf { rendered -> rendered.replace(LEGACY_COLOR_CODE, "").isNotBlank() }
             ?: guild.name
         return if (guild.emoji != null && isValidEmojiFormat(guild.emoji)) {
             "${guild.emoji} $baseName"
@@ -30,6 +35,9 @@ object GuildDisplayUtils {
             baseName
         }
     }
+
+    /** Section-sign legacy color/formatting codes (§0–§9, §a–§f, §k–§o, §r). */
+    private val LEGACY_COLOR_CODE = Regex("(?i)§[0-9a-fk-or]")
     
     /**
      * Gets just the emoji part for a guild, or empty string if not set.
