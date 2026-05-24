@@ -300,13 +300,34 @@ class VaultInventoryManager(
 
     /**
      * Gets the top guilds ranked by vault gold balance (descending).
-     * Queries the repository directly so it does not force every vault into the cache.
+     *
+     * Reads the DB ranking and overlays the in-memory cache. Gold mutations apply to
+     * [vaultCache] synchronously and only flush to SQLite on a timer, so a direct
+     * repository read returns stale numbers immediately after a deposit/withdraw. Any
+     * guild present in the cache is authoritative; cached values override the DB row.
+     *
+     * Over-fetches by [vaultCache] size so a freshly-deposited cached balance can rank
+     * past entries that would have been clipped at the DB limit.
      *
      * @param limit The maximum number of guilds to return.
      * @return A list of (guildId, balance) pairs ordered by balance descending.
      */
     fun getTopGoldBalances(limit: Int): List<Pair<UUID, Long>> {
-        return vaultRepository.getTopGoldBalances(limit)
+        if (limit <= 0) return emptyList()
+        val overlay = HashMap<UUID, Long>()
+        // Start from the persisted ranking, over-fetching so a cache entry can displace DB rows.
+        for ((id, bal) in vaultRepository.getTopGoldBalances(limit + vaultCache.size)) {
+            overlay[id] = bal
+        }
+        // Cache is authoritative for loaded vaults — its value reflects in-flight deposits
+        // and withdrawals that the buffered DB writer hasn't flushed yet.
+        for ((id, vault) in vaultCache) {
+            overlay[id] = vault.getGold()
+        }
+        return overlay.entries
+            .map { it.key to it.value }
+            .sortedByDescending { it.second }
+            .take(limit)
     }
 
     /**
