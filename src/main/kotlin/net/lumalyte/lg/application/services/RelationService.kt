@@ -183,6 +183,17 @@ interface RelationService {
     fun processExpiredRelations(): Int
     
     /**
+     * Breaks an active alliance unilaterally.
+     * Removes the relation and returns both guilds to neutral.
+     *
+     * @param guildId The ID of the guild breaking the alliance.
+     * @param targetGuildId The ID of the allied guild.
+     * @param actorId The ID of the player breaking the alliance.
+     * @return true if the alliance was broken, false otherwise.
+     */
+    fun breakAlliance(guildId: UUID, targetGuildId: UUID, actorId: UUID): Boolean
+
+    /**
      * Validates if a relation change is allowed based on current state and guild rules.
      *
      * @param fromGuildId The guild initiating the relation change.
