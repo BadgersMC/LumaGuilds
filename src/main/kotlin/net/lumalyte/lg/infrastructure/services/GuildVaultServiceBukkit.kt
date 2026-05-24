@@ -49,6 +49,13 @@ class GuildVaultServiceBukkit(
     // Cache for vault location to guild mapping
     private val vaultLocationCache = mutableMapOf<String, UUID>()
 
+    companion object {
+        // Sentinel actor id for system-driven (non-player) gold movements in the vault ledger.
+        // Public so peer services (BankServiceBukkit, war/cost services) can reuse the same
+        // identifier — every system-driven row in audit/history is then grouped under one UUID.
+        val SYSTEM_ACTOR: UUID = UUID(0L, 0L)
+    }
+
     // Persistent Data Container keys for marking vault chests
     private val vaultGuildIdKey = NamespacedKey(plugin, "vault_guild_id")
     private val vaultMarkerKey = NamespacedKey(plugin, "vault_marker")
@@ -494,14 +501,14 @@ class GuildVaultServiceBukkit(
     }
 
     private fun depositVirtual(guild: Guild, amount: Double, reason: String): VaultResult<Double> {
-        // Add to guild bank balance
-        val newBalance = guild.bankBalance + amount.toInt()
-        val updatedGuild = guild.copy(bankBalance = newBalance)
-
-        return if (guildRepository.update(updatedGuild)) {
+        // Credit the unified guild balance (store B: vault gold). The legacy Guild.bankBalance
+        // column is no longer the source of truth.
+        return try {
+            val newBalance = vaultInventoryManager.depositGold(guild.id, SYSTEM_ACTOR, amount.toLong())
             logger.info("Guild ${guild.name} deposited $amount virtual currency for: $reason")
             VaultResult.Success(newBalance.toDouble())
-        } else {
+        } catch (e: Exception) {
+            logger.error("Failed to credit guild balance for ${guild.id}", e)
             VaultResult.Failure("Failed to update guild balance in database")
         }
     }
@@ -595,28 +602,23 @@ class GuildVaultServiceBukkit(
     }
 
     private fun withdrawVirtual(guild: Guild, amount: Double, reason: String): VaultResult<WithdrawalInfo> {
-        if (guild.bankBalance < amount.toInt()) {
+        // Debit the unified guild balance (store B: vault gold). Atomic; -1 if insufficient.
+        val newBalance = vaultInventoryManager.withdrawGold(guild.id, SYSTEM_ACTOR, amount.toLong())
+        if (newBalance == -1L) {
+            val current = vaultInventoryManager.getGoldBalance(guild.id)
             return VaultResult.Failure(
-                "Insufficient virtual currency: ${guild.bankBalance} < ${amount.toInt()}"
+                "Insufficient virtual currency: $current < ${amount.toInt()}"
             )
         }
 
-        // Deduct from guild bank balance
-        val newBalance = guild.bankBalance - amount.toInt()
-        val updatedGuild = guild.copy(bankBalance = newBalance)
-
-        return if (guildRepository.update(updatedGuild)) {
-            logger.info("Guild ${guild.name} withdrew $amount virtual currency for: $reason")
-            VaultResult.Success(
-                WithdrawalInfo(
-                    withdrawnAmount = amount,
-                    remainingBalance = newBalance.toDouble(),
-                    mode = BankMode.VIRTUAL
-                )
+        logger.info("Guild ${guild.name} withdrew $amount virtual currency for: $reason")
+        return VaultResult.Success(
+            WithdrawalInfo(
+                withdrawnAmount = amount,
+                remainingBalance = newBalance.toDouble(),
+                mode = BankMode.VIRTUAL
             )
-        } else {
-            VaultResult.Failure("Failed to update guild balance in database")
-        }
+        )
     }
 
     private fun withdrawPhysical(guild: Guild, amount: Double, reason: String): VaultResult<WithdrawalInfo> {
