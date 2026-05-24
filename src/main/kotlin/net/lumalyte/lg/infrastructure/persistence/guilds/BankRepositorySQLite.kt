@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 class BankRepositorySQLite(private val storage: Storage<Database>) : BankRepository {
 
@@ -22,9 +21,6 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
 
     private val transactions: MutableMap<UUID, BankTransaction> = mutableMapOf()
     private val audits: MutableMap<UUID, BankAudit> = mutableMapOf()
-    // Concurrent: read from async threads (PlaceholderAPI, tab-completion) while the main thread
-    // mutates it during deposits/withdrawals. Also lets getTopBalances iterate without a CME.
-    private val guildBalances: MutableMap<UUID, Int> = ConcurrentHashMap()
 
     init {
         createBankTables()
@@ -78,7 +74,6 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
     private fun preload() {
         preloadTransactions()
         preloadAudits()
-        preloadBalances()
     }
 
     private fun preloadTransactions() {
@@ -114,27 +109,6 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
             }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to preload bank audits", e)
-        }
-    }
-
-    private fun preloadBalances() {
-        // Calculate balances from transactions
-        val balanceSql = """
-            SELECT guild_id,
-                   SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE -amount - fee END) as balance
-            FROM bank_transactions
-            GROUP BY guild_id
-        """.trimIndent()
-
-        try {
-            val results = storage.connection.getResults(balanceSql)
-            for (result in results) {
-                val guildId = UUID.fromString(result.getString("guild_id"))
-                val balance = result.getInt("balance")
-                guildBalances[guildId] = balance
-            }
-        } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to preload guild balances", e)
         }
     }
 
@@ -195,7 +169,6 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
 
             if (rowsAffected > 0) {
                 transactions[transaction.id] = transaction
-                updateCachedBalance(transaction.guildId)
                 true
             } else {
                 false
@@ -228,14 +201,6 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to get transactions for guild", e)
         }
-    }
-
-    override fun getGuildBalance(guildId: UUID): Int {
-        // First check cache
-        guildBalances[guildId]?.let { return it }
-
-        // Calculate balance from database if not in cache
-        return calculateGuildBalance(guildId)
     }
 
     override fun getPlayerTotalDeposits(playerId: UUID, guildId: UUID): Int {
@@ -323,31 +288,6 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
         }
     }
 
-    override fun getAuditForPlayer(playerId: UUID, limit: Int?): List<BankAudit> {
-        var sql = """
-            SELECT id, transaction_id, guild_id, actor_id, action, details, old_balance, new_balance, timestamp
-            FROM bank_audit
-            WHERE actor_id = ?
-            ORDER BY timestamp DESC
-        """.trimIndent()
-
-        if (limit != null) {
-            sql += " LIMIT ?"
-        }
-
-        return try {
-            val params = mutableListOf<Any>(playerId.toString())
-            if (limit != null) {
-                params.add(limit)
-            }
-
-            val results = storage.connection.getResults(sql, *params.toTypedArray())
-            results.map { mapResultSetToAudit(it) }
-        } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to get audit for player", e)
-        }
-    }
-
     override fun getTransactionCountForGuild(guildId: UUID): Int {
         val sql = "SELECT COUNT(*) as count FROM bank_transactions WHERE guild_id = ?"
 
@@ -370,83 +310,4 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
         }
     }
 
-    override fun clearGuildTransactions(guildId: UUID): Boolean {
-        val transactionDeleteSql = "DELETE FROM bank_transactions WHERE guild_id = ?"
-        val auditDeleteSql = "DELETE FROM bank_audit WHERE guild_id = ?"
-
-        return try {
-            val transactionDeleted = storage.connection.executeUpdate(transactionDeleteSql, guildId.toString()) >= 0
-            val auditDeleted = storage.connection.executeUpdate(auditDeleteSql, guildId.toString()) >= 0
-
-            // Clear from memory
-            transactions.entries.removeIf { it.value.guildId == guildId }
-            audits.entries.removeIf { it.value.guildId == guildId }
-            guildBalances.remove(guildId)
-
-            transactionDeleted && auditDeleted
-        } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to clear guild transactions", e)
-        }
-    }
-
-    override fun deleteTransaction(transactionId: UUID): Boolean {
-        val sql = "DELETE FROM bank_transactions WHERE id = ?"
-
-        return try {
-            val rowsAffected = storage.connection.executeUpdate(sql, transactionId.toString())
-
-            if (rowsAffected > 0) {
-                // Remove from in-memory cache
-                val transaction = transactions.remove(transactionId)
-
-                // Recalculate balance for the affected guild
-                if (transaction != null) {
-                    updateCachedBalance(transaction.guildId)
-                    logger.info("Deleted transaction $transactionId for guild ${transaction.guildId}")
-                }
-
-                true
-            } else {
-                logger.warn("Attempted to delete non-existent transaction $transactionId")
-                false
-            }
-        } catch (e: SQLException) {
-            logger.error("Failed to delete transaction $transactionId", e)
-            throw DatabaseOperationException("Failed to delete transaction", e)
-        }
-    }
-
-    override fun getTopBalances(limit: Int): List<Pair<UUID, Int>> {
-        if (limit <= 0) return emptyList()
-        // Snapshot the in-memory cache (authoritative; preloaded and kept current on every
-        // transaction) so ranking needs no database query even for large guild counts.
-        return guildBalances.entries
-            .map { it.key to it.value }
-            .sortedByDescending { it.second }
-            .take(limit)
-    }
-
-    private fun calculateGuildBalance(guildId: UUID): Int {
-        val sql = """
-            SELECT COALESCE(SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE -amount - fee END), 0) as balance
-            FROM bank_transactions
-            WHERE guild_id = ?
-        """.trimIndent()
-
-        return try {
-            val result = storage.connection.getFirstRow(sql, guildId.toString())
-            val balance = result?.getInt("balance") ?: 0
-
-            // Update cache with calculated balance
-            guildBalances[guildId] = balance
-            balance
-        } catch (e: SQLException) {
-            logger.error("Failed to calculate guild balance for $guildId", e)
-            0
-        }
-    }
-
-    private fun updateCachedBalance(guildId: UUID) {
-        calculateGuildBalance(guildId)
-    }
 }
