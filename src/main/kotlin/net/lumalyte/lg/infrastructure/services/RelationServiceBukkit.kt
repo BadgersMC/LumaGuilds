@@ -59,8 +59,16 @@ class RelationServiceBukkit(
                     logger.warn("A pending request already exists between guilds $requestingGuildId and $targetGuildId")
                     return null
                 }
-                if (existingRelation.isActive() && existingRelation.type == RelationType.ALLY) {
-                    logger.warn("Guilds $requestingGuildId and $targetGuildId are already allied")
+                // Only NEUTRAL or terminal (REJECTED/EXPIRED) rows may be overwritten with a
+                // pending alliance. Reusing an active TRUCE or ENEMY row would silently destroy
+                // the underlying state — on reject/cancel, resolvePendingRequest would either
+                // delete the row (losing the truce) or revert to ENEMY (losing an unrelated war
+                // history). Force the caller to go through the proper transition first.
+                if (existingRelation.isActive() && existingRelation.type != RelationType.NEUTRAL) {
+                    logger.warn(
+                        "Cannot request alliance between guilds $requestingGuildId and $targetGuildId" +
+                            " - active ${existingRelation.type} relation must be ended first",
+                    )
                     return null
                 }
                 // Reuse the stale/inactive row by updating it to a fresh pending alliance request.
@@ -241,15 +249,20 @@ class RelationServiceBukkit(
                 return null
             }
 
-            val expiresAt = Instant.now().plus(duration)
+            // Stamp expiresAt as createdAt + duration even though the truce is only pending —
+            // acceptTruce derives the requested duration from (expiresAt - createdAt) and
+            // re-anchors expiresAt to the moment of acceptance. Without this, a 1-day truce
+            // accepted 20 hours later would only last 4 hours.
+            val now = Instant.now()
+            val requestedExpiresAt = currentRelation.createdAt.plus(duration)
 
             // Update existing relation to pending truce
             val truceRelation = currentRelation.copy(
                 type = RelationType.TRUCE,
                 status = RelationStatus.PENDING,
-                expiresAt = expiresAt,
+                expiresAt = requestedExpiresAt,
                 requestingGuildId = requestingGuildId,
-                updatedAt = Instant.now()
+                updatedAt = now
             )
             
             return if (relationRepository.update(truceRelation)) {
@@ -298,11 +311,18 @@ class RelationServiceBukkit(
                 logger.warn("Guild $acceptingGuildId cannot accept its own truce request")
                 return null
             }
-            
-            // Update relation to active
+
+            // The truce duration is encoded as (expiresAt - createdAt) on the pending row; the
+            // real timer starts now, on acceptance. Without this re-anchor the truce would
+            // already have burned hours/days of life while waiting for the target to respond.
+            val now = Instant.now()
+            val requestedDuration = relation.expiresAt
+                ?.let { Duration.between(relation.createdAt, it) }
+                ?: Duration.ZERO
             val updatedRelation = relation.copy(
                 status = RelationStatus.ACTIVE,
-                updatedAt = Instant.now()
+                expiresAt = now.plus(requestedDuration),
+                updatedAt = now
             )
             
             return if (relationRepository.update(updatedRelation)) {

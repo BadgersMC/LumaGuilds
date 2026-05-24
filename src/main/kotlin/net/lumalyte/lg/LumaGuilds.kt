@@ -987,27 +987,44 @@ class LumaGuilds : JavaPlugin() {
     /**
      * Initializes the periodic relation maintenance task.
      *
-     * Runs on the main thread (the relation service fires Bukkit events on truce expiry, which
-     * must not happen off-thread) every 5 minutes after a 1-minute startup delay. It expires due
-     * truces (reverting them to enemy) and clears stale/orphaned relation rows so they can no
-     * longer block new ally/truce requests.
+     * Split into two scheduled tasks so we don't park the main thread on DB I/O every 5 minutes:
+     *  - cleanupStaleRelations runs ASYNC. It only does DB reads/writes, never fires Bukkit events.
+     *  - processExpiredRelations runs SYNC. It fires GuildRelationChangeEvent for each expired
+     *    truce, which is not safe to dispatch from an async thread (listeners assume main-thread
+     *    access to Bukkit APIs).
+     *
+     * Both run every 5 minutes after a 1-minute startup delay.
      */
     private fun initRelationMaintenanceScheduler() {
         try {
             val relationService = get().get<net.lumalyte.lg.application.services.RelationService>()
             val intervalTicks = 20L * 60L * 5L // every 5 minutes
             val initialDelayTicks = 20L * 60L  // first run after 1 minute
+
+            // Async pass: pure DB maintenance.
+            server.scheduler.runTaskTimerAsynchronously(this, Runnable {
+                try {
+                    val cleaned = relationService.cleanupStaleRelations()
+                    if (cleaned > 0) {
+                        logger.info("Relation maintenance (async): cleaned=$cleaned")
+                    }
+                } catch (e: Exception) {
+                    logger.warning("Relation cleanup run failed: ${e.message}")
+                }
+            }, initialDelayTicks, intervalTicks)
+
+            // Sync pass: fires Bukkit events on truce expiry, must stay on the main thread.
             server.scheduler.runTaskTimer(this, Runnable {
                 try {
                     val expired = relationService.processExpiredRelations()
-                    val cleaned = relationService.cleanupStaleRelations()
-                    if (expired > 0 || cleaned > 0) {
-                        logger.info("Relation maintenance: expired=$expired, cleaned=$cleaned")
+                    if (expired > 0) {
+                        logger.info("Relation maintenance (sync): expired=$expired")
                     }
                 } catch (e: Exception) {
-                    logger.warning("Relation maintenance run failed: ${e.message}")
+                    logger.warning("Relation expiry run failed: ${e.message}")
                 }
             }, initialDelayTicks, intervalTicks)
+
             logColored("✓ Relation maintenance scheduler started")
         } catch (e: Exception) {
             // Broad exception handling acceptable - scheduler failure shouldn't prevent plugin load

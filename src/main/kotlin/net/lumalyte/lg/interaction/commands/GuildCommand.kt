@@ -674,10 +674,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
         player.sendMessage("§6§l✦ Top Guilds by Bank Balance ✦")
         val ownGuildId = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()?.id
-        top.forEachIndexed { index, (guildId, balance) ->
+        // Resolve names first and drop rows whose guild was deleted out from under the cache;
+        // re-numbering after the filter keeps display ranks contiguous (no #1, #3, #4 gaps).
+        val resolved = top.mapNotNull { (guildId, balance) ->
+            guildService.getGuild(guildId)?.let { Triple(guildId, it.name, balance) }
+        }
+        resolved.forEachIndexed { index, (guildId, name, balance) ->
             val rank = index + 1
-            // Resolve the name lazily; skip rows whose guild was deleted out from under the cache.
-            val name = guildService.getGuild(guildId)?.name ?: return@forEachIndexed
             val highlight = if (guildId == ownGuildId) "§e" else "§f"
             player.sendMessage("§7#§f$rank $highlight$name §7- §a$${formatMoney(balance)}")
         }

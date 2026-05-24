@@ -227,6 +227,10 @@ class BankServiceBukkit(
 
                 if (!rollbackSuccess) {
                     logger.error("CRITICAL: Transaction ${transaction.id} exists in database but Vault withdrawal failed AND rollback failed - manual cleanup required")
+                    // Ledger row persisted despite payout failure — drop the leaderboard cache so
+                    // /baltop reflects the new (incorrect-but-real) balance until the operator
+                    // resolves it. Stale cached numbers would hide the inconsistency.
+                    invalidateBalanceLeaderboard()
                 } else {
                     logger.info("Successfully rolled back failed deposit transaction ${transaction.id}")
                 }
@@ -405,6 +409,10 @@ class BankServiceBukkit(
                     details = "Failed to deposit money to player account - withdrawal recorded but payout failed, manual payout required"
                 ))
                 logger.warn("MANUAL ACTION REQUIRED: Withdrawal transaction ${transaction.id} recorded but Vault deposit failed - player $playerId needs manual credit of $finalAmount coins")
+                // Withdrawal ledger row was committed, so the real guild balance dropped even
+                // though payout failed. Invalidate the cache or /baltop keeps the pre-withdrawal
+                // number until TTL expires.
+                invalidateBalanceLeaderboard()
                 return null
             }
 

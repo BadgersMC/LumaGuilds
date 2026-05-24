@@ -67,6 +67,10 @@ class RelationServiceTreatyTest {
         verify { repo.update(capture(saved)) }
         assertEquals(RelationType.ALLY, saved.captured.type)
         assertEquals(RelationStatus.PENDING, saved.captured.status)
+        // The reused row must record the requester so direction-based accept/reject/cancel
+        // guards work. Without this assertion the test would pass even if requestingGuildId
+        // were dropped on the reuse path.
+        assertEquals(guildA, saved.captured.requestingGuildId)
     }
 
     @Test

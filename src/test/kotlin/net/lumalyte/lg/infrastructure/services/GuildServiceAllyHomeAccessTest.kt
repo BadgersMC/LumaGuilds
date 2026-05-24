@@ -165,4 +165,14 @@ class GuildServiceAllyHomeAccessTest {
         val svc = makeService(targetAllyHome = null, targetAllowedGuilds = emptySet(), sourceAllyHome = null)
         assertFalse(svc.canUseOwnAllyHome(ownerPlayerId, sourceGuildId))
     }
+
+    @Test
+    fun `own ally home - denied for non-member`() {
+        // Locks in the access boundary: a player who isn't in the guild at all must be denied
+        // regardless of any other state. memberRepository returns null, so this exercises the
+        // pre-rank early-return that prevents unauthenticated access to the ally home.
+        val svc = makeService(targetAllyHome = null, targetAllowedGuilds = emptySet(), sourceAllyHome = ah)
+        val nonMember = UUID.randomUUID()
+        assertFalse(svc.canUseOwnAllyHome(nonMember, sourceGuildId))
+    }
 }
