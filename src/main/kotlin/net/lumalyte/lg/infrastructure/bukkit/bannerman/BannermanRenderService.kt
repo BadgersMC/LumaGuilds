@@ -25,21 +25,23 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
 
     /**
      * Spawn (or respawn) a banner display attached to the player. The previous display, if any, is removed.
+     * The display rides the player as a passenger so the client renders it rigidly attached —
+     * no per-tick teleports, no position/yaw desync. The owner is hidden from the entity so it
+     * never clips into their first-person FOV; teammates and enemies still see it.
      */
     fun spawnFor(player: Player, banner: ItemStack) {
         despawnFor(player.uniqueId)
-        val location = player.location.clone().add(0.0, 1.0, 0.0)
         val display = player.world.spawn(
-            location,
+            player.location,
             ItemDisplay::class.java,
         ) { d ->
             d.setItemStack(banner)
             d.isPersistent = false
             d.transformation = backTransformation()
-            d.interpolationDuration = 2
-            d.teleportDuration = 2
             d.persistentDataContainer.set(tagKey, PersistentDataType.STRING, player.uniqueId.toString())
         }
+        player.addPassenger(display)
+        player.hideEntity(plugin, display)
         displays[player.uniqueId] = display.uniqueId
     }
 
@@ -86,7 +88,9 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
 
     @Suppress("MagicNumber")
     private fun backTransformation(): Transformation = Transformation(
-        Vector3f(0f, 0f, -0.25f), // translate behind torso
+        // Origin sits at the player's passenger mount (~head height). Drop down to the upper
+        // back and offset behind the torso.
+        Vector3f(0f, -0.7f, -0.25f),
         Quaternionf().rotateY(Math.PI.toFloat()), // face backwards relative to player
         Vector3f(1.0f, 1.5f, 1.0f), // taller than wide
         Quaternionf(),
