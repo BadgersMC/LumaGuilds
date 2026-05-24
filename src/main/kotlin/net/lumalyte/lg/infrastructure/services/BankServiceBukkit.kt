@@ -418,6 +418,10 @@ class BankServiceBukkit(
                         details = "Failed to deposit money to player account - withdrawal reverted"
                     ))
                 }
+                // The cached top either no longer reflects reality (re-credit failed, guild
+                // stays debited) or briefly bounced (debited then restored). Invalidate either
+                // way so /baltop refreshes on the next read instead of waiting out the TTL.
+                invalidateBalanceLeaderboard()
                 return null
             }
 
