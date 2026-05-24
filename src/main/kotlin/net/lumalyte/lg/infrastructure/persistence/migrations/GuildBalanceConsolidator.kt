@@ -38,9 +38,22 @@ internal object GuildBalanceConsolidator {
      * Computes and applies the consolidation. Returns the list of guilds whose balance changed.
      */
     fun consolidate(connection: Connection, logger: ComponentLogger): List<Fold> {
-        if (!tableExists(connection, "guilds") || !tableExists(connection, "vault_gold")) {
-            logger.info(Component.text("  Skipping balance consolidation (required tables not present yet)"))
+        val hasGuilds = tableExists(connection, "guilds")
+        val hasVaultGold = tableExists(connection, "vault_gold")
+        // Fresh install: no guilds table means no legacy data to fold. Bumping the user_version
+        // is safe — there's nothing to lose.
+        if (!hasGuilds) {
+            logger.info(Component.text("  Skipping balance consolidation (no guilds table — fresh install)"))
             return emptyList()
+        }
+        // Partial schema: guilds exist but vault_gold does not. This is the dangerous case the
+        // outer migration loop must NOT silently mark v23 as applied for, otherwise
+        // validateAndRepairSchema() will create vault_gold empty afterwards and the legacy money
+        // in bank_transactions / guilds.bank_balance is permanently stranded. Throw so the
+        // version bump never runs.
+        check(hasVaultGold) {
+            "Cannot consolidate guild balances: 'vault_gold' table is missing while 'guilds' exists. " +
+                "Repair the schema (or restore from backup) before retrying the v23 migration."
         }
         val now = System.currentTimeMillis()
 

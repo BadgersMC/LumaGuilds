@@ -42,8 +42,8 @@ interface BankService {
 
     /**
      * Gets the top guilds ranked by bank balance (descending). Results are cached briefly and the
-     * cache is invalidated automatically whenever a balance changes (deposit/withdraw/deduct), so
-     * callers always observe up-to-date rankings without hitting the database per call.
+     * cache is invalidated automatically whenever a balance changes (deposit/withdraw/deduct/credit),
+     * so callers always observe up-to-date rankings without hitting the database per call.
      *
      * @param limit The maximum number of guilds to return.
      * @return A list of (guildId, balance) pairs ordered by balance descending.
