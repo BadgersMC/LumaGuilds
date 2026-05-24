@@ -5,81 +5,72 @@ import org.bukkit.Location
 import org.slf4j.LoggerFactory
 
 /**
- * Service for integrating with AdvancedRegionMarket (ARM) plugin.
- * Provides soft dependency checks to prevent vault exploitation in shop regions.
+ * Service for integrating with EnthusiaMarket (EM) plugin.
+ * Provides soft dependency checks to prevent vault exploitation in shop containers.
  */
 class ARMIntegrationService {
 
     private val logger = LoggerFactory.getLogger(ARMIntegrationService::class.java)
-    private var armEnabled = false
-    private var armAdapter: net.alex9849.arm.adapters.ARMVersionAdapter? = null
 
     init {
-        checkARMAvailability()
+        checkAvailability()
     }
 
     /**
-     * Check if ARM plugin is available and load the adapter
+     * Check if EnthusiaMarket plugin is available
      */
-    private fun checkARMAvailability() {
+    private fun checkAvailability() {
         try {
-            val armPlugin = Bukkit.getPluginManager().getPlugin("AdvancedRegionMarket")
-
-            if (armPlugin != null && armPlugin.isEnabled) {
-                // ARM is present - try to get the adapter
-                val arm = armPlugin as? net.alex9849.arm.AdvancedRegionMarket
-
-                if (arm != null) {
-                    armAdapter = arm.adapterHandler
-                    armEnabled = true
-                    logger.info("AdvancedRegionMarket integration enabled")
-                    logger.info("Vault placement in shop regions will be blocked to prevent raid immunity exploits")
-                } else {
-                    logger.warn("AdvancedRegionMarket plugin found but wrong type - vault shop protection disabled")
-                }
-            } else {
-                logger.info("AdvancedRegionMarket not found - vault shop protection disabled")
-            }
+            Class.forName("net.badgersmc.em.api.ShopGuildLookup")
+            logger.info("EnthusiaMarket integration enabled")
+            logger.info("Vault placement in shop containers will be blocked to prevent raid immunity exploits")
+        } catch (e: ClassNotFoundException) {
+            logger.info("EnthusiaMarket not found - vault shop protection disabled")
         } catch (e: Exception) {
-            logger.warn("Failed to initialize ARM integration: ${e.message}")
-            logger.warn("Vault shop protection disabled - vaults can be placed in shop regions")
-            armEnabled = false
-            armAdapter = null
+            logger.warn("Failed to initialize EnthusiaMarket integration: ${e.message}")
+            logger.warn("Vault shop protection disabled - vaults can be placed in shop containers")
         }
     }
 
     /**
-     * Check if a location is inside a shop region.
-     * Returns false if ARM is not available or on error.
+     * Check if a location is inside a shop container.
+     * Returns false if EnthusiaMarket is not available or on error.
      *
      * @param location The location to check
-     * @return True if the location is in a shop region (sold/unsold), false otherwise
+     * @return True if the location is a shop container, false otherwise
      */
     fun isInShopRegion(location: Location): Boolean {
-        if (!armEnabled || armAdapter == null) {
-            return false
-        }
-
         return try {
-            val region = armAdapter?.getRegion(location)
-            region != null // If a region exists at this location, it's a shop region
+            val lookupClass = Class.forName("net.badgersmc.em.api.ShopGuildLookup")
+            val lookup = Bukkit.getServicesManager().load(lookupClass)
+
+            if (lookup != null) {
+                val isShopContainerMethod = lookupClass.getMethod("isShopContainer", Location::class.java)
+                isShopContainerMethod.invoke(lookup, location) as? Boolean ?: false
+            } else {
+                false
+            }
         } catch (e: Exception) {
-            // Log error and fail safe (allow placement)
-            logger.error("Error checking ARM shop region at ${location.world?.name} " +
-                    "(${location.blockX}, ${location.blockY}, ${location.blockZ}): ${e.message}", e)
             false
         }
     }
 
     /**
-     * Check if ARM integration is enabled
+     * Check if EnthusiaMarket integration is available
      */
-    fun isEnabled(): Boolean = armEnabled
+    fun isEnabled(): Boolean {
+        return try {
+            Class.forName("net.badgersmc.em.api.ShopGuildLookup")
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
 
     /**
-     * Refresh ARM availability (call after plugin reload)
+     * Refresh availability (call after plugin reload)
      */
     fun refresh() {
-        checkARMAvailability()
+        checkAvailability()
     }
 }
