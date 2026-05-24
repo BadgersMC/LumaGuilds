@@ -2347,34 +2347,50 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage("§cYou cannot request peace with your own guild.")
+            player.sendMessage("§cYou cannot change relations with your own guild.")
             return
         }
 
         // Get relation service
         val relationService: net.lumalyte.lg.application.services.RelationService by inject()
 
-        // Check current relation
+        // Check current relation and handle accordingly
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
-        if (currentRelation != net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
-            player.sendMessage("§cYou can only request peace with enemy guilds!")
-            player.sendMessage("§7Current relation with ${targetGuild.name}: ${currentRelation.name.lowercase()}")
-            return
-        }
-
-        // Request unenemy (peace)
-        val relation = relationService.requestUnenemy(guild.id, targetGuild.id, playerId)
-        if (relation != null) {
-            player.sendMessage("§f✓ Peace request sent to ${targetGuild.name}!")
-            player.sendMessage("§7If accepted, hostilities will end permanently.")
-            player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.5f)
-
-            // Notify target guild members
-            notifyGuildMembers(targetGuild.id, "§f${guild.name} §7has requested to end hostilities with your guild! Use §6/guild menu §7→ Relations to respond.")
-        } else {
-            player.sendMessage("§c✗ Failed to send peace request.")
-            player.sendMessage("§7There may already be a pending request.")
-            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+        when (currentRelation) {
+            net.lumalyte.lg.domain.entities.RelationType.ENEMY -> {
+                // Request peace (existing unenemy flow)
+                val relation = relationService.requestUnenemy(guild.id, targetGuild.id, playerId)
+                if (relation != null) {
+                    player.sendMessage("§f✓ Peace request sent to ${targetGuild.name}!")
+                    player.sendMessage("§7If accepted, hostilities will end permanently.")
+                    player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.5f)
+                    notifyGuildMembers(targetGuild.id, "§f${guild.name} §7has requested to end hostilities with your guild! Use §6/guild menu §7→ Relations to respond.")
+                } else {
+                    player.sendMessage("§c✗ Failed to send peace request.")
+                    player.sendMessage("§7There may already be a pending request.")
+                    player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                }
+            }
+            net.lumalyte.lg.domain.entities.RelationType.ALLY -> {
+                // Break alliance immediately (unilateral)
+                val success = relationService.breakAlliance(guild.id, targetGuild.id, playerId)
+                if (success) {
+                    player.sendMessage("§c✗ You broke the alliance with ${targetGuild.name}.")
+                    player.sendMessage("§7You are now neutral with them.")
+                    player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 0.8f)
+                    notifyGuildMembers(targetGuild.id, "§c${guild.name} §7has broken the alliance with your guild.")
+                } else {
+                    player.sendMessage("§c✗ Failed to break alliance.")
+                    player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                }
+            }
+            net.lumalyte.lg.domain.entities.RelationType.TRUCE -> {
+                player.sendMessage("§cYou are in a truce with ${targetGuild.name}.")
+                player.sendMessage("§7Wait for the truce to expire or use §6/guild enemy ${targetGuild.name} §7to declare war.")
+            }
+            else -> {
+                player.sendMessage("§cYou are already neutral with ${targetGuild.name}.")
+            }
         }
     }
 
