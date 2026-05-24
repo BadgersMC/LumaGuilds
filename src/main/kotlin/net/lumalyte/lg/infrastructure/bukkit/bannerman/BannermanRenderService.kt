@@ -40,7 +40,10 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
             d.transformation = backTransformation()
             d.persistentDataContainer.set(tagKey, PersistentDataType.STRING, player.uniqueId.toString())
         }
-        player.addPassenger(display)
+        if (!player.addPassenger(display)) {
+            display.remove()
+            return
+        }
         player.hideEntity(plugin, display)
         displays[player.uniqueId] = display.uniqueId
     }
