@@ -2085,8 +2085,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Register the shop at that sign as guild-owned.
-        if (shopLookup.registerGuildShopBySign(targetSign.location, guild.id, playerId)) {
+        // Register the shop at that sign as guild-owned. Guard the cross-plugin call so a
+        // thrown exception gives a deterministic failure instead of an uncontrolled command error.
+        val converted = try {
+            shopLookup.registerGuildShopBySign(targetSign.location, guild.id, playerId)
+        } catch (e: Exception) {
+            val l = targetSign.location
+            player.server.logger.warning("EnthusiaMarket guild-shop conversion threw for ${player.name} " +
+                    "at ${l.world?.name} (${l.blockX}, ${l.blockY}, ${l.blockZ}): ${e.message}")
+            player.sendMessage("§c❌ Shop conversion failed. Please contact an admin.")
+            return
+        }
+
+        if (converted) {
             player.sendMessage("§a✅ Shop converted to guild shop!")
             player.sendMessage("§7All income from this shop will now go to §6${guild.name}§7's vault.")
             player.sendMessage("§7Guild permissions now apply to this shop.")
