@@ -24,13 +24,14 @@ Severity here is *my* re-rating, not the coordinator's.
 
 These break the item/gold economy and are exploitable or data-losing in normal play.
 
-### ✅ [CRIT] `interaction/menus/guild/GoldWithdrawMenu.kt:152` — item duplication on insufficient funds
-`vaultInventoryManager.withdrawGold()` returns the `-1L` sentinel on insufficient
-funds, but `convertToItems(amount)` + the item-giving loop run **unconditionally**,
-outside the `-1L` guard. Result: a withdrawal that *fails* still hands the player gold
-items — **items created from nothing**. Move item creation inside the success branch.
+### ❌ [DISMISSED] `interaction/menus/guild/GoldWithdrawMenu.kt:152` — reported item dupe is a FALSE POSITIVE
+The coordinator claimed `convertToItems`/give-loop run unconditionally past the `-1L`
+guard. **They do not** — there is a correct early `return` in the `if (newBalance == -1L)`
+branch, so items are only given after a successful withdrawal. Double-click is also safe
+(menu clicks are processed serially on the Bukkit main thread). No dupe. (Initially
+mis-marked VERIFIED without reading source; corrected on re-review.)
 
-### ✅ [CRIT] `interaction/menus/guild/GuildBankMenu.kt:467-493` — item loss: removes items before deposit confirmed
+### ✅ [CRIT] `interaction/menus/guild/GuildBankMenu.kt:437-510` — item loss: removes items before deposit confirmed
 `handleDeposit()` removes gold items from the player inventory *before* calling
 `depositGold()`. Any failure in the deposit pipeline (DB error, guild not found)
 destroys the items with no balance increase. Deposit first, remove only on success.
