@@ -73,20 +73,19 @@ Remove or route through `logger.debug`.
 
 ---
 
-## TIER 2 — High-confidence logic bugs (reported, recommend verify-then-fix)
+## TIER 2 — Logic bugs (now source-verified)
 
-| Sev | Location | Issue |
-|-----|----------|-------|
-| HIGH | `application/actions/claim/transfer/OfferPlayerTransferRequest.kt:14` | Mutates `claim.transferRequests` but never `claimRepository.update(claim)` — request lost on restart/re-read |
-| HIGH | `application/actions/claim/transfer/AcceptTransferRequest.kt:39` | Name-uniqueness check uses the wrong playerId |
-| HIGH | `infrastructure/services/GuildBannerServiceBukkit.kt:107` | `canSetBanners` ignores submitter → all members can set banners |
-| HIGH | `infrastructure/services/WarServiceBukkit.kt:336` | `canGuildDeclareWar` maxWars hardcoded, ignores progression cap |
-| HIGH | `infrastructure/services/AsyncTaskService.kt:97` | Callback captures mutable `result` — stale/garbled async value |
-| HIGH | `infrastructure/services/VaultAutoSaveService.kt:257` | Auto-unboxing NPE on cancelled-task check |
-| HIGH | `interaction/commands/…/PartitionsCommand.kt:43` | Pagination uses `page` as an iteration-count offset → wrong page window |
-| HIGH | `…/listeners/ToolRemovalListener.kt:129` | `onPlayerDeath` builds a removal list but never removes from drops |
-| HIGH | `interaction/menus/.../GuildWarDeclarationMenu.kt:489` | Race in war-declaration duplicate check |
-| HIGH | `infrastructure/services/GuildInvitationManager.kt:12` | `object` singleton with `lateinit var`, no concurrent-init guard |
+All re-read from source. Verdicts: ✅ confirmed real, ❌ false positive (moved to CORRECTIONS), ⬇ over-rated.
+
+| Verdict | Sev | Location | Issue |
+|---------|-----|----------|-------|
+| ✅ | HIGH | `application/actions/claim/transfer/OfferPlayerTransferRequest.kt:14` | `put()` into `claim.transferRequests` but never `claimRepository.update(claim)` — request lost on restart/re-read |
+| ✅ | HIGH | `application/actions/claim/transfer/AcceptTransferRequest.kt:39` | Name-uniqueness checks `getByName(claim.playerId, …)` = old owner's namespace, not the accepting `playerId`'s |
+| ✅ | HIGH | `infrastructure/services/GuildBannerServiceBukkit.kt:107` | `canSetBanners(guildId)` takes no player, returns `true` for any existing guild → no per-member check |
+| ✅ | HIGH | `infrastructure/services/WarServiceBukkit.kt:336` | `activeWars < 3` hardcoded, ignores progression cap (also `canPlayerManageWars` is a `return true` stub) |
+| ✅ | HIGH | `interaction/commands/PartitionsCommand.kt:43` | `for (i in 0..9 + page)` — every page starts at index 0 and the window grows with page; pagination is broken |
+| ✅ | HIGH | `interaction/listeners/ToolRemovalListener.kt:129` | `onPlayerDeath` builds `itemsToRemove` then the method ends — never removes from `event.drops`; claim/move tools drop on death |
+| ⬇ | LOW | `infrastructure/services/GuildInvitationManager.kt:12` | `object` + `lateinit var`, no concurrent-init guard — real shape but startup-only init, negligible concurrency risk |
 
 ---
 
@@ -137,6 +136,17 @@ holder) and map to Bukkit only in infrastructure. Track as a dedicated SPEAR ref
   defense-in-depth, but not crit.
 - ❌ `PlayerStateRepositoryMemory` "no DB persistence" — **by design** (documented ephemeral).
   Re-tag as a doc note at the port, not a bug.
+- ❌ `AsyncTaskService.kt:97` "captures mutable `result`" — **false.** `val result = task()` is
+  immutable and freshly scoped per coroutine launch; no shared state, no race.
+- ❌ `VaultAutoSaveService.kt:257` "auto-unboxing NPE" — **false.** `autoSaveTask?.isCancelled == false`
+  is the null-safe idiom; `Boolean? == false` cannot NPE.
+- ⚠️ `GuildWarDeclarationMenu.kt:489` "race in duplicate check" — **likely false.** Check-then-act,
+  but menu clicks are serialized on the Bukkit main thread; not a real race unless `warService` goes async.
+
+**Triage note:** across the high/crit tier, the coordinator's *logic-bug* findings were reliable
+(~all confirmed), but its *concurrency / NPE* reasoning was not — it repeatedly ignored Bukkit's
+single-threaded main-thread model and Kotlin's null-safe operators. Treat any "race"/"NPE"/"mutable
+capture" finding from this run as suspect until verified.
 
 ---
 
