@@ -2086,15 +2086,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Register the shop at that sign as guild-owned. Guard the cross-plugin call so a
-        // thrown exception gives a deterministic failure instead of an uncontrolled command error.
+        // failure gives a deterministic message instead of an uncontrolled command error.
+        // LinkageError (NoClassDefFoundError / AbstractMethodError) is caught alongside
+        // Exception because EM is a runtime soft dependency — an absent or version-mismatched
+        // EnthusiaMarket surfaces as a linkage failure at the call site, not a normal exception.
         val converted = try {
             shopLookup.registerGuildShopBySign(targetSign.location, guild.id, playerId)
         } catch (e: Exception) {
-            val l = targetSign.location
-            player.server.logger.warning("EnthusiaMarket guild-shop conversion threw for ${player.name} " +
-                    "at ${l.world?.name} (${l.blockX}, ${l.blockY}, ${l.blockZ}): ${e.message}")
-            player.sendMessage("§c❌ Shop conversion failed. Please contact an admin.")
-            return
+            setShopConversionFailed(player, targetSign.location, e); return
+        } catch (e: LinkageError) {
+            setShopConversionFailed(player, targetSign.location, e); return
         }
 
         if (converted) {
@@ -2108,6 +2109,17 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c❌ No registered shop found at that sign.")
             player.sendMessage("§7Make sure you're looking at an EnthusiaMarket shop sign.")
         }
+    }
+
+    /** Log a /guild setshop EnthusiaMarket failure with full stack trace + tell the player. */
+    private fun setShopConversionFailed(player: Player, loc: org.bukkit.Location, t: Throwable) {
+        player.server.logger.log(
+            java.util.logging.Level.WARNING,
+            "EnthusiaMarket guild-shop conversion failed for ${player.name} at " +
+                "${loc.world?.name} (${loc.blockX}, ${loc.blockY}, ${loc.blockZ})",
+            t,
+        )
+        player.sendMessage("§c❌ Shop conversion failed. Please contact an admin.")
     }
 
     @Subcommand("help")
