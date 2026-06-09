@@ -2069,61 +2069,24 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Check if ARM-Guilds-Bridge is available
-        val armBridgePlugin = Bukkit.getPluginManager().getPlugin("ARM-Guilds-Bridge")
-        if (armBridgePlugin == null || !armBridgePlugin.isEnabled) {
+        // EnthusiaMarket owns shops — resolve its public API from the ServicesManager.
+        val shopLookup = Bukkit.getServicesManager().load(net.badgersmc.em.api.ShopGuildLookup::class.java)
+        if (shopLookup == null) {
             player.sendMessage("§c❌ Guild shops feature is not available!")
-            player.sendMessage("§7Contact a server administrator - ARM-Guilds-Bridge is required.")
+            player.sendMessage("§7Contact a server administrator - EnthusiaMarket is required.")
             return
         }
 
-        // Get ARM-Guilds-Bridge services
-        val armBridge = armBridgePlugin as net.lumalyte.armbridge.ARMGuildsBridge
-        val guildShopService = armBridge.getGuildShopService()
-        val itemShopGuildService = armBridge.getItemShopGuildService()
-
-        // Check if standing in a guild-owned ARM region
-        val playerLoc = player.location
-        val armPlugin = Bukkit.getPluginManager().getPlugin("AdvancedRegionMarket")
-
-        if (armPlugin == null || !armPlugin.isEnabled) {
-            player.sendMessage("§c❌ ARM plugin not found!")
+        // Convert the shop the player is looking at: aim at its wall sign.
+        val targetSign = player.getTargetBlockExact(5)
+        if (targetSign == null || targetSign.state !is org.bukkit.block.Sign) {
+            player.sendMessage("§c❌ Look at a shop's sign to convert it to a guild shop.")
+            player.sendMessage("§7Stand within 5 blocks and aim directly at the shop sign.")
             return
         }
 
-        val arm = armPlugin as net.alex9849.arm.AdvancedRegionMarket
-        val region = arm.adapterHandler.getRegion(playerLoc)
-
-        if (region == null) {
-            player.sendMessage("§c❌ You must be standing in an ARM region to convert this shop!")
-            player.sendMessage("§7Guild shops can only be created in guild-owned market regions.")
-            return
-        }
-
-        // Check if region is owned by the player's guild
-        val regionOwner = guildShopService.getGuildForShopRegion(region.id, playerLoc.world?.name ?: "")
-        if (regionOwner == null || regionOwner != guild.id) {
-            player.sendMessage("§c❌ This ARM region is not owned by your guild!")
-            player.sendMessage("§7Your guild must own this market region to create guild shops here.")
-            if (regionOwner != null) {
-                player.sendMessage("§7This region is owned by a different guild.")
-            }
-            return
-        }
-
-        // Check if ItemShops plugin is available
-        val itemShopsPlugin = Bukkit.getPluginManager().getPlugin("ItemShops")
-        if (itemShopsPlugin == null || !itemShopsPlugin.isEnabled) {
-            player.sendMessage("§c❌ ItemShops plugin not found!")
-            return
-        }
-
-        // Check if there's a shop at this location (we'll validate in ItemShops later)
-        // For now, just register it
-        val shopLocation = playerLoc.block.location
-
-        // Register the shop
-        if (itemShopGuildService.registerGuildItemShop(shopLocation, guild.id, playerId)) {
+        // Register the shop at that sign as guild-owned.
+        if (shopLookup.registerGuildShopBySign(targetSign.location, guild.id, playerId)) {
             player.sendMessage("§a✅ Shop converted to guild shop!")
             player.sendMessage("§7All income from this shop will now go to §6${guild.name}§7's vault.")
             player.sendMessage("§7Guild permissions now apply to this shop.")
@@ -2131,8 +2094,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Notify guild members
             notifyGuildMembers(guild.id, "§6★ §e${player.name} §7converted a shop to a guild shop!")
         } else {
-            player.sendMessage("§c❌ Failed to convert shop!")
-            player.sendMessage("§7Contact a server administrator if this problem persists.")
+            player.sendMessage("§c❌ No registered shop found at that sign.")
+            player.sendMessage("§7Make sure you're looking at an EnthusiaMarket shop sign.")
         }
     }
 
