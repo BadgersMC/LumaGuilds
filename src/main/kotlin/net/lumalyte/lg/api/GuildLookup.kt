@@ -50,11 +50,20 @@ interface GuildLookup {
     /** Guild bank balance for [guildId], or 0 if unknown. */
     fun getBankBalance(guildId: UUID): Long
 
-    /** Withdraw [amount] from [guildId]'s bank as [actorId]. True on success. */
-    fun bankWithdraw(guildId: UUID, actorId: UUID, amount: Int, reason: String): Boolean
+    /**
+     * Withdraw [amount] from [guildId]'s bank as [actorId]. True on success.
+     *
+     * Amounts are `Long` for a uniform API, but LumaGuilds' bank is Int-bounded
+     * internally, so amounts that are non-positive or exceed `Int.MAX_VALUE`
+     * (~2.1B) are rejected (return false).
+     */
+    fun bankWithdraw(guildId: UUID, actorId: UUID, amount: Long, reason: String): Boolean
 
-    /** Deposit [amount] into [guildId]'s bank as [actorId]. True on success. */
-    fun bankDeposit(guildId: UUID, actorId: UUID, amount: Int, reason: String): Boolean
+    /**
+     * Deposit [amount] into [guildId]'s bank as [actorId]. True on success.
+     * Same Int-bounded constraint as [bankWithdraw].
+     */
+    fun bankDeposit(guildId: UUID, actorId: UUID, amount: Long, reason: String): Boolean
 }
 
 /**

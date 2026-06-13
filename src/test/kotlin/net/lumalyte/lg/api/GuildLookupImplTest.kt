@@ -50,11 +50,15 @@ class GuildLookupImplTest {
     }
 
     @Test
-    fun `isMember reflects member presence`() {
+    fun `isMember true when member exists`() {
         every { members.getMember(playerId, guildId) } returns Member(
             playerId = playerId, guildId = guildId, rankId = UUID.randomUUID(), joinedAt = Instant.now(),
         )
         assertTrue(lookup.isMember(playerId, guildId))
+    }
+
+    @Test
+    fun `isMember false when member absent`() {
         every { members.getMember(playerId, guildId) } returns null
         assertFalse(lookup.isMember(playerId, guildId))
     }
@@ -71,6 +75,14 @@ class GuildLookupImplTest {
     }
 
     @Test
+    fun `hasShopPermission returns false when service throws`() {
+        every {
+            members.hasPermission(playerId, guildId, RankPermission.EDIT_SHOP_STOCK)
+        } throws RuntimeException("db down")
+        assertFalse(lookup.hasShopPermission(playerId, guildId, "EDIT_SHOP_STOCK"))
+    }
+
+    @Test
     fun `hasRankAtLeast true when player priority not below target`() {
         val playerRankId = UUID.randomUUID()
         val officerRankId = UUID.randomUUID()
@@ -83,18 +95,54 @@ class GuildLookupImplTest {
     }
 
     @Test
+    fun `hasRankAtLeast false when player rank is lower authority than target`() {
+        val playerRankId = UUID.randomUUID()
+        val officerRankId = UUID.randomUUID()
+        every { members.getPlayerRankId(playerId, guildId) } returns playerRankId
+        every { ranks.listRanks(guildId) } returns setOf(
+            Rank(id = playerRankId, guildId = guildId, name = "Member", priority = 3),
+            Rank(id = officerRankId, guildId = guildId, name = "Officer", priority = 2),
+        )
+        assertFalse(lookup.hasRankAtLeast(playerId, guildId, "Officer"))
+    }
+
+    @Test
+    fun `hasRankAtLeast false when target rank not found`() {
+        val playerRankId = UUID.randomUUID()
+        every { members.getPlayerRankId(playerId, guildId) } returns playerRankId
+        every { ranks.listRanks(guildId) } returns setOf(
+            Rank(id = playerRankId, guildId = guildId, name = "Member", priority = 3),
+        )
+        assertFalse(lookup.hasRankAtLeast(playerId, guildId, "Officer"))
+    }
+
+    @Test
     fun `hasRankAtLeast false when player has no rank`() {
         every { members.getPlayerRankId(playerId, guildId) } returns null
         assertFalse(lookup.hasRankAtLeast(playerId, guildId, "Officer"))
     }
 
     @Test
-    fun `bank operations delegate and translate result`() {
+    fun `getBankBalance delegates and widens to Long`() {
         every { banks.getBalance(guildId) } returns 4200
         assertEquals(4200L, lookup.getBankBalance(guildId))
+    }
+
+    @Test
+    fun `bankWithdraw translates non-null result to true`() {
         every { banks.withdraw(guildId, playerId, 100, "r") } returns mockk()
         assertTrue(lookup.bankWithdraw(guildId, playerId, 100, "r"))
+    }
+
+    @Test
+    fun `bankDeposit translates null result to false`() {
         every { banks.deposit(guildId, playerId, 50, "r") } returns null
         assertFalse(lookup.bankDeposit(guildId, playerId, 50, "r"))
+    }
+
+    @Test
+    fun `bank amounts beyond Int range are rejected without hitting the service`() {
+        assertFalse(lookup.bankWithdraw(guildId, playerId, Int.MAX_VALUE.toLong() + 1, "r"))
+        assertFalse(lookup.bankDeposit(guildId, playerId, 0, "r"))
     }
 }

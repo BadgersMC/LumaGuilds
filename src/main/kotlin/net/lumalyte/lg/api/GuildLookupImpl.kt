@@ -58,11 +58,19 @@ class GuildLookupImpl(
     override fun getBankBalance(guildId: UUID): Long =
         banks.getBalance(guildId).toLong()
 
-    override fun bankWithdraw(guildId: UUID, actorId: UUID, amount: Int, reason: String): Boolean =
-        banks.withdraw(guildId, actorId, amount, reason) != null
+    override fun bankWithdraw(guildId: UUID, actorId: UUID, amount: Long, reason: String): Boolean {
+        val intAmount = amount.toIntBankAmountOrNull() ?: return false
+        return banks.withdraw(guildId, actorId, intAmount, reason) != null
+    }
 
-    override fun bankDeposit(guildId: UUID, actorId: UUID, amount: Int, reason: String): Boolean =
-        banks.deposit(guildId, actorId, amount, reason) != null
+    override fun bankDeposit(guildId: UUID, actorId: UUID, amount: Long, reason: String): Boolean {
+        val intAmount = amount.toIntBankAmountOrNull() ?: return false
+        return banks.deposit(guildId, actorId, intAmount, reason) != null
+    }
+
+    /** LumaGuilds' bank is Int-bounded; reject non-positive or out-of-range amounts. */
+    private fun Long.toIntBankAmountOrNull(): Int? =
+        if (this <= 0 || this > Int.MAX_VALUE) null else toInt()
 
     private fun Guild.toSummary() = GuildSummary(id, name, tag, emoji)
 }
