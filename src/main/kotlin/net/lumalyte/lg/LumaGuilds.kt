@@ -82,6 +82,11 @@ class LumaGuilds : JavaPlugin() {
         // Start Koin with modular architecture
         startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
 
+        // Expose the cross-plugin GuildLookup API via Bukkit's ServicesManager so
+        // consumers (EnthusiaMarket) read guild data without reaching into our Koin
+        // container from their classloader (which LinkageErrors on kotlin.reflect.KClass).
+        registerGuildLookupService()
+
         // Initialize Apollo AFTER Koin is started (requires Koin DI)
         initialiseApolloIntegration()
 
@@ -1166,6 +1171,39 @@ class LumaGuilds : JavaPlugin() {
             pluginScope.cancel()
         }
 
+        // Withdraw the cross-plugin GuildLookup API.
+        try {
+            Bukkit.getServicesManager().unregister(net.lumalyte.lg.api.GuildLookup::class.java, this)
+        } catch (e: Exception) {
+            logger.warning("Failed to unregister GuildLookup service: ${e.message}")
+        }
+
         logColored("🛑 LumaGuilds disabled")
+    }
+
+    /**
+     * Builds a [net.lumalyte.lg.api.GuildLookupImpl] from the Koin-resolved
+     * services and registers it in Bukkit's ServicesManager. Resolution happens
+     * here, inside LumaGuilds' own classloader, so the Koin/KClass boundary is
+     * never crossed by a consumer plugin.
+     */
+    private fun registerGuildLookupService() {
+        try {
+            val lookup = net.lumalyte.lg.api.GuildLookupImpl(
+                get().get(),
+                get().get(),
+                get().get(),
+                get().get(),
+            )
+            Bukkit.getServicesManager().register(
+                net.lumalyte.lg.api.GuildLookup::class.java,
+                lookup,
+                this,
+                org.bukkit.plugin.ServicePriority.Normal,
+            )
+            logColored("✓ Registered GuildLookup API for shop integrations")
+        } catch (e: Exception) {
+            logger.severe("Failed to register GuildLookup service: ${e.message}")
+        }
     }
 }
