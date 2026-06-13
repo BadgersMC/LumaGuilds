@@ -1,3 +1,9 @@
+// This is a deliberately public, cross-plugin integration API: the interface is
+// loaded by other plugins via ServicesManager and GuildSummary is its transfer
+// type, so the "library entities should not be public" / "public data class"
+// detekt rules don't apply here.
+@file:Suppress("LibraryEntitiesShouldNotBePublic", "ForbiddenPublicDataClass")
+
 package net.lumalyte.lg.api
 
 import java.util.UUID
@@ -21,7 +27,6 @@ import java.util.UUID
  * enum names (e.g. "EDIT_SHOP_STOCK").
  */
 interface GuildLookup {
-
     /** Guild ids the player is a member of (may be empty). */
     fun getPlayerGuildIds(playerId: UUID): Set<UUID>
 
@@ -72,8 +77,12 @@ interface GuildLookup {
  * stored values (consumers normalise formatting themselves).
  */
 data class GuildSummary(
+    /** Guild's unique id. */
     val id: UUID,
+    /** Display name. */
     val name: String,
+    /** Raw stored tag (consumer normalises formatting), or null. */
     val tag: String?,
+    /** Raw stored emoji (consumer normalises formatting), or null. */
     val emoji: String?,
 )

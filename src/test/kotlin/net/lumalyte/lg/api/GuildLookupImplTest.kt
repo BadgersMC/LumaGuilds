@@ -1,3 +1,17 @@
+// Test-idiom detekt rules don't fit JUnit/mockk tests (backtick names, in-line
+// expected values, one assertion-helper per case).
+@file:Suppress(
+    "FunctionNaming",
+    "FunctionMaxLength",
+    "MagicNumber",
+    "UndocumentedPublicFunction",
+    "UndocumentedPublicClass",
+    "TooManyFunctions",
+    "NoEmptyFirstLineInClassBody",
+    "MultilineExpressionWrapping",
+    "StringLiteralDuplication",
+)
+
 package net.lumalyte.lg.api
 
 import io.mockk.every

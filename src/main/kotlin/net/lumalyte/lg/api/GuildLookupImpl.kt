@@ -1,3 +1,8 @@
+// Must be public (registered in Bukkit's ServicesManager and consumed by other
+// plugins); it mirrors the GuildLookup interface so the function count and the
+// guard-clause return counts are inherent to that contract.
+@file:Suppress("LibraryEntitiesShouldNotBePublic", "TooManyFunctions", "ReturnCount")
+
 package net.lumalyte.lg.api
 
 import net.lumalyte.lg.application.services.BankService
@@ -21,17 +26,13 @@ class GuildLookupImpl(
     private val banks: BankService,
 ) : GuildLookup {
 
-    override fun getPlayerGuildIds(playerId: UUID): Set<UUID> =
-        members.getPlayerGuilds(playerId)
+    override fun getPlayerGuildIds(playerId: UUID): Set<UUID> = members.getPlayerGuilds(playerId)
 
-    override fun getGuild(guildId: UUID): GuildSummary? =
-        guilds.getGuild(guildId)?.toSummary()
+    override fun getGuild(guildId: UUID): GuildSummary? = guilds.getGuild(guildId)?.toSummary()
 
-    override fun getAllGuilds(): List<GuildSummary> =
-        guilds.getAllGuilds().map { it.toSummary() }
+    override fun getAllGuilds(): List<GuildSummary> = guilds.getAllGuilds().map { it.toSummary() }
 
-    override fun isMember(playerId: UUID, guildId: UUID): Boolean =
-        members.getMember(playerId, guildId) != null
+    override fun isMember(playerId: UUID, guildId: UUID): Boolean = members.getMember(playerId, guildId) != null
 
     override fun hasShopPermission(playerId: UUID, guildId: UUID, permission: String): Boolean {
         val perm = try {
@@ -55,8 +56,7 @@ class GuildLookupImpl(
         return playerRank.priority <= targetRank.priority
     }
 
-    override fun getBankBalance(guildId: UUID): Long =
-        banks.getBalance(guildId).toLong()
+    override fun getBankBalance(guildId: UUID): Long = banks.getBalance(guildId).toLong()
 
     override fun bankWithdraw(guildId: UUID, actorId: UUID, amount: Long, reason: String): Boolean {
         val intAmount = amount.toIntBankAmountOrNull() ?: return false
@@ -68,9 +68,7 @@ class GuildLookupImpl(
         return banks.deposit(guildId, actorId, intAmount, reason) != null
     }
 
-    /** LumaGuilds' bank is Int-bounded; reject non-positive or out-of-range amounts. */
-    private fun Long.toIntBankAmountOrNull(): Int? =
-        if (this <= 0 || this > Int.MAX_VALUE) null else toInt()
+    private fun Long.toIntBankAmountOrNull(): Int? = if (this <= 0 || this > Int.MAX_VALUE) null else toInt()
 
     private fun Guild.toSummary() = GuildSummary(id, name, tag, emoji)
 }
