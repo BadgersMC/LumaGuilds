@@ -14,6 +14,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # Single source of truth: cache key + build step both read this (see build.yml).
+    env:
+      ROSECHAT_PREHOOK_REF: 3fe078a   # last RoseChat commit before the LumaGuilds hook
+
     permissions:
       contents: read
       packages: read
@@ -28,28 +32,28 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
-    - name: Resolve RoseChat commit SHA
-      id: rosechat-sha
-      run: |
-        SHA=$(git ls-remote https://github.com/BadgersMC/Enthusia-RoseChat.git refs/heads/master | cut -f1)
-        echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-
+    # See build.yml: RoseChat master carries a LumaGuilds hook that needs the
+    # LumaGuilds jar, so build RoseChat at the last PRE-HOOK commit to break the
+    # circular compile dependency. Keep ROSECHAT_PREHOOK_REF in sync with build.yml
+    # and EnthusiaMarket's CI.
     - name: Cache RoseChat jar
       id: rosechat-cache
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: libs/RoseChat-RC-2.jar
-        key: rosechat-jar-${{ steps.rosechat-sha.outputs.sha }}
+        key: rosechat-jar-prehook-${{ env.ROSECHAT_PREHOOK_REF }}
 
-    - name: Build RoseChat dependency
+    - name: Build RoseChat (pre-hook) dependency
       if: steps.rosechat-cache.outputs.cache-hit != 'true'
       run: |
-        git clone --depth=1 https://github.com/BadgersMC/Enthusia-RoseChat.git /tmp/rosechat
+        git clone https://github.com/BadgersMC/Enthusia-RoseChat.git /tmp/rosechat
         cd /tmp/rosechat
+        git checkout "$ROSECHAT_PREHOOK_REF"
         chmod +x gradlew
         ./gradlew shadowJar --no-daemon
         mkdir -p "$GITHUB_WORKSPACE/libs"
-        cp build/libs/RoseChat-RC-2.jar "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
+        ROSE_JAR=$(ls build/libs/RoseChat-RC-2*.jar | grep -v -- '-sources\|-javadoc' | head -1)
+        cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
 
     - name: Test with Gradle
       env:
