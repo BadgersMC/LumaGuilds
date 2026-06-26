@@ -413,9 +413,6 @@ fun guildsModule() = module {
     single<net.lumalyte.lg.application.services.AdminOverrideService> {
         net.lumalyte.lg.infrastructure.services.AdminOverrideServiceImpl()
     }
-    single<net.lumalyte.lg.infrastructure.services.ARMIntegrationService> {
-        net.lumalyte.lg.infrastructure.services.ARMIntegrationService()
-    }
 
     // Bannerman services
     single<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService> {

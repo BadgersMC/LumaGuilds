@@ -44,7 +44,6 @@ class VaultProtectionListener : Listener, KoinComponent {
     private val memberService: MemberService by inject()
     private val configService: ConfigService by inject()
     private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService by inject()
-    private val armIntegrationService: net.lumalyte.lg.infrastructure.services.ARMIntegrationService by inject()
 
     private val logger = LoggerFactory.getLogger(VaultProtectionListener::class.java)
 
@@ -156,15 +155,6 @@ class VaultProtectionListener : Listener, KoinComponent {
         if (member == null) {
             event.isCancelled = true
             player.sendMessage("§cYou cannot place this vault chest as you're not in ${guild.name}!")
-            return
-        }
-
-        // Check if location is in a shop region (ARM integration)
-        if (armIntegrationService.isInShopRegion(block.location)) {
-            event.isCancelled = true
-            player.sendMessage("§c§lBLOCKED§r §7» §fYou cannot place a guild vault in a shop region!")
-            logger.warn("Blocked ${player.name} from placing vault in shop region at " +
-                    "${block.location.world?.name} (${block.location.blockX}, ${block.location.blockY}, ${block.location.blockZ})")
             return
         }
 
