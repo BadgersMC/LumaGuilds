@@ -1584,9 +1584,6 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
      * balance (B), 1:1. The guilds.bank_balance column is then zeroed so it can no longer be
      * mistaken for a live balance. The bank_transactions ledger is left intact as audit/history.
      * A per-guild dry-run report is logged before any rows are written.
-     *
-     * One-shot, NOT idempotent — the ledger rows persist, so a second pass would re-sum store A
-     * and double-count. The dbVersion guard above is the enforcement.
      */
     private fun migrateToVersion23() {
         componentLogger.info(Component.text("Migrating to version 23: consolidating guild balances into unified vault gold (store B)..."))

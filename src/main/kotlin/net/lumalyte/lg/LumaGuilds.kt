@@ -82,11 +82,6 @@ class LumaGuilds : JavaPlugin() {
         // Start Koin with modular architecture
         startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
 
-        // Expose the cross-plugin GuildLookup API via Bukkit's ServicesManager so
-        // consumers (EnthusiaMarket) read guild data without reaching into our Koin
-        // container from their classloader (which LinkageErrors on kotlin.reflect.KClass).
-        registerGuildLookupService()
-
         // Initialize Apollo AFTER Koin is started (requires Koin DI)
         initialiseApolloIntegration()
 
@@ -992,44 +987,27 @@ class LumaGuilds : JavaPlugin() {
     /**
      * Initializes the periodic relation maintenance task.
      *
-     * Split into two scheduled tasks so we don't park the main thread on DB I/O every 5 minutes:
-     *  - cleanupStaleRelations runs ASYNC. It only does DB reads/writes, never fires Bukkit events.
-     *  - processExpiredRelations runs SYNC. It fires GuildRelationChangeEvent for each expired
-     *    truce, which is not safe to dispatch from an async thread (listeners assume main-thread
-     *    access to Bukkit APIs).
-     *
-     * Both run every 5 minutes after a 1-minute startup delay.
+     * Runs on the main thread (the relation service fires Bukkit events on truce expiry, which
+     * must not happen off-thread) every 5 minutes after a 1-minute startup delay. It expires due
+     * truces (reverting them to enemy) and clears stale/orphaned relation rows so they can no
+     * longer block new ally/truce requests.
      */
     private fun initRelationMaintenanceScheduler() {
         try {
             val relationService = get().get<net.lumalyte.lg.application.services.RelationService>()
             val intervalTicks = 20L * 60L * 5L // every 5 minutes
             val initialDelayTicks = 20L * 60L  // first run after 1 minute
-
-            // Async pass: pure DB maintenance.
-            server.scheduler.runTaskTimerAsynchronously(this, Runnable {
-                try {
-                    val cleaned = relationService.cleanupStaleRelations()
-                    if (cleaned > 0) {
-                        logger.info("Relation maintenance (async): cleaned=$cleaned")
-                    }
-                } catch (e: Exception) {
-                    logger.warning("Relation cleanup run failed: ${e.message}")
-                }
-            }, initialDelayTicks, intervalTicks)
-
-            // Sync pass: fires Bukkit events on truce expiry, must stay on the main thread.
             server.scheduler.runTaskTimer(this, Runnable {
                 try {
                     val expired = relationService.processExpiredRelations()
-                    if (expired > 0) {
-                        logger.info("Relation maintenance (sync): expired=$expired")
+                    val cleaned = relationService.cleanupStaleRelations()
+                    if (expired > 0 || cleaned > 0) {
+                        logger.info("Relation maintenance: expired=$expired, cleaned=$cleaned")
                     }
                 } catch (e: Exception) {
-                    logger.warning("Relation expiry run failed: ${e.message}")
+                    logger.warning("Relation maintenance run failed: ${e.message}")
                 }
             }, initialDelayTicks, intervalTicks)
-
             logColored("✓ Relation maintenance scheduler started")
         } catch (e: Exception) {
             // Broad exception handling acceptable - scheduler failure shouldn't prevent plugin load
@@ -1171,39 +1149,6 @@ class LumaGuilds : JavaPlugin() {
             pluginScope.cancel()
         }
 
-        // Withdraw the cross-plugin GuildLookup API.
-        try {
-            Bukkit.getServicesManager().unregister(net.lumalyte.lg.api.GuildLookup::class.java, this)
-        } catch (e: Exception) {
-            logger.warning("Failed to unregister GuildLookup service: ${e.message}")
-        }
-
         logColored("🛑 LumaGuilds disabled")
-    }
-
-    /**
-     * Builds a [net.lumalyte.lg.api.GuildLookupImpl] from the Koin-resolved
-     * services and registers it in Bukkit's ServicesManager. Resolution happens
-     * here, inside LumaGuilds' own classloader, so the Koin/KClass boundary is
-     * never crossed by a consumer plugin.
-     */
-    private fun registerGuildLookupService() {
-        try {
-            val lookup = net.lumalyte.lg.api.GuildLookupImpl(
-                get().get(),
-                get().get(),
-                get().get(),
-                get().get(),
-            )
-            Bukkit.getServicesManager().register(
-                net.lumalyte.lg.api.GuildLookup::class.java,
-                lookup,
-                this,
-                org.bukkit.plugin.ServicePriority.Normal,
-            )
-            logColored("✓ Registered GuildLookup API for shop integrations")
-        } catch (e: Exception) {
-            logger.severe("Failed to register GuildLookup service: ${e.message}")
-        }
     }
 }
