@@ -88,8 +88,14 @@ class BedrockRankEditMenu(
         canManageBank: Boolean,
         canAccessVault: Boolean
     ) {
-        // Build permissions set
-        val permissions = mutableSetOf<RankPermission>()
+        val shopPermissions = setOf(
+            RankPermission.ACCESS_SHOP_CHESTS,
+            RankPermission.EDIT_SHOP_STOCK,
+            RankPermission.MODIFY_SHOP_PRICES
+        )
+
+        // Preserve shop permissions not exposed in this Bedrock form
+        val permissions = rank.permissions.filter { it in shopPermissions }.toMutableSet()
         if (canInvite) permissions.add(RankPermission.MANAGE_MEMBERS)
         if (canKick) permissions.add(RankPermission.MANAGE_MEMBERS)
         if (canPromote) permissions.add(RankPermission.MANAGE_MEMBERS)

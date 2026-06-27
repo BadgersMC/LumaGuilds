@@ -547,7 +547,8 @@ fun vaultModule() = module {
             get(),
             get(),
             get(),
-            get()
+            get(),
+            { get<net.lumalyte.lg.application.services.PhysicalCurrencyService>() }
         )
     }
     single<net.lumalyte.lg.application.services.VaultAutoSaveService> {

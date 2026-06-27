@@ -5,7 +5,9 @@ import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildVaultService
+import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.application.services.RankService
+import net.lumalyte.lg.application.services.WithdrawalInfo
 import net.lumalyte.lg.application.services.VaultInventoryManager
 import net.lumalyte.lg.application.services.VaultResult
 import net.lumalyte.lg.domain.entities.Guild
@@ -39,10 +41,21 @@ class GuildVaultServiceBukkit(
     private val configService: ConfigService,
     private val vaultInventoryManager: VaultInventoryManager,
     private val hologramService: VaultHologramService,
-    private val rankService: RankService
+    private val rankService: RankService,
+    private val physicalCurrencyServiceProvider: () -> PhysicalCurrencyService
 ) : GuildVaultService {
 
     private val logger = LoggerFactory.getLogger(GuildVaultServiceBukkit::class.java)
+
+    private val shopTransactions by lazy {
+        GuildVaultShopTransactions(
+            guildRepository,
+            configService,
+            vaultInventoryManager,
+            physicalCurrencyServiceProvider(),
+            ::getCapacityForLevel
+        )
+    }
 
     // Cache for vault location to guild mapping
     private val vaultLocationCache = mutableMapOf<String, UUID>()
@@ -243,6 +256,19 @@ class GuildVaultServiceBukkit(
         }
     }
 
+    override fun calculateGoldValue(items: List<ItemStack>): Int {
+        var total = 0
+        for (item in items) {
+            when (item.type) {
+                Material.GOLD_NUGGET -> total += item.amount
+                Material.GOLD_INGOT -> total += item.amount * 9
+                Material.GOLD_BLOCK -> total += item.amount * 81
+                else -> Unit
+            }
+        }
+        return total
+    }
+
     override fun getCapacityForLevel(level: Int): Int {
         // Default capacity configuration
         return when {
@@ -307,6 +333,12 @@ class GuildVaultServiceBukkit(
         }
 
         return null
+    }
+
+    override fun updateVaultStatus(guild: Guild, status: VaultStatus): Guild {
+        val updatedGuild = guild.copy(vaultStatus = status)
+        guildRepository.update(updatedGuild)
+        return updatedGuild
     }
 
     override fun dropAllVaultItems(guild: Guild): VaultResult<Unit> {
@@ -426,6 +458,15 @@ class GuildVaultServiceBukkit(
         }
         logger.info("Rebuilt vault location cache with ${vaultLocationCache.size} entries")
     }
+
+    override fun withdrawForShopPurchase(
+        guild: Guild,
+        amount: Double,
+        reason: String
+    ): VaultResult<WithdrawalInfo> = shopTransactions.withdrawForShopPurchase(guild, amount, reason)
+
+    override fun depositToVault(guild: Guild, amount: Double, reason: String): VaultResult<Double> =
+        shopTransactions.depositToVault(guild, amount, reason)
 
     override fun restoreAllVaultChests(): Int {
         var restoredCount = 0

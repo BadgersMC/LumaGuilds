@@ -189,3 +189,10 @@ enum class VaultStatus {
     /** Guild has never placed a vault chest */
     NEVER_PLACED
 }
+
+/** Guild bank currency mode configured in vault settings. */
+enum class BankMode {
+    VIRTUAL,
+    PHYSICAL,
+    BOTH
+}

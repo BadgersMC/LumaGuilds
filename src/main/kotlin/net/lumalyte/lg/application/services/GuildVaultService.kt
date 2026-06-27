@@ -59,6 +59,12 @@ interface GuildVaultService {
     fun updateVaultInventory(guild: Guild, items: Map<Int, ItemStack>): VaultResult<Unit>
 
     /**
+     * Calculates the total gold value of items in the vault.
+     * Counts GOLD_NUGGET (1), GOLD_INGOT (9), GOLD_BLOCK (81).
+     */
+    fun calculateGoldValue(items: List<ItemStack>): Int
+
+    /**
      * Gets the vault capacity for a given guild level.
      *
      * @param level The guild level.
@@ -91,6 +97,9 @@ interface GuildVaultService {
      */
     fun getGuildForVaultChest(location: Location): Guild?
 
+    /** Updates the vault status for a guild and persists the change. */
+    fun updateVaultStatus(guild: Guild, status: VaultStatus): Guild
+
     /**
      * Drops all items from a vault at its location.
      *
@@ -109,6 +118,12 @@ interface GuildVaultService {
      */
     fun hasVaultPermission(player: Player, guild: Guild, requireWithdraw: Boolean = false): Boolean
 
+    /** Withdraws funds from the guild vault for a shop purchase. */
+    fun withdrawForShopPurchase(guild: Guild, amount: Double, reason: String): VaultResult<WithdrawalInfo>
+
+    /** Deposits shop income (or other external funds) into the guild vault. */
+    fun depositToVault(guild: Guild, amount: Double, reason: String): VaultResult<Double>
+
     /**
      * Restores all vault chests on server startup.
      * Recreates chest blocks at saved locations for all guilds with AVAILABLE vault status.
@@ -117,6 +132,13 @@ interface GuildVaultService {
      */
     fun restoreAllVaultChests(): Int
 }
+
+/** Details of a successful vault withdrawal for shop routing. */
+data class WithdrawalInfo(
+    val withdrawnAmount: Double,
+    val remainingBalance: Double,
+    val mode: net.lumalyte.lg.domain.entities.BankMode
+)
 
 /**
  * Simple result wrapper for service operations.
