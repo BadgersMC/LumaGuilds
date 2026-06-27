@@ -404,8 +404,48 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             .lore("§cClick to delete")
 
         val deleteGuiItem = GuiItem(deleteItem) {
-            player.sendMessage("§eRank deletion coming soon!")
-            player.sendMessage("§7This will show a confirmation menu.")
+            // Prevent deleting the owner rank
+            if (isOwnerRank()) {
+                player.sendMessage("§c❌ Cannot delete the owner rank!")
+                player.sendMessage("§7The owner rank is permanent and cannot be removed.")
+                return@GuiItem
+            }
+
+            // Prevent deleting the last remaining rank
+            val allRanks = rankService.listRanks(guild.id)
+            if (allRanks.size <= 1) {
+                player.sendMessage("§c❌ Cannot delete the last rank in the guild!")
+                player.sendMessage("§7Every guild must have at least one rank.")
+                return@GuiItem
+            }
+
+            // Migrate members to another rank if this rank is in use
+            val membersWithRank = memberService.getMembersByRank(guild.id, rank.id)
+            if (membersWithRank.isNotEmpty()) {
+                // Find the lowest-priority rank that isn't this one
+                val targetRank = allRanks
+                    .filter { it.id != rank.id }
+                    .maxByOrNull { it.priority }
+
+                if (targetRank == null) {
+                    player.sendMessage("§c❌ No other rank to move members to!")
+                    return@GuiItem
+                }
+
+                for (member in membersWithRank) {
+                    memberService.changeMemberRank(member.playerId, guild.id, targetRank.id, player.uniqueId)
+                }
+                player.sendMessage("§eMoved §f${membersWithRank.size} §emember(s) to §f${targetRank.name}§e.")
+            }
+
+            val result = rankService.deleteRank(rank.id, player.uniqueId)
+            if (result) {
+                player.sendMessage("§a✅ Rank §f${rank.name}§a deleted!")
+            } else {
+                player.sendMessage("§c❌ Failed to delete rank!")
+            }
+
+            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(deleteGuiItem, 5, 5)
 
