@@ -26,8 +26,9 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
     /**
      * Spawn (or respawn) a banner display attached to the player. The previous display, if any, is removed.
      * The display rides the player as a passenger so the client renders it rigidly attached —
-     * no per-tick teleports, no position/yaw desync. The owner is hidden from the entity so it
-     * never clips into their first-person FOV; teammates and enemies still see it.
+     * no per-tick teleports, no position/yaw desync. The display is positioned low and behind
+     * the head mount so the owner's first-person camera doesn't see it, while F5 / external
+     * viewers see it on the upper back.
      */
     fun spawnFor(player: Player, banner: ItemStack) {
         despawnFor(player.uniqueId)
@@ -44,7 +45,6 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
             display.remove()
             return
         }
-        player.hideEntity(plugin, display)
         displays[player.uniqueId] = display.uniqueId
     }
 

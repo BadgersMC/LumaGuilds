@@ -8,10 +8,16 @@ import org.bukkit.potion.PotionEffectType
 import org.bukkit.scheduler.BukkitRunnable
 
 /**
- * Position and rotation are handled by passenger-mounting the display on the player
- * (see [BannermanRenderService.spawnFor]) — the vanilla client keeps them rigidly
- * attached, so no per-tick teleport is needed. This task only flips visibility based
- * on elytra / invisibility state, which doesn't need sub-second responsiveness.
+ * Position is handled by passenger-mounting the display on the player (see
+ * [BannermanRenderService.spawnFor]) — the vanilla client keeps it rigidly attached.
+ *
+ * Per-tick work for tracked players:
+ *   - Force body yaw to match head yaw. Vanilla lets a standing player swivel their head
+ *     up to ~50° before the body catches up, which leaves a passenger banner facing the
+ *     old direction. Locking body yaw to head yaw makes the banner track shoulder rotation
+ *     in real time.
+ *   - Visibility toggle for elytra / invisibility (only re-applied if it changed, since
+ *     isVisibleByDefault triggers tracker resends).
  */
 internal class BannermanTickTask(
     private val plugin: JavaPlugin,
@@ -19,7 +25,7 @@ internal class BannermanTickTask(
 ) : BukkitRunnable() {
 
     companion object {
-        private const val TICK_PERIOD = 20L
+        private const val TICK_PERIOD = 1L
     }
 
     fun start() {
@@ -36,10 +42,15 @@ internal class BannermanTickTask(
         if (!renderer.isTracking(player.uniqueId)) return
         val display = renderer.currentDisplay(player.uniqueId) ?: return
 
-        display.isVisibleByDefault = BannermanVisibility.shouldShow(
+        player.setBodyYaw(player.location.yaw)
+
+        val shouldShow = BannermanVisibility.shouldShow(
             hasElytra = isWearingElytra(player),
             hasInvisibility = player.hasPotionEffect(PotionEffectType.INVISIBILITY)
         )
+        if (display.isVisibleByDefault != shouldShow) {
+            display.isVisibleByDefault = shouldShow
+        }
     }
 
     private fun isWearingElytra(player: Player): Boolean =
