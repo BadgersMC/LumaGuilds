@@ -222,9 +222,7 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
             val results = storage.connection.getResults(sql, limit)
             results.mapNotNull { row ->
                 val id = try { UUID.fromString(row.getString("guild_id")) } catch (e: Exception) { null }
-                // Read as Long directly; SQLite INTEGER holds 8 bytes and balances can exceed
-                // Int.MAX_VALUE on a long-running server. getInt(...).toLong() would narrow first.
-                id?.let { it to row.getLong("balance") }
+                id?.let { it to row.getInt("balance").toLong() }
             }
         } catch (e: SQLException) {
             logger.error("Failed to query top gold balances", e)

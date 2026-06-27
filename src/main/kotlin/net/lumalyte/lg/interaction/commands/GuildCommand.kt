@@ -51,13 +51,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
-    private val bankService: net.lumalyte.lg.application.services.BankService by inject()
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
-
-    private companion object {
-        const val BALTOP_DISPLAY_LIMIT = 10
-    }
 
     private fun notifyGuildMembers(guildId: java.util.UUID, message: String) {
         val members = memberService.getGuildMembers(guildId)
@@ -578,10 +573,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§cNo guild named '$guildName' found.")
             return null
         }
-        // Own guild's ally-home is a valid target: members with USE_ALLY_HOMES (or the owner)
-        // may teleport to it. The ally-relation check below only applies to other guilds.
         if (targetGuild.id == ownGuild.id) {
-            return targetGuild
+            player.sendMessage("§cUse §6/guild home §cfor your own guild's home.")
+            return null
         }
         val relationService: net.lumalyte.lg.application.services.RelationService by inject()
         if (relationService.getRelationType(ownGuild.id, targetGuild.id)
@@ -602,20 +596,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c${targetGuild.name} has no ally home set.")
             return null
         }
-        val isOwnGuild = targetGuild.id == ownGuild.id
-        val allowed = if (isOwnGuild) {
-            guildService.canUseOwnAllyHome(player.uniqueId, ownGuild.id)
-        } else {
-            guildService.canUseAllyHome(player.uniqueId, ownGuild.id, targetGuild.id)
-        }
-        if (!allowed) {
-            if (isOwnGuild) {
-                player.sendMessage("§c❌ You don't have permission to use your guild's ally home.")
-                player.sendMessage("§7Your rank needs the USE_ALLY_HOMES permission.")
-            } else {
-                player.sendMessage("§c❌ You don't have permission to use ${targetGuild.name}'s ally home.")
-                player.sendMessage("§7Your rank may lack USE_ALLY_HOMES, or that guild has not granted access.")
-            }
+        if (!guildService.canUseAllyHome(player.uniqueId, ownGuild.id, targetGuild.id)) {
+            player.sendMessage("§c❌ You don't have permission to use ${targetGuild.name}'s ally home.")
+            player.sendMessage("§7Your rank may lack USE_ALLY_HOMES, or that guild has not granted access.")
             return null
         }
         if (teleportationService.hasActiveTeleport(player.uniqueId)) {
@@ -650,44 +633,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
         return true
     }
-
-    @Subcommand("bal|balance")
-    @CommandPermission("lumaguilds.guild.bal")
-    fun onBalance(player: Player) {
-        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
-        if (guild == null) {
-            player.sendMessage("§cYou are not in a guild.")
-            return
-        }
-        // Bank table is the source of truth for guild balance.
-        val balance = bankService.getBalance(guild.id)
-        player.sendMessage("§6§l${guild.name} §7Bank Balance: §a$${formatMoney(balance)}")
-    }
-
-    @Subcommand("baltop|balancetop")
-    @CommandPermission("lumaguilds.guild.baltop")
-    fun onBalanceTop(player: Player) {
-        val top = bankService.getTopBalances(BALTOP_DISPLAY_LIMIT)
-        if (top.isEmpty()) {
-            player.sendMessage("§7No guild balances to display yet.")
-            return
-        }
-        player.sendMessage("§6§l✦ Top Guilds by Bank Balance ✦")
-        val ownGuildId = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()?.id
-        // Resolve names first and drop rows whose guild was deleted out from under the cache;
-        // re-numbering after the filter keeps display ranks contiguous (no #1, #3, #4 gaps).
-        val resolved = top.mapNotNull { (guildId, balance) ->
-            guildService.getGuild(guildId)?.let { Triple(guildId, it.name, balance) }
-        }
-        resolved.forEachIndexed { index, (guildId, name, balance) ->
-            val rank = index + 1
-            val highlight = if (guildId == ownGuildId) "§e" else "§f"
-            player.sendMessage("§7#§f$rank $highlight$name §7- §a$${formatMoney(balance)}")
-        }
-    }
-
-    /** Formats an integer money amount with thousands separators (e.g. 1234567 -> 1,234,567). */
-    private fun formatMoney(amount: Int): String = "%,d".format(amount)
 
     @Subcommand("ranks")
     @CommandPermission("lumaguilds.guild.ranks")
@@ -2048,80 +1993,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
-    @Subcommand("setshop")
-    @CommandPermission("lumaguilds.guild.setshop")
-    fun onSetShop(player: Player) {
-        val playerId = player.uniqueId
-
-        // Find player's guild
-        val guilds = guildService.getPlayerGuilds(playerId)
-        if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
-            return
-        }
-
-        val guild = guilds.first()
-
-        // Check permission
-        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)) {
-            player.sendMessage("§c❌ You don't have permission to convert shops to guild shops!")
-            player.sendMessage("§7You need the MANAGE_GUILD_SETTINGS permission.")
-            return
-        }
-
-        // EnthusiaMarket owns shops — resolve its public API from the ServicesManager.
-        val shopLookup = Bukkit.getServicesManager().load(net.badgersmc.em.api.ShopGuildLookup::class.java)
-        if (shopLookup == null) {
-            player.sendMessage("§c❌ Guild shops feature is not available!")
-            player.sendMessage("§7Contact a server administrator - EnthusiaMarket is required.")
-            return
-        }
-
-        // Convert the shop the player is looking at: aim at its wall sign.
-        val targetSign = player.getTargetBlockExact(5)
-        if (targetSign == null || targetSign.state !is org.bukkit.block.Sign) {
-            player.sendMessage("§c❌ Look at a shop's sign to convert it to a guild shop.")
-            player.sendMessage("§7Stand within 5 blocks and aim directly at the shop sign.")
-            return
-        }
-
-        // Register the shop at that sign as guild-owned. Guard the cross-plugin call so a
-        // failure gives a deterministic message instead of an uncontrolled command error.
-        // LinkageError (NoClassDefFoundError / AbstractMethodError) is caught alongside
-        // Exception because EM is a runtime soft dependency — an absent or version-mismatched
-        // EnthusiaMarket surfaces as a linkage failure at the call site, not a normal exception.
-        val converted = try {
-            shopLookup.registerGuildShopBySign(targetSign.location, guild.id, playerId)
-        } catch (e: Exception) {
-            setShopConversionFailed(player, targetSign.location, e); return
-        } catch (e: LinkageError) {
-            setShopConversionFailed(player, targetSign.location, e); return
-        }
-
-        if (converted) {
-            player.sendMessage("§a✅ Shop converted to guild shop!")
-            player.sendMessage("§7All income from this shop will now go to §6${guild.name}§7's vault.")
-            player.sendMessage("§7Guild permissions now apply to this shop.")
-
-            // Notify guild members
-            notifyGuildMembers(guild.id, "§6★ §e${player.name} §7converted a shop to a guild shop!")
-        } else {
-            player.sendMessage("§c❌ No registered shop found at that sign.")
-            player.sendMessage("§7Make sure you're looking at an EnthusiaMarket shop sign.")
-        }
-    }
-
-    /** Log a /guild setshop EnthusiaMarket failure with full stack trace + tell the player. */
-    private fun setShopConversionFailed(player: Player, loc: org.bukkit.Location, t: Throwable) {
-        player.server.logger.log(
-            java.util.logging.Level.WARNING,
-            "EnthusiaMarket guild-shop conversion failed for ${player.name} at " +
-                "${loc.world?.name} (${loc.blockX}, ${loc.blockY}, ${loc.blockZ})",
-            t,
-        )
-        player.sendMessage("§c❌ Shop conversion failed. Please contact an admin.")
-    }
-
     @Subcommand("help")
     @CommandPermission("lumaguilds.guild.help")
     fun onHelp(player: Player, @Optional topic: String?) {
@@ -2388,50 +2259,34 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage("§cYou cannot change relations with your own guild.")
+            player.sendMessage("§cYou cannot request peace with your own guild.")
             return
         }
 
         // Get relation service
         val relationService: net.lumalyte.lg.application.services.RelationService by inject()
 
-        // Check current relation and handle accordingly
+        // Check current relation
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
-        when (currentRelation) {
-            net.lumalyte.lg.domain.entities.RelationType.ENEMY -> {
-                // Request peace (existing unenemy flow)
-                val relation = relationService.requestUnenemy(guild.id, targetGuild.id, playerId)
-                if (relation != null) {
-                    player.sendMessage("§f✓ Peace request sent to ${targetGuild.name}!")
-                    player.sendMessage("§7If accepted, hostilities will end permanently.")
-                    player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.5f)
-                    notifyGuildMembers(targetGuild.id, "§f${guild.name} §7has requested to end hostilities with your guild! Use §6/guild menu §7→ Relations to respond.")
-                } else {
-                    player.sendMessage("§c✗ Failed to send peace request.")
-                    player.sendMessage("§7There may already be a pending request.")
-                    player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                }
-            }
-            net.lumalyte.lg.domain.entities.RelationType.ALLY -> {
-                // Break alliance immediately (unilateral)
-                val success = relationService.breakAlliance(guild.id, targetGuild.id, playerId)
-                if (success) {
-                    player.sendMessage("§c✗ You broke the alliance with ${targetGuild.name}.")
-                    player.sendMessage("§7You are now neutral with them.")
-                    player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 0.8f)
-                    notifyGuildMembers(targetGuild.id, "§c${guild.name} §7has broken the alliance with your guild.")
-                } else {
-                    player.sendMessage("§c✗ Failed to break alliance.")
-                    player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                }
-            }
-            net.lumalyte.lg.domain.entities.RelationType.TRUCE -> {
-                player.sendMessage("§cYou are in a truce with ${targetGuild.name}.")
-                player.sendMessage("§7Wait for the truce to expire or use §6/guild enemy ${targetGuild.name} §7to declare war.")
-            }
-            else -> {
-                player.sendMessage("§cYou are already neutral with ${targetGuild.name}.")
-            }
+        if (currentRelation != net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
+            player.sendMessage("§cYou can only request peace with enemy guilds!")
+            player.sendMessage("§7Current relation with ${targetGuild.name}: ${currentRelation.name.lowercase()}")
+            return
+        }
+
+        // Request unenemy (peace)
+        val relation = relationService.requestUnenemy(guild.id, targetGuild.id, playerId)
+        if (relation != null) {
+            player.sendMessage("§f✓ Peace request sent to ${targetGuild.name}!")
+            player.sendMessage("§7If accepted, hostilities will end permanently.")
+            player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.5f)
+
+            // Notify target guild members
+            notifyGuildMembers(targetGuild.id, "§f${guild.name} §7has requested to end hostilities with your guild! Use §6/guild menu §7→ Relations to respond.")
+        } else {
+            player.sendMessage("§c✗ Failed to send peace request.")
+            player.sendMessage("§7There may already be a pending request.")
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
 

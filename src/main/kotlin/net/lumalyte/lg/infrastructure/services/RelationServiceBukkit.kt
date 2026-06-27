@@ -23,16 +23,14 @@ class RelationServiceBukkit(
     
     private val logger = LoggerFactory.getLogger(RelationServiceBukkit::class.java)
 
-    companion object {
-        /** Pending requests outstanding longer than this are auto-resolved by cleanupStaleRelations. */
-        private val PENDING_REQUEST_TTL: Duration = Duration.ofDays(14)
-    }
-
     /** Checks whether [guildId] is the recorded requester of [relation], allowing legacy null rows. */
     private fun isRequester(relation: Relation, guildId: UUID): Boolean =
         relation.requestingGuildId == guildId
 
-
+    companion object {
+        /** Pending requests outstanding longer than this are auto-resolved by cleanupStaleRelations. */
+        private val PENDING_REQUEST_TTL: Duration = Duration.ofDays(14)
+    }
     override fun requestAlliance(requestingGuildId: UUID, targetGuildId: UUID, actorId: UUID): Relation? {
         try {
             // Validate permissions
@@ -59,16 +57,8 @@ class RelationServiceBukkit(
                     logger.warn("A pending request already exists between guilds $requestingGuildId and $targetGuildId")
                     return null
                 }
-                // Only NEUTRAL or terminal (REJECTED/EXPIRED) rows may be overwritten with a
-                // pending alliance. Reusing an active TRUCE or ENEMY row would silently destroy
-                // the underlying state — on reject/cancel, resolvePendingRequest would either
-                // delete the row (losing the truce) or revert to ENEMY (losing an unrelated war
-                // history). Force the caller to go through the proper transition first.
-                if (existingRelation.isActive() && existingRelation.type != RelationType.NEUTRAL) {
-                    logger.warn(
-                        "Cannot request alliance between guilds $requestingGuildId and $targetGuildId" +
-                            " - active ${existingRelation.type} relation must be ended first",
-                    )
+                if (existingRelation.isActive() && existingRelation.type == RelationType.ALLY) {
+                    logger.warn("Guilds $requestingGuildId and $targetGuildId are already allied")
                     return null
                 }
                 // Reuse the stale/inactive row by updating it to a fresh pending alliance request.
@@ -249,20 +239,15 @@ class RelationServiceBukkit(
                 return null
             }
 
-            // Stamp expiresAt as createdAt + duration even though the truce is only pending —
-            // acceptTruce derives the requested duration from (expiresAt - createdAt) and
-            // re-anchors expiresAt to the moment of acceptance. Without this, a 1-day truce
-            // accepted 20 hours later would only last 4 hours.
-            val now = Instant.now()
-            val requestedExpiresAt = currentRelation.createdAt.plus(duration)
+            val expiresAt = Instant.now().plus(duration)
 
             // Update existing relation to pending truce
             val truceRelation = currentRelation.copy(
                 type = RelationType.TRUCE,
                 status = RelationStatus.PENDING,
-                expiresAt = requestedExpiresAt,
+                expiresAt = expiresAt,
                 requestingGuildId = requestingGuildId,
-                updatedAt = now
+                updatedAt = Instant.now()
             )
             
             return if (relationRepository.update(truceRelation)) {
@@ -311,18 +296,11 @@ class RelationServiceBukkit(
                 logger.warn("Guild $acceptingGuildId cannot accept its own truce request")
                 return null
             }
-
-            // The truce duration is encoded as (expiresAt - createdAt) on the pending row; the
-            // real timer starts now, on acceptance. Without this re-anchor the truce would
-            // already have burned hours/days of life while waiting for the target to respond.
-            val now = Instant.now()
-            val requestedDuration = relation.expiresAt
-                ?.let { Duration.between(relation.createdAt, it) }
-                ?: Duration.ZERO
+            
+            // Update relation to active
             val updatedRelation = relation.copy(
                 status = RelationStatus.ACTIVE,
-                expiresAt = now.plus(requestedDuration),
-                updatedAt = now
+                updatedAt = Instant.now()
             )
             
             return if (relationRepository.update(updatedRelation)) {
@@ -441,53 +419,6 @@ class RelationServiceBukkit(
             return null
         }
     }
-
-    override fun breakAlliance(guildId: UUID, targetGuildId: UUID, actorId: UUID): Boolean {
-        try {
-            // Validate permissions
-            if (!canManageRelations(actorId, guildId)) {
-                logger.warn("Player $actorId does not have permission to manage relations for guild $guildId")
-                return false
-            }
-
-            // Check that guilds are currently allied
-            val currentRelation = relationRepository.getByGuilds(guildId, targetGuildId)
-            if (currentRelation?.type != RelationType.ALLY || !currentRelation.isActive()) {
-                logger.warn("Cannot break alliance - guilds are not currently allied")
-                return false
-            }
-
-            // Remove the relation (neutral is the default state)
-            return if (relationRepository.remove(currentRelation.id)) {
-                logger.info("Alliance broken between guilds $guildId and $targetGuildId")
-                // Mirror the war-declaration path: strip ally-home inbound whitelist entries
-                // so the now-neutral pair don't retain ACL access.
-                removeAllyInboundWhitelist(currentRelation.guildA, currentRelation.guildB)
-                // Emit a neutral-typed relation so listeners reading event.relation.type see
-                // NEUTRAL consistent with event.newRelationType.
-                val neutralRelation = currentRelation.copy(
-                    type = RelationType.NEUTRAL,
-                    status = RelationStatus.ACTIVE,
-                    updatedAt = Instant.now(),
-                )
-                Bukkit.getPluginManager().callEvent(
-                    GuildRelationChangeEvent(
-                        currentRelation.guildA,
-                        currentRelation.guildB,
-                        RelationType.NEUTRAL,
-                        neutralRelation,
-                    )
-                )
-                true
-            } else {
-                logger.error("Failed to remove alliance relation")
-                false
-            }
-        } catch (e: Exception) {
-            logger.error("Error breaking alliance", e)
-            return false
-        }
-    }
     
     override fun rejectRequest(relationId: UUID, rejectingGuildId: UUID, actorId: UUID): Boolean {
         try {
@@ -514,14 +445,14 @@ class RelationServiceBukkit(
                 logger.warn("Relation $relationId is not pending")
                 return false
             }
-
-            // Enforce direction: only the non-requester can reject.
-            // Legacy rows with null requestingGuildId can be rejected by either guild.
+            
+            // Enforce direction: only the non-requester can reject
+            // Legacy rows with null requestingGuildId can be rejected by either guild
             if (relation.requestingGuildId != null && isRequester(relation, rejectingGuildId)) {
                 logger.warn("Guild $rejectingGuildId cannot reject its own request")
                 return false
             }
-
+            
             // Rejecting a request must restore the pre-request state, NOT just mark it REJECTED:
             // a rejected truce/unenemy request leaves the guilds still at war (revert to ENEMY),
             // while a rejected alliance request returns to neutral (row removed). Leaving a
@@ -559,14 +490,14 @@ class RelationServiceBukkit(
                 logger.warn("Relation $relationId is not pending")
                 return false
             }
-
-            // Enforce direction: only the requester can cancel.
-            // Legacy rows with null requestingGuildId can be cancelled by either guild.
+            
+            // Enforce direction: only the requester can cancel
+            // Legacy rows with null requestingGuildId can be cancelled by either guild
             if (relation.requestingGuildId != null && !isRequester(relation, cancellingGuildId)) {
                 logger.warn("Guild $cancellingGuildId cannot cancel a request it did not send")
                 return false
             }
-
+            
             // Cancelling restores the pre-request state (same rules as rejection): a cancelled
             // truce/unenemy request must keep the guilds at war, not silently end it by deleting
             // the row.
