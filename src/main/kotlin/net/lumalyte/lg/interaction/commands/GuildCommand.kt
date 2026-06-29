@@ -573,9 +573,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§cNo guild named '$guildName' found.")
             return null
         }
+        // Own guild's ally-home is a valid target: members with USE_ALLY_HOMES (or the owner)
+        // may teleport to it. The ally-relation check below only applies to other guilds.
         if (targetGuild.id == ownGuild.id) {
-            player.sendMessage("§cUse §6/guild home §cfor your own guild's home.")
-            return null
+            return targetGuild
         }
         val relationService: net.lumalyte.lg.application.services.RelationService by inject()
         if (relationService.getRelationType(ownGuild.id, targetGuild.id)
@@ -596,9 +597,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c${targetGuild.name} has no ally home set.")
             return null
         }
-        if (!guildService.canUseAllyHome(player.uniqueId, ownGuild.id, targetGuild.id)) {
-            player.sendMessage("§c❌ You don't have permission to use ${targetGuild.name}'s ally home.")
-            player.sendMessage("§7Your rank may lack USE_ALLY_HOMES, or that guild has not granted access.")
+        val isOwnGuild = targetGuild.id == ownGuild.id
+        val allowed = if (isOwnGuild) {
+            guildService.canUseOwnAllyHome(player.uniqueId, ownGuild.id)
+        } else {
+            guildService.canUseAllyHome(player.uniqueId, ownGuild.id, targetGuild.id)
+        }
+        if (!allowed) {
+            if (isOwnGuild) {
+                player.sendMessage("§c❌ You don't have permission to use your guild's ally home.")
+                player.sendMessage("§7Your rank needs the USE_ALLY_HOMES permission.")
+            } else {
+                player.sendMessage("§c❌ You don't have permission to use ${targetGuild.name}'s ally home.")
+                player.sendMessage("§7Your rank may lack USE_ALLY_HOMES, or that guild has not granted access.")
+            }
             return null
         }
         if (teleportationService.hasActiveTeleport(player.uniqueId)) {
