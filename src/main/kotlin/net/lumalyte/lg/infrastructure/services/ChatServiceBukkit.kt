@@ -69,35 +69,42 @@ class ChatServiceBukkit(
     }
     
     override fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String): Boolean {
+        return sendGuildAnnouncement(guildId, announcerId, message, '6')
+    }
+
+    override fun sendGuildAnnouncement(
+        guildId: UUID, announcerId: UUID, message: String, colorDigit: Char,
+    ): Boolean {
         try {
             if (!canSendAnnouncements(announcerId, guildId)) {
                 logger.warn("Player $announcerId cannot send announcements for guild $guildId")
                 return false
             }
-            
+
             if (isAnnouncementRateLimited(announcerId)) {
                 logger.warn("Player $announcerId is rate limited for announcements")
                 return false
             }
-            
+
             val guild = guildService.getGuild(guildId)
             if (guild == null) {
                 logger.warn("Guild $guildId not found")
                 return false
             }
-            
+
             val announcerName = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
             val guildDisplayName = GuildDisplayUtils.createGuildTag(guild)
-            
-            val formattedMessage = "§6[§l${guildDisplayName} ANNOUNCEMENT§r§6]§r\n" +
+
+            val colorCode = "§$colorDigit"
+            val formattedMessage = "$colorCode[§l${guildDisplayName} ANNOUNCEMENT§r$colorCode]§r\n" +
                     "§e$announcerName:§r $message"
-            
+
             val recipients = getOnlineGuildMembers(guildId)
             val deliveredCount = broadcastMessageWithSound(recipients, formattedMessage, true)
-            
+
             // Update rate limit
             updateAnnouncementRateLimit(announcerId)
-            
+
             logger.info("Guild announcement from $announcerId delivered to $deliveredCount members of guild $guildId")
             return deliveredCount > 0
         } catch (e: Exception) {
@@ -157,6 +164,10 @@ class ChatServiceBukkit(
                 ChatChannel.GUILD -> currentSettings.copy(guildChatVisible = !currentSettings.guildChatVisible)
                 ChatChannel.ALLY -> currentSettings.copy(allyChatVisible = !currentSettings.allyChatVisible)
                 ChatChannel.PARTY -> currentSettings.copy(partyChatVisible = !currentSettings.partyChatVisible)
+                ChatChannel.MODCHAT -> {
+                    logger.warn("Cannot toggle visibility for mod chat channel")
+                    return false
+                }
                 ChatChannel.PUBLIC -> {
                     logger.warn("Cannot toggle visibility for public channel")
                     return false
@@ -170,6 +181,7 @@ class ChatServiceBukkit(
                     ChatChannel.GUILD -> newSettings.guildChatVisible
                     ChatChannel.ALLY -> newSettings.allyChatVisible
                     ChatChannel.PARTY -> newSettings.partyChatVisible
+                    ChatChannel.MODCHAT -> false
                     ChatChannel.PUBLIC -> false
                 }
                 logger.info("Player $playerId toggled $channel chat visibility to $visibilityState")
@@ -223,6 +235,16 @@ class ChatServiceBukkit(
                     getVisibilitySettings(playerId).partyChatVisible
                 }.toSet()
             }
+            ChatChannel.MODCHAT -> {
+                val senderGuilds = memberService.getPlayerGuilds(senderId)
+                senderGuilds.flatMap { guildId ->
+                    getOnlineGuildMembers(guildId).filter { playerId ->
+                        memberService.hasPermission(
+                            playerId, guildId, RankPermission.MODERATE_CHAT,
+                        )
+                    }
+                }.toSet()
+            }
             ChatChannel.PUBLIC -> {
                 // Return all online players for public chat
                 Bukkit.getOnlinePlayers().map { it.uniqueId }.toSet()
@@ -261,6 +283,13 @@ class ChatServiceBukkit(
             }
             ChatChannel.PARTY -> {
                 formatPartyMessage(senderId, senderName, processedMessage, guildTag)
+            }
+            ChatChannel.MODCHAT -> {
+                if (guildTag.isNotEmpty()) {
+                    "§1[M] $guildTag §9$senderName:§r $processedMessage"
+                } else {
+                    "§1[M] §9$senderName:§r $processedMessage"
+                }
             }
             ChatChannel.PUBLIC -> {
                 if (guildTag.isNotEmpty()) {

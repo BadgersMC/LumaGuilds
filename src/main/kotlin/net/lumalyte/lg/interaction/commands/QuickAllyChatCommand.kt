@@ -16,9 +16,9 @@ import org.koin.core.component.inject
  * changing the player's current chat channel (which `/g allychat` permanently
  * toggles).
  *
- * `/ac` alone shows help text.
+ * `/gac` alone shows help text.
  */
-@CommandAlias("ac")
+@CommandAlias("gac")
 internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
@@ -33,7 +33,7 @@ internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
             return
         }
         player.sendMessage("§3=== Quick Ally Chat ===")
-        player.sendMessage("§7Use §f/ac <message> §7to send a single message to ally chat.")
+        player.sendMessage("§7Use §f/gac <message> §7to send a single message to ally chat.")
         player.sendMessage("§7Your chat channel won't change — you stay in your current chat.")
         player.sendMessage("§7To toggle permanent ally chat mode, use §f/g allychat§7.")
     }

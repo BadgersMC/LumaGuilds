@@ -14,7 +14,10 @@ enum class ChatChannel {
     
     /** Party chat channel */
     PARTY,
-    
+
+    /** Guild moderator chat channel */
+    MODCHAT,
+
     /** Public/global chat channel */
     PUBLIC
 }

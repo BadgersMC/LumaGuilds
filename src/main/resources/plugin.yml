@@ -29,9 +29,15 @@ commands:
   gc:
     description: Send a quick message to guild chat without changing your chat channel
     usage: /gc [message]
-  ac:
+  gac:
     description: Send a quick message to ally chat without changing your chat channel
-    usage: /ac [message]
+    usage: /gac [message]
+  gmc:
+    description: Send a quick message to guild mod chat (moderators only)
+    usage: /gmc [message]
+  ga:
+    description: Send a guild announcement (moderators only)
+    usage: /ga [color] <message>
   lumaguilds:
     description: LumaGuilds administrative commands
     usage: /lumaguilds <subcommand> [args]
