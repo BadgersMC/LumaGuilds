@@ -974,19 +974,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c❌ You are not in a guild!")
             return
         }
-        val primaryGuildId = guilds.first().id
         if (!memberService.hasPermission(
-                playerId, primaryGuildId, RankPermission.MODERATE_CHAT,
+                playerId, guilds.first().id, RankPermission.MODERATE_CHAT,
             )
         ) {
             player.sendMessage("§c❌ Only guild moderators can use mod chat!")
             return
         }
-
         val nowEnabled = guildChatListener.toggleModChat(player)
         if (nowEnabled) {
-            player.sendMessage("§9✅ §1Mod chat §9enabled§9! Messages go to guild moderators.")
-            player.sendMessage("§7Run §f/g modchat §7again to return to normal chat.")
+            player.sendMessage("§9✅ §1Mod chat §9enabled§9! Run /g modchat again to disable.")
         } else {
             player.sendMessage("§7Mod chat §cdisabled§7. Your messages go to main chat.")
         }

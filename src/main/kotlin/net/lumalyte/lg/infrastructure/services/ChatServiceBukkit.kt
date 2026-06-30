@@ -68,49 +68,53 @@ class ChatServiceBukkit(
         }
     }
     
-    override fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String): Boolean {
-        return sendGuildAnnouncement(guildId, announcerId, message, '6')
-    }
+    override fun sendGuildAnnouncement(
+        guildId: UUID, announcerId: UUID, message: String,
+    ): Boolean = sendGuildAnnouncement(guildId, announcerId, message, '6')
 
     override fun sendGuildAnnouncement(
-        guildId: UUID, announcerId: UUID, message: String, colorDigit: Char,
+        guildId: UUID,
+        announcerId: UUID,
+        message: String,
+        colorDigit: Char,
     ): Boolean {
-        try {
-            if (!canSendAnnouncements(announcerId, guildId)) {
-                logger.warn("Player $announcerId cannot send announcements for guild $guildId")
-                return false
-            }
+        val guild = validateAnnouncementPreconditions(announcerId, guildId) ?: return false
 
-            if (isAnnouncementRateLimited(announcerId)) {
-                logger.warn("Player $announcerId is rate limited for announcements")
-                return false
-            }
-
-            val guild = guildService.getGuild(guildId)
-            if (guild == null) {
-                logger.warn("Guild $guildId not found")
-                return false
-            }
-
+        return try {
             val announcerName = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
             val guildDisplayName = GuildDisplayUtils.createGuildTag(guild)
-
             val colorCode = "§$colorDigit"
-            val formattedMessage = "$colorCode[§l${guildDisplayName} ANNOUNCEMENT§r$colorCode]§r\n" +
-                    "§e$announcerName:§r $message"
+            val formatted = "$colorCode[§l${guildDisplayName} ANNOUNCEMENT§r$colorCode]§r\n" +
+                "§e$announcerName:§r $message"
 
             val recipients = getOnlineGuildMembers(guildId)
-            val deliveredCount = broadcastMessageWithSound(recipients, formattedMessage, true)
-
-            // Update rate limit
+            val count = broadcastMessageWithSound(recipients, formatted, true)
             updateAnnouncementRateLimit(announcerId)
-
-            logger.info("Guild announcement from $announcerId delivered to $deliveredCount members of guild $guildId")
-            return deliveredCount > 0
+            logger.info(
+                "Guild announcement from $announcerId delivered to $count members of guild $guildId",
+            )
+            count > 0
         } catch (e: Exception) {
-            // Service operation - catching all exceptions to prevent service failure
             logger.error("Error sending guild announcement", e)
-            return false
+            false
+        }
+    }
+
+    private fun validateAnnouncementPreconditions(
+        announcerId: UUID, guildId: UUID,
+    ): net.lumalyte.lg.domain.entities.Guild? {
+        if (!canSendAnnouncements(announcerId, guildId)) {
+            logger.warn("Player $announcerId cannot send announcements for guild $guildId")
+            return null
+        }
+        if (isAnnouncementRateLimited(announcerId)) {
+            logger.warn("Player $announcerId is rate limited for announcements")
+            return null
+        }
+        return guildService.getGuild(guildId).also { guild ->
+            if (guild == null) {
+                logger.warn("Guild $guildId not found")
+            }
         }
     }
     

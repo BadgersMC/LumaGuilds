@@ -21,7 +21,6 @@ import org.koin.core.component.inject
  */
 @CommandAlias("gmc")
 internal class QuickModChatCommand : BaseCommand(), KoinComponent {
-
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -30,20 +29,7 @@ internal class QuickModChatCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
-        val playerId = player.uniqueId
-        val guilds = guildService.getPlayerGuilds(playerId)
-        if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
-            return
-        }
-        val primaryGuildId = guilds.first().id
-        if (!memberService.hasPermission(
-                playerId, primaryGuildId, RankPermission.MODERATE_CHAT,
-            )
-        ) {
-            player.sendMessage("§c❌ Only guild moderators can use mod chat!")
-            return
-        }
+        if (!requireModChatPermission(player)) return
         player.sendMessage("§1=== Quick Mod Chat ===")
         player.sendMessage("§7Use §f/gmc <message> §7to send a message to guild moderators.")
         player.sendMessage("§7Only guild moderators will see your message.")
@@ -54,21 +40,7 @@ internal class QuickModChatCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onMessage(player: Player, vararg message: String) {
-        val playerId = player.uniqueId
-        val guilds = guildService.getPlayerGuilds(playerId)
-        if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
-            return
-        }
-
-        val primaryGuildId = guilds.first().id
-        if (!memberService.hasPermission(
-                playerId, primaryGuildId, RankPermission.MODERATE_CHAT,
-            )
-        ) {
-            player.sendMessage("§c❌ Only guild moderators can use mod chat!")
-            return
-        }
+        if (!requireModChatPermission(player)) return
 
         val text = message.joinToString(" ")
         if (text.isBlank()) {
@@ -76,12 +48,24 @@ internal class QuickModChatCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        val success = chatService.routeMessage(playerId, text, ChatChannel.MODCHAT)
+        val success = chatService.routeMessage(player.uniqueId, text, ChatChannel.MODCHAT)
         if (!success) {
             player.sendMessage(
                 "§e⚠️ No guild moderators are currently online to receive your message.",
             )
         }
-        // No success echo — the message is routed to recipients (including sender)
+    }
+
+    private fun requireModChatPermission(player: Player): Boolean {
+        val guilds = guildService.getPlayerGuilds(player.uniqueId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§c❌ You are not in a guild!")
+            return false
+        }
+        if (!memberService.hasPermission(player.uniqueId, guilds.first().id, RankPermission.MODERATE_CHAT)) {
+            player.sendMessage("§c❌ Only guild moderators can use mod chat!")
+            return false
+        }
+        return true
     }
 }

@@ -11,21 +11,20 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.UUID
 
 /**
  * Guild announcement: `/ga <message>` sends a highlighted announcement to all
- * guild members. Only usable by members with the SEND_ANNOUNCEMENTS permission.
+ * guild members. Only usable by members with SEND_ANNOUNCEMENTS permission.
  *
  * Color override: `/ga &<0-9> <message>` uses the chosen Minecraft color code.
  * Default color is 6 (gold).
  *
- * Available colors: &0 black, &1 dark blue, &2 dark green, &3 dark aqua,
- * &4 dark red, &5 dark purple, &6 gold (default), &7 gray, &8 dark gray,
- * &9 blue.
+ * Colors: &0 black, &1 dark blue, &2 dark green, &3 dark aqua,
+ * &4 dark red, &5 dark purple, &6 gold, &7 gray, &8 dark gray, &9 blue.
  */
 @CommandAlias("ga")
 internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
-
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -34,20 +33,8 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
-        val playerId = player.uniqueId
-        val guilds = guildService.getPlayerGuilds(playerId)
-        if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
-            return
-        }
-        val primaryGuildId = guilds.first().id
-        if (!memberService.hasPermission(
-                playerId, primaryGuildId, RankPermission.SEND_ANNOUNCEMENTS,
-            )
-        ) {
-            player.sendMessage("§c❌ You don't have permission to send announcements!")
-            return
-        }
+        val guildId = requireAnnouncementPermission(player) ?: return
+        // Rate limit not checked for help display
         player.sendMessage("§6=== Guild Announcements ===")
         player.sendMessage("§7Use §f/ga <message> §7to announce to all guild members.")
         player.sendMessage("§7Add a color code: §f/ga &c <message> §7for custom colors.")
@@ -59,51 +46,47 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onAnnounce(player: Player, vararg args: String) {
-        val playerId = player.uniqueId
-        val guilds = guildService.getPlayerGuilds(playerId)
-        if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
-            return
-        }
-
-        val primaryGuild = guilds.first()
-        val guildId = primaryGuild.id
-
-        if (!memberService.hasPermission(
-                playerId, guildId, RankPermission.SEND_ANNOUNCEMENTS,
-            )
-        ) {
-            player.sendMessage("§c❌ You don't have permission to send announcements!")
-            return
-        }
+        val guildId = requireAnnouncementPermission(player) ?: return
 
         if (args.isEmpty()) {
             player.sendMessage("§c❌ Provide a message. §7Usage: /ga [&color] <message>")
             return
         }
 
-        // Parse optional color prefix: first arg may be "&" + single digit 0-9
-        val colorDigit: Char
-        val message: String
-        if (args[0].matches(Regex("&[0-9]"))) {
-            colorDigit = args[0][1]
-            message = args.drop(1).joinToString(" ")
-        } else {
-            colorDigit = '6' // default gold
-            message = args.joinToString(" ")
-        }
-
+        val (colorDigit, message) = parseAnnouncementInput(args)
         if (message.isBlank()) {
             player.sendMessage("§c❌ Message cannot be empty.")
             return
         }
 
-        val success = chatService.sendGuildAnnouncement(
-            guildId, playerId, message, colorDigit,
-        )
-        if (!success) {
+        val ok = chatService.sendGuildAnnouncement(guildId, player.uniqueId, message, colorDigit)
+        if (!ok) {
             player.sendMessage("§c❌ Failed to send announcement.")
         }
-        // No success echo — the announcement is broadcast to all guild members
+    }
+
+    private data class AnnouncementInput(val colorDigit: Char, val message: String)
+
+    private fun parseAnnouncementInput(args: Array<out String>): AnnouncementInput {
+        val colorRegex = Regex("&[0-9]")
+        return if (args[0].matches(colorRegex)) {
+            AnnouncementInput(args[0][1], args.drop(1).joinToString(" "))
+        } else {
+            AnnouncementInput('6', args.joinToString(" "))
+        }
+    }
+
+    private fun requireAnnouncementPermission(player: Player): UUID? {
+        val guilds = guildService.getPlayerGuilds(player.uniqueId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§c❌ You are not in a guild!")
+            return null
+        }
+        val guildId = guilds.first().id
+        if (!memberService.hasPermission(player.uniqueId, guildId, RankPermission.SEND_ANNOUNCEMENTS)) {
+            player.sendMessage("§c❌ You don't have permission to send announcements!")
+            return null
+        }
+        return guildId
     }
 }
