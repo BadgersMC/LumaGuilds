@@ -62,7 +62,9 @@ internal class QuickModChatCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c❌ You are not in a guild!")
             false
         } else if (!memberService.hasPermission(
-                player.uniqueId, guild.id, RankPermission.MODERATE_CHAT,
+                player.uniqueId,
+                guild.id,
+                RankPermission.MODERATE_CHAT,
             )
         ) {
             player.sendMessage("§c❌ Only guild moderators can use mod chat!")

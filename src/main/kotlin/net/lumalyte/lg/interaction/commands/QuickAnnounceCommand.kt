@@ -49,10 +49,12 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
         val guildId = requireAnnouncementPermission(player) ?: return
         val (colorDigit, message) = parseAnnouncementInput(args)
         if (message.isBlank()) {
-            player.sendMessage(
-                if (args.isEmpty()) "§c❌ Provide a message. Usage: /ga [&color] <message>"
-                else "§c❌ Message cannot be empty.",
-            )
+            val msg = if (args.isEmpty()) {
+                "§c❌ Provide a message. Usage: /ga [&color] <message>"
+            } else {
+                "§c❌ Message cannot be empty."
+            }
+            player.sendMessage(msg)
             return
         }
         val ok = chatService.sendGuildAnnouncement(guildId, player.uniqueId, message, colorDigit)
@@ -78,7 +80,9 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c❌ You are not in a guild!")
             null
         } else if (!memberService.hasPermission(
-                player.uniqueId, guild.id, RankPermission.SEND_ANNOUNCEMENTS,
+                player.uniqueId,
+                guild.id,
+                RankPermission.SEND_ANNOUNCEMENTS,
             )
         ) {
             player.sendMessage("§c❌ You don't have permission to send announcements!")

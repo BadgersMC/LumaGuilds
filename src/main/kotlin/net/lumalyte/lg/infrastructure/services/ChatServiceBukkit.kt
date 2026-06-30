@@ -69,30 +69,29 @@ class ChatServiceBukkit(
     }
     
     override fun sendGuildAnnouncement(
-    guildId: UUID,
-    announcerId: UUID,
-    message: String,
+            guildId: UUID,
+            announcerId: UUID,
+            message: String,
     ): Boolean =
         sendGuildAnnouncement(guildId, announcerId, message, '6')
 
     override fun sendGuildAnnouncement(
-    guildId: UUID,
-    announcerId: UUID,
-    message: String,
-    colorDigit: Char,
+            guildId: UUID,
+            announcerId: UUID,
+            message: String,
+            colorDigit: Char,
     ): Boolean {
         val guild = validateAnnouncementPreconditions(announcerId, guildId)
             ?: return false
+        val name = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
+        val c = "§$colorDigit"
+        val fmt = "$c[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r$c]§r\n" +
+            "§e$name:§r $message"
         return try {
-            val name = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
-            val tag = GuildDisplayUtils.createGuildTag(guild)
-            val c = "§$colorDigit"
-            val fmt = "$c[§l${tag} ANNOUNCEMENT§r$c]§r\n§e$name:§r $message"
-            val recipients = getOnlineGuildMembers(guildId)
-            val sent = broadcastMessageWithSound(recipients, fmt, true)
+            val n = broadcastMessageWithSound(getOnlineGuildMembers(guildId), fmt, true)
             updateAnnouncementRateLimit(announcerId)
-            logger.info("Announce from $announcerId to $sent guild members")
-            sent > 0
+            logger.info("Announce from $announcerId to $n members")
+            n > 0
         } catch (e: Exception) {
             logger.error("Error sending guild announcement", e)
             false
