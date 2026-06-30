@@ -12,7 +12,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
- * Quick ally chat: `/ac <message>` sends one message to ally chat without
+ * Quick ally chat: `/gac <message>` sends one message to ally chat without
  * changing the player's current chat channel (which `/g allychat` permanently
  * toggles).
  *
@@ -23,7 +23,7 @@ internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
 
-    /** Shows usage help when `/ac` is typed without arguments. */
+    /** Shows usage help when `/gac` is typed without arguments. */
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {

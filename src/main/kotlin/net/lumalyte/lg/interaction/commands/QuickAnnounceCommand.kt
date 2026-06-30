@@ -37,7 +37,7 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
         // Rate limit not checked for help display
         player.sendMessage("§6=== Guild Announcements ===")
         player.sendMessage("§7Use §f/ga <message> §7to announce to all guild members.")
-        player.sendMessage("§7Add a color code: §f/ga &c <message> §7for custom colors.")
+        player.sendMessage("§7Add a color code: §f/ga &4 <message> §7for custom colors.")
         player.sendMessage("§7Colors: §0&0 §1&1 §2&2 §3&3 §4&4 §5&5 §6&6 §7&7 §8&8 §9&9")
         player.sendMessage("§7Default is §6&6 §7(gold). Cooldown: 5 minutes.")
     }
@@ -68,7 +68,7 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
 
     private fun parseAnnouncementInput(args: Array<out String>): AnnouncementInput {
         val colorRegex = Regex("&[0-9]")
-        return if (args[0].matches(colorRegex)) {
+        return if (args.isNotEmpty() && args[0].matches(colorRegex)) {
             AnnouncementInput(args[0][1], args.drop(1).joinToString(" "))
         } else {
             AnnouncementInput('6', args.joinToString(" "))

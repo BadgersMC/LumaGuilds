@@ -237,7 +237,12 @@ class ChatServiceBukkit(
             }
             ChatChannel.MODCHAT -> {
                 val senderGuilds = memberService.getPlayerGuilds(senderId)
-                senderGuilds.flatMap { guildId ->
+                val modGuilds = senderGuilds.filter { guildId ->
+                    memberService.hasPermission(
+                        senderId, guildId, RankPermission.MODERATE_CHAT,
+                    )
+                }
+                modGuilds.flatMap { guildId ->
                     getOnlineGuildMembers(guildId).filter { playerId ->
                         memberService.hasPermission(
                             playerId, guildId, RankPermission.MODERATE_CHAT,

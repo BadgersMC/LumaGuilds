@@ -119,11 +119,12 @@ class GuildChatListener : Listener, KoinComponent {
      * Toggles mod chat mode for a player. Only guild members with MODERATE_CHAT
      * permission can use this. Uses RoseChat for channel switching.
      *
-     * @return true if mod chat is now ON, false if now OFF.
+     * @return true if mod chat is now ON, false if toggled OFF,
+     *         null if unavailable (error message already sent).
      */
-    fun toggleModChat(player: Player): Boolean {
+    fun toggleModChat(player: Player): Boolean? {
+        val modChannel = resolveModChatChannel(player) ?: return null
         val rose = RosePlayer(player)
-        val modChannel = resolveModChatChannel(player) ?: return false
         return if (rose.playerData?.currentChannel === modChannel) {
             restorePreviousChannel(player, rose)
             false
@@ -137,10 +138,12 @@ class GuildChatListener : Listener, KoinComponent {
     private fun resolveModChatChannel(player: Player): Channel? {
         val api = RoseChatAPI.getInstance()
         val ch = api?.channelManager?.getChannel(modChatChannelId)
-        val g = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
-        val ok = g != null && memberService.hasPermission(
-            player.uniqueId, g.id, RankPermission.MODERATE_CHAT,
-        )
+        val guilds = guildService.getPlayerGuilds(player.uniqueId)
+        val g = guilds.firstOrNull { guild ->
+            memberService.hasPermission(
+                player.uniqueId, guild.id, RankPermission.MODERATE_CHAT,
+            )
+        }
         return when {
             api == null -> {
                 player.sendMessage("§c❌ RoseChat is not loaded — mod chat unavailable."); null
@@ -148,10 +151,10 @@ class GuildChatListener : Listener, KoinComponent {
             ch == null -> {
                 player.sendMessage("§c❌ Mod chat channel not configured."); null
             }
-            g == null -> {
+            guilds.isEmpty() -> {
                 player.sendMessage("§c❌ You are not in a guild!"); null
             }
-            !ok -> {
+            g == null -> {
                 player.sendMessage("§c❌ Only guild moderators can use mod chat!"); null
             }
             else -> ch

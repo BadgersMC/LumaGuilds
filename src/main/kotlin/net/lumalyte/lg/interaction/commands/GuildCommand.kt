@@ -968,23 +968,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("modchat")
     @CommandPermission("lumaguilds.guild.chat")
     fun onModChat(player: Player) {
-        val guilds = guildService.getPlayerGuilds(player.uniqueId)
-        if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
-            return
-        }
-        if (!memberService.hasPermission(
-                player.uniqueId, guilds.first().id, RankPermission.MODERATE_CHAT,
+        val result = guildChatListener.toggleModChat(player)
+        when (result) {
+            null -> {} // resolveModChatChannel already sent the error message
+            true -> player.sendMessage(
+                "§9✅ §1Mod chat §9enabled§9! Run /g modchat again to disable.",
             )
-        ) {
-            player.sendMessage("§c❌ Only guild moderators can use mod chat!")
-            return
-        }
-        val nowEnabled = guildChatListener.toggleModChat(player)
-        if (nowEnabled) {
-            player.sendMessage("§9✅ §1Mod chat §9enabled§9! Run /g modchat again to disable.")
-        } else {
-            player.sendMessage("§7Mod chat §cdisabled§7. Your messages go to main chat.")
+            false -> player.sendMessage(
+                "§7Mod chat §cdisabled§7. Your messages go to main chat.",
+            )
         }
     }
 
