@@ -47,18 +47,14 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.chat")
     fun onAnnounce(player: Player, vararg args: String) {
         val guildId = requireAnnouncementPermission(player) ?: return
-
-        if (args.isEmpty()) {
-            player.sendMessage("§c❌ Provide a message. §7Usage: /ga [&color] <message>")
-            return
-        }
-
         val (colorDigit, message) = parseAnnouncementInput(args)
         if (message.isBlank()) {
-            player.sendMessage("§c❌ Message cannot be empty.")
+            player.sendMessage(
+                if (args.isEmpty()) "§c❌ Provide a message. Usage: /ga [&color] <message>"
+                else "§c❌ Message cannot be empty.",
+            )
             return
         }
-
         val ok = chatService.sendGuildAnnouncement(guildId, player.uniqueId, message, colorDigit)
         if (!ok) {
             player.sendMessage("§c❌ Failed to send announcement.")
@@ -77,16 +73,18 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     }
 
     private fun requireAnnouncementPermission(player: Player): UUID? {
-        val guilds = guildService.getPlayerGuilds(player.uniqueId)
-        if (guilds.isEmpty()) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        return if (guild == null) {
             player.sendMessage("§c❌ You are not in a guild!")
-            return null
-        }
-        val guildId = guilds.first().id
-        if (!memberService.hasPermission(player.uniqueId, guildId, RankPermission.SEND_ANNOUNCEMENTS)) {
+            null
+        } else if (!memberService.hasPermission(
+                player.uniqueId, guild.id, RankPermission.SEND_ANNOUNCEMENTS,
+            )
+        ) {
             player.sendMessage("§c❌ You don't have permission to send announcements!")
-            return null
+            null
+        } else {
+            guild.id
         }
-        return guildId
     }
 }

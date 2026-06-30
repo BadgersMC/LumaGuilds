@@ -57,15 +57,18 @@ internal class QuickModChatCommand : BaseCommand(), KoinComponent {
     }
 
     private fun requireModChatPermission(player: Player): Boolean {
-        val guilds = guildService.getPlayerGuilds(player.uniqueId)
-        if (guilds.isEmpty()) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        return if (guild == null) {
             player.sendMessage("§c❌ You are not in a guild!")
-            return false
-        }
-        if (!memberService.hasPermission(player.uniqueId, guilds.first().id, RankPermission.MODERATE_CHAT)) {
+            false
+        } else if (!memberService.hasPermission(
+                player.uniqueId, guild.id, RankPermission.MODERATE_CHAT,
+            )
+        ) {
             player.sendMessage("§c❌ Only guild moderators can use mod chat!")
-            return false
+            false
+        } else {
+            true
         }
-        return true
     }
 }

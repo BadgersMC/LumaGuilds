@@ -69,31 +69,30 @@ class ChatServiceBukkit(
     }
     
     override fun sendGuildAnnouncement(
-        guildId: UUID, announcerId: UUID, message: String,
-    ): Boolean = sendGuildAnnouncement(guildId, announcerId, message, '6')
+    guildId: UUID,
+    announcerId: UUID,
+    message: String,
+    ): Boolean =
+        sendGuildAnnouncement(guildId, announcerId, message, '6')
 
     override fun sendGuildAnnouncement(
-        guildId: UUID,
-        announcerId: UUID,
-        message: String,
-        colorDigit: Char,
+    guildId: UUID,
+    announcerId: UUID,
+    message: String,
+    colorDigit: Char,
     ): Boolean {
-        val guild = validateAnnouncementPreconditions(announcerId, guildId) ?: return false
-
+        val guild = validateAnnouncementPreconditions(announcerId, guildId)
+            ?: return false
         return try {
-            val announcerName = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
-            val guildDisplayName = GuildDisplayUtils.createGuildTag(guild)
-            val colorCode = "§$colorDigit"
-            val formatted = "$colorCode[§l${guildDisplayName} ANNOUNCEMENT§r$colorCode]§r\n" +
-                "§e$announcerName:§r $message"
-
+            val name = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
+            val tag = GuildDisplayUtils.createGuildTag(guild)
+            val c = "§$colorDigit"
+            val fmt = "$c[§l${tag} ANNOUNCEMENT§r$c]§r\n§e$name:§r $message"
             val recipients = getOnlineGuildMembers(guildId)
-            val count = broadcastMessageWithSound(recipients, formatted, true)
+            val sent = broadcastMessageWithSound(recipients, fmt, true)
             updateAnnouncementRateLimit(announcerId)
-            logger.info(
-                "Guild announcement from $announcerId delivered to $count members of guild $guildId",
-            )
-            count > 0
+            logger.info("Announce from $announcerId to $sent guild members")
+            sent > 0
         } catch (e: Exception) {
             logger.error("Error sending guild announcement", e)
             false
