@@ -20,7 +20,6 @@ import org.koin.core.component.inject
  */
 @CommandAlias("ac")
 internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
-
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
 

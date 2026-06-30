@@ -17,9 +17,9 @@ Toggle guild and ally chat, and customize how your tag appears in messages.
 | Command | Permission | Description |
 |---------|------------|-------------|
 | `/g chat` | `lumaguilds.guild.chat` | Toggle guild chat on/off. |
-| `/gc <message>` | `lumaguilds.guild.chat` | Send one guild chat message (no toggle). |
+| `/gc <message>` | `lumaguilds.guild.chat` | Send one guild msg (no toggle). |
 | `/g allychat` | `lumaguilds.guild.chat` | Toggle ally chat on/off. |
-| `/ac <message>` | `lumaguilds.guild.chat` | Send one ally chat message (no toggle). |
+| `/ac <message>` | `lumaguilds.guild.chat` | Send one ally msg (no toggle). |
 
 ## How it works
 
