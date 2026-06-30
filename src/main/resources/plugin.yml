@@ -26,6 +26,12 @@ commands:
     description: Party chat commands
     usage: /pc <subcommand> [args]
     aliases: [pchat, partychat]
+  gc:
+    description: Send a quick message to guild chat without changing your chat channel
+    usage: /gc [message]
+  ac:
+    description: Send a quick message to ally chat without changing your chat channel
+    usage: /ac [message]
   lumaguilds:
     description: LumaGuilds administrative commands
     usage: /lumaguilds <subcommand> [args]
