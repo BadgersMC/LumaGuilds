@@ -138,22 +138,21 @@ class GuildChatListener : Listener, KoinComponent {
         val api = RoseChatAPI.getInstance()
         val ch = api?.channelManager?.getChannel(modChatChannelId)
         val g = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
-        val ok = g != null
-            && memberService.hasPermission(
-                player.uniqueId, g.id, RankPermission.MODERATE_CHAT,
-            )
+        val ok = g != null && memberService.hasPermission(
+            player.uniqueId, g.id, RankPermission.MODERATE_CHAT,
+        )
         return when {
-            api == null -> null.also {
-                player.sendMessage("§c❌ RoseChat is not loaded — mod chat unavailable.")
+            api == null -> {
+                player.sendMessage("§c❌ RoseChat is not loaded — mod chat unavailable."); null
             }
-            ch == null -> null.also {
-                player.sendMessage("§c❌ Mod chat channel not configured.")
+            ch == null -> {
+                player.sendMessage("§c❌ Mod chat channel not configured."); null
             }
-            g == null -> null.also {
-                player.sendMessage("§c❌ You are not in a guild!")
+            g == null -> {
+                player.sendMessage("§c❌ You are not in a guild!"); null
             }
-            !ok -> null.also {
-                player.sendMessage("§c❌ Only guild moderators can use mod chat!")
+            !ok -> {
+                player.sendMessage("§c❌ Only guild moderators can use mod chat!"); null
             }
             else -> ch
         }

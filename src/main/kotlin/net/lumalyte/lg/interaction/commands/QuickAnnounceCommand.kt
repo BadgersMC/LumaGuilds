@@ -49,7 +49,8 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
         val guildId = requireAnnouncementPermission(player) ?: return
         val (colorDigit, message) = parseAnnouncementInput(args)
         if (message.isBlank()) {
-            val msg = if (args.isEmpty()) {
+            val msg =
+                if (args.isEmpty()) {
                 "§c❌ Provide a message. Usage: /ga [&color] <message>"
             } else {
                 "§c❌ Message cannot be empty."

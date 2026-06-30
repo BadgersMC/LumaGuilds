@@ -69,23 +69,21 @@ class ChatServiceBukkit(
     }
     
     override fun sendGuildAnnouncement(
-            guildId: UUID,
-            announcerId: UUID,
-            message: String,
+        guildId: UUID,
+        announcerId: UUID,
+        message: String,
     ): Boolean =
         sendGuildAnnouncement(guildId, announcerId, message, '6')
 
     override fun sendGuildAnnouncement(
-            guildId: UUID,
-            announcerId: UUID,
-            message: String,
-            colorDigit: Char,
+        guildId: UUID,
+        announcerId: UUID,
+        message: String,
+        colorDigit: Char,
     ): Boolean {
-        val guild = validateAnnouncementPreconditions(announcerId, guildId)
-            ?: return false
+        val guild = validateAnnouncementPreconditions(announcerId, guildId) ?: return false
         val name = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
-        val c = "§$colorDigit"
-        val fmt = "$c[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r$c]§r\n" +
+        val fmt = "§$colorDigit[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$colorDigit]§r\n" +
             "§e$name:§r $message"
         return try {
             val n = broadcastMessageWithSound(getOnlineGuildMembers(guildId), fmt, true)
