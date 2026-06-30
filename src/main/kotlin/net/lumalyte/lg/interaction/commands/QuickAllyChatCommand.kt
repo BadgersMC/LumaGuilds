@@ -1,7 +1,9 @@
 package net.lumalyte.lg.interaction.commands
 
 import co.aikar.commands.BaseCommand
-import co.aikar.commands.annotation.*
+import co.aikar.commands.annotation.CommandAlias
+import co.aikar.commands.annotation.CommandPermission
+import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.values.ChatChannel
@@ -10,17 +12,19 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
- * Quick ally chat: /ac <message> sends one message to ally chat without
- * changing the player's current chat channel (which /g allychat permanently toggles).
+ * Quick ally chat: `/ac <message>` sends one message to ally chat without
+ * changing the player's current chat channel (which `/g allychat` permanently
+ * toggles).
  *
- * /ac alone shows help text.
+ * `/ac` alone shows help text.
  */
 @CommandAlias("ac")
-class QuickAllyChatCommand : BaseCommand(), KoinComponent {
+internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
 
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
 
+    /** Shows usage help when `/ac` is typed without arguments. */
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
@@ -35,6 +39,7 @@ class QuickAllyChatCommand : BaseCommand(), KoinComponent {
         player.sendMessage("§7To toggle permanent ally chat mode, use §f/g allychat§7.")
     }
 
+    /** Routes a one-shot message to ally chat via [ChatService.routeMessage]. */
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onMessage(player: Player, vararg message: String) {
@@ -53,7 +58,9 @@ class QuickAllyChatCommand : BaseCommand(), KoinComponent {
 
         val success = chatService.routeMessage(playerId, text, ChatChannel.ALLY)
         if (!success) {
-            player.sendMessage("§e⚠️ No allied guild members are currently online to receive your message.")
+            player.sendMessage(
+                "§e⚠️ No allied guild members are currently online to receive your message.",
+            )
         }
         // No success echo — the message is routed to recipients (including sender)
     }
