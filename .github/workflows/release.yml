@@ -1,0 +1,64 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create release + upload asset
+    env:
+      ROSECHAT_PREHOOK_REF: 3fe078a
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # RoseChat <-> LumaGuilds circular compileOnly dependency:
+      # LumaGuilds needs RoseChat jar to compile chat listeners.
+      # RoseChat master carries a LumaGuilds hook (needs LG jar).
+      # Build RoseChat at the last PRE-HOOK commit: no LG dep needed,
+      # still exposes every RoseChat API LumaGuilds compiles against.
+      - name: Cache RoseChat jar
+        id: rosechat-cache
+        uses: actions/cache@v4
+        with:
+          path: libs/RoseChat-RC-2.jar
+          key: rosechat-jar-prehook-${{ env.ROSECHAT_PREHOOK_REF }}
+
+      - name: Build RoseChat (pre-hook) dependency
+        if: steps.rosechat-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/BadgersMC/Enthusia-RoseChat.git "$RUNNER_TEMP/rosechat"
+          cd "$RUNNER_TEMP/rosechat"
+          git checkout "$ROSECHAT_PREHOOK_REF"
+          chmod +x gradlew
+          ./gradlew shadowJar --no-daemon
+          ROSE_JAR=$(ls build/libs/RoseChat-RC-2*.jar | grep -v '\-sources\|\-javadoc' | head -1)
+          mkdir -p "$GITHUB_WORKSPACE/libs"
+          cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
+
+      - name: Build shadowJar
+        run: ./gradlew shadowJar --no-daemon
+
+      - name: Read version
+        id: version
+        run: |
+          VER=$(grep '^version = ' build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: LumaGuilds v${{ steps.version.outputs.version }}
+          files: build/libs/LumaGuilds-${{ steps.version.outputs.version }}.jar
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          make_latest: true
