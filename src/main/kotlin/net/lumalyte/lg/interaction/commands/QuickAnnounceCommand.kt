@@ -51,10 +51,10 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
         if (message.isBlank()) {
             val msg =
                 if (args.isEmpty()) {
-                "§c❌ Provide a message. Usage: /ga [&color] <message>"
-            } else {
-                "§c❌ Message cannot be empty."
-            }
+                    "§c❌ Provide a message. Usage: /ga [&color] <message>"
+                } else {
+                    "§c❌ Message cannot be empty."
+                }
             player.sendMessage(msg)
             return
         }

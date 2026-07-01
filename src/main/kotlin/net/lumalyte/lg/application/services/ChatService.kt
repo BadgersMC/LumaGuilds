@@ -39,10 +39,10 @@ interface ChatService {
      * @return true if the announcement was sent successfully, false otherwise.
      */
     fun sendGuildAnnouncement(
-    guildId: UUID,
-    announcerId: UUID,
-    message: String,
-    colorDigit: Char,
+            guildId: UUID,
+            announcerId: UUID,
+            message: String,
+            colorDigit: Char,
     ): Boolean
     
     /**

@@ -63,7 +63,9 @@ internal class QuickModChatCommand : BaseCommand(), KoinComponent {
             false
         } else if (guilds.none { guild ->
                 memberService.hasPermission(
-                    player.uniqueId, guild.id, RankPermission.MODERATE_CHAT,
+                    player.uniqueId,
+                    guild.id,
+                    RankPermission.MODERATE_CHAT,
                 )
             }
         ) {
