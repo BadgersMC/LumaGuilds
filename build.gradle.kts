@@ -11,7 +11,6 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
-    maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://oss.sonatype.org/content/repositories/central")
     maven("https://repo.aikar.co/content/groups/aikar/")
     maven("https://jitpack.io")
@@ -30,6 +29,14 @@ repositories {
         name = "lunarclient-public"
         url = uri("https://repo.lunarclient.dev/")
     }
+    // Sonatype OSS snapshots — kept as last-resort fallback because
+    // the domain has frequent outages (HTTP 504).  All key SNAPSHOT
+    // deps are covered by dedicated repos above:
+    //   - PlaceholderAPI → JitPack
+    //   - Geyser / Floodgate / Cumulus → OpenCollab
+    //   - ACF / IDB → Aikar
+    //   - CombatLogX → SirBlobman
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
 }
 
 dependencies {
