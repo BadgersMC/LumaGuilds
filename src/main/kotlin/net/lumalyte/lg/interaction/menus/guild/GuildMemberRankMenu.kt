@@ -153,7 +153,7 @@ class GuildMemberRankMenu(
         // Previous page button
         val prevItem = ItemStack.of(Material.ARROW)
             .name("§f⬅ PREVIOUS PAGE")
-            .lore("§7Page ${currentPage + 1} of ${totalPages}")
+            .lore("§7Page ${currentPage + 1} of $totalPages")
 
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
@@ -165,7 +165,7 @@ class GuildMemberRankMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§f📄 PAGE ${currentPage + 1}/${totalPages}")
+            .name("§f📄 PAGE ${currentPage + 1}/$totalPages")
             .lore("§7${availableRanks.size} ranks total")
 
         pane.addItem(GuiItem(pageItem), 4, 4)
@@ -173,7 +173,7 @@ class GuildMemberRankMenu(
         // Next page button
         val nextItem = ItemStack.of(Material.ARROW)
             .name("§fNEXT PAGE ➡")
-            .lore("§7Page ${currentPage + 1} of ${totalPages}")
+            .lore("§7Page ${currentPage + 1} of $totalPages")
 
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {

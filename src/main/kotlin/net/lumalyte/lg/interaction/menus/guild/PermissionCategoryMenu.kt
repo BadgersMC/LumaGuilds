@@ -27,6 +27,8 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     private val rankService: RankService by inject()
     private val configService: ConfigService by inject()
     private var modifiedPermissions = rank.permissions.toMutableSet()
+
+    private val selfEditDeniedMsg = "§c❌ You cannot modify your own rank's permissions!"
     
     // Check if the player is editing their own rank (any rank, not just owner)
     private fun isEditingOwnRank(): Boolean {
@@ -103,7 +105,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         val enableAllGuiItem = GuiItem(enableAllItem) {
             if (isEditingOwnRank()) {
-                player.sendMessage("§c❌ You cannot modify your own rank's permissions!")
+                player.sendMessage(selfEditDeniedMsg)
                 player.sendMessage("§7This prevents you from locking yourself out of guild management.")
                 return@GuiItem
             }
@@ -125,7 +127,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         val disableAllGuiItem = GuiItem(disableAllItem) {
             if (isEditingOwnRank()) {
-                player.sendMessage("§c❌ You cannot modify your own rank's permissions!")
+                player.sendMessage(selfEditDeniedMsg)
                 player.sendMessage("§7This prevents you from locking yourself out of guild management.")
                 return@GuiItem
             }
@@ -174,7 +176,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
             val permissionGuiItem = GuiItem(permissionItem) {
                 if (isEditingOwnRank()) {
-                    player.sendMessage("§c❌ You cannot modify your own rank's permissions!")
+                    player.sendMessage(selfEditDeniedMsg)
                     player.sendMessage("§7This prevents you from locking yourself out of guild management.")
                     return@GuiItem
                 }
