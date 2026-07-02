@@ -36,7 +36,8 @@ class GuildServiceBukkit(
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService,
     private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService,
     private val relationRepository: RelationRepository,
-    private val historyRepository: MembershipHistoryRepository
+    private val historyRepository: MembershipHistoryRepository,
+    private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService,
 ) : GuildService, KoinComponent {
 
     // Lazy because BannermanListeners depends on GuildService, which would create a Koin
@@ -44,8 +45,6 @@ class GuildServiceBukkit(
     private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
-
-    private val adminOverrideService: AdminOverrideService by inject()
 
     companion object {
         // Allow only alphanumerics and spaces. Blocks color codes (&r, etc.),

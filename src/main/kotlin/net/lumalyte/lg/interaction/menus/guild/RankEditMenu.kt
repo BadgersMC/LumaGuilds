@@ -405,6 +405,13 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 return@GuiItem
             }
 
+            // Prevent deleting your own rank
+            if (isEditingOwnRank()) {
+                player.sendMessage("§c❌ Cannot delete your own rank!")
+                player.sendMessage("§7You would lose management access to this guild.")
+                return@GuiItem
+            }
+
             // Prevent deleting the last remaining rank
             val allRanks = rankService.listRanks(guild.id)
             if (allRanks.size <= 1) {

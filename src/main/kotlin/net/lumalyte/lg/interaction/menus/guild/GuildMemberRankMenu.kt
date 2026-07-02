@@ -56,14 +56,19 @@ class GuildMemberRankMenu(
         // Add current rank display
         addCurrentRankSection(pane)
 
+        // Fetch available ranks once for both sections
+        val availableRanks = rankService.listRanks(guild.id)
+            .sortedByDescending { it.priority }
+
         // Add rank selection
-        addRankSelectionSection(pane)
+        addRankSelectionSection(pane, availableRanks)
 
         // Add navigation buttons
-        addNavigationButtons(pane)
+        val totalPages = maxOf(1, (availableRanks.size + ranksPerPage - 1) / ranksPerPage)
+        addNavigationButtons(pane, availableRanks, totalPages)
 
         // Add back button
-        addBackButton(pane, 8, 4)
+        addBackButton(pane, 8, 3)
 
         gui.addPane(pane)
         gui.show(player)
@@ -104,10 +109,7 @@ class GuildMemberRankMenu(
         pane.addItem(GuiItem(rankItem), 3, 0)
     }
 
-    private fun addRankSelectionSection(pane: StaticPane) {
-        val availableRanks = rankService.listRanks(guild.id)
-            .sortedByDescending { it.priority } // Highest priority (lowest number) first
-
+    private fun addRankSelectionSection(pane: StaticPane, availableRanks: List<net.lumalyte.lg.domain.entities.Rank>) {
         // Calculate pagination bounds
         val totalPages = (availableRanks.size + ranksPerPage - 1) / ranksPerPage
         if (currentPage >= totalPages) {
@@ -146,10 +148,7 @@ class GuildMemberRankMenu(
         }
     }
 
-    private fun addNavigationButtons(pane: StaticPane) {
-        val availableRanks = rankService.listRanks(guild.id)
-        val totalPages = maxOf(1, (availableRanks.size + ranksPerPage - 1) / ranksPerPage)
-
+    private fun addNavigationButtons(pane: StaticPane, availableRanks: List<net.lumalyte.lg.domain.entities.Rank>, totalPages: Int) {
         // Previous page button
         val prevItem = ItemStack.of(Material.ARROW)
             .name("§f⬅ PREVIOUS PAGE")
