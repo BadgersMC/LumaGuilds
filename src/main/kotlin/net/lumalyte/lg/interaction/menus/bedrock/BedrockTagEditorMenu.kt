@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.ValidationResult
 import net.lumalyte.lg.application.services.ValidatorType
 import net.lumalyte.lg.domain.entities.Guild
@@ -27,6 +28,7 @@ class BedrockTagEditorMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildService: GuildService by inject()
+    private val configService: ConfigService by inject()
 
     override fun getForm(): Form {
         val currentTag = guildService.getTag(guild.id)
@@ -151,7 +153,7 @@ class BedrockTagEditorMenu(
                         }
 
                         // Reject interactive MiniMessage event tags (click/hover/insertion)
-                        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(value)?.let {
+                        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(value, configService.loadConfig().guild.nameFilter)?.let {
                             return@getValidator ValidationResult.invalid(it)
                         }
 
