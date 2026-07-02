@@ -29,7 +29,7 @@ object GuildNameFilter {
             '9' to 'g',
         )
 
-    private val logger = java.util.logging.Logger.getLogger(GuildNameFilter::class.java.name)
+    private val LOGGER = java.util.logging.Logger.getLogger(GuildNameFilter::class.java.name)
 
     /**
      * Checks plain text (guild name) against the filter.
@@ -75,7 +75,7 @@ object GuildNameFilter {
                 }
             } catch (e: IllegalArgumentException) {
                 // Malformed regex in config — log and skip, don't crash
-                logger.warning("Skipping malformed name filter pattern: $pattern — ${e.message}")
+                LOGGER.warning("Skipping malformed name filter pattern: $pattern — ${e.message}")
                 continue
             }
         }
@@ -86,9 +86,9 @@ object GuildNameFilter {
         return try {
             val component = MiniMessage.miniMessage().deserialize(tag)
             PlainTextComponentSerializer.plainText().serialize(component)
-        } catch (e: RuntimeException) {
+        } catch (e: IllegalArgumentException) {
             // Unparseable MiniMessage — strip tags with regex as fallback
-            logger.fine("MiniMessage parse failed for tag, falling back to regex strip: ${e.message}")
+            LOGGER.fine("MiniMessage parse failed for tag, falling back to regex strip: ${e.message}")
             tag.replace(Regex("<[^>]*>"), "")
         }
     }
