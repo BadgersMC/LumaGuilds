@@ -15,7 +15,6 @@ import net.lumalyte.lg.config.NameFilterConfig
  * [GuildTagValidator].
  */
 object GuildNameFilter {
-
     private val LEET_MAP =
         mapOf(
             '@' to 'a', '4' to 'a',
@@ -73,7 +72,9 @@ object GuildNameFilter {
                     return "Name contains inappropriate content."
                 }
             } catch (e: IllegalArgumentException) {
-                // Malformed regex in config — skip it, don't crash
+                // Malformed regex in config — log warning, skip it, don't crash
+                java.util.logging.Logger.getLogger(GuildNameFilter::class.java.name)
+                    .warning { "Skipping malformed name filter pattern: $pattern" }
                 continue
             }
         }
@@ -84,7 +85,7 @@ object GuildNameFilter {
         return try {
             val component = MiniMessage.miniMessage().deserialize(tag)
             PlainTextComponentSerializer.plainText().serialize(component)
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             // Unparseable MiniMessage — strip tags with regex as fallback
             tag.replace(Regex("<[^>]*>"), "")
         }
