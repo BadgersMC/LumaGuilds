@@ -55,6 +55,9 @@ data class GuildConfig(
     var createGuildCost: Int = 0,
     var disbandRefundPercent: Double = 0.5,
     
+    // Name filtering (profanity / inappropriate content)
+    var nameFilter: NameFilterConfig = NameFilterConfig(),
+    
     // Mode Switching
     var peacefulModeEnabled: Boolean = true,
     var modeSwitchingEnabled: Boolean = true, // If false, guilds cannot switch between peaceful/hostile modes
@@ -445,3 +448,38 @@ data class MariaDBPoolConfig(
 enum class ImageSource {
     URL, RESOURCE_PACK
 }
+
+data class NameFilterConfig(
+    var enabled: Boolean = false,
+    // Regex patterns to block. Applied after normalization. Use \b for word boundaries.
+    var blockedPatterns: List<String> = listOf(
+        "\\bn[i1]gg[3e]r",
+        "\\bf[a@4]gg?[0o]t",
+        "\\btr[a@4]nn?[y1]",
+        "\\bf[a@4]g",
+        "\\bsh[i1]t",
+        "\\b([a@4][s\\$]{2})\\b",
+        "\\bb[i1]tch",
+        "\\bcunt",
+        "\\bd[i1]ck",
+        "\\bwh[0o]r[3e]",
+        "\\bsl[uü]t",
+        "\\bk[y1]ke",
+        "\\bch[i1]nk",
+        "\\bw[0o]p",
+        "\\bg[0o]ok",
+        "\\br[3e]t[a@4]rd",
+        "\\bh[i1]tl[3e]r",
+        "\\bn[a@4][z\\$][i1]",
+        "\\bp[3e]d[0o]",
+        "\\br[a@4]p[3e]"
+    ),
+    var normalization: NameFilterNormalization = NameFilterNormalization()
+)
+
+data class NameFilterNormalization(
+    // Map leet-speak characters: @→a, 1→i, 0→o, $→s, 3→e, 4→a, etc.
+    var leetMap: Boolean = true,
+    // Collapse repeated characters: "heeelllooo" → "hello"
+    var collapseRepeats: Boolean = true
+)
