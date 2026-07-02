@@ -79,9 +79,10 @@ class ChatServiceBukkit(
     ): Boolean {
         val guild = validateAnnouncementPreconditions(announcerId, guildId) ?: return false
         val name = Bukkit.getPlayer(announcerId)?.name ?: UNKNOWN_PLAYER
+        val headerColor = colorDigit.takeIf { it in '0'..'9' } ?: '6'
         val fmt =
-            "§$colorDigit[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$colorDigit]§r\n" +
-            "§e$name:§r $message"
+            "§$headerColor[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$headerColor]§r\n" +
+                "§e$name:§r $message"
         return try {
             val n = broadcastMessageWithSound(getOnlineGuildMembers(guildId), fmt, true)
             updateAnnouncementRateLimit(announcerId)
