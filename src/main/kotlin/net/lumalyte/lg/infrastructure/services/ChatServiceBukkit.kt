@@ -28,7 +28,11 @@ class ChatServiceBukkit(
     private val preferenceRepository: PlayerPartyPreferenceRepository,
     private val partyRepository: PartyRepository
 ) : ChatService {
-    
+
+    private companion object {
+        const val UNKNOWN_PLAYER = "Unknown"
+    }
+
     private val logger = LoggerFactory.getLogger(ChatServiceBukkit::class.java)
     
     // Rate limiting configuration (in milliseconds)
@@ -78,7 +82,7 @@ class ChatServiceBukkit(
         colorDigit: Char,
     ): Boolean {
         val guild = validateAnnouncementPreconditions(announcerId, guildId) ?: return false
-        val name = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
+        val name = Bukkit.getPlayer(announcerId)?.name ?: UNKNOWN_PLAYER
         val fmt = "§$colorDigit[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$colorDigit]§r\n" +
             "§e$name:§r $message"
         return try {
@@ -128,7 +132,7 @@ class ChatServiceBukkit(
                 return false
             }
             
-            val pingerName = Bukkit.getPlayer(pingerId)?.name ?: "Unknown"
+            val pingerName = Bukkit.getPlayer(pingerId)?.name ?: UNKNOWN_PLAYER
             val guildDisplayName = GuildDisplayUtils.createGuildTag(guild)
             
             val formattedMessage = if (message != null) {
@@ -254,7 +258,7 @@ class ChatServiceBukkit(
     }
     
     override fun formatMessage(senderId: UUID, message: String, channel: ChatChannel): String {
-        val senderName = Bukkit.getPlayer(senderId)?.name ?: "Unknown"
+        val senderName = Bukkit.getPlayer(senderId)?.name ?: UNKNOWN_PLAYER
         val processedMessage = processEmojis(senderId, message)
         
         // Get sender's primary guild for context
