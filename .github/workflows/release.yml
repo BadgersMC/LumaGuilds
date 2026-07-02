@@ -8,23 +8,42 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # create release + upload asset
+      contents: write
     env:
       ROSECHAT_PREHOOK_REF: 3fe078a
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need tags for version bump
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      # RoseChat <-> LumaGuilds circular compileOnly dependency:
-      # LumaGuilds needs RoseChat jar to compile chat listeners.
-      # RoseChat master carries a LumaGuilds hook (needs LG jar).
-      # Build RoseChat at the last PRE-HOOK commit: no LG dep needed,
-      # still exposes every RoseChat API LumaGuilds compiles against.
+      - name: Bump version
+        id: bump
+        run: |
+          # Find latest tag matching v*.*.*
+          LATEST=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
+          if [ -z "$LATEST" ]; then
+            # No tags yet — read base from build.gradle.kts
+            BASE=$(grep -oP 'version\s*=\s*findProperty.*\?\s*:\s*"\K[^"]+' build.gradle.kts)
+            MAJOR=$(echo "$BASE" | cut -d. -f1)
+            MINOR=$(echo "$BASE" | cut -d. -f2)
+            PATCH=$(echo "$BASE" | cut -d. -f3)
+          else
+            # Strip leading 'v'
+            VER="${LATEST#v}"
+            MAJOR=$(echo "$VER" | cut -d. -f1)
+            MINOR=$(echo "$VER" | cut -d. -f2)
+            PATCH=$(echo "$VER" | cut -d. -f3)
+          fi
+          NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))"
+          echo "Latest tag: ${LATEST:-none}, bumping to v$NEXT"
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+
       - name: Cache RoseChat jar
         id: rosechat-cache
         uses: actions/cache@v4
@@ -45,20 +64,14 @@ jobs:
           cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
 
       - name: Build shadowJar
-        run: ./gradlew shadowJar --no-daemon
-
-      - name: Read version
-        id: version
-        run: |
-          VER=$(grep '^version = ' build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
-          echo "version=$VER" >> "$GITHUB_OUTPUT"
+        run: ./gradlew shadowJar --no-daemon -PreleaseVersion=${{ steps.bump.outputs.version }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: LumaGuilds v${{ steps.version.outputs.version }}
-          files: build/libs/LumaGuilds-${{ steps.version.outputs.version }}.jar
+          tag_name: v${{ steps.bump.outputs.version }}
+          name: LumaGuilds v${{ steps.bump.outputs.version }}
+          files: build/libs/LumaGuilds-${{ steps.bump.outputs.version }}.jar
           generate_release_notes: true
           fail_on_unmatched_files: true
           make_latest: true
