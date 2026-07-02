@@ -68,42 +68,45 @@ class ChatServiceBukkit(
         }
     }
     
-    override fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String): Boolean {
-        try {
-            if (!canSendAnnouncements(announcerId, guildId)) {
-                logger.warn("Player $announcerId cannot send announcements for guild $guildId")
-                return false
-            }
-            
-            if (isAnnouncementRateLimited(announcerId)) {
-                logger.warn("Player $announcerId is rate limited for announcements")
-                return false
-            }
-            
-            val guild = guildService.getGuild(guildId)
+    override fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String): Boolean =
+        sendGuildAnnouncement(guildId, announcerId, message, '6')
+
+    override fun sendGuildAnnouncement(
+        guildId: UUID,
+        announcerId: UUID,
+        message: String,
+        colorDigit: Char,
+    ): Boolean {
+        val guild = validateAnnouncementPreconditions(announcerId, guildId) ?: return false
+        val name = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
+        val fmt = "§$colorDigit[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$colorDigit]§r\n" +
+            "§e$name:§r $message"
+        return try {
+            val n = broadcastMessageWithSound(getOnlineGuildMembers(guildId), fmt, true)
+            updateAnnouncementRateLimit(announcerId)
+            logger.info("Announce from $announcerId to $n members")
+            n > 0
+        } catch (e: Exception) {
+            logger.error("Error sending guild announcement", e)
+            false
+        }
+    }
+
+    private fun validateAnnouncementPreconditions(
+        announcerId: UUID, guildId: UUID,
+    ): net.lumalyte.lg.domain.entities.Guild? {
+        if (!canSendAnnouncements(announcerId, guildId)) {
+            logger.warn("Player $announcerId cannot send announcements for guild $guildId")
+            return null
+        }
+        if (isAnnouncementRateLimited(announcerId)) {
+            logger.warn("Player $announcerId is rate limited for announcements")
+            return null
+        }
+        return guildService.getGuild(guildId).also { guild ->
             if (guild == null) {
                 logger.warn("Guild $guildId not found")
-                return false
             }
-            
-            val announcerName = Bukkit.getPlayer(announcerId)?.name ?: "Unknown"
-            val guildDisplayName = GuildDisplayUtils.createGuildTag(guild)
-            
-            val formattedMessage = "§6[§l${guildDisplayName} ANNOUNCEMENT§r§6]§r\n" +
-                    "§e$announcerName:§r $message"
-            
-            val recipients = getOnlineGuildMembers(guildId)
-            val deliveredCount = broadcastMessageWithSound(recipients, formattedMessage, true)
-            
-            // Update rate limit
-            updateAnnouncementRateLimit(announcerId)
-            
-            logger.info("Guild announcement from $announcerId delivered to $deliveredCount members of guild $guildId")
-            return deliveredCount > 0
-        } catch (e: Exception) {
-            // Service operation - catching all exceptions to prevent service failure
-            logger.error("Error sending guild announcement", e)
-            return false
         }
     }
     
@@ -157,6 +160,10 @@ class ChatServiceBukkit(
                 ChatChannel.GUILD -> currentSettings.copy(guildChatVisible = !currentSettings.guildChatVisible)
                 ChatChannel.ALLY -> currentSettings.copy(allyChatVisible = !currentSettings.allyChatVisible)
                 ChatChannel.PARTY -> currentSettings.copy(partyChatVisible = !currentSettings.partyChatVisible)
+                ChatChannel.MODCHAT -> {
+                    logger.warn("Cannot toggle visibility for mod chat channel")
+                    return false
+                }
                 ChatChannel.PUBLIC -> {
                     logger.warn("Cannot toggle visibility for public channel")
                     return false
@@ -170,6 +177,7 @@ class ChatServiceBukkit(
                     ChatChannel.GUILD -> newSettings.guildChatVisible
                     ChatChannel.ALLY -> newSettings.allyChatVisible
                     ChatChannel.PARTY -> newSettings.partyChatVisible
+                    ChatChannel.MODCHAT -> false
                     ChatChannel.PUBLIC -> false
                 }
                 logger.info("Player $playerId toggled $channel chat visibility to $visibilityState")
@@ -223,6 +231,21 @@ class ChatServiceBukkit(
                     getVisibilitySettings(playerId).partyChatVisible
                 }.toSet()
             }
+            ChatChannel.MODCHAT -> {
+                val senderGuilds = memberService.getPlayerGuilds(senderId)
+                val modGuilds = senderGuilds.filter { guildId ->
+                    memberService.hasPermission(
+                        senderId, guildId, RankPermission.MODERATE_CHAT,
+                    )
+                }
+                modGuilds.flatMap { guildId ->
+                    getOnlineGuildMembers(guildId).filter { playerId ->
+                        memberService.hasPermission(
+                            playerId, guildId, RankPermission.MODERATE_CHAT,
+                        )
+                    }
+                }.toSet()
+            }
             ChatChannel.PUBLIC -> {
                 // Return all online players for public chat
                 Bukkit.getOnlinePlayers().map { it.uniqueId }.toSet()
@@ -261,6 +284,13 @@ class ChatServiceBukkit(
             }
             ChatChannel.PARTY -> {
                 formatPartyMessage(senderId, senderName, processedMessage, guildTag)
+            }
+            ChatChannel.MODCHAT -> {
+                if (guildTag.isNotEmpty()) {
+                    "§1[M] $guildTag §9$senderName:§r $processedMessage"
+                } else {
+                    "§1[M] §9$senderName:§r $processedMessage"
+                }
             }
             ChatChannel.PUBLIC -> {
                 if (guildTag.isNotEmpty()) {

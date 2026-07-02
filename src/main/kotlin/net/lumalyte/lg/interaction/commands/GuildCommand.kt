@@ -965,6 +965,21 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
+    @Subcommand("modchat")
+    @CommandPermission("lumaguilds.guild.chat")
+    fun onModChat(player: Player) {
+        val result = guildChatListener.toggleModChat(player)
+        when (result) {
+            null -> {} // resolveModChatChannel already sent the error message
+            true -> player.sendMessage(
+                "§9✅ §1Mod chat §9enabled§9! Run /g modchat again to disable.",
+            )
+            false -> player.sendMessage(
+                "§7Mod chat §cdisabled§7. Your messages go to main chat.",
+            )
+        }
+    }
+
     @Subcommand("info")
     @CommandCompletion("@guildsorplayers")
     fun onInfo(player: Player, @Optional targetGuild: String?) {

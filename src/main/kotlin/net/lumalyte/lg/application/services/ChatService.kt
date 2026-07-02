@@ -28,6 +28,22 @@ interface ChatService {
      * @return true if the announcement was sent successfully, false otherwise.
      */
     fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String): Boolean
+
+    /**
+     * Sends a guild announcement to all guild members with a custom color.
+     *
+     * @param guildId The ID of the guild.
+     * @param announcerId The ID of the player making the announcement.
+     * @param message The announcement message.
+     * @param colorDigit A Minecraft color digit (0-9) for the header; defaults to '6' (gold).
+     * @return true if the announcement was sent successfully, false otherwise.
+     */
+    fun sendGuildAnnouncement(
+            guildId: UUID,
+            announcerId: UUID,
+            message: String,
+            colorDigit: Char,
+    ): Boolean
     
     /**
      * Sends a ping to all guild members with sound notification.
