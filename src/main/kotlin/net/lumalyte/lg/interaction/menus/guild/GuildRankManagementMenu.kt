@@ -29,6 +29,9 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
+    private var currentPage = 0
+    private val ranksPerPage = 12 // 4 columns × 3 rows (rows 0-2)
+
     override fun open() {
         // Security check: Only players with MANAGE_RANKS permission can access this menu
         val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
@@ -39,8 +42,8 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
             return
         }
 
-        val gui = ChestGui(4, "§6Rank Management - ${guild.name}")
-        val pane = StaticPane(0, 0, 9, 4)
+        val gui = ChestGui(5, "§6Rank Management - ${guild.name}")
+        val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -49,12 +52,25 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         // Get all ranks for the guild
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
 
-        // Display existing ranks (up to 8 ranks in the grid)
-        ranks.take(8).forEachIndexed { index, rank ->
+        // Calculate pagination bounds
+        val totalPages = maxOf(1, (ranks.size + ranksPerPage - 1) / ranksPerPage)
+        if (currentPage >= totalPages) {
+            currentPage = maxOf(0, totalPages - 1)
+        }
+
+        val startIndex = currentPage * ranksPerPage
+        val endIndex = minOf(startIndex + ranksPerPage, ranks.size)
+        val pageRanks = ranks.subList(startIndex, endIndex)
+
+        // Display ranks in 4-column grid spanning rows 0-2
+        pageRanks.forEachIndexed { index, rank ->
             val row = index / 4
             val col = index % 4
             addRankButton(pane, rank, col, row)
         }
+
+        // Navigation buttons at row 3
+        addNavigationButtons(pane, totalPages, ranks.size)
 
         // Add new rank button
         val createRankItem = ItemStack.of(Material.EMERALD)
@@ -64,7 +80,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         val guiCreateItem = GuiItem(createRankItem) {
             menuNavigator.openMenu(menuFactory.createRankCreationMenu(menuNavigator, player, guild))
         }
-        pane.addItem(guiCreateItem, 4, 3)
+        pane.addItem(guiCreateItem, 4, 4)
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
@@ -72,9 +88,44 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         val guiBackItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
-        pane.addItem(guiBackItem, 8, 3)
+        pane.addItem(guiBackItem, 8, 4)
 
         gui.show(player)
+    }
+
+    private fun addNavigationButtons(pane: StaticPane, totalPages: Int, totalRanks: Int) {
+        // Previous page button
+        val prevItem = ItemStack.of(Material.ARROW)
+            .name("§f⬅ PREVIOUS PAGE")
+            .lore("§7Page ${currentPage + 1} of $totalPages")
+
+        val prevGuiItem = GuiItem(prevItem) {
+            if (currentPage > 0) {
+                currentPage--
+                open()
+            }
+        }
+        pane.addItem(prevGuiItem, 0, 3)
+
+        // Page indicator
+        val pageItem = ItemStack.of(Material.PAPER)
+            .name("§f📄 PAGE ${currentPage + 1}/$totalPages")
+            .lore("§7$totalRanks ranks total")
+
+        pane.addItem(GuiItem(pageItem), 4, 3)
+
+        // Next page button
+        val nextItem = ItemStack.of(Material.ARROW)
+            .name("§fNEXT PAGE ➡")
+            .lore("§7Page ${currentPage + 1} of $totalPages")
+
+        val nextGuiItem = GuiItem(nextItem) {
+            if (currentPage < totalPages - 1) {
+                currentPage++
+                open()
+            }
+        }
+        pane.addItem(nextGuiItem, 8, 3)
     }
 
     private fun addRankButton(pane: StaticPane, rank: Rank, x: Int, y: Int) {
