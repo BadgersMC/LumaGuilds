@@ -29,10 +29,6 @@ class ChatServiceBukkit(
     private val partyRepository: PartyRepository
 ) : ChatService {
 
-    private companion object {
-        const val UNKNOWN_PLAYER = "Unknown"
-    }
-
     private val logger = LoggerFactory.getLogger(ChatServiceBukkit::class.java)
     
     // Rate limiting configuration (in milliseconds)
@@ -75,8 +71,7 @@ class ChatServiceBukkit(
     override fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String): Boolean =
         sendGuildAnnouncement(guildId, announcerId, message, '6')
 
-    override fun sendGuildAnnouncement(
-        guildId: UUID,
+    override fun sendGuildAnnouncement(guildId: UUID,
         announcerId: UUID,
         message: String,
         colorDigit: Char,
@@ -589,5 +584,9 @@ class ChatServiceBukkit(
 
         // No automatic party assignment - players are in GLOBAL chat by default
         return null
+    }
+
+    private companion object {
+        const val UNKNOWN_PLAYER = "Unknown"
     }
 }
