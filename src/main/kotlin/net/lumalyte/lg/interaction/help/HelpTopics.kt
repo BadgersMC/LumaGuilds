@@ -54,7 +54,9 @@ object HelpTopics {
             summary = "Toggle guild and ally chat, and customize how your tag appears in messages.",
             commands = listOf(
                 HelpCommandEntry("/g chat", "Toggle guild chat on/off.", "/g chat"),
+                HelpCommandEntry("/gc <message>", "Send one message to guild chat.", "/gc "),
                 HelpCommandEntry("/g allychat", "Toggle ally chat on/off.", "/g allychat"),
+                HelpCommandEntry("/ac <message>", "Send one message to ally chat.", "/ac "),
             ),
         ),
         HelpTopic(
@@ -110,14 +112,6 @@ object HelpTopics {
             summary = "Switch your guild between peaceful and hostile mode.",
             commands = listOf(
                 HelpCommandEntry("/g mode", "Open the mode selection menu.", "/g mode"),
-            ),
-        ),
-        HelpTopic(
-            slug = "shop",
-            displayName = "Shop integration",
-            summary = "Link guild-owned shops.",
-            commands = listOf(
-                HelpCommandEntry("/g setshop", "Mark your current shop as guild-owned.", "/g setshop"),
             ),
         ),
         HelpTopic(

@@ -17,7 +17,9 @@ Toggle guild and ally chat, and customize how your tag appears in messages.
 | Command | Permission | Description |
 |---------|------------|-------------|
 | `/g chat` | `lumaguilds.guild.chat` | Toggle guild chat on/off. |
-| `/g allychat` | `lumaguilds.guild.allychat` | Toggle ally chat on/off. |
+| `/gc <message>` | `lumaguilds.guild.chat` | Send one message to guild chat (no toggle). |
+| `/g allychat` | `lumaguilds.guild.chat` | Toggle ally chat on/off. |
+| `/ac <message>` | `lumaguilds.guild.chat` | Send one message to ally chat (no toggle). |
 
 ## How it works
 
@@ -30,6 +32,12 @@ Run `/g chat` once to enter guild chat. Type your messages. Run `/g chat` again 
 ## Toggling ally chat
 
 Use `/g allychat` to enter ally chat. Same on/off behavior as guild chat. Only members of guilds you have an ACTIVE alliance with can read your messages. Useful for coordinating with allied guilds without spamming global.
+
+## One-shot messages (no toggle)
+
+`/gc <message>` sends a single message to guild chat without changing your chat channel. You stay in global (or wherever you were). Great for a quick \"brb\" or \"meet at spawn\" to your guildmates.
+
+`/ac <message>` does the same for ally chat. No need to toggle in, message, toggle out.
 
 ## How tag formatting renders
 
