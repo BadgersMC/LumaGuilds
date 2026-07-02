@@ -1,8 +1,8 @@
 package net.lumalyte.lg.utils
 
-import net.lumalyte.lg.config.NameFilterConfig
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.lumalyte.lg.config.NameFilterConfig
 
 /**
  * Validates guild names and tags for inappropriate content.
@@ -16,18 +16,19 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
  */
 object GuildNameFilter {
 
-    private val LEET_MAP = mapOf(
-        '@' to 'a', '4' to 'a',
-        '3' to 'e',
-        '1' to 'i', '!' to 'i',
-        '0' to 'o',
-        '$' to 's', '5' to 's',
-        '7' to 't',
-        '2' to 'z',
-        '8' to 'b',
-        '6' to 'g',
-        '9' to 'g',
-    )
+    private val LEET_MAP =
+        mapOf(
+            '@' to 'a', '4' to 'a',
+            '3' to 'e',
+            '1' to 'i', '!' to 'i',
+            '0' to 'o',
+            '$' to 's', '5' to 's',
+            '7' to 't',
+            '2' to 'z',
+            '8' to 'b',
+            '6' to 'g',
+            '9' to 'g',
+        )
 
     /**
      * Checks plain text (guild name) against the filter.
@@ -71,7 +72,7 @@ object GuildNameFilter {
                 if (Regex(pattern, RegexOption.IGNORE_CASE).containsMatchIn(text)) {
                     return "Name contains inappropriate content."
                 }
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
                 // Malformed regex in config — skip it, don't crash
                 continue
             }
