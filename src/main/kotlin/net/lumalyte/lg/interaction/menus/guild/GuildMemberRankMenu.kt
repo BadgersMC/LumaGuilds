@@ -10,6 +10,7 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
+import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -109,7 +110,7 @@ class GuildMemberRankMenu(
         pane.addItem(GuiItem(rankItem), 3, 0)
     }
 
-    private fun addRankSelectionSection(pane: StaticPane, availableRanks: List<net.lumalyte.lg.domain.entities.Rank>) {
+    private fun addRankSelectionSection(pane: StaticPane, availableRanks: List<Rank>) {
         // Calculate pagination bounds
         val totalPages = (availableRanks.size + ranksPerPage - 1) / ranksPerPage
         if (currentPage >= totalPages) {
@@ -148,7 +149,7 @@ class GuildMemberRankMenu(
         }
     }
 
-    private fun addNavigationButtons(pane: StaticPane, availableRanks: List<net.lumalyte.lg.domain.entities.Rank>, totalPages: Int) {
+    private fun addNavigationButtons(pane: StaticPane, availableRanks: List<Rank>, totalPages: Int) {
         // Previous page button
         val prevItem = ItemStack.of(Material.ARROW)
             .name("§f⬅ PREVIOUS PAGE")

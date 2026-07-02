@@ -1,7 +1,9 @@
 package net.lumalyte.lg.interaction.commands
 
 import co.aikar.commands.BaseCommand
-import co.aikar.commands.annotation.*
+import co.aikar.commands.annotation.CommandAlias
+import co.aikar.commands.annotation.CommandPermission
+import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.values.ChatChannel
@@ -10,17 +12,17 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
- * Quick ally chat: /ac <message> sends one message to ally chat without
+ * Quick ally chat: /gac <message> sends one message to ally chat without
  * changing the player's current chat channel (which /g allychat permanently toggles).
  *
- * /ac alone shows help text.
+ * /gac alone shows help text.
  */
-@CommandAlias("ac")
-class QuickAllyChatCommand : BaseCommand(), KoinComponent {
-
+@CommandAlias("gac")
+internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
 
+    /** Shows usage help when /gac is typed without arguments. */
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
@@ -30,11 +32,12 @@ class QuickAllyChatCommand : BaseCommand(), KoinComponent {
             return
         }
         player.sendMessage("§3=== Quick Ally Chat ===")
-        player.sendMessage("§7Use §f/ac <message> §7to send a single message to ally chat.")
+        player.sendMessage("§7Use §f/gac <message> §7to send a single message to ally chat.")
         player.sendMessage("§7Your chat channel won't change — you stay in your current chat.")
         player.sendMessage("§7To toggle permanent ally chat mode, use §f/g allychat§7.")
     }
 
+    /** Sends a one-shot message to ally chat without toggling the player's chat channel. */
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onMessage(player: Player, vararg message: String) {

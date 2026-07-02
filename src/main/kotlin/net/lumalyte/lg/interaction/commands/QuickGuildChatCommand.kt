@@ -1,7 +1,9 @@
 package net.lumalyte.lg.interaction.commands
 
 import co.aikar.commands.BaseCommand
-import co.aikar.commands.annotation.*
+import co.aikar.commands.annotation.CommandAlias
+import co.aikar.commands.annotation.CommandPermission
+import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.values.ChatChannel
@@ -16,11 +18,11 @@ import org.koin.core.component.inject
  * /gc alone shows help text.
  */
 @CommandAlias("gc")
-class QuickGuildChatCommand : BaseCommand(), KoinComponent {
-
+internal class QuickGuildChatCommand : BaseCommand(), KoinComponent {
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
 
+    /** Shows usage help when /gc is typed without arguments. */
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
@@ -35,6 +37,7 @@ class QuickGuildChatCommand : BaseCommand(), KoinComponent {
         player.sendMessage("§7To toggle permanent guild chat mode, use §f/g chat§7.")
     }
 
+    /** Sends a one-shot message to guild chat without toggling the player's chat channel. */
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onMessage(player: Player, vararg message: String) {

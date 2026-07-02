@@ -56,7 +56,7 @@ object HelpTopics {
                 HelpCommandEntry("/g chat", "Toggle guild chat on/off.", "/g chat"),
                 HelpCommandEntry("/gc <message>", "Send one message to guild chat.", "/gc "),
                 HelpCommandEntry("/g allychat", "Toggle ally chat on/off.", "/g allychat"),
-                HelpCommandEntry("/ac <message>", "Send one message to ally chat.", "/ac "),
+                HelpCommandEntry("/gac <message>", "Send one message to ally chat.", "/gac "),
             ),
         ),
         HelpTopic(
