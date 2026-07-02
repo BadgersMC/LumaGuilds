@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.persistence.RelationRepository
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.Guild
@@ -43,6 +44,8 @@ class GuildServiceBukkit(
     private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
+
+    private val adminOverrideService: AdminOverrideService by inject()
 
     companion object {
         // Allow only alphanumerics and spaces. Blocks color codes (&r, etc.),
@@ -170,8 +173,10 @@ class GuildServiceBukkit(
     override fun renameGuild(guildId: UUID, newName: String, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 
+        val isOverride = adminOverrideService.hasOverride(actorId)
+
         // Check if actor has permission to rename the guild
-        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+        if (!isOverride && !hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
             logger.warn("Player $actorId attempted to rename guild $guildId without MANAGE_GUILD_SETTINGS permission")
             return false
         }
@@ -182,8 +187,8 @@ class GuildServiceBukkit(
             return false
         }
 
-        // Check if new name is already taken
-        if (guildRepository.isNameTaken(newName)) {
+        // Check if new name is already taken (skip if renaming to the same name, case-insensitive)
+        if (!guild.name.equals(newName, ignoreCase = true) && guildRepository.isNameTaken(newName)) {
             logger.warn("Guild name already taken: $newName")
             return false
         }
@@ -586,6 +591,7 @@ class GuildServiceBukkit(
         memberRepository.isPlayerInGuild(playerId, guildId)
     
     override fun hasPermission(playerId: UUID, guildId: UUID, permission: RankPermission): Boolean {
+        if (adminOverrideService.hasOverride(playerId)) return true
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val rank = rankRepository.getById(member.rankId) ?: return false
         return rank.permissions.contains(permission)

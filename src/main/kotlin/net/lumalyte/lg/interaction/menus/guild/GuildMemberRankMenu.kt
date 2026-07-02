@@ -37,9 +37,12 @@ class GuildMemberRankMenu(
     private val rankService: RankService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
+    private var currentPage = 0
+    private val ranksPerPage = 9 // 3 columns × 3 rows (rows 1-3)
+
     override fun open() {
-        val gui = ChestGui(4, "§6Rank Management")
-        val pane = StaticPane(0, 0, 9, 4)
+        val gui = ChestGui(5, "§6Rank Management")
+        val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -56,8 +59,11 @@ class GuildMemberRankMenu(
         // Add rank selection
         addRankSelectionSection(pane)
 
+        // Add navigation buttons
+        addNavigationButtons(pane)
+
         // Add back button
-        addBackButton(pane, 4, 3)
+        addBackButton(pane, 8, 4)
 
         gui.addPane(pane)
         gui.show(player)
@@ -102,8 +108,15 @@ class GuildMemberRankMenu(
         val availableRanks = rankService.listRanks(guild.id)
             .sortedByDescending { it.priority } // Highest priority (lowest number) first
 
-        // Show up to 6 ranks in the selection area
-        val displayRanks = availableRanks.take(6)
+        // Calculate pagination bounds
+        val totalPages = (availableRanks.size + ranksPerPage - 1) / ranksPerPage
+        if (currentPage >= totalPages) {
+            currentPage = maxOf(0, totalPages - 1)
+        }
+
+        val startIndex = currentPage * ranksPerPage
+        val endIndex = minOf(startIndex + ranksPerPage, availableRanks.size)
+        val displayRanks = availableRanks.subList(startIndex, endIndex)
 
         displayRanks.forEachIndexed { index, rank ->
             val isCurrentRank = rank.id == targetMember.rankId
@@ -120,26 +133,55 @@ class GuildMemberRankMenu(
                     player.sendMessage("§7This is already their current rank!")
                 } else {
                     // Open confirmation menu
-                    // menuFactory already injected
                     menuNavigator.openMenu(menuFactory.createGuildMemberRankConfirmationMenu(
                         menuNavigator, player, guild, targetMember, rank
                     ))
                 }
             }
 
-            // Arrange in a 3x2 grid starting at (0,1)
+            // Arrange in a 3×3 grid starting at (0,1), spanning rows 1-3
             val row = 1 + (index / 3)
             val col = index % 3
             pane.addItem(rankGuiItem, col, row)
         }
+    }
 
-        // Add scroll indicator if there are more ranks
-        if (availableRanks.size > 6) {
-            val scrollItem = ItemStack.of(Material.PAPER)
-                .name("§7... and ${availableRanks.size - 6} more")
-                .lore("§7Ranks are ordered by priority")
-            pane.addItem(GuiItem(scrollItem), 2, 2)
+    private fun addNavigationButtons(pane: StaticPane) {
+        val availableRanks = rankService.listRanks(guild.id)
+        val totalPages = maxOf(1, (availableRanks.size + ranksPerPage - 1) / ranksPerPage)
+
+        // Previous page button
+        val prevItem = ItemStack.of(Material.ARROW)
+            .name("§f⬅ PREVIOUS PAGE")
+            .lore("§7Page ${currentPage + 1} of ${totalPages}")
+
+        val prevGuiItem = GuiItem(prevItem) {
+            if (currentPage > 0) {
+                currentPage--
+                open()
+            }
         }
+        pane.addItem(prevGuiItem, 0, 4)
+
+        // Page indicator
+        val pageItem = ItemStack.of(Material.PAPER)
+            .name("§f📄 PAGE ${currentPage + 1}/${totalPages}")
+            .lore("§7${availableRanks.size} ranks total")
+
+        pane.addItem(GuiItem(pageItem), 4, 4)
+
+        // Next page button
+        val nextItem = ItemStack.of(Material.ARROW)
+            .name("§fNEXT PAGE ➡")
+            .lore("§7Page ${currentPage + 1} of ${totalPages}")
+
+        val nextGuiItem = GuiItem(nextItem) {
+            if (currentPage < totalPages - 1) {
+                currentPage++
+                open()
+            }
+        }
+        pane.addItem(nextGuiItem, 8, 4)
     }
 
     private fun createMemberHead(): ItemStack {
