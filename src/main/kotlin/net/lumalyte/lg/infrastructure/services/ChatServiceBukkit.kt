@@ -71,7 +71,8 @@ class ChatServiceBukkit(
     override fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String): Boolean =
         sendGuildAnnouncement(guildId, announcerId, message, '6')
 
-    override fun sendGuildAnnouncement(guildId: UUID,
+    override fun sendGuildAnnouncement(
+        guildId: UUID,
         announcerId: UUID,
         message: String,
         colorDigit: Char,

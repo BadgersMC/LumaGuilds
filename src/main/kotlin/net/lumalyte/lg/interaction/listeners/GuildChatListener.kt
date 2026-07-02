@@ -160,7 +160,9 @@ class GuildChatListener : Listener, KoinComponent {
                 player.sendMessage("§c❌ Only guild moderators can use mod chat!")
                 null
             }
-            else -> ch
+            else -> {
+                ch
+            }
         }
     }
 
