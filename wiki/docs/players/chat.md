@@ -20,9 +20,9 @@ Toggle guild and ally chat, and customize how your tag appears in messages.
 | `/gc <message>` | `lumaguilds.guild.chat` | Send one guild msg (no toggle). |
 | `/g allychat` | `lumaguilds.guild.chat` | Toggle ally chat on/off. |
 | `/gac <message>` | `lumaguilds.guild.chat` | Send one ally msg (no toggle). |
-| `/g modchat` | `lumaguilds.guild.chat` | Toggle mod chat on/off (moderators). |
+| `/g modchat` | `lumaguilds.guild.chat` | Toggle mod chat (moderators). |
 | `/gmc <message>` | `lumaguilds.guild.chat` | Send one mod msg (no toggle). |
-| `/ga [&color] <msg>` | `lumaguilds.guild.chat` | Send announcement (moderators). |
+| `/ga [&color] <msg>` | `lumaguilds.guild.chat` | Send announcement. |
 
 ## How it works
 

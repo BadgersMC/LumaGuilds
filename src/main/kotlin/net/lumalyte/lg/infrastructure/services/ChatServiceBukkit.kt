@@ -4,6 +4,7 @@ import net.lumalyte.lg.application.persistence.ChatSettingsRepository
 import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import net.lumalyte.lg.application.persistence.PartyRepository
 import net.lumalyte.lg.application.services.*
+import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.*
@@ -71,18 +72,10 @@ class ChatServiceBukkit(
     override fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String): Boolean =
         sendGuildAnnouncement(guildId, announcerId, message, '6')
 
-    override fun sendGuildAnnouncement(
-        guildId: UUID,
-        announcerId: UUID,
-        message: String,
-        colorDigit: Char,
-    ): Boolean {
-        val guild = validateAnnouncementPreconditions(announcerId, guildId) ?: return false
+    override fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String, colorDigit: Char): Boolean {
+        val guild = validateAnnouncement(announcerId, guildId) ?: return false
         val name = Bukkit.getPlayer(announcerId)?.name ?: UNKNOWN_PLAYER
-        val headerColor = colorDigit.takeIf { it in '0'..'9' } ?: '6'
-        val fmt =
-            "§$headerColor[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$headerColor]§r\n" +
-                "§e$name:§r $message"
+        val fmt = formatAnnouncement(guild, name, message, colorDigit)
         return try {
             val n = broadcastMessageWithSound(getOnlineGuildMembers(guildId), fmt, true)
             updateAnnouncementRateLimit(announcerId)
@@ -94,22 +87,27 @@ class ChatServiceBukkit(
         }
     }
 
-    private fun validateAnnouncementPreconditions(
-        announcerId: UUID, guildId: UUID,
-    ): net.lumalyte.lg.domain.entities.Guild? {
+    private fun formatAnnouncement(guild: Guild, name: String, message: String, colorDigit: Char): String {
+        val headerColor = colorDigit.takeIf { it in '0'..'9' } ?: '6'
+        return "§$headerColor[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$headerColor]§r\n" +
+            "§e$name:§r $message"
+    }
+
+    private fun validateAnnouncement(announcerId: UUID, guildId: UUID): Guild? {
+        val guild: Guild?
         if (!canSendAnnouncements(announcerId, guildId)) {
             logger.warn("Player $announcerId cannot send announcements for guild $guildId")
-            return null
-        }
-        if (isAnnouncementRateLimited(announcerId)) {
+            guild = null
+        } else if (isAnnouncementRateLimited(announcerId)) {
             logger.warn("Player $announcerId is rate limited for announcements")
-            return null
-        }
-        return guildService.getGuild(guildId).also { guild ->
+            guild = null
+        } else {
+            guild = guildService.getGuild(guildId)
             if (guild == null) {
                 logger.warn("Guild $guildId not found")
             }
         }
+        return guild
     }
     
     override fun sendGuildPing(guildId: UUID, pingerId: UUID, message: String?): Boolean {
@@ -235,15 +233,20 @@ class ChatServiceBukkit(
             }
             ChatChannel.MODCHAT -> {
                 val senderGuilds = memberService.getPlayerGuilds(senderId)
-                val modGuilds = senderGuilds.filter { guildId ->
-                    memberService.hasPermission(
-                        senderId, guildId, RankPermission.MODERATE_CHAT,
-                    )
-                }
+                val modGuilds =
+                    senderGuilds.filter { guildId ->
+                        memberService.hasPermission(
+                            senderId,
+                            guildId,
+                            RankPermission.MODERATE_CHAT,
+                        )
+                    }
                 modGuilds.flatMap { guildId ->
                     getOnlineGuildMembers(guildId).filter { playerId ->
                         memberService.hasPermission(
-                            playerId, guildId, RankPermission.MODERATE_CHAT,
+                            playerId,
+                            guildId,
+                            RankPermission.MODERATE_CHAT,
                         )
                     }
                 }.toSet()
@@ -287,13 +290,12 @@ class ChatServiceBukkit(
             ChatChannel.PARTY -> {
                 formatPartyMessage(senderId, senderName, processedMessage, guildTag)
             }
-            ChatChannel.MODCHAT -> {
+            ChatChannel.MODCHAT ->
                 if (guildTag.isNotEmpty()) {
                     "§1[M] $guildTag §9$senderName:§r $processedMessage"
                 } else {
                     "§1[M] §9$senderName:§r $processedMessage"
                 }
-            }
             ChatChannel.PUBLIC -> {
                 if (guildTag.isNotEmpty()) {
                     "$guildTag §7$senderName:§r $processedMessage"

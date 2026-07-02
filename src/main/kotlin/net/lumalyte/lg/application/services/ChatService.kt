@@ -39,12 +39,7 @@ interface ChatService {
      * invalid values fall back to '6' (gold).
      * @return true if the announcement was sent successfully, false otherwise.
      */
-    fun sendGuildAnnouncement(
-        guildId: UUID,
-        announcerId: UUID,
-        message: String,
-        colorDigit: Char,
-    ): Boolean
+    fun sendGuildAnnouncement(guildId: UUID, announcerId: UUID, message: String, colorDigit: Char): Boolean
     
     /**
      * Sends a ping to all guild members with sound notification.
