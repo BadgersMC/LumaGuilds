@@ -79,7 +79,8 @@ class ChatServiceBukkit(
     ): Boolean {
         val guild = validateAnnouncementPreconditions(announcerId, guildId) ?: return false
         val name = Bukkit.getPlayer(announcerId)?.name ?: UNKNOWN_PLAYER
-        val fmt = "§$colorDigit[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$colorDigit]§r\n" +
+        val fmt =
+            "§$colorDigit[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$colorDigit]§r\n" +
             "§e$name:§r $message"
         return try {
             val n = broadcastMessageWithSound(getOnlineGuildMembers(guildId), fmt, true)

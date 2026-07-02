@@ -143,6 +143,7 @@ class GuildChatListener : Listener, KoinComponent {
             guilds.firstOrNull { guild ->
                 memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MODERATE_CHAT)
             }
+        @Suppress("OptionalWhenBraces")
         return when {
             api == null -> {
                 player.sendMessage("§c❌ RoseChat is not loaded — mod chat unavailable.")
