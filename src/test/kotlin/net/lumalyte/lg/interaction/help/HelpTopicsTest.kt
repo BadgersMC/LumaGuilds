@@ -9,11 +9,11 @@ import kotlin.test.assertTrue
 class HelpTopicsTest {
 
     @Test
-    fun `all 13 player topics are registered`() {
+    fun `all 12 player topics are registered`() {
         val expected = setOf(
             "guilds", "ranks", "homes", "alliances", "war",
             "chat", "identity", "progression", "vault", "mode",
-            "shop", "lfg", "bedrock",
+            "lfg", "bedrock",
         )
         assertEquals(expected, HelpTopics.all.map { it.slug }.toSet())
     }

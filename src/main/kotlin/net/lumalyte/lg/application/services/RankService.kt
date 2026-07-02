@@ -97,6 +97,18 @@ interface RankService {
     fun getPlayerRank(playerId: UUID, guildId: UUID): Rank?
 
     /**
+     * Checks whether a given rank is the player's own rank.
+     *
+     * @param playerId The ID of the player.
+     * @param guildId The ID of the guild.
+     * @param rankId The ID of the rank to check.
+     * @return true if the player holds this rank, false otherwise.
+     */
+    fun isPlayerRank(playerId: UUID, guildId: UUID, rankId: UUID): Boolean {
+        return getPlayerRank(playerId, guildId)?.id == rankId
+    }
+
+    /**
      * Gets a rank by ID.
      *
      * @param rankId The ID of the rank.

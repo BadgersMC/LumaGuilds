@@ -402,7 +402,7 @@ fun guildsModule() = module {
     single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }
 
     // Services
-    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
     single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }

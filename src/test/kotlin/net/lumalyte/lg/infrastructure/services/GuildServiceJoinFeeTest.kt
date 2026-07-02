@@ -11,6 +11,7 @@ import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.GuildVaultService
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.Rank
@@ -36,6 +37,7 @@ class GuildServiceJoinFeeTest {
     private lateinit var hologramService: VaultHologramService
     private lateinit var relationRepository: RelationRepository
     private lateinit var historyRepository: MembershipHistoryRepository
+    private lateinit var adminOverrideService: AdminOverrideService
 
     private lateinit var guildService: GuildServiceBukkit
 
@@ -59,6 +61,7 @@ class GuildServiceJoinFeeTest {
         hologramService = mockk(relaxed = true)
         relationRepository = mockk(relaxed = true)
         historyRepository = mockk(relaxed = true)
+        adminOverrideService = mockk(relaxed = true)
 
         // Create service
         guildService = GuildServiceBukkit(
@@ -71,7 +74,8 @@ class GuildServiceJoinFeeTest {
             vaultService = vaultService,
             hologramService = hologramService,
             relationRepository = relationRepository,
-            historyRepository = historyRepository
+            historyRepository = historyRepository,
+            adminOverrideService = adminOverrideService,
         )
 
         // Set up test data

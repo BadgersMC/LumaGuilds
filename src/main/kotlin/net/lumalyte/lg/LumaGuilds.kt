@@ -809,6 +809,8 @@ class LumaGuilds : JavaPlugin() {
     private fun registerNonClaimCommands() {
         commandManager.registerCommand(GuildCommand())
         commandManager.registerCommand(PartyChatCommand())
+        commandManager.registerCommand(QuickGuildChatCommand())
+        commandManager.registerCommand(QuickAllyChatCommand())
 
         // Register LumaGuilds admin command
         getCommand("lumaguilds")?.setExecutor(LumaGuildsCommand())
