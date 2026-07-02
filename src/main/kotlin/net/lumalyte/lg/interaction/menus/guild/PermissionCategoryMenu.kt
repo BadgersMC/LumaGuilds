@@ -32,8 +32,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     
     // Check if the player is editing their own rank (any rank, not just owner)
     private fun isEditingOwnRank(): Boolean {
-        val playerRank = rankService.getPlayerRank(player.uniqueId, guild.id)
-        return playerRank?.id == rank.id
+        return rankService.isPlayerRank(player.uniqueId, guild.id, rank.id)
     }
 
     override fun open() {

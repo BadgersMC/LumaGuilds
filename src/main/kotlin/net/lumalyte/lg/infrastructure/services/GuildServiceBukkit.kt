@@ -172,10 +172,8 @@ class GuildServiceBukkit(
     override fun renameGuild(guildId: UUID, newName: String, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 
-        val isOverride = adminOverrideService.hasOverride(actorId)
-
-        // Check if actor has permission to rename the guild
-        if (!isOverride && !hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+        // Check if actor has permission to rename the guild (bypassed for admin override)
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
             logger.warn("Player $actorId attempted to rename guild $guildId without MANAGE_GUILD_SETTINGS permission")
             return false
         }
