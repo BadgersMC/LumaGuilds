@@ -271,6 +271,12 @@ class ChatServiceBukkit(
         } else {
             ""
         }
+        val modGuildTag = if (channel == ChatChannel.MODCHAT) {
+            val modGuild = getModeratorGuild(senderId)
+            modGuild?.let { GuildDisplayUtils.createGuildTag(it, brackets = false) } ?: ""
+        } else {
+            ""
+        }
         
         return when (channel) {
             ChatChannel.GUILD -> {
@@ -291,8 +297,8 @@ class ChatServiceBukkit(
                 formatPartyMessage(senderId, senderName, processedMessage, guildTag)
             }
             ChatChannel.MODCHAT ->
-                if (guildTag.isNotEmpty()) {
-                    "§1[M] $guildTag §9$senderName:§r $processedMessage"
+                if (modGuildTag.isNotEmpty()) {
+                    "§1[M] $modGuildTag §9$senderName:§r $processedMessage"
                 } else {
                     "§1[M] §9$senderName:§r $processedMessage"
                 }
@@ -304,6 +310,18 @@ class ChatServiceBukkit(
                 }
             }
         }
+    }
+
+    private fun getModeratorGuild(playerId: UUID): Guild? {
+        val moderatorGuildId =
+            memberService.getPlayerGuilds(playerId).firstOrNull { guildId ->
+                memberService.hasPermission(
+                    playerId,
+                    guildId,
+                    RankPermission.MODERATE_CHAT,
+                )
+            }
+        return moderatorGuildId?.let { guildService.getGuild(it) }
     }
 
     private fun formatPartyMessage(senderId: UUID, senderName: String, message: String, guildTag: String): String {

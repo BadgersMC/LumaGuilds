@@ -27,11 +27,7 @@ internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
-        val guilds = guildService.getPlayerGuilds(player.uniqueId)
-        if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
-            return
-        }
+        if (!player.requireGuildMembership(guildService)) return
         player.sendMessage("§3=== Quick Ally Chat ===")
         player.sendMessage("§7Use §f/gac <message> §7to send a single message to ally chat.")
         player.sendMessage("§7Your chat channel won't change — you stay in your current chat.")
@@ -43,11 +39,7 @@ internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.chat")
     fun onMessage(player: Player, vararg message: String) {
         val playerId = player.uniqueId
-        val guilds = guildService.getPlayerGuilds(playerId)
-        if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
-            return
-        }
+        if (!player.requireGuildMembership(guildService)) return
 
         val text = message.joinToString(" ")
         if (text.isBlank()) {

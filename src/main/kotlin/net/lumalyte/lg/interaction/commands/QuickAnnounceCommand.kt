@@ -76,25 +76,11 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     }
 
     private fun requireAnnouncementPermission(player: Player): UUID? {
-        val guilds = guildService.getPlayerGuilds(player.uniqueId)
-        return if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
-            null
-        } else {
-            val authorizedGuild =
-                guilds.firstOrNull { guild ->
-                    memberService.hasPermission(
-                        player.uniqueId,
-                        guild.id,
-                        RankPermission.SEND_ANNOUNCEMENTS,
-                    )
-                }
-            if (authorizedGuild == null) {
-                player.sendMessage("§c❌ You don't have permission to send announcements!")
-                null
-            } else {
-                authorizedGuild.id
-            }
-        }
+        return player.requireGuildForPermission(
+            guildService,
+            memberService,
+            RankPermission.SEND_ANNOUNCEMENTS,
+            "§c❌ You don't have permission to send announcements!",
+        )?.id
     }
 }

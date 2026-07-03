@@ -77,7 +77,9 @@ class GuildChatListener : Listener, KoinComponent {
             return false
         }
 
-        if (current != null && current.id != allyChannelId) previousChannelId[player.uniqueId] = current.id
+        if (current != null && canCachePrevious(current.id)) {
+            previousChannelId[player.uniqueId] = current.id
+        }
         rose.switchChannel(guildChannel)
         return true
     }
@@ -110,7 +112,9 @@ class GuildChatListener : Listener, KoinComponent {
             return false
         }
 
-        if (current != null && current.id != guildChannelId) previousChannelId[player.uniqueId] = current.id
+        if (current != null && canCachePrevious(current.id)) {
+            previousChannelId[player.uniqueId] = current.id
+        }
         rose.switchChannel(allyChannel)
         return true
     }
@@ -170,15 +174,37 @@ class GuildChatListener : Listener, KoinComponent {
     private fun restorePreviousChannel(player: Player, rose: RosePlayer) {
         val prevId = previousChannelId.remove(player.uniqueId)
         val api = RoseChatAPI.getInstance() ?: return
-        val target = prevId?.let { api.channelManager.getChannel(it) } ?: api.defaultChannel
+        val restored = prevId?.let { api.channelManager.getChannel(it) }
+        val target = getRestoredChannel(player.uniqueId, restored, api.defaultChannel)
         if (target != null) {
             rose.switchChannel(target)
         }
     }
 
+    private fun getRestoredChannel(playerId: UUID, restored: Channel?, defaultChannel: Channel?): Channel? {
+        return if (restored?.id == modChatChannelId && !canUseModChat(playerId)) {
+            defaultChannel
+        } else {
+            restored ?: defaultChannel
+        }
+    }
+
     private fun savePreviousChannel(current: Channel?, playerId: UUID) {
-        if (current != null && current.id != guildChannelId && current.id != allyChannelId) {
+        if (current != null && canCachePrevious(current.id)) {
             previousChannelId[playerId] = current.id
+        }
+    }
+
+    private fun canCachePrevious(channelId: String): Boolean {
+        return channelId != guildChannelId &&
+            channelId != allyChannelId &&
+            channelId != modChatChannelId
+    }
+
+    private fun canUseModChat(playerId: UUID): Boolean {
+        val guilds = guildService.getPlayerGuilds(playerId)
+        return guilds.any { guild ->
+            memberService.hasPermission(playerId, guild.id, RankPermission.MODERATE_CHAT)
         }
     }
 
