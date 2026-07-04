@@ -4,6 +4,8 @@ import dev.rosewood.rosechat.api.RoseChatAPI
 import dev.rosewood.rosechat.chat.channel.Channel
 import dev.rosewood.rosechat.message.RosePlayer
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.entities.RankPermission
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.Listener
@@ -25,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap
 class GuildChatListener : Listener, KoinComponent {
 
     private val guildService: GuildService by inject()
+    private val memberService: MemberService by inject()
 
     private val logger = LoggerFactory.getLogger(GuildChatListener::class.java)
 
@@ -33,6 +36,8 @@ class GuildChatListener : Listener, KoinComponent {
 
     /** ID of the RoseChat channel that targets allied guilds. Must match channels.yml. */
     private val allyChannelId = "guild-ally"
+
+    private val modChatChannelId = "guild-modchat"
 
     /** Caches the channel a player was in before they switched into guild/ally chat, so toggle-off restores it. */
     private val previousChannelId: MutableMap<UUID, String> = ConcurrentHashMap()
@@ -72,7 +77,9 @@ class GuildChatListener : Listener, KoinComponent {
             return false
         }
 
-        if (current != null && current.id != allyChannelId) previousChannelId[player.uniqueId] = current.id
+        if (current != null && canCachePrevious(current.id)) {
+            previousChannelId[player.uniqueId] = current.id
+        }
         rose.switchChannel(guildChannel)
         return true
     }
@@ -105,9 +112,100 @@ class GuildChatListener : Listener, KoinComponent {
             return false
         }
 
-        if (current != null && current.id != guildChannelId) previousChannelId[player.uniqueId] = current.id
+        if (current != null && canCachePrevious(current.id)) {
+            previousChannelId[player.uniqueId] = current.id
+        }
         rose.switchChannel(allyChannel)
         return true
+    }
+
+    /**
+     * Toggles mod chat mode for a player. Only guild members with MODERATE_CHAT
+     * permission can use this. Uses RoseChat for channel switching.
+     *
+     * @return true if mod chat is now ON, false if toggled OFF,
+     *         null if unavailable (error message already sent).
+     */
+    fun toggleModChat(player: Player): Boolean? {
+        val modChannel = resolveModChatChannel(player) ?: return null
+        val rose = RosePlayer(player)
+        return if (rose.playerData?.currentChannel === modChannel) {
+            restorePreviousChannel(player, rose)
+            false
+        } else {
+            savePreviousChannel(rose.playerData?.currentChannel, player.uniqueId)
+            rose.switchChannel(modChannel)
+            true
+        }
+    }
+
+    private fun resolveModChatChannel(player: Player): Channel? {
+        val api = RoseChatAPI.getInstance()
+        val ch = api?.channelManager?.getChannel(modChatChannelId)
+        val guilds = guildService.getPlayerGuilds(player.uniqueId)
+        val g =
+            guilds.firstOrNull { guild ->
+                memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MODERATE_CHAT)
+            }
+        @Suppress("OptionalWhenBraces")
+        return when {
+            api == null -> {
+                player.sendMessage("§c❌ RoseChat is not loaded — mod chat unavailable.")
+                null
+            }
+            ch == null -> {
+                player.sendMessage("§c❌ Mod chat channel not configured.")
+                null
+            }
+            guilds.isEmpty() -> {
+                player.sendMessage("§c❌ You are not in a guild!")
+                null
+            }
+            g == null -> {
+                player.sendMessage("§c❌ Only guild moderators can use mod chat!")
+                null
+            }
+            else -> {
+                ch
+            }
+        }
+    }
+
+    private fun restorePreviousChannel(player: Player, rose: RosePlayer) {
+        val prevId = previousChannelId.remove(player.uniqueId)
+        val api = RoseChatAPI.getInstance() ?: return
+        val restored = prevId?.let { api.channelManager.getChannel(it) }
+        val target = getRestoredChannel(player.uniqueId, restored, api.defaultChannel)
+        if (target != null) {
+            rose.switchChannel(target)
+        }
+    }
+
+    private fun getRestoredChannel(playerId: UUID, restored: Channel?, defaultChannel: Channel?): Channel? {
+        return if (restored?.id == modChatChannelId && !canUseModChat(playerId)) {
+            defaultChannel
+        } else {
+            restored ?: defaultChannel
+        }
+    }
+
+    private fun savePreviousChannel(current: Channel?, playerId: UUID) {
+        if (current != null && canCachePrevious(current.id)) {
+            previousChannelId[playerId] = current.id
+        }
+    }
+
+    private fun canCachePrevious(channelId: String): Boolean {
+        return channelId != guildChannelId &&
+            channelId != allyChannelId &&
+            channelId != modChatChannelId
+    }
+
+    private fun canUseModChat(playerId: UUID): Boolean {
+        val guilds = guildService.getPlayerGuilds(playerId)
+        return guilds.any { guild ->
+            memberService.hasPermission(playerId, guild.id, RankPermission.MODERATE_CHAT)
+        }
     }
 
     fun isInGuildChatMode(playerId: UUID): Boolean {

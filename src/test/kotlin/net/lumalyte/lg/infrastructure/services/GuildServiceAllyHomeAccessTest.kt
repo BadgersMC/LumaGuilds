@@ -74,8 +74,7 @@ class GuildServiceAllyHomeAccessTest {
             vaultService = mockk<GuildVaultService>(relaxed = true),
             hologramService = mockk(relaxed = true),
             relationRepository = relationRepository,
-            historyRepository = mockk<MembershipHistoryRepository>(relaxed = true),
-            adminOverrideService = mockk(relaxed = true),
+            historyRepository = mockk<MembershipHistoryRepository>(relaxed = true)
         )
     }
 

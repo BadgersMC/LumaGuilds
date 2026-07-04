@@ -24,7 +24,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.guild.*
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.GuildHomeSafety
-import net.lumalyte.lg.utils.GuildNameFilter
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.command.Command
@@ -119,13 +118,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Check name filter (profanity/inappropriate content)
-        val nameFilterConfig = configService.loadConfig().guild.nameFilter
-        GuildNameFilter.checkName(name, nameFilterConfig)?.let { reason ->
-            player.sendMessage("§c❌ $reason")
-            return
-        }
-
         val guild = guildService.createGuild(name, playerId, banner)
         if (guild != null) {
             player.sendMessage("§a✅ Guild '$name' created successfully!")
@@ -206,13 +198,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§7 • Basic punctuation: ' & -")
             player.sendMessage("§7")
             player.sendMessage("§e💡 TIP: Use §6/guild tag §eto add colors and formatting!")
-            return
-        }
-
-        // Check name filter (profanity/inappropriate content)
-        val nameFilterConfig = configService.loadConfig().guild.nameFilter
-        GuildNameFilter.checkName(newName, nameFilterConfig)?.let { reason ->
-            player.sendMessage("§c❌ $reason")
             return
         }
 
@@ -980,6 +965,21 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
+    @Subcommand("modchat")
+    @CommandPermission("lumaguilds.guild.chat")
+    fun onModChat(player: Player) {
+        val result = guildChatListener.toggleModChat(player)
+        when (result) {
+            null -> {} // resolveModChatChannel already sent the error message
+            true -> player.sendMessage(
+                "§9✅ §1Mod chat §9enabled§9! Run /g modchat again to disable.",
+            )
+            false -> player.sendMessage(
+                "§7Mod chat §cdisabled§7. Your messages go to main chat.",
+            )
+        }
+    }
+
     @Subcommand("info")
     @CommandCompletion("@guildsorplayers")
     fun onInfo(player: Player, @Optional targetGuild: String?) {
@@ -1603,8 +1603,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        val nameFilterConfig2 = configService.loadConfig().guild.nameFilter
-        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag, nameFilterConfig2)?.let { reason ->
+        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag)?.let { reason ->
             player.sendMessage("§c❌ $reason")
             return
         }

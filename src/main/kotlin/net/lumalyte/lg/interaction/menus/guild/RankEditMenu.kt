@@ -40,15 +40,22 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     private var inputMode: String = "" // "name" or "icon"
     private var selectedIcon: Material = loadRankIcon() // Track selected icon
     
+    // Check if the current player is the guild owner
+    private fun isGuildOwner(): Boolean {
+        val playerRank = rankService.getPlayerRank(player.uniqueId, guild.id)
+        val ownerRank = rankService.getHighestRank(guild.id)
+        return playerRank?.id == ownerRank?.id
+    }
+    
     // Check if the rank being edited is the owner rank
     private fun isOwnerRank(): Boolean {
         val ownerRank = rankService.getHighestRank(guild.id)
         return rank.id == ownerRank?.id
     }
     
-    // Check if the player is editing their own rank (any rank, not just owner)
-    private fun isEditingOwnRank(): Boolean {
-        return rankService.isPlayerRank(player.uniqueId, guild.id, rank.id)
+    // Check if the player is editing their own owner rank
+    private fun isEditingOwnOwnerRank(): Boolean {
+        return isGuildOwner() && isOwnerRank()
     }
 
     private fun canActorReorder(): Boolean {
@@ -176,12 +183,12 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             .lore("§7Priority: §f${rank.priority}")
             .lore("§7Members: §f${getMemberCount()} players")
             
-        // Add protection warning if editing own rank
-        if (isEditingOwnRank()) {
+        // Add owner protection warning if editing own owner rank
+        if (isEditingOwnOwnerRank()) {
             infoItem.lore("§7")
-                .lore("§c⚠ RANK PROTECTION")
+                .lore("§c⚠︎ OWNER RANK PROTECTION")
                 .lore("§7Permission changes are blocked")
-                .lore("§7for your own rank")
+                .lore("§7to prevent self-lockout")
         }
         
         infoItem.lore("§7")
@@ -326,9 +333,9 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
             val categoryGuiItem = GuiItem(categoryItem) {
                 // Prevent owner from removing their own permissions
-                if (isEditingOwnRank()) {
-                    player.sendMessage("§c❌ You cannot modify your own rank's permissions!")
-                    player.sendMessage("§7Contact a higher-ranked member or the guild owner.")
+                if (isEditingOwnOwnerRank()) {
+                    player.sendMessage("§c❌ You cannot modify your own owner rank permissions!")
+                    player.sendMessage("§7This prevents you from locking yourself out of guild management.")
                     return@GuiItem
                 }
                 // Prevent opening Claims category when claims are disabled
@@ -401,13 +408,6 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             if (isOwnerRank()) {
                 player.sendMessage("§c❌ Cannot delete the owner rank!")
                 player.sendMessage("§7The owner rank is permanent and cannot be removed.")
-                return@GuiItem
-            }
-
-            // Prevent deleting your own rank
-            if (isEditingOwnRank()) {
-                player.sendMessage("§c❌ Cannot delete your own rank!")
-                player.sendMessage("§7You would lose management access to this guild.")
                 return@GuiItem
             }
 

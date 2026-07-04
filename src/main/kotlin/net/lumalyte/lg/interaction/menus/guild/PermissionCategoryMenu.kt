@@ -27,12 +27,23 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     private val rankService: RankService by inject()
     private val configService: ConfigService by inject()
     private var modifiedPermissions = rank.permissions.toMutableSet()
-
-    private val selfEditDeniedMsg = "§c❌ You cannot modify your own rank's permissions!"
     
-    // Check if the player is editing their own rank (any rank, not just owner)
-    private fun isEditingOwnRank(): Boolean {
-        return rankService.isPlayerRank(player.uniqueId, guild.id, rank.id)
+    // Check if the current player is the guild owner
+    private fun isGuildOwner(): Boolean {
+        val playerRank = rankService.getPlayerRank(player.uniqueId, guild.id)
+        val ownerRank = rankService.getHighestRank(guild.id)
+        return playerRank?.id == ownerRank?.id
+    }
+    
+    // Check if the rank being edited is the owner rank
+    private fun isOwnerRank(): Boolean {
+        val ownerRank = rankService.getHighestRank(guild.id)
+        return rank.id == ownerRank?.id
+    }
+    
+    // Check if the player is editing their own owner rank
+    private fun isEditingOwnOwnerRank(): Boolean {
+        return isGuildOwner() && isOwnerRank()
     }
 
     override fun open() {
@@ -84,8 +95,8 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             .lore("§7Category: §f$categoryName")
             .lore("§7Total permissions: §f${categoryPermissions.size}")
             
-        // Add protection warning if editing own rank
-        if (isEditingOwnRank()) {
+        // Add owner protection warning if editing own owner rank
+        if (isEditingOwnOwnerRank()) {
             infoItem.lore("§7")
                 .lore("§c⚠︎ OWNER RANK PROTECTION ACTIVE")
                 .lore("§7Permission changes are blocked")
@@ -103,8 +114,8 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             .lore("§aClick to enable all")
 
         val enableAllGuiItem = GuiItem(enableAllItem) {
-            if (isEditingOwnRank()) {
-                player.sendMessage(selfEditDeniedMsg)
+            if (isEditingOwnOwnerRank()) {
+                player.sendMessage("§c❌ You cannot modify your own owner rank permissions!")
                 player.sendMessage("§7This prevents you from locking yourself out of guild management.")
                 return@GuiItem
             }
@@ -125,8 +136,8 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             .lore("§cClick to disable all")
 
         val disableAllGuiItem = GuiItem(disableAllItem) {
-            if (isEditingOwnRank()) {
-                player.sendMessage(selfEditDeniedMsg)
+            if (isEditingOwnOwnerRank()) {
+                player.sendMessage("§c❌ You cannot modify your own owner rank permissions!")
                 player.sendMessage("§7This prevents you from locking yourself out of guild management.")
                 return@GuiItem
             }
@@ -174,8 +185,8 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             permissionItem.lore(if (hasPermission) "§cClick to disable" else "§aClick to enable")
 
             val permissionGuiItem = GuiItem(permissionItem) {
-                if (isEditingOwnRank()) {
-                    player.sendMessage(selfEditDeniedMsg)
+                if (isEditingOwnOwnerRank()) {
+                    player.sendMessage("§c❌ You cannot modify your own owner rank permissions!")
                     player.sendMessage("§7This prevents you from locking yourself out of guild management.")
                     return@GuiItem
                 }

@@ -4,7 +4,6 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.GuildService
-import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
@@ -31,7 +30,6 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
     private val guildService: GuildService by inject()
     private val menuItemBuilder: MenuItemBuilder by inject()
     private val chatInputListener: ChatInputListener by inject()
-    private val configService: ConfigService by inject()
 
     // State for the tag input
     private var currentTag: String? = null
@@ -359,7 +357,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Reject interactive MiniMessage event tags (click/hover/insertion)
-        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag, configService.loadConfig().guild.nameFilter)?.let { return it }
+        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag)?.let { return it }
 
         // Try to parse with MiniMessage
         try {
