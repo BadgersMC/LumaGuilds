@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "net.lumalyte.lg"
-version = "2.1.0"
+version = findProperty("releaseVersion")?.toString() ?: "2.1.0"
 
 repositories {
     mavenLocal()

@@ -6,8 +6,8 @@ import dev.rosewood.rosechat.message.RosePlayer
 import org.bukkit.entity.Player
 
 /**
- * Decouples [RoseChatQuickChat] from RoseChat's static API so the helper
- * can be unit-tested with mock channels and a no-op quickChat.
+ * Decouples chat commands and the toggle listener from RoseChat's static API so
+ * they can be unit-tested with mock channels and a no-op quickChat/switchChannel.
  */
 @PublishedApi
 internal interface RoseChatAdapter {
@@ -16,6 +16,15 @@ internal interface RoseChatAdapter {
 
     /** Invokes [RosePlayer.quickChat] for the given player and channel. */
     fun quickChat(player: Player, channel: Channel, message: String)
+
+    /** Returns the player's current RoseChat channel, or `null`. */
+    fun getCurrentChannel(player: Player): Channel?
+
+    /** Switches the player to [channel] persistently — use for toggles, not one-shots. */
+    fun switchChannel(player: Player, channel: Channel)
+
+    /** Returns RoseChat's default channel, or `null`. */
+    fun getDefaultChannel(): Channel?
 }
 
 /** Production adapter wired to the real RoseChat API. */
@@ -26,6 +35,16 @@ internal class RealRoseChatAdapter : RoseChatAdapter {
     override fun quickChat(player: Player, channel: Channel, message: String) {
         RosePlayer(player).quickChat(channel, message)
     }
+
+    override fun getCurrentChannel(player: Player): Channel? =
+        RosePlayer(player).playerData?.currentChannel
+
+    override fun switchChannel(player: Player, channel: Channel) {
+        RosePlayer(player).switchChannel(channel)
+    }
+
+    override fun getDefaultChannel(): Channel? =
+        RoseChatAPI.getInstance().defaultChannel
 }
 
 /**
