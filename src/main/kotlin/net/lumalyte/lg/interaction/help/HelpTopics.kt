@@ -118,14 +118,6 @@ object HelpTopics {
             ),
         ),
         HelpTopic(
-            slug = "shop",
-            displayName = "Shop integration",
-            summary = "Link guild-owned shops.",
-            commands = listOf(
-                HelpCommandEntry("/g setshop", "Mark your current shop as guild-owned.", "/g setshop"),
-            ),
-        ),
-        HelpTopic(
             slug = "lfg",
             displayName = "LFG & Invites",
             summary = "Manage invites, decline requests, and use LFG to find a guild.",
