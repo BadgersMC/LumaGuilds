@@ -5,6 +5,7 @@ import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.domain.values.ChatChannelIds
 import net.lumalyte.lg.infrastructure.services.RoseChatQuickChat
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
@@ -39,8 +40,8 @@ internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
         if (!player.requireGuildMembership(guildService)) return
 
         val text = message.joinToString(" ")
-        when (RoseChatQuickChat.send(player, "guild-ally", text)) {
-            RoseChatQuickChat.Result.Sent -> {} // routed via RoseChat — no echo needed
+        when (RoseChatQuickChat.send(player, ChatChannelIds.ALLY, text)) {
+            RoseChatQuickChat.Result.Dispatched -> {} // routed via RoseChat — no echo needed
             RoseChatQuickChat.Result.EmptyMessage ->
                 player.sendMessage("§c❌ Message cannot be empty.")
             RoseChatQuickChat.Result.ChannelMissing ->

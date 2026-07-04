@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
 import org.bukkit.entity.Player
+import java.util.UUID
 
 internal fun Player.requireGuildMembership(guildService: GuildService): Boolean {
     val guilds = guildService.getPlayerGuilds(uniqueId)
@@ -56,4 +57,27 @@ internal fun Player.requireGuildForPermission(
             authorizedGuild
         }
     }
+}
+
+/**
+ * Finds the single guild where [player] has SEND_ANNOUNCEMENTS.
+ *
+ * Returns the guild ID if exactly one guild qualifies. Returns `null` for
+ * zero qualifying guilds or ambiguity (multiple guilds have the permission).
+ * Callers should inspect the return value and send an appropriate error message
+ * for each case.
+ */
+internal fun resolveAnnouncementGuild(
+    player: Player,
+    guildService: GuildService,
+    memberService: MemberService,
+): UUID? {
+    val guilds = guildService.getPlayerGuilds(player.uniqueId)
+    if (guilds.isEmpty()) return null
+
+    val qualifying = guilds.filter { guild ->
+        memberService.hasPermission(player.uniqueId, guild.id, RankPermission.SEND_ANNOUNCEMENTS)
+    }
+    if (qualifying.size != 1) return null // 0 or >1 = no clear target
+    return qualifying.first().id
 }

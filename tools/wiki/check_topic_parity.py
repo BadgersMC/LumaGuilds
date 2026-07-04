@@ -17,7 +17,7 @@ HELP_TOPICS_KT = REPO_ROOT / "src/main/kotlin/net/lumalyte/lg/interaction/help/H
 PLAYERS_DIR = REPO_ROOT / "wiki/docs/players"
 
 # Pages that exist in wiki/docs/players/ but intentionally have no HelpTopics entry:
-WIKI_ONLY = {"how-do-i"}
+WIKI_ONLY = {"how-do-i", "shop"}
 
 SLUG_RE = re.compile(r'slug\s*=\s*"([a-z0-9][a-z0-9-]*)"')
 

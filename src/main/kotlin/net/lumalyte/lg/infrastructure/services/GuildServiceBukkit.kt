@@ -5,6 +5,8 @@ import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.persistence.RelationRepository
+import net.lumalyte.lg.application.services.AdminOverrideService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.Guild
@@ -18,6 +20,7 @@ import net.lumalyte.lg.domain.events.GuildDisbandedEvent
 import net.lumalyte.lg.domain.events.GuildHomeSetEvent
 import net.lumalyte.lg.domain.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.utils.serializeToString
+import net.lumalyte.lg.utils.GuildNameFilter
 import org.bukkit.Bukkit
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -35,7 +38,8 @@ class GuildServiceBukkit(
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService,
     private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService,
     private val relationRepository: RelationRepository,
-    private val historyRepository: MembershipHistoryRepository
+    private val historyRepository: MembershipHistoryRepository,
+    private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService,
 ) : GuildService, KoinComponent {
 
     // Lazy because BannermanListeners depends on GuildService, which would create a Koin
@@ -43,6 +47,8 @@ class GuildServiceBukkit(
     private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
+
+    private val configService: ConfigService by inject()
 
     companion object {
         // Allow only alphanumerics and spaces. Blocks color codes (&r, etc.),
@@ -52,7 +58,10 @@ class GuildServiceBukkit(
 
     private fun isGuildNameValid(name: String): Boolean {
         if (name.isBlank() || name.length > 32) return false
-        return GUILD_NAME_ALLOWED.matches(name)
+        if (!GUILD_NAME_ALLOWED.matches(name)) return false
+        val filterConfig = configService.loadConfig().guild.nameFilter
+        if (GuildNameFilter.checkName(name, filterConfig) != null) return false
+        return true
     }
 
     override fun createGuild(name: String, ownerId: UUID, banner: String?): Guild? {
@@ -170,7 +179,7 @@ class GuildServiceBukkit(
     override fun renameGuild(guildId: UUID, newName: String, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
 
-        // Check if actor has permission to rename the guild
+        // Check if actor has permission to rename the guild (bypassed for admin override)
         if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
             logger.warn("Player $actorId attempted to rename guild $guildId without MANAGE_GUILD_SETTINGS permission")
             return false
@@ -182,8 +191,8 @@ class GuildServiceBukkit(
             return false
         }
 
-        // Check if new name is already taken
-        if (guildRepository.isNameTaken(newName)) {
+        // Check if new name is already taken (skip if renaming to the same name, case-insensitive)
+        if (!guild.name.equals(newName, ignoreCase = true) && guildRepository.isNameTaken(newName)) {
             logger.warn("Guild name already taken: $newName")
             return false
         }
@@ -273,7 +282,7 @@ class GuildServiceBukkit(
         // If tag is provided, validate MiniMessage format
         tag?.let { tagValue ->
             // Reject interactive MiniMessage event tags (click/hover/insertion) — defense in depth
-            net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tagValue)?.let { reason ->
+            net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tagValue, configService.loadConfig().guild.nameFilter)?.let { reason ->
                 logger.warn("Rejected guild tag with interactive MiniMessage tag for guild $guildId: $reason")
                 return false
             }
@@ -586,6 +595,7 @@ class GuildServiceBukkit(
         memberRepository.isPlayerInGuild(playerId, guildId)
     
     override fun hasPermission(playerId: UUID, guildId: UUID, permission: RankPermission): Boolean {
+        if (adminOverrideService.hasOverride(playerId)) return true
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val rank = rankRepository.getById(member.rankId) ?: return false
         return rank.permissions.contains(permission)

@@ -1,8 +1,32 @@
 package net.lumalyte.lg.infrastructure.services
 
 import dev.rosewood.rosechat.api.RoseChatAPI
+import dev.rosewood.rosechat.chat.channel.Channel
 import dev.rosewood.rosechat.message.RosePlayer
 import org.bukkit.entity.Player
+
+/**
+ * Decouples [RoseChatQuickChat] from RoseChat's static API so the helper
+ * can be unit-tested with mock channels and a no-op quickChat.
+ */
+@PublishedApi
+internal interface RoseChatAdapter {
+    /** Resolves a RoseChat channel by its configured ID, or `null`. */
+    fun getChannel(channelId: String): Channel?
+
+    /** Invokes [RosePlayer.quickChat] for the given player and channel. */
+    fun quickChat(player: Player, channel: Channel, message: String)
+}
+
+/** Production adapter wired to the real RoseChat API. */
+internal class RealRoseChatAdapter : RoseChatAdapter {
+    override fun getChannel(channelId: String): Channel? =
+        RoseChatAPI.getInstance().channelManager.getChannel(channelId)
+
+    override fun quickChat(player: Player, channel: Channel, message: String) {
+        RosePlayer(player).quickChat(channel, message)
+    }
+}
 
 /**
  * One-shot helper that sends a single message to a RoseChat channel without
@@ -14,10 +38,15 @@ import org.bukkit.entity.Player
  */
 object RoseChatQuickChat {
 
+    /** Injectable adapter — override in tests to avoid static RoseChat API. */
+    @PublishedApi
+    internal var adapter: RoseChatAdapter = RealRoseChatAdapter()
+
     /** Outcome of a quick-chat attempt. */
     sealed interface Result {
-        /** Message was sent successfully via RoseChat. */
-        data object Sent : Result
+        /** Message was dispatched to RoseChat for delivery. Does NOT guarantee
+         *  final delivery — RoseChat may cancel through mutes, filters, or events. */
+        data object Dispatched : Result
 
         /** The requested channel ID is not configured in RoseChat. */
         data object ChannelMissing : Result
@@ -41,10 +70,10 @@ object RoseChatQuickChat {
     fun send(player: Player, channelId: String, message: String): Result {
         if (message.isBlank()) return Result.EmptyMessage
 
-        val channel = RoseChatAPI.getInstance().channelManager.getChannel(channelId)
+        val channel = adapter.getChannel(channelId)
             ?: return Result.ChannelMissing
 
-        RosePlayer(player).quickChat(channel, message)
-        return Result.Sent
+        adapter.quickChat(player, channel, message)
+        return Result.Dispatched
     }
 }

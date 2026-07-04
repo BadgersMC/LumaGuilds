@@ -7,6 +7,7 @@ import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.values.ChatChannelIds
 import net.lumalyte.lg.infrastructure.services.RoseChatQuickChat
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
@@ -31,7 +32,9 @@ internal class QuickModChatCommand : BaseCommand(), KoinComponent {
                 guildService, memberService, RankPermission.MODERATE_CHAT,
                 "§c❌ Only guild moderators can use mod chat!",
             )
-        ) return
+        ) {
+            return
+        }
         player.sendMessage("§1=== Quick Mod Chat ===")
         player.sendMessage("§7Use §f/gmc <message> §7to send a message to guild moderators.")
         player.sendMessage("§7Only guild moderators will see your message.")
@@ -46,11 +49,13 @@ internal class QuickModChatCommand : BaseCommand(), KoinComponent {
                 guildService, memberService, RankPermission.MODERATE_CHAT,
                 "§c❌ Only guild moderators can use mod chat!",
             )
-        ) return
+        ) {
+            return
+        }
 
         val text = message.joinToString(" ")
-        when (RoseChatQuickChat.send(player, "guild-modchat", text)) {
-            RoseChatQuickChat.Result.Sent -> {} // routed via RoseChat — no echo needed
+        when (RoseChatQuickChat.send(player, ChatChannelIds.MODCHAT, text)) {
+            RoseChatQuickChat.Result.Dispatched -> {} // routed via RoseChat — no echo needed
             RoseChatQuickChat.Result.EmptyMessage ->
                 player.sendMessage("§c❌ Message cannot be empty.")
             RoseChatQuickChat.Result.ChannelMissing ->

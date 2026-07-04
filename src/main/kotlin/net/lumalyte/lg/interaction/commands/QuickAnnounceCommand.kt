@@ -7,11 +7,9 @@ import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
-import net.lumalyte.lg.domain.entities.RankPermission
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.util.UUID
 
 /**
  * Guild announcement: `/ga <message>` sends a highlighted announcement to all
@@ -33,8 +31,7 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
-        val guildId = resolveAnnouncementGuild(player) ?: return
-        // Rate limit not checked for help display
+        val guildId = requireAnnouncementGuild(player) ?: return
         player.sendMessage("§6=== Guild Announcements ===")
         player.sendMessage("§7Use §f/ga <message> §7to announce to all guild members.")
         player.sendMessage("§7Add a color code: §f/ga &4 <message> §7for custom colors.")
@@ -46,7 +43,7 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onAnnounce(player: Player, vararg args: String) {
-        val guildId = resolveAnnouncementGuild(player) ?: return
+        val guildId = requireAnnouncementGuild(player) ?: return
         val (colorDigit, message) = parseAnnouncementInput(args)
         if (message.isBlank()) {
             val msg =
@@ -65,39 +62,37 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     }
 
     /**
-     * Resolves the guild for announcements. Returns the guild ID if exactly
-     * one guild grants SEND_ANNOUNCEMENTS, or null with an error message if
-     * zero or multiple guilds qualify (ambiguous case).
+     * Resolves the guild for announcements. Sends an error to [player] and
+     * returns `null` if zero or multiple guilds have SEND_ANNOUNCEMENTS.
      */
-    private fun resolveAnnouncementGuild(player: Player): UUID? {
+    private fun requireAnnouncementGuild(player: Player): java.util.UUID? {
         val guilds = guildService.getPlayerGuilds(player.uniqueId)
+        if (guilds.isEmpty()) {
+            player.sendMessage("§c❌ You are not in a guild!")
+            return null
+        }
+        val guildId = resolveAnnouncementGuild(player, guildService, memberService)
         return when {
-            guilds.isEmpty() -> {
-                player.sendMessage("§c❌ You are not in a guild!")
-                null
-            }
+            guildId != null -> guildId
             else -> {
-                val qualifying = guilds.filter { guild ->
+                // Distinguish zero-perm from ambiguity by checking whether ANY guild has it
+                val hasAny = guilds.any { guild ->
                     memberService.hasPermission(
-                        player.uniqueId, guild.id, RankPermission.SEND_ANNOUNCEMENTS,
+                        player.uniqueId, guild.id,
+                        net.lumalyte.lg.domain.entities.RankPermission.SEND_ANNOUNCEMENTS,
                     )
                 }
-                when (qualifying.size) {
-                    1 -> qualifying.first().id
-                    0 -> {
-                        player.sendMessage(
-                            "§c❌ You don't have permission to send announcements!",
-                        )
-                        null
-                    }
-                    else -> {
-                        player.sendMessage(
-                            "§c❌ You have announcement permission in multiple guilds. " +
-                                "Please leave extra guilds or ask an admin for help.",
-                        )
-                        null
-                    }
+                if (hasAny) {
+                    player.sendMessage(
+                        "§c❌ You have announcement permission in multiple guilds. " +
+                            "Please leave extra guilds or ask an admin for help.",
+                    )
+                } else {
+                    player.sendMessage(
+                        "§c❌ You don't have permission to send announcements!",
+                    )
                 }
+                null
             }
         }
     }
