@@ -48,7 +48,10 @@ class GuildChatListener : Listener, KoinComponent {
     fun toggleGuildChat(player: Player): Boolean {
         val guildChannel = adapter.getChannel(ChatChannelIds.GUILD)
         if (guildChannel == null) {
-            player.sendMessage("§c❌ Guild channel '${ChatChannelIds.GUILD}' is not configured in RoseChat. Ask staff to enable it in channels.yml.")
+            player.sendMessage(
+                "§c❌ Guild channel '${ChatChannelIds.GUILD}' is not configured" +
+                    " in RoseChat. Ask staff to enable it in channels.yml.",
+            )
             return false
         }
 
@@ -79,7 +82,10 @@ class GuildChatListener : Listener, KoinComponent {
     fun toggleAllyChat(player: Player): Boolean {
         val allyChannel = adapter.getChannel(ChatChannelIds.ALLY)
         if (allyChannel == null) {
-            player.sendMessage("§c❌ Ally channel '${ChatChannelIds.ALLY}' is not configured in RoseChat.")
+            player.sendMessage(
+                "§c❌ Ally channel '${ChatChannelIds.ALLY}' is not configured" +
+                    " in RoseChat.",
+            )
             return false
         }
 
@@ -114,29 +120,36 @@ class GuildChatListener : Listener, KoinComponent {
      *         null if unavailable (error message already sent).
      */
     fun toggleModChat(player: Player): Boolean? {
-        val modChannel = resolveModChatChannelOnly(player) ?: return null
+        val modChannel = resolveModChatChannel(player) ?: return null
         val current = adapter.getCurrentChannel(player)
 
         // Already inside → always allow leaving, even if permission was revoked.
         if (current === modChannel) {
-            val prevId = previousChannelId.remove(player.uniqueId)
-            val target = prevId?.let { adapter.getChannel(it) } ?: adapter.getDefaultChannel()
-            if (target != null) adapter.switchChannel(player, target)
-            return false
+            return leaveCurrentChannel(player, modChannel)
         }
 
         // Entering → check guild membership and MODERATE_CHAT permission.
+        return enterModChat(player, modChannel, current)
+    }
+
+    private fun leaveCurrentChannel(player: Player, modChannel: Channel): Boolean {
+        val prevId = previousChannelId.remove(player.uniqueId)
+        val target = prevId?.let { adapter.getChannel(it) } ?: adapter.getDefaultChannel()
+        if (target != null) adapter.switchChannel(player, target)
+        return false
+    }
+
+    private fun enterModChat(
+        player: Player,
+        modChannel: Channel,
+        current: Channel?,
+    ): Boolean? {
         val guilds = guildService.getPlayerGuilds(player.uniqueId)
         if (guilds.isEmpty()) {
             player.sendMessage("§c❌ You are not in a guild!")
             return null
         }
-        if (guilds.none { guild ->
-                memberService.hasPermission(
-                    player.uniqueId, guild.id, RankPermission.MODERATE_CHAT,
-                )
-            }
-        ) {
+        if (!hasModeratePermission(player, guilds)) {
             player.sendMessage("§c❌ Only guild moderators can use mod chat!")
             return null
         }
@@ -149,15 +162,22 @@ class GuildChatListener : Listener, KoinComponent {
         return true
     }
 
-    /** Resolves the mod chat channel without checking guild permissions. */
-    private fun resolveModChatChannelOnly(player: Player): Channel? {
-        val ch = adapter.getChannel(ChatChannelIds.MODCHAT)
-        return if (ch == null) {
-            player.sendMessage("§c❌ Mod chat channel not configured.")
-            null
-        } else {
-            ch
+    private fun hasModeratePermission(player: Player, guilds: Set<net.lumalyte.lg.domain.entities.Guild>): Boolean {
+        return guilds.any { guild ->
+            memberService.hasPermission(
+                player.uniqueId,
+                guild.id,
+                RankPermission.MODERATE_CHAT,
+            )
         }
+    }
+
+    private fun resolveModChatChannel(player: Player): Channel? {
+        val ch = adapter.getChannel(ChatChannelIds.MODCHAT)
+        if (ch == null) {
+            player.sendMessage("§c❌ Mod chat channel not configured.")
+        }
+        return ch
     }
 
     private fun canCachePrevious(channelId: String): Boolean {

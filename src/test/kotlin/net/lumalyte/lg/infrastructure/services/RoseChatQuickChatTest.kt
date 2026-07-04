@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-@Suppress("StringLiteralDuplication")
+@Suppress("StringLiteralDuplication", "FunctionNaming")
 internal class RoseChatQuickChatTest {
 
     private val mockAdapter = mockk<RoseChatAdapter>()

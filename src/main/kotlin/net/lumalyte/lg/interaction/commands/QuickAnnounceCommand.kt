@@ -7,6 +7,7 @@ import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.entities.RankPermission
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -31,7 +32,7 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
-        val guildId = requireAnnouncementGuild(player) ?: return
+        val guildId = resolveAnnouncementGuildOrReject(player) ?: return
         player.sendMessage("§6=== Guild Announcements ===")
         player.sendMessage("§7Use §f/ga <message> §7to announce to all guild members.")
         player.sendMessage("§7Add a color code: §f/ga &4 <message> §7for custom colors.")
@@ -43,15 +44,14 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onAnnounce(player: Player, vararg args: String) {
-        val guildId = requireAnnouncementGuild(player) ?: return
+        val guildId = resolveAnnouncementGuildOrReject(player) ?: return
         val (colorDigit, message) = parseAnnouncementInput(args)
         if (message.isBlank()) {
-            val msg =
-                if (args.isEmpty()) {
-                    "§c❌ Provide a message. Usage: /ga [&color] <message>"
-                } else {
-                    "§c❌ Message cannot be empty."
-                }
+            val msg = if (args.isEmpty()) {
+                "§c❌ Provide a message. Usage: /ga [&color] <message>"
+            } else {
+                "§c❌ Message cannot be empty."
+            }
             player.sendMessage(msg)
             return
         }
@@ -61,40 +61,32 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
         }
     }
 
-    /**
-     * Resolves the guild for announcements. Sends an error to [player] and
-     * returns `null` if zero or multiple guilds have SEND_ANNOUNCEMENTS.
-     */
-    private fun requireAnnouncementGuild(player: Player): java.util.UUID? {
+    private fun resolveAnnouncementGuildOrReject(player: Player): java.util.UUID? {
         val guilds = guildService.getPlayerGuilds(player.uniqueId)
         if (guilds.isEmpty()) {
             player.sendMessage("§c❌ You are not in a guild!")
             return null
         }
         val guildId = resolveAnnouncementGuild(player, guildService, memberService)
-        return when {
-            guildId != null -> guildId
-            else -> {
-                // Distinguish zero-perm from ambiguity by checking whether ANY guild has it
-                val hasAny = guilds.any { guild ->
-                    memberService.hasPermission(
-                        player.uniqueId, guild.id,
-                        net.lumalyte.lg.domain.entities.RankPermission.SEND_ANNOUNCEMENTS,
-                    )
-                }
-                if (hasAny) {
-                    player.sendMessage(
-                        "§c❌ You have announcement permission in multiple guilds. " +
-                            "Please leave extra guilds or ask an admin for help.",
-                    )
-                } else {
-                    player.sendMessage(
-                        "§c❌ You don't have permission to send announcements!",
-                    )
-                }
-                null
-            }
+        if (guildId != null) {
+            return guildId
         }
+        val hasAny = guilds.any { guild ->
+            memberService.hasPermission(
+                player.uniqueId,
+                guild.id,
+                RankPermission.SEND_ANNOUNCEMENTS,
+            )
+        }
+        if (hasAny) {
+            player.sendMessage(
+                "§c❌ You have announcement permission in multiple guilds. " +
+                    "Please leave extra guilds or ask an admin for help.",
+            )
+        } else {
+            player.sendMessage("§c❌ You don't have permission to send announcements!")
+        }
+        return null
     }
 
     private data class AnnouncementInput(val colorDigit: Char, val message: String)

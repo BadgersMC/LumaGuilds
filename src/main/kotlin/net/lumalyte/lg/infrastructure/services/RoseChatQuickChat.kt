@@ -29,22 +29,25 @@ internal interface RoseChatAdapter {
 
 /** Production adapter wired to the real RoseChat API. */
 internal class RealRoseChatAdapter : RoseChatAdapter {
-    override fun getChannel(channelId: String): Channel? =
-        RoseChatAPI.getInstance().channelManager.getChannel(channelId)
+    override fun getChannel(channelId: String): Channel? {
+        return RoseChatAPI.getInstance().channelManager.getChannel(channelId)
+    }
 
     override fun quickChat(player: Player, channel: Channel, message: String) {
         RosePlayer(player).quickChat(channel, message)
     }
 
-    override fun getCurrentChannel(player: Player): Channel? =
-        RosePlayer(player).playerData?.currentChannel
+    override fun getCurrentChannel(player: Player): Channel? {
+        return RosePlayer(player).playerData?.currentChannel
+    }
 
     override fun switchChannel(player: Player, channel: Channel) {
         RosePlayer(player).switchChannel(channel)
     }
 
-    override fun getDefaultChannel(): Channel? =
-        RoseChatAPI.getInstance().defaultChannel
+    override fun getDefaultChannel(): Channel? {
+        return RoseChatAPI.getInstance().defaultChannel
+    }
 }
 
 /**
@@ -56,13 +59,12 @@ internal class RealRoseChatAdapter : RoseChatAdapter {
  * so it's declared in plugin.yml as `depend: [RoseChat]`.
  */
 object RoseChatQuickChat {
-
     /** Injectable adapter — override in tests to avoid static RoseChat API. */
     @PublishedApi
     internal var adapter: RoseChatAdapter = RealRoseChatAdapter()
 
     /** Outcome of a quick-chat attempt. */
-    sealed interface Result {
+    internal sealed interface Result {
         /** Message was dispatched to RoseChat for delivery. Does NOT guarantee
          *  final delivery — RoseChat may cancel through mutes, filters, or events. */
         data object Dispatched : Result
@@ -86,12 +88,9 @@ object RoseChatQuickChat {
      * @param message   the message text.
      * @return a [Result] summarising the outcome.
      */
-    fun send(player: Player, channelId: String, message: String): Result {
+    internal fun send(player: Player, channelId: String, message: String): Result {
         if (message.isBlank()) return Result.EmptyMessage
-
-        val channel = adapter.getChannel(channelId)
-            ?: return Result.ChannelMissing
-
+        val channel = adapter.getChannel(channelId) ?: return Result.ChannelMissing
         adapter.quickChat(player, channel, message)
         return Result.Dispatched
     }

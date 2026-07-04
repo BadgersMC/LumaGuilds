@@ -25,7 +25,7 @@ import org.koin.dsl.module
 import java.time.Instant
 import java.util.UUID
 
-@Suppress("StringLiteralDuplication")
+@Suppress("StringLiteralDuplication", "FunctionNaming")
 internal class GuildChatListenerTest {
 
     private val adapter = mockk<RoseChatAdapter>()
