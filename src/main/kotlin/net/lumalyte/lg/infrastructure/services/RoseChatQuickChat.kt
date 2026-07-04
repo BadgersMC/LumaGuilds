@@ -29,25 +29,22 @@ internal interface RoseChatAdapter {
 
 /** Production adapter wired to the real RoseChat API. */
 internal class RealRoseChatAdapter : RoseChatAdapter {
-    override fun getChannel(channelId: String): Channel? {
-        return RoseChatAPI.getInstance().channelManager.getChannel(channelId)
-    }
+    override fun getChannel(channelId: String): Channel? =
+        RoseChatAPI.getInstance().channelManager.getChannel(channelId)
 
     override fun quickChat(player: Player, channel: Channel, message: String) {
         RosePlayer(player).quickChat(channel, message)
     }
 
-    override fun getCurrentChannel(player: Player): Channel? {
-        return RosePlayer(player).playerData?.currentChannel
-    }
+    override fun getCurrentChannel(player: Player): Channel? =
+        RosePlayer(player).playerData?.currentChannel
 
     override fun switchChannel(player: Player, channel: Channel) {
         RosePlayer(player).switchChannel(channel)
     }
 
-    override fun getDefaultChannel(): Channel? {
-        return RoseChatAPI.getInstance().defaultChannel
-    }
+    override fun getDefaultChannel(): Channel? =
+        RoseChatAPI.getInstance().defaultChannel
 }
 
 /**

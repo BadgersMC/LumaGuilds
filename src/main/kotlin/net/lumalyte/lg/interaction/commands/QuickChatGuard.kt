@@ -42,9 +42,10 @@ internal fun Player.requireGuildForPermission(
         sendMessage("§c❌ You are not in a guild!")
         null
     } else {
-        val authorizedGuild = guilds.firstOrNull { guild ->
-            memberService.hasPermission(uniqueId, guild.id, permission)
-        }
+        val authorizedGuild =
+            guilds.firstOrNull { guild ->
+                memberService.hasPermission(uniqueId, guild.id, permission)
+            }
         if (authorizedGuild == null) {
             sendMessage(noPermissionMessage)
             null
@@ -68,12 +69,13 @@ internal fun resolveAnnouncementGuild(
     memberService: MemberService,
 ): UUID? {
     val guilds = guildService.getPlayerGuilds(player.uniqueId)
-    val qualifying = guilds.filter { guild ->
-        memberService.hasPermission(
-            player.uniqueId,
-            guild.id,
-            RankPermission.SEND_ANNOUNCEMENTS,
-        )
-    }
+    val qualifying =
+        guilds.filter { guild ->
+            memberService.hasPermission(
+                player.uniqueId,
+                guild.id,
+                RankPermission.SEND_ANNOUNCEMENTS,
+            )
+        }
     return if (qualifying.size == 1) qualifying.first().id else null
 }

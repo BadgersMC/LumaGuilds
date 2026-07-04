@@ -3,6 +3,7 @@ package net.lumalyte.lg.interaction.listeners
 import dev.rosewood.rosechat.chat.channel.Channel
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.ChatChannelIds
 import net.lumalyte.lg.infrastructure.services.RealRoseChatAdapter
@@ -59,9 +60,7 @@ class GuildChatListener : Listener, KoinComponent {
 
         if (current === guildChannel) {
             // Toggle OFF — restore previous channel, fall back to default.
-            val prevId = previousChannelId.remove(player.uniqueId)
-            val target = prevId?.let { adapter.getChannel(it) } ?: adapter.getDefaultChannel()
-            if (target != null) adapter.switchChannel(player, target)
+            leaveAndRestore(player)
             return false
         }
 
@@ -92,9 +91,7 @@ class GuildChatListener : Listener, KoinComponent {
         val current = adapter.getCurrentChannel(player)
 
         if (current === allyChannel) {
-            val prevId = previousChannelId.remove(player.uniqueId)
-            val target = prevId?.let { adapter.getChannel(it) } ?: adapter.getDefaultChannel()
-            if (target != null) adapter.switchChannel(player, target)
+            leaveAndRestore(player)
             return false
         }
 
@@ -125,18 +122,18 @@ class GuildChatListener : Listener, KoinComponent {
 
         // Already inside → always allow leaving, even if permission was revoked.
         if (current === modChannel) {
-            return leaveCurrentChannel(player, modChannel)
+            leaveAndRestore(player)
+            return false
         }
 
         // Entering → check guild membership and MODERATE_CHAT permission.
         return enterModChat(player, modChannel, current)
     }
 
-    private fun leaveCurrentChannel(player: Player, modChannel: Channel): Boolean {
+    private fun leaveAndRestore(player: Player) {
         val prevId = previousChannelId.remove(player.uniqueId)
         val target = prevId?.let { adapter.getChannel(it) } ?: adapter.getDefaultChannel()
         if (target != null) adapter.switchChannel(player, target)
-        return false
     }
 
     private fun enterModChat(
@@ -162,7 +159,7 @@ class GuildChatListener : Listener, KoinComponent {
         return true
     }
 
-    private fun hasModeratePermission(player: Player, guilds: Set<net.lumalyte.lg.domain.entities.Guild>): Boolean {
+    private fun hasModeratePermission(player: Player, guilds: Set<Guild>): Boolean {
         return guilds.any { guild ->
             memberService.hasPermission(
                 player.uniqueId,

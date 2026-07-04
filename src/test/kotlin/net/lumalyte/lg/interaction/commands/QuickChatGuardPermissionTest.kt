@@ -25,6 +25,10 @@ internal class QuickChatGuardPermissionTest {
     private val guildA = Guild(id = UUID.randomUUID(), name = "A", createdAt = Instant.now())
     private val guildB = Guild(id = UUID.randomUUID(), name = "B", createdAt = Instant.now())
 
+    private companion object {
+        const val NO_PERM = "no perm"
+    }
+
     init {
         every { player.uniqueId } returns playerId
     }
@@ -38,7 +42,7 @@ internal class QuickChatGuardPermissionTest {
         assertTrue(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, "no perm",
+                RankPermission.MODERATE_CHAT, NO_PERM,
             ),
         )
     }
@@ -52,7 +56,7 @@ internal class QuickChatGuardPermissionTest {
         assertFalse(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, "no perm",
+                RankPermission.MODERATE_CHAT, NO_PERM,
             ),
         )
     }
@@ -69,7 +73,7 @@ internal class QuickChatGuardPermissionTest {
         assertTrue(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, "no perm",
+                RankPermission.MODERATE_CHAT, NO_PERM,
             ),
         )
     }
@@ -86,7 +90,7 @@ internal class QuickChatGuardPermissionTest {
         assertFalse(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, "no perm",
+                RankPermission.MODERATE_CHAT, NO_PERM,
             ),
         )
     }
@@ -97,7 +101,7 @@ internal class QuickChatGuardPermissionTest {
         assertFalse(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, "no perm",
+                RankPermission.MODERATE_CHAT, NO_PERM,
             ),
         )
     }
@@ -111,7 +115,7 @@ internal class QuickChatGuardPermissionTest {
             )
         } returns true
         val result = player.requireGuildForPermission(
-            guildService, memberService, RankPermission.SEND_ANNOUNCEMENTS, "no perm",
+            guildService, memberService, RankPermission.SEND_ANNOUNCEMENTS, NO_PERM,
         )
         assertEquals(guildA.id, result?.id)
     }
@@ -127,7 +131,7 @@ internal class QuickChatGuardPermissionTest {
         assertNull(
             player.requireGuildForPermission(
                 guildService, memberService,
-                RankPermission.SEND_ANNOUNCEMENTS, "no perm",
+                RankPermission.SEND_ANNOUNCEMENTS, NO_PERM,
             ),
         )
     }
@@ -146,7 +150,7 @@ internal class QuickChatGuardPermissionTest {
             )
         } returns true
         val result = player.requireGuildForPermission(
-            guildService, memberService, RankPermission.SEND_ANNOUNCEMENTS, "no perm",
+            guildService, memberService, RankPermission.SEND_ANNOUNCEMENTS, NO_PERM,
         )
         assertEquals(guildB.id, result?.id)
     }
@@ -157,7 +161,7 @@ internal class QuickChatGuardPermissionTest {
         assertNull(
             player.requireGuildForPermission(
                 guildService, memberService,
-                RankPermission.SEND_ANNOUNCEMENTS, "no perm",
+                RankPermission.SEND_ANNOUNCEMENTS, NO_PERM,
             ),
         )
     }

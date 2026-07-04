@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test
 
 @Suppress("StringLiteralDuplication", "FunctionNaming")
 internal class RoseChatQuickChatTest {
-
     private val mockAdapter = mockk<RoseChatAdapter>()
     private val player = mockk<Player>(relaxed = true)
     private val channel = mockk<Channel>()
