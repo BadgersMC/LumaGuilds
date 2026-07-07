@@ -24,6 +24,7 @@ import net.milkbowl.vault.chat.Chat
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
+import org.bukkit.plugin.ServicePriority
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitScheduler
 import org.koin.core.context.GlobalContext.startKoin
@@ -81,6 +82,23 @@ class LumaGuilds : JavaPlugin() {
 
         // Start Koin with modular architecture
         startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
+
+        // Register GuildLookup in Bukkit's ServicesManager so EnthusiaMarket
+        // (and other plugins) can query guild membership, permissions, and
+        // bank balances via the public API.
+        val guildLookup = net.lumalyte.lg.api.GuildLookupImpl(
+            get().get<net.lumalyte.lg.application.services.GuildService>(),
+            get().get<net.lumalyte.lg.application.services.MemberService>(),
+            get().get<net.lumalyte.lg.application.services.RankService>(),
+            get().get<net.lumalyte.lg.application.services.BankService>()
+        )
+        Bukkit.getServicesManager().register(
+            net.lumalyte.lg.api.GuildLookup::class.java,
+            guildLookup,
+            this,
+            ServicePriority.Normal
+        )
+        logColored("✓ GuildLookup registered in ServicesManager for cross-plugin integration")
 
         // Initialize Apollo AFTER Koin is started (requires Koin DI)
         initialiseApolloIntegration()
