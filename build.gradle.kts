@@ -75,6 +75,7 @@ dependencies {
     // RoseChat is required at compile-time for the GuildChatListener channel switch.
     // Drop the built jar into libs/ from the RoseChat project (libs/ is gitignored).
     compileOnly(files("libs/RoseChat-RC-2.jar"))
+    testImplementation(files("libs/RoseChat-RC-2.jar"))
 
     // EnthusiaMarket public API (net.badgersmc.em.api.ShopGuildLookup) for guild-shop
     // integration. Slim api-only jar (one interface, depends only on Bukkit) — NOT the

@@ -14,7 +14,7 @@ enum class ChatChannel {
     
     /** Party chat channel */
     PARTY,
-    
+
     /** Public/global chat channel */
     PUBLIC
 }
