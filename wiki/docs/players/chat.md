@@ -20,6 +20,9 @@ Toggle guild and ally chat, and customize how your tag appears in messages.
 | `/gc <message>` | `lumaguilds.guild.chat` | Send one guild msg (no toggle). |
 | `/g allychat` | `lumaguilds.guild.chat` | Toggle ally chat on/off. |
 | `/gac <message>` | `lumaguilds.guild.chat` | Send one ally msg (no toggle). |
+| `/g modchat` | `lumaguilds.guild.chat` | Toggle mod chat (moderators). |
+| `/gmc <message>` | `lumaguilds.guild.chat` | Send one mod msg (no toggle). |
+| `/ga [&color] <msg>` | `lumaguilds.guild.chat` | Send announcement. |
 
 ## How it works
 
@@ -35,10 +38,19 @@ Use `/g allychat` to enter ally chat. Same on/off behavior as guild chat. Only m
 
 ## One-shot messages (no toggle)
 
-`/gc <message>` sends one message to guild chat without toggling.
-You stay in your current channel. Great for quick \\\"brb\\\" messages.
+`/gc <message>` sends a single message to guild chat without changing your
+chat channel. You stay in global (or wherever you were). Great for a quick
+\"brb\" or \"meet at spawn\" to your guildmates.
 
-`/gac <message>` does the same for ally chat — no toggle needed.
+`/gac <message>` does the same for ally chat — no toggle in, message, toggle
+out needed.
+
+`/gmc <message>` sends a single message to guild moderators without changing
+your channel. Only moderators can send or receive mod chat messages.
+
+`/ga [&color] <message>` sends a highlighted announcement to all guild
+members. Supports color codes &0 through &9 (default &6 gold). Only
+moderators with SEND_ANNOUNCEMENTS permission can use this.
 
 ## How tag formatting renders
 

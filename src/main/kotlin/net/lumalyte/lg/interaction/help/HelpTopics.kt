@@ -57,6 +57,9 @@ object HelpTopics {
                 HelpCommandEntry("/gc <message>", "Send one message to guild chat.", "/gc "),
                 HelpCommandEntry("/g allychat", "Toggle ally chat on/off.", "/g allychat"),
                 HelpCommandEntry("/gac <message>", "Send one message to ally chat.", "/gac "),
+                HelpCommandEntry("/g modchat", "Toggle mod chat on/off (moderators).", "/g modchat"),
+                HelpCommandEntry("/gmc <message>", "Send one message to mod chat.", "/gmc "),
+                HelpCommandEntry("/ga [color] <msg>", "Send a guild announcement.", "/ga "),
             ),
         ),
         HelpTopic(
