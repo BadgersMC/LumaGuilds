@@ -4,6 +4,8 @@ import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.application.persistence.GuildBannerRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.GuildBanner
+import net.lumalyte.lg.domain.events.GuildBannerChangedEvent
+import org.bukkit.Bukkit
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
@@ -63,6 +65,7 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
             val success = bannerRepository.save(banner)
             if (success) {
                 logger.info("Banner set for guild $guildId by player $submitterId")
+                emitBannerChanged(guildId, true)
             }
             return success
 
@@ -94,6 +97,7 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
             val success = bannerRepository.removeActiveBanner(guildId)
             if (success) {
                 logger.info("Banner removed for guild $guildId by player $actorId")
+                emitBannerChanged(guildId, false)
             }
             return success
 
@@ -126,6 +130,14 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
             // Service operation - catching all exceptions to prevent service failure
             logger.error("Error retrieving banners for guild $guildId", e)
             emptyList()
+        }
+    }
+
+    private fun emitBannerChanged(guildId: UUID, hasActiveBanner: Boolean) {
+        try {
+            Bukkit.getPluginManager().callEvent(GuildBannerChangedEvent(guildId, hasActiveBanner))
+        } catch (exception: Exception) {
+            logger.warn("A guild banner changed, but an integration listener failed for guild $guildId", exception)
         }
     }
 }
