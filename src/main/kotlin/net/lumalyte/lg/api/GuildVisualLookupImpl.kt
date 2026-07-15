@@ -40,8 +40,10 @@ class GuildVisualLookupImpl(
             ?.let { GuildBannerDesignSummary(it, patterns) }
     }
 
-    private fun bannerBaseColor(typeName: String): String? = typeName.removeSuffix("_BANNER")
+    private fun bannerBaseColor(typeName: String): String? {
+        return typeName.removeSuffix("_BANNER")
             .takeIf { typeName.endsWith("_BANNER") && it in SUPPORTED_COLORS }
+    }
 
     private fun bannerPatterns(metadata: BannerMeta): List<GuildBannerPatternSummary> =
         metadata.patterns.map { pattern ->

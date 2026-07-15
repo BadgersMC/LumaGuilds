@@ -125,12 +125,14 @@ internal class GuildVisualLookupImplTest {
     }
 }
 
-private fun guild(guildId: UUID, banner: String? = null) = Guild(
+private fun guild(guildId: UUID, banner: String? = null): Guild {
+    return Guild(
         id = guildId,
         name = "Synthetic Guild",
         banner = banner,
         createdAt = Instant.EPOCH,
     )
+}
 
 private fun member(id: UUID, guildId: UUID, rankId: UUID) = Member(id, guildId, rankId, Instant.EPOCH)
 
