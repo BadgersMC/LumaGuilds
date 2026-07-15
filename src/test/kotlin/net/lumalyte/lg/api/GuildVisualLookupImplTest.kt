@@ -63,7 +63,7 @@ internal class GuildVisualLookupImplTest {
     }
 
     @Test
-    fun `six banner layers stay ordered`() {
+    fun `six ordered banner layers`() {
         val patterns =
             listOf(
                 Pattern(DyeColor.WHITE, PatternType.STRIPE_TOP),
@@ -125,8 +125,7 @@ internal class GuildVisualLookupImplTest {
     }
 }
 
-private fun guild(guildId: UUID, banner: String? = null) =
-    Guild(
+private fun guild(guildId: UUID, banner: String? = null) = Guild(
         id = guildId,
         name = "Synthetic Guild",
         banner = banner,
