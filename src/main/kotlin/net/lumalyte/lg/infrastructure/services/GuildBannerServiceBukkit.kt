@@ -134,10 +134,6 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
     }
 
     private fun emitBannerChanged(guildId: UUID, hasActiveBanner: Boolean) {
-        try {
-            Bukkit.getPluginManager().callEvent(GuildBannerChangedEvent(guildId, hasActiveBanner))
-        } catch (exception: Exception) {
-            logger.warn("A guild banner changed, but an integration listener failed for guild $guildId", exception)
-        }
+        Bukkit.getPluginManager().callEvent(GuildBannerChangedEvent(guildId, hasActiveBanner))
     }
 }

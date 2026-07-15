@@ -26,7 +26,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-class GuildVisualLookupImplTest {
+internal class GuildVisualLookupImplTest {
     private val guildId = UUID.randomUUID()
     private val leaderId = UUID.randomUUID()
     private val rankId = UUID.randomUUID()
@@ -46,14 +46,14 @@ class GuildVisualLookupImplTest {
     }
 
     @Test
-    fun `guild without banner exposes leader`() {
+    fun `leader fallback`() {
         stubGuildAndLeader(leaderId)
 
         assertEquals(GuildVisualSummary(leaderId, null), lookup.getGuildVisual(guildId))
     }
 
     @Test
-    fun `banner with zero patterns remains a valid ordered projection`() {
+    fun `zero pattern banner`() {
         stubGuildAndLeader(leaderId, banner(Material.BLUE_BANNER))
 
         assertEquals(
@@ -63,15 +63,16 @@ class GuildVisualLookupImplTest {
     }
 
     @Test
-    fun `banner preserves all six layers in order`() {
-        val patterns = listOf(
-            Pattern(DyeColor.WHITE, PatternType.STRIPE_TOP),
-            Pattern(DyeColor.RED, PatternType.CROSS),
-            Pattern(DyeColor.BLACK, PatternType.BORDER),
-            Pattern(DyeColor.YELLOW, PatternType.TRIANGLE_TOP),
-            Pattern(DyeColor.LIME, PatternType.CIRCLE),
-            Pattern(DyeColor.PURPLE, PatternType.FLOWER),
-        )
+    fun `six banner layers stay ordered`() {
+        val patterns =
+            listOf(
+                Pattern(DyeColor.WHITE, PatternType.STRIPE_TOP),
+                Pattern(DyeColor.RED, PatternType.CROSS),
+                Pattern(DyeColor.BLACK, PatternType.BORDER),
+                Pattern(DyeColor.YELLOW, PatternType.TRIANGLE_TOP),
+                Pattern(DyeColor.LIME, PatternType.CIRCLE),
+                Pattern(DyeColor.PURPLE, PatternType.FLOWER),
+            )
         stubGuildAndLeader(leaderId, banner(Material.BLUE_BANNER, patterns))
 
         assertEquals(
@@ -81,11 +82,12 @@ class GuildVisualLookupImplTest {
     }
 
     @Test
-    fun `banner removal is visible on the next lookup`() {
-        every { guilds.getGuild(guildId) } returnsMany listOf(
-            guild(banner(Material.RED_BANNER)),
-            guild(),
-        )
+    fun `banner removal`() {
+        every { guilds.getGuild(guildId) } returnsMany
+            listOf(
+                guild(guildId, banner(Material.RED_BANNER)),
+                guild(guildId),
+            )
         stubLeader(leaderId)
 
         assertEquals("RED", lookup.getGuildVisual(guildId)?.banner?.baseColor)
@@ -93,48 +95,50 @@ class GuildVisualLookupImplTest {
     }
 
     @Test
-    fun `leadership transfer is visible on the next lookup`() {
+    fun `leadership transfer`() {
         val newLeaderId = UUID.randomUUID()
-        every { guilds.getGuild(guildId) } returns guild()
+        every { guilds.getGuild(guildId) } returns guild(guildId)
         every { ranks.getHighestRank(guildId) } returns Rank(rankId, guildId, "Owner", 0)
-        every { members.getMembersByRank(guildId, rankId) } returnsMany listOf(
-            setOf(member(leaderId)),
-            setOf(member(newLeaderId)),
-        )
+        every { members.getMembersByRank(guildId, rankId) } returnsMany
+            listOf(
+                setOf(member(leaderId, guildId, rankId)),
+                setOf(member(newLeaderId, guildId, rankId)),
+            )
         assertEquals(leaderId, lookup.getGuildVisual(guildId)?.leaderId)
         assertEquals(newLeaderId, lookup.getGuildVisual(guildId)?.leaderId)
     }
 
     @Test
-    fun `missing guild has no public visual`() {
+    fun `missing guild`() {
         every { guilds.getGuild(guildId) } returns null
         assertNull(lookup.getGuildVisual(guildId))
     }
 
     private fun stubGuildAndLeader(id: UUID, banner: String? = null) {
-        every { guilds.getGuild(guildId) } returns guild(banner)
+        every { guilds.getGuild(guildId) } returns guild(guildId, banner)
         stubLeader(id)
     }
 
     private fun stubLeader(id: UUID) {
         every { ranks.getHighestRank(guildId) } returns Rank(rankId, guildId, "Owner", 0)
-        every { members.getMembersByRank(guildId, rankId) } returns setOf(member(id))
+        every { members.getMembersByRank(guildId, rankId) } returns setOf(member(id, guildId, rankId))
     }
+}
 
-    private fun guild(banner: String? = null) = Guild(
+private fun guild(guildId: UUID, banner: String? = null) =
+    Guild(
         id = guildId,
         name = "Synthetic Guild",
         banner = banner,
         createdAt = Instant.EPOCH,
     )
 
-    private fun member(id: UUID) = Member(id, guildId, rankId, Instant.EPOCH)
+private fun member(id: UUID, guildId: UUID, rankId: UUID) = Member(id, guildId, rankId, Instant.EPOCH)
 
-    private fun banner(material: Material, patterns: List<Pattern> = emptyList()): String {
-        val item = ItemStack(material)
-        val meta = item.itemMeta as BannerMeta
-        meta.patterns = patterns
-        item.itemMeta = meta
-        return item.serializeToString()
-    }
+private fun banner(material: Material, patterns: List<Pattern> = emptyList()): String {
+    val item = ItemStack(material)
+    val meta = item.itemMeta as BannerMeta
+    meta.patterns = patterns
+    item.itemMeta = meta
+    return item.serializeToString()
 }
