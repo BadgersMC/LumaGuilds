@@ -4,17 +4,22 @@ package net.lumalyte.lg.api
 
 import io.mockk.every
 import io.mockk.mockk
-import net.lumalyte.lg.application.services.BannerColor
-import net.lumalyte.lg.application.services.BannerDesignData
-import net.lumalyte.lg.application.services.BannerPattern
-import net.lumalyte.lg.application.services.GuildBannerService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
-import net.lumalyte.lg.domain.entities.GuildBanner
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.Rank
+import net.lumalyte.lg.utils.serializeToString
+import org.bukkit.DyeColor
+import org.bukkit.Material
+import org.bukkit.block.banner.Pattern
+import org.bukkit.block.banner.PatternType
+import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.BannerMeta
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.mockbukkit.mockbukkit.MockBukkit
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.Test
@@ -28,21 +33,28 @@ class GuildVisualLookupImplTest {
     private val guilds = mockk<GuildService>()
     private val members = mockk<MemberService>()
     private val ranks = mockk<RankService>()
-    private val banners = mockk<GuildBannerService>()
-    private val lookup = GuildVisualLookupImpl(guilds, members, ranks, banners)
+    private val lookup = GuildVisualLookupImpl(guilds, members, ranks)
+
+    @BeforeEach
+    fun setUp() {
+        MockBukkit.mock()
+    }
+
+    @AfterEach
+    fun tearDown() {
+        MockBukkit.unmock()
+    }
 
     @Test
     fun `guild without banner exposes leader`() {
         stubGuildAndLeader(leaderId)
-        every { banners.getGuildBanner(guildId) } returns null
 
         assertEquals(GuildVisualSummary(leaderId, null), lookup.getGuildVisual(guildId))
     }
 
     @Test
     fun `banner with zero patterns remains a valid ordered projection`() {
-        stubGuildAndLeader(leaderId)
-        every { banners.getGuildBanner(guildId) } returns banner(BannerDesignData(BannerColor.BLUE))
+        stubGuildAndLeader(leaderId, banner(Material.BLUE_BANNER))
 
         assertEquals(
             GuildBannerDesignSummary("BLUE", emptyList()),
@@ -52,30 +64,29 @@ class GuildVisualLookupImplTest {
 
     @Test
     fun `banner preserves all six layers in order`() {
-        stubGuildAndLeader(leaderId)
         val patterns = listOf(
-            BannerPattern("STRIPE_TOP", BannerColor.WHITE),
-            BannerPattern("CROSS", BannerColor.RED),
-            BannerPattern("BORDER", BannerColor.BLACK),
-            BannerPattern("TRIANGLE_TOP", BannerColor.YELLOW),
-            BannerPattern("CIRCLE", BannerColor.LIME),
-            BannerPattern("FLOWER", BannerColor.PURPLE),
+            Pattern(DyeColor.WHITE, PatternType.STRIPE_TOP),
+            Pattern(DyeColor.RED, PatternType.CROSS),
+            Pattern(DyeColor.BLACK, PatternType.BORDER),
+            Pattern(DyeColor.YELLOW, PatternType.TRIANGLE_TOP),
+            Pattern(DyeColor.LIME, PatternType.CIRCLE),
+            Pattern(DyeColor.PURPLE, PatternType.FLOWER),
         )
-        every { banners.getGuildBanner(guildId) } returns banner(BannerDesignData(BannerColor.BLUE, patterns))
+        stubGuildAndLeader(leaderId, banner(Material.BLUE_BANNER, patterns))
 
         assertEquals(
-            patterns.map { GuildBannerPatternSummary(it.type, it.color.name) },
+            patterns.map { GuildBannerPatternSummary(it.pattern.key.key.uppercase(), it.color.name) },
             lookup.getGuildVisual(guildId)?.banner?.patterns,
         )
     }
 
     @Test
     fun `banner removal is visible on the next lookup`() {
-        stubGuildAndLeader(leaderId)
-        every { banners.getGuildBanner(guildId) } returnsMany listOf(
-            banner(BannerDesignData(BannerColor.RED)),
-            null,
+        every { guilds.getGuild(guildId) } returnsMany listOf(
+            guild(banner(Material.RED_BANNER)),
+            guild(),
         )
+        stubLeader(leaderId)
 
         assertEquals("RED", lookup.getGuildVisual(guildId)?.banner?.baseColor)
         assertNull(lookup.getGuildVisual(guildId)?.banner)
@@ -90,8 +101,6 @@ class GuildVisualLookupImplTest {
             setOf(member(leaderId)),
             setOf(member(newLeaderId)),
         )
-        every { banners.getGuildBanner(guildId) } returns null
-
         assertEquals(leaderId, lookup.getGuildVisual(guildId)?.leaderId)
         assertEquals(newLeaderId, lookup.getGuildVisual(guildId)?.leaderId)
     }
@@ -102,23 +111,30 @@ class GuildVisualLookupImplTest {
         assertNull(lookup.getGuildVisual(guildId))
     }
 
-    private fun stubGuildAndLeader(id: UUID) {
-        every { guilds.getGuild(guildId) } returns guild()
+    private fun stubGuildAndLeader(id: UUID, banner: String? = null) {
+        every { guilds.getGuild(guildId) } returns guild(banner)
+        stubLeader(id)
+    }
+
+    private fun stubLeader(id: UUID) {
         every { ranks.getHighestRank(guildId) } returns Rank(rankId, guildId, "Owner", 0)
         every { members.getMembersByRank(guildId, rankId) } returns setOf(member(id))
     }
 
-    private fun guild() = Guild(id = guildId, name = "Synthetic Guild", createdAt = Instant.EPOCH)
+    private fun guild(banner: String? = null) = Guild(
+        id = guildId,
+        name = "Synthetic Guild",
+        banner = banner,
+        createdAt = Instant.EPOCH,
+    )
 
     private fun member(id: UUID) = Member(id, guildId, rankId, Instant.EPOCH)
 
-    private fun banner(design: BannerDesignData) = GuildBanner(
-        id = UUID.randomUUID(),
-        guildId = guildId,
-        name = null,
-        designData = design,
-        submittedBy = UUID.randomUUID(),
-        createdAt = Instant.EPOCH,
-        isActive = true,
-    )
+    private fun banner(material: Material, patterns: List<Pattern> = emptyList()): String {
+        val item = ItemStack(material)
+        val meta = item.itemMeta as BannerMeta
+        meta.patterns = patterns
+        item.itemMeta = meta
+        return item.serializeToString()
+    }
 }

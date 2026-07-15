@@ -2,10 +2,11 @@
 
 package net.lumalyte.lg.api
 
-import net.lumalyte.lg.application.services.GuildBannerService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
+import net.lumalyte.lg.utils.deserializeToItemStack
+import org.bukkit.inventory.meta.BannerMeta
 import java.util.UUID
 
 /** LumaGuilds-owned implementation of the stable public visual lookup. */
@@ -13,29 +14,39 @@ class GuildVisualLookupImpl(
     private val guilds: GuildService,
     private val members: MemberService,
     private val ranks: RankService,
-    private val banners: GuildBannerService,
 ) : GuildVisualLookup {
     override fun getGuildVisual(guildId: UUID): GuildVisualSummary? {
-        guilds.getGuild(guildId) ?: return null
+        val guild = guilds.getGuild(guildId) ?: return null
         val leaderId = ranks.getHighestRank(guildId)
             ?.let { members.getMembersByRank(guildId, it.id) }
             ?.map { it.playerId }
             ?.minByOrNull(UUID::toString)
-        val banner = banners.getGuildBanner(guildId)?.designData
-            ?.takeIf { design -> design.patterns.size <= MAX_BANNER_PATTERNS && design.patterns.all { it.type in SUPPORTED_PATTERNS } }
-            ?.let { design ->
-            GuildBannerDesignSummary(
-                baseColor = design.baseColor.name,
-                patterns = design.patterns.take(MAX_BANNER_PATTERNS).map {
-                    GuildBannerPatternSummary(it.type, it.color.name)
-                },
+        val banner = guild.banner?.let(::projectBanner)
+        return GuildVisualSummary(leaderId, banner)
+    }
+
+    private fun projectBanner(serialized: String): GuildBannerDesignSummary? {
+        val item = serialized.deserializeToItemStack() ?: return null
+        val baseColor = item.type.name.removeSuffix("_BANNER")
+            .takeIf { item.type.name.endsWith("_BANNER") && it in SUPPORTED_COLORS }
+            ?: return null
+        val meta = item.itemMeta as? BannerMeta ?: return null
+        val patterns = meta.patterns.map { pattern ->
+            GuildBannerPatternSummary(
+                pattern.pattern.key.key.uppercase(),
+                pattern.color.name,
             )
         }
-        return GuildVisualSummary(leaderId, banner)
+        if (patterns.size > MAX_BANNER_PATTERNS || patterns.any { it.type !in SUPPORTED_PATTERNS }) return null
+        return GuildBannerDesignSummary(baseColor, patterns)
     }
 
     private companion object {
         const val MAX_BANNER_PATTERNS = 6
+        val SUPPORTED_COLORS = setOf(
+            "WHITE", "ORANGE", "MAGENTA", "LIGHT_BLUE", "YELLOW", "LIME", "PINK", "GRAY",
+            "LIGHT_GRAY", "CYAN", "PURPLE", "BLUE", "BROWN", "GREEN", "RED", "BLACK",
+        )
         val SUPPORTED_PATTERNS = setOf(
             "SQUARE_BOTTOM_LEFT", "SQUARE_BOTTOM_RIGHT", "SQUARE_TOP_LEFT", "SQUARE_TOP_RIGHT",
             "STRIPE_BOTTOM", "STRIPE_TOP", "STRIPE_LEFT", "STRIPE_RIGHT", "STRIPE_CENTER",
