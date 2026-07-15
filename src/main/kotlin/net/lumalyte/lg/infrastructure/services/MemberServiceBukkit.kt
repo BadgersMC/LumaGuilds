@@ -439,6 +439,9 @@ class MemberServiceBukkit(
         if (adminOverrideService.hasOverride(playerId)) return true
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val rank = rankRepository.getById(member.rankId) ?: return false
+        // Owner (priority 0) implicitly has all permissions, even those added
+        // after guild creation — avoids stale permission sets for old guilds.
+        if (rank.priority == 0) return true
         return rank.permissions.contains(permission)
     }
 }
