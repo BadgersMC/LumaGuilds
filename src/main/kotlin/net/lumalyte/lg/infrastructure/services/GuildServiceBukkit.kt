@@ -15,6 +15,7 @@ import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.events.GuildBannerSetEvent
+import net.lumalyte.lg.domain.events.GuildBannerChangedEvent
 import net.lumalyte.lg.domain.events.GuildCreatedEvent
 import net.lumalyte.lg.domain.events.GuildDisbandedEvent
 import net.lumalyte.lg.domain.events.GuildHomeSetEvent
@@ -222,6 +223,7 @@ class GuildServiceBukkit(
             val bannerText = if (banner != null) "${banner.type.name} with patterns" else "cleared (default white banner)"
             logger.info("Guild $guildId banner set to '$bannerText' by $actorId")
             Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
+            Bukkit.getPluginManager().callEvent(GuildBannerChangedEvent(guildId, banner != null))
 
             bannermanListeners.onGuildBannerChanged(guildId)
         }
