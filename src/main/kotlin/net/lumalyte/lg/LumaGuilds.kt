@@ -100,6 +100,19 @@ class LumaGuilds : JavaPlugin() {
         )
         logColored("✓ GuildLookup registered in ServicesManager for cross-plugin integration")
 
+        val guildVisualLookup = net.lumalyte.lg.api.GuildVisualLookupImpl(
+            get().get<net.lumalyte.lg.application.services.GuildService>(),
+            get().get<net.lumalyte.lg.application.services.MemberService>(),
+            get().get<net.lumalyte.lg.application.services.RankService>()
+        )
+        Bukkit.getServicesManager().register(
+            net.lumalyte.lg.api.GuildVisualLookup::class.java,
+            guildVisualLookup,
+            this,
+            ServicePriority.Normal
+        )
+        logColored("✓ GuildVisualLookup registered in ServicesManager for cross-plugin integration")
+
         // Initialize Apollo AFTER Koin is started (requires Koin DI)
         initialiseApolloIntegration()
 
