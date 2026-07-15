@@ -114,7 +114,7 @@ internal class GuildServiceBannermanTest {
                 id = UUID.randomUUID(),
                 guildId = testGuildId,
                 name = "Member",
-                priority = 0,
+                priority = 1,
                 permissions = emptySet(),
             )
     }

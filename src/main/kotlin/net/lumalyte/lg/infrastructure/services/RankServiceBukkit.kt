@@ -226,6 +226,8 @@ class RankServiceBukkit(
     
     override fun hasPermission(playerId: UUID, guildId: UUID, permission: RankPermission): Boolean {
         val rank = getPlayerRank(playerId, guildId) ?: return false
+        // Owner (priority 0) implicitly has all permissions.
+        if (rank.priority == 0) return true
         return rank.permissions.contains(permission)
     }
     
