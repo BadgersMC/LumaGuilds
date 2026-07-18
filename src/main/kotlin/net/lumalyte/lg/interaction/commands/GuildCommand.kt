@@ -1536,42 +1536,42 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Find target player - handle Floodgate prefix
-        val targetPlayer = findPlayerByName(targetPlayerName)
-        if (targetPlayer == null) {
-            player.sendMessage("§cPlayer '$targetPlayerName' not found or is not online.")
+        // Find target among guild members (supports offline players via OfflinePlayer)
+        val targetMember = findGuildMemberByName(guild.id, targetPlayerName)
+        if (targetMember == null) {
+            player.sendMessage("§cPlayer '$targetPlayerName' is not in your guild!")
             return
         }
 
-        if (targetPlayer == player) {
+        if (targetMember.playerId == playerId) {
             player.sendMessage("§cYou cannot transfer ownership to yourself.")
             return
         }
 
-        // Check if target is in the guild
-        val targetMember = memberService.getMember(targetPlayer.uniqueId, guild.id)
-        if (targetMember == null) {
-            player.sendMessage("§c${targetPlayer.name} is not in your guild!")
-            return
-        }
+        val targetOffline = player.server.getOfflinePlayer(targetMember.playerId)
+        val targetName = targetOffline.name ?: targetPlayerName
 
         // Perform ownership transfer
-        val success = memberService.transferOwnership(guild.id, playerId, targetPlayer.uniqueId)
+        val success = memberService.transferOwnership(guild.id, playerId, targetMember.playerId)
 
         if (success) {
-            player.sendMessage("§aOwnership of §6${guild.name}§a has been transferred to §e${targetPlayer.name}§a.")
+            player.sendMessage("§aOwnership of §6${guild.name}§a has been transferred to §e${targetName}§a.")
             player.sendMessage("§7You are now a §eCo-Owner§7.")
 
-            targetPlayer.sendMessage("§6§l✦ PROMOTION ✦")
-            targetPlayer.sendMessage("§aYou are now the owner of §6${guild.name}§a!")
-            targetPlayer.sendMessage("§7Use §e/guild menu§7 to manage your guild.")
+            // Only notify the new owner if they are online
+            val targetOnline = targetOffline.player
+            if (targetOnline != null) {
+                targetOnline.sendMessage("§6§l✦ PROMOTION ✦")
+                targetOnline.sendMessage("§aYou are now the owner of §6${guild.name}§a!")
+                targetOnline.sendMessage("§7Use §e/guild menu§7 to manage your guild.")
+            }
 
             // Notify all other guild members
             val guildMembers = memberService.getGuildMembers(guild.id)
             guildMembers.forEach { member ->
-                if (member.playerId != playerId && member.playerId != targetPlayer.uniqueId) {
+                if (member.playerId != playerId && member.playerId != targetMember.playerId) {
                     val memberPlayer = player.server.getPlayer(member.playerId)
-                    memberPlayer?.sendMessage("§e${player.name}§7 has transferred ownership of the guild to §e${targetPlayer.name}§7.")
+                    memberPlayer?.sendMessage("§e${player.name}§7 has transferred ownership of the guild to §e${targetName}§7.")
                 }
             }
         } else {
