@@ -137,6 +137,26 @@ class GuildLookupImplTest {
     }
 
     @Test
+    fun `getGuildMemberIds maps member entities to playerId set`() {
+        val member1 = Member(
+            playerId = UUID.randomUUID(), guildId = guildId,
+            rankId = UUID.randomUUID(), joinedAt = Instant.now(),
+        )
+        val member2 = Member(
+            playerId = UUID.randomUUID(), guildId = guildId,
+            rankId = UUID.randomUUID(), joinedAt = Instant.now(),
+        )
+        every { members.getGuildMembers(guildId) } returns setOf(member1, member2)
+        assertEquals(setOf(member1.playerId, member2.playerId), lookup.getGuildMemberIds(guildId))
+    }
+
+    @Test
+    fun `getGuildMemberIds empty when guild has no members`() {
+        every { members.getGuildMembers(guildId) } returns emptySet()
+        assertTrue(lookup.getGuildMemberIds(guildId).isEmpty())
+    }
+
+    @Test
     fun `getBankBalance delegates and widens to Long`() {
         every { banks.getBalance(guildId) } returns 4200
         assertEquals(4200L, lookup.getBankBalance(guildId))

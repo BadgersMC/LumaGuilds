@@ -56,6 +56,9 @@ class GuildLookupImpl(
         return playerRank.priority <= targetRank.priority
     }
 
+    override fun getGuildMemberIds(guildId: UUID): Set<UUID> =
+        members.getGuildMembers(guildId).map { it.playerId }.toSet()
+
     override fun getBankBalance(guildId: UUID): Long = banks.getBalance(guildId).toLong()
 
     override fun bankWithdraw(guildId: UUID, actorId: UUID, amount: Long, reason: String): Boolean {
