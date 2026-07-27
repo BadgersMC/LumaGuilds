@@ -52,6 +52,9 @@ interface GuildLookup {
      */
     fun hasRankAtLeast(playerId: UUID, guildId: UUID, rankName: String): Boolean
 
+    /** UUIDs of every player who is a member of the guild (online or offline). */
+    fun getGuildMemberIds(guildId: UUID): Set<UUID>
+
     /** Guild bank balance for [guildId], or 0 if unknown. */
     fun getBankBalance(guildId: UUID): Long
 
