@@ -27,10 +27,7 @@ import java.util.UUID
  * Recipients are computed at call time from live guild data, respecting
  * per-player chat visibility toggles stored in [ChatSettingsRepository].
  */
-class LumaGuildsChannel(
-    provider: ChannelProvider,
-    section: ConfigurationSection
-) : Channel(provider, section), KoinComponent {
+class LumaGuildsChannel(provider: ChannelProvider) : Channel(provider), KoinComponent {
 
     private val memberService: MemberService by inject()
     private val guildService: GuildService by inject()
@@ -38,12 +35,20 @@ class LumaGuildsChannel(
     private val chatSettingsRepository: ChatSettingsRepository by inject()
 
     /** Resolved from the `channel-type` key in `channels.yml` (default: GUILD). */
-    val channelType: LumaGuildsChannelType = when {
-        section.getString("channel-type", "GUILD").equals("ALLY", ignoreCase = true) ->
-            LumaGuildsChannelType.ALLY
-        section.getString("channel-type", "GUILD").equals("OFFICER", ignoreCase = true) ->
-            LumaGuildsChannelType.MODCHAT
-        else -> LumaGuildsChannelType.GUILD
+    lateinit var channelType: LumaGuildsChannelType
+        private set
+
+    override fun onLoad(id: String, config: ConfigurationSection) {
+        super.onLoad(id, config)
+        channelType = when {
+            config.getString("channel-type", "GUILD").equals("ALLY", ignoreCase = true) ->
+                LumaGuildsChannelType.ALLY
+            config.getString("channel-type", "GUILD").equals("OFFICER", ignoreCase = true) ->
+                LumaGuildsChannelType.MODCHAT
+            config.getString("channel-type", "GUILD").equals("MODCHAT", ignoreCase = true) ->
+                LumaGuildsChannelType.MODCHAT
+            else -> LumaGuildsChannelType.GUILD
+        }
     }
 
     override fun getMembers(): List<UUID> {
@@ -56,12 +61,7 @@ class LumaGuildsChannel(
                     if (guilds.any { hasModPerms(player.uniqueId, it) })
                         ids.add(player.uniqueId)
                 }
-                LumaGuildsChannelType.ALLY -> {
-                    if (guilds.any { g ->
-                            relationService.getGuildRelationsByType(g, RelationType.ALLY)
-                                .any { it.isActive() }
-                        }) ids.add(player.uniqueId)
-                }
+                LumaGuildsChannelType.ALLY -> ids.add(player.uniqueId)
                 LumaGuildsChannelType.GUILD -> ids.add(player.uniqueId)
             }
         }
@@ -120,7 +120,7 @@ class LumaGuildsChannel(
             }
 
             LumaGuildsChannelType.MODCHAT -> {
-                senderGuilds.forEach { guildId ->
+                senderGuilds.filter { hasModPerms(senderId, it) }.forEach { guildId ->
                     memberService.getGuildMembers(guildId)
                         .filter { hasModPerms(it.playerId, guildId) }
                         .forEach { member ->
@@ -143,6 +143,15 @@ class LumaGuildsChannel(
 
         if (senderGuilds.isEmpty() || receiverGuilds.isEmpty()) return false
 
+        // Honor receiver's per-channel-type visibility opt-out
+        val settings = chatSettingsRepository.getVisibilitySettings(receiverId)
+        val visibilityAllowed = when (channelType) {
+            LumaGuildsChannelType.GUILD -> settings.guildChatVisible
+            LumaGuildsChannelType.ALLY -> settings.allyChatVisible
+            LumaGuildsChannelType.MODCHAT -> true
+        }
+        if (!visibilityAllowed) return false
+
         return when (channelType) {
             LumaGuildsChannelType.GUILD ->
                 senderGuilds.intersect(receiverGuilds).isNotEmpty()
@@ -150,13 +159,13 @@ class LumaGuildsChannel(
             LumaGuildsChannelType.ALLY ->
                 senderGuilds.intersect(receiverGuilds).isNotEmpty() ||
                     senderGuilds.any { sg ->
-                        receiverGuilds.any { rg -> relationService.areAllies(sg, rg) }
+                        receiverGuilds.any { rg -> relationService.getRelationType(sg, rg) == RelationType.ALLY }
                     }
 
-            LumaGuildsChannelType.MODCHAT -> {
-                val shared = senderGuilds.intersect(receiverGuilds).firstOrNull() ?: return false
-                hasModPerms(senderId, shared) && hasModPerms(receiverId, shared)
-            }
+            LumaGuildsChannelType.MODCHAT ->
+                senderGuilds.intersect(receiverGuilds).any { shared ->
+                    hasModPerms(senderId, shared) && hasModPerms(receiverId, shared)
+                }
         }
     }
 
