@@ -33,6 +33,7 @@ import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.DailyWarCostsService
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
 import net.lumalyte.lg.infrastructure.services.DailyWarCostsScheduler
+import net.lumalyte.lg.infrastructure.services.LumaGuildsChannelProvider
 import java.io.File
 import java.io.IOException
 import java.sql.Connection
@@ -970,12 +971,47 @@ class LumaGuilds : JavaPlugin() {
             val roseChatCleanupListener = get().get<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener>()
             server.pluginManager.registerEvents(roseChatCleanupListener, this)
             logColored("✓ RoseChat integration registered for chat cleanup")
+
+            // Register RoseChat ChannelProvider so guild/ally/modchat channels
+            // resolve from channels.yml. A delayed reload re-reads the config
+            // now that the provider exists (RoseChat's first attempt at startup
+            // found no provider and skipped the guild sections).
+            registerRoseChatChannels()
         }
 
         // Register admin override listener (for logout cleanup) - only when claims enabled
         if (claimsEnabled) {
             val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
             server.pluginManager.registerEvents(adminOverrideListener, this)
+        }
+    }
+
+    /**
+     * Registers [LumaGuildsChannelProvider] with RoseChat and schedules a
+     * delayed reload so the guild channels defined in `channels.yml` are
+     * created. Called inside the `isPluginEnabled("RoseChat")` block in
+     * [registerNonClaimEvents].
+     */
+    private fun registerRoseChatChannels() {
+        try {
+            val channelManager = dev.rosewood.rosechat.api.RoseChatAPI.getInstance().channelManager
+            channelManager.register(LumaGuildsChannelProvider())
+
+            // One-tick delay: RoseChat has already tried to load channels at
+            // startup and found no registered LumaGuilds provider. Now that the
+            // provider exists, re-read channels.yml.
+            Bukkit.getScheduler().runTaskLater(this, Runnable {
+                try {
+                    channelManager.reload()
+                    logColored("✓ LumaGuilds RoseChat channels registered (guild, guild-ally, guild-modchat)")
+                } catch (e: Exception) {
+                    logger.warning("Failed to reload RoseChat channels after provider registration: ${e.message}")
+                }
+            }, 1L)
+        } catch (e: NoClassDefFoundError) {
+            logColored("⚠ RoseChat API classes unavailable — guild channels not registered")
+        } catch (e: Exception) {
+            logger.warning("Failed to register LumaGuilds RoseChat channels: ${e.message}")
         }
     }
 
