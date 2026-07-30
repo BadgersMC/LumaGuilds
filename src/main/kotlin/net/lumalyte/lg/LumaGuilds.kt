@@ -33,6 +33,7 @@ import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.DailyWarCostsService
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
 import net.lumalyte.lg.infrastructure.services.DailyWarCostsScheduler
+import net.lumalyte.lg.infrastructure.services.LumaGuildsChannelProvider
 import java.io.File
 import java.io.IOException
 import java.sql.Connection

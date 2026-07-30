@@ -78,7 +78,8 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
         super.onLogin(player) && hasTeam(player)
 
     override fun getIntendedRecipients(sender: RosePlayer, includeSpies: Boolean): Set<Player> {
-        val senderId = sender.player?.uniqueId ?: return emptySet()
+        val senderPlayer = sender.asPlayer() ?: return emptySet()
+        val senderId = senderPlayer.uniqueId
         val senderGuilds = guildService.getPlayerGuilds(senderId)
         if (senderGuilds.isEmpty()) return emptySet()
 
@@ -142,8 +143,10 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
     }
 
     override fun canPlayerReceiveMessage(sender: RosePlayer, receiver: RosePlayer): Boolean {
-        val senderId = sender.player?.uniqueId ?: return false
-        val receiverId = receiver.player?.uniqueId ?: return false
+        val senderPlayer = sender.asPlayer() ?: return false
+        val receiverPlayer = receiver.asPlayer() ?: return false
+        val senderId = senderPlayer.uniqueId
+        val receiverId = receiverPlayer.uniqueId
 
         val senderGuilds = guildService.getPlayerGuilds(senderId)
         val receiverGuilds = guildService.getPlayerGuilds(receiverId)
@@ -181,11 +184,11 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
     }
 
     private fun hasModPerms(playerId: UUID, guildId: UUID): Boolean =
-        memberService.hasPermission(playerId, guildId, RankPermission.MANAGE_INVITES) ||
-            memberService.hasPermission(playerId, guildId, RankPermission.KICK_MEMBERS)
+        memberService.hasPermission(playerId, guildId, RankPermission.MANAGE_MEMBERS) ||
+            memberService.hasPermission(playerId, guildId, RankPermission.MODERATE_CHAT)
 
     private fun hasTeam(player: RosePlayer): Boolean {
-        val playerId = player.player?.uniqueId ?: return false
-        return guildService.getPlayerGuilds(playerId).isNotEmpty()
+        val p = player.asPlayer() ?: return false
+        return guildService.getPlayerGuilds(p.uniqueId).isNotEmpty()
     }
 }

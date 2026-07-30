@@ -4,7 +4,7 @@ import dev.rosewood.rosechat.RoseChat
 import dev.rosewood.rosechat.chat.channel.Channel
 import dev.rosewood.rosechat.hook.channel.ChannelProvider
 import dev.rosewood.rosechat.manager.ChannelManager
-import dev.rosewood.rosegarden.config.CommentedConfigurationSection
+import dev.rosewood.rosechat.lib.rosegarden.config.CommentedConfigurationSection
 
 /**
  * RoseChat [ChannelProvider] that tells RoseChat's ChannelManager that
@@ -14,7 +14,7 @@ import dev.rosewood.rosegarden.config.CommentedConfigurationSection
  * Registered in [LumaGuilds.onEnable] after Koin is initialised so that
  * guild/ally/modchat channels resolve from `channels.yml` on a delayed reload.
  */
-class LumaGuildsChannelProvider : ChannelProvider {
+class LumaGuildsChannelProvider : ChannelProvider() {
 
     override fun getSupportedPlugin(): String = "LumaGuilds"
 
