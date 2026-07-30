@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.services
 
 import dev.rosewood.rosechat.chat.channel.Channel
 import dev.rosewood.rosechat.hook.channel.ChannelProvider
+import dev.rosewood.rosechat.hook.channel.rosechat.RoseChatChannel
 import dev.rosewood.rosechat.message.RosePlayer
 import net.lumalyte.lg.application.persistence.ChatSettingsRepository
 import net.lumalyte.lg.application.services.GuildService
@@ -27,7 +28,7 @@ import java.util.UUID
  * Recipients are computed at call time from live guild data, respecting
  * per-player chat visibility toggles stored in [ChatSettingsRepository].
  */
-class LumaGuildsChannel(provider: ChannelProvider) : Channel(provider), KoinComponent {
+class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), KoinComponent {
 
     private val memberService: MemberService by inject()
     private val guildService: GuildService by inject()
@@ -69,6 +70,12 @@ class LumaGuildsChannel(provider: ChannelProvider) : Channel(provider), KoinComp
     }
 
     override fun getMemberCount(): Int = getMembers().size
+
+    override fun canJoinByCommand(player: RosePlayer): Boolean =
+        super.canJoinByCommand(player) && hasTeam(player)
+
+    override fun onLogin(player: RosePlayer): Boolean =
+        super.onLogin(player) && hasTeam(player)
 
     override fun getIntendedRecipients(sender: RosePlayer, includeSpies: Boolean): Set<Player> {
         val senderId = sender.player?.uniqueId ?: return emptySet()
@@ -172,4 +179,9 @@ class LumaGuildsChannel(provider: ChannelProvider) : Channel(provider), KoinComp
     private fun hasModPerms(playerId: UUID, guildId: UUID): Boolean =
         memberService.hasPermission(playerId, guildId, RankPermission.MANAGE_INVITES) ||
             memberService.hasPermission(playerId, guildId, RankPermission.KICK_MEMBERS)
+
+    private fun hasTeam(player: RosePlayer): Boolean {
+        val playerId = player.player?.uniqueId ?: return false
+        return guildService.getPlayerGuilds(playerId).isNotEmpty()
+    }
 }
