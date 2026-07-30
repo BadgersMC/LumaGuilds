@@ -59,7 +59,7 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
             if (guilds.isEmpty()) return@forEach
             when (channelType) {
                 LumaGuildsChannelType.MODCHAT -> {
-                    if (guilds.any { hasModPerms(player.uniqueId, it) })
+                    if (guilds.any { g -> hasModPerms(player.uniqueId, g.id) })
                         ids.add(player.uniqueId)
                 }
                 LumaGuildsChannelType.ALLY -> ids.add(player.uniqueId)
@@ -86,8 +86,8 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
 
         when (channelType) {
             LumaGuildsChannelType.GUILD -> {
-                senderGuilds.forEach { guildId ->
-                    memberService.getGuildMembers(guildId).forEach { member ->
+                senderGuilds.forEach { guild ->
+                    memberService.getGuildMembers(guild.id).forEach { member ->
                         val player = Bukkit.getPlayer(member.playerId) ?: return@forEach
                         if (player.isOnline &&
                             chatSettingsRepository
@@ -99,9 +99,9 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
             }
 
             LumaGuildsChannelType.ALLY -> {
-                senderGuilds.forEach { guildId ->
+                senderGuilds.forEach { guild ->
                     // Own guild members
-                    memberService.getGuildMembers(guildId).forEach { member ->
+                    memberService.getGuildMembers(guild.id).forEach { member ->
                         val player = Bukkit.getPlayer(member.playerId) ?: return@forEach
                         if (player.isOnline &&
                             chatSettingsRepository
@@ -110,10 +110,10 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
                         ) recipients.add(player)
                     }
                     // Allied guild members
-                    relationService.getGuildRelationsByType(guildId, RelationType.ALLY)
+                    relationService.getGuildRelationsByType(guild.id, RelationType.ALLY)
                         .filter { it.isActive() }
                         .forEach { relation ->
-                            val alliedId = relation.getOtherGuild(guildId)
+                            val alliedId = relation.getOtherGuild(guild.id)
                             memberService.getGuildMembers(alliedId).forEach { member ->
                                 val player = Bukkit.getPlayer(member.playerId) ?: return@forEach
                                 if (player.isOnline &&
@@ -127,9 +127,9 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
             }
 
             LumaGuildsChannelType.MODCHAT -> {
-                senderGuilds.filter { hasModPerms(senderId, it) }.forEach { guildId ->
-                    memberService.getGuildMembers(guildId)
-                        .filter { hasModPerms(it.playerId, guildId) }
+                senderGuilds.filter { g -> hasModPerms(senderId, g.id) }.forEach { guild ->
+                    memberService.getGuildMembers(guild.id)
+                        .filter { hasModPerms(it.playerId, guild.id) }
                         .forEach { member ->
                             val player = Bukkit.getPlayer(member.playerId) ?: return@forEach
                             if (player.isOnline) recipients.add(player)
@@ -145,10 +145,14 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
         val senderId = sender.player?.uniqueId ?: return false
         val receiverId = receiver.player?.uniqueId ?: return false
 
-        val senderGuilds = guildService.getPlayerGuilds(senderId).toSet()
-        val receiverGuilds = guildService.getPlayerGuilds(receiverId).toSet()
+        val senderGuilds = guildService.getPlayerGuilds(senderId)
+        val receiverGuilds = guildService.getPlayerGuilds(receiverId)
 
         if (senderGuilds.isEmpty() || receiverGuilds.isEmpty()) return false
+
+        // Convert to ID sets for intersection
+        val senderGuildIds = senderGuilds.map { it.id }.toSet()
+        val receiverGuildIds = receiverGuilds.map { it.id }.toSet()
 
         // Honor receiver's per-channel-type visibility opt-out
         val settings = chatSettingsRepository.getVisibilitySettings(receiverId)
@@ -161,16 +165,16 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
 
         return when (channelType) {
             LumaGuildsChannelType.GUILD ->
-                senderGuilds.intersect(receiverGuilds).isNotEmpty()
+                senderGuildIds.intersect(receiverGuildIds).isNotEmpty()
 
             LumaGuildsChannelType.ALLY ->
-                senderGuilds.intersect(receiverGuilds).isNotEmpty() ||
-                    senderGuilds.any { sg ->
-                        receiverGuilds.any { rg -> relationService.getRelationType(sg, rg) == RelationType.ALLY }
+                senderGuildIds.intersect(receiverGuildIds).isNotEmpty() ||
+                    senderGuildIds.any { sg ->
+                        receiverGuildIds.any { rg -> relationService.getRelationType(sg, rg) == RelationType.ALLY }
                     }
 
             LumaGuildsChannelType.MODCHAT ->
-                senderGuilds.intersect(receiverGuilds).any { shared ->
+                senderGuildIds.intersect(receiverGuildIds).any { shared ->
                     hasModPerms(senderId, shared) && hasModPerms(receiverId, shared)
                 }
         }
