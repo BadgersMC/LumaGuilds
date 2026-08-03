@@ -4,6 +4,9 @@ import net.lumalyte.lg.application.persistence.LeaderboardRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.utils.ColorCodeUtils
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -30,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Available placeholders:
  * - %lumaguilds_guild_name% - Player's guild name
  * - %lumaguilds_guild_tag% - Player's guild tag, MiniMessage rendered to legacy §-codes (chat-safe)
+ * - %lumaguilds_guild_tag_minimessage% - Player's guild tag normalized to MiniMessage (proxy/MiniMessage-safe, e.g. Velocitab)
  * - %lumaguilds_guild_tag_raw% - Raw tag string as stored (may contain MiniMessage tags)
  * - %lumaguilds_guild_tag_plain% - Tag with all formatting stripped
  * - %lumaguilds_guild_emoji% - Player's guild emoji (converted to %nexo_<emoji>% format for tab/scoreboard)
@@ -67,7 +71,7 @@ import java.util.concurrent.ConcurrentHashMap
  *   Format: %lumaguilds_top_<category>_<rank>_<field>%
  *   category = level | balance | activity | members | age
  *   rank     = 1..25 (1-based)
- *   field    = name | tag | tag_plain | id | value | level | members |
+ *   field    = name | tag | tag_mm | tag_plain | id | value | level | members |
  *              balance | activity | age_days | emoji
  *   Examples:
  *     %lumaguilds_top_balance_1_name%
@@ -133,6 +137,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             // Basic guild info
             "guild_name" -> guild.name
             "guild_tag" -> renderTagAsLegacy(guild)
+            "guild_tag_minimessage" -> renderTagAsMiniMessage(guild)
             "guild_tag_raw" -> guild.tag ?: "§6${guild.name}"
             "guild_tag_plain" -> renderTagAsPlain(guild)
             "guild_emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
@@ -408,6 +413,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private fun formatTopField(guild: Guild, row: TopRow, field: String): String = when (field) {
         "name" -> guild.name
         "tag" -> guild.tag ?: "§6${guild.name}"
+        "tag_mm" -> renderTagAsMiniMessage(guild)
         "tag_plain" -> guild.tag?.let { stripFormatting(it) } ?: guild.name
         "id" -> guild.id.toString()
         "value" -> formatScore(row.value)
@@ -519,6 +525,21 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         } catch (_: Exception) {
             raw
         }
+    }
+
+    /**
+     * Converts a guild's tag (stored as MiniMessage or legacy `&`/`§` codes) into
+     * MiniMessage syntax for consumers whose formatter only parses MiniMessage —
+     * e.g. Velocitab's MINIMESSAGE formatter on the proxy (resolved via PapiProxyBridge).
+     * Falls back to a `<gold>`-colored guild name when the guild has no custom tag.
+     * The name is serialized as literal text so any `<`/`>` inside it is escaped,
+     * never parsed as MiniMessage markup.
+     */
+    private fun renderTagAsMiniMessage(guild: Guild): String {
+        val raw = guild.tag ?: return miniMessage.serialize(
+            Component.text(guild.name).color(NamedTextColor.GOLD),
+        )
+        return ColorCodeUtils.toMiniMessage(raw)
     }
 
     private fun currentWeekStart(): Instant =

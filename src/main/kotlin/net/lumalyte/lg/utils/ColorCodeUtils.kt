@@ -42,6 +42,37 @@ object ColorCodeUtils {
     }
 
     /**
+     * Normalizes any supported tag format to canonical MiniMessage syntax.
+     *
+     * Accepts MiniMessage tags (kept, round-tripped to canonical form), legacy
+     * `&` codes, legacy `§` codes, or plain text. This is the read-side
+     * counterpart to [convertLegacyToMiniMessage], for consumers whose formatter
+     * only parses MiniMessage (e.g. Velocitab's MINIMESSAGE formatter on the proxy).
+     *
+     * Examples (canonical MiniMessage — redundant closing tags are dropped,
+     * hex is uppercase):
+     * - "&cRed" -> "<red>Red"
+     * - "§6&lGold" -> "<bold><gold>Gold"
+     * - "<red>Red</red>" -> "<red>Red"
+     * - "Plain" -> "Plain"
+     */
+    fun toMiniMessage(input: String): String {
+        return try {
+            val normalized = input.replace('§', '&')
+            val miniMessage = MiniMessage.miniMessage()
+            if (normalized.contains(Regex("<[^>]+>"))) {
+                miniMessage.serialize(miniMessage.deserialize(normalized))
+            } else {
+                miniMessage.serialize(LegacyComponentSerializer.legacyAmpersand().deserialize(normalized))
+            }
+        } catch (e: Exception) {
+    // Color code parsing - catching format errors
+            // If conversion fails, return original input
+            input
+        }
+    }
+
+    /**
      * Renders a tag with proper formatting for display in messages.
      * Accepts both legacy (&-style) and MiniMessage formats.
      * Returns legacy §-style format for Bukkit message display.
