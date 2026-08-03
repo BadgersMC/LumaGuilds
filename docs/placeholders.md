@@ -15,6 +15,8 @@ Resolve to `""` (empty) if the player has no guild — except `has_guild`, which
 | `%lumaguilds_has_guild%` | `true` / `false` |
 | `%lumaguilds_guild_name%` | Guild name |
 | `%lumaguilds_guild_tag%` | Formatted tag, falls back to `§6<name>` |
+| `%lumaguilds_guild_tag_minimessage%` | Tag normalized to MiniMessage (for MiniMessage-only formatters like Velocitab), falls back to `<gold><name>` |
+| `%lumaguilds_guild_tag_raw%` | Tag exactly as stored (may be legacy `&` codes or MiniMessage) |
 | `%lumaguilds_guild_emoji%` | Nexo placeholder (`%nexo_<name>%`) |
 | `%lumaguilds_guild_level%` | Current level |
 | `%lumaguilds_guild_balance%` | Bank balance |
@@ -77,6 +79,7 @@ Cached for 30 seconds. Returns `""` if the slot is empty.
 |---|---|
 | `name` | Guild name |
 | `tag` | Formatted tag |
+| `tag_mm` | Tag normalized to MiniMessage |
 | `tag_plain` | Tag with formatting stripped |
 | `id` | Guild UUID |
 | `value` | The metric being ranked on (level / balance / activity score / members / epoch second for age) |

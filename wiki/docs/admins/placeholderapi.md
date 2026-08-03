@@ -17,7 +17,8 @@ LumaGuilds integrates with PlaceholderAPI to expose guild information in chat, t
 LumaGuilds registers a PlaceholderAPI expansion with identifier `lumaguilds`. Placeholders take the form `%lumaguilds_<key>%` and resolve in player context. The expansion provides multiple rendering variants for tag-based placeholders:
 
 - **`%lumaguilds_guild_tag%`** — MiniMessage tags converted to legacy `§`-style color codes (safe for chat plugins that don't parse MiniMessage)
-- **`%lumaguilds_guild_tag_raw%`** — Raw MiniMessage string as stored (for plugins that parse MiniMessage themselves)
+- **`%lumaguilds_guild_tag_minimessage%`** — Tag normalized to MiniMessage: legacy `&`/`§` codes (e.g. from `/g tag`) are converted, MiniMessage tags are kept. Use this in MiniMessage-only formatters such as Velocitab on the proxy.
+- **`%lumaguilds_guild_tag_raw%`** — Raw tag string exactly as stored — may be MiniMessage markup or legacy `&`/`§` codes (for plugins that parse formatting themselves)
 - **`%lumaguilds_guild_tag_plain%`** — All formatting stripped (plain text only)
 
 The same variants apply to `guild_display` and `guild_chat_format`.
@@ -28,7 +29,8 @@ The same variants apply to `guild_display` and `guild_chat_format`.
 |-------------|---------|-------|
 | `guild_name` | Text | Player's guild name |
 | `guild_tag` | Text (MiniMessage→legacy) | Guild tag rendered to `§`-codes |
-| `guild_tag_raw` | Text (MiniMessage) | Guild tag as stored (may contain `<color>`, `<bold>`, etc.) |
+| `guild_tag_minimessage` | Text (MiniMessage) | Tag normalized to MiniMessage (`&`/`§` codes converted). For Velocitab / MiniMessage-only formatters |
+| `guild_tag_raw` | Text (raw) | Guild tag exactly as stored (may be legacy `&`/`§` codes or MiniMessage markup) |
 | `guild_tag_plain` | Text (plain) | Guild tag with formatting stripped |
 | `guild_emoji` | Text | Guild emoji, converted to Nexo PAPI format (`%nexo_<name>%`) |
 | `guild_level` | Integer | Current guild level |
@@ -71,6 +73,7 @@ Format: `%lumaguilds_top_<category>_<rank>_<field>%`
 
 - `name` — Guild name
 - `tag` — Guild tag (MiniMessage→legacy `§`-codes)
+- `tag_mm` — Guild tag normalized to MiniMessage (`&`/`§` codes converted)
 - `tag_plain` — Guild tag (plain text, no formatting)
 - `id` — Guild UUID
 - `value` — Numeric score (level, balance, activity score, member count, or age in days)
@@ -125,6 +128,13 @@ header:
   - "Rank: %lumaguilds_guild_rank% | Level: %lumaguilds_guild_level%"
 ```
 
+**Velocitab (Velocity proxy):** Velocitab's `MINIMESSAGE` formatter does not parse legacy `§`/`&` codes. Use `guild_tag_minimessage` (not `guild_tag`) so player-set legacy tags render correctly:
+
+```yaml
+# tab_groups.yml (Velocitab)
+format: "<gray>[</gray>%lumaguilds_guild_tag_minimessage%<gray>]</gray> %username%"
+```
+
 ### Chat format (RoseChat, EssentialsChat)
 
 Use `guild_tag`, `guild_chat_format`, `guild_emoji`:
@@ -170,6 +180,8 @@ format: "%player_name% %lumaguilds_rel_%player_name%_status%"
 ## Gotchas
 
 **MiniMessage tags leak in non-MiniMessage plugins:** If you use `%lumaguilds_guild_tag_raw%` in a plugin that doesn't parse MiniMessage (like vanilla TAB), you'll see raw tags like `<color:#FF5733>Elite</color>` in chat. Use `%lumaguilds_guild_tag%` (the legacy variant) instead—it converts MiniMessage to `§`-codes automatically.
+
+**Legacy codes leak in MiniMessage-only formatters:** The inverse problem — `%lumaguilds_guild_tag%` returns `§`-codes, which Velocitab's MiniMessage formatter renders literally. Use `%lumaguilds_guild_tag_minimessage%` there: it converts `&`/`§` codes (e.g. tags set via `/g tag`) to MiniMessage and keeps existing MiniMessage tags.
 
 **Relation indicator returns empty, not a space:** Neutral relations return a completely blank string (not a space). If you're using this in a player list and want consistent spacing, add a space yourself: `%player_name% %lumaguilds_rel_%player_name%_status%` (trailing space).
 
