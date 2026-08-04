@@ -10,6 +10,25 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 object ColorCodeUtils {
 
     /**
+     * Converts a guild emoji (stored in Discord format, e.g. `:catsmileysmile:`) into
+     * the Nexo glyph MiniMessage tag (`<glyph:catsmileysmile>`).
+     *
+     * This is the proxy-safe counterpart to `%nexo_<name>%`: the PAPI placeholder only
+     * resolves where Nexo's expansion runs (backend Paper), while the `<glyph:name>` tag
+     * renders in MiniMessage formatters that have glyph support — e.g. Velocitab on the
+     * proxy via NexoProxy, and backend chat/scoreboards via Nexo's formatting engine.
+     *
+     * Non-`:name:` values pass through unchanged; null or blank return `""`.
+     */
+    fun emojiToGlyphTag(emoji: String?): String {
+        if (emoji.isNullOrBlank()) return ""
+        if (emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2) {
+            return "<glyph:${emoji.substring(1, emoji.length - 1)}>"
+        }
+        return emoji
+    }
+
+    /**
      * Converts legacy color codes (&c, &6, etc.) to MiniMessage format.
      * If the input is already MiniMessage, returns it unchanged.
      *
