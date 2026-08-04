@@ -32,7 +32,8 @@ The same variants apply to `guild_display` and `guild_chat_format`.
 | `guild_tag_minimessage` | Text (MiniMessage) | Tag normalized to MiniMessage (`&`/`§` codes converted). For Velocitab / MiniMessage-only formatters |
 | `guild_tag_raw` | Text (raw) | Guild tag exactly as stored (may be legacy `&`/`§` codes or MiniMessage markup) |
 | `guild_tag_plain` | Text (plain) | Guild tag with formatting stripped |
-| `guild_emoji` | Text | Guild emoji, converted to Nexo PAPI format (`%nexo_<name>%`) |
+| `guild_emoji` | Text | Guild emoji, converted to Nexo PAPI format (`%nexo_<name>%`) — resolves only where Nexo's PAPI expansion runs (backend) |
+| `guild_emoji_minimessage` | Text | Guild emoji as Nexo glyph tag (`<glyph:name>`) — for MiniMessage formatters (Velocitab via NexoProxy) |
 | `guild_level` | Integer | Current guild level |
 | `guild_balance` | Integer | Virtual bank balance (coins) |
 | `guild_mode` | Text | `Peaceful` or `Hostile` |
@@ -83,6 +84,7 @@ Format: `%lumaguilds_top_<category>_<rank>_<field>%`
 - `activity` — Weekly activity score
 - `age_days` — Days since creation
 - `emoji` — Guild emoji (`%nexo_<name>%`)
+- `emoji_mm` — Guild emoji as Nexo glyph tag (`<glyph:name>`)
 
 **Examples:**
 
@@ -128,11 +130,11 @@ header:
   - "Rank: %lumaguilds_guild_rank% | Level: %lumaguilds_guild_level%"
 ```
 
-**Velocitab (Velocity proxy):** Velocitab's `MINIMESSAGE` formatter does not parse legacy `§`/`&` codes. Use `guild_tag_minimessage` (not `guild_tag`) so player-set legacy tags render correctly:
+**Velocitab (Velocity proxy):** Velocitab's `MINIMESSAGE` formatter does not parse legacy `§`/`&` codes. Use `guild_tag_minimessage` (not `guild_tag`) so player-set legacy tags render correctly, and `guild_emoji_minimessage` (not `guild_emoji`) so Nexo emojis render — `%nexo_<name>%` cannot resolve on the proxy, but `<glyph:name>` renders there via NexoProxy:
 
 ```yaml
-# tab_groups.yml (Velocitab)
-format: "<gray>[</gray>%lumaguilds_guild_tag_minimessage%<gray>]</gray> %username%"
+# tab_groups.yml (Velocitab) — needs NexoProxy on the Velocity proxy
+format: "<gray>[</gray>%lumaguilds_guild_emoji_minimessage%%lumaguilds_guild_tag_minimessage%<gray>]</gray> %username%"
 ```
 
 ### Chat format (RoseChat, EssentialsChat)
