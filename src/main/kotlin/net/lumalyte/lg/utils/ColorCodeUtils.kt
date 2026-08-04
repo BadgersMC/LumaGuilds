@@ -18,10 +18,10 @@ object ColorCodeUtils {
      * renders in MiniMessage formatters that have glyph support — e.g. Velocitab on the
      * proxy via NexoProxy, and backend chat/scoreboards via Nexo's formatting engine.
      *
-     * Non-`:name:` values pass through unchanged; null/empty return `""`.
+     * Non-`:name:` values pass through unchanged; null or blank return `""`.
      */
     fun emojiToGlyphTag(emoji: String?): String {
-        if (emoji.isNullOrEmpty()) return ""
+        if (emoji.isNullOrBlank()) return ""
         if (emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2) {
             return "<glyph:${emoji.substring(1, emoji.length - 1)}>"
         }

@@ -33,7 +33,7 @@ The same variants apply to `guild_display` and `guild_chat_format`.
 | `guild_tag_raw` | Text (raw) | Guild tag exactly as stored (may be legacy `&`/`§` codes or MiniMessage markup) |
 | `guild_tag_plain` | Text (plain) | Guild tag with formatting stripped |
 | `guild_emoji` | Text | Guild emoji, converted to Nexo PAPI format (`%nexo_<name>%`) — resolves only where Nexo's PAPI expansion runs (backend) |
-| `guild_emoji_minimessage` | Text | Guild emoji as Nexo glyph tag (`<glyph:name>`) — for MiniMessage formatters (Velocitab via NexoProxy) |
+| `guild_emoji_minimessage` | Text | Guild emoji as Nexo glyph tag for MiniMessage formatters (Velocitab via NexoProxy). Matching `:name:` values become `<glyph:name>`; null/blank returns empty; other values pass through unchanged |
 | `guild_level` | Integer | Current guild level |
 | `guild_balance` | Integer | Virtual bank balance (coins) |
 | `guild_mode` | Text | `Peaceful` or `Hostile` |
@@ -84,7 +84,7 @@ Format: `%lumaguilds_top_<category>_<rank>_<field>%`
 - `activity` — Weekly activity score
 - `age_days` — Days since creation
 - `emoji` — Guild emoji (`%nexo_<name>%`)
-- `emoji_mm` — Guild emoji as Nexo glyph tag (`<glyph:name>`)
+- `emoji_mm` — Guild emoji as Nexo glyph tag (`:name:` → `<glyph:name>`; null/blank → empty; other values pass through)
 
 **Examples:**
 

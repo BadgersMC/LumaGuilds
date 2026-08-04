@@ -29,5 +29,7 @@ class ColorCodeUtilsEmojiGlyphTest {
     fun `returns empty for null or blank`() {
         assertEquals("", ColorCodeUtils.emojiToGlyphTag(null))
         assertEquals("", ColorCodeUtils.emojiToGlyphTag(""))
+        assertEquals("", ColorCodeUtils.emojiToGlyphTag("   "))
+        assertEquals("", ColorCodeUtils.emojiToGlyphTag("\t\n"))
     }
 }

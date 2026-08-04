@@ -18,7 +18,7 @@ Resolve to `""` (empty) if the player has no guild — except `has_guild`, which
 | `%lumaguilds_guild_tag_minimessage%` | Tag normalized to MiniMessage (for MiniMessage-only formatters like Velocitab), falls back to `<gold><name>` |
 | `%lumaguilds_guild_tag_raw%` | Tag exactly as stored (may be legacy `&` codes or MiniMessage) |
 | `%lumaguilds_guild_emoji%` | Nexo placeholder (`%nexo_<name>%`) — resolves only where Nexo's PAPI expansion runs (backend) |
-| `%lumaguilds_guild_emoji_minimessage%` | Nexo glyph tag (`<glyph:name>`) — for MiniMessage formatters like Velocitab (rendered proxy-side via NexoProxy) |
+| `%lumaguilds_guild_emoji_minimessage%` | Nexo glyph tag for MiniMessage formatters like Velocitab (rendered proxy-side via NexoProxy). Matching `:name:` values become `<glyph:name>`; null/blank returns empty; other values pass through unchanged |
 | `%lumaguilds_guild_level%` | Current level |
 | `%lumaguilds_guild_balance%` | Bank balance |
 | `%lumaguilds_guild_mode%` | `Peaceful` / `Hostile` |
@@ -90,7 +90,7 @@ Cached for 30 seconds. Returns `""` if the slot is empty.
 | `activity` | Current week activity score |
 | `age_days` | Days since creation |
 | `emoji` | Nexo placeholder (`%nexo_<name>%`) |
-| `emoji_mm` | Nexo glyph tag (`<glyph:name>`) |
+| `emoji_mm` | Nexo glyph tag — `:name:` → `<glyph:name>`; null/blank → empty; other values pass through |
 
 ### Examples
 
