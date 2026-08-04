@@ -36,7 +36,8 @@ import java.util.concurrent.ConcurrentHashMap
  * - %lumaguilds_guild_tag_minimessage% - Player's guild tag normalized to MiniMessage (proxy/MiniMessage-safe, e.g. Velocitab)
  * - %lumaguilds_guild_tag_raw% - Raw tag string as stored (may contain MiniMessage tags)
  * - %lumaguilds_guild_tag_plain% - Tag with all formatting stripped
- * - %lumaguilds_guild_emoji% - Player's guild emoji (converted to %nexo_<emoji>% format for tab/scoreboard)
+ * - %lumaguilds_guild_emoji% - Player's guild emoji (converted to %nexo_<emoji>% format for backend tab/scoreboard/chat)
+ * - %lumaguilds_guild_emoji_minimessage% - Player's guild emoji as Nexo glyph tag (<glyph:emoji>) for MiniMessage formatters (Velocitab via NexoProxy)
  * - %lumaguilds_guild_level% - Player's guild level
  * - %lumaguilds_guild_balance% - Player's guild bank balance
  * - %lumaguilds_guild_members% - Player's guild member count
@@ -141,6 +142,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "guild_tag_raw" -> guild.tag ?: "§6${guild.name}"
             "guild_tag_plain" -> renderTagAsPlain(guild)
             "guild_emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
+            "guild_emoji_minimessage" -> ColorCodeUtils.emojiToGlyphTag(guild.emoji)
             "guild_level" -> guild.level.toString()
             // BankService.getBalance resolves to the unified guild balance (store B: vault gold),
             // the single source of truth shared by /g bal, /g baltop, /g menu -> Bank and the vault.
@@ -389,8 +391,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     // Format: top_<category>_<rank>_<field>
     //   category: level | balance | activity | members | age
     //   rank: 1..N (1-based)
-    //   field: name | tag | tag_plain | id | value | level | members |
-    //          balance | activity | age_days | emoji
+    //   field: name | tag | tag_mm | tag_plain | id | value | level | members |
+    //          balance | activity | age_days | emoji | emoji_mm
     // Examples: top_balance_1_name, top_level_3_value, top_activity_2_members
     // -----------------------------------------------------------------
     private fun handleTopPlaceholder(ident: String): String {
@@ -423,6 +425,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         "activity" -> safeWeeklyActivityScore(guild.id).toString()
         "age_days" -> Duration.between(guild.createdAt, Instant.now()).toDays().toString()
         "emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
+        "emoji_mm" -> ColorCodeUtils.emojiToGlyphTag(guild.emoji)
         else -> ""
     }
 
