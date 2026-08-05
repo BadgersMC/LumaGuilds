@@ -984,6 +984,32 @@ class LumaGuilds : JavaPlugin() {
             val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
             server.pluginManager.registerEvents(adminOverrideListener, this)
         }
+
+        // Guild Strikes — LiteBans hook (softdepend; only registers when LiteBans is present)
+        if (server.pluginManager.getPlugin("LiteBans") != null) {
+            try {
+                litebans.api.Events.get().register(get().get<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener>())
+                logColored("✓ Guild Strikes hooked into LiteBans (punishments tracked per guild)")
+
+                // One-shot backfill of pre-existing LiteBans punishments
+                // (async, idempotent — deduped by LiteBans entry id).
+                Bukkit.getScheduler().runTaskAsynchronously(this, Runnable {
+                    try {
+                        val result = get().get<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService>().run()
+                        logColored(
+                            "✓ Guild Strikes backfill: ${result.recorded} recorded, " +
+                                "${result.attributed} attributed, ${result.skippedUnattributable} skipped (unattributable)",
+                        )
+                    } catch (e: Exception) {
+                        logger.warning("Guild Strikes backfill failed: ${e.message}")
+                    }
+                })
+            } catch (e: Exception) {
+                logger.warning("Failed to register LiteBans strike listener: ${e.message}")
+            }
+        } else {
+            logger.info("LiteBans not detected - Guild Strikes disabled (punishments will not be tracked)")
+        }
     }
 
     /**

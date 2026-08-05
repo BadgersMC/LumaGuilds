@@ -421,6 +421,44 @@ fun guildsModule() = module {
     single<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners> {
         net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners(get<LumaGuilds>(), get(), get(), get())
     }
+
+    // Guild Strikes (LiteBans integration)
+    single<net.lumalyte.lg.application.persistence.StrikeRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.StrikeRepositorySQLite(get())
+    }
+    single<net.lumalyte.lg.application.persistence.PenaltyRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.PenaltyRepositorySQLite(get())
+    }
+    single<net.lumalyte.lg.application.services.StrikeService> {
+        net.lumalyte.lg.application.services.StrikeService(
+            repository = get(),
+            configProvider = { get<ConfigService>().loadConfig().strikes }
+        )
+    }
+    single<net.lumalyte.lg.application.services.PenaltyService> {
+        net.lumalyte.lg.application.services.PenaltyService(
+            penaltyRepository = get(),
+            progressionService = get(),
+            guildService = get(),
+            configProvider = { get<ConfigService>().loadConfig().strikes }
+        )
+    }
+    single<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener> {
+        net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener(
+            plugin = get<LumaGuilds>(),
+            guildService = get(),
+            strikeService = get(),
+            configProvider = { get<ConfigService>().loadConfig().strikes }
+        )
+    }
+    single<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService> {
+        net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService(
+            strikeService = get(),
+            membershipHistoryRepository = get(),
+            guildService = get(),
+            configProvider = { get<ConfigService>().loadConfig().strikes }
+        )
+    }
 }
 
 /**

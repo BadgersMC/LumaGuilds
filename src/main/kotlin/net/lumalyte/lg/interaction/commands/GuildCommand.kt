@@ -25,6 +25,7 @@ import net.lumalyte.lg.interaction.menus.guild.*
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.GuildHomeSafety
 import net.lumalyte.lg.utils.GuildNameFilter
+import net.lumalyte.lg.utils.GuildResolver
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.command.Command
@@ -52,6 +53,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
+    private val strikeService: net.lumalyte.lg.application.services.StrikeService by inject()
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
@@ -1022,6 +1024,128 @@ class GuildCommand : BaseCommand(), KoinComponent {
             val guild = guilds.first()
             menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
         }
+    }
+
+    /**
+     * Public Guild Strikes view — lists every guild's strikes and, with a guild
+     * argument, the individual punishments behind them.
+     *
+     * No permission required: the strike ledger is public by design.
+     */
+    @Subcommand("strikes")
+    @CommandCompletion("@guilds")
+    fun onStrikes(player: Player, @Optional target: String?) {
+        val strikesConfig = configService.loadConfig().strikes
+        if (!strikesConfig.enabled) {
+            player.sendMessage("§cGuild strikes are currently disabled.")
+            return
+        }
+
+        val threshold = strikesConfig.threshold
+        val guildServiceRef = guildService
+
+        if (target != null) {
+            val guild = GuildResolver.resolve(target, guildServiceRef)
+            if (guild == null) {
+                player.sendMessage("§cNo guild or player named '$target' found.")
+                return
+            }
+            showGuildStrikeDetails(player, guild, threshold)
+            return
+        }
+
+        // Global public view: every guild that has at least one strike.
+        val counts = strikeService.getAllCounts()
+        if (counts.isEmpty()) {
+            player.sendMessage("§8[§bLumaGuilds§8] §7No guild has any strikes yet.")
+            return
+        }
+
+        val total = strikeService.countAll()
+        player.sendMessage("§8[§bLumaGuilds§8] §fGuild Strikes §8(§7$total total§8)")
+        if (threshold > 0) {
+            player.sendMessage("§8» §7Guilds at §c$threshold§7+ strikes are up for a penalty")
+        }
+
+        val nameById = guildServiceRef.getAllGuilds().associateBy { it.id }
+        var index = 0
+        for ((guildId, count) in counts.entries.sortedByDescending { it.value }) {
+            val guild = nameById[guildId]
+            val label = guild?.let { GuildResolver.displayName(it) } ?: guildId.toString().take(8)
+            val flag = if (threshold > 0 && count >= threshold) " §c⚠ UP FOR PENALTY" else ""
+            player.sendMessage("§7${++index}. §f$label §8— §e$count §7strike(s)$flag")
+        }
+        player.sendMessage("§8» §7Click a guild in the list above for details: §f/g strikes <guild>")
+    }
+
+    /**
+     * Admin penalty GUI — opens the penalty menu for a guild. Requires
+     * `lumaguilds.admin.strikes`.
+     */
+    @Subcommand("strikes punish")
+    @CommandPermission("lumaguilds.admin.strikes")
+    @CommandCompletion("@guilds")
+    fun onStrikesPunish(player: Player, target: String) {
+        val strikesConfig = configService.loadConfig().strikes
+        if (!strikesConfig.enabled) {
+            player.sendMessage("§cGuild strikes are currently disabled.")
+            return
+        }
+
+        val guild = GuildResolver.resolve(target, guildService)
+        if (guild == null) {
+            player.sendMessage("§cNo guild or player named '$target' found.")
+            return
+        }
+
+        val menuNavigator = MenuNavigator(player)
+        menuNavigator.openMenu(
+            net.lumalyte.lg.interaction.menus.guild.GuildStrikePenaltyMenu(
+                menuNavigator, player, guild, strikesConfig
+            )
+        )
+    }
+
+    private fun showGuildStrikeDetails(player: Player, guild: net.lumalyte.lg.domain.entities.Guild, threshold: Int) {
+        val strikes = strikeService.getByGuild(guild.id)
+        val name = GuildResolver.displayName(guild)
+
+        if (strikes.isEmpty()) {
+            player.sendMessage("§8[§bLumaGuilds§8] §f$name §7has no strikes.")
+            return
+        }
+
+        val activeCount = strikes.count { it.active }
+        val status = if (threshold > 0 && activeCount >= threshold) {
+            " §c⚠ UP FOR PENALTY"
+        } else {
+            ""
+        }
+        player.sendMessage("§8[§bLumaGuilds§8] §f$name §7— §e${strikes.size} §7strike(s)$status")
+        if (threshold > 0) {
+            player.sendMessage("§8» §7Penalty threshold: §f$threshold")
+        }
+
+        strikes.forEach { strike ->
+            val typeColor = when (strike.punishmentType.uppercase()) {
+                "BAN" -> "§c"
+                "MUTE" -> "§6"
+                "KICK" -> "§e"
+                else -> "§7"
+            }
+            val lifted = if (strike.active) "" else " §8(lifted)"
+            val reason = strike.reason?.takeIf { it.isNotBlank() }?.let { " §7— §f${it.take(80)}" } ?: ""
+            val by = strike.executorName?.let { " §8by $it" } ?: ""
+            player.sendMessage(
+                "$typeColor${strike.punishmentType.uppercase()}§8 §f${strike.playerName ?: strike.playerUuid.toString().take(8)}" +
+                    "$reason$by §8${formatStrikeDate(strike.issuedAt)}$lifted"
+            )
+        }
+    }
+
+    private fun formatStrikeDate(instant: java.time.Instant): String {
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        return formatter.format(instant.atZone(java.time.ZoneId.systemDefault()))
     }
     
     @Subcommand("disband")

@@ -3,6 +3,7 @@ package net.lumalyte.lg.interaction.listeners
 import dev.rosewood.rosechat.chat.channel.Channel
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.PenaltyService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.ChatChannelIds
@@ -30,6 +31,7 @@ class GuildChatListener : Listener, KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val penaltyService: PenaltyService by inject()
 
     private val logger = LoggerFactory.getLogger(GuildChatListener::class.java)
 
@@ -67,6 +69,13 @@ class GuildChatListener : Listener, KoinComponent {
         // Toggle ON — must be in a guild.
         if (guildService.getPlayerGuilds(player.uniqueId).isEmpty()) {
             player.sendMessage("§c❌ You are not in a guild!")
+            return false
+        }
+
+        // Guild mute blocks joining guild chat (and /gc is blocked separately).
+        val guildId = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()?.id
+        if (guildId != null && penaltyService.isGuildMuted(guildId)) {
+            player.sendMessage("§c❌ Your guild is muted — guild chat is disabled until the mute expires.")
             return false
         }
 
