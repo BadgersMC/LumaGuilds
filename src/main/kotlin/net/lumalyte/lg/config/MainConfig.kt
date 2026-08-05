@@ -34,7 +34,55 @@ data class MainConfig(
     var discord: DiscordConfig = DiscordConfig(),
     var party: PartyConfig = PartyConfig(),
     var bedrock: BedrockConfig = BedrockConfig(),
-    var webApi: WebApiConfig = WebApiConfig()
+    var webApi: WebApiConfig = WebApiConfig(),
+    var strikes: StrikesConfig = StrikesConfig()
+)
+
+/**
+ * Guild Strikes — LiteBans punishments attributed to guilds.
+ */
+data class StrikesConfig(
+    /** Master switch: if false, no punishments are recorded and /g strikes is disabled. */
+    var enabled: Boolean = true,
+    /** Punishments before a guild is "up for a penalty" (admin-triggered action). */
+    var threshold: Int = 5,
+    /**
+     * Which LiteBans punishment types count as strikes. LiteBans types:
+     * WARN, KICK, MUTE, BAN (matching litebans.api.Entry#getType()).
+     */
+    var countedTypes: List<String> = listOf("WARN", "KICK", "MUTE", "BAN"),
+    /** Admin penalty actions available once a guild crosses the threshold. */
+    var penalties: StrikesPenaltiesConfig = StrikesPenaltiesConfig(),
+    /** One-shot backfill of pre-existing LiteBans punishments on startup. */
+    var backfill: StrikesBackfillConfig = StrikesBackfillConfig()
+)
+
+/**
+ * Backfill settings — imports historical LiteBans punishments into the strike
+ * ledger on startup so existing guilds get credit for past behaviour.
+ */
+data class StrikesBackfillConfig(
+    /** Run the backfill on startup (idempotent — deduped by LiteBans entry id). */
+    var enabled: Boolean = true,
+    /**
+     * When membership history cannot prove which guild the player was in at the
+     * punishment time (history tracking predates the punishment), fall back to
+     * the player's current guild. False = skip unattributable punishments.
+     */
+    var fallbackToCurrentGuild: Boolean = true
+)
+
+/**
+ * Admin penalty parameters — what each action does when triggered from the
+ * penalty GUI.
+ */
+data class StrikesPenaltiesConfig(
+    /** How many levels a Level Reduction removes (0 = disabled). */
+    var levelReductionLevels: Int = 1,
+    /** How much XP an EXP Reduction removes (0 = disabled). */
+    var expReductionAmount: Int = 1000,
+    /** Guild mute duration in milliseconds (0 = disabled). */
+    var guildMuteDurationMillis: Long = 24 * 3_600_000L
 )
 
 data class WebApiConfig(

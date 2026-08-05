@@ -3,7 +3,7 @@ version: ${version}
 api-version: '1.21.11'
 load: STARTUP
 main: net.lumalyte.lg.LumaGuilds
-softdepend: [Vault, PlaceholderAPI, AxKoth]
+softdepend: [Vault, PlaceholderAPI, AxKoth, LiteBans]
 depend: [RoseChat]
 
 commands:
@@ -244,6 +244,11 @@ permissions:
 
   bellclaims.admin:
     description: Allows access to admin commands including guild override mode
+    default: op
+
+  # Guild Strikes Admin Permissions
+  lumaguilds.admin.strikes:
+    description: Open the guild penalty GUI (/g strikes punish)
     default: op
 
   # Bedrock Cache Permissions

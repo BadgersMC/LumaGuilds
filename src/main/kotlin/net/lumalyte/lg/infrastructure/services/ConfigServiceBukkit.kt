@@ -31,7 +31,27 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             ui = loadUIConfig(),
             discord = loadDiscordConfig(),
             party = loadPartyConfig(),
-            webApi = loadWebApiConfig()
+            webApi = loadWebApiConfig(),
+            strikes = loadStrikesConfig()
+        )
+    }
+
+    private fun loadStrikesConfig(): StrikesConfig {
+        return StrikesConfig(
+            enabled = config.getBoolean("strikes.enabled", true),
+            threshold = config.getInt("strikes.threshold", 5),
+            countedTypes = config.getStringList("strikes.counted_types").ifEmpty {
+                listOf("WARN", "KICK", "MUTE", "BAN")
+            },
+            penalties = StrikesPenaltiesConfig(
+                levelReductionLevels = config.getInt("strikes.penalties.level_reduction.levels", 1),
+                expReductionAmount = config.getInt("strikes.penalties.exp_reduction.amount", 1000),
+                guildMuteDurationMillis = config.getLong("strikes.penalties.guild_mute.duration_ms", 24 * 3_600_000L)
+            ),
+            backfill = StrikesBackfillConfig(
+                enabled = config.getBoolean("strikes.backfill.enabled", true),
+                fallbackToCurrentGuild = config.getBoolean("strikes.backfill.fallback_to_current_guild", true)
+            )
         )
     }
 
