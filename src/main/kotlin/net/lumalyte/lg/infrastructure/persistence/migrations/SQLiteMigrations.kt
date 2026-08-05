@@ -1360,6 +1360,14 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 migrateToVersion19()
                 componentLogger.info(Component.text("✓ Recreated guild_homes table"))
             }
+            if ("guild_strikes" in missingTables) {
+                migrateToVersion24()
+                componentLogger.info(Component.text("✓ Recreated guild_strikes table"))
+            }
+            if ("guild_penalties" in missingTables) {
+                migrateToVersion25()
+                componentLogger.info(Component.text("✓ Recreated guild_penalties table"))
+            }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
                 migrateToVersion2()
