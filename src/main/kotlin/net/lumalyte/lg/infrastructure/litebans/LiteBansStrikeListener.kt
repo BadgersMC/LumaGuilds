@@ -3,7 +3,7 @@ package net.lumalyte.lg.infrastructure.litebans
 import litebans.api.Database
 import litebans.api.Entry
 import litebans.api.Events
-import litebans.api.`Events$Listener`
+import litebans.api.Events.Listener
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.StrikeService
@@ -22,10 +22,6 @@ import java.util.UUID
  * public view keeps showing it but flagged as lifted.
  *
  * Only registered when the LiteBans plugin is present at runtime (softdepend).
- *
- * Note: the LiteBans 2.x `Events$Listener` class file ships without an
- * InnerClasses attribute, so Kotlin sees it as a top-level class and it must
- * be referenced with the backtick-quoted name.
  */
 class LiteBansStrikeListener(
     private val plugin: JavaPlugin,
@@ -33,7 +29,7 @@ class LiteBansStrikeListener(
     private val strikeService: StrikeService,
     private val membershipHistoryRepository: MembershipHistoryRepository,
     private val configProvider: () -> StrikesConfig,
-) : `Events$Listener`() {
+) : Listener() {
 
     private val countedTypes: Set<String>
         get() = configProvider().countedTypes.map { it.uppercase() }.toSet()
