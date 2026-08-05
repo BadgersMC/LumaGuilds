@@ -429,10 +429,16 @@ fun guildsModule() = module {
     single<net.lumalyte.lg.application.persistence.PenaltyRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.PenaltyRepositorySQLite(get())
     }
+    // StrikesConfig is captured ONCE per Koin graph. ConfigService.loadConfig()
+    // rebuilds the whole config tree on every call, and StrikeService.recordStrike
+    // runs per backfill row — a lambda would rebuild it hundreds of times per run.
+    single<net.lumalyte.lg.config.StrikesConfig> {
+        get<ConfigService>().loadConfig().strikes
+    }
     single<net.lumalyte.lg.application.services.StrikeService> {
         net.lumalyte.lg.application.services.StrikeService(
             repository = get(),
-            configProvider = { get<ConfigService>().loadConfig().strikes }
+            configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
         )
     }
     single<net.lumalyte.lg.application.services.PenaltyService> {
@@ -440,7 +446,7 @@ fun guildsModule() = module {
             penaltyRepository = get(),
             progressionService = get(),
             guildService = get(),
-            configProvider = { get<ConfigService>().loadConfig().strikes }
+            configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
         )
     }
     single<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener> {
@@ -448,7 +454,8 @@ fun guildsModule() = module {
             plugin = get<LumaGuilds>(),
             guildService = get(),
             strikeService = get(),
-            configProvider = { get<ConfigService>().loadConfig().strikes }
+            membershipHistoryRepository = get(),
+            configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
         )
     }
     single<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService> {
@@ -456,7 +463,7 @@ fun guildsModule() = module {
             strikeService = get(),
             membershipHistoryRepository = get(),
             guildService = get(),
-            configProvider = { get<ConfigService>().loadConfig().strikes }
+            configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
         )
     }
 }
@@ -496,6 +503,9 @@ fun socialModule() = module {
     }
     single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
         net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get())
+    }
+    single<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener> {
+        net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener(get(), get())
     }
 }
 

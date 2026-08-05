@@ -1626,7 +1626,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             )
             """.trimIndent(),
             "CREATE INDEX IF NOT EXISTS idx_guild_strikes_guild ON guild_strikes(guild_id);",
-            "CREATE INDEX IF NOT EXISTS idx_guild_strikes_entry ON guild_strikes(litebans_entry_id);"
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_guild_strikes_entry ON guild_strikes(punishment_type, litebans_entry_id);"
         )
         executeMigrationCommands(sqlCommands)
         componentLogger.info(Component.text("✓ Migration v24 complete: guild_strikes table added"))

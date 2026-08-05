@@ -119,11 +119,13 @@ class PenaltyRepositorySQLite(
 
     private fun co.aikar.idb.DbRow.toPenalty(): GuildPenalty? {
         return runCatching {
+            val typeName = getString("penalty_type") ?: return@runCatching null
+            val type = PenaltyType.entries.firstOrNull { it.name == typeName }
+                ?: return@runCatching null
             GuildPenalty(
                 id = getLong("id") ?: 0L,
                 guildId = UUID.fromString(getString("guild_id")),
-                type = PenaltyType.entries.firstOrNull { it.name == getString("penalty_type") }
-                    ?: PenaltyType.DISBAND,
+                type = type,
                 amount = getLong("amount"),
                 reason = getString("reason"),
                 actorUuid = UUID.fromString(getString("actor_uuid")),

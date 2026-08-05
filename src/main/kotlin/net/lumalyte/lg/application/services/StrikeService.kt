@@ -17,7 +17,8 @@ class StrikeService(
     private val configProvider: () -> StrikesConfig,
 ) {
 
-    /** Records a strike for a guild member's punishment. No-op if disabled or dedupe-hit. */
+    /** Records a strike for a guild member's punishment. Returns true if a new row
+     *  was inserted, false if disabled or a dedupe hit. */
     fun recordStrike(
         guildId: UUID,
         playerUuid: UUID,
@@ -27,9 +28,10 @@ class StrikeService(
         executorName: String?,
         issuedAt: Instant,
         litebansEntryId: Long?,
-    ) {
-        if (!configProvider().enabled) return
-        repository.recordStrike(
+        active: Boolean = true,
+    ): Boolean {
+        if (!configProvider().enabled) return false
+        return repository.recordStrike(
             GuildStrike(
                 guildId = guildId,
                 playerUuid = playerUuid,
@@ -39,28 +41,32 @@ class StrikeService(
                 executorName = executorName,
                 issuedAt = issuedAt,
                 litebansEntryId = litebansEntryId,
-                active = true
+                active = active
             )
         )
     }
 
     /** Marks a strike inactive when its LiteBans punishment is removed/expired. */
-    fun deactivateStrike(litebansEntryId: Long) {
+    fun deactivateStrike(punishmentType: String, litebansEntryId: Long) {
         if (!configProvider().enabled) return
-        repository.deactivateStrike(litebansEntryId)
+        repository.deactivateStrike(punishmentType, litebansEntryId)
     }
 
     fun countByGuild(guildId: UUID): Int = repository.countByGuild(guildId)
+
+    fun countActiveByGuild(guildId: UUID): Int = repository.countActiveByGuild(guildId)
 
     fun getByGuild(guildId: UUID): List<GuildStrike> = repository.getByGuild(guildId)
 
     fun getAllCounts(): Map<UUID, Int> = repository.getAllCounts()
 
+    fun getAllActiveCounts(): Map<UUID, Int> = repository.getAllActiveCounts()
+
     fun countAll(): Int = repository.countAll()
 
-    /** True when a guild has reached (or passed) the strike threshold. */
+    /** True when a guild's ACTIVE strikes have reached (or passed) the threshold. */
     fun isUpForPenalty(guildId: UUID): Boolean {
         val threshold = configProvider().threshold
-        return threshold > 0 && repository.countByGuild(guildId) >= threshold
+        return threshold > 0 && repository.countActiveByGuild(guildId) >= threshold
     }
 }

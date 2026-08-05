@@ -14,8 +14,14 @@ import java.util.UUID
  * SQLite/MariaDB implementation of [StrikeRepository].
  *
  * Works against both backends — the SQL used here is portable (no SQLite-only
- * syntax like INSERT OR IGNORE / ON CONFLICT). Dedupe is done by checking the
- * LiteBans entry id before inserting.
+ * syntax like INSERT OR IGNORE / ON CONFLICT). Dedupe is enforced by the
+ * UNIQUE index on `litebans_entry_id` (created by migration v24) plus a
+ * pre-insert existence check, so a race between the backfill and the live
+ * listener can never double-record the same punishment.
+ *
+ * The table itself is owned by migration v24 (both backends) — this class no
+ * longer creates it at construction, because the old SQLite-only `AUTOINCREMENT`
+ * DDL broke MariaDB startup.
  */
 class StrikeRepositorySQLite(
     private val storage: Storage<Database>
@@ -23,43 +29,13 @@ class StrikeRepositorySQLite(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    init {
-        createTable()
-    }
-
-    private fun createTable() {
-        val sql = """
-            CREATE TABLE IF NOT EXISTS guild_strikes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                guild_id TEXT NOT NULL,
-                player_uuid TEXT NOT NULL,
-                player_name TEXT,
-                punishment_type TEXT NOT NULL,
-                reason TEXT,
-                executor_name TEXT,
-                issued_at INTEGER NOT NULL,
-                litebans_entry_id INTEGER,
-                active INTEGER NOT NULL DEFAULT 1
-            )
-        """.trimIndent()
-
-        val guildIndexSql = "CREATE INDEX IF NOT EXISTS idx_guild_strikes_guild ON guild_strikes(guild_id)"
-        val entryIndexSql = "CREATE INDEX IF NOT EXISTS idx_guild_strikes_entry ON guild_strikes(litebans_entry_id)"
-
-        try {
-            storage.connection.executeUpdate(sql)
-            storage.connection.executeUpdate(guildIndexSql)
-            storage.connection.executeUpdate(entryIndexSql)
-        } catch (e: SQLException) {
-            logger.error("Failed to create guild_strikes table", e)
-        }
-    }
-
     override fun recordStrike(strike: GuildStrike): Boolean {
         // Dedupe: LiteBans can re-fire entryAdded for the same punishment
         // (cross-server sync, reloads). Only insert if not already recorded.
+        // Keyed on (type, entryId) — LiteBans ids are per-table sequences, so
+        // the type disambiguates rows from different punishment tables.
         val entryId = strike.litebansEntryId
-        if (entryId != null && existsByEntryId(entryId)) {
+        if (entryId != null && existsByTypeAndEntryId(strike.punishmentType, entryId)) {
             return false
         }
 
@@ -84,17 +60,25 @@ class StrikeRepositorySQLite(
             )
             rows > 0
         } catch (e: SQLException) {
+            // UNIQUE constraint on litebans_entry_id — a concurrent insert won
+            // the race. Treat as a dedupe hit, not an error.
+            if (e.message.orEmpty().contains("UNIQUE", ignoreCase = true) ||
+                e.message.orEmpty().contains("duplicate", ignoreCase = true)
+            ) {
+                logger.debug("Strike for entry {} already recorded (dedupe hit)", entryId)
+                return false
+            }
             logger.error("Failed to record strike for guild {}", strike.guildId, e)
             false
         }
     }
 
-    override fun deactivateStrike(litebansEntryId: Long): Boolean {
-        val sql = "UPDATE guild_strikes SET active = 0 WHERE litebans_entry_id = ?"
+    override fun deactivateStrike(punishmentType: String, litebansEntryId: Long): Boolean {
+        val sql = "UPDATE guild_strikes SET active = 0 WHERE punishment_type = ? AND litebans_entry_id = ?"
         return try {
-            storage.connection.executeUpdate(sql, litebansEntryId) > 0
+            storage.connection.executeUpdate(sql, punishmentType, litebansEntryId) > 0
         } catch (e: SQLException) {
-            logger.error("Failed to deactivate strike entry {}", litebansEntryId, e)
+            logger.error("Failed to deactivate strike {} entry {}", punishmentType, litebansEntryId, e)
             false
         }
     }
@@ -106,6 +90,17 @@ class StrikeRepositorySQLite(
             results.firstOrNull()?.getInt("cnt") ?: 0
         } catch (e: SQLException) {
             logger.error("Failed to count strikes for guild {}", guildId, e)
+            0
+        }
+    }
+
+    override fun countActiveByGuild(guildId: UUID): Int {
+        val sql = "SELECT COUNT(*) AS cnt FROM guild_strikes WHERE guild_id = ? AND active = 1"
+        return try {
+            val results = storage.connection.getResults(sql, guildId.toString())
+            results.firstOrNull()?.getInt("cnt") ?: 0
+        } catch (e: SQLException) {
+            logger.error("Failed to count active strikes for guild {}", guildId, e)
             0
         }
     }
@@ -144,6 +139,25 @@ class StrikeRepositorySQLite(
         }
     }
 
+    override fun getAllActiveCounts(): Map<UUID, Int> {
+        val sql = """
+            SELECT guild_id, COUNT(*) AS cnt
+            FROM guild_strikes
+            WHERE active = 1
+            GROUP BY guild_id
+            ORDER BY cnt DESC
+        """.trimIndent()
+        return try {
+            storage.connection.getResults(sql).mapNotNull { row ->
+                val guildId = runCatching { UUID.fromString(row.getString("guild_id")) }.getOrNull() ?: return@mapNotNull null
+                guildId to row.getInt("cnt")
+            }.toMap()
+        } catch (e: SQLException) {
+            logger.error("Failed to load all active strike counts", e)
+            emptyMap()
+        }
+    }
+
     override fun countAll(): Int {
         val sql = "SELECT COUNT(*) AS cnt FROM guild_strikes"
         return try {
@@ -154,12 +168,12 @@ class StrikeRepositorySQLite(
         }
     }
 
-    private fun existsByEntryId(entryId: Long): Boolean {
-        val sql = "SELECT 1 AS found FROM guild_strikes WHERE litebans_entry_id = ? LIMIT 1"
+    private fun existsByTypeAndEntryId(punishmentType: String, entryId: Long): Boolean {
+        val sql = "SELECT 1 AS found FROM guild_strikes WHERE punishment_type = ? AND litebans_entry_id = ? LIMIT 1"
         return try {
-            storage.connection.getResults(sql, entryId).isNotEmpty()
+            storage.connection.getResults(sql, punishmentType, entryId).isNotEmpty()
         } catch (e: SQLException) {
-            logger.error("Failed to check strike entry {}", entryId, e)
+            logger.error("Failed to check strike {} entry {}", punishmentType, entryId, e)
             false
         }
     }

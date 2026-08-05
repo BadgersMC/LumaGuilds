@@ -78,11 +78,20 @@ class PenaltyService(
         )
         penaltyRepository.recordPenalty(penalty)
         val hours = durationMs / 3_600_000.0
-        logger.info("Guild mute penalty applied to guild {} ({}h) by {}", guild.name, hours, actorName)
-        return PenaltyResult.Success(penalty, "§a${guild.name} §7is now muted for §e$hours§7 hour(s).")
+        logger.info("Guild mute penalty applied to guild {} ({}h) by {}", guild.name, formatHours(hours), actorName)
+        return PenaltyResult.Success(penalty, "§a${guild.name} §7is now muted for §e${formatHours(hours)}§7 hour(s).")
     }
 
     fun applyDisband(guild: Guild, actorUuid: UUID, actorName: String): PenaltyResult {
+        // Admin-triggered disband: use the system UUID so the permission check in
+        // GuildService.disbandGuild (which requires MANAGE_RANKS in the target guild)
+        // doesn't reject the admin who is opening the penalty menu.
+        val systemUuid = UUID.fromString("00000000-0000-0000-0000-000000000000")
+        val success = guildService.disbandGuild(guild.id, systemUuid)
+        if (!success) return PenaltyResult.Failure("§cFailed to disband ${guild.name}.")
+
+        // Only record the penalty AFTER the disband actually succeeded — otherwise the
+        // audit trail would show a disband that never happened.
         val penalty = GuildPenalty(
             guildId = guild.id,
             type = PenaltyType.DISBAND,
@@ -93,11 +102,11 @@ class PenaltyService(
             createdAt = Instant.now()
         )
         penaltyRepository.recordPenalty(penalty)
-        val success = guildService.disbandGuild(guild.id, actorUuid)
-        if (!success) return PenaltyResult.Failure("§cFailed to disband ${guild.name}.")
         logger.info("Disband penalty applied to guild {} by {}", guild.name, actorName)
         return PenaltyResult.Success(penalty, "§c${guild.name} §7has been disbanded.")
     }
+
+    private fun formatHours(hours: Double): String = "%.1f".format(hours)
 
     /** True while the guild has an in-force guild-mute penalty. */
     fun isGuildMuted(guildId: UUID): Boolean = penaltyRepository.hasActiveMute(guildId, Instant.now())

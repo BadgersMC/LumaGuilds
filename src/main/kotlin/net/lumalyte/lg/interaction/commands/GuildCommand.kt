@@ -1064,18 +1064,21 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val total = strikeService.countAll()
         player.sendMessage("§8[§bLumaGuilds§8] §fGuild Strikes §8(§7$total total§8)")
         if (threshold > 0) {
-            player.sendMessage("§8» §7Guilds at §c$threshold§7+ strikes are up for a penalty")
+            player.sendMessage("§8» §7Guilds at §c$threshold§7+ §7active strikes are up for a penalty")
         }
 
+        // Penalty eligibility is based on ACTIVE strikes only (lifted punishments
+        // don't count toward the threshold) — same rule as /g strikes <guild>.
+        val activeCounts = strikeService.getAllActiveCounts()
         val nameById = guildServiceRef.getAllGuilds().associateBy { it.id }
         var index = 0
         for ((guildId, count) in counts.entries.sortedByDescending { it.value }) {
             val guild = nameById[guildId]
             val label = guild?.let { GuildResolver.displayName(it) } ?: guildId.toString().take(8)
-            val flag = if (threshold > 0 && count >= threshold) " §c⚠ UP FOR PENALTY" else ""
+            val flag = if (threshold > 0 && (activeCounts[guildId] ?: 0) >= threshold) " §c⚠ UP FOR PENALTY" else ""
             player.sendMessage("§7${++index}. §f$label §8— §e$count §7strike(s)$flag")
         }
-        player.sendMessage("§8» §7Click a guild in the list above for details: §f/g strikes <guild>")
+        player.sendMessage("§8» §7Run §f/g strikes <guild>§7 for the punishments behind a guild's strikes")
     }
 
     /**
@@ -1123,10 +1126,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
         player.sendMessage("§8[§bLumaGuilds§8] §f$name §7— §e${strikes.size} §7strike(s)$status")
         if (threshold > 0) {
-            player.sendMessage("§8» §7Penalty threshold: §f$threshold")
+            player.sendMessage("§8» §7Penalty threshold: §f$threshold§7 (active strikes)")
         }
 
-        strikes.forEach { strike ->
+        // Cap the per-guild detail list — a guild with hundreds of punishments
+        // would otherwise flood the player's chat.
+        val maxShown = 15
+        strikes.take(maxShown).forEach { strike ->
             val typeColor = when (strike.punishmentType.uppercase()) {
                 "BAN" -> "§c"
                 "MUTE" -> "§6"
@@ -1140,6 +1146,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 "$typeColor${strike.punishmentType.uppercase()}§8 §f${strike.playerName ?: strike.playerUuid.toString().take(8)}" +
                     "$reason$by §8${formatStrikeDate(strike.issuedAt)}$lifted"
             )
+        }
+        val hidden = strikes.size - maxShown
+        if (hidden > 0) {
+            player.sendMessage("§8… §7and §f$hidden§7 more (showing newest $maxShown)")
         }
     }
 

@@ -41,6 +41,13 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(19)
                 currentDbVersion = 19
             }
+            // v20 (per-home access perms) was historically missing from the MariaDB
+            // chain — run it here so a v19/v22 MariaDB DB can't skip straight past it.
+            if (currentDbVersion < 20) {
+                migrateToVersion20()
+                updateDatabaseVersion(20)
+                currentDbVersion = 20
+            }
             if (currentDbVersion < 21) {
                 migrateToVersion21()
                 updateDatabaseVersion(21)
@@ -50,6 +57,13 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 migrateToVersion22()
                 updateDatabaseVersion(BANNERMAN_MIGRATION_VERSION)
                 currentDbVersion = BANNERMAN_MIGRATION_VERSION
+            }
+            // v23 (unify guild balances into vault gold) was historically missing from
+            // the MariaDB chain — run it here so it can't be permanently skipped.
+            if (currentDbVersion < 23) {
+                migrateToVersion23()
+                updateDatabaseVersion(23)
+                currentDbVersion = 23
             }
             if (currentDbVersion < 24) {
                 migrateToVersion24()
@@ -624,6 +638,187 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
     }
 
     /**
+     * Migration to version 20.
+     * Per-home access perms: adds `allowed_ranks` to guild_homes and
+     * `ally_home_allowed_guilds` to guilds, backfills both from existing data,
+     * and grants USE_ALLY_HOMES to all ranks. Ported from SQLiteMigrations v20
+     * (was historically missing from the MariaDB chain).
+     */
+    private fun migrateToVersion20() {
+        componentLogger.info(Component.text("Migrating to version 20: per-home access perms..."))
+
+        connection.createStatement().use { stmt ->
+            if (!columnExists("guild_homes", "allowed_ranks")) {
+                stmt.execute("ALTER TABLE guild_homes ADD COLUMN allowed_ranks TEXT")
+            }
+            if (!columnExists("guilds", "ally_home_allowed_guilds")) {
+                stmt.execute("ALTER TABLE guilds ADD COLUMN ally_home_allowed_guilds TEXT")
+            }
+        }
+
+        // Backfill allowed_ranks from the ranks table (GROUP_CONCAT is portable).
+        connection.prepareStatement(
+            "UPDATE guild_homes SET allowed_ranks = ? WHERE guild_id = ? AND allowed_ranks IS NULL",
+        ).use { ps ->
+            connection.createStatement().use { stmt ->
+                stmt.executeQuery(
+                    "SELECT r.guild_id, GROUP_CONCAT(r.id, ',') AS rank_csv " +
+                        "FROM ranks r " +
+                        "WHERE r.guild_id IN (SELECT DISTINCT guild_id FROM guild_homes WHERE allowed_ranks IS NULL) " +
+                        "GROUP BY r.guild_id",
+                ).use { rs ->
+                    while (rs.next()) {
+                        ps.setString(1, rs.getString("rank_csv") ?: "")
+                        ps.setString(2, rs.getString("guild_id"))
+                        ps.addBatch()
+                    }
+                }
+            }
+            ps.executeBatch()
+        }
+
+        // Backfill ally_home_allowed_guilds from active alliances. Guarded: an old
+        // MariaDB relations schema used guild_id/target_guild_id/relation_type
+        // instead of the runtime repo's guild_a/guild_b/type/status — skip the
+        // backfill (not schema-critical) rather than crash on a missing column.
+        val alliesByGuild = mutableMapOf<String, MutableSet<String>>()
+        if (columnExists("relations", "guild_a")) {
+            connection.createStatement().use { stmt ->
+                stmt.executeQuery(
+                    "SELECT guild_a, guild_b FROM relations WHERE type = 'ALLY' AND status = 'ACTIVE'",
+                ).use { rs ->
+                    while (rs.next()) {
+                        val a = rs.getString("guild_a")
+                        val b = rs.getString("guild_b")
+                        alliesByGuild.getOrPut(a) { mutableSetOf() }.add(b)
+                        alliesByGuild.getOrPut(b) { mutableSetOf() }.add(a)
+                    }
+                }
+            }
+        }
+        connection.prepareStatement(
+            "UPDATE guilds SET ally_home_allowed_guilds = ? WHERE id = ?",
+        ).use { ps ->
+            for ((gid, allies) in alliesByGuild) {
+                ps.setString(1, allies.joinToString(","))
+                ps.setString(2, gid)
+                ps.addBatch()
+            }
+            ps.executeBatch()
+        }
+
+        // Grant USE_ALLY_HOMES to every rank that doesn't have it yet.
+        connection.prepareStatement("UPDATE ranks SET permissions = ? WHERE id = ?").use { ps ->
+            connection.createStatement().use { stmt ->
+                stmt.executeQuery("SELECT id, permissions FROM ranks").use { rs ->
+                    while (rs.next()) {
+                        val id = rs.getString("id")
+                        val perms = rs.getString("permissions").orEmpty()
+                        val parts = perms.split(",").filter { it.isNotBlank() }.toMutableSet()
+                        if (parts.add("USE_ALLY_HOMES")) {
+                            ps.setString(1, parts.joinToString(","))
+                            ps.setString(2, id)
+                            ps.addBatch()
+                        }
+                    }
+                }
+            }
+            ps.executeBatch()
+        }
+        componentLogger.info(Component.text("✓ Migration v20 complete: per-home access perms"))
+    }
+
+    /**
+     * Migration to version 23.
+     * Unifies the three historical guild-balance stores into vault_gold as the
+     * single source of truth. MariaDB port of GuildBalanceConsolidator
+     * (which is SQLite-only due to `ON CONFLICT`/sqlite_master).
+     */
+    private fun migrateToVersion23() {
+        componentLogger.info(
+            Component.text("Migrating to version 23: consolidating guild balances into unified vault gold..."),
+        )
+
+        if (!tableExists("vault_gold") || !tableExists("guilds")) {
+            componentLogger.info(Component.text("  Skipping balance consolidation (required tables not present yet)"))
+            return
+        }
+
+        val now = System.currentTimeMillis()
+
+        // Store A: ledger sum per guild.
+        val ledger = HashMap<String, Int>()
+        if (tableExists("bank_transactions")) {
+            connection.createStatement().use { stmt ->
+                stmt.executeQuery(
+                    "SELECT guild_id, COALESCE(SUM(CASE WHEN type='DEPOSIT' THEN amount ELSE -amount - fee END), 0) AS bal " +
+                        "FROM bank_transactions GROUP BY guild_id",
+                ).use { rs ->
+                    while (rs.next()) ledger[rs.getString("guild_id")] = rs.getInt("bal")
+                }
+            }
+        }
+
+        // Store B: existing vault gold balances.
+        val vaultB = HashMap<String, Int>()
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT guild_id, balance FROM vault_gold").use { rs ->
+                while (rs.next()) vaultB[rs.getString("guild_id")] = rs.getInt("balance")
+            }
+        }
+
+        val folds = ArrayList<Triple<String, Int, Int>>() // (guildId, oldVault, newVault)
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT id, bank_balance FROM guilds").use { rs ->
+                while (rs.next()) {
+                    val id = rs.getString("id")
+                    val legacy = rs.getInt("bank_balance")
+                    val a = ledger[id] ?: 0
+                    val oldVault = vaultB[id] ?: 0
+                    val newVault = maxOf(0, oldVault + a + legacy)
+                    if (a != 0 || legacy != 0) folds.add(Triple(id, oldVault, newVault))
+                }
+            }
+        }
+
+        if (folds.isNotEmpty()) {
+            val upsert = "INSERT INTO vault_gold (guild_id, balance, last_modified) VALUES (?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE balance = VALUES(balance), last_modified = VALUES(last_modified)"
+            connection.prepareStatement(upsert).use { ps ->
+                for ((gid, _, newVault) in folds) {
+                    ps.setString(1, gid)
+                    ps.setInt(2, newVault)
+                    ps.setLong(3, now)
+                    ps.addBatch()
+                }
+                ps.executeBatch()
+            }
+        }
+
+        // Zero the legacy column so it can't be mistaken for a live balance.
+        val zeroed = connection.createStatement().use { st ->
+            st.executeUpdate("UPDATE guilds SET bank_balance = 0 WHERE bank_balance <> 0")
+        }
+        componentLogger.info(
+            Component.text("✓ Migration v23 complete: folded ${folds.size} guild balance(s), zeroed $zeroed legacy row(s)"),
+        )
+    }
+
+    private fun columnExists(table: String, column: String): Boolean {
+        return connection.prepareStatement(
+            """
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = '$table'
+                  AND column_name = '$column'
+            """.trimIndent(),
+        ).use { ps ->
+            ps.executeQuery().use { rs -> rs.next() && rs.getInt(1) > 0 }
+        }
+    }
+
+    /**
      * Migration to version 24.
      * Adds the guild_strikes table for the Guild Strikes feature (LiteBans
      * punishments attributed to guilds).
@@ -640,7 +835,7 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
                     guild_id VARCHAR(36) NOT NULL,
                     player_uuid VARCHAR(36) NOT NULL,
-                    player_name VARCHAR(16),
+                    player_name VARCHAR(64),
                     punishment_type VARCHAR(16) NOT NULL,
                     reason VARCHAR(2048),
                     executor_name VARCHAR(128),
@@ -648,7 +843,7 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                     litebans_entry_id BIGINT,
                     active TINYINT(1) NOT NULL DEFAULT 1,
                     INDEX idx_guild_strikes_guild (guild_id),
-                    INDEX idx_guild_strikes_entry (litebans_entry_id)
+                    UNIQUE INDEX idx_guild_strikes_entry (punishment_type, litebans_entry_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """.trimIndent(),
             )

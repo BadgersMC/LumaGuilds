@@ -55,37 +55,37 @@ class StrikeServiceTest {
     }
 
     @Test
-    fun `isUpForPenalty respects threshold`() {
+    fun `isUpForPenalty respects threshold on ACTIVE strikes only`() {
         val repo = mockk<StrikeRepository>()
-        every { repo.countByGuild(guildId) } returns 5
+        every { repo.countActiveByGuild(guildId) } returns 5
 
         val service = serviceWith(StrikesConfig(enabled = true, threshold = 5), repo)
         assertTrue(service.isUpForPenalty(guildId))
 
-        every { repo.countByGuild(guildId) } returns 4
+        every { repo.countActiveByGuild(guildId) } returns 4
         assertFalse(service.isUpForPenalty(guildId))
     }
 
     @Test
     fun `threshold of zero never flags a guild`() {
         val repo = mockk<StrikeRepository>()
-        every { repo.countByGuild(guildId) } returns 99
+        every { repo.countActiveByGuild(guildId) } returns 99
 
         val service = serviceWith(StrikesConfig(enabled = true, threshold = 0), repo)
         assertFalse(service.isUpForPenalty(guildId))
     }
 
     @Test
-    fun `deactivateStrike delegates and respects enabled flag`() {
+    fun `deactivateStrike delegates with type and respects enabled flag`() {
         val repo = mockk<StrikeRepository>(relaxed = true)
         val service = serviceWith(StrikesConfig(enabled = true), repo)
 
-        service.deactivateStrike(77L)
-        verify(exactly = 1) { repo.deactivateStrike(77L) }
+        service.deactivateStrike("BAN", 77L)
+        verify(exactly = 1) { repo.deactivateStrike("BAN", 77L) }
 
         val disabled = serviceWith(StrikesConfig(enabled = false), repo)
-        disabled.deactivateStrike(77L)
-        verify(exactly = 1) { repo.deactivateStrike(77L) } // unchanged — disabled = no-op
+        disabled.deactivateStrike("BAN", 77L)
+        verify(exactly = 1) { repo.deactivateStrike("BAN", 77L) } // unchanged — disabled = no-op
     }
 
     @Test
@@ -97,6 +97,17 @@ class StrikeServiceTest {
         val service = serviceWith(StrikesConfig(enabled = true), repo)
         assertEquals(mapOf(guildId to 3), service.getAllCounts())
         assertEquals(3, service.countAll())
+    }
+
+    @Test
+    fun `getAllActiveCounts and countActiveByGuild delegate to repository`() {
+        val repo = mockk<StrikeRepository>()
+        every { repo.getAllActiveCounts() } returns mapOf(guildId to 2)
+        every { repo.countActiveByGuild(guildId) } returns 2
+
+        val service = serviceWith(StrikesConfig(enabled = true), repo)
+        assertEquals(mapOf(guildId to 2), service.getAllActiveCounts())
+        assertEquals(2, service.countActiveByGuild(guildId))
     }
 
     @Test

@@ -48,8 +48,9 @@ class StrikeBackfillService(
      */
     fun run(): BackfillResult {
         val config = configProvider()
-        if (!config.enabled || !config.countedTypes.any { it in BACKFILL_QUERIES }) {
-            logger.info("Strike backfill skipped (disabled or no counted types).")
+        val countedTypes = config.countedTypes.map { it.uppercase() }
+        if (!config.enabled || !config.backfill.enabled || countedTypes.none { it in BACKFILL_QUERIES }) {
+            logger.info("Strike backfill skipped (disabled, backfill off, or no counted types).")
             return BackfillResult(0, 0, 0, 0)
         }
 
@@ -64,19 +65,27 @@ class StrikeBackfillService(
         val historyCache = mutableMapOf<UUID, List<net.lumalyte.lg.domain.entities.MembershipHistory>>()
 
         for ((type, table) in BACKFILL_QUERIES) {
-            if (type !in config.countedTypes) continue
+            if (type !in countedTypes) continue
 
             try {
-                Database.get().prepareStatement("SELECT id, uuid, reason, banned_by_name, time, until FROM $table").use { stmt ->
+                // `until` + `removed_by_date` let us express already-lifted
+                // punishments as inactive strikes from the moment of insertion.
+                // NB: litebans_kicks has no removed_by_date column (kicks are
+                // instantaneous and never "removed"), so the column list is
+                // per-table.
+                val removedByDateColumn = if (tableHasRemovedByDate(table)) ", removed_by_date" else ""
+                Database.get().prepareStatement(
+                    "SELECT id, uuid, reason, banned_by_name, time, until$removedByDateColumn FROM $table"
+                ).use { stmt ->
                     stmt.executeQuery().use { rs ->
                         while (rs.next()) {
+                            scanned++
                             val playerUuid = rs.getUuid("uuid")
                             val entryId = rs.getLong("id")
                             if (playerUuid == null || entryId <= 0) {
                                 continue
                             }
 
-                            scanned++
                             val punishmentTime = Instant.ofEpochMilli(rs.getLong("time"))
 
                             val guildId = resolveGuildAtTime(
@@ -95,7 +104,19 @@ class StrikeBackfillService(
                                 Database.get().getPlayerName(playerUuid)
                             }
 
-                            strikeService.recordStrike(
+                            val now = System.currentTimeMillis()
+                            val until = rs.getLong("until")
+                            val removedByDate = if (tableHasRemovedByDate(table)) {
+                                rs.getTimestamp("removed_by_date")
+                            } else {
+                                null
+                            }
+                            // A punishment is still in force when it hasn't been removed
+                            // and (permanent OR its expiry hasn't passed).
+                            val active = removedByDate == null &&
+                                (until <= 0 || until > now)
+
+                            val inserted = strikeService.recordStrike(
                                 guildId = guildId,
                                 playerUuid = playerUuid,
                                 playerName = playerName,
@@ -104,8 +125,9 @@ class StrikeBackfillService(
                                 executorName = rs.getString("banned_by_name"),
                                 issuedAt = punishmentTime,
                                 litebansEntryId = entryId,
+                                active = active,
                             )
-                            recorded++
+                            if (inserted) recorded++
                         }
                     }
                 }
@@ -162,5 +184,15 @@ class StrikeBackfillService(
             "MUTE" to "litebans_mutes",
             "BAN" to "litebans_bans",
         )
+
+        /** Tables carrying a `removed_by_date` column (kicks don't). */
+        private val TABLES_WITH_REMOVED_BY_DATE = setOf(
+            "litebans_warnings",
+            "litebans_mutes",
+            "litebans_bans",
+        )
+
+        private fun tableHasRemovedByDate(table: String): Boolean =
+            table in TABLES_WITH_REMOVED_BY_DATE
     }
 }

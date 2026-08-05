@@ -82,7 +82,7 @@ class GuildStrikePenaltyMenu(
             "§7Remove §e${strikesConfig.penalties.expReductionAmount}§7 XP",
             PenaltyType.EXP_REDUCTION)
         addPenaltyButton(pane, 5, 3, Material.NAME_TAG, "§d🔇 Guild Mute",
-            "§7Mute guild chat for §e${strikesConfig.penalties.guildMuteDurationMillis / 3_600_000}h§7",
+            "§7Mute guild chat for §e${formatHours(strikesConfig.penalties.guildMuteDurationMillis)}§7",
             PenaltyType.GUILD_MUTE)
         addPenaltyButton(pane, 7, 3, Material.TNT, "§c💥 Disband Guild",
             "§cPermanently disbands the guild",
@@ -101,13 +101,15 @@ class GuildStrikePenaltyMenu(
 
         // Back / close
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§a← Back to strikes")
+            .name("§a← Close")
             .lore("§7Close this menu")
         pane.addItem(GuiItem(backItem) { player.closeInventory() }, 7, 5)
 
         gui.addPane(pane)
         gui.show(player)
     }
+
+    private fun formatHours(millis: Long): String = "%.1f".format(millis / 3_600_000.0)
 
     private fun addPenaltyButton(
         pane: StaticPane,

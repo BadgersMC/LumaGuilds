@@ -93,17 +93,23 @@ class PenaltyServiceTest {
 
         assertTrue(result is PenaltyService.PenaltyResult.Success)
         assertEquals(PenaltyType.DISBAND, (result as PenaltyService.PenaltyResult.Success).penalty.type)
-        verify { guildService.disbandGuild(guild.id, any()) }
+        // The disband must run as the system UUID so the guild's own permission
+        // check (MANAGE_RANKS in the target guild) can't reject an admin penalty.
+        verify {
+            guildService.disbandGuild(guild.id, UUID.fromString("00000000-0000-0000-0000-000000000000"))
+        }
         verify { penaltyRepository.recordPenalty(any()) }
     }
 
     @Test
-    fun `disband failure surfaces as failure result`() {
+    fun `disband failure surfaces as failure result and records no penalty`() {
         every { guildService.disbandGuild(guild.id, any()) } returns false
         val service = PenaltyService(penaltyRepository, progressionService, guildService) { config() }
 
         val result = service.applyDisband(guild, UUID.randomUUID(), "Admin")
 
         assertTrue(result is PenaltyService.PenaltyResult.Failure)
+        // The audit trail must NOT show a disband that never happened.
+        verify(exactly = 0) { penaltyRepository.recordPenalty(any()) }
     }
 }

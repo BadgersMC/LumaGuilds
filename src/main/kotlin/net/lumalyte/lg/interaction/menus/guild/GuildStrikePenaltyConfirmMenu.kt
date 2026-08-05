@@ -3,7 +3,6 @@ package net.lumalyte.lg.interaction.menus.guild
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
-import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PenaltyService
 import net.lumalyte.lg.config.StrikesConfig
 import net.lumalyte.lg.domain.entities.Guild
@@ -34,7 +33,7 @@ class GuildStrikePenaltyConfirmMenu(
 ) : Menu, KoinComponent {
 
     private val penaltyService: PenaltyService by inject()
-    private val guildService: GuildService by inject()
+    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
@@ -79,7 +78,7 @@ class GuildStrikePenaltyConfirmMenu(
         return when (penaltyType) {
             PenaltyType.LEVEL_REDUCTION -> "Remove ${p.levelReductionLevels} level(s)"
             PenaltyType.EXP_REDUCTION -> "Remove ${p.expReductionAmount} XP"
-            PenaltyType.GUILD_MUTE -> "Mute guild chat for ${p.guildMuteDurationMillis / 3_600_000} hour(s)"
+            PenaltyType.GUILD_MUTE -> "Mute guild chat for ${"%.1f".format(p.guildMuteDurationMillis / 3_600_000.0)} hour(s)"
             PenaltyType.DISBAND -> "FULLY DISBAND the guild"
         }
     }
@@ -99,9 +98,11 @@ class GuildStrikePenaltyConfirmMenu(
                 player.sendMessage("§8[§bLumaGuilds§8] ${result.message}")
                 // Notify online members of their guild being penalized.
                 if (penaltyType != PenaltyType.DISBAND) {
-                    // Notify every online player whose guild is the penalized guild
+                    // One member lookup for the whole guild, then filter online —
+                    // avoids N guildService.getPlayerGuilds() calls on the tick thread.
+                    val memberUuids = memberService.getGuildMembers(guild.id).map { it.playerId }
                     Bukkit.getOnlinePlayers()
-                        .filter { online -> guild.id in guildService.getPlayerGuilds(online.uniqueId).map { it.id } }
+                        .filter { online -> online.uniqueId in memberUuids }
                         .forEach { member ->
                             member.sendMessage("§8[§bLumaGuilds§8] §c⚠ Your guild has received a penalty: ${penaltyType.name.replace('_', ' ')}")
                         }
