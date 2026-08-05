@@ -9,7 +9,7 @@ import java.util.UUID
 interface ProgressionService {
 
     /**
-     * Awards experience points to a guild.
+     * Awards experience to a guild.
      *
      * @param guildId The ID of the guild.
      * @param experience The amount of experience to award.
@@ -17,6 +17,24 @@ interface ProgressionService {
      * @return The new guild level if leveled up, null otherwise.
      */
     fun awardExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int?
+
+    /**
+     * Removes experience from a guild (used by Guild Strikes EXP penalties).
+     * Never drops total XP below 0. Recalculates level and syncs the guild's
+     * level field.
+     *
+     * @return The new guild level.
+     */
+    fun removeExperience(guildId: UUID, amount: Int, source: ExperienceSource): Int
+
+    /**
+     * Reduces a guild's level by the given number of levels (used by Guild
+     * Strikes Level Reduction penalties). Total XP is set to the threshold of
+     * the target level; level never drops below 1.
+     *
+     * @return The new guild level.
+     */
+    fun reduceLevel(guildId: UUID, levels: Int, source: ExperienceSource): Int
 
     /**
      * Calculates the experience required for the next level.

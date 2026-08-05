@@ -111,6 +111,66 @@ class ProgressionServiceBukkit(
         return (baseXp * nextLevel.toDouble().pow(exponent) + (nextLevel * linearBonus)).toInt()
     }
 
+    override fun removeExperience(guildId: UUID, amount: Int, source: ExperienceSource): Int {
+        if (amount <= 0) return getLevelFromExperience(progressionRepository.getGuildProgression(guildId)?.totalExperience ?: 0)
+        val progression = progressionRepository.getGuildProgression(guildId)
+            ?: GuildProgression.create(guildId)
+
+        val newTotalExperience = (progression.totalExperience - amount).coerceAtLeast(0)
+        val newLevel = getLevelFromExperience(newTotalExperience)
+
+        val updatedProgression = progression.copy(
+            totalExperience = newTotalExperience,
+            currentLevel = newLevel,
+            experienceThisLevel = getExperienceInCurrentLevel(newTotalExperience),
+            experienceForNextLevel = getExperienceForNextLevel(newLevel),
+            lastUpdated = Instant.now()
+        )
+        progressionRepository.saveGuildProgression(updatedProgression)
+        progressionRepository.recordExperienceTransaction(
+            ExperienceTransaction(
+                guildId = guildId,
+                source = source,
+                amount = -amount,
+                description = "Strike penalty: removed $amount XP"
+            )
+        )
+        syncGuildLevelField(guildId, newLevel)
+        logger.info("Guild $guildId XP reduced by $amount -> level $newLevel (strike penalty)")
+        return newLevel
+    }
+
+    override fun reduceLevel(guildId: UUID, levels: Int, source: ExperienceSource): Int {
+        val progression = progressionRepository.getGuildProgression(guildId)
+            ?: GuildProgression.create(guildId)
+
+        val currentLevel = progression.currentLevel
+        val targetLevel = (currentLevel - levels).coerceAtLeast(1)
+        if (targetLevel == currentLevel) return currentLevel
+
+        // Set total XP to the threshold of the target level (start of that level).
+        val newTotalExperience = getTotalExperienceForLevel(targetLevel)
+        val updatedProgression = progression.copy(
+            totalExperience = newTotalExperience,
+            currentLevel = targetLevel,
+            experienceThisLevel = getExperienceInCurrentLevel(newTotalExperience),
+            experienceForNextLevel = getExperienceForNextLevel(targetLevel),
+            lastUpdated = Instant.now()
+        )
+        progressionRepository.saveGuildProgression(updatedProgression)
+        progressionRepository.recordExperienceTransaction(
+            ExperienceTransaction(
+                guildId = guildId,
+                source = source,
+                amount = -(progression.totalExperience - newTotalExperience),
+                description = "Strike penalty: reduced level $currentLevel -> $targetLevel"
+            )
+        )
+        syncGuildLevelField(guildId, targetLevel)
+        logger.info("Guild $guildId level reduced $currentLevel -> $targetLevel (strike penalty)")
+        return targetLevel
+    }
+
     override fun getTotalExperienceForLevel(targetLevel: Int): Int {
         if (targetLevel <= 1) return 0
         
