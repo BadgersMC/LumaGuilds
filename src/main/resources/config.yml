@@ -836,3 +836,43 @@ apollo:
     # Example: "Playing Guild: MyGuild [TAG] - 5/50 members online"
     # Server IP shown in rich presence (empty = don't show)
     server_ip: "play.enthusia.info"
+# =====================================
+# Guild Strikes
+# LiteBans punishments attributed to guilds. When a guild member is punished
+# (warn/kick/mute/ban) while in the guild, the guild receives a strike.
+# =====================================
+strikes:
+  # Master switch: if false, no punishments are recorded and /g strikes is disabled.
+  enabled: true
+  # Punishments before a guild is "up for a penalty" (admin-triggered action).
+  threshold: 5
+  # Which LiteBans punishment types count as strikes.
+  # Valid: WARN, KICK, MUTE, BAN
+  counted_types:
+    - WARN
+    - KICK
+    - MUTE
+    - BAN
+
+  # Admin penalty actions (triggered from the /g strikes punish GUI).
+  penalties:
+    level_reduction:
+      # How many levels a Level Reduction removes (0 = disabled).
+      levels: 1
+    exp_reduction:
+      # How much XP an EXP Reduction removes (0 = disabled).
+      amount: 1000
+    guild_mute:
+      # Guild mute duration in milliseconds (0 = disabled). 24h default.
+      duration_ms: 86400000
+
+  # One-shot backfill of pre-existing LiteBans punishments on startup, so
+  # existing guilds get credit for past behaviour. Idempotent (deduped by
+  # LiteBans entry id) — safe to leave enabled.
+  backfill:
+    # Run the backfill on startup.
+    enabled: true
+    # When membership history cannot prove which guild the player was in at
+    # punishment time, attribute to the player's current guild instead
+    # (maximizes coverage of the "most troublesome guild" ranking).
+    fallback_to_current_guild: true

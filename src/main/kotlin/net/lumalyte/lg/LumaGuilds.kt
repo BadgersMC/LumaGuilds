@@ -972,6 +972,11 @@ class LumaGuilds : JavaPlugin() {
             server.pluginManager.registerEvents(roseChatCleanupListener, this)
             logColored("✓ RoseChat integration registered for chat cleanup")
 
+            // Enforce guild mutes on the live RoseChat message path (players
+            // already seated in a guild channel when a mute lands).
+            val guildMuteChatListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener>()
+            server.pluginManager.registerEvents(guildMuteChatListener, this)
+
             // Register RoseChat ChannelProvider so guild/ally/modchat channels
             // resolve from channels.yml. A delayed reload re-reads the config
             // now that the provider exists (RoseChat's first attempt at startup
@@ -983,6 +988,58 @@ class LumaGuilds : JavaPlugin() {
         if (claimsEnabled) {
             val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
             server.pluginManager.registerEvents(adminOverrideListener, this)
+        }
+
+        // Guild Strikes — LiteBans hook (softdepend; only registers when LiteBans is present).
+        // LumaGuilds can enable BEFORE LiteBans (observed on Fuji: +22s), so we also
+        // listen for LiteBans' PluginEnableEvent and wire the hook when it arrives.
+        val liteBansHook = net.lumalyte.lg.infrastructure.litebans.LiteBansEnableListener {
+            registerLiteBansStrikeHook()
+        }
+        server.pluginManager.registerEvents(liteBansHook, this)
+        if (net.lumalyte.lg.infrastructure.litebans.LiteBansEnableListener.liteBansPresent(server) &&
+            server.pluginManager.isPluginEnabled("LiteBans")
+        ) {
+            // LiteBans already enabled (reverse load order) — wire immediately;
+            // the enable listener covers the case where it enables later.
+            registerLiteBansStrikeHook()
+        } else {
+            logger.info("LiteBans not yet enabled - Guild Strikes hook will wire when it enables")
+        }
+    }
+
+    /**
+     * Wires the Guild Strikes listener into LiteBans and kicks off the one-shot
+     * backfill. Safe to call multiple times: Events.register with the same
+     * listener is idempotent in practice (and the backfill is deduped by
+     * LiteBans entry id). Wrapped in try/catch (including LinkageError, which
+     * Bukkit can throw on class-load of a plugin dependency) so a LiteBans API
+     * hiccup can never take down LumaGuilds.
+     */
+    private fun registerLiteBansStrikeHook() {
+        try {
+            litebans.api.Events.get().register(get().get<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener>())
+            logColored("✓ Guild Strikes hooked into LiteBans (punishments tracked per guild)")
+
+            // One-shot backfill of pre-existing LiteBans punishments
+            // (async, idempotent — deduped by LiteBans entry id).
+            Bukkit.getScheduler().runTaskAsynchronously(this, Runnable {
+                try {
+                    val result = get().get<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService>().run()
+                    logColored(
+                        "✓ Guild Strikes backfill: ${result.recorded} recorded, " +
+                            "${result.attributed} attributed, ${result.skippedUnattributable} skipped (unattributable)",
+                    )
+                } catch (e: Exception) {
+                    logger.warning("Guild Strikes backfill failed: ${e.message}")
+                }
+            })
+        } catch (e: LinkageError) {
+            // Class-load failure of a LiteBans API class (e.g. NoClassDefFoundError) —
+            // not an Exception, so it needs its own catch to keep the plugin alive.
+            logger.warning("Failed to register LiteBans strike listener (LiteBans API incompatible): ${e.message}")
+        } catch (e: Exception) {
+            logger.warning("Failed to register LiteBans strike listener: ${e.message}")
         }
     }
 

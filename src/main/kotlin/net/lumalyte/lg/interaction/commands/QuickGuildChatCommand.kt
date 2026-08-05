@@ -5,6 +5,7 @@ import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.PenaltyService
 import net.lumalyte.lg.domain.values.ChatChannelIds
 import net.lumalyte.lg.infrastructure.services.RoseChatQuickChat
 import org.bukkit.entity.Player
@@ -21,6 +22,7 @@ import org.koin.core.component.inject
 @CommandAlias("gc")
 internal class QuickGuildChatCommand : BaseCommand(), KoinComponent {
     private val guildService: GuildService by inject()
+    private val penaltyService: PenaltyService by inject()
 
     /** Shows usage help when `/gc` is typed without arguments. */
     @Default
@@ -38,6 +40,12 @@ internal class QuickGuildChatCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.chat")
     fun onMessage(player: Player, vararg message: String) {
         if (!player.requireGuildMembership(guildService)) return
+
+        val guildId = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()?.id
+        if (guildId != null && penaltyService.isGuildMuted(guildId)) {
+            player.sendMessage("§c❌ Your guild is muted — guild chat is disabled until the mute expires.")
+            return
+        }
 
         val text = message.joinToString(" ")
         when (RoseChatQuickChat.send(player, ChatChannelIds.GUILD, text)) {
