@@ -51,6 +51,16 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(BANNERMAN_MIGRATION_VERSION)
                 currentDbVersion = BANNERMAN_MIGRATION_VERSION
             }
+            if (currentDbVersion < 24) {
+                migrateToVersion24()
+                updateDatabaseVersion(24)
+                currentDbVersion = 24
+            }
+            if (currentDbVersion < 25) {
+                migrateToVersion25()
+                updateDatabaseVersion(25)
+                currentDbVersion = 25
+            }
 
             connection.commit()
 
@@ -611,5 +621,72 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 ),
             )
         }
+    }
+
+    /**
+     * Migration to version 24.
+     * Adds the guild_strikes table for the Guild Strikes feature (LiteBans
+     * punishments attributed to guilds).
+     */
+    private fun migrateToVersion24() {
+        componentLogger.info(
+            Component.text("Migrating to version 24: adding guild_strikes table..."),
+        )
+
+        connection.createStatement().use { stmt ->
+            stmt.execute(
+                """
+                CREATE TABLE IF NOT EXISTS guild_strikes (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id VARCHAR(36) NOT NULL,
+                    player_uuid VARCHAR(36) NOT NULL,
+                    player_name VARCHAR(16),
+                    punishment_type VARCHAR(16) NOT NULL,
+                    reason VARCHAR(2048),
+                    executor_name VARCHAR(128),
+                    issued_at BIGINT NOT NULL,
+                    litebans_entry_id BIGINT,
+                    active TINYINT(1) NOT NULL DEFAULT 1,
+                    INDEX idx_guild_strikes_guild (guild_id),
+                    INDEX idx_guild_strikes_entry (litebans_entry_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """.trimIndent(),
+            )
+        }
+        componentLogger.info(
+            Component.text("✓ Added guild_strikes table (migration v24)"),
+        )
+    }
+
+    /**
+     * Migration to version 25.
+     * Adds the guild_penalties table — the audit trail of admin-applied
+     * penalties (level reduction, EXP reduction, guild mute, disband).
+     */
+    private fun migrateToVersion25() {
+        componentLogger.info(
+            Component.text("Migrating to version 25: adding guild_penalties table..."),
+        )
+
+        connection.createStatement().use { stmt ->
+            stmt.execute(
+                """
+                CREATE TABLE IF NOT EXISTS guild_penalties (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id VARCHAR(36) NOT NULL,
+                    penalty_type VARCHAR(32) NOT NULL,
+                    amount BIGINT,
+                    reason VARCHAR(2048),
+                    actor_uuid VARCHAR(36) NOT NULL,
+                    actor_name VARCHAR(128),
+                    created_at BIGINT NOT NULL,
+                    INDEX idx_guild_penalties_guild (guild_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """.trimIndent(),
+            )
+        }
+        componentLogger.info(
+            Component.text("✓ Added guild_penalties table (migration v25)"),
+        )
     }
 }

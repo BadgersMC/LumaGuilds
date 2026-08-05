@@ -134,6 +134,16 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(23)
                 dbVersion = 23
             }
+            if (dbVersion < 24) {
+                migrateToVersion24()
+                updateDatabaseVersion(24)
+                dbVersion = 24
+            }
+            if (dbVersion < 25) {
+                migrateToVersion25()
+                updateDatabaseVersion(25)
+                dbVersion = 25
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1309,7 +1319,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "guilds", "guild_homes", "members", "relations", "parties", "party_requests",
             "player_party_preferences", "bank_tx", "kills",
             "audits", "wars", "leaderboards", "guild_invitations",
-            "vault_slots", "vault_gold", "vault_transaction_log"
+            "vault_slots", "vault_gold", "vault_transaction_log",
+            "guild_strikes", "guild_penalties"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1588,5 +1599,62 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun migrateToVersion23() {
         componentLogger.info(Component.text("Migrating to version 23: consolidating guild balances into unified vault gold (store B)..."))
         GuildBalanceConsolidator.consolidate(connection, componentLogger)
+    }
+
+    /**
+     * Migration from version 23 to version 24.
+     * Adds the guild_strikes table for the Guild Strikes feature (LiteBans
+     * punishments attributed to guilds). The table is also self-created by
+     * StrikeRepositorySQLite on first use; this migration makes it explicit
+     * in the schema history for both SQLite and MariaDB deployments.
+     */
+    private fun migrateToVersion24() {
+        componentLogger.info(Component.text("Migrating to version 24: adding guild_strikes table..."))
+        val sqlCommands = mutableListOf(
+            """
+            CREATE TABLE IF NOT EXISTS guild_strikes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT NOT NULL,
+                player_uuid TEXT NOT NULL,
+                player_name TEXT,
+                punishment_type TEXT NOT NULL,
+                reason TEXT,
+                executor_name TEXT,
+                issued_at INTEGER NOT NULL,
+                litebans_entry_id INTEGER,
+                active INTEGER NOT NULL DEFAULT 1
+            )
+            """.trimIndent(),
+            "CREATE INDEX IF NOT EXISTS idx_guild_strikes_guild ON guild_strikes(guild_id);",
+            "CREATE INDEX IF NOT EXISTS idx_guild_strikes_entry ON guild_strikes(litebans_entry_id);"
+        )
+        executeMigrationCommands(sqlCommands)
+        componentLogger.info(Component.text("✓ Migration v24 complete: guild_strikes table added"))
+    }
+
+    /**
+     * Migration from version 24 to version 25.
+     * Adds the guild_penalties table — the audit trail of admin-applied
+     * penalties (level reduction, EXP reduction, guild mute, disband).
+     */
+    private fun migrateToVersion25() {
+        componentLogger.info(Component.text("Migrating to version 25: adding guild_penalties table..."))
+        val sqlCommands = mutableListOf(
+            """
+            CREATE TABLE IF NOT EXISTS guild_penalties (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT NOT NULL,
+                penalty_type TEXT NOT NULL,
+                amount INTEGER,
+                reason TEXT,
+                actor_uuid TEXT NOT NULL,
+                actor_name TEXT,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent(),
+            "CREATE INDEX IF NOT EXISTS idx_guild_penalties_guild ON guild_penalties(guild_id);"
+        )
+        executeMigrationCommands(sqlCommands)
+        componentLogger.info(Component.text("✓ Migration v25 complete: guild_penalties table added"))
     }
 }
