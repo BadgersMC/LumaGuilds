@@ -77,6 +77,11 @@ dependencies {
     compileOnly(files("libs/RoseChat-RC-2.jar"))
     testImplementation(files("libs/RoseChat-RC-2.jar"))
 
+    // LiteBans API (litebans.api.* — Events/Entry/Database) for Guild Strikes.
+    // Drop the prod jar into libs/ (libs/ is gitignored); the API package is stable
+    // across 2.x builds and the jar is only needed at compile time.
+    compileOnly(files("libs/LiteBans.jar"))
+
     // EnthusiaMarket public API (net.badgersmc.em.api.ShopGuildLookup) for guild-shop
     // integration. Slim api-only jar (one interface, depends only on Bukkit) — NOT the
     // full EM jar, to avoid a circular build dependency (EM builds against LumaGuilds).
