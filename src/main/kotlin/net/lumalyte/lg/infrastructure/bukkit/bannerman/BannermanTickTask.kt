@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.bukkit.bannerman
 
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.entity.Pose
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.potion.PotionEffectType
 import org.bukkit.scheduler.BukkitRunnable
@@ -49,11 +50,15 @@ internal class BannermanTickTask(
             return
         }
 
-        display.teleport(BannermanPosition.headPosition(player.eyeLocation))
-        // Full vanilla helmet-slot replication: the banner is parented to the head bone,
-        // so it turns with the view yaw AND tilts with the view pitch (looks up → banner
-        // tilts back; looks down → tilts forward).
-        display.setRotation(player.yaw, player.pitch)
+        display.teleport(BannermanPosition.headPosition(player.eyeLocation, player.pose))
+        // Upright poses: banner tracks the head bone (view yaw + view pitch), tilting
+        // back on look-up and forward on look-down like a worn helmet-slot item.
+        // Horizontal poses (elytra flight / swimming): the body lies along the view
+        // direction, so pitch 90 lays the banner pole along the body axis instead of
+        // keeping it world-vertical ("stuck pointing straight up while flying").
+        val pose = player.pose
+        val pitch = if (pose == Pose.FALL_FLYING || pose == Pose.SWIMMING) 90f else player.pitch
+        display.setRotation(player.yaw, pitch)
 
         val shouldShow = BannermanVisibility.shouldShow(
             hasInvisibility = player.hasPotionEffect(PotionEffectType.INVISIBILITY)

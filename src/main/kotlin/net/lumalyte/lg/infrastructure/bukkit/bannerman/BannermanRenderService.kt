@@ -8,6 +8,9 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.util.Transformation
+import org.joml.Quaternionf
+import org.joml.Vector3f
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -27,6 +30,11 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
 
     private val displays = ConcurrentHashMap<UUID, UUID>()
 
+    companion object {
+        /** The HEAD item-display context renders worn items slightly oversized; shrink a touch. */
+        private const val BANNER_SCALE = 0.85f
+    }
+
     /**
      * Spawn (or respawn) a banner display at the player's head position. The previous
      * display, if any, is removed. Billboard FIXED keeps the banner in world space
@@ -36,7 +44,7 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
     fun spawnFor(player: Player, banner: ItemStack) {
         despawnFor(player.uniqueId)
         val display = player.world.spawn(
-            BannermanPosition.headPosition(player.eyeLocation),
+            BannermanPosition.headPosition(player.eyeLocation, player.pose),
             ItemDisplay::class.java,
         ) { d ->
             d.setItemStack(banner)
@@ -45,6 +53,14 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
             // HEAD transform renders the banner exactly like a helmet-slot item:
             // the full-size banner block, matching vanilla "banner on head" behavior.
             d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.HEAD)
+            d.setTransformation(
+                Transformation(
+                    Vector3f(),
+                    Quaternionf(),
+                    Vector3f(BANNER_SCALE, BANNER_SCALE, BANNER_SCALE),
+                    Quaternionf(),
+                )
+            )
             d.setInterpolationDuration(1)
             d.setTeleportDuration(1)
             d.setViewRange(32f)

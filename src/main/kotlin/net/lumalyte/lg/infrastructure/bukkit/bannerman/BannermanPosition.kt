@@ -1,30 +1,39 @@
 package net.lumalyte.lg.infrastructure.bukkit.bannerman
 
 import org.bukkit.Location
+import org.bukkit.entity.Pose
 
 /**
  * Pure position math for the bannerman display. Kept free of Bukkit state so
  * the offset logic is trivially unit-testable (same pattern as [BannermanVisibility]).
  *
  * The display uses the HEAD item-display transform, so the banner renders as the
- * full-size banner block centered on the display point — like a banner worn in the
- * helmet slot. That means the position is a simple vertical drop from the eye to the
- * head (the banner extends upward from there); there is no horizontal offset.
+ * full-size banner block anchored at the display point — like a banner worn in the
+ * helmet slot. Position is a small forward nudge from the eye (so the pole sits at
+ * the top center of the head), plus a vertical drop that only applies in upright
+ * poses. When flying/swimming the body is horizontal — the banner pole runs along the
+ * body axis instead (see BannermanTickTask), and the eye is already at the head, so
+ * applying the upright drop would sink the banner to the feet.
  */
 object BannermanPosition {
 
-    /**
-     * How far below the eye the display sits. Player eye height is 1.62; the head box
-     * spans ~1.37–1.87, so this drops the banner's pivot to roughly the base of the head.
-     * TUNE IN GAME if the HEAD transform's model pivot differs — it's the one constant
-     * that controls whether the banner rides too high or too low.
-     */
-    private const val HEAD_OFFSET_Y = -0.3
+    /** Forward nudge along the view direction so the pole sits at the head's center. */
+    private const val FORWARD_OFFSET = 0.2
+
+    /** Vertical drop from the eye in upright poses (banner base around head level). */
+    private const val UPRIGHT_DROP_Y = -0.3
+
+    /** Poses where the body is horizontal (pole runs along the body axis, no drop). */
+    private val HORIZONTAL_BODY_POSES = setOf(Pose.SWIMMING, Pose.FALL_FLYING)
 
     /**
      * @param eye the player's eye location
-     * @return where the banner display should sit: centered on the head, just below
-     *         the eye so the full-size banner block extends up from the head.
+     * @param pose the player's current pose
+     * @return where the banner display should sit.
      */
-    fun headPosition(eye: Location): Location = eye.clone().add(0.0, HEAD_OFFSET_Y, 0.0)
+    fun headPosition(eye: Location, pose: Pose): Location {
+        val forward = eye.direction.setY(0.0).multiply(FORWARD_OFFSET)
+        val drop = if (pose in HORIZONTAL_BODY_POSES) 0.0 else UPRIGHT_DROP_Y
+        return eye.clone().add(forward).add(0.0, drop, 0.0)
+    }
 }
