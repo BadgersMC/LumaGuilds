@@ -1,23 +1,22 @@
 package net.lumalyte.lg.infrastructure.bukkit.bannerman
 
 import org.bukkit.Bukkit
-import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.potion.PotionEffectType
 import org.bukkit.scheduler.BukkitRunnable
 
 /**
- * Position is handled by passenger-mounting the display on the player (see
- * [BannermanRenderService.spawnFor]) — the vanilla client keeps it rigidly attached.
+ * Position and rotation are driven here every tick — the display is NOT mounted on
+ * the player, so nothing tracks it automatically:
+ *   - teleport it to just above/behind the player's eye (head position)
+ *   - rotate it to the player's view yaw AND pitch so the banner tracks the head
+ *     bone exactly like a worn helmet-slot item
+ *   - visibility toggle for invisibility (only re-applied if it changed, since
+ *     isVisibleByDefault triggers tracker resends)
  *
- * Per-tick work for tracked players:
- *   - Force body yaw to match head yaw. Vanilla lets a standing player swivel their head
- *     up to ~50° before the body catches up, which leaves a passenger banner facing the
- *     old direction. Locking body yaw to head yaw makes the banner track shoulder rotation
- *     in real time.
- *   - Visibility toggle for elytra / invisibility (only re-applied if it changed, since
- *     isVisibleByDefault triggers tracker resends).
+ * Client-side interpolation (teleport + display interpolation durations set at spawn)
+ * smooths the per-tick updates.
  */
 internal class BannermanTickTask(
     private val plugin: JavaPlugin,
@@ -42,17 +41,25 @@ internal class BannermanTickTask(
         if (!renderer.isTracking(player.uniqueId)) return
         val display = renderer.currentDisplay(player.uniqueId) ?: return
 
-        player.setBodyYaw(player.location.yaw)
+        // Safety net for any teleport path that slipped past the listener — an entity
+        // cannot change worlds, so a stale display must be dropped (the teleport
+        // listener respawns it in the destination world).
+        if (display.world != player.world) {
+            renderer.despawnFor(player.uniqueId)
+            return
+        }
+
+        display.teleport(BannermanPosition.headPosition(player.eyeLocation))
+        // Full vanilla helmet-slot replication: the banner is parented to the head bone,
+        // so it turns with the view yaw AND tilts with the view pitch (looks up → banner
+        // tilts back; looks down → tilts forward).
+        display.setRotation(player.yaw, player.pitch)
 
         val shouldShow = BannermanVisibility.shouldShow(
-            hasElytra = isWearingElytra(player),
             hasInvisibility = player.hasPotionEffect(PotionEffectType.INVISIBILITY)
         )
         if (display.isVisibleByDefault != shouldShow) {
             display.isVisibleByDefault = shouldShow
         }
     }
-
-    private fun isWearingElytra(player: Player): Boolean =
-        player.inventory.chestplate?.type == Material.ELYTRA
 }

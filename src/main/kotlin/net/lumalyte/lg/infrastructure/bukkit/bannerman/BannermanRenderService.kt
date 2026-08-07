@@ -2,20 +2,24 @@ package net.lumalyte.lg.infrastructure.bukkit.bannerman
 
 import org.bukkit.Bukkit
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.Display
 import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
-import org.bukkit.util.Transformation
-import org.joml.Quaternionf
-import org.joml.Vector3f
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Manages one [ItemDisplay] per online player in a bannerman-enabled guild.
  * Each display is tagged with a PDC key so we can sweep orphans after a crash.
+ *
+ * The display is deliberately NOT mounted on the player. Position and rotation are
+ * driven every tick by [BannermanTickTask] (head-follow + view-yaw), with client-side
+ * interpolation smoothing the per-tick updates. The passenger pipeline was abandoned
+ * because it never syncs rotation, and a teleport leaves the display behind (orphan
+ * copy at the old spot). Manual driving has neither problem.
  */
 internal class BannermanRenderService(private val plugin: JavaPlugin) {
 
@@ -24,26 +28,27 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
     private val displays = ConcurrentHashMap<UUID, UUID>()
 
     /**
-     * Spawn (or respawn) a banner display attached to the player. The previous display, if any, is removed.
-     * The display rides the player as a passenger so the client renders it rigidly attached —
-     * no per-tick teleports, no position/yaw desync. The display is positioned low and behind
-     * the head mount so the owner's first-person camera doesn't see it, while F5 / external
-     * viewers see it on the upper back.
+     * Spawn (or respawn) a banner display at the player's head position. The previous
+     * display, if any, is removed. Billboard FIXED keeps the banner in world space
+     * (it rotates with [BannermanTickTask], never faces a camera); the interpolation
+     * durations make the per-tick teleports/rotations lerp smoothly on the client.
      */
     fun spawnFor(player: Player, banner: ItemStack) {
         despawnFor(player.uniqueId)
         val display = player.world.spawn(
-            player.location,
+            BannermanPosition.headPosition(player.eyeLocation),
             ItemDisplay::class.java,
         ) { d ->
             d.setItemStack(banner)
             d.isPersistent = false
-            d.transformation = backTransformation()
+            d.setBillboard(Display.Billboard.FIXED)
+            // HEAD transform renders the banner exactly like a helmet-slot item:
+            // the full-size banner block, matching vanilla "banner on head" behavior.
+            d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.HEAD)
+            d.setInterpolationDuration(1)
+            d.setTeleportDuration(1)
+            d.setViewRange(32f)
             d.persistentDataContainer.set(tagKey, PersistentDataType.STRING, player.uniqueId.toString())
-        }
-        if (!player.addPassenger(display)) {
-            display.remove()
-            return
         }
         displays[player.uniqueId] = display.uniqueId
     }
@@ -76,7 +81,8 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
 
     /**
      * Sweep every loaded world for ItemDisplay entities tagged as ours. Used at plugin enable
-     * to clean up orphans left behind by a server crash.
+     * to clean up orphans left behind by a server crash (or by older passenger-based builds
+     * that dropped displays on teleport).
      */
     fun sweepOrphans() {
         for (world in Bukkit.getWorlds()) {
@@ -88,14 +94,4 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
             }
         }
     }
-
-    @Suppress("MagicNumber")
-    private fun backTransformation(): Transformation = Transformation(
-        // Origin sits at the player's passenger mount (~head height). Drop down to the upper
-        // back and offset behind the torso.
-        Vector3f(0f, -0.7f, -0.25f),
-        Quaternionf().rotateY(Math.PI.toFloat()), // face backwards relative to player
-        Vector3f(1.0f, 1.5f, 1.0f), // taller than wide
-        Quaternionf(),
-    )
 }
