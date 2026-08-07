@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.bukkit.bannerman
 
 import org.bukkit.Location
 import org.bukkit.entity.Pose
+import org.bukkit.util.Vector
 
 /**
  * Pure position math for the bannerman display. Kept free of Bukkit state so
@@ -32,7 +33,15 @@ object BannermanPosition {
      * @return where the banner display should sit.
      */
     fun headPosition(eye: Location, pose: Pose): Location {
-        val forward = eye.direction.setY(0.0).multiply(FORWARD_OFFSET)
+        // Horizontal-only forward vector derived from yaw, so the offset stays exactly
+        // FORWARD_OFFSET at any view pitch (direction.setY(0) would shrink by cos(pitch)
+        // and vanish when looking straight up or down).
+        val yawRad = Math.toRadians(eye.yaw.toDouble())
+        val forward = Vector(
+            -Math.sin(yawRad),
+            0.0,
+            Math.cos(yawRad),
+        ).multiply(FORWARD_OFFSET)
         val drop = if (pose in HORIZONTAL_BODY_POSES) 0.0 else UPRIGHT_DROP_Y
         return eye.clone().add(forward).add(0.0, drop, 0.0)
     }

@@ -49,7 +49,7 @@ internal class BannermanListeners(
      * Despawn now, respawn one tick later once the player is settled at the destination.
      * This is what fixes the old "banner stays behind and makes a copy" bug.
      */
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onTeleport(e: PlayerTeleportEvent) {
         if (!renderer.isTracking(e.player.uniqueId)) return
         renderer.despawnFor(e.player.uniqueId)

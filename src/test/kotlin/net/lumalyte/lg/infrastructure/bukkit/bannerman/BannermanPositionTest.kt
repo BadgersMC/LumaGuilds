@@ -29,6 +29,21 @@ internal class BannermanPositionTest {
     }
 
     @Test
+    fun forwardNudgeIsPitchIndependent() {
+        val flat = Location(null, 0.0, 64.0, 0.0, 90f, 0f) // level view
+        val pitched = Location(null, 0.0, 64.0, 0.0, 90f, 60f) // same yaw, looking down
+        val flatPos = BannermanPosition.headPosition(flat, Pose.STANDING)
+        val pitchedPos = BannermanPosition.headPosition(pitched, Pose.STANDING)
+
+        // Horizontal offset must be identical regardless of pitch — direction-based
+        // math would shrink it by cos(pitch) and vanish at vertical look.
+        assertEquals(flatPos.x, pitchedPos.x, 0.001)
+        assertEquals(flatPos.z, pitchedPos.z, 0.001)
+        assertEquals(flatPos.x, -0.2, 0.001)
+        assertEquals(flatPos.z, 0.0, 0.001)
+    }
+
+    @Test
     fun noVerticalDropInHorizontalBodyPoses() {
         val eye = Location(null, 10.0, 64.0, 10.0, 0f, 0f)
         for (pose in listOf(Pose.SWIMMING, Pose.FALL_FLYING)) {

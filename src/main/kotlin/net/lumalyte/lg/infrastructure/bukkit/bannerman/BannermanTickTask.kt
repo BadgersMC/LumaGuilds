@@ -45,12 +45,21 @@ internal class BannermanTickTask(
         for (player in Bukkit.getOnlinePlayers()) {
             updatePlayerBannerman(player)
         }
+        // Prune UUIDs of players who disconnected while horizontal (they never get an
+        // upright tick to remove themselves).
+        if (hiddenWhileHorizontal.isNotEmpty()) {
+            hiddenWhileHorizontal.removeIf { Bukkit.getPlayer(it) == null }
+        }
     }
 
     private fun updatePlayerBannerman(player: Player) {
         if (player.pose in HORIZONTAL_BODY_POSES) {
-            renderer.despawnFor(player.uniqueId)
-            hiddenWhileHorizontal.add(player.uniqueId)
+            // Only track players who actually had a display — avoids recording every
+            // swimmer/glider and the pointless guild lookup on their next upright tick.
+            if (renderer.isTracking(player.uniqueId)) {
+                renderer.despawnFor(player.uniqueId)
+                hiddenWhileHorizontal.add(player.uniqueId)
+            }
             return
         }
 
@@ -61,10 +70,11 @@ internal class BannermanTickTask(
         val display = renderer.currentDisplay(player.uniqueId) ?: return
 
         // Safety net for any teleport path that slipped past the listener — an entity
-        // cannot change worlds, so a stale display must be dropped (the teleport
-        // listener respawns it in the destination world).
+        // cannot change worlds, so a stale display must be dropped and respawned in
+        // the destination world (without the respawn the banner would be gone forever).
         if (display.world != player.world) {
             renderer.despawnFor(player.uniqueId)
+            respawn(player)
             return
         }
 

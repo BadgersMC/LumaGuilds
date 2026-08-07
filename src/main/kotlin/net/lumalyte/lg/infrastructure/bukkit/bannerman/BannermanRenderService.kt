@@ -62,7 +62,10 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
                     Quaternionf(),
                 )
             )
-            d.setViewRange(32f)
+            // view_range is a multiplier, not block distance: actual range =
+            // view_range × entity_distance_scaling × 64. 32 would render the banner
+            // from ~2000 blocks away; 1.5 (~96 blocks) is plenty for a head-mounted flag.
+            d.setViewRange(1.5f)
             d.persistentDataContainer.set(tagKey, PersistentDataType.STRING, player.uniqueId.toString())
         }
         displays[player.uniqueId] = display.uniqueId
