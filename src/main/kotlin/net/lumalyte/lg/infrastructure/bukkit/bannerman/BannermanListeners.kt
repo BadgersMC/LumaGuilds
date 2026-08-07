@@ -7,10 +7,10 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.PlayerDeathEvent
-import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerRespawnEvent
+import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
@@ -44,16 +44,20 @@ internal class BannermanListeners(
     }
 
     /**
-     * Respawn the bannerman display after a player changes worlds, deferred one tick so
-     * the world transfer is fully applied before we spawn the display in the new world.
+     * Teleports (including cross-world) leave the display behind — the display is a free
+     * entity, not a passenger, so it does not follow a teleport and cannot change worlds.
+     * Despawn now, respawn one tick later once the player is settled at the destination.
+     * This is what fixes the old "banner stays behind and makes a copy" bug.
      */
-    @EventHandler
-    fun onWorldChange(e: PlayerChangedWorldEvent) {
+    @EventHandler(ignoreCancelled = true)
+    fun onTeleport(e: PlayerTeleportEvent) {
+        if (!renderer.isTracking(e.player.uniqueId)) return
         renderer.despawnFor(e.player.uniqueId)
         plugin.server.scheduler.runTaskLater(plugin, Runnable { trySpawn(e.player) }, 1L)
     }
 
-    private fun trySpawn(player: Player) {
+    internal fun trySpawn(player: Player) {
+        if (!player.isOnline) return
         val banner = getBannerForPlayer(player) ?: return
         renderer.spawnFor(player, banner)
     }
