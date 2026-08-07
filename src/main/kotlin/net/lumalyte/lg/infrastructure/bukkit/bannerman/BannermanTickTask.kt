@@ -6,27 +6,36 @@ import org.bukkit.entity.Pose
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.potion.PotionEffectType
 import org.bukkit.scheduler.BukkitRunnable
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Position and rotation are driven here every tick — the display is NOT mounted on
- * the player, so nothing tracks it automatically:
- *   - teleport it to just above/behind the player's eye (head position)
- *   - rotate it to the player's view yaw AND pitch so the banner tracks the head
- *     bone exactly like a worn helmet-slot item
+ * Position and rotation are driven here every tick (the server's max update rate) —
+ * the display is NOT mounted on the player, so nothing tracks it automatically:
+ *   - teleport it to the head position
+ *   - rotate it to the player's view yaw and pitch (head-bone tracking)
+ *   - despawn while the body is horizontal (swim / elytra flight): orienting the
+ *     banner along the body was too buggy, so it simply hides and respawns when the
+ *     player returns to an upright pose
  *   - visibility toggle for invisibility (only re-applied if it changed, since
  *     isVisibleByDefault triggers tracker resends)
  *
- * Client-side interpolation (teleport + display interpolation durations set at spawn)
- * smooths the per-tick updates.
+ * No client-side interpolation durations are set at spawn, so each tick's update
+ * applies immediately instead of lagging a tick behind the head.
  */
 internal class BannermanTickTask(
     private val plugin: JavaPlugin,
-    private val renderer: BannermanRenderService
+    private val renderer: BannermanRenderService,
+    private val respawn: (Player) -> Unit,
 ) : BukkitRunnable() {
 
     companion object {
         private const val TICK_PERIOD = 1L
+        private val HORIZONTAL_BODY_POSES = setOf(Pose.SWIMMING, Pose.FALL_FLYING)
     }
+
+    /** Players whose banner was despawned for a horizontal pose, awaiting upright respawn. */
+    private val hiddenWhileHorizontal: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
 
     fun start() {
         runTaskTimer(plugin, 0L, TICK_PERIOD)
@@ -39,6 +48,15 @@ internal class BannermanTickTask(
     }
 
     private fun updatePlayerBannerman(player: Player) {
+        if (player.pose in HORIZONTAL_BODY_POSES) {
+            renderer.despawnFor(player.uniqueId)
+            hiddenWhileHorizontal.add(player.uniqueId)
+            return
+        }
+
+        if (hiddenWhileHorizontal.remove(player.uniqueId)) {
+            respawn(player)
+        }
         if (!renderer.isTracking(player.uniqueId)) return
         val display = renderer.currentDisplay(player.uniqueId) ?: return
 
@@ -51,14 +69,7 @@ internal class BannermanTickTask(
         }
 
         display.teleport(BannermanPosition.headPosition(player.eyeLocation, player.pose))
-        // Upright poses: banner tracks the head bone (view yaw + view pitch), tilting
-        // back on look-up and forward on look-down like a worn helmet-slot item.
-        // Horizontal poses (elytra flight / swimming): the body lies along the view
-        // direction, so pitch 90 lays the banner pole along the body axis instead of
-        // keeping it world-vertical ("stuck pointing straight up while flying").
-        val pose = player.pose
-        val pitch = if (pose == Pose.FALL_FLYING || pose == Pose.SWIMMING) 90f else player.pitch
-        display.setRotation(player.yaw, pitch)
+        display.setRotation(player.yaw, player.pitch)
 
         val shouldShow = BannermanVisibility.shouldShow(
             hasInvisibility = player.hasPotionEffect(PotionEffectType.INVISIBILITY)

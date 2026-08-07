@@ -38,8 +38,9 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
     /**
      * Spawn (or respawn) a banner display at the player's head position. The previous
      * display, if any, is removed. Billboard FIXED keeps the banner in world space
-     * (it rotates with [BannermanTickTask], never faces a camera); the interpolation
-     * durations make the per-tick teleports/rotations lerp smoothly on the client.
+     * (it rotates with [BannermanTickTask], never faces a camera). No interpolation
+     * durations are set: the tick task updates every tick, and each update should
+     * apply immediately rather than lagging a tick behind the head.
      */
     fun spawnFor(player: Player, banner: ItemStack) {
         despawnFor(player.uniqueId)
@@ -61,8 +62,6 @@ internal class BannermanRenderService(private val plugin: JavaPlugin) {
                     Quaternionf(),
                 )
             )
-            d.setInterpolationDuration(1)
-            d.setTeleportDuration(1)
             d.setViewRange(32f)
             d.persistentDataContainer.set(tagKey, PersistentDataType.STRING, player.uniqueId.toString())
         }

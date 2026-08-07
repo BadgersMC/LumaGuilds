@@ -937,7 +937,11 @@ class LumaGuilds : JavaPlugin() {
         val bannermanRenderer = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()
         val bannermanListeners = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
         server.pluginManager.registerEvents(bannermanListeners, this)
-        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanTickTask(this, bannermanRenderer).start()
+        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanTickTask(
+            this,
+            bannermanRenderer,
+            bannermanListeners::trySpawn, // respawn banners despawned for swim/elytra poses
+        ).start()
         bannermanRenderer.sweepOrphans()
 
         // Register progression event listener

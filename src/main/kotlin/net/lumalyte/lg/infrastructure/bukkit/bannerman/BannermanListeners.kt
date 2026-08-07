@@ -56,7 +56,7 @@ internal class BannermanListeners(
         plugin.server.scheduler.runTaskLater(plugin, Runnable { trySpawn(e.player) }, 1L)
     }
 
-    private fun trySpawn(player: Player) {
+    internal fun trySpawn(player: Player) {
         if (!player.isOnline) return
         val banner = getBannerForPlayer(player) ?: return
         renderer.spawnFor(player, banner)
