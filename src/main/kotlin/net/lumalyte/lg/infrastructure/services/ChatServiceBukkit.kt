@@ -572,6 +572,6 @@ class ChatServiceBukkit(
          * Keeps MiniMessage tags and emoji glyphs untouched — those are content, not color.
          */
         fun stripLegacyColors(message: String): String =
-            message.replace(Regex("§[0-9a-fk-orx]", RegexOption.IGNORE_CASE))
+            message.replace(Regex("§[0-9a-fk-orx]", RegexOption.IGNORE_CASE), "")
     }
 }
