@@ -18,7 +18,7 @@ class BedrockCacheStatsCommand : CommandExecutor, KoinComponent {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         // Check permissions
-        if (!sender.hasPermission("lumalyte.bedrock.cache.stats")) {
+        if (!sender.hasPermission("lumaguilds.bedrock.cache.stats")) {
             sender.sendMessage("§cYou don't have permission to view cache statistics.")
             return true
         }
@@ -52,7 +52,7 @@ class BedrockCacheStatsCommand : CommandExecutor, KoinComponent {
     }
 
     private fun clearCache(sender: CommandSender) {
-        if (!sender.hasPermission("lumalyte.bedrock.cache.clear")) {
+        if (!sender.hasPermission("lumaguilds.bedrock.cache.clear")) {
             sender.sendMessage("§cYou don't have permission to clear the cache.")
             return
         }
@@ -71,13 +71,13 @@ class BedrockCacheStatsCommand : CommandExecutor, KoinComponent {
         sender.sendMessage("§e/bedrockcachestats §7- Show cache statistics")
         sender.sendMessage("§e/bedrockcachestats clear §7- Clear all cached forms (requires clear permission)")
 
-        if (sender.hasPermission("lumalyte.bedrock.cache.stats")) {
+        if (sender.hasPermission("lumaguilds.bedrock.cache.stats")) {
             sender.sendMessage("§aYou have permission to view stats")
         } else {
             sender.sendMessage("§cYou don't have permission to view stats")
         }
 
-        if (sender.hasPermission("lumalyte.bedrock.cache.clear")) {
+        if (sender.hasPermission("lumaguilds.bedrock.cache.clear")) {
             sender.sendMessage("§aYou have permission to clear cache")
         } else {
             sender.sendMessage("§cYou don't have permission to clear cache")

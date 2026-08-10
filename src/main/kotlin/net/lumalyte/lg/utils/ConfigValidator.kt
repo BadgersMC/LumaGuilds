@@ -124,7 +124,7 @@ object ConfigValidator {
             maxMessageLength = config.maxMessageLength.coerceIn(1, 1000),
             maxEmojisPerMessage = config.maxEmojisPerMessage.coerceAtLeast(0),
             emojiPermissionPrefix = if (config.emojiPermissionPrefix.isBlank()) {
-                "lumalyte.emoji"
+                "lumaguilds.emoji"
             } else {
                 config.emojiPermissionPrefix.trim()
             }
