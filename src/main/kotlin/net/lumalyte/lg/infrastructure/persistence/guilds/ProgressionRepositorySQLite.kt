@@ -217,16 +217,15 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
     private fun parseUnlockedPerks(json: String): Set<net.lumalyte.lg.domain.values.PerkType> {
         if (json.isBlank() || json == "[]") return emptySet()
 
-        return try {
-            json.trim('[', ']')
-                .split(',')
-                .map { it.trim().trim('"') }
-                .filter { it.isNotEmpty() }
-                .map { net.lumalyte.lg.domain.values.PerkType.valueOf(it) }
-                .toSet()
-        } catch (e: SQLException) {
-            emptySet()
-        }
+        // Resilient against renamed/removed perk entries: PerkType.valueOf throws
+        // IllegalArgumentException (not SQLException), so unknown names are skipped
+        // instead of crashing preload with a stale DB.
+        return json.trim('[', ']')
+            .split(',')
+            .map { it.trim().trim('"') }
+            .filter { it.isNotEmpty() }
+            .mapNotNull { runCatching { net.lumalyte.lg.domain.values.PerkType.valueOf(it) }.getOrNull() }
+            .toSet()
     }
 
     private fun serializeUnlockedPerks(perks: Set<net.lumalyte.lg.domain.values.PerkType>): String {

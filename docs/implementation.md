@@ -18,6 +18,8 @@ Packages outside the three layers (`api/`, `common/`, `config/`, `di/`, `integra
 forbidden: []
 ```
 
+> **Status: target-state contract, not yet fully enforced.** `LayerRulesTest` enforces layer dependencies (domain ← application ← infrastructure), but Konsist's `dependsOnNothing()` only checks other *declared layers* — external packages (`org.bukkit`, `org.koin`, `co.aikar`, `net.kyori`) are not flagged. The domain currently imports `org.bukkit.event.Event` in 21 files (38 imports, mostly `domain/events/*`). Decoupling is tracked as REQ-045 / LG-1001; once merged, the forbidden list becomes executable and LayerRulesTest gains an external-package assertion.
+
 The `domain/**` package must stay free of framework and server annotations (no Bukkit/Spigot imports, no Koin annotations, no ACF annotations, no Adventure types). When a domain model needs a port to the server, define it in `domain` and implement it in `infrastructure`.
 
 ## Authoring Conventions

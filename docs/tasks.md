@@ -286,3 +286,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-028
   - Evidence:
   - Files: `DiscordCsvService.kt:255`, discord config section
+
+---
+
+## PR-10 — Domain purity II (Bukkit-free domain)
+
+- [ ] **LG-1001** Decouple domain events from `org.bukkit.event.Event`; remove `org.bukkit`/`org.koin`/`co.aikar`/`net.kyori` imports from `domain/**`; make the `forbidden:` contract executable (LayerRulesTest external-package assertion + populated list)
+  - Tag: `TDD`
+  - References: REQ-045
+  - Evidence:
+  - Files: `domain/events/*` (21 files, 38 Bukkit imports), `domain/entities/{VaultInventory,ViewerSession,WriteBuffer}.kt`, `LayerRulesTest`, `docs/implementation.md`

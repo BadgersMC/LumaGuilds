@@ -23,7 +23,7 @@ data class BannerPattern(
     val type: String, // e.g., "STRIPE_TOP", "CROSS", "BORDER"
     val color: BannerColor
 ) {
-    fun isValid(): Boolean = color.isValid()
+    fun isValid(): Boolean = type.isNotBlank() && color.isValid()
 }
 
 /**
