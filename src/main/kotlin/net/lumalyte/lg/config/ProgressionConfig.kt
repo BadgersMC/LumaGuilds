@@ -1,6 +1,6 @@
 package net.lumalyte.lg.config
 
-import net.lumalyte.lg.application.services.PerkType
+import net.lumalyte.lg.domain.values.PerkType
 import org.bukkit.Material
 
 /**

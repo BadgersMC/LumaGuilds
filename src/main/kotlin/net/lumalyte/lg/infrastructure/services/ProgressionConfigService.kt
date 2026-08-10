@@ -1,6 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
-import net.lumalyte.lg.application.services.PerkType
+import net.lumalyte.lg.domain.values.PerkType
 import net.lumalyte.lg.config.*
 import org.bukkit.Material
 import org.bukkit.configuration.file.FileConfiguration

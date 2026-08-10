@@ -1,6 +1,6 @@
 package net.lumalyte.lg.domain.entities
 
-import net.lumalyte.lg.application.services.scheduling.Task
+import net.lumalyte.lg.domain.services.Task
 import net.lumalyte.lg.domain.values.Position3D
 import java.time.Instant
 import java.util.UUID

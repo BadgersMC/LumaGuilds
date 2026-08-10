@@ -3,9 +3,9 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 import co.aikar.idb.Database
 
 import net.lumalyte.lg.application.persistence.GuildBannerRepository
-import net.lumalyte.lg.application.services.BannerDesignData
-import net.lumalyte.lg.application.services.BannerColor
-import net.lumalyte.lg.application.services.BannerPattern
+import net.lumalyte.lg.domain.values.BannerColor
+import net.lumalyte.lg.domain.values.BannerDesignData
+import net.lumalyte.lg.domain.values.BannerPattern
 import net.lumalyte.lg.domain.entities.GuildBanner
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory

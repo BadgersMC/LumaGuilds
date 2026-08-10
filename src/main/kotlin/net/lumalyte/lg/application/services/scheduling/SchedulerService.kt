@@ -1,5 +1,7 @@
 package net.lumalyte.lg.application.services.scheduling
 
+import net.lumalyte.lg.domain.services.Task
+
 /**
  * Schedules an event to run after an X amount of time
  */
