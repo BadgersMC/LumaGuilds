@@ -25,12 +25,13 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             guild = loadGuildConfig(),
             teamRolePermissions = loadTeamRolePermissions(),
             bank = loadBankConfig(),
+            vault = loadVaultConfig(),
             combat = loadCombatConfig(),
             chat = loadChatConfig(),
             progression = loadProgressionConfig(),
             ui = loadUIConfig(),
-            discord = loadDiscordConfig(),
             party = loadPartyConfig(),
+            bedrock = loadBedrockConfig(),
             webApi = loadWebApiConfig(),
             strikes = loadStrikesConfig()
         )
@@ -92,6 +93,7 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             createGuildCost = config.getInt("guild.create_guild_cost", 0),
             disbandRefundPercent = config.getDouble("guild.disband_refund_percent", 0.5),
             peacefulModeEnabled = config.getBoolean("guild.peaceful_mode_enabled", true),
+            modeSwitchingEnabled = config.getBoolean("guild.mode_switching_enabled", true),
             modeSwitchCooldownDays = config.getInt("guild.mode_switch_cooldown_days", 7),
             hostileModeMinimumDays = config.getInt("guild.hostile_mode_minimum_days", 7),
             peacefulModeClaimPvpDisabled = config.getBoolean("guild.peaceful_mode_claim_pvp_disabled", true),
@@ -107,6 +109,7 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             bannerCopyCost = config.getInt("guild.banner_copy_cost", 100),
             bannerCopyChargeGuildBank = config.getBoolean("guild.banner_copy_charge_guild_bank", true),
             bannerCopyFree = config.getBoolean("guild.banner_copy_free", false),
+            bannerCopyPhysicalCost = config.getInt("guild.banner_copy_physical_cost", 5),
             bannerCopyUseItemCost = config.getBoolean("guild.banner_copy_use_item_cost", false),
             bannerCopyItemMaterial = config.getString("guild.banner_copy_item_material", "DIAMOND") ?: "DIAMOND",
             bannerCopyItemAmount = config.getInt("guild.banner_copy_item_amount", 1),
@@ -118,7 +121,21 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             peaceAgreementSystemEnabled = config.getBoolean("guild.peace_agreement_system_enabled", false),
             dailyWarExpCost = config.getInt("guild.daily_war_exp_cost", 10),
             dailyWarMoneyCost = config.getInt("guild.daily_war_money_cost", 100),
-            warFarmingCooldownHours = config.getInt("guild.war_farming_cooldown_hours", 24)
+            warFarmingCooldownHours = config.getInt("guild.war_farming_cooldown_hours", 24),
+            nameFilter = loadNameFilterConfig()
+        )
+    }
+
+    private fun loadNameFilterConfig(): NameFilterConfig {
+        return NameFilterConfig(
+            enabled = config.getBoolean("guild.name_filter.enabled", false),
+            blockedPatterns = config.getStringList("guild.name_filter.blocked_patterns").ifEmpty {
+                NameFilterConfig().blockedPatterns
+            },
+            normalization = NameFilterNormalization(
+                leetMap = config.getBoolean("guild.name_filter.normalization.leet_map", true),
+                collapseRepeats = config.getBoolean("guild.name_filter.normalization.collapse_repeats", true)
+            )
         )
     }
     
@@ -141,6 +158,83 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
         )
     }
     
+    private fun loadVaultConfig(): VaultConfig {
+        return VaultConfig(
+            bankMode = config.getString("vault.bank_mode", "BOTH") ?: "BOTH",
+            vaultChestEnabled = config.getBoolean("vault.vault_chest_enabled", true),
+            breakWarningTimeoutSeconds = config.getInt("vault.break_warning_timeout_seconds", 5),
+            dropItemsOnExplosion = config.getBoolean("vault.drop_items_on_explosion", true),
+            dropItemsOnBreak = config.getBoolean("vault.drop_items_on_break", true),
+            capacityScalingEnabled = config.getBoolean("vault.capacity_scaling_enabled", true),
+            baseCapacitySlots = config.getInt("vault.base_capacity_slots", 9),
+            maxCapacitySlots = config.getInt("vault.max_capacity_slots", 54),
+            requireEconomyPlugin = config.getBoolean("vault.require_economy_plugin", true),
+            virtualBankFallback = config.getBoolean("vault.virtual_bank_fallback", true),
+            transactionLogRetentionDays = config.getInt("vault.transaction_log_retention_days", 30),
+            valuableItems = config.getStringList("vault.valuable_items").ifEmpty { VaultConfig().valuableItems },
+            valuableItemsCheckEnchantments = config.getBoolean("vault.valuable_items_check_enchantments", true),
+            valuableCustomModelDataItems = config.getStringList("vault.valuable_custom_model_data_items"),
+            usePhysicalCurrency = config.getBoolean("vault.use_physical_currency", false),
+            physicalCurrencyMaterial = config.getString("vault.physical_currency_material", "RAW_GOLD") ?: "RAW_GOLD",
+            physicalCurrencyItemValue = config.getInt("vault.physical_currency_item_value", 1),
+            physicalCurrencyRequireVaultChest = config.getBoolean("vault.physical_currency_require_vault_chest", true),
+            physicalDepositFee = config.getInt("vault.physical_deposit_fee", 0),
+            physicalWithdrawalFee = config.getInt("vault.physical_withdrawal_fee", 1),
+            physicalTransactionMinimum = config.getInt("vault.physical_transaction_minimum", 1),
+            physicalDailyWarCost = config.getInt("vault.physical_daily_war_cost", 10),
+            physicalWarDeclarationCost = config.getInt("vault.physical_war_declaration_cost", 100),
+            compressableBlocks = config.getStringList("vault.compressable_blocks")
+        )
+    }
+
+    private fun loadBedrockConfig(): BedrockConfig {
+        return BedrockConfig(
+            bedrockMenusEnabled = config.getBoolean("bedrock.bedrock_menus_enabled", true),
+            forceBedrockMenus = config.getBoolean("bedrock.force_bedrock_menus", false),
+            fallbackToJavaMenus = config.getBoolean("bedrock.fallback_to_java_menus", true),
+            fallbackOnFloodgateUnavailable = config.getBoolean("bedrock.fallback_on_floodgate_unavailable", true),
+            fallbackOnCumulusUnavailable = config.getBoolean("bedrock.fallback_on_cumulus_unavailable", true),
+            formCacheEnabled = config.getBoolean("bedrock.form_cache_enabled", true),
+            formCacheSize = config.getInt("bedrock.form_cache_size", 100),
+            formCacheExpirationMinutes = config.getInt("bedrock.form_cache_expiration_minutes", 30),
+            maxFormButtons = config.getInt("bedrock.max_form_buttons", 8),
+            formTimeoutSeconds = config.getInt("bedrock.form_timeout_seconds", 300),
+            enableBedrockConfirmations = config.getBoolean("bedrock.enable_bedrock_confirmations", true),
+            enableBedrockSelections = config.getBoolean("bedrock.enable_bedrock_selections", true),
+            enableBedrockCustomForms = config.getBoolean("bedrock.enable_bedrock_custom_forms", true),
+            imageSource = runCatching { ImageSource.valueOf(config.getString("bedrock.image_source", "URL") ?: "URL") }
+                .getOrDefault(ImageSource.URL),
+            defaultButtonImageUrl = config.getString("bedrock.default_button_image_url", "") ?: "",
+            defaultButtonImagePath = config.getString("bedrock.default_button_image_path", "textures/ui/icon.png") ?: "textures/ui/icon.png",
+            guildMembersIconUrl = config.getString("bedrock.guild_members_icon_url", "") ?: "",
+            guildMembersIconPath = config.getString("bedrock.guild_members_icon_path", "textures/ui/members.png") ?: "textures/ui/members.png",
+            guildSettingsIconUrl = config.getString("bedrock.guild_settings_icon_url", "") ?: "",
+            guildSettingsIconPath = config.getString("bedrock.guild_settings_icon_path", "textures/ui/settings.png") ?: "textures/ui/settings.png",
+            guildBankIconUrl = config.getString("bedrock.guild_bank_icon_url", "") ?: "",
+            guildBankIconPath = config.getString("bedrock.guild_bank_icon_path", "textures/ui/bank.png") ?: "textures/ui/bank.png",
+            guildWarsIconUrl = config.getString("bedrock.guild_wars_icon_url", "") ?: "",
+            guildWarsIconPath = config.getString("bedrock.guild_wars_icon_path", "textures/ui/wars.png") ?: "textures/ui/wars.png",
+            guildHomeIconUrl = config.getString("bedrock.guild_home_icon_url", "") ?: "",
+            guildHomeIconPath = config.getString("bedrock.guild_home_icon_path", "textures/ui/home.png") ?: "textures/ui/home.png",
+            guildTagIconUrl = config.getString("bedrock.guild_tag_icon_url", "") ?: "",
+            guildTagIconPath = config.getString("bedrock.guild_tag_icon_path", "textures/ui/tag.png") ?: "textures/ui/tag.png",
+            confirmIconUrl = config.getString("bedrock.confirm_icon_url", "") ?: "",
+            confirmIconPath = config.getString("bedrock.confirm_icon_path", "textures/ui/confirm.png") ?: "textures/ui/confirm.png",
+            cancelIconUrl = config.getString("bedrock.cancel_icon_url", "") ?: "",
+            cancelIconPath = config.getString("bedrock.cancel_icon_path", "textures/ui/cancel.png") ?: "textures/ui/cancel.png",
+            backIconUrl = config.getString("bedrock.back_icon_url", "") ?: "",
+            backIconPath = config.getString("bedrock.back_icon_path", "textures/ui/back.png") ?: "textures/ui/back.png",
+            closeIconUrl = config.getString("bedrock.close_icon_url", "") ?: "",
+            closeIconPath = config.getString("bedrock.close_icon_path", "textures/ui/close.png") ?: "textures/ui/close.png",
+            editIconUrl = config.getString("bedrock.edit_icon_url", "") ?: "",
+            editIconPath = config.getString("bedrock.edit_icon_path", "textures/ui/edit.png") ?: "textures/ui/edit.png",
+            deleteIconUrl = config.getString("bedrock.delete_icon_url", "") ?: "",
+            deleteIconPath = config.getString("bedrock.delete_icon_path", "textures/ui/delete.png") ?: "textures/ui/delete.png",
+            debugBedrockMenus = config.getBoolean("bedrock.debug_bedrock_menus", false),
+            logFormInteractions = config.getBoolean("bedrock.log_form_interactions", false)
+        )
+    }
+
     private fun loadCombatConfig(): CombatConfig {
         return CombatConfig(
             killCooldownMinutes = config.getInt("combat.kill_cooldown_minutes", 5),
@@ -184,6 +278,7 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             blockPlaceXp = config.getInt("progression.block_place_xp", 1),
             craftingXp = config.getInt("progression.crafting_xp", 2),
             smeltingXp = config.getInt("progression.smelting_xp", 2),
+            brewingXp = config.getInt("progression.brewing_xp", 3),
             fishingXp = config.getInt("progression.fishing_xp", 3),
             enchantingXp = config.getInt("progression.enchanting_xp", 10),
             claimCreatedXp = config.getInt("progression.claim_created_xp", 100),
@@ -267,13 +362,6 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             roleMappings = roleMappings.ifEmpty { TeamRolePermissions.defaultRoleMappings() },
             defaultPermissions = defaultPermissions.ifEmpty { setOf("VIEW") },
             cacheInvalidationDelaySeconds = cacheDelay
-        )
-    }
-
-    private fun loadDiscordConfig(): DiscordConfig {
-        return DiscordConfig(
-            webhookUrl = config.getString("discord_webhook_url") ?: "",
-            csvDeliveryEnabled = config.getBoolean("discord_csv_delivery", false)
         )
     }
 

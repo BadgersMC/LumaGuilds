@@ -50,6 +50,9 @@ mariadb:
 # When disabled, all claim-related commands and features are unavailable
 claims_enabled: true
 
+# Enable or disable the guild party system (party chat, party-based claims)
+parties_enabled: true
+
 # The amount of claims a player is allowed to create.
 claim_limit: 3
 
@@ -88,18 +91,6 @@ custom_claim_tool_model_id: 732000
 
 # The id value for resource packs that change the model of the move tool.
 custom_move_tool_model_id: 732001
-
-# =====================================
-# Discord Integration Configuration
-# =====================================
-
-# Discord webhook URL for CSV file delivery
-# Create a webhook in your Discord server: Server Settings > Integrations > Webhooks
-# Leave empty to disable Discord integration (falls back to Minecraft books)
-discord_webhook_url: ""
-
-# Enable Discord CSV delivery (requires webhook URL above)
-discord_csv_delivery: false
 
 # =====================================
 # Web API (read-only JSON endpoint for the website)
@@ -157,6 +148,18 @@ guild:
   banner_copy_cost: 100
   banner_copy_charge_guild_bank: true  # If true, charges guild bank; if false, charges player balance
   banner_copy_free: false  # If true, banner copies are free regardless of cost setting
+  banner_copy_physical_cost: 5  # Cost in physical items (if banner_copy_use_item_cost is true)
+
+  # Allow guilds to switch between Peaceful/Hostile modes
+  mode_switching_enabled: true
+
+  # Name filter (blocks disallowed guild names; empty list uses built-in defaults)
+  name_filter:
+    enabled: false
+    blocked_patterns: []
+    normalization:
+      leet_map: true
+      collapse_repeats: true
 
 # =====================================
 # Guild Vault Configuration
@@ -487,6 +490,7 @@ progression:
   block_place_xp: 1                   # XP for placing blocks
   crafting_xp: 2                      # XP per item crafted
   smelting_xp: 2                      # XP per item smelted
+  brewing_xp: 3                       # XP per potion brewed
   fishing_xp: 3                       # XP per fish caught
   enchanting_xp: 10                   # XP per enchantment level spent
   claim_created_xp: 100               # XP for creating a claim (if claims enabled)
@@ -696,38 +700,39 @@ bedrock:
 
   # Image configuration for Bedrock menu icons
   # Set image_source to "URL" for web-hosted images or "RESOURCE_PACK" for resource pack images
+  # Empty URL = text-only button (no external image dependency; via.placeholder.com is dead since 2023)
   image_source: "URL"
 
   # Default button images (fallback for buttons without specific icons)
-  default_button_image_url: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=ICON"
+  default_button_image_url: ""
   default_button_image_path: "textures/ui/icon.png"
 
   # Guild-specific menu icons
-  guild_members_icon_url: "https://via.placeholder.com/64x64/2196F3/FFFFFF?text=MEMBERS"
+  guild_members_icon_url: ""
   guild_members_icon_path: "textures/ui/members.png"
-  guild_settings_icon_url: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=SETTINGS"
+  guild_settings_icon_url: ""
   guild_settings_icon_path: "textures/ui/settings.png"
-  guild_bank_icon_url: "https://via.placeholder.com/64x64/FFC107/FFFFFF?text=BANK"
+  guild_bank_icon_url: ""
   guild_bank_icon_path: "textures/ui/bank.png"
-  guild_wars_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=WARS"
+  guild_wars_icon_url: ""
   guild_wars_icon_path: "textures/ui/wars.png"
-  guild_home_icon_url: "https://via.placeholder.com/64x64/9C27B0/FFFFFF?text=HOME"
+  guild_home_icon_url: ""
   guild_home_icon_path: "textures/ui/home.png"
-  guild_tag_icon_url: "https://via.placeholder.com/64x64/607D8B/FFFFFF?text=TAG"
+  guild_tag_icon_url: ""
   guild_tag_icon_path: "textures/ui/tag.png"
 
   # Action-specific menu icons
-  confirm_icon_url: "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=✓"
+  confirm_icon_url: ""
   confirm_icon_path: "textures/ui/confirm.png"
-  cancel_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=✗"
+  cancel_icon_url: ""
   cancel_icon_path: "textures/ui/cancel.png"
-  back_icon_url: "https://via.placeholder.com/64x64/757575/FFFFFF?text=←"
+  back_icon_url: ""
   back_icon_path: "textures/ui/back.png"
-  close_icon_url: "https://via.placeholder.com/64x64/000000/FFFFFF?text=✕"
+  close_icon_url: ""
   close_icon_path: "textures/ui/close.png"
-  edit_icon_url: "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=EDIT"
+  edit_icon_url: ""
   edit_icon_path: "textures/ui/edit.png"
-  delete_icon_url: "https://via.placeholder.com/64x64/F44336/FFFFFF?text=DEL"
+  delete_icon_url: ""
   delete_icon_path: "textures/ui/delete.png"
 
   # Debug and logging

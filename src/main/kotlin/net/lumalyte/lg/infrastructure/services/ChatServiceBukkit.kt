@@ -236,6 +236,9 @@ class ChatServiceBukkit(
     override fun formatMessage(senderId: UUID, message: String, channel: ChatChannel): String {
         val senderName = Bukkit.getPlayer(senderId)?.name ?: UNKNOWN_PLAYER
         val processedMessage = processEmojis(senderId, message)
+            .let { msg ->
+                if (configService.loadConfig().chat.coloredChatEnabled) msg else stripLegacyColors(msg)
+            }
         
         // Get sender's primary guild for context
         val senderGuilds = memberService.getPlayerGuilds(senderId)
@@ -560,7 +563,14 @@ class ChatServiceBukkit(
         return null
     }
 
-    private companion object {
+    companion object {
         const val UNKNOWN_PLAYER = "Unknown"
+
+        /**
+         * Strips legacy § color/format codes (used when `colored_chat_enabled` is false).
+         * Keeps MiniMessage tags and emoji glyphs untouched — those are content, not color.
+         */
+        fun stripLegacyColors(message: String): String =
+            message.replace(Regex("§[0-9a-fk-orx]"), "")
     }
 }

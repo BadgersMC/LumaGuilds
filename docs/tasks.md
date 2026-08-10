@@ -38,50 +38,50 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-2 — Config plumbing (dead sections + orphan keys)
 
-- [ ] **LG-201** Load the full `vault:` config section (config.yml:165-299) and apply it at runtime
+- [x] **LG-201** Load the full `vault:` config section (config.yml:165-299) and apply it at runtime
   - Tag: `TDD`
   - References: REQ-004
-  - Evidence:
+  - Evidence: `loadVaultConfig()` reads all 24 documented keys (bank_mode, physical currency, compressable blocks, valuable items, capacity scaling, fees, war costs); wired into `loadConfig()`; sentinel test in `ConfigLoaderConsistencyTest.vault section is loaded`
   - Files: `infrastructure/services/ConfigServiceBukkit.kt`, `config/MainConfig.kt`, loader tests
-- [ ] **LG-202** Load the `bedrock:` config section (config.yml:673-735) and replace placeholder icon defaults
+- [x] **LG-202** Load the `bedrock:` config section (config.yml:673-735) and replace placeholder icon defaults
   - Tag: `TDD`
   - References: REQ-005
-  - Evidence:
+  - Evidence: `loadBedrockConfig()` reads all 35 documented keys; all 13 icon defaults (MainConfig + config.yml) changed from dead `https://via.placeholder.com/...` URLs to `""` (text-only buttons — via.placeholder.com shut down in 2023); sentinel test + no-placeholder-URL scan + empty-defaults test
   - Files: `infrastructure/services/ConfigServiceBukkit.kt`, `config/MainConfig.kt`, bedrock defaults in `config.yml`
-- [ ] **LG-203** Consume `chat.default_channel_visibility` and `chat.colored_chat_enabled` in the chat pipeline
+- [x] **LG-203** Consume `chat.default_channel_visibility` and `chat.colored_chat_enabled` in the chat pipeline
   - Tag: `TDD`
   - References: REQ-006
-  - Evidence:
+  - Evidence: `ChatSettingsRepositorySQLite` takes `defaultChannelVisibility` (DI passes `chat.defaultChannelVisibility`) and applies it to fresh players' visibility fallback; `ChatServiceBukkit.formatMessage` strips legacy § codes (incl. hex §x) via `stripLegacyColors` when `coloredChatEnabled` is false; `ChatServiceBukkitTest` (5 cases)
   - Files: chat services/listeners, config model
-- [ ] **LG-204** Load `brewingXp` from config (operator-tunable)
+- [x] **LG-204** Load `brewingXp` from config (operator-tunable)
   - Tag: `TDD`
   - References: REQ-018
-  - Evidence:
+  - Evidence: `progression.brewing_xp` (default 3) read in `loadProgressionConfig`; shipped in config.yml; sentinel test
   - Files: `config/MainConfig.kt`, `config.yml`, loader
-- [ ] **LG-205** Load `modeSwitchingEnabled` from config (can be disabled)
+- [x] **LG-205** Load `modeSwitchingEnabled` from config (can be disabled)
   - Tag: `TDD`
   - References: REQ-019
-  - Evidence:
+  - Evidence: `guild.mode_switching_enabled` (default true) read in `loadGuildConfig`; shipped in config.yml; sentinel test
   - Files: `config/MainConfig.kt`, `config.yml`, loader
-- [ ] **LG-206** Load `nameFilter` / `NameFilterConfig` from config
+- [x] **LG-206** Load `nameFilter` / `NameFilterConfig` from config
   - Tag: `TDD`
   - References: REQ-020
-  - Evidence:
+  - Evidence: `loadNameFilterConfig()` reads `guild.name_filter.enabled`/`blocked_patterns`/`normalization.{leet_map,collapse_repeats}` (empty pattern list falls back to built-in defaults); wired into `loadGuildConfig`; shipped in config.yml; sentinel test
   - Files: `config/MainConfig.kt`, `config.yml`, loader
-- [ ] **LG-207** Load `guild.banner_copy_physical_cost` and apply it to banner-copy operations
+- [x] **LG-207** Load `guild.banner_copy_physical_cost` and apply it to banner-copy operations
   - Tag: `TDD`
   - References: REQ-021
-  - Evidence:
+  - Evidence: `guild.banner_copy_physical_cost` (default 5) read in `loadGuildConfig`; `GuildBannerMenu` already consumes `bannerCopyPhysicalCost` (now wired to config); shipped in config.yml; sentinel test
   - Files: `loadGuildConfig()`, banner-copy service
-- [ ] **LG-208** Gate CSV delivery on `discord_csv_delivery` (no delivery when disabled even with webhook set)
+- [x] **LG-208** Remove the CSV export feature entirely (Badger decision 2026-08-10): `DiscordCsvService`, `FileExportManager`, `CsvExportService`, `/bellclaims download|exports|cancel`, menu export buttons, `EXPORT_BANK_DATA` rank permission + lang keys, `discord_webhook_url`/`discord_csv_delivery` config
   - Tag: `TDD`
   - References: REQ-023
-  - Evidence:
-  - Files: `ConfigServiceBukkit.kt:276`, `DiscordCsvService.kt`
-- [ ] **LG-209** Ship `parties_enabled` in the config.yml defaults
+  - Evidence: 3 service files deleted; DI registrations removed; `LumaGuildsCommand` export/download/cancel handlers + helpers removed; export buttons + handlers removed from `GuildBankTransactionHistoryMenu`/`GuildMemberContributionsMenu`; `EXPORT_BANK_DATA` removed from `Rank.kt` + 6 rank-menu files + 4 lang files; `DiscordConfig` class + loader removed; config.yml keys removed; LumaGuildsCommandTest mock removed; full suite green
+  - Files: `application/services/{DiscordCsvService,FileExportManager,CsvExportService}.kt` (deleted), `di/Modules.kt`, `LumaGuildsCommand.kt`, both bank menus, `Rank.kt`, rank menus, `MainConfig.kt`, `ConfigServiceBukkit.kt`, `config.yml`, lang files
+- [x] **LG-209** Ship `parties_enabled` in the config.yml defaults
   - Tag: `TDD`
   - References: REQ-029
-  - Evidence:
+  - Evidence: `parties_enabled: true` shipped in config.yml (near claims_enabled); loader already read it; party command/menu consumers already gate on it; key-presence test
   - Files: `src/main/resources/config.yml`, DI parties module
 
 ---

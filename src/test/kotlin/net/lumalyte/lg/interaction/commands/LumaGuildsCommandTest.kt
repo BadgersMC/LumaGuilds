@@ -46,7 +46,6 @@ class LumaGuildsCommandTest {
             modules(module {
                 single { adminOverrideService }
                 single { permissionResolver }
-                single { mockk<net.lumalyte.lg.application.services.FileExportManager>(relaxed = true) }
                 single { mockk<net.lumalyte.lg.application.services.GuildService>(relaxed = true) }
             })
         }

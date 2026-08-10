@@ -129,9 +129,9 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 > Audit M6: `MenuItemConfig.kt:338` parses it; menu builders never apply it.
 
 ### REQ-023
-**Event-driven.** WHEN `discord_csv_delivery` is disabled THEN THE SYSTEM SHALL NOT run CSV delivery even when a webhook URL is configured.
+**Ubiquitous.** THE SYSTEM SHALL NOT ship the CSV export feature: `DiscordCsvService`, `FileExportManager`, `CsvExportService`, the `/bellclaims download|exports|cancel` commands, the bank-history / member-contributions menu export buttons, the `EXPORT_BANK_DATA` rank permission, and the `discord_webhook_url` / `discord_csv_delivery` config keys SHALL be removed.
 
-> Audit M7: `ConfigServiceBukkit.kt:276` loads the flag, nothing ever reads it.
+> Decision flag (2026-08-10): Badger chose full removal over gating delivery on `discord_csv_delivery`. Removal also eliminates the audit M-finding (hardcoded `i.imgur.com/placeholder.png` avatar in `DiscordCsvService.kt:255`) and the dead `temp_exports` book-download path in `LumaGuildsCommand`.
 
 ### REQ-024
 **Event-driven.** WHEN a war is declared THEN THE SYSTEM SHALL run the accept/decline declaration flow instead of auto-accepting immediately.

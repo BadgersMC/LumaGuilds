@@ -10,7 +10,10 @@ import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.util.UUID
 
-class ChatSettingsRepositorySQLite(private val storage: Storage<Database>) : ChatSettingsRepository {
+class ChatSettingsRepositorySQLite(
+    private val storage: Storage<Database>,
+    private val defaultChannelVisibility: Boolean = true
+) : ChatSettingsRepository {
     
     private val visibilitySettings: MutableMap<UUID, ChatVisibilitySettings> = mutableMapOf()
     private val rateLimits: MutableMap<UUID, ChatRateLimit> = mutableMapOf()
@@ -101,7 +104,12 @@ class ChatSettingsRepositorySQLite(private val storage: Storage<Database>) : Cha
     }
     
     override fun getVisibilitySettings(playerId: UUID): ChatVisibilitySettings {
-        return visibilitySettings[playerId] ?: ChatVisibilitySettings(playerId)
+        return visibilitySettings[playerId] ?: ChatVisibilitySettings(
+            playerId,
+            guildChatVisible = defaultChannelVisibility,
+            allyChatVisible = defaultChannelVisibility,
+            partyChatVisible = defaultChannelVisibility
+        )
     }
     
     override fun updateVisibilitySettings(settings: ChatVisibilitySettings): Boolean {
