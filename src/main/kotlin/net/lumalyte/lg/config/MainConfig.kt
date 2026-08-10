@@ -286,7 +286,7 @@ data class ChatConfig(
     
     // Emojis and Formatting
     var enableEmojis: Boolean = true,
-    var emojiPermissionPrefix: String = "lumalyte.emoji",
+    var emojiPermissionPrefix: String = "lumaguilds.emoji",
     var maxEmojisPerMessage: Int = 5,
     var coloredChatEnabled: Boolean = true
 )
