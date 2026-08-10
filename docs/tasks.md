@@ -8,10 +8,10 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-0 — SPEAR bootstrap (foundation, no code review)
 
-- [ ] **LG-000** Bootstrap SPEAR docs + Konsist architecture guard
+- [x] **LG-000** Bootstrap SPEAR docs + Konsist architecture guard
   - Tag: `INFRA`
   - References: all REQ-001..REQ-044; `docs/implementation.md` §Layer Dependency Rules
-  - Evidence:
+  - Evidence: 44 EARS REQs + 45 PR-grouped tasks authored (Aug 10); Konsist 0.17.3 wired; LayerRulesTest 3/3 green; 370/370 tests green after domain-purity relocation
   - Files: `docs/*` (tech-stack, requirements, implementation, tasks), `src/test/kotlin/net/lumalyte/lg/architecture/LayerRulesTest.kt`, `build.gradle.kts` (add Konsist 0.17.3)
 
 ---
