@@ -21,7 +21,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-101** Bedrock cache commands authorize via `lumaguilds.bedrock.cache.*` — no stale `lumalyte.*` prefix
   - Tag: `TDD`
   - References: REQ-001
-  - Evidence: `BedrockCacheStatsCommand.kt` all 4 check sites use `lumaguilds.bedrock.cache.*`; `PermissionConsistencyTest` stale-prefix scan green; live config overrides `chat.emoji_permission_prefix` ("enthusia.emoji") so the `lumaguilds.emoji` default rename (MainConfig/ConfigServiceBukkit/ConfigValidator) is production-safe
+  - Evidence: `BedrockCacheStatsCommand.kt` all 4 check sites use `lumaguilds.bedrock.cache.*`; `PermissionConsistencyTest` stale-prefix scan (kotlin sources + shipped config.yml) green; `lumalyte.emoji` defaults renamed to `lumaguilds.emoji` (MainConfig/ConfigServiceBukkit/ConfigValidator + config.yml) — servers that set `chat.emoji_permission_prefix` explicitly (e.g. `enthusia.emoji` on the live EnthusiaSMP config) are unaffected because ConfigServiceBukkit preserves the configured value
   - Files: `interaction/commands/BedrockCacheStatsCommand.kt`, `src/main/resources/plugin.yml`, test asserting code prefix == plugin.yml prefix
 - [x] **LG-102** Declare the 14 `lumaguilds.guild.*` command nodes (join, list, lfg, decline, invites, leave, transfer, getvault, vault, help, ally, enemy, truce, neutral) in plugin.yml with sane defaults
   - Tag: `TDD`
