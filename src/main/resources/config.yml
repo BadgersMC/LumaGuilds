@@ -434,7 +434,7 @@ chat:
   
   # Emojis and Formatting
   enable_emojis: true
-  emoji_permission_prefix: "lumalyte.emoji"  # Permission prefix for emojis
+  emoji_permission_prefix: "lumaguilds.emoji"  # Permission prefix for emojis
   max_emojis_per_message: 5
   colored_chat_enabled: true
 

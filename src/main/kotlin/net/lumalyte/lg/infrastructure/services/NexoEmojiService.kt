@@ -17,7 +17,7 @@ class NexoEmojiService(
 
     /**
      * Gets the configured emoji permission prefix from config.
-     * Defaults to "lumalyte.emoji" if not configured.
+     * Defaults to "lumaguilds.emoji" if not configured.
      */
     private fun getEmojiPermissionPrefix(): String {
         return configService.loadConfig().chat.emojiPermissionPrefix

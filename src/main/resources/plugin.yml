@@ -88,6 +88,20 @@ permissions:
       lumaguilds.guild.bannerman: true
       lumaguilds.guild.bal: true
       lumaguilds.guild.baltop: true
+      lumaguilds.guild.join: true
+      lumaguilds.guild.list: true
+      lumaguilds.guild.lfg: true
+      lumaguilds.guild.decline: true
+      lumaguilds.guild.invites: true
+      lumaguilds.guild.leave: true
+      lumaguilds.guild.transfer: true
+      lumaguilds.guild.getvault: true
+      lumaguilds.guild.vault: true
+      lumaguilds.guild.help: true
+      lumaguilds.guild.ally: true
+      lumaguilds.guild.enemy: true
+      lumaguilds.guild.truce: true
+      lumaguilds.guild.neutral: true
 
   lumaguilds.guild.chat:
     description: Toggle guild chat mode (messages go to guild only)
@@ -151,6 +165,48 @@ permissions:
     default: true
   lumaguilds.guild.baltop:
     description: View the guild bank balance leaderboard
+    default: true
+  lumaguilds.guild.join:
+    description: Join a guild
+    default: true
+  lumaguilds.guild.list:
+    description: List guilds
+    default: true
+  lumaguilds.guild.lfg:
+    description: Browse guilds looking for players
+    default: true
+  lumaguilds.guild.decline:
+    description: Decline a guild invitation
+    default: true
+  lumaguilds.guild.invites:
+    description: View pending guild invitations
+    default: true
+  lumaguilds.guild.leave:
+    description: Leave your guild
+    default: true
+  lumaguilds.guild.transfer:
+    description: Transfer guild ownership
+    default: true
+  lumaguilds.guild.getvault:
+    description: Retrieve the guild vault item
+    default: true
+  lumaguilds.guild.vault:
+    description: Open the guild vault
+    default: true
+  lumaguilds.guild.help:
+    description: View guild help
+    default: true
+  lumaguilds.guild.ally:
+    description: Manage guild alliances
+    default: true
+  lumaguilds.guild.enemy:
+    description: Manage guild enemy relations
+    default: true
+  lumaguilds.guild.truce:
+    description: Propose a truce with a guild
+    default: true
+  lumaguilds.guild.neutral:
+    description: Set neutral relations with a guild
     default: true
 
   # Claim Management Permissions

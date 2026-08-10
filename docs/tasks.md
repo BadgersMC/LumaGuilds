@@ -18,21 +18,21 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-1 — Permission alignment (Section A)
 
-- [ ] **LG-101** Bedrock cache commands authorize via `lumaguilds.bedrock.cache.*` — no stale `lumalyte.*` prefix
+- [x] **LG-101** Bedrock cache commands authorize via `lumaguilds.bedrock.cache.*` — no stale `lumalyte.*` prefix
   - Tag: `TDD`
   - References: REQ-001
-  - Evidence:
+  - Evidence: `BedrockCacheStatsCommand.kt` all 4 check sites use `lumaguilds.bedrock.cache.*`; `PermissionConsistencyTest` stale-prefix scan (kotlin sources + shipped config.yml) green; `lumalyte.emoji` defaults renamed to `lumaguilds.emoji` (MainConfig/ConfigServiceBukkit/ConfigValidator + config.yml) — servers that set `chat.emoji_permission_prefix` explicitly (e.g. `enthusia.emoji` on the live EnthusiaSMP config) are unaffected because ConfigServiceBukkit preserves the configured value
   - Files: `interaction/commands/BedrockCacheStatsCommand.kt`, `src/main/resources/plugin.yml`, test asserting code prefix == plugin.yml prefix
-- [ ] **LG-102** Declare the 14 `lumaguilds.guild.*` command nodes (join, list, lfg, decline, invites, leave, transfer, getvault, vault, help, ally, enemy, truce, neutral) in plugin.yml with sane defaults
+- [x] **LG-102** Declare the 14 `lumaguilds.guild.*` command nodes (join, list, lfg, decline, invites, leave, transfer, getvault, vault, help, ally, enemy, truce, neutral) in plugin.yml with sane defaults
   - Tag: `TDD`
   - References: REQ-002
-  - Evidence:
+  - Evidence: all 14 added to `lumaguilds.guild.*` children + individually declared (default: true); `PermissionConsistencyTest` `used ⊆ declared` green
   - Files: `src/main/resources/plugin.yml`, test scanning `@CommandPermission` vs plugin.yml declarations
-- [ ] **LG-103** Add `claim.partitions`, `claim.trustlist`, `claimmenu`, `claimoverride` to the `lumaguilds.command.*` wildcard children
+- [x] **LG-103** Add `claim.partitions`, `claim.trustlist`, `claimmenu`, `claimoverride` to the `lumaguilds.command.*` wildcard children
   - Tag: `TDD`
   - References: REQ-003
-  - Evidence:
-  - Files: `src/main/resources/plugin.yml`, wildcard children test
+  - Evidence: VERIFIED-ALREADY-SATISFIED — nodes present in wildcard (plugin.yml:165,170,175,176) + individually declared; code uses matching nodes (`PartitionsCommand.kt:24`, `TrustListCommand.kt:26`, `ClaimMenuCommand.kt:20`, `ClaimOverrideCommand.kt:21`); audit sub-claim was agent-reported, never re-verified. Locked with regression test in `PermissionConsistencyTest`
+  - Files: `src/main/resources/plugin.yml`, regression test
 
 ---
 

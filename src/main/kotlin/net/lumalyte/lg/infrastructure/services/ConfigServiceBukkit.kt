@@ -166,7 +166,7 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             partyChatEnabled = config.getBoolean("chat.party_chat_enabled", true),
             guildChatEnabled = config.getBoolean("chat.guild_chat_enabled", true),
             enableEmojis = config.getBoolean("chat.enable_emojis", true),
-            emojiPermissionPrefix = config.getString("chat.emoji_permission_prefix") ?: "lumalyte.emoji",
+            emojiPermissionPrefix = config.getString("chat.emoji_permission_prefix") ?: "lumaguilds.emoji",
             maxEmojisPerMessage = config.getInt("chat.max_emojis_per_message", 5),
             coloredChatEnabled = config.getBoolean("chat.colored_chat_enabled", true)
         )
