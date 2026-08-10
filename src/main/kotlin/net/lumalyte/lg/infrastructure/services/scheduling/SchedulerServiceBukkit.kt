@@ -1,7 +1,7 @@
 package net.lumalyte.lg.infrastructure.services.scheduling
 
 import net.lumalyte.lg.application.services.scheduling.SchedulerService
-import net.lumalyte.lg.application.services.scheduling.Task
+import net.lumalyte.lg.domain.services.Task
 import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitRunnable
 

@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.*
+import net.lumalyte.lg.domain.values.BannerDesignData
 import net.lumalyte.lg.application.persistence.GuildBannerRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.GuildBanner

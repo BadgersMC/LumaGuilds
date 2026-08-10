@@ -137,31 +137,31 @@ class BedrockGuildProgressionInfoMenu(
         """.trimMargin()
     }
 
-    private fun getLocalizedPerkName(perk: net.lumalyte.lg.application.services.PerkType): String {
+    private fun getLocalizedPerkName(perk: net.lumalyte.lg.domain.values.PerkType): String {
         return when (perk) {
             // Claim perks
-            net.lumalyte.lg.application.services.PerkType.INCREASED_CLAIM_BLOCKS -> "Increased Claim Blocks"
-            net.lumalyte.lg.application.services.PerkType.INCREASED_CLAIM_COUNT -> "Increased Claim Count"
-            net.lumalyte.lg.application.services.PerkType.FASTER_CLAIM_REGEN -> "Faster Claim Regeneration"
+            net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_BLOCKS -> "Increased Claim Blocks"
+            net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_COUNT -> "Increased Claim Count"
+            net.lumalyte.lg.domain.values.PerkType.FASTER_CLAIM_REGEN -> "Faster Claim Regeneration"
 
             // Bank perks
-            net.lumalyte.lg.application.services.PerkType.HIGHER_BANK_BALANCE -> "Higher Bank Balance"
-            net.lumalyte.lg.application.services.PerkType.BANK_INTEREST -> "Bank Interest"
-            net.lumalyte.lg.application.services.PerkType.INCREASED_BANK_LIMIT -> "Increased Bank Limit"
-            net.lumalyte.lg.application.services.PerkType.REDUCED_WITHDRAWAL_FEES -> "Reduced Withdrawal Fees"
+            net.lumalyte.lg.domain.values.PerkType.HIGHER_BANK_BALANCE -> "Higher Bank Balance"
+            net.lumalyte.lg.domain.values.PerkType.BANK_INTEREST -> "Bank Interest"
+            net.lumalyte.lg.domain.values.PerkType.INCREASED_BANK_LIMIT -> "Increased Bank Limit"
+            net.lumalyte.lg.domain.values.PerkType.REDUCED_WITHDRAWAL_FEES -> "Reduced Withdrawal Fees"
 
             // Home perks
-            net.lumalyte.lg.application.services.PerkType.ADDITIONAL_HOMES -> "Additional Homes"
-            net.lumalyte.lg.application.services.PerkType.TELEPORT_COOLDOWN_REDUCTION -> "Teleport Cooldown Reduction"
-            net.lumalyte.lg.application.services.PerkType.HOME_TELEPORT_SOUND_EFFECTS -> "Home Teleport Sound Effects"
+            net.lumalyte.lg.domain.values.PerkType.ADDITIONAL_HOMES -> "Additional Homes"
+            net.lumalyte.lg.domain.values.PerkType.TELEPORT_COOLDOWN_REDUCTION -> "Teleport Cooldown Reduction"
+            net.lumalyte.lg.domain.values.PerkType.HOME_TELEPORT_SOUND_EFFECTS -> "Home Teleport Sound Effects"
 
             // Audio/Visual perks
-            net.lumalyte.lg.application.services.PerkType.CUSTOM_BANNER_COLORS -> "Custom Banner Colors"
-            net.lumalyte.lg.application.services.PerkType.ANIMATED_EMOJIS -> "Animated Emojis"
-            net.lumalyte.lg.application.services.PerkType.SPECIAL_PARTICLES -> "Special Particles"
-            net.lumalyte.lg.application.services.PerkType.ANNOUNCEMENT_SOUND_EFFECTS -> "Announcement Sound Effects"
-            net.lumalyte.lg.application.services.PerkType.WAR_DECLARATION_SOUND_EFFECTS -> "War Declaration Sound Effects"
-            net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS -> "Ally Home Teleportation"
+            net.lumalyte.lg.domain.values.PerkType.CUSTOM_BANNER_COLORS -> "Custom Banner Colors"
+            net.lumalyte.lg.domain.values.PerkType.ANIMATED_EMOJIS -> "Animated Emojis"
+            net.lumalyte.lg.domain.values.PerkType.SPECIAL_PARTICLES -> "Special Particles"
+            net.lumalyte.lg.domain.values.PerkType.ANNOUNCEMENT_SOUND_EFFECTS -> "Announcement Sound Effects"
+            net.lumalyte.lg.domain.values.PerkType.WAR_DECLARATION_SOUND_EFFECTS -> "War Declaration Sound Effects"
+            net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS -> "Ally Home Teleportation"
         }
     }
 

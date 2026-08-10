@@ -55,13 +55,13 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         addHomeAccessButtons(pane)
 
         // Ally home teleport buttons (if perk unlocked)
-        if (progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) {
+        if (progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)) {
             addAllyHomeButtons(pane, 0, 5)
             addAllyHomeAccessButton(pane)
         }
 
         // Back button (shift down if ally homes shown)
-        val backRow = if (progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) 5 else 5
+        val backRow = if (progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)) 5 else 5
         addBackButton(pane, 8, backRow)
 
         gui.show(player)

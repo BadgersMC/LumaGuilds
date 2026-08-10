@@ -488,7 +488,7 @@ class GuildServiceBukkit(
             // Check if requesting guild has the perk
             val progressionService = org.koin.core.context.GlobalContext.get()
                 .get<net.lumalyte.lg.application.services.ProgressionService>()
-            if (!progressionService.hasPerkUnlocked(guildId, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) {
+            if (!progressionService.hasPerkUnlocked(guildId, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)) {
                 return emptyMap()
             }
 
@@ -502,7 +502,7 @@ class GuildServiceBukkit(
                 val allyGuildId = relation.getOtherGuild(guildId)
 
                 // Ally must also have the perk unlocked (mutual requirement)
-                if (!progressionService.hasPerkUnlocked(allyGuildId, net.lumalyte.lg.application.services.PerkType.ALLY_HOME_ACCESS)) {
+                if (!progressionService.hasPerkUnlocked(allyGuildId, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)) {
                     continue
                 }
 

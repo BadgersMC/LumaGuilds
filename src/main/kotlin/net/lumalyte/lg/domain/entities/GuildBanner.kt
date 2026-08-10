@@ -1,6 +1,6 @@
 package net.lumalyte.lg.domain.entities
 
-import net.lumalyte.lg.application.services.BannerDesignData
+import net.lumalyte.lg.domain.values.BannerDesignData
 import java.time.Instant
 import java.util.UUID
 
