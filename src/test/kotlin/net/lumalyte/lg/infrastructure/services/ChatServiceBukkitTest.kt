@@ -33,4 +33,14 @@ class ChatServiceBukkitTest {
     fun `strips multiple codes across message`() {
         assertEquals("AB", ChatServiceBukkit.stripLegacyColors("§aA§bB"))
     }
+
+    @Test
+    fun `strips uppercase legacy codes`() {
+        assertEquals("Hi", ChatServiceBukkit.stripLegacyColors("§AHi"))
+    }
+
+    @Test
+    fun `strips uppercase bungee rgb sequences`() {
+        assertEquals("Hi", ChatServiceBukkit.stripLegacyColors("§X§R§F§F§0§0§0§0Hi"))
+    }
 }

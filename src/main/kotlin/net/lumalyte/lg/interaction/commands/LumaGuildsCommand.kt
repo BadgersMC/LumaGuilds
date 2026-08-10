@@ -344,7 +344,6 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage("§e/bellclaims migrate confirm §7- Migrate SQLite → MariaDB (OP only)")
         sender.sendMessage("§e/bellclaims override §7- Toggle admin override mode (Admin only)")
         sender.sendMessage("§e/bellclaims help §7- Show this help")
-        sender.sendMessage("§7💡 Export files are available for 15 minutes")
         sender.sendMessage("§7🔧 Reload commands are for development - some changes require server restart")
         sender.sendMessage("§7⚠️ Disband is for emergency use only - removes all members!")
         sender.sendMessage("§7🔄 Migrate transfers all data from SQLite to MariaDB (requires confirmation)")
@@ -355,7 +354,9 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         if (sender !is Player) return mutableListOf()
 
         return when (args.size) {
-            1 -> mutableListOf("reload", "progressionreload", "disband", "migrate", "override", "help").filter { it.startsWith(args[0]) }.toMutableList()
+            1 -> mutableListOf(
+                "reload", "progressionreload", "disband", "migrate", "override", "help"
+            ).filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "disband" -> {
                     net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)

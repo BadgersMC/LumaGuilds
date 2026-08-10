@@ -155,9 +155,9 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 > Audit M11: dead field in GuildConfig, never loaded nor consumed. Related to REQ-007.
 
 ### REQ-028
-**Ubiquitous.** THE SYSTEM SHALL NOT hardcode the Discord CSV avatar URL — it SHALL be configurable.
+**Ubiquitous.** THE SYSTEM SHALL NOT ship a Discord CSV avatar URL configuration.
 
-> Audit M12: `DiscordCsvService.kt:255` hardcodes `https://i.imgur.com/placeholder.png`.
+> **SUPERSEDED by REQ-023** (2026-08-10): the entire CSV export feature — including `DiscordCsvService` and its hardcoded avatar — was removed. This requirement is obsolete; retained only as an audit trail (originally Audit M12: `DiscordCsvService.kt:255` hardcoded `https://i.imgur.com/placeholder.png`).
 
 ### REQ-029
 **Ubiquitous.** THE SYSTEM SHALL ship `parties_enabled` in the shipped `config.yml` defaults.

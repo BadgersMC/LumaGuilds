@@ -158,9 +158,15 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
         )
     }
     
+    /**
+     * Null-safe string read (moves the `?: default` branch out of declarative loaders
+     * so static-analysis complexity stays bounded for large config sections).
+     */
+    private fun string(key: String, default: String): String = config.getString(key, default) ?: default
+
     private fun loadVaultConfig(): VaultConfig {
         return VaultConfig(
-            bankMode = config.getString("vault.bank_mode", "BOTH") ?: "BOTH",
+            bankMode = string("vault.bank_mode", "BOTH"),
             vaultChestEnabled = config.getBoolean("vault.vault_chest_enabled", true),
             breakWarningTimeoutSeconds = config.getInt("vault.break_warning_timeout_seconds", 5),
             dropItemsOnExplosion = config.getBoolean("vault.drop_items_on_explosion", true),
@@ -175,7 +181,7 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             valuableItemsCheckEnchantments = config.getBoolean("vault.valuable_items_check_enchantments", true),
             valuableCustomModelDataItems = config.getStringList("vault.valuable_custom_model_data_items"),
             usePhysicalCurrency = config.getBoolean("vault.use_physical_currency", false),
-            physicalCurrencyMaterial = config.getString("vault.physical_currency_material", "RAW_GOLD") ?: "RAW_GOLD",
+            physicalCurrencyMaterial = string("vault.physical_currency_material", "RAW_GOLD"),
             physicalCurrencyItemValue = config.getInt("vault.physical_currency_item_value", 1),
             physicalCurrencyRequireVaultChest = config.getBoolean("vault.physical_currency_require_vault_chest", true),
             physicalDepositFee = config.getInt("vault.physical_deposit_fee", 0),
@@ -202,34 +208,34 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             enableBedrockConfirmations = config.getBoolean("bedrock.enable_bedrock_confirmations", true),
             enableBedrockSelections = config.getBoolean("bedrock.enable_bedrock_selections", true),
             enableBedrockCustomForms = config.getBoolean("bedrock.enable_bedrock_custom_forms", true),
-            imageSource = runCatching { ImageSource.valueOf(config.getString("bedrock.image_source", "URL") ?: "URL") }
+            imageSource = runCatching { ImageSource.valueOf(string("bedrock.image_source", "URL")) }
                 .getOrDefault(ImageSource.URL),
-            defaultButtonImageUrl = config.getString("bedrock.default_button_image_url", "") ?: "",
-            defaultButtonImagePath = config.getString("bedrock.default_button_image_path", "textures/ui/icon.png") ?: "textures/ui/icon.png",
-            guildMembersIconUrl = config.getString("bedrock.guild_members_icon_url", "") ?: "",
-            guildMembersIconPath = config.getString("bedrock.guild_members_icon_path", "textures/ui/members.png") ?: "textures/ui/members.png",
-            guildSettingsIconUrl = config.getString("bedrock.guild_settings_icon_url", "") ?: "",
-            guildSettingsIconPath = config.getString("bedrock.guild_settings_icon_path", "textures/ui/settings.png") ?: "textures/ui/settings.png",
-            guildBankIconUrl = config.getString("bedrock.guild_bank_icon_url", "") ?: "",
-            guildBankIconPath = config.getString("bedrock.guild_bank_icon_path", "textures/ui/bank.png") ?: "textures/ui/bank.png",
-            guildWarsIconUrl = config.getString("bedrock.guild_wars_icon_url", "") ?: "",
-            guildWarsIconPath = config.getString("bedrock.guild_wars_icon_path", "textures/ui/wars.png") ?: "textures/ui/wars.png",
-            guildHomeIconUrl = config.getString("bedrock.guild_home_icon_url", "") ?: "",
-            guildHomeIconPath = config.getString("bedrock.guild_home_icon_path", "textures/ui/home.png") ?: "textures/ui/home.png",
-            guildTagIconUrl = config.getString("bedrock.guild_tag_icon_url", "") ?: "",
-            guildTagIconPath = config.getString("bedrock.guild_tag_icon_path", "textures/ui/tag.png") ?: "textures/ui/tag.png",
-            confirmIconUrl = config.getString("bedrock.confirm_icon_url", "") ?: "",
-            confirmIconPath = config.getString("bedrock.confirm_icon_path", "textures/ui/confirm.png") ?: "textures/ui/confirm.png",
-            cancelIconUrl = config.getString("bedrock.cancel_icon_url", "") ?: "",
-            cancelIconPath = config.getString("bedrock.cancel_icon_path", "textures/ui/cancel.png") ?: "textures/ui/cancel.png",
-            backIconUrl = config.getString("bedrock.back_icon_url", "") ?: "",
-            backIconPath = config.getString("bedrock.back_icon_path", "textures/ui/back.png") ?: "textures/ui/back.png",
-            closeIconUrl = config.getString("bedrock.close_icon_url", "") ?: "",
-            closeIconPath = config.getString("bedrock.close_icon_path", "textures/ui/close.png") ?: "textures/ui/close.png",
-            editIconUrl = config.getString("bedrock.edit_icon_url", "") ?: "",
-            editIconPath = config.getString("bedrock.edit_icon_path", "textures/ui/edit.png") ?: "textures/ui/edit.png",
-            deleteIconUrl = config.getString("bedrock.delete_icon_url", "") ?: "",
-            deleteIconPath = config.getString("bedrock.delete_icon_path", "textures/ui/delete.png") ?: "textures/ui/delete.png",
+            defaultButtonImageUrl = string("bedrock.default_button_image_url", ""),
+            defaultButtonImagePath = string("bedrock.default_button_image_path", "textures/ui/icon.png"),
+            guildMembersIconUrl = string("bedrock.guild_members_icon_url", ""),
+            guildMembersIconPath = string("bedrock.guild_members_icon_path", "textures/ui/members.png"),
+            guildSettingsIconUrl = string("bedrock.guild_settings_icon_url", ""),
+            guildSettingsIconPath = string("bedrock.guild_settings_icon_path", "textures/ui/settings.png"),
+            guildBankIconUrl = string("bedrock.guild_bank_icon_url", ""),
+            guildBankIconPath = string("bedrock.guild_bank_icon_path", "textures/ui/bank.png"),
+            guildWarsIconUrl = string("bedrock.guild_wars_icon_url", ""),
+            guildWarsIconPath = string("bedrock.guild_wars_icon_path", "textures/ui/wars.png"),
+            guildHomeIconUrl = string("bedrock.guild_home_icon_url", ""),
+            guildHomeIconPath = string("bedrock.guild_home_icon_path", "textures/ui/home.png"),
+            guildTagIconUrl = string("bedrock.guild_tag_icon_url", ""),
+            guildTagIconPath = string("bedrock.guild_tag_icon_path", "textures/ui/tag.png"),
+            confirmIconUrl = string("bedrock.confirm_icon_url", ""),
+            confirmIconPath = string("bedrock.confirm_icon_path", "textures/ui/confirm.png"),
+            cancelIconUrl = string("bedrock.cancel_icon_url", ""),
+            cancelIconPath = string("bedrock.cancel_icon_path", "textures/ui/cancel.png"),
+            backIconUrl = string("bedrock.back_icon_url", ""),
+            backIconPath = string("bedrock.back_icon_path", "textures/ui/back.png"),
+            closeIconUrl = string("bedrock.close_icon_url", ""),
+            closeIconPath = string("bedrock.close_icon_path", "textures/ui/close.png"),
+            editIconUrl = string("bedrock.edit_icon_url", ""),
+            editIconPath = string("bedrock.edit_icon_path", "textures/ui/edit.png"),
+            deleteIconUrl = string("bedrock.delete_icon_url", ""),
+            deleteIconPath = string("bedrock.delete_icon_path", "textures/ui/delete.png"),
             debugBedrockMenus = config.getBoolean("bedrock.debug_bedrock_menus", false),
             logFormInteractions = config.getBoolean("bedrock.log_form_interactions", false)
         )

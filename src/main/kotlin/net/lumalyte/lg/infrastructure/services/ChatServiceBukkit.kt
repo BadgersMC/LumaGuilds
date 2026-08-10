@@ -567,10 +567,11 @@ class ChatServiceBukkit(
         const val UNKNOWN_PLAYER = "Unknown"
 
         /**
-         * Strips legacy § color/format codes (used when `colored_chat_enabled` is false).
+         * Strips legacy § color/format codes (used when `colored_chat_enabled` is false),
+         * case-insensitively (§A == §a, §X RGB introducer included).
          * Keeps MiniMessage tags and emoji glyphs untouched — those are content, not color.
          */
         fun stripLegacyColors(message: String): String =
-            message.replace(Regex("§[0-9a-fk-orx]"), "")
+            message.replace(Regex("§[0-9a-fk-orx]", RegexOption.IGNORE_CASE))
     }
 }
