@@ -1,7 +1,7 @@
 package net.lumalyte.lg.domain.entities
 
-import net.lumalyte.lg.application.services.ExperienceSource
-import net.lumalyte.lg.application.services.PerkType
+import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.domain.values.PerkType
 import java.time.Instant
 import java.util.UUID
 

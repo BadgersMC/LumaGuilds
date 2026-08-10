@@ -7,8 +7,8 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.persistence.ActivityMetricType
 import net.lumalyte.lg.application.persistence.ProgressionStats
 import net.lumalyte.lg.domain.entities.*
-import net.lumalyte.lg.application.services.ExperienceSource
-import net.lumalyte.lg.application.services.PerkType
+import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.domain.values.PerkType
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
@@ -214,22 +214,21 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
         )
     }
 
-    private fun parseUnlockedPerks(json: String): Set<net.lumalyte.lg.application.services.PerkType> {
+    private fun parseUnlockedPerks(json: String): Set<net.lumalyte.lg.domain.values.PerkType> {
         if (json.isBlank() || json == "[]") return emptySet()
 
-        return try {
-            json.trim('[', ']')
-                .split(',')
-                .map { it.trim().trim('"') }
-                .filter { it.isNotEmpty() }
-                .map { net.lumalyte.lg.application.services.PerkType.valueOf(it) }
-                .toSet()
-        } catch (e: SQLException) {
-            emptySet()
-        }
+        // Resilient against renamed/removed perk entries: PerkType.valueOf throws
+        // IllegalArgumentException (not SQLException), so unknown names are skipped
+        // instead of crashing preload with a stale DB.
+        return json.trim('[', ']')
+            .split(',')
+            .map { it.trim().trim('"') }
+            .filter { it.isNotEmpty() }
+            .mapNotNull { runCatching { net.lumalyte.lg.domain.values.PerkType.valueOf(it) }.getOrNull() }
+            .toSet()
     }
 
-    private fun serializeUnlockedPerks(perks: Set<net.lumalyte.lg.application.services.PerkType>): String {
+    private fun serializeUnlockedPerks(perks: Set<net.lumalyte.lg.domain.values.PerkType>): String {
         if (perks.isEmpty()) return "[]"
 
         return perks.joinToString(",", "[", "]") { "\"$it\"" }

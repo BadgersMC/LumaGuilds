@@ -6,6 +6,8 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.title.Title
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
+import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.domain.values.PerkType
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.domain.events.GuildLevelUpEvent
 import org.bukkit.Bukkit

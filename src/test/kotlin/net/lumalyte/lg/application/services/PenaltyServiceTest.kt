@@ -4,6 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import net.lumalyte.lg.application.persistence.PenaltyRepository
+import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.config.StrikesConfig
 import net.lumalyte.lg.config.StrikesPenaltiesConfig
 import net.lumalyte.lg.domain.entities.Guild

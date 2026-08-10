@@ -1,4 +1,4 @@
-package net.lumalyte.lg.application.services.scheduling
+package net.lumalyte.lg.domain.services
 
 /**
  * Represents a task that is to be performed

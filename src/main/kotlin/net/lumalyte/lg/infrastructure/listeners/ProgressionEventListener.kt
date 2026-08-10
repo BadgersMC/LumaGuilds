@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.lumalyte.lg.application.services.ActivityType
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.services.ExperienceSource
+import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.application.services.LeaderboardService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ProgressionService

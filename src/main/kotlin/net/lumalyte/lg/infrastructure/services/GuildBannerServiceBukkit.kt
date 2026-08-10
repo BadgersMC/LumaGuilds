@@ -1,11 +1,13 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.*
+import net.lumalyte.lg.domain.values.BannerDesignData
 import net.lumalyte.lg.application.persistence.GuildBannerRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.GuildBanner
 import net.lumalyte.lg.domain.events.GuildBannerChangedEvent
 import org.bukkit.Bukkit
+import org.bukkit.block.banner.PatternType
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
@@ -35,6 +37,16 @@ class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
             // Validate banner data
             if (!bannerData.isValid()) {
                 logger.warn("Invalid banner data submitted by player $submitterId for guild $guildId")
+                return false
+            }
+
+            // Authoritative pattern-type check against Bukkit's PatternType enum —
+            // domain's isValid() only rejects blank types to stay Bukkit-free.
+            val unknownType = bannerData.patterns.firstOrNull { p ->
+                runCatching { PatternType.valueOf(p.type) }.isFailure
+            }
+            if (unknownType != null) {
+                logger.warn("Invalid banner pattern type '${unknownType.type}' submitted by player $submitterId for guild $guildId")
                 return false
             }
 

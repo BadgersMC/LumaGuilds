@@ -48,6 +48,7 @@ dependencies {
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
+    testImplementation("com.lemonappdev:konsist:0.17.3")
 
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     shadow("org.jetbrains.kotlin:kotlin-stdlib")

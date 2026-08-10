@@ -1,5 +1,7 @@
 package net.lumalyte.lg.application.services
 
+import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.domain.values.PerkType
 import java.time.Instant
 import java.util.UUID
 
@@ -215,68 +217,6 @@ interface ProgressionService {
      * GuildProgression.currentLevel. Returns the number of guild rows updated.
      */
     fun syncGuildLevels(): Int
-}
-
-/**
- * Sources of experience for guilds.
- */
-enum class ExperienceSource {
-    // Guild Activities
-    BANK_DEPOSIT,
-    MEMBER_JOINED,
-    WAR_WON,
-    WAR_LOST,
-    
-    // Player Activities
-    PLAYER_KILL,
-    MOB_KILL,
-    CROP_BREAK,
-    BLOCK_BREAK,
-    BLOCK_PLACE,
-    CRAFTING,
-    SMELTING,
-    FISHING,
-    ENCHANTING,
-    
-    // Claims (if enabled)
-    CLAIM_CREATED,
-    CLAIM_DESTROYED,
-    
-    // System
-    WEEKLY_ACTIVITY,
-    ADMIN_BONUS
-}
-
-/**
- * Types of perks that can be unlocked.
- */
-enum class PerkType {
-    // Claim perks (if claims enabled)
-    INCREASED_CLAIM_BLOCKS,
-    INCREASED_CLAIM_COUNT,
-    FASTER_CLAIM_REGEN,
-
-    // Bank perks
-    HIGHER_BANK_BALANCE,
-    BANK_INTEREST,
-    INCREASED_BANK_LIMIT,
-    REDUCED_WITHDRAWAL_FEES,
-
-    // Home perks
-    ADDITIONAL_HOMES,
-    TELEPORT_COOLDOWN_REDUCTION,
-    HOME_TELEPORT_SOUND_EFFECTS,
-    ALLY_HOME_ACCESS,
-
-    // Audio/Visual perks (always unlocked)
-    CUSTOM_BANNER_COLORS,
-    ANIMATED_EMOJIS,
-    SPECIAL_PARTICLES,
-    ANNOUNCEMENT_SOUND_EFFECTS,
-    WAR_DECLARATION_SOUND_EFFECTS,
-
-    // System perks
-    // (No system perks currently defined)
 }
 
 /**
