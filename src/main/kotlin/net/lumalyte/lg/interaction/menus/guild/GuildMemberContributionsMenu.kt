@@ -5,8 +5,6 @@ import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.Pane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.BankService
-import net.lumalyte.lg.application.services.CsvExportService
-import net.lumalyte.lg.application.services.FileExportManager
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.MemberContribution
 import net.lumalyte.lg.domain.values.LocalizationKeys
@@ -34,8 +32,6 @@ class GuildMemberContributionsMenu(
 
     private val bankService: BankService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
-    private val csvExportService: CsvExportService by inject()
-    private val fileExportManager: FileExportManager by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // GUI components
@@ -108,18 +104,6 @@ class GuildMemberContributionsMenu(
             menuNavigator.openMenu(menuFactory.createGuildBankTransactionHistoryMenu(menuNavigator, player, guild))
         }
         mainPane.addItem(backGuiItem, 0, 0)
-
-        // Export button
-        val exportItem = createMenuItem(
-            Material.WRITABLE_BOOK,
-            "Export to CSV",
-            listOf("Download member data", "Secure & rate-limited")
-        )
-        val exportGuiItem = GuiItem(exportItem) { event ->
-            event.isCancelled = true
-            handleExport()
-        }
-        mainPane.addItem(exportGuiItem, 7, 0)
 
         // Close button
         val closeItem = createMenuItem(
@@ -399,51 +383,6 @@ class GuildMemberContributionsMenu(
                 listOf("${filteredContributions.size} members shown")
             )
             filterPane.addItem(GuiItem(pageItem), 6, 0)
-        }
-    }
-
-    /**
-     * Handle CSV export of member contributions
-     */
-    private fun handleExport() {
-        // Show loading message
-        player.sendMessage("§e🔄 Generating CSV export... This may take a moment.")
-
-        // Get current filtered contributions
-        val contributionsToExport = filteredContributions
-
-        if (contributionsToExport.isEmpty()) {
-            player.sendMessage("§c❌ No member data to export!")
-            return
-        }
-
-        // Start async export
-        fileExportManager.exportMemberContributionsAsync(player, contributionsToExport, guild.name) { result ->
-            when (result) {
-                is FileExportManager.ExportResult.DiscordSuccess -> {
-                    player.sendMessage("§a✅ CSV sent to Discord!")
-                    player.sendMessage("§a📄 ${result.message}")
-                    player.sendMessage("§e💡 Check your Discord server for the file attachment")
-                    player.sendMessage("§7📝 Files are uploaded instantly to your configured channel")
-                }
-                is FileExportManager.ExportResult.Error -> {
-                    player.sendMessage("§c❌ Export failed: ${result.message}")
-                    player.sendMessage("§7💡 Ask an admin to configure Discord CSV export in the config")
-                }
-                is FileExportManager.ExportResult.RateLimited -> {
-                    player.sendMessage("§c⏰ ${result.message}")
-                    player.sendMessage("§7You can export up to 5 files per hour for security.")
-                }
-                is FileExportManager.ExportResult.FileTooLarge -> {
-                    player.sendMessage("§c📏 ${result.message}")
-                    player.sendMessage("§7Try filtering your data to reduce file size.")
-                }
-                is FileExportManager.ExportResult.Success -> {
-                    // Obsolete: Local file exports have been removed in favor of Discord-only exports
-                    player.sendMessage("§c❌ Export configuration error")
-                    player.sendMessage("§7💡 Ask an admin to configure Discord CSV export")
-                }
-            }
         }
     }
 

@@ -579,9 +579,6 @@ object LocalizationKeys {
     const val MENU_BANK_HISTORY_FILTER_CLEAR = "menu.bank.history.filter.clear"
     const val MENU_BANK_HISTORY_PAGE_PREVIOUS = "menu.bank.history.page.previous"
     const val MENU_BANK_HISTORY_PAGE_NEXT = "menu.bank.history.page.next"
-    const val MENU_BANK_HISTORY_EXPORT = "menu.bank.history.export"
-    const val MENU_BANK_HISTORY_EXPORT_SUCCESS = "menu.bank.history.export.success"
-    const val MENU_BANK_HISTORY_EXPORT_FAILED = "menu.bank.history.export.failed"
 
     // Statistics Menu
     const val MENU_BANK_STATS_ACTIVITY_VERY_HIGH = "menu.bank.stats.activity.very_high"

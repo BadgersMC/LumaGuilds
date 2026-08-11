@@ -31,7 +31,6 @@ data class MainConfig(
     var chat: ChatConfig = ChatConfig(),
     var progression: ProgressionConfig = ProgressionConfig(),
     var ui: UIConfig = UIConfig(),
-    var discord: DiscordConfig = DiscordConfig(),
     var party: PartyConfig = PartyConfig(),
     var bedrock: BedrockConfig = BedrockConfig(),
     var webApi: WebApiConfig = WebApiConfig(),
@@ -354,11 +353,6 @@ data class TeamRolePermissions(
     }
 }
 
-data class DiscordConfig(
-    var webhookUrl: String = "",
-    var csvDeliveryEnabled: Boolean = false
-)
-
 data class PartyConfig(
     // Party Creation
     var maxPartyNameLength: Int = 32,
@@ -440,35 +434,36 @@ data class BedrockConfig(
 
     // Image configuration
     var imageSource: ImageSource = ImageSource.URL, // URL or RESOURCE_PACK
-    var defaultButtonImageUrl: String = "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=ICON",
+    // Empty URL = text-only button (no external image dependency; via.placeholder.com is dead since 2023)
+    var defaultButtonImageUrl: String = "",
     var defaultButtonImagePath: String = "textures/ui/icon.png",
 
     // Guild-specific images
-    var guildMembersIconUrl: String = "https://via.placeholder.com/64x64/2196F3/FFFFFF?text=MEMBERS",
+    var guildMembersIconUrl: String = "",
     var guildMembersIconPath: String = "textures/ui/members.png",
-    var guildSettingsIconUrl: String = "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=SETTINGS",
+    var guildSettingsIconUrl: String = "",
     var guildSettingsIconPath: String = "textures/ui/settings.png",
-    var guildBankIconUrl: String = "https://via.placeholder.com/64x64/FFC107/FFFFFF?text=BANK",
+    var guildBankIconUrl: String = "",
     var guildBankIconPath: String = "textures/ui/bank.png",
-    var guildWarsIconUrl: String = "https://via.placeholder.com/64x64/F44336/FFFFFF?text=WARS",
+    var guildWarsIconUrl: String = "",
     var guildWarsIconPath: String = "textures/ui/wars.png",
-    var guildHomeIconUrl: String = "https://via.placeholder.com/64x64/9C27B0/FFFFFF?text=HOME",
+    var guildHomeIconUrl: String = "",
     var guildHomeIconPath: String = "textures/ui/home.png",
-    var guildTagIconUrl: String = "https://via.placeholder.com/64x64/607D8B/FFFFFF?text=TAG",
+    var guildTagIconUrl: String = "",
     var guildTagIconPath: String = "textures/ui/tag.png",
 
     // Action-specific images
-    var confirmIconUrl: String = "https://via.placeholder.com/64x64/4CAF50/FFFFFF?text=CONFIRM",
+    var confirmIconUrl: String = "",
     var confirmIconPath: String = "textures/ui/confirm.png",
-    var cancelIconUrl: String = "https://via.placeholder.com/64x64/F44336/FFFFFF?text=CANCEL",
+    var cancelIconUrl: String = "",
     var cancelIconPath: String = "textures/ui/cancel.png",
-    var backIconUrl: String = "https://via.placeholder.com/64x64/757575/FFFFFF?text=BACK",
+    var backIconUrl: String = "",
     var backIconPath: String = "textures/ui/back.png",
-    var closeIconUrl: String = "https://via.placeholder.com/64x64/000000/FFFFFF?text=CLOSE",
+    var closeIconUrl: String = "",
     var closeIconPath: String = "textures/ui/close.png",
-    var editIconUrl: String = "https://via.placeholder.com/64x64/FF9800/FFFFFF?text=EDIT",
+    var editIconUrl: String = "",
     var editIconPath: String = "textures/ui/edit.png",
-    var deleteIconUrl: String = "https://via.placeholder.com/64x64/F44336/FFFFFF?text=DELETE",
+    var deleteIconUrl: String = "",
     var deleteIconPath: String = "textures/ui/delete.png",
 
     // Debug and logging

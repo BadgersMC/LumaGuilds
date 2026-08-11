@@ -13,7 +13,6 @@ import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
 import net.lumalyte.lg.interaction.commands.*
 import net.lumalyte.lg.interaction.commands.LumaGuildsCommand
-import net.lumalyte.lg.application.services.FileExportManager
 import net.lumalyte.lg.interaction.listeners.*
 import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
 import kotlinx.coroutines.CoroutineScope
@@ -161,9 +160,6 @@ class LumaGuilds : JavaPlugin() {
 
         registerNonClaimCommands()
         registerNonClaimEvents(claimsEnabled)
-
-        // Initialize file export cleanup
-        get().get<FileExportManager>().cleanupOldFiles()
 
         // Repair Guild.level drift from XP (one-shot at startup; cheap if already in sync).
         try {

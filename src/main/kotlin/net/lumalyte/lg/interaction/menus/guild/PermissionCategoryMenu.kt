@@ -301,7 +301,6 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             RankPermission.DEPOSIT_TO_BANK -> "§7Add money to the guild bank"
             RankPermission.WITHDRAW_FROM_BANK -> "§7Take money from guild bank"
             RankPermission.VIEW_BANK_TRANSACTIONS -> "§7View bank transaction history"
-            RankPermission.EXPORT_BANK_DATA -> "§7Export bank data as CSV files"
             RankPermission.MANAGE_BANK_SETTINGS -> "§7Configure bank settings and fees"
             RankPermission.PLACE_VAULT -> "§7Place the physical guild vault chest"
             RankPermission.ACCESS_VAULT -> "§7Open and view vault contents"

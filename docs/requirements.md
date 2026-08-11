@@ -129,9 +129,9 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 > Audit M6: `MenuItemConfig.kt:338` parses it; menu builders never apply it.
 
 ### REQ-023
-**Event-driven.** WHEN `discord_csv_delivery` is disabled THEN THE SYSTEM SHALL NOT run CSV delivery even when a webhook URL is configured.
+**Ubiquitous.** THE SYSTEM SHALL NOT ship the CSV export feature: `DiscordCsvService`, `FileExportManager`, `CsvExportService`, the `/bellclaims download|exports|cancel` commands, the bank-history / member-contributions menu export buttons, the `EXPORT_BANK_DATA` rank permission, and the `discord_webhook_url` / `discord_csv_delivery` config keys SHALL be removed.
 
-> Audit M7: `ConfigServiceBukkit.kt:276` loads the flag, nothing ever reads it.
+> Decision flag (2026-08-10): Badger chose full removal over gating delivery on `discord_csv_delivery`. Removal also eliminates the audit M-finding (hardcoded `i.imgur.com/placeholder.png` avatar in `DiscordCsvService.kt:255`) and the dead `temp_exports` book-download path in `LumaGuildsCommand`.
 
 ### REQ-024
 **Event-driven.** WHEN a war is declared THEN THE SYSTEM SHALL run the accept/decline declaration flow instead of auto-accepting immediately.
@@ -155,9 +155,9 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 > Audit M11: dead field in GuildConfig, never loaded nor consumed. Related to REQ-007.
 
 ### REQ-028
-**Ubiquitous.** THE SYSTEM SHALL NOT hardcode the Discord CSV avatar URL — it SHALL be configurable.
+**Ubiquitous.** THE SYSTEM SHALL NOT ship a Discord CSV avatar URL configuration.
 
-> Audit M12: `DiscordCsvService.kt:255` hardcodes `https://i.imgur.com/placeholder.png`.
+> **SUPERSEDED by REQ-023** (2026-08-10): the entire CSV export feature — including `DiscordCsvService` and its hardcoded avatar — was removed. This requirement is obsolete; retained only as an audit trail (originally Audit M12: `DiscordCsvService.kt:255` hardcoded `https://i.imgur.com/placeholder.png`).
 
 ### REQ-029
 **Ubiquitous.** THE SYSTEM SHALL ship `parties_enabled` in the shipped `config.yml` defaults.
