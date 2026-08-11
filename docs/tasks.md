@@ -148,21 +148,21 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-5 — Claims, peaceful mode & vault (Section B residuals)
 
-- [ ] **LG-501** Enforce peaceful-mode flags: claim PVP disabled, war declarations blocked
+- [x] **LG-501** Enforce peaceful-mode flags: claim PVP disabled (war declarations left as-is per operator decision)
   - Tag: `TDD`
   - References: REQ-007
-  - Evidence:
-  - Files: claim PVP listener, war service
-- [ ] **LG-502** Vault placement validates against claims when claims are enabled
+  - Evidence: `ModeServiceBukkit.isPvpAllowedInTerritory` now gates the peaceful-territory block on `guild.peaceful_mode_claim_pvp_disabled`; new `ClaimPvpProtectionListener` (registered in `registerClaimEvents`, i.e. only when claims are enabled) resolves the victim's claim via `GetClaimAtPosition` and enforces `CombatService.canAttack` for guild-owned claims. Verified by `PeacefulModeEnforcementTest` (territory block on/off). Note: `peaceful_mode_prevent_wars` intentionally NOT enforced — operator chose to leave war behavior unchanged.
+  - Files: `ModeServiceBukkit.kt`, `ClaimPvpProtectionListener.kt`, `LumaGuilds.kt`
+- [x] **LG-502** Vault placement validates against claims when claims are enabled
   - Tag: `TDD`
   - References: REQ-015
-  - Evidence:
-  - Files: `GuildVaultServiceBukkit.kt:273-276`, claim domain
-- [ ] **LG-503** Load and consume `peacefulGuildPvpOptIn` per guild
+  - Evidence: `GuildVaultServiceBukkit.isValidVaultLocation` now requires the location to be inside the guild's own claim (`claim.teamId == guild.id`) whenever `claims_enabled` is true; claims-disabled behavior unchanged (places anywhere). `GetClaimAtPosition` injected via constructor + DI. Verified by `PeacefulModeEnforcementTest` (4 vault cases: claims-off, no claim, other guild's claim, own claim).
+  - Files: `GuildVaultServiceBukkit.kt:273-276`, `Modules.kt`
+- [x] **LG-503** Load and consume `peacefulGuildPvpOptIn` per guild
   - Tag: `TDD`
   - References: REQ-027
-  - Evidence:
-  - Files: GuildConfig, peaceful-mode service
+  - Evidence: `peaceful_guild_pvp_opt_in` now loaded in `loadGuildConfig` (was dead field); `ModeServiceBukkit.isPvpAllowed` consumes it — peaceful guilds are PvP-blocked by default, but when the opt-in is true their members can fight. Verified by `PeacefulModeEnforcementTest` (opt-in off blocks, opt-in on allows).
+  - Files: `ConfigServiceBukkit.kt`, `ModeServiceBukkit.kt`
 
 ---
 

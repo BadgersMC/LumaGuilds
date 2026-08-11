@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.CombatService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ModeService
 import net.lumalyte.lg.application.services.RelationService
@@ -12,7 +13,8 @@ import java.util.UUID
 class CombatServiceBukkit(
     private val modeService: ModeService,
     private val memberService: MemberService,
-    private val relationService: RelationService
+    private val relationService: RelationService,
+    private val configService: ConfigService
 ) : CombatService {
 
     private val logger = LoggerFactory.getLogger(CombatServiceBukkit::class.java)
@@ -67,18 +69,21 @@ class CombatServiceBukkit(
             }
         }
 
-        // Check peaceful mode restrictions
-        for (attackerGuildId in attackerGuilds) {
-            val attackerMode = modeService.getGuildMode(attackerGuildId)
-            if (attackerMode == net.lumalyte.lg.domain.entities.GuildMode.PEACEFUL) {
-                return "Your guild is in Peaceful mode"
+        // Check peaceful mode restrictions (REQ-027: opt-in disables the block)
+        val guildPolicy = configService.loadConfig().guild
+        if (!guildPolicy.peacefulGuildPvpOptIn) {
+            for (attackerGuildId in attackerGuilds) {
+                val attackerMode = modeService.getGuildMode(attackerGuildId)
+                if (attackerMode == net.lumalyte.lg.domain.entities.GuildMode.PEACEFUL) {
+                    return "Your guild is in Peaceful mode"
+                }
             }
-        }
 
-        for (victimGuildId in victimGuilds) {
-            val victimMode = modeService.getGuildMode(victimGuildId)
-            if (victimMode == net.lumalyte.lg.domain.entities.GuildMode.PEACEFUL) {
-                return "Target's guild is in Peaceful mode"
+            for (victimGuildId in victimGuilds) {
+                val victimMode = modeService.getGuildMode(victimGuildId)
+                if (victimMode == net.lumalyte.lg.domain.entities.GuildMode.PEACEFUL) {
+                    return "Target's guild is in Peaceful mode"
+                }
             }
         }
 
@@ -98,8 +103,11 @@ class CombatServiceBukkit(
     override fun getTerritoryPvpBlockReason(playerId: UUID, territoryGuildId: UUID): String? {
         val territoryMode = modeService.getGuildMode(territoryGuildId)
 
-        // Check territory peaceful mode
-        if (territoryMode == net.lumalyte.lg.domain.entities.GuildMode.PEACEFUL) {
+        // Check territory peaceful mode (REQ-007: claim PvP disabled flag gates it)
+        val guildPolicy = configService.loadConfig().guild
+        if (territoryMode == net.lumalyte.lg.domain.entities.GuildMode.PEACEFUL &&
+            guildPolicy.peacefulModeClaimPvpDisabled
+        ) {
             return "Cannot PvP in Peaceful guild territory"
         }
 

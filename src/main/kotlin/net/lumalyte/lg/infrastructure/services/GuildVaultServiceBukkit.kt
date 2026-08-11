@@ -39,7 +39,8 @@ class GuildVaultServiceBukkit(
     private val configService: ConfigService,
     private val vaultInventoryManager: VaultInventoryManager,
     private val hologramService: VaultHologramService,
-    private val rankService: RankService
+    private val rankService: RankService,
+    private val getClaimAtPosition: net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 ) : GuildVaultService {
 
     private val logger = LoggerFactory.getLogger(GuildVaultServiceBukkit::class.java)
@@ -270,10 +271,27 @@ class GuildVaultServiceBukkit(
             return VaultResult.Success(true)
         }
 
-        // TODO: Add claim validation when claims are enabled
-        // When claims are enabled, validate that the location is within a guild claim
-        // For now, allow placement anywhere even when claims are enabled
-        logger.debug("Claims enabled but validation not yet implemented - allowing vault placement")
+        // REQ-015: when claims are enabled, the vault must be placed inside the
+        // guild's own claim (same rule as guild homes — see GuildCommand).
+        val claimResult = getClaimAtPosition.execute(
+            world.uid,
+            net.lumalyte.lg.domain.values.Position2D(location.blockX, location.blockZ)
+        )
+        val claim = when (claimResult) {
+            is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.Success -> claimResult.claim
+            else -> {
+                logger.debug("Vault placement rejected - location is not inside a claim")
+                return VaultResult.Failure("Vault must be placed inside a guild claim")
+            }
+        }
+
+        if (claim.teamId != guild.id) {
+            logger.debug(
+                "Vault placement rejected - claim owned by ${claim.teamId}, guild is ${guild.id}"
+            )
+            return VaultResult.Failure("Vault must be placed inside your guild's own claim")
+        }
+
         return VaultResult.Success(true)
     }
 
