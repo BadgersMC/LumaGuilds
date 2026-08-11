@@ -321,7 +321,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-048
   - Evidence:
   - Files: config section, `NexoEmojiService` (↳ LG-902 reflection cleanup)
-  - Notes: lifecycle reconciliation — revoke on config-removal, guild rename/disband, and member leave; tests cover grant, revoke, rename, and config-removal
+  - Notes: lifecycle reconciliation — revoke on config-removal, guild rename/disband, member leave, and mapping change (A→B revokes A, grants B); tests cover grant, revoke, rename, config-removal, and value replacement
 
 ## PR-12 — Backlog: progression & economy (operator, Fain)
 
@@ -330,7 +330,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-049
   - Evidence:
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
-  - Notes: deterministic acceptance tests — per-source caps, no-AFK-farm proof per source, XP/hour monotonicity across level bands
+  - Notes: deterministic acceptance tests — per-source caps, no-AFK-farm proof per source, XP/hour flat-or-decreasing across level bands (anti-stunting; must NOT rise with level)
 - [ ] **LG-1202** Comprehensive 0–200 reward tier list — documented per-level rewards incl. new level-100+ perks
   - Tag: `DOC`
   - References: REQ-050
@@ -351,12 +351,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-053
   - Evidence:
   - Files: XP deduction path, war-end hooks (↳ PR-4)
-- [ ] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`), level grants capacity only
+- [ ] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`), level grants capacity only; level-loss keeps paid homes, blocks new activations until capacity restored
   - Tag: `TDD`
   - References: REQ-054
   - Evidence:
-  - Files: creation flow, home activation flow, gold economy
-- [ ] **LG-1207** 15-day guild-creation cooldown for create-then-delete spam
+  - Files: creation flow, home activation flow, gold economy, level-loss reconciliation
+- [ ] **LG-1207** Guild-creation cooldown — 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
   - Tag: `TDD`
   - References: REQ-055
   - Evidence:
@@ -369,11 +369,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 
-- [ ] **LG-1301** War system overhaul — accurate kill tracking, kills impact gameplay (residual gaps after PR-4)
+- [ ] **LG-1301** War system overhaul — accurate kill tracking with measurable gameplay impact: per-guild war kill counter (opposing-guild kills only, persisted, reset on war end) driving resolution at `war_kill_win_target` (default 25), surfaced in `/g info` + war menus
   - Tag: `TDD`
   - References: REQ-057
   - Evidence:
-  - Files: war services (↳ PR-4 LG-401..405)
+  - Files: war services (↳ PR-4 LG-401..405), kill counter persistence, win-by-kills resolution
 - [ ] **LG-1302** World War — configurable secret predicate triggers a server-wide World War (idempotent, cooldown-gated, debug-force override)
   - Tag: `TDD`
   - References: REQ-058
@@ -389,6 +389,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-060
   - Evidence:
   - Files: declaration alert, unread-notice store + login replay, end-of-war broadcast (↳ PR-4)
+  - Notes: replay must transition the notice to read/acknowledged — acceptance test proves a notice replays once and is cleared, never re-replaying on subsequent logins
 - [ ] **LG-1305** Customizable war win conditions — unique kill counts, ransoms, death-duel "Champion" mode, high-stakes XP boost/deduction
   - Tag: `TDD`
   - References: REQ-061
@@ -430,11 +431,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-067
   - Evidence:
   - Files: banner update scheduler, leaderboard hook
-- [ ] **LG-1503** Guild list GUI & leaderboards — all guilds, paged (18/page), 4 deterministic sort modes (all-time active, weekly active weighted by unique PvP kills, level low→high, creation old→new, ties → name → creation)
+- [ ] **LG-1503** Guild list GUI & leaderboards — all guilds, paged at the service boundary, 4 deterministic sort modes (all-time active, weekly active weighted by unique PvP kills, level low→high, creation old→new, ties → name → creation)
   - Tag: `TDD`
   - References: REQ-068
   - Evidence:
-  - Files: guild list menu, paged retrieval, sort providers
+  - Files: guild list menu, paged lookup action (page/pageSize/sortKey/ascending + total count — NOT `GuildLookup.getAllGuilds()`), sort providers
+  - Notes: page size from `guild_list.page_size` (default 18); prev/next page buttons with acceptance evidence; tie-break rules stable across refreshes
 - [ ] **LG-1504** Guild banners in list — physical banner shown per guild, plain white default when unset
   - Tag: `TDD`
   - References: REQ-069
