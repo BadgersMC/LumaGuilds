@@ -141,7 +141,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-405** War declaration escrow withdraw completed in the war service
   - Tag: `TDD`
   - References: REQ-039
-  - Evidence: Escrow is now entirely service-side — `createWager` (in `WarServiceBukkit`) deducts both guilds on acceptance; the declaration menus no longer move bank funds (removed menu-side `bankService.withdraw` + `refundWager()`). Defending-guild wager match still via `createWager` after `acceptWarDeclaration`.
+  - Evidence: `acceptWarDeclaration` now escrows via `createWager` internally (both guilds deducted, `WarServiceBukkit.kt:145-155`). Declaration + acceptance menus (Java + Bedrock) no longer move bank funds — removed menu-side `bankService.withdraw` (was double-charging the defending guild) and dead `refundWager()`. Escrow verified by `WarConfigEnforcementTest` (`wager is escrowed on acceptance`).
   - Files: `GuildWarDeclarationMenu.kt:527`, war escrow service
 
 ---

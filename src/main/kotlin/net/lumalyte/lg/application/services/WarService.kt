@@ -11,28 +11,8 @@ import java.util.UUID
 interface WarService {
 
     /**
-     * Declares war on another guild.
-     *
-     * REQ-024: this creates a PENDING war declaration requiring the defending
-     * guild's accept/decline — it no longer auto-accepts into an active war.
-     *
-     * @param declaringGuildId The ID of the declaring guild.
-     * @param defendingGuildId The ID of the defending guild.
-     * @param duration The duration of the war.
-     * @param objectives The war objectives.
-     * @param actorId The ID of the player declaring war.
-     * @return The war declaration if successful, null otherwise.
-     */
-    fun declareWar(
-        declaringGuildId: UUID,
-        defendingGuildId: UUID,
-        duration: Duration = Duration.ofDays(7),
-        objectives: Set<WarObjective> = emptySet(),
-        actorId: UUID
-    ): WarDeclaration?
-
-    /**
-     * Creates a pending war declaration (explicit wager/terms variant).
+     * Creates a pending war declaration (REQ-024: no auto-accept — the defending
+     * guild must accept or decline before a war starts).
      *
      * @return The created declaration, or null if one already exists between the guilds.
      */
@@ -235,6 +215,19 @@ interface WarService {
      * @return The wager if found, null otherwise.
      */
     fun getWager(warId: UUID): WarWager?
+
+    /**
+     * Records a war kill for anti-farming enforcement (REQ-008) and returns
+     * whether the kill exceeds the per-victim limit within the cooldown window.
+     * When true, callers should suppress XP/rewards for that kill.
+     */
+    fun recordWarKillAndCheckFarming(killerId: UUID, victimId: UUID): Boolean
+
+    /**
+     * Awards the configured `combat.kill_experience` (REQ-008) to the killer's
+     * guild for a war kill. Best-effort; progression failures are logged.
+     */
+    fun awardWarKillExperience(killerGuildId: UUID)
 
     /**
      * Gets war history for a guild.

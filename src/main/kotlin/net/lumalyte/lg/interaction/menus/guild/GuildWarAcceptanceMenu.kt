@@ -186,7 +186,9 @@ class GuildWarAcceptanceMenu(
 
     private fun acceptWarDeclaration() {
         try {
-            // Handle wager matching if there's a wager
+            // REQ-039: escrow happens in the war service (acceptWarDeclaration →
+            // createWager deducts both guilds). The menu only pre-checks funds for
+            // a friendly error; it must NOT withdraw or create the wager itself.
             if (warDeclaration.wagerAmount > 0) {
                 // Refresh guild data to get current bank balance
                 guild = guildService.getGuild(guild.id) ?: run {
@@ -211,45 +213,18 @@ class GuildWarAcceptanceMenu(
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
-
-                // Get declaring guild info for description
-                val declaringGuild = guildService.getGuild(warDeclaration.declaringGuildId)
-                val declaringGuildName = declaringGuild?.name ?: "Unknown"
-
-                // Withdraw matching wager amount from defending guild's bank
-                val withdrawal = bankService.withdraw(
-                    guildId = guild.id,
-                    playerId = player.uniqueId,
-                    amount = warDeclaration.wagerAmount,
-                    description = "War wager match vs $declaringGuildName"
-                )
-
-                if (withdrawal == null) {
-                    player.sendMessage("§c❌ Failed to withdraw wager funds from guild bank!")
-                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                    return
-                }
             }
 
             val war = warService.acceptWarDeclaration(warDeclaration.id, player.uniqueId)
             if (war != null) {
-                // Create wager if both guilds put up funds
+                player.sendMessage("§a⚔ War accepted! Battle begins now!")
                 if (warDeclaration.wagerAmount > 0) {
-                    val wager = warService.createWager(
-                        warId = war.id,
-                        declaringGuildWager = warDeclaration.wagerAmount,
-                        defendingGuildWager = warDeclaration.wagerAmount
-                    )
-
+                    val wager = warService.getWager(war.id)
                     if (wager != null) {
-                        player.sendMessage("§a⚔ War accepted! Battle begins now!")
                         player.sendMessage("§6💰 War pot: ${wager.totalPot} gold (winner takes all!)")
                     } else {
-                        player.sendMessage("§a⚔ War accepted! Battle begins now!")
                         player.sendMessage("§e⚠ Warning: Failed to create wager escrow")
                     }
-                } else {
-                    player.sendMessage("§a⚔ War accepted! Battle begins now!")
                 }
 
                 player.sendMessage("§7Duration: §f${war.duration.toDays()} days")

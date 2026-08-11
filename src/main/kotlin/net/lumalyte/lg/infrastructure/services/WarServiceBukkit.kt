@@ -36,28 +36,8 @@ class WarServiceBukkit(
     private val warFarmingCooldowns = ConcurrentHashMap<UUID, Instant>()
     private val warDeclarationCooldowns = ConcurrentHashMap<UUID, Instant>()
 
-    override fun declareWar(
-        declaringGuildId: UUID,
-        defendingGuildId: UUID,
-        duration: Duration,
-        objectives: Set<WarObjective>,
-        actorId: UUID
-    ): WarDeclaration? {
-        // REQ-024: no auto-accept — a declaration requires the defending guild's
-        // accept/decline. This is exactly the createWarDeclaration flow.
-        return createWarDeclaration(
-            declaringGuildId = declaringGuildId,
-            defendingGuildId = defendingGuildId,
-            duration = duration,
-            objectives = objectives,
-            wagerAmount = 0,
-            terms = null,
-            actorId = actorId
-        )
-    }
-
     /**
-     * Creates a war declaration that requires acceptance
+     * Creates a war declaration that requires acceptance (REQ-024: no auto-accept).
      */
     override fun createWarDeclaration(
         declaringGuildId: UUID,
@@ -142,6 +122,17 @@ class WarServiceBukkit(
             wars[war.id] = war
             warStats[war.id] = WarStats(warId = war.id)
             warDeclarations.remove(declarationId)
+
+            // REQ-039: escrow the wager in the war service. Both guilds are
+            // deducted here (createWager validates funds + holds the pot);
+            // the declaring guild's pledge comes from the declaration, the
+            // defending guild matches it. Menus must NOT move bank funds.
+            if (declaration.wagerAmount > 0) {
+                val wager = createWager(war.id, declaration.wagerAmount, declaration.wagerAmount)
+                if (wager == null) {
+                    logger.warn("War ${war.id} accepted but wager escrow failed (${declaration.wagerAmount} each) — war continues without a pot")
+                }
+            }
 
             logger.info("War accepted and ACTIVE: ${war.id} (${war.declaringGuildId} vs ${war.defendingGuildId})")
             Bukkit.getPluginManager().callEvent(GuildWarDeclaredEvent(war.declaringGuildId, war.defendingGuildId, actorId))
@@ -341,7 +332,13 @@ class WarServiceBukkit(
 
     private fun awardGuildExperience(guildId: UUID, amount: Int) {
         try {
-            val progression = progressionRepository.getGuildProgression(guildId) ?: return
+            val progression = progressionRepository.getGuildProgression(guildId)
+            if (progression == null) {
+                // No progression row yet — cannot award. Log instead of silently
+                // discarding the configured war/kill XP (CodeRabbit: WarServiceBukkit.kt:351).
+                logger.warn("Cannot award $amount XP to guild $guildId — no progression row exists")
+                return
+            }
             progressionRepository.saveGuildProgression(
                 progression.copy(totalExperience = progression.totalExperience + amount)
             )
@@ -353,7 +350,7 @@ class WarServiceBukkit(
     /**
      * Awards the configured kill XP (REQ-008) to the killer's guild for a war kill.
      */
-    fun awardWarKillExperience(killerGuildId: UUID) {
+    override fun awardWarKillExperience(killerGuildId: UUID) {
         val killXp = configService.loadConfig().combat.killExperience
         if (killXp > 0) {
             awardGuildExperience(killerGuildId, killXp)
@@ -367,13 +364,14 @@ class WarServiceBukkit(
      * exceeded the per-victim kill limit within the cooldown window — callers
      * should suppress XP/rewards for such kills.
      */
-    fun recordWarKillAndCheckFarming(killerId: UUID, victimId: UUID): Boolean {
+    override fun recordWarKillAndCheckFarming(killerId: UUID, victimId: UUID): Boolean {
         val combat = configService.loadConfig().combat
         if (combat.killCooldownMinutes <= 0 || combat.samePlayerKillLimit <= 0) {
             // Anti-farming disabled — always allow
             return false
         }
 
+        maybePruneKillTracking()
         val now = Instant.now()
         val cooldownStart = now.minusSeconds(combat.killCooldownMinutes * 60L)
 
@@ -391,13 +389,47 @@ class WarServiceBukkit(
     }
 
     /**
-     * Checks whether a guild is at or above the configured max simultaneous wars (REQ-008).
+     * Bounds `killTracking` on a long-running server: once the map exceeds a
+     * sane size, prune entries whose cooldown window has elapsed.
+     */
+    private fun maybePruneKillTracking() {
+        if (killTracking.size > MAX_TRACKED_KILLERS) {
+            pruneKillTracking()
+        }
+    }
+
+    /**
+     * Prunes empty killer/victim entries so `killTracking` stays bounded on a
+     * long-running server (REQ-008 anti-farming state). Call whenever a cooldown
+     * window has fully elapsed for a pair.
+     */
+    fun pruneKillTracking(now: Instant = Instant.now()) {
+        val combat = configService.loadConfig().combat
+        if (combat.killCooldownMinutes <= 0) return
+        val cooldownStart = now.minusSeconds(combat.killCooldownMinutes * 60L)
+
+        killTracking.forEach { (killerId, byVictim) ->
+            byVictim.forEach { (victimId, kills) ->
+                synchronized(kills) {
+                    kills.removeAll { it.isBefore(cooldownStart) }
+                    if (kills.isEmpty()) byVictim.remove(victimId)
+                }
+            }
+            if (byVictim.isEmpty()) killTracking.remove(killerId)
+        }
+    }
+
+    /**
+     * Checks whether a guild is at or above the configured max simultaneous wars
+     * (REQ-008), refined upward by progression war slots — consistent with the
+     * check in `createWarDeclaration`.
      */
     override fun canGuildDeclareWar(guildId: UUID): Boolean {
         val activeWars = wars.values.filter {
             it.isActive && (it.declaringGuildId == guildId || it.defendingGuildId == guildId)
         }.size
-        return activeWars < configService.loadConfig().combat.maxSimultaneousWars
+        val maxWars = maxWarsForGuild(guildId, configService.loadConfig().combat.maxSimultaneousWars)
+        return activeWars < maxWars
     }
 
     override fun canPlayerManageWars(playerId: UUID, guildId: UUID): Boolean {
@@ -851,6 +883,9 @@ class WarServiceBukkit(
     }
 
     companion object {
+        /** Anti-farming tracking bound: prune once this many killers are tracked. */
+        private const val MAX_TRACKED_KILLERS = 10_000
+
         /**
          * REQ-008: caps a requested war duration at `combat.war_duration_hours`.
          */

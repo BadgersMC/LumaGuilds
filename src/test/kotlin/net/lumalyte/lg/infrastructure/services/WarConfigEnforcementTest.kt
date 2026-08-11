@@ -2,11 +2,10 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.config.CombatConfig
 import net.lumalyte.lg.config.LevelRewardConfig
 import net.lumalyte.lg.config.MainConfig
-import net.lumalyte.lg.domain.entities.War
+import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.entities.WarStatus
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,17 +18,18 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import io.mockk.verify
 import org.bukkit.Bukkit
 import java.time.Duration
-import java.time.Instant
 import java.util.UUID
 
 /**
  * REQ-008: the combat configuration must actually be enforced —
  * `war_duration_hours` caps declared war length, `max_simultaneous_wars`
  * (refined by progression) limits concurrent wars, `war_end_grace_period_minutes`
- * delays force-end, and `kill_cooldown_minutes` + `same_player_kill_limit`
- * suppress farmed-kill XP.
+ * delays force-end, `kill_cooldown_minutes` + `same_player_kill_limit` suppress
+ * farmed-kill XP, and win/lose/kill XP is awarded. REQ-024: declarations require
+ * accept/decline. REQ-039: wagers are escrowed on acceptance.
  */
 class WarConfigEnforcementTest {
 
@@ -106,15 +106,23 @@ class WarConfigEnforcementTest {
     }
 
     @Test
-    fun `declareWar creates a pending declaration, not an active war`() {
+    fun `createWarDeclaration creates a pending declaration, not an active war`() {
         val service = newService(mockk())
 
         val declaring = UUID.randomUUID()
         val defending = UUID.randomUUID()
 
-        val declaration = service.declareWar(declaring, defending, Duration.ofDays(7), emptySet(), UUID.randomUUID())
+        val declaration = service.createWarDeclaration(
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = Duration.ofDays(7),
+            objectives = emptySet(),
+            wagerAmount = 0,
+            terms = null,
+            actorId = UUID.randomUUID()
+        )
 
-        assertNotNull(declaration, "declareWar must create a declaration (REQ-024)")
+        assertNotNull(declaration, "declaration must be created (REQ-024)")
         assertEquals(declaring, declaration!!.declaringGuildId)
         assertEquals(defending, declaration.defendingGuildId)
         assertNull(service.getCurrentWarBetweenGuilds(declaring, defending), "no active war may exist before acceptance")
@@ -196,11 +204,130 @@ class WarConfigEnforcementTest {
     }
 
     @Test
-    fun `farming detection is per victim - different victims are not flagged`() {
+    fun `farming detection is per victim - same killer different victims are not flagged`() {
         val service = newServiceWithCombat(CombatConfig(killCooldownMinutes = 5, samePlayerKillLimit = 1))
 
-        assertFalse(service.recordWarKillAndCheckFarming(UUID.randomUUID(), UUID.randomUUID()))
-        assertFalse(service.recordWarKillAndCheckFarming(UUID.randomUUID(), UUID.randomUUID()))
+        val killer = UUID.randomUUID()
+        val victimA = UUID.randomUUID()
+        val victimB = UUID.randomUUID()
+
+        // Each victim is a distinct key: killing A then B must not flag, even
+        // though the same killer exceeds the limit for A.
+        assertFalse(service.recordWarKillAndCheckFarming(killer, victimA))
+        assertFalse(service.recordWarKillAndCheckFarming(killer, victimB))
+        // Killing A again (limit 1) IS farming for that victim
+        assertTrue(service.recordWarKillAndCheckFarming(killer, victimA))
+    }
+
+    // ---------- grace period + XP + escrow (REQ-008 / REQ-039) ----------
+
+    @Test
+    fun `war is force-ended only after duration plus grace period`() {
+        mockBukkitPluginManager()
+        val service = newService(mockk())
+
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        // Accept a war with a tiny duration: with the 30-min default grace it
+        // cannot be expired immediately regardless of wall-clock drift.
+        val declaration = service.createWarDeclaration(
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = Duration.ofSeconds(1),
+            objectives = emptySet(),
+            wagerAmount = 0,
+            terms = null,
+            actorId = UUID.randomUUID()
+        )!!
+        val accepted = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+        // War has started; with grace 30min and duration 1s it cannot be expired
+        // immediately regardless of wall-clock drift in the test.
+        val processed = service.processExpiredWars()
+        assertEquals(0, processed, "war inside grace period must not be force-ended")
+        assertNotNull(service.getWar(accepted.id))
+    }
+
+    @Test
+    fun `win and lose XP are awarded to both guilds on war end`() {
+        val progressionRepo = mockk<ProgressionRepository>(relaxed = true)
+        val configService = mockk<ConfigService>()
+        val config = mockk<MainConfig>()
+        every { config.combat } returns CombatConfig(warWinExperience = 500, warLoseExperience = 100)
+        every { configService.loadConfig() } returns config
+
+        val winnerProgression = GuildProgression(guildId = UUID.randomUUID(), currentLevel = 1, totalExperience = 0)
+        val loserProgression = GuildProgression(guildId = UUID.randomUUID(), currentLevel = 1, totalExperience = 0)
+        every { progressionRepo.getGuildProgression(winnerProgression.guildId) } returns winnerProgression
+        every { progressionRepo.getGuildProgression(loserProgression.guildId) } returns loserProgression
+
+        val service = WarServiceBukkit(
+            configService = configService,
+            bankService = mockk(relaxed = true),
+            progressionRepository = progressionRepo,
+            progressionConfigService = mockk(relaxed = true)
+        )
+        mockBukkitPluginManager()
+
+        val declaration = service.createWarDeclaration(
+            declaringGuildId = winnerProgression.guildId,
+            defendingGuildId = loserProgression.guildId,
+            duration = Duration.ofDays(7),
+            objectives = emptySet(),
+            wagerAmount = 0,
+            terms = null,
+            actorId = UUID.randomUUID()
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+
+        service.endWar(war.id, winnerProgression.guildId, actorId = UUID.randomUUID())
+
+        // 500 to winner, 100 to loser
+        verify { progressionRepo.saveGuildProgression(
+            match { it.guildId == winnerProgression.guildId && it.totalExperience == 500 }) }
+        verify { progressionRepo.saveGuildProgression(
+            match { it.guildId == loserProgression.guildId && it.totalExperience == 100 }) }
+    }
+
+    @Test
+    fun `wager is escrowed on acceptance - both guilds deducted`() {
+        val bankService = mockk<net.lumalyte.lg.application.services.BankService>(relaxed = true)
+        val configService = mockk<ConfigService>()
+        val config = mockk<MainConfig>()
+        every { config.combat } returns CombatConfig()
+        every { configService.loadConfig() } returns config
+
+        val service = WarServiceBukkit(
+            configService = configService,
+            bankService = bankService,
+            progressionRepository = mockk<ProgressionRepository>(relaxed = true),
+            progressionConfigService = mockk(relaxed = true)
+        )
+        mockBukkitPluginManager()
+
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        every { bankService.getBalance(any()) } returns 10_000
+        // Relaxed mock would return false for Boolean — stubbing success so the
+        // escrow deduction path proceeds.
+        every { bankService.deductFromGuildBank(any(), any(), any()) } returns true
+        every { bankService.creditToGuildBank(any(), any(), any()) } returns true
+
+        val declaration = service.createWarDeclaration(
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = Duration.ofDays(7),
+            objectives = emptySet(),
+            wagerAmount = 500,
+            terms = null,
+            actorId = UUID.randomUUID()
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+
+        val wager = service.getWager(war.id)
+        assertNotNull(wager, "wager must be created on acceptance (REQ-039)")
+        assertEquals(1_000, wager!!.totalPot)
+        verify { bankService.deductFromGuildBank(declaring, 500, any()) }
+        verify { bankService.deductFromGuildBank(defending, 500, any()) }
     }
 
     private fun levelReward(warSlots: Int = 0, bankLimit: Int = 0) =

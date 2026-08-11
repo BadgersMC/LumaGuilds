@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
+import org.bukkit.entity.TNTPrimed
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockExplodeEvent
@@ -21,6 +22,11 @@ import org.slf4j.LoggerFactory
  * builds with TNT/end crystals. Combat (entity damage) is unaffected; only
  * terrain griefing via explosions is blocked. When the knob is disabled, war
  * griefing behaves as before.
+ *
+ * Actor attribution: `EntityExplodeEvent` sources are resolved via
+ * `TNTPrimed.source` (the entity that ignited the TNT) when available. When no
+ * player source can be determined, the explosion is NOT attributed to anyone
+ * and block damage proceeds (explicit no-actor policy).
  */
 class CombatAntiGriefListener : Listener, KoinComponent {
 
@@ -32,13 +38,9 @@ class CombatAntiGriefListener : Listener, KoinComponent {
 
     @EventHandler
     fun onEntityExplode(event: EntityExplodeEvent) {
-        val sourcePlayer = event.entity?.let { entity ->
-            when (entity) {
-                is Player -> entity
-                else -> entity.location.world?.getNearbyEntities(entity.location, 3.0, 3.0, 3.0)
-                    ?.filterIsInstance<Player>()?.firstOrNull()
-            }
-        } ?: return
+        // Resolve the actor via explosion ownership (TNTPrimed.source), not proximity.
+        val sourcePlayer = (event.entity as? TNTPrimed)?.source as? Player
+            ?: return // No attributable player actor — explicit no-actor policy
 
         if (shouldBlockGriefing(sourcePlayer, event.blockList())) {
             event.blockList().clear()
@@ -47,17 +49,13 @@ class CombatAntiGriefListener : Listener, KoinComponent {
 
     @EventHandler
     fun onBlockExplode(event: BlockExplodeEvent) {
-        val sourcePlayer = event.block.world.getNearbyEntities(event.block.location, 3.0, 3.0, 3.0)
-            .filterIsInstance<Player>().firstOrNull() ?: return
-
-        if (shouldBlockGriefing(sourcePlayer, event.blockList())) {
-            event.blockList().clear()
-        }
+        // BlockExplodeEvent has no actor metadata — no-actor policy: never block.
+        // Player-caused TNT griefing is already handled by EntityExplodeEvent.
     }
 
     /**
-     * Blocks the explosion's block damage when the flag is on and the nearby
-     * player belongs to a guild currently in an active war.
+     * Blocks the explosion's block damage when the flag is on and the player
+     * belongs to a guild currently in an active war.
      */
     private fun shouldBlockGriefing(player: Player, blocks: List<Block>): Boolean {
         if (blocks.isEmpty()) return false
