@@ -4,9 +4,13 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.Pane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.application.persistence.BankSettingsRepository
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.domain.entities.BankSettings
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.values.LocalizationKeys
+import net.lumalyte.lg.interaction.listeners.ChatInputHandler
+import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
@@ -21,15 +25,17 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 /**
- * Guild Bank Budget Management menu with spending limits and alerts
+ * Guild Bank Budget Management menu with spending limits and alerts (REQ-011)
  */
 class GuildBankBudgetMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild
-) : Menu, KoinComponent {
+) : Menu, KoinComponent, ChatInputHandler {
 
     private val bankService: BankService by inject()
+    private val bankSettingsRepository: BankSettingsRepository by inject()
+    private val chatInputListener: ChatInputListener by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
@@ -39,11 +45,14 @@ class GuildBankBudgetMenu(
     private lateinit var budgetPane: StaticPane
     private lateinit var alertsPane: StaticPane
 
-    // Budget data
+    // Budget data (persisted per guild via BankSettingsRepository)
     private var monthlyBudget: Int = 0
     private var weeklyBudget: Int = 0
     private var dailyBudget: Int = 0
     private var budgetAlerts: MutableList<String> = mutableListOf()
+
+    // Active input mode for chat-based configuration
+    private var inputMode: String? = null
 
     init {
         loadBudgetSettings()
@@ -75,13 +84,13 @@ class GuildBankBudgetMenu(
     }
 
     /**
-     * Load budget settings (placeholder for now)
+     * Load budget settings from the persisted per-guild settings (REQ-011).
      */
     private fun loadBudgetSettings() {
-        // TODO: Load from database/configuration
-        monthlyBudget = 10000
-        weeklyBudget = 2500
-        dailyBudget = 500
+        val settings = bankSettingsRepository.getByGuildId(guild.id) ?: BankSettings(guild.id)
+        monthlyBudget = settings.monthlyBudget
+        weeklyBudget = settings.weeklyBudget
+        dailyBudget = settings.dailyBudget
     }
 
     /**
@@ -184,8 +193,9 @@ class GuildBankBudgetMenu(
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
+            // saveBudgetSettings() reports the upsert result itself — no
+            // unconditional success message here (would contradict a failure).
             saveBudgetSettings()
-            player.sendMessage("§aBudget settings saved!")
         }
         mainPane.addItem(saveGuiItem, 7, 0)
 
@@ -218,8 +228,9 @@ class GuildBankBudgetMenu(
         )
         val monthlyGuiItem = GuiItem(monthlyItem) { event ->
             event.isCancelled = true
-            // TODO: Open amount input for monthly budget
-            player.sendMessage("§eMonthly budget setting coming soon!")
+            inputMode = "monthly"
+            chatInputListener.startInputMode(player, this@GuildBankBudgetMenu)
+            player.sendMessage("§eType the monthly budget amount in coins. Type 'cancel' to abort.")
         }
         budgetPane.addItem(monthlyGuiItem, 0, 0)
 
@@ -235,8 +246,9 @@ class GuildBankBudgetMenu(
         )
         val weeklyGuiItem = GuiItem(weeklyItem) { event ->
             event.isCancelled = true
-            // TODO: Open amount input for weekly budget
-            player.sendMessage("§eWeekly budget setting coming soon!")
+            inputMode = "weekly"
+            chatInputListener.startInputMode(player, this@GuildBankBudgetMenu)
+            player.sendMessage("§eType the weekly budget amount in coins. Type 'cancel' to abort.")
         }
         budgetPane.addItem(weeklyGuiItem, 1, 0)
 
@@ -252,8 +264,9 @@ class GuildBankBudgetMenu(
         )
         val dailyGuiItem = GuiItem(dailyItem) { event ->
             event.isCancelled = true
-            // TODO: Open amount input for daily budget
-            player.sendMessage("§eDaily budget setting coming soon!")
+            inputMode = "daily"
+            chatInputListener.startInputMode(player, this@GuildBankBudgetMenu)
+            player.sendMessage("§eType the daily budget amount in coins. Type 'cancel' to abort.")
         }
         budgetPane.addItem(dailyGuiItem, 2, 0)
 
@@ -373,11 +386,59 @@ class GuildBankBudgetMenu(
     }
 
     /**
-     * Save budget settings
+     * Save budget settings (REQ-011): persists all three limits per guild.
      */
     private fun saveBudgetSettings() {
-        // TODO: Save to database/configuration
-        player.sendMessage("§aBudget settings would be saved to database")
+        val current = bankSettingsRepository.getByGuildId(guild.id) ?: BankSettings(guild.id)
+        val updated = current.copy(
+            monthlyBudget = monthlyBudget,
+            weeklyBudget = weeklyBudget,
+            dailyBudget = dailyBudget
+        )
+        val saved = bankSettingsRepository.upsert(updated)
+        if (saved) {
+            player.sendMessage("§aBudget settings saved!")
+        } else {
+            player.sendMessage("§cFailed to save budget settings.")
+        }
+    }
+
+    // ChatInputHandler interface methods (REQ-011)
+    override fun onChatInput(player: Player, input: String) {
+        // Guard FIRST: if the listener session outlived the menu interaction,
+        // inputMode is null and this is ordinary chat — do not intercept it.
+        val mode = inputMode ?: return
+
+        val amount = input.trim().toIntOrNull()
+        if (amount == null || amount < 0) {
+            player.sendMessage("§cInvalid amount. Enter a whole number of coins (0 or more).")
+            inputMode = null
+            return
+        }
+        when (mode) {
+            "monthly" -> {
+                monthlyBudget = amount
+                player.sendMessage("§aMonthly budget set to $amount coins. Press Save to persist.")
+            }
+            "weekly" -> {
+                weeklyBudget = amount
+                player.sendMessage("§aWeekly budget set to $amount coins. Press Save to persist.")
+            }
+            "daily" -> {
+                dailyBudget = amount
+                player.sendMessage("§aDaily budget set to $amount coins. Press Save to persist.")
+            }
+            else -> return
+        }
+        inputMode = null
+        calculateAlerts()
+        updateBudgetDisplay()
+        gui.update()
+    }
+
+    override fun onCancel(player: Player) {
+        inputMode = null
+        player.sendMessage("§eBudget input cancelled.")
     }
 
     /**

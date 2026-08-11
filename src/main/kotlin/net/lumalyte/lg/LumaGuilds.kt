@@ -49,6 +49,7 @@ class LumaGuilds : JavaPlugin() {
     private lateinit var scheduler: BukkitScheduler
     lateinit var pluginScope: CoroutineScope
     private lateinit var dailyWarCostsScheduler: DailyWarCostsScheduler
+    private lateinit var bankInterestScheduler: net.lumalyte.lg.infrastructure.services.BankInterestScheduler
     private var experienceTransactionCleanupScheduler: net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     private val componentLogger = getComponentLogger()
@@ -174,6 +175,9 @@ class LumaGuilds : JavaPlugin() {
 
         // Initialize daily war costs scheduler
         initDailyWarCostsScheduler()
+
+        // Initialize bank interest scheduler (interest accrual + audit pruning)
+        initBankInterestScheduler()
 
         // Initialize experience transaction cleanup scheduler
         initExperienceTransactionCleanupScheduler()
@@ -1073,6 +1077,21 @@ class LumaGuilds : JavaPlugin() {
     }
 
     /**
+     * Initializes the bank interest scheduler (interest accrual + audit-log pruning).
+     */
+    private fun initBankInterestScheduler() {
+        try {
+            val bankAutomationService = get().get<net.lumalyte.lg.application.services.BankAutomationService>()
+            bankInterestScheduler = net.lumalyte.lg.infrastructure.services.BankInterestScheduler(this, bankAutomationService)
+            bankInterestScheduler.start()
+            logColored("✓ Bank interest scheduler started")
+        } catch (e: Exception) {
+            // Broad exception handling acceptable - scheduler failure shouldn't prevent plugin load
+            logColored("❌ Failed to initialize bank interest scheduler: ${e.message}")
+        }
+    }
+
+    /**
      * Initializes the daily war costs scheduler.
      */
     private fun initDailyWarCostsScheduler() {
@@ -1253,6 +1272,11 @@ class LumaGuilds : JavaPlugin() {
         // Stop the daily war costs scheduler
         if (::dailyWarCostsScheduler.isInitialized) {
             dailyWarCostsScheduler.stopDailyScheduler()
+        }
+
+        // Stop the bank interest scheduler
+        if (::bankInterestScheduler.isInitialized) {
+            bankInterestScheduler.stop()
         }
 
         // Stop the experience transaction cleanup scheduler
