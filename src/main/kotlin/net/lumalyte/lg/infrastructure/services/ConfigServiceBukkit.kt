@@ -98,6 +98,7 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             hostileModeMinimumDays = config.getInt("guild.hostile_mode_minimum_days", 7),
             peacefulModeClaimPvpDisabled = config.getBoolean("guild.peaceful_mode_claim_pvp_disabled", true),
             peacefulModePreventWars = config.getBoolean("guild.peaceful_mode_prevent_wars", true),
+            peacefulGuildPvpOptIn = config.getBoolean("guild.peaceful_guild_pvp_opt_in", false),
             maxCustomRanks = config.getInt("guild.max_custom_ranks", 10),
             maxRankNameLength = config.getInt("guild.max_rank_name_length", 16),
             maxMembersPerGuild = config.getInt("guild.max_members_per_guild", 50),

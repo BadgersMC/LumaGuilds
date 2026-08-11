@@ -600,6 +600,7 @@ fun vaultModule() = module {
             get(),
             get(),
             get(),
+            get(),
             get()
         )
     }
