@@ -161,7 +161,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-503** Load and consume `peacefulGuildPvpOptIn` per guild
   - Tag: `TDD`
   - References: REQ-027
-  - Evidence: `peaceful_guild_pvp_opt_in` now loaded in `loadGuildConfig` (was dead field); `ModeServiceBukkit.isPvpAllowedBetween` consumes it — peaceful guilds are PvP-blocked by default, but when the opt-in is true their members can fight. Verified by `PeacefulModeEnforcementTest` (opt-in off blocks, opt-in on allows).
+  - Evidence: `peaceful_guild_pvp_opt_in` now loaded in `loadGuildConfig` (was dead field); `ModeServiceBukkit.isPvpAllowed` consumes it — peaceful guilds are PvP-blocked by default, but when the opt-in is true their members can fight. Verified by `PeacefulModeEnforcementTest` (opt-in off blocks, opt-in on allows).
   - Files: `ConfigServiceBukkit.kt`, `ModeServiceBukkit.kt`
 
 ---

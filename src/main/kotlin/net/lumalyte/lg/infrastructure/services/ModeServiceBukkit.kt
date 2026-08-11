@@ -103,6 +103,9 @@ class ModeServiceBukkit(
             return true
         }
 
+        // Load the guild policy once per authorization check (REQ-027)
+        val guildPolicy = configService.loadConfig().guild
+
         // Check each guild combination
         for (attackerGuildId in attackerGuilds) {
             for (victimGuildId in victimGuilds) {
@@ -118,8 +121,7 @@ class ModeServiceBukkit(
                 // If either guild is peaceful, PvP is not allowed between their members
                 // (REQ-027: unless peacefulGuildPvpOptIn allows peaceful guilds to opt in)
                 if (attackerMode == GuildMode.PEACEFUL || victimMode == GuildMode.PEACEFUL) {
-                    val peacefulGuildOptIn = configService.loadConfig().guild.peacefulGuildPvpOptIn
-                    if (!peacefulGuildOptIn) {
+                    if (!guildPolicy.peacefulGuildPvpOptIn) {
                         return false
                     }
                 }
@@ -132,12 +134,10 @@ class ModeServiceBukkit(
             }
         }
 
-        // If one player has no guild and the other has a peaceful guild, PvP is not allowed
-        val peacefulGuildOptIn = configService.loadConfig().guild.peacefulGuildPvpOptIn
         for (attackerGuildId in attackerGuilds) {
             if (victimGuilds.isEmpty()) {
                 val attackerMode = getGuildMode(attackerGuildId)
-                if (attackerMode == GuildMode.PEACEFUL && !peacefulGuildOptIn) {
+                if (attackerMode == GuildMode.PEACEFUL && !guildPolicy.peacefulGuildPvpOptIn) {
                     return false
                 }
             }
@@ -146,7 +146,7 @@ class ModeServiceBukkit(
         for (victimGuildId in victimGuilds) {
             if (attackerGuilds.isEmpty()) {
                 val victimMode = getGuildMode(victimGuildId)
-                if (victimMode == GuildMode.PEACEFUL && !peacefulGuildOptIn) {
+                if (victimMode == GuildMode.PEACEFUL && !guildPolicy.peacefulGuildPvpOptIn) {
                     return false
                 }
             }
@@ -158,9 +158,12 @@ class ModeServiceBukkit(
     override fun isPvpAllowedInTerritory(playerId: UUID, territoryGuildId: UUID): Boolean {
         val territoryMode = getGuildMode(territoryGuildId)
 
+        // Load the guild policy once per authorization check (REQ-007)
+        val guildPolicy = configService.loadConfig().guild
+
         // If territory guild is peaceful and claim PvP disabling is enabled,
         // PvP is not allowed in their territory (REQ-007).
-        if (territoryMode == GuildMode.PEACEFUL && configService.loadConfig().guild.peacefulModeClaimPvpDisabled) {
+        if (territoryMode == GuildMode.PEACEFUL && guildPolicy.peacefulModeClaimPvpDisabled) {
             return false
         }
 
