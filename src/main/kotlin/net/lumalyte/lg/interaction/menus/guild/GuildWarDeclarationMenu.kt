@@ -505,132 +505,48 @@ class GuildWarDeclarationMenu(
                 return
             }
 
-            // Handle wager escrow if there's a wager
-            if (wagerAmount > 0) {
-                // Check if guild has sufficient funds
-                val currentBalance = bankService.getBalance(guild.id)
-                if (currentBalance < wagerAmount) {
-                    player.sendMessage("§c❌ Insufficient guild bank funds for wager!")
-                    player.sendMessage("§7Need: §6$wagerAmount coins")
-                    player.sendMessage("§7Have: §6$currentBalance coins")
-                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                    return
+            // REQ-024: no auto-accept — every declaration goes through the
+            // accept/decline flow. REQ-039: escrow is handled by the war service
+            // (createWager deducts both guilds on acceptance); the menu no longer
+            // moves bank funds itself.
+            val declaration = warService.createWarDeclaration(
+                declaringGuildId = guild.id,
+                defendingGuildId = target.id,
+                duration = selectedDuration,
+                objectives = selectedObjectives,
+                wagerAmount = wagerAmount,
+                terms = warTerms,
+                actorId = player.uniqueId
+            )
+
+            if (declaration != null) {
+                player.sendMessage("§6⚔ WAR DECLARATION SENT to ${target.name}!")
+                player.sendMessage("§7Duration: §f${selectedDuration.toDays()} days")
+                if (selectedObjectives.isNotEmpty()) {
+                    player.sendMessage("§7Objectives: §f${selectedObjectives.size} set")
                 }
-
-                // Check withdrawal permissions
-                if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.WITHDRAW_FROM_BANK)) {
-                    player.sendMessage("§c❌ You don't have permission to withdraw from guild bank for wagers!")
-                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                    return
+                if (wagerAmount > 0) {
+                    player.sendMessage("§7Wager: §6$wagerAmount coins §7(escrowed on acceptance)")
                 }
+                player.sendMessage("§7They must accept your declaration for war to begin.")
+                player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
 
-                // Withdraw funds for escrow (this will be implemented in the war service)
-                val withdrawal = bankService.withdraw(
-                    guildId = guild.id,
-                    playerId = player.uniqueId,
-                    amount = wagerAmount,
-                    description = "War wager escrow vs ${target.name}"
-                )
+                // Close menu and return to war management
+                player.closeInventory()
+                menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
 
-                if (withdrawal == null) {
-                    player.sendMessage("§c❌ Failed to secure wager funds!")
-                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                    return
-                }
-            }
-
-            // Check if this should be auto-accepted (hostile guild with no wager)
-            val shouldAutoAccept = target.mode == GuildMode.HOSTILE && wagerAmount == 0
-
-            if (shouldAutoAccept) {
-                // Auto-accept for hostile guilds with no wager
-                val war = warService.declareWar(
-                    declaringGuildId = guild.id,
-                    defendingGuildId = target.id,
-                    duration = selectedDuration,
-                    objectives = selectedObjectives,
-                    actorId = player.uniqueId
-                )
-
-                if (war != null) {
-                    player.sendMessage("§a⚔ WAR STARTED against ${target.name}!")
-                    player.sendMessage("§7Hostile guild auto-accepted - battle begins now!")
-                    player.sendMessage("§7Duration: §f${selectedDuration.toDays()} days")
-                    if (selectedObjectives.isNotEmpty()) {
-                        player.sendMessage("§7Objectives: §f${selectedObjectives.size} set")
-                    }
-                    player.playSound(player.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
-
-                    // Close menu and return to war management
-                    player.closeInventory()
-                    menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
-
-                    // Notify both guilds
-                    notifyGuildsOfWarDeclaration(war)
-                    return
-                } else {
-                    refundWager()
-                    player.sendMessage("§c❌ Failed to declare war!")
-                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                    return
-                }
+                // Notify defending guild of the declaration
+                notifyGuildOfWarDeclaration(declaration)
+                return
             } else {
-                // Create war declaration that requires acceptance (peaceful guilds or wagers)
-                // Cast to access the internal method (this should be added to the interface)
-                val warServiceBukkit = warService as? net.lumalyte.lg.infrastructure.services.WarServiceBukkit
-                val declaration = warServiceBukkit?.createWarDeclaration(
-                    declaringGuildId = guild.id,
-                    defendingGuildId = target.id,
-                    duration = selectedDuration,
-                    objectives = selectedObjectives,
-                    wagerAmount = wagerAmount,
-                    terms = warTerms,
-                    actorId = player.uniqueId
-                )
-
-                if (declaration != null) {
-                    player.sendMessage("§6⚔ WAR DECLARATION SENT to ${target.name}!")
-                    player.sendMessage("§7Duration: §f${selectedDuration.toDays()} days")
-                    if (selectedObjectives.isNotEmpty()) {
-                        player.sendMessage("§7Objectives: §f${selectedObjectives.size} set")
-                    }
-                    if (wagerAmount > 0) {
-                        player.sendMessage("§7Wager: §6$wagerAmount coins §7(awaiting their match)")
-                    }
-                    player.sendMessage("§7They must accept your declaration for war to begin.")
-                    player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
-
-                    // Close menu and return to war management
-                    player.closeInventory()
-                    menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
-
-                    // Notify defending guild of the declaration
-                    notifyGuildOfWarDeclaration(declaration)
-                    return
-                } else {
-                    refundWager()
-                    player.sendMessage("§c❌ Failed to send war declaration!")
-                    player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                    return
-                }
+                player.sendMessage("§c❌ Failed to send war declaration!")
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return
             }
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             player.sendMessage("§c❌ Error declaring war: ${e.message}")
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-
-            refundWager()
-        }
-    }
-
-    private fun refundWager() {
-        if (wagerAmount > 0) {
-            try {
-                bankService.deposit(guild.id, player.uniqueId, wagerAmount, "War wager refund (declaration failed)")
-                player.sendMessage("§7Wager funds have been refunded.")
-            } catch (refundError: Exception) {
-                player.sendMessage("§c❌ Failed to refund wager! Contact an administrator.")
-            }
         }
     }
 
@@ -702,96 +618,6 @@ class GuildWarDeclarationMenu(
             }
         )
         menuNavigator.openMenu(guildListMenu)
-    }
-
-    private fun notifyGuildsOfWarDeclaration(war: War) {
-        try {
-            val declaringGuild = guildService.getGuild(war.declaringGuildId)
-            val defendingGuild = guildService.getGuild(war.defendingGuildId)
-            
-            if (declaringGuild == null || defendingGuild == null) {
-                return
-            }
-
-            // Get all online members of both guilds
-            val declaringMembers = memberService.getGuildMembers(war.declaringGuildId)
-            val defendingMembers = memberService.getGuildMembers(war.defendingGuildId)
-
-            // Notify declaring guild members
-            declaringMembers.forEach { member ->
-                val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
-                if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    // Title and subtitle
-                    onlinePlayer.showTitle(Title.title(
-                        Component.text("§4⚔ WAR DECLARED! ⚔"),
-                        Component.text("§7Against §c${defendingGuild.name}"),
-                        Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(3), JavaDuration.ofSeconds(1))
-                    ))
-                    
-                    // Chat messages
-                    onlinePlayer.sendMessage("§8§l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-                    onlinePlayer.sendMessage("§4⚔ §lWAR DECLARED! §4⚔")
-                    onlinePlayer.sendMessage("")
-                    onlinePlayer.sendMessage("§7Your guild §f${declaringGuild.name} §7has declared war on §c${defendingGuild.name}§7!")
-                    onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
-                    if (war.objectives.isNotEmpty()) {
-                        onlinePlayer.sendMessage("§7Objectives: §f${war.objectives.size} war goals set")
-                    }
-                    if (wagerAmount > 0) {
-                        onlinePlayer.sendMessage("§7Wager: §6$wagerAmount coins §7(escrowed)")
-                    }
-                    onlinePlayer.sendMessage("")
-                    onlinePlayer.sendMessage("§e⚡ Prepare for battle! Victory brings honor and rewards!")
-                    onlinePlayer.sendMessage("§8§l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-                    
-                    // Dramatic sound
-                    onlinePlayer.playSound(onlinePlayer.location, org.bukkit.Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
-                    onlinePlayer.playSound(onlinePlayer.location, org.bukkit.Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.7f, 1.2f)
-                }
-            }
-
-            // Notify defending guild members
-            defendingMembers.forEach { member ->
-                val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
-                if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    // Title and subtitle
-                    onlinePlayer.showTitle(Title.title(
-                        Component.text("§c⚠︎ UNDER ATTACK! ⚠︎"),
-                        Component.text("§7War declared by §4${declaringGuild.name}"),
-                        Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(3), JavaDuration.ofSeconds(1))
-                    ))
-                    
-                    // Chat messages
-                    onlinePlayer.sendMessage("§8§l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-                    onlinePlayer.sendMessage("§c⚠︎ §lWAR DECLARED AGAINST YOU! §c⚠︎")
-                    onlinePlayer.sendMessage("")
-                    onlinePlayer.sendMessage("§c${declaringGuild.name} §7has declared war on your guild §f${defendingGuild.name}§7!")
-                    onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
-                    if (war.objectives.isNotEmpty()) {
-                        onlinePlayer.sendMessage("§7Enemy Objectives: §f${war.objectives.size} goals")
-                    }
-                    if (wagerAmount > 0) {
-                        onlinePlayer.sendMessage("§7Enemy Wager: §6$wagerAmount coins")
-                        onlinePlayer.sendMessage("§7You must match this wager to accept!")
-                    }
-                    onlinePlayer.sendMessage("")
-                    onlinePlayer.sendMessage("§e▊ Defend your guild! Rally your members and fight back!")
-                    onlinePlayer.sendMessage("§7Use §f/guild war §7to manage the conflict")
-                    onlinePlayer.sendMessage("§8§l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-                    
-                    // Alert sounds
-                    onlinePlayer.playSound(onlinePlayer.location, org.bukkit.Sound.BLOCK_BELL_USE, 1.0f, 0.8f)
-                    onlinePlayer.playSound(onlinePlayer.location, org.bukkit.Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.7f, 1.0f)
-                }
-            }
-
-            // Log to console
-            org.bukkit.Bukkit.getLogger().info("WAR DECLARED: ${declaringGuild.name} vs ${defendingGuild.name} (${war.duration.toDays()} days)")
-            
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            org.bukkit.Bukkit.getLogger().warning("Failed to notify guilds of war declaration: ${e.message}")
-        }
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {

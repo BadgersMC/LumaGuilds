@@ -304,7 +304,15 @@ class BedrockGuildWarManagementMenu(
             Duration.ofDays(7)
         }
 
-        val success = warService.declareWar(guild.id, targetGuild.id, duration, emptySet(), player.uniqueId)
+        val success = warService.createWarDeclaration(
+            declaringGuildId = guild.id,
+            defendingGuildId = targetGuild.id,
+            duration = duration,
+            objectives = emptySet(),
+            wagerAmount = 0,
+            terms = null,
+            actorId = player.uniqueId
+        )
         if (success != null) {
             player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.management.declare.war.declared", targetGuild.name))
         } else {
@@ -667,7 +675,9 @@ class BedrockGuildWarManagementMenu(
 
     private fun acceptWarDeclaration(warDeclaration: net.lumalyte.lg.domain.entities.WarDeclaration) {
         try {
-            // Handle wager matching if there's a wager
+            // REQ-039: escrow happens in the war service (acceptWarDeclaration →
+            // createWager deducts both guilds). The menu only pre-checks funds for
+            // a friendly error; it must NOT withdraw or create the wager itself.
             if (warDeclaration.wagerAmount > 0) {
                 // Refresh guild data to get current bank balance
                 val currentGuild = guildService.getGuild(guild.id)
@@ -693,36 +703,12 @@ class BedrockGuildWarManagementMenu(
                     openWarDeclarationsMenu()
                     return
                 }
-
-                // Get declaring guild info for description
-                val declaringGuild = guildService.getGuild(warDeclaration.declaringGuildId)
-                val declaringGuildName = declaringGuild?.name ?: "Unknown"
-
-                // Withdraw matching wager amount from defending guild's bank
-                val withdrawal = bankService.withdraw(
-                    guildId = currentGuild.id,
-                    playerId = player.uniqueId,
-                    amount = warDeclaration.wagerAmount,
-                    description = "War wager match vs $declaringGuildName"
-                )
-
-                if (withdrawal == null) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.failed.withdraw"))
-                    openWarDeclarationsMenu()
-                    return
-                }
             }
 
             val war = warService.acceptWarDeclaration(warDeclaration.id, player.uniqueId)
             if (war != null) {
-                // Create wager if both guilds put up funds
                 if (warDeclaration.wagerAmount > 0) {
-                    val wager = warService.createWager(
-                        warId = war.id,
-                        declaringGuildWager = warDeclaration.wagerAmount,
-                        defendingGuildWager = warDeclaration.wagerAmount
-                    )
-
+                    val wager = warService.getWager(war.id)
                     if (wager != null) {
                         player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.accepted"))
                         player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.pot.total", wager.totalPot))

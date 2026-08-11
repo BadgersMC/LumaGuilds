@@ -178,93 +178,33 @@ class BedrockGuildWarDeclarationMenu(
             return
         }
 
-        // Handle wager escrow if there's a wager
-        if (wagerAmount > 0) {
-            // Check if guild has sufficient funds
-            val guildBalance = bankService.getBalance(guild.id)
-            if (guildBalance < wagerAmount) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.insufficient.funds"))
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.need.amount", wagerAmount))
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.have.amount", guildBalance))
-                bedrockNavigator.goBack()
-                return
+        // REQ-024: no auto-accept — every declaration goes through the accept/decline
+        // flow. REQ-039: escrow is handled by the war service on acceptance; the menu
+        // no longer moves bank funds itself.
+        val declaration = warService.createWarDeclaration(
+            declaringGuildId = guild.id,
+            defendingGuildId = targetGuild.id,
+            duration = duration,
+            objectives = objectives,
+            wagerAmount = wagerAmount,
+            terms = if (terms.isNotBlank()) terms else null,
+            actorId = player.uniqueId
+        )
+
+        if (declaration != null) {
+            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.sent", targetGuild.name))
+            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.duration", duration.toDays()))
+            if (objectives.isNotEmpty()) {
+                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.objectives.set", objectives.size))
             }
-
-            // Check withdrawal permissions
-            if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.WITHDRAW_FROM_BANK)) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.no.permission"))
-                bedrockNavigator.goBack()
-                return
+            if (wagerAmount > 0) {
+                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.display", wagerAmount))
             }
-
-            // Withdraw funds for escrow
-            val withdrawal = bankService.withdraw(
-                guildId = guild.id,
-                playerId = player.uniqueId,
-                amount = wagerAmount,
-                description = "War wager escrow vs ${targetGuild.name}"
-            )
-
-            if (withdrawal == null) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.failed.secure"))
-                bedrockNavigator.goBack()
-                return
-            }
-        }
-
-        // Check if this should be auto-accepted (hostile guild with no wager)
-        val shouldAutoAccept = targetGuild.mode == GuildMode.HOSTILE && wagerAmount == 0
-
-        if (shouldAutoAccept) {
-            // Auto-accept for hostile guilds with no wager
-            val war = warService.declareWar(
-                declaringGuildId = guild.id,
-                defendingGuildId = targetGuild.id,
-                duration = duration,
-                objectives = objectives,
-                actorId = player.uniqueId
-            )
-
-            if (war != null) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.started.auto", targetGuild.name))
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.auto.accepted"))
-                bedrockNavigator.goBack()
-            } else {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declared.failed"))
-                bedrockNavigator.goBack()
-            }
+            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.await.accept"))
+            bedrockNavigator.goBack()
         } else {
-            // Create war declaration that requires acceptance (peaceful guilds or wagers)
-            val warServiceBukkit = warService as? net.lumalyte.lg.infrastructure.services.WarServiceBukkit
-            val declaration = warServiceBukkit?.createWarDeclaration(
-                declaringGuildId = guild.id,
-                defendingGuildId = targetGuild.id,
-                duration = duration,
-                objectives = objectives,
-                wagerAmount = wagerAmount,
-                terms = if (terms.isNotBlank()) terms else null,
-                actorId = player.uniqueId
-            )
-
-            if (declaration != null) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.sent", targetGuild.name))
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.duration", duration.toDays()))
-                if (objectives.isNotEmpty()) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.objectives.set", objectives.size))
-                }
-                if (wagerAmount > 0) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.display", wagerAmount))
-                }
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.await.accept"))
-                bedrockNavigator.goBack()
-            } else {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declared.failed"))
-                // Refund wager if declaration failed
-                if (wagerAmount > 0) {
-                    bankService.deposit(guild.id, player.uniqueId, wagerAmount, "War declaration failed - refund")
-                }
-                bedrockNavigator.goBack()
-            }
+            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declared.failed"))
+            bedrockNavigator.goBack()
         }
     }
 

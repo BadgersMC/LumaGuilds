@@ -965,6 +965,7 @@ class LumaGuilds : JavaPlugin() {
 
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
+        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.CombatAntiGriefListener(), this)
 
         // Close stale guild menus, clean up channels, and despawn bannerman displays when a guild is disbanded
         val guildDisbandedListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener>()
