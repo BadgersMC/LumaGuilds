@@ -321,6 +321,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-048
   - Evidence:
   - Files: config section, `NexoEmojiService` (↳ LG-902 reflection cleanup)
+  - Notes: lifecycle reconciliation — revoke on config-removal, guild rename/disband, and member leave; tests cover grant, revoke, rename, and config-removal
 
 ## PR-12 — Backlog: progression & economy (operator, Fain)
 
@@ -329,12 +330,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-049
   - Evidence:
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
+  - Notes: deterministic acceptance tests — per-source caps, no-AFK-farm proof per source, XP/hour monotonicity across level bands
 - [ ] **LG-1202** Comprehensive 0–200 reward tier list — documented per-level rewards incl. new level-100+ perks
   - Tag: `DOC`
   - References: REQ-050
   - Evidence:
   - Files: docs + reward config/registry
-- [ ] **LG-1203** Extended guild homes at levels 125, 150, 175, 200
+- [ ] **LG-1203** Extended guild home capacity at levels 125, 150, 175, 200 (raises cap; activation still costs gold — see LG-1206)
   - Tag: `TDD`
   - References: REQ-051
   - Evidence:
@@ -349,11 +351,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-053
   - Evidence:
   - Files: XP deduction path, war-end hooks (↳ PR-4)
-- [ ] **LG-1206** Gold costs — raw gold to create guild + unlock homes, scaling with homes unlocked
+- [ ] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`), level grants capacity only
   - Tag: `TDD`
   - References: REQ-054
   - Evidence:
-  - Files: creation flow, home unlock flow, gold economy
+  - Files: creation flow, home activation flow, gold economy
 - [ ] **LG-1207** 15-day guild-creation cooldown for create-then-delete spam
   - Tag: `TDD`
   - References: REQ-055
@@ -372,21 +374,21 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-057
   - Evidence:
   - Files: war services (↳ PR-4 LG-401..405)
-- [ ] **LG-1302** World War — secret requirement triggers a server-wide World War
+- [ ] **LG-1302** World War — configurable secret predicate triggers a server-wide World War (idempotent, cooldown-gated, debug-force override)
   - Tag: `TDD`
   - References: REQ-058
   - Evidence:
-  - Files: trigger detection, war-scaling
+  - Files: trigger detection/evaluation scheduler, war-scaling, config
 - [ ] **LG-1303** War banners — deployable tactical teleport banner: 15 min, destructible, raw-gold cost, 1 active/guild, cooldown, rank-permission gated, broadcast on placement
   - Tag: `TDD`
   - References: REQ-059
   - Evidence:
   - Files: banner entity, placement/break listeners, broadcast
-- [ ] **LG-1304** Better war notifications — prominent declaration alert (offline-safe); public victory/loss broadcasts
+- [ ] **LG-1304** Better war notifications — prominent declaration alert, persisted unread notices replayed on login, victory/loss broadcasts
   - Tag: `TDD`
   - References: REQ-060
   - Evidence:
-  - Files: declaration alert, end-of-war broadcast (↳ PR-4)
+  - Files: declaration alert, unread-notice store + login replay, end-of-war broadcast (↳ PR-4)
 - [ ] **LG-1305** Customizable war win conditions — unique kill counts, ransoms, death-duel "Champion" mode, high-stakes XP boost/deduction
   - Tag: `TDD`
   - References: REQ-061
@@ -399,7 +401,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Tag: `TDD`
   - References: REQ-062
   - Evidence:
-  - Files: join listener, guild notification
+  - Files: `PlayerJoinEvent` handler (pattern: `apollo/GuildTeamListener.onPlayerJoin:26`), guild notification
 - [ ] **LG-1402** Rank prefixes in guild chat — member's rank shown next to name (legacy restore)
   - Tag: `TDD`
   - References: REQ-063
@@ -428,11 +430,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-067
   - Evidence:
   - Files: banner update scheduler, leaderboard hook
-- [ ] **LG-1503** Guild list GUI & leaderboards — all guilds with 4 sort modes (all-time active, weekly active weighted by unique PvP kills, level low→high, creation old→new)
+- [ ] **LG-1503** Guild list GUI & leaderboards — all guilds, paged (18/page), 4 deterministic sort modes (all-time active, weekly active weighted by unique PvP kills, level low→high, creation old→new, ties → name → creation)
   - Tag: `TDD`
   - References: REQ-068
   - Evidence:
-  - Files: guild list menu, sort providers
+  - Files: guild list menu, paged retrieval, sort providers
 - [ ] **LG-1504** Guild banners in list — physical banner shown per guild, plain white default when unset
   - Tag: `TDD`
   - References: REQ-069

@@ -266,16 +266,16 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 **Event-driven.** WHEN a guild has set an emoji THEN THE SYSTEM SHALL allow clearing/removing it (currently impossible once set).
 
 ### REQ-048
-**Conditional.** GIVEN an operator config entry mapping a guild name (string) to an emoji permission, WHEN that guild exists THEN THE SYSTEM SHALL grant all its members the configured Nexo permission (chat + guild-emoji usage).
+**Conditional.** GIVEN an operator config entry mapping a guild name (string) to an emoji permission, WHEN that guild exists THEN THE SYSTEM SHALL grant all its members the configured Nexo permission (chat + guild-emoji usage); WHEN the mapping is removed, the guild is renamed/disbanded, or a member leaves THEN THE SYSTEM SHALL revoke the permission so no guild-scoped Nexo permission outlives its grant.
 
 ### REQ-049
-**State-driven.** THE SYSTEM SHALL overhaul guild XP so that XP accrues from actual activity and AFK farming is eliminated, WITHOUT stunting lower-level guilds.
+**State-driven.** THE SYSTEM SHALL overhaul guild XP so that XP accrues from actual activity and AFK farming is eliminated, WITHOUT stunting lower-level guilds. Acceptance criteria: (a) XP is earned only from explicit activity sources (enumerated per event: kills, PvP, boss kills, brewing, mining/collecting, invites, war wins); (b) each source has a hard per-period cap so idle/loop actions cannot farm it; (c) any source that was previously AFK-farmable is removed or capped; (d) lower-level guilds progress at least as fast per active player-hour as mid-level guilds (measured: XP/hour curve is monotonic non-decreasing per active member).
 
 ### REQ-050
 **Documented.** THE SYSTEM SHALL ship a complete, documented 0–200 reward tier list (what a guild earns at every level), including new perks/rewards specifically for level 100+ guilds.
 
 ### REQ-051
-**Conditional.** GIVEN guild progression, WHEN a guild reaches levels 125, 150, 175, or 200 THEN THE SYSTEM SHALL unlock one additional guild home per threshold.
+**Conditional.** GIVEN guild progression, WHEN a guild reaches levels 125, 150, 175, or 200 THEN THE SYSTEM SHALL unlock one additional guild home *capacity* per threshold — the threshold grants the right to own the home, but activation still costs raw gold (see REQ-054). A level unlock never bypasses the gold cost; it raises the guild's home cap.
 
 ### REQ-052
 **Event-driven.** WHEN an operator enables an "increased XP" period (e.g. double-XP weekend) THEN THE SYSTEM SHALL multiply applicable XP gains for its duration.
@@ -284,7 +284,7 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 **Event-driven.** WHEN a guild loses a war (or other configured stake event) THEN THE SYSTEM SHALL deduct configured XP/levels from that guild.
 
 ### REQ-054
-**Conditional.** GIVEN raw-gold economy, THE SYSTEM SHALL require raw gold to create a guild and to unlock each guild home, with costs scaling higher as more homes are unlocked.
+**Conditional.** GIVEN raw-gold economy, THE SYSTEM SHALL require raw gold to create a guild and to activate each guild home, with costs scaling higher as more homes are unlocked. Cost model (contract): home #1..N costs `baseCost * scale^(n-1)`; the level threshold (REQ-051) grants capacity, the gold payment activates the home; both are required — a level without gold grants nothing, gold without level cannot exceed the cap.
 
 ### REQ-055
 **State-driven.** THE SYSTEM SHALL enforce a 15-day guild-creation cooldown for players who create and immediately delete a guild (anti-spam).
@@ -296,13 +296,13 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 **Event-driven.** WHEN a guild war is active THEN THE SYSTEM SHALL accurately track player kills and make them actually impact gameplay (war system overhaul; residual gaps after PR-4).
 
 ### REQ-058
-**Conditional.** GIVEN a secret server-side condition is met, THEN THE SYSTEM SHALL trigger a massive, server-wide World War involving all guilds.
+**Conditional.** GIVEN a secret server-side predicate is met THEN THE SYSTEM SHALL trigger a massive, server-wide World War involving all guilds. Contract: (a) the predicate is defined in config as an operator-tunable expression with a documented default (initial default: a single guild reaches level 150 or total server guild level sum exceeds a configured threshold); (b) the predicate is evaluated on a fixed interval (config: `world_war.evaluation_interval_minutes`, default 5) and at guild-level-up; (c) the trigger is idempotent — it fires at most once per cooldown period (config: `world_war.cooldown_days`, default 30) and never re-fires while a World War is active; (d) a config/test override flag (`world_war.debug_force`) exists so the trigger can be exercised deterministically in tests.
 
 ### REQ-059
 **Event-driven.** WHEN a guild member places a war banner THEN THE SYSTEM SHALL (a) create a tactical teleport point for guild members bypassing teleport requests/guild-home slots, (b) make it destructible by any player, (c) last 15 minutes, (d) cost raw gold, (e) enforce one active banner per guild + placement cooldown, (f) require a specific guild rank permission, AND (g) broadcast `[Guild Name] has placed down a war banner.`
 
 ### REQ-060
-**Event-driven.** WHEN war is declared on a guild THEN THE SYSTEM SHALL show a prominent in-game alert so offline declarations are not missed; WHEN a war ends THEN THE SYSTEM SHALL broadcast victory/loss messages server-wide.
+**Event-driven.** WHEN war is declared on a guild THEN THE SYSTEM SHALL (a) show a prominent in-game alert to online members, AND (b) persist an unread declaration notice per guild member; WHEN a member who was offline at declaration time logs in THEN THE SYSTEM SHALL replay the pending notice and mark it read/acknowledged; WHEN a war ends THEN THE SYSTEM SHALL broadcast victory/loss messages server-wide.
 
 ### REQ-061
 **Conditional.** GIVEN configurable war win conditions, THE SYSTEM SHALL support (a) required unique opposing-player kill counts (dupes excluded), (b) a ransom fee to surrender/end the war, (c) a "Champion" death-duel mode deciding the outcome, AND (d) XP boost/deduction for winner/loser (high-stakes).
@@ -326,7 +326,7 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 **State-driven.** THE SYSTEM SHALL keep the physical banners at server spawn updated to reflect current top guilds by Guild Level Leaderboard placement.
 
 ### REQ-068
-**Event-driven.** WHEN a player opens the guild list GUI THEN THE SYSTEM SHALL list all server guilds with sort options: All-Time Active, Weekly Active (weighted by unique PvP kills), Guild Level (low→high), and Creation Date (old→new).
+**Event-driven.** WHEN a player opens the guild list GUI THEN THE SYSTEM SHALL list all server guilds with sort options: All-Time Active, Weekly Active (weighted by unique PvP kills), Guild Level (low→high), and Creation Date (old→new). Retrieval contract: results are paged (page size 18, config: `guild_list.page_size`); navigation uses prev/next page buttons; sorting is deterministic — ties break by guild name (case-insensitive), then creation date, so page boundaries are stable across refreshes.
 
 ### REQ-069
 **Conditional.** GIVEN the guild list GUI, THEN THE SYSTEM SHALL display each guild's physical banner, defaulting to a plain white banner when none is set.
