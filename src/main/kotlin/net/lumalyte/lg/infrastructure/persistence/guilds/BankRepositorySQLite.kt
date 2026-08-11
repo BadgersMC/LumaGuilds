@@ -289,11 +289,13 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
     }
 
     override fun deleteAuditsOlderThan(guildId: UUID, cutoff: java.time.Instant): Int {
-        // Timestamps are stored as ISO-8601 UTC strings (Instant.toString), so
-        // lexicographic comparison is chronologically correct.
+        // Timestamps are stored as ISO-8601 UTC strings (Instant.toString). Raw
+        // text comparison is NOT chronologically correct when fractional seconds
+        // differ (e.g. "…00:00:00Z" vs "…00:00:00.001Z" compare wrong), so parse
+        // both sides with julianday(), which understands ISO-8601 incl. fractions.
         val sql = """
             DELETE FROM bank_audit
-            WHERE guild_id = ? AND timestamp < ?
+            WHERE guild_id = ? AND julianday(timestamp) < julianday(?)
         """.trimIndent()
 
         return try {

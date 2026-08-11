@@ -29,13 +29,19 @@ class BankInterestScheduler(
 
         scheduledTask = object : BukkitRunnable() {
             override fun run() {
+                // NOTE: intentionally runs on the main thread — the accrual path
+                // (creditToGuildBank → VaultInventoryManager.depositGold →
+                // updateGoldBalanceButton) mutates a live Bukkit Inventory, so it
+                // cannot be moved to a worker thread. Matches DailyWarCostsScheduler.
                 try {
                     val credited = bankAutomationService.accrueInterest()
                     if (credited > 0) {
                         logger.info("Bank interest accrued for $credited guild(s)")
                     }
-                } catch (e: Exception) {
-                    logger.error("Error running bank interest accrual", e)
+                } catch (e: net.lumalyte.lg.application.errors.DatabaseOperationException) {
+                    logger.error("Database error running bank interest accrual", e)
+                } catch (e: IllegalStateException) {
+                    logger.error("Service error running bank interest accrual", e)
                 }
 
                 try {
@@ -43,8 +49,10 @@ class BankInterestScheduler(
                     if (pruned > 0) {
                         logger.info("Pruned $pruned expired bank audit entr${if (pruned == 1) "y" else "ies"}")
                     }
-                } catch (e: Exception) {
-                    logger.error("Error pruning bank audit logs", e)
+                } catch (e: net.lumalyte.lg.application.errors.DatabaseOperationException) {
+                    logger.error("Database error pruning bank audit logs", e)
+                } catch (e: IllegalStateException) {
+                    logger.error("Service error pruning bank audit logs", e)
                 }
             }
         }

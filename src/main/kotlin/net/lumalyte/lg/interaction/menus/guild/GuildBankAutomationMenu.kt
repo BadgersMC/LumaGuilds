@@ -22,7 +22,6 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -182,8 +181,9 @@ class GuildBankAutomationMenu(
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
+            // saveAutomationSettings() reports the upsert result itself — no
+            // unconditional success message here (would contradict a failure).
             saveAutomationSettings()
-            player.sendMessage("§aAutomation settings saved!")
         }
         mainPane.addItem(saveGuiItem, 7, 0)
 

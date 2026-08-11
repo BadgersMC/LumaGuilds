@@ -54,17 +54,28 @@ class BankAutomationService(
 
     private fun accrueForGuild(guild: Guild, periodHours: Long, now: Instant): Int {
         val settings = bankSettingsRepository.getByGuildId(guild.id)
+
         // Never accrued (or fresh row): start the clock now — no retroactive interest.
-        val lastAccrual = settings
-            ?.takeIf { it.lastInterestAccrual > 0L }
-            ?.let { Instant.ofEpochMilli(it.lastInterestAccrual) }
-            ?: now
+        // Persist the initial timestamp BEFORE the period check so the next run
+        // sees an initialized clock instead of re-initializing (which would
+        // otherwise reset on every run and never accrue).
+        if (settings == null || settings.lastInterestAccrual <= 0L) {
+            val initialized = (settings ?: BankSettings(guild.id))
+                .copy(lastInterestAccrual = now.toEpochMilli())
+            if (!bankSettingsRepository.upsert(initialized)) {
+                logger.error("Failed to initialize interest clock for guild ${guild.id}; skipping accrual")
+                return 0
+            }
+            return 0 // clock just started; the period has not elapsed
+        }
+
+        val lastAccrual = Instant.ofEpochMilli(settings.lastInterestAccrual)
 
         if (lastAccrual.plus(periodHours, ChronoUnit.HOURS).isAfter(now)) {
             return 0 // Period not yet elapsed
         }
 
-        val rate = settings?.interestRate ?: configService.loadConfig().bank.interestRatePercent
+        val rate = settings.interestRate ?: configService.loadConfig().bank.interestRatePercent
         val balance = bankService.getBalance(guild.id)
         val interestPerPeriod = (balance * rate).toInt()
 
@@ -73,14 +84,27 @@ class BankAutomationService(
         while (periods < maxCatchUpPeriods && !cursor.plus(periodHours, ChronoUnit.HOURS).isAfter(now)) {
             cursor = cursor.plus(periodHours, ChronoUnit.HOURS)
             periods++
-            if (interestPerPeriod > 0) {
-                bankService.creditToGuildBank(guild.id, interestPerPeriod, "Interest accrual")
-            }
         }
 
-        val updated = (settings ?: BankSettings(guild.id)).copy(lastInterestAccrual = cursor.toEpochMilli())
-        bankSettingsRepository.upsert(updated)
-        return if (interestPerPeriod > 0) periods else 0
+        // Persist the advanced marker BEFORE crediting. If the marker write fails,
+        // skip crediting entirely — the next run retries from the old marker, so no
+        // period can be double-credited (money safety). If a credit fails partway,
+        // the marker has already advanced, so at worst one period is skipped —
+        // never duplicated.
+        val updated = settings.copy(lastInterestAccrual = cursor.toEpochMilli())
+        if (!bankSettingsRepository.upsert(updated)) {
+            logger.error("Failed to persist interest accrual marker for guild ${guild.id}; skipping accrual")
+            return 0
+        }
+
+        var credited = 0
+        repeat(periods) {
+            if (interestPerPeriod > 0) {
+                bankService.creditToGuildBank(guild.id, interestPerPeriod, "Interest accrual")
+                credited++
+            }
+        }
+        return credited
     }
 
     /**

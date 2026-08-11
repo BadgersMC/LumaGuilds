@@ -56,6 +56,7 @@ class BankAutomationServiceTest {
         )
         every { guildRepository.getAll() } returns setOf(guild)
         every { settingsRepository.getByGuildId(guildId) } returns settings
+        every { settingsRepository.upsert(any()) } returns true
         every { bankService.getBalance(guildId) } returns 1000
         every { configService.loadConfig() } returns config()
 
@@ -76,6 +77,7 @@ class BankAutomationServiceTest {
         )
         every { guildRepository.getAll() } returns setOf(guild)
         every { settingsRepository.getByGuildId(guildId) } returns settings
+        every { settingsRepository.upsert(any()) } returns true
         every { bankService.getBalance(guildId) } returns 1000
         every { configService.loadConfig() } returns config()
 
@@ -114,6 +116,7 @@ class BankAutomationServiceTest {
         )
         every { guildRepository.getAll() } returns setOf(guild)
         every { settingsRepository.getByGuildId(guildId) } returns settings
+        every { settingsRepository.upsert(any()) } returns true
         every { bankService.getBalance(guildId) } returns 1000
         every { configService.loadConfig() } returns config()
 
@@ -121,6 +124,87 @@ class BankAutomationServiceTest {
 
         assertEquals(3, credited)
         verify(exactly = 3) { bankService.creditToGuildBank(guildId, 5, "Interest accrual") }
+    }
+
+    @Test
+    fun `catch-up is capped at 30 periods so stale guilds cannot mint runaway interest`() {
+        val guildId = UUID.randomUUID()
+        val guild = Guild(id = guildId, name = "Guild", createdAt = Instant.now().minus(2000, ChronoUnit.HOURS))
+        // 31 periods elapsed (24h each) — must receive exactly 30 credits, not 31.
+        val settings = BankSettings(
+            guildId = guildId,
+            interestRate = 0.005,
+            lastInterestAccrual = Instant.now().minus(31 * 24, ChronoUnit.HOURS).toEpochMilli()
+        )
+        every { guildRepository.getAll() } returns setOf(guild)
+        every { settingsRepository.getByGuildId(guildId) } returns settings
+        every { settingsRepository.upsert(any()) } returns true
+        every { bankService.getBalance(guildId) } returns 1000
+        every { configService.loadConfig() } returns config()
+
+        val credited = service().accrueInterest()
+
+        assertEquals(30, credited)
+        verify(exactly = 30) { bankService.creditToGuildBank(guildId, 5, "Interest accrual") }
+    }
+
+    @Test
+    fun `fresh guild with no accrual history starts the clock without retroactive interest`() {
+        val guildId = UUID.randomUUID()
+        val guild = Guild(id = guildId, name = "Guild", createdAt = Instant.now())
+        every { guildRepository.getAll() } returns setOf(guild)
+        every { settingsRepository.getByGuildId(guildId) } returns null
+        every { settingsRepository.upsert(any()) } returns true
+        every { bankService.getBalance(guildId) } returns 1000
+        every { configService.loadConfig() } returns config()
+
+        val credited = service().accrueInterest()
+
+        assertEquals(0, credited)
+        verify(exactly = 0) { bankService.creditToGuildBank(any(), any(), any()) }
+        // The initial clock must be persisted so the next run sees it initialized.
+        val savedSettings = io.mockk.slot<BankSettings>()
+        verify(exactly = 1) { settingsRepository.upsert(capture(savedSettings)) }
+        assertTrue(savedSettings.captured.lastInterestAccrual > 0L,
+            "initial clock timestamp must be persisted")
+    }
+
+    @Test
+    fun `guild with zeroed accrual clock reinitializes instead of accruing retroactively`() {
+        val guildId = UUID.randomUUID()
+        val guild = Guild(id = guildId, name = "Guild", createdAt = Instant.now().minus(500, ChronoUnit.HOURS))
+        val zeroed = BankSettings(guildId = guildId, interestRate = 0.005, lastInterestAccrual = 0L)
+        every { guildRepository.getAll() } returns setOf(guild)
+        every { settingsRepository.getByGuildId(guildId) } returns zeroed
+        every { settingsRepository.upsert(any()) } returns true
+        every { bankService.getBalance(guildId) } returns 1000
+        every { configService.loadConfig() } returns config()
+
+        val credited = service().accrueInterest()
+
+        assertEquals(0, credited)
+        verify(exactly = 0) { bankService.creditToGuildBank(any(), any(), any()) }
+    }
+
+    @Test
+    fun `upsert failure skips crediting so no period can be double-credited`() {
+        val guildId = UUID.randomUUID()
+        val guild = Guild(id = guildId, name = "Guild", createdAt = Instant.now().minus(100, ChronoUnit.HOURS))
+        val settings = BankSettings(
+            guildId = guildId,
+            interestRate = 0.005,
+            lastInterestAccrual = Instant.now().minus(72, ChronoUnit.HOURS).toEpochMilli()
+        )
+        every { guildRepository.getAll() } returns setOf(guild)
+        every { settingsRepository.getByGuildId(guildId) } returns settings
+        every { settingsRepository.upsert(any()) } returns false // marker write fails
+        every { bankService.getBalance(guildId) } returns 1000
+        every { configService.loadConfig() } returns config()
+
+        val credited = service().accrueInterest()
+
+        assertEquals(0, credited)
+        verify(exactly = 0) { bankService.creditToGuildBank(any(), any(), any()) }
     }
 
     @Test

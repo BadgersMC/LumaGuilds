@@ -15,6 +15,7 @@ import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.common.PluginKeys
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -28,6 +29,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 /**
  * Guild Bank Transaction History menu with pagination, filtering, and search
@@ -62,8 +64,9 @@ class GuildBankTransactionHistoryMenu(
     // Chat input mode (search)
     private var inputMode: String? = null
 
-    // Date range presets (null = All time)
-    private val dateRangeOptions: List<String?> = listOf(null, "24h", "7d", "30d")
+    // Resolved actor name cache (built once per load to avoid repeated
+    // Bukkit.getOfflinePlayer calls on the main thread)
+    private var actorNames: Map<UUID, String> = emptyMap()
 
     init {
         loadTransactions()
@@ -263,6 +266,7 @@ class GuildBankTransactionHistoryMenu(
                     event.isCancelled = true
                     currentPage--
                     updateTransactionDisplay()
+                    gui.update()
                 }
                 filterPane.addItem(prevGuiItem, 7, 0)
             }
@@ -278,6 +282,7 @@ class GuildBankTransactionHistoryMenu(
                     event.isCancelled = true
                     currentPage++
                     updateTransactionDisplay()
+                    gui.update()
                 }
                 filterPane.addItem(nextGuiItem, 8, 0)
             }
@@ -296,6 +301,11 @@ class GuildBankTransactionHistoryMenu(
      * Update the transaction display
      */
     private fun updateTransactionDisplay() {
+        // Refresh filter controls so labels/lore reflect the current filter.
+        // StaticPane.addItem replaces the item at the same coordinates, so this
+        // does not create duplicates.
+        setupFilters()
+
         transactionPane.clear()
 
         val currentItems = getCurrentPageItems()
@@ -348,8 +358,9 @@ class GuildBankTransactionHistoryMenu(
      * Cycle the date range filter to the next preset
      */
     private fun cycleDateFilter() {
-        val currentIndex = dateRangeOptions.indexOf(filter.dateRange)
-        filter = filter.copy(dateRange = dateRangeOptions[(currentIndex + 1) % dateRangeOptions.size])
+        val currentIndex = DateRangePreset.entries.indexOfFirst { it.key == filter.dateRange }
+        val next = DateRangePreset.entries[(currentIndex + 1) % DateRangePreset.entries.size]
+        filter = filter.copy(dateRange = next.key)
         loadTransactions()
         updateTransactionDisplay()
         gui.update()
@@ -359,9 +370,12 @@ class GuildBankTransactionHistoryMenu(
      * Open a slot-click selection menu of guild members to filter by
      */
     private fun openMemberFilterMenu() {
-        val members = memberService.getGuildMembers(guild.id).sortedBy { member ->
-            Bukkit.getOfflinePlayer(member.playerId).name ?: ""
+        // Resolve each member name once before sorting/rendering.
+        val members = memberService.getGuildMembers(guild.id)
+        val memberNames = members.associate { member ->
+            member.playerId to (Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown Player")
         }
+        val sortedMembers = members.sortedBy { memberNames[it.playerId]?.lowercase() }
 
         val memberGui = ChestGui(6, "Select Member to Filter By")
         memberGui.setOnGlobalClick { event -> event.isCancelled = true }
@@ -380,15 +394,19 @@ class GuildBankTransactionHistoryMenu(
         memberItems += GuiItem(allItem) { event ->
             event.isCancelled = true
             filter = filter.copy(memberFilter = null)
-            player.closeInventory()
-            loadTransactions()
-            updateTransactionDisplay()
-            gui.update()
-            gui.show(player)
+            // Defer inventory transitions out of the click handler to avoid
+            // client desync / items stuck on the cursor.
+            Bukkit.getScheduler().runTask(PluginKeys.getPlugin(), Runnable {
+                player.closeInventory()
+                loadTransactions()
+                updateTransactionDisplay()
+                gui.update()
+                gui.show(player)
+            })
         }
 
-        members.forEach { member ->
-            val name = Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown Player"
+        sortedMembers.forEach { member ->
+            val name = memberNames[member.playerId] ?: "Unknown Player"
             val memberItem = createMenuItem(
                 Material.PLAYER_HEAD,
                 name,
@@ -397,11 +415,14 @@ class GuildBankTransactionHistoryMenu(
             memberItems += GuiItem(memberItem) { event ->
                 event.isCancelled = true
                 filter = filter.copy(memberFilter = name)
-                player.closeInventory()
-                loadTransactions()
-                updateTransactionDisplay()
-                gui.update()
-                gui.show(player)
+                // Defer inventory transitions out of the click handler.
+                Bukkit.getScheduler().runTask(PluginKeys.getPlugin(), Runnable {
+                    player.closeInventory()
+                    loadTransactions()
+                    updateTransactionDisplay()
+                    gui.update()
+                    gui.show(player)
+                })
             }
         }
 
@@ -419,8 +440,11 @@ class GuildBankTransactionHistoryMenu(
         )
         navPane.addItem(GuiItem(backItem) { event ->
             event.isCancelled = true
-            player.closeInventory()
-            gui.show(player)
+            // Defer inventory transition out of the click handler.
+            Bukkit.getScheduler().runTask(PluginKeys.getPlugin(), Runnable {
+                player.closeInventory()
+                gui.show(player)
+            })
         }, 0, 0)
 
         memberGui.show(player)
@@ -463,7 +487,7 @@ class GuildBankTransactionHistoryMenu(
      * Create a transaction item for display
      */
     private fun createTransactionItem(transaction: BankTransaction): ItemStack {
-        val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: "Unknown"
+        val actorName = actorNames[transaction.actorId] ?: "Unknown"
         val timestamp = formatTimestamp(transaction.timestamp)
 
         val material = when (transaction.type) {
@@ -505,6 +529,13 @@ class GuildBankTransactionHistoryMenu(
         // Load all transactions for this guild
         allTransactions = bankService.getTransactionHistory(guild.id, null)
 
+        // Resolve each distinct actor UUID once (getOfflinePlayer can block on a
+        // profile lookup and both paths run on the main thread in response to a
+        // menu click — do not call it per element).
+        actorNames = allTransactions.map { it.actorId }.distinct().associateWith { actorId ->
+            Bukkit.getOfflinePlayer(actorId).name ?: "Unknown"
+        }
+
         // Compute date cutoff once for the date range filter
         val dateCutoff = dateRangeCutoff(filter.dateRange)
 
@@ -516,7 +547,7 @@ class GuildBankTransactionHistoryMenu(
 
             // Member filter
             if (filter.memberFilter != null) {
-                val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name
+                val actorName = actorNames[transaction.actorId]
                 if (actorName != filter.memberFilter) {
                     return@filter false
                 }
@@ -530,7 +561,7 @@ class GuildBankTransactionHistoryMenu(
             // Search query (matches member name or description)
             if (!filter.searchQuery.isNullOrBlank()) {
                 val query = filter.searchQuery!!.lowercase()
-                val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name?.lowercase() ?: ""
+                val actorName = actorNames[transaction.actorId]?.lowercase() ?: ""
                 val description = transaction.description?.lowercase() ?: ""
                 if (query !in actorName && query !in description) {
                     return@filter false
@@ -545,15 +576,11 @@ class GuildBankTransactionHistoryMenu(
     }
 
     /**
-     * Convert a date range preset string to an Instant cutoff (null = all time)
+     * Convert a date range preset to an Instant cutoff (null = all time)
      */
     private fun dateRangeCutoff(range: String?): Instant? {
-        val now = Instant.now()
-        return when (range) {
-            "24h" -> now.minusSeconds(24 * 60 * 60)
-            "7d" -> now.minusSeconds(7 * 24 * 60 * 60)
-            "30d" -> now.minusSeconds(30 * 24 * 60 * 60)
-            else -> null
+        return DateRangePreset.fromKey(range)?.cutoffSeconds?.let { seconds ->
+            Instant.now().minusSeconds(seconds)
         }
     }
 
@@ -561,12 +588,7 @@ class GuildBankTransactionHistoryMenu(
      * Human-readable label for a date range preset
      */
     private fun dateRangeLabel(range: String?): String {
-        return when (range) {
-            "24h" -> "Last 24 Hours"
-            "7d" -> "Last 7 Days"
-            "30d" -> "Last 30 Days"
-            else -> "All Time"
-        }
+        return DateRangePreset.fromKey(range)?.label ?: DateRangePreset.ALL.label
     }
 
     /**
@@ -631,3 +653,19 @@ data class TransactionFilter(
     val dateRange: String? = null,
     val searchQuery: String? = null
 )
+
+/**
+ * Date range presets for the transaction history filter. Single source of truth
+ * for the key (persisted in [TransactionFilter.dateRange]), the cutoff, and the
+ * display label — adding or renaming a preset requires one edit.
+ */
+enum class DateRangePreset(val key: String?, val label: String, val cutoffSeconds: Long?) {
+    ALL(null, "All Time", null),
+    LAST_24_HOURS("24h", "Last 24 Hours", 24 * 60 * 60),
+    LAST_7_DAYS("7d", "Last 7 Days", 7 * 24 * 60 * 60),
+    LAST_30_DAYS("30d", "Last 30 Days", 30 * 24 * 60 * 60);
+
+    companion object {
+        fun fromKey(key: String?): DateRangePreset? = entries.firstOrNull { it.key == key }
+    }
+}

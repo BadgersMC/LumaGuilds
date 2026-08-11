@@ -263,8 +263,9 @@ class GuildBankSecurityMenu(
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
+            // saveSecuritySettings() reports the upsert result itself — no
+            // unconditional success message here (would contradict a failure).
             saveSecuritySettings()
-            player.sendMessage("§aSecurity settings saved!")
         }
         mainPane.addItem(saveGuiItem, 7, 0)
 
@@ -450,13 +451,17 @@ class GuildBankSecurityMenu(
 
     // ChatInputHandler interface methods (REQ-031)
     override fun onChatInput(player: Player, input: String) {
+        // Guard FIRST: if the listener session outlived the menu interaction,
+        // inputMode is null and this is ordinary chat — do not intercept it.
+        val mode = inputMode ?: return
+
         val threshold = input.trim().toIntOrNull()
         if (threshold == null || threshold < 0) {
             player.sendMessage("§cInvalid threshold. Enter a whole number of coins (0 or more).")
             inputMode = null
             return
         }
-        when (inputMode) {
+        when (mode) {
             "dualAuth" -> {
                 dualAuthThreshold = threshold
                 player.sendMessage("§aDual-authorization threshold set to $threshold coins. Press Save to persist.")

@@ -89,7 +89,8 @@ class BankSettingsRepositorySQLite(private val storage: Storage<Database>) : Ban
     }
 
     override fun getByGuildId(guildId: UUID): BankSettings? {
-        return settingsByGuild[guildId]
+        // Return a copy so callers cannot mutate the cached policy without upsert.
+        return settingsByGuild[guildId]?.copy()
     }
 
     override fun upsert(settings: BankSettings): Boolean {
@@ -117,7 +118,9 @@ class BankSettingsRepositorySQLite(private val storage: Storage<Database>) : Ban
             )
 
             if (rowsAffected > 0) {
-                settingsByGuild[settings.guildId] = settings
+                // Store a copy so later mutations of the caller's instance cannot
+                // silently diverge the cached policy from SQLite.
+                settingsByGuild[settings.guildId] = settings.copy()
                 true
             } else {
                 false

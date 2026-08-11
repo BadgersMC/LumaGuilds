@@ -193,8 +193,9 @@ class GuildBankBudgetMenu(
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
+            // saveBudgetSettings() reports the upsert result itself — no
+            // unconditional success message here (would contradict a failure).
             saveBudgetSettings()
-            player.sendMessage("§aBudget settings saved!")
         }
         mainPane.addItem(saveGuiItem, 7, 0)
 
@@ -404,13 +405,17 @@ class GuildBankBudgetMenu(
 
     // ChatInputHandler interface methods (REQ-011)
     override fun onChatInput(player: Player, input: String) {
+        // Guard FIRST: if the listener session outlived the menu interaction,
+        // inputMode is null and this is ordinary chat — do not intercept it.
+        val mode = inputMode ?: return
+
         val amount = input.trim().toIntOrNull()
         if (amount == null || amount < 0) {
             player.sendMessage("§cInvalid amount. Enter a whole number of coins (0 or more).")
             inputMode = null
             return
         }
-        when (inputMode) {
+        when (mode) {
             "monthly" -> {
                 monthlyBudget = amount
                 player.sendMessage("§aMonthly budget set to $amount coins. Press Save to persist.")
