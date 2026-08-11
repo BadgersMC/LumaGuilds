@@ -119,20 +119,30 @@ class WarServiceBukkit(
                 objectives = declaration.objectives
             )
 
+            // REQ-039: escrow is ATOMIC with acceptance. createWager requires the
+            // war to be registered (it looks up wars[warId] and deducts both guilds,
+            // rolling back the declaring guild if the defending deduction fails).
+            // If escrow fails, the war is rolled back and the declaration stays
+            // pending — a waged declaration can never become an unwagered war.
             wars[war.id] = war
             warStats[war.id] = WarStats(warId = war.id)
-            warDeclarations.remove(declarationId)
 
-            // REQ-039: escrow the wager in the war service. Both guilds are
-            // deducted here (createWager validates funds + holds the pot);
-            // the declaring guild's pledge comes from the declaration, the
-            // defending guild matches it. Menus must NOT move bank funds.
             if (declaration.wagerAmount > 0) {
                 val wager = createWager(war.id, declaration.wagerAmount, declaration.wagerAmount)
                 if (wager == null) {
-                    logger.warn("War ${war.id} accepted but wager escrow failed (${declaration.wagerAmount} each) — war continues without a pot")
+                    // Atomic rollback: remove the war we just registered; the
+                    // declaration remains pending so the defender can retry.
+                    wars.remove(war.id)
+                    warStats.remove(war.id)
+                    logger.warn(
+                        "War declaration $declarationId NOT accepted — wager escrow failed " +
+                            "(${declaration.wagerAmount} each). Declaration remains pending."
+                    )
+                    return null
                 }
             }
+
+            warDeclarations.remove(declarationId)
 
             logger.info("War accepted and ACTIVE: ${war.id} (${war.declaringGuildId} vs ${war.defendingGuildId})")
             Bukkit.getPluginManager().callEvent(GuildWarDeclaredEvent(war.declaringGuildId, war.defendingGuildId, actorId))

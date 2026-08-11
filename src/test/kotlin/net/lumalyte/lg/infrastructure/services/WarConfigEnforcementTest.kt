@@ -330,6 +330,52 @@ class WarConfigEnforcementTest {
         verify { bankService.deductFromGuildBank(defending, 500, any()) }
     }
 
+    @Test
+    fun `acceptance fails atomically when wager escrow cannot be funded`() {
+        val bankService = mockk<net.lumalyte.lg.application.services.BankService>(relaxed = true)
+        val configService = mockk<ConfigService>()
+        val config = mockk<MainConfig>()
+        every { config.combat } returns CombatConfig()
+        every { configService.loadConfig() } returns config
+
+        val service = WarServiceBukkit(
+            configService = configService,
+            bankService = bankService,
+            progressionRepository = mockk<ProgressionRepository>(relaxed = true),
+            progressionConfigService = mockk(relaxed = true)
+        )
+        mockBukkitPluginManager()
+
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        // Declaring guild has funds, defending guild cannot cover the match
+        every { bankService.getBalance(declaring) } returns 10_000
+        every { bankService.getBalance(defending) } returns 100
+        every { bankService.deductFromGuildBank(any(), any(), any()) } returns true
+
+        val declaration = service.createWarDeclaration(
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = Duration.ofDays(7),
+            objectives = emptySet(),
+            wagerAmount = 500,
+            terms = null,
+            actorId = UUID.randomUUID()
+        )!!
+
+        val accepted = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())
+
+        assertNull(accepted, "acceptance must fail when the defending guild cannot fund the wager")
+        assertNull(service.getCurrentWarBetweenGuilds(declaring, defending), "no active war may exist after failed escrow")
+        assertNotNull(
+            service.getPendingDeclarationsForGuild(defending).firstOrNull { it.id == declaration.id },
+            "declaration must remain pending after failed escrow so the defender can retry"
+        )
+        // Declaring guild's deduction must not happen (createWager bails on the
+        // balance check before any deduction) — and no wager/pot may exist.
+        verify(exactly = 0) { bankService.deductFromGuildBank(declaring, any(), any()) }
+    }
+
     private fun levelReward(warSlots: Int = 0, bankLimit: Int = 0) =
         LevelRewardConfig(warSlots = warSlots, bankLimit = bankLimit)
 }
