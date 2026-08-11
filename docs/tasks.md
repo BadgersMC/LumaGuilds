@@ -299,84 +299,163 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-# Product backlog — operator notes (Fain, Aug 11)
+## PR-11 — Backlog: immediate fixes (operator, Fain)
 
-> Category-based wishlist from Fain, tracked here alongside the SPEAR PRs.
-> Items are **not** SPEAR tasks (no REQ mapping yet); they feed future PRs or
-> dedicated feature work. `[x]` = shipped, `[ ]` = open. Where an item overlaps
-> an existing SPEAR task, a `↳` line points at it.
->
-> **Note on the bugs channel:** items referencing `<#1421662495923372194>`
-> (Discord bugs channel) cannot be enumerated from here — Hermes has no Discord
-> history access. The bug list needs to be pasted into this doc (or a linked
-> file) before they can be tracked/assigned.
+- [ ] **LG-1101** Resolve existing guild bugs
+  - Tag: `TDD`
+  - References: operator backlog (bugs channel `<#1421662495923372194>`)
+  - Evidence:
+  - Files: TBD — bug list must be pasted into this doc before tracking
+- [ ] **LG-1102** Economy commands fix: `/g balance` + `/g baltop` correct data; `/g balance` tab-completes all guild names
+  - Tag: `TDD`
+  - References: REQ-046
+  - Evidence:
+  - Files: guild balance/baltop commands, tab-completion provider
+- [ ] **LG-1103** Guild emoji removal — emoji can be cleared once set
+  - Tag: `TDD`
+  - References: REQ-047
+  - Evidence:
+  - Files: emoji menu/service
+- [ ] **LG-1104** Custom guild emojis via config — guild-name → Nexo permission grant for all members
+  - Tag: `TDD`
+  - References: REQ-048
+  - Evidence:
+  - Files: config section, `NexoEmojiService` (↳ LG-902 reflection cleanup)
 
-## Immediate Action Items & Bug Fixes
+## PR-12 — Backlog: progression & economy (operator, Fain)
 
-- [ ] **Resolve existing guild bugs**
-  - Source: Discord bugs channel `<#1421662495923372194>` (per operator, "we are" already working these)
-  - Notes: need the actual bug list pasted here to track. 
-- [ ] **Economy commands fix — `/g balance` + `/g baltop`**
-  - Fix both commands so they work properly.
-  - Update `/g balance` to support tab-completion (auto-fill) for all guild names on the server.
-  - Notes: verify live config via PaperMC docs for expected behavior.
-- [ ] **Emoji removal bug** — guild emojis cannot be cleared/removed once a guild has set one.
-- [ ] **Custom guild emojis via config** (operator will also manually grant WOT their emoji)
-  - Add a config system: type a guild name (string) → grants all members of that guild a Nexo permission to use an emoji in chat / as their guild emoji.
-  - Current workaround: manually granting the guild leader the emoji perm so they can set the guild emoji.
-  - ↳ touches `NexoEmojiService` (see LG-902 reflection cleanup)
+- [ ] **LG-1201** Progression revamp — activity-based XP, no AFK farming, lower-level guilds not stunted
+  - Tag: `TDD`
+  - References: REQ-049
+  - Evidence:
+  - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
+- [ ] **LG-1202** Comprehensive 0–200 reward tier list — documented per-level rewards incl. new level-100+ perks
+  - Tag: `DOC`
+  - References: REQ-050
+  - Evidence:
+  - Files: docs + reward config/registry
+- [ ] **LG-1203** Extended guild homes at levels 125, 150, 175, 200
+  - Tag: `TDD`
+  - References: REQ-051
+  - Evidence:
+  - Files: home limits config, progression hooks
+- [ ] **LG-1204** Dynamic XP rates — operator-hosted "increased XP" days
+  - Tag: `TDD`
+  - References: REQ-052
+  - Evidence:
+  - Files: XP multiplier config, scheduler
+- [ ] **LG-1205** XP penalties — guilds lose XP/levels on stake events (e.g. war loss)
+  - Tag: `TDD`
+  - References: REQ-053
+  - Evidence:
+  - Files: XP deduction path, war-end hooks (↳ PR-4)
+- [ ] **LG-1206** Gold costs — raw gold to create guild + unlock homes, scaling with homes unlocked
+  - Tag: `TDD`
+  - References: REQ-054
+  - Evidence:
+  - Files: creation flow, home unlock flow, gold economy
+- [ ] **LG-1207** 15-day guild-creation cooldown for create-then-delete spam
+  - Tag: `TDD`
+  - References: REQ-055
+  - Evidence:
+  - Files: guild creation, deletion timestamps
+- [ ] **LG-1208** Guild prestige system (theorize) — level reset at cap, special emoji, permanent unlocked features; balanced with level rebalance
+  - Tag: `DOC`
+  - References: REQ-056
+  - Evidence:
+  - Files: design doc first
 
-## Guild Progression & Economy
+## PR-13 — Backlog: wars & combat (operator, Fain)
 
-- [ ] **Progression revamp** — overhaul the XP system to incentivize actual activity and eliminate AFK farming; ensure lower-level guilds are not stunted.
-  - ↳ related: PR-4 anti-farming work (LG-401), LG-204 `brewing_xp`
-- [ ] **Comprehensive 0-200 reward tier list** — fully documented list of exactly what a guild earns at every level 0→200; brand-new perks/rewards specifically for level 100+ guilds.
-- [ ] **Extended guild homes** — unlock additional guild homes at levels 125, 150, 175, 200 (on the path to level 200).
-- [ ] **Dynamic XP rates** — mechanics to host "increased XP" days (e.g. double-XP weekend).
-- [ ] **XP penalties** — ways for guilds to lose XP or levels to raise stakes (e.g. losing a Guild War = deduction).
-  - ↳ pairs with High-Stakes Wars below
-- [ ] **Gold costs** — raw gold cost to create a guild and to unlock guild homes; cost scales higher as more homes are unlocked.
-- [ ] **Creation cooldown** — 15-day guild creation cooldown for players who create and immediately delete a guild (anti-spam).
-- [ ] **Guild prestige system (theorize)** — guild resets level at cap; earns a special emoji; keeps a few unlocked features permanently (even across multiple prestiges). Must be worth it; balancing must coincide with the level rebalance.
-  - Notes: design-first (theorize), no commitment to ship yet.
+- [ ] **LG-1301** War system overhaul — accurate kill tracking, kills impact gameplay (residual gaps after PR-4)
+  - Tag: `TDD`
+  - References: REQ-057
+  - Evidence:
+  - Files: war services (↳ PR-4 LG-401..405)
+- [ ] **LG-1302** World War — secret requirement triggers a server-wide World War
+  - Tag: `TDD`
+  - References: REQ-058
+  - Evidence:
+  - Files: trigger detection, war-scaling
+- [ ] **LG-1303** War banners — deployable tactical teleport banner: 15 min, destructible, raw-gold cost, 1 active/guild, cooldown, rank-permission gated, broadcast on placement
+  - Tag: `TDD`
+  - References: REQ-059
+  - Evidence:
+  - Files: banner entity, placement/break listeners, broadcast
+- [ ] **LG-1304** Better war notifications — prominent declaration alert (offline-safe); public victory/loss broadcasts
+  - Tag: `TDD`
+  - References: REQ-060
+  - Evidence:
+  - Files: declaration alert, end-of-war broadcast (↳ PR-4)
+- [ ] **LG-1305** Customizable war win conditions — unique kill counts, ransoms, death-duel "Champion" mode, high-stakes XP boost/deduction
+  - Tag: `TDD`
+  - References: REQ-061
+  - Evidence:
+  - Files: war objectives, surrender flow, duel arena (↳ LG-1205)
 
-## Guild Wars & Combat
+## PR-14 — Backlog: chat & communication (operator, Fain)
 
-- [ ] **War system overhaul** — fix current system so it accurately tracks player kills and actually impacts gameplay.
-  - ↳ largely covered by PR-4 (LG-401..405); backlog item = residual gameplay impact gaps
-- [ ] **World War** — introduce a *secret* requirement that triggers a massive, server-wide World War.
-  - Notes: secret trigger — design first (what conditions, who can trigger, scale)
-- [ ] **War banners** — deployable banner acting as tactical teleport point for guild members (bypasses teleport requests and guild home slots)
-  - Duration & vulnerability: lasts 15 minutes; can be physically attacked and broken by any player.
-  - Cost & limits: costs raw gold to place; strict limit of one active banner per guild; cooldown before another can be placed.
-  - Permissions: tied to a specific guild rank permission.
-  - Notifications: chat broadcast `[Guild Name] has placed down a war banner.`
-- [ ] **Better war notifications**
-  - Prominent indicator/alert for guilds when war is declared on them — offline declarations must not be missed.
-  - Public server messages announcing guild war victories and losses.
-- [ ] **Customizable war win conditions**
-  - **Kill counts**: guilds set a required number of opposing-player deaths to win; only unique player kills count (anti-farming).
-  - **Ransoms**: guilds set a monetary fee required from the opposing guild to surrender/end the war.
-  - **Death duels**: "Champion" system — designated fighters from each guild duel to decide the war outcome.
-  - **High-stakes wars**: winning guild gets XP boost; losing guild gets XP deduction.
-  - ↳ pairs with XP Penalties above
+- [ ] **LG-1401** Login notifications — in-game alert when a guild member logs in
+  - Tag: `TDD`
+  - References: REQ-062
+  - Evidence:
+  - Files: join listener, guild notification
+- [ ] **LG-1402** Rank prefixes in guild chat — member's rank shown next to name (legacy restore)
+  - Tag: `TDD`
+  - References: REQ-063
+  - Evidence:
+  - Files: guild chat formatter (↳ RoseChat hook)
+- [ ] **LG-1403** Guild admin chat — dedicated private channel for admins/leadership
+  - Tag: `TDD`
+  - References: REQ-064
+  - Evidence:
+  - Files: chat channel registry, permission gate
+- [ ] **LG-1404** Custom guild channels — guilds create/name own chat channels (pending RoseChat feasibility)
+  - Tag: `TDD`
+  - References: REQ-065
+  - Evidence:
+  - Files: channel CRUD, RoseChat integration
 
-## Guild Chat & Communication
+## PR-15 — Backlog: QoL, UI & Discord integration (operator, Fain)
 
-- [ ] **Login notifications** — in-game notification alerting the guild whenever a member logs into the server.
-- [ ] **Rank prefixes in guild chat** — display the member's current guild rank next to their name in guild chat (restoring this feature from the old system).
-- [ ] **Guild admin chat** — dedicated, private chat channel exclusively for guild admins and leadership.
-- [ ] **Custom guild channels** — allow guilds to create and name their own custom chat channels to fit their organizational/leadership structures.
-  - Notes: pending feasibility checks with the RoseChat plugin.
+- [ ] **LG-1501** Guild Statistics node completion — internal invitation tracker/leaderboard (most invites per member)
+  - Tag: `TDD`
+  - References: REQ-066
+  - Evidence:
+  - Files: `GuildStatisticsMenu.kt` (↳ LG-602 drill-downs, LG-806)
+- [ ] **LG-1502** Dynamic spawn banners — physical spawn banners track top guilds by Guild Level Leaderboard
+  - Tag: `TDD`
+  - References: REQ-067
+  - Evidence:
+  - Files: banner update scheduler, leaderboard hook
+- [ ] **LG-1503** Guild list GUI & leaderboards — all guilds with 4 sort modes (all-time active, weekly active weighted by unique PvP kills, level low→high, creation old→new)
+  - Tag: `TDD`
+  - References: REQ-068
+  - Evidence:
+  - Files: guild list menu, sort providers
+- [ ] **LG-1504** Guild banners in list — physical banner shown per guild, plain white default when unset
+  - Tag: `TDD`
+  - References: REQ-069
+  - Evidence:
+  - Files: banner resolution, list renderer
+- [ ] **LG-1505** Expandable Enemy/Ally lists in `/g info` — full guild list beyond top 3
+  - Tag: `TDD`
+  - References: REQ-070
+  - Evidence:
+  - Files: `/g info` view, pagination
+- [ ] **LG-1506** Dynamic Discord roles — level perk auto-creates/links a Discord role, grants/removes on join/leave
+  - Tag: `TDD`
+  - References: REQ-071
+  - Evidence:
+  - Files: Discord role service, join/leave hooks
+- [ ] **LG-1507** Enhanced guild descriptions — Discord invite links embeddable in guild description
+  - Tag: `TDD`
+  - References: REQ-072
+  - Evidence:
+  - Files: description edit flow, renderer
+- [ ] **LG-1508** Disband announcements — broadcast when a guild is disbanded
+  - Tag: `TDD`
+  - References: REQ-073
+  - Evidence:
+  - Files: guild delete path, broadcast
 
-## Quality of Life, UI, & Discord Integration
-
-- [ ] **Guild Statistics node** — complete the Guild Statistics UI node; include an internal guild tracker/leaderboard showing which members have invited the most players to the guild (invitation tracker).
-  - ↳ SPEAR overlap: LG-602 (14 stubbed statistics drill-downs), LG-806 (statistics online tracking)
-- [ ] **Dynamic spawn banners** — physical banners at server spawn automatically update to reflect the current top guilds based on their Guild Level Leaderboard placement.
-- [ ] **Guild list GUI & leaderboards** — interface listing all server guilds with sorting options: All-Time Active, Weekly Active (heavily weighted by unique PvP kills), Guild Level (lowest→highest), Guild Creation Date (oldest→newest).
-- [ ] **Guild banners in list** — every guild displays its physical guild banner in the list; default to a plain white banner if none is set.
-- [ ] **Expandable alliance/enemy lists** — click the "Enemy"/"Ally" sections in `/g info` to view the full list of guilds (currently only top 3 shown, no way to see the rest).
-- [ ] **Dynamic Discord roles** — level perk that automatically creates and links a Discord role to the guild; role dynamically grants/removes itself when a player joins or leaves the guild in-game.
-- [ ] **Enhanced guild descriptions** — allow guilds to add Discord invite links directly into their guild description for easier recruitment.
-- [ ] **Disband announcements** — broadcast message when a guild is disbanded.
