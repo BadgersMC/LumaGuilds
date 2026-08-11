@@ -27,8 +27,28 @@ class BankServiceBukkit(
     private val progressionConfigService: ProgressionConfigService,
     private val configService: ConfigService,
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
+    private val guildService: net.lumalyte.lg.application.services.GuildService,
     private val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager
 ) : BankService {
+
+    companion object {
+        /** Actor UUID for system-initiated actions (auto-lock, interest accrual). */
+        val SYSTEM_ACTOR: UUID = UUID(0L, 0L)
+
+        /**
+         * Effective deposit ceiling (REQ-009): `bank.max_bank_balance` is the hard cap;
+         * the progression-derived limit refines it downward when present.
+         */
+        fun effectiveMaxBalance(configCap: Int, progressionLimit: Int?): Int =
+            if (progressionLimit == null) configCap else minOf(configCap, progressionLimit)
+
+        /**
+         * Suspicious-transaction auto-lock decision (REQ-009): triggers at/above
+         * `bank.suspicious_transaction_threshold` only when `bank.auto_lock_suspicious_accounts` is enabled.
+         */
+        fun shouldAutoLock(amount: Int, threshold: Int, autoLockEnabled: Boolean): Boolean =
+            autoLockEnabled && amount >= threshold
+    }
 
     private val logger = LoggerFactory.getLogger(BankServiceBukkit::class.java)
 
@@ -149,18 +169,19 @@ class BankServiceBukkit(
                 return null
             }
 
-            // Check guild bank balance limit (progression-based)
+            // Check guild bank balance limit: progression-derived, capped by the config ceiling (REQ-009)
             val currentBalance = getBalance(guildId)
             val progression = progressionRepository.getGuildProgression(guildId)
             val progressionConfig = progressionConfigService.getProgressionConfig()
             val levelRewards = progressionConfig.getActiveLevelRewards()
-            var maxBalance = 100000 // Default starting balance limit
+            var progressionLimit: Int? = null
             if (progression != null) {
                 for (level in 1..progression.currentLevel) {
                     val balance = levelRewards[level]?.bankLimit ?: 0
-                    if (balance > maxBalance) maxBalance = balance
+                    if (progressionLimit == null || balance > progressionLimit) progressionLimit = balance
                 }
             }
+            val maxBalance = effectiveMaxBalance(getConfig().bank.maxBankBalance, progressionLimit)
             if (currentBalance + amount > maxBalance) {
                 logger.warn("Deposit would exceed guild bank limit: $currentBalance + $amount > $maxBalance")
                 recordAudit(BankAudit(
@@ -240,6 +261,19 @@ class BankServiceBukkit(
             ))
 
             logger.info("Player $playerId deposited $amount to guild $guildId (balance: $newBalance)")
+
+            // Suspicious-transaction auto-lock (REQ-009)
+            val bankConfig = getConfig().bank
+            if (shouldAutoLock(amount, bankConfig.suspiciousTransactionThreshold, bankConfig.autoLockSuspiciousAccounts)) {
+                guildService.setBankFrozen(guildId, true, SYSTEM_ACTOR)
+                recordAudit(BankAudit(
+                    guildId = guildId,
+                    actorId = SYSTEM_ACTOR,
+                    action = AuditAction.PERMISSION_DENIED,
+                    details = "Account auto-locked: suspicious transaction detected (deposit of $amount)"
+                ))
+                logger.warn("Guild $guildId auto-locked after suspicious deposit of $amount")
+            }
 
             // Award progression XP for bank deposits
             try {
@@ -417,6 +451,20 @@ class BankServiceBukkit(
             }
 
             logger.info("Player $playerId withdrew $amount from guild $guildId (fee: $fee, balance: $newBalance)")
+
+            // Suspicious-transaction auto-lock (REQ-009)
+            val bankConfig = getConfig().bank
+            if (shouldAutoLock(amount, bankConfig.suspiciousTransactionThreshold, bankConfig.autoLockSuspiciousAccounts)) {
+                guildService.setBankFrozen(guildId, true, SYSTEM_ACTOR)
+                recordAudit(BankAudit(
+                    guildId = guildId,
+                    actorId = SYSTEM_ACTOR,
+                    action = AuditAction.PERMISSION_DENIED,
+                    details = "Account auto-locked: suspicious transaction detected (withdrawal of $amount)"
+                ))
+                logger.warn("Guild $guildId auto-locked after suspicious withdrawal of $amount")
+            }
+
             return transaction
         } catch (e: SQLException) {
             logger.error("Database error processing withdrawal for player $playerId from guild $guildId", e)

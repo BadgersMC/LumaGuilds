@@ -560,9 +560,15 @@ fun progressionModule() = module {
 fun economyModule() = module {
     // Repositories
     single<BankRepository> { BankRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.BankSettingsRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.BankSettingsRepositorySQLite(get())
+    }
 
     // Services
-    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.services.BankAutomationService> {
+        net.lumalyte.lg.application.services.BankAutomationService(get(), get(), get(), get(), get())
+    }
     single<net.lumalyte.lg.application.services.PhysicalCurrencyService> {
         net.lumalyte.lg.infrastructure.services.PhysicalCurrencyServiceBukkit(get(), get())
     }

@@ -4,9 +4,14 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.Pane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.application.persistence.BankSettingsRepository
+import net.lumalyte.lg.application.services.BankAutomationService
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.domain.entities.BankSettings
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.values.LocalizationKeys
+import net.lumalyte.lg.interaction.listeners.ChatInputHandler
+import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
@@ -17,18 +22,24 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.time.LocalDateTime
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
- * Guild Bank Automation menu with scheduled tasks, rewards, and alerts
+ * Guild Bank Automation menu with scheduled tasks, rewards, and alerts (REQ-010)
  */
 class GuildBankAutomationMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild
-) : Menu, KoinComponent {
+) : Menu, KoinComponent, ChatInputHandler {
 
     private val bankService: BankService by inject()
+    private val bankSettingsRepository: BankSettingsRepository by inject()
+    private val bankAutomationService: BankAutomationService by inject()
+    private val configService: net.lumalyte.lg.application.services.ConfigService by inject()
+    private val chatInputListener: ChatInputListener by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
@@ -38,11 +49,14 @@ class GuildBankAutomationMenu(
     private lateinit var automationPane: StaticPane
     private lateinit var rewardsPane: StaticPane
 
-    // Automation settings
+    // Automation settings (persisted per guild via BankSettingsRepository)
     private var scheduledDepositsEnabled: Boolean = false
     private var autoRewardsEnabled: Boolean = true
     private var recurringPaymentsEnabled: Boolean = false
-    private var interestRate: Double = 0.02 // 2% monthly interest
+    private var interestRate: Double = 0.02 // 2% per compound period (fraction)
+
+    // Active input mode for chat-based configuration
+    private var inputMode: String? = null
 
     // Active automations
     private var activeAutomations: MutableList<String> = mutableListOf()
@@ -78,14 +92,14 @@ class GuildBankAutomationMenu(
     }
 
     /**
-     * Load automation settings (placeholder for now)
+     * Load automation settings from the persisted per-guild settings (REQ-010).
      */
     private fun loadAutomationSettings() {
-        // TODO: Load from database/configuration
-        scheduledDepositsEnabled = false
-        autoRewardsEnabled = true
-        recurringPaymentsEnabled = false
-        interestRate = 0.02
+        val settings = bankSettingsRepository.getByGuildId(guild.id) ?: BankSettings(guild.id)
+        scheduledDepositsEnabled = settings.scheduledDepositsEnabled
+        autoRewardsEnabled = settings.autoRewardsEnabled
+        recurringPaymentsEnabled = settings.recurringPaymentsEnabled
+        interestRate = settings.interestRate
     }
 
     /**
@@ -290,8 +304,9 @@ class GuildBankAutomationMenu(
         )
         val interestGuiItem = GuiItem(interestItem) { event ->
             event.isCancelled = true
-            // TODO: Open interest rate input
-            player.sendMessage("§eInterest rate configuration coming soon!")
+            inputMode = "interestRate"
+            chatInputListener.startInputMode(player, this@GuildBankAutomationMenu)
+            player.sendMessage("§eType the interest rate as a decimal (e.g. 0.02 = 2% per compound period). Type 'cancel' to abort.")
         }
         automationPane.addItem(interestGuiItem, 4, 0)
 
@@ -387,48 +402,64 @@ class GuildBankAutomationMenu(
     }
 
     /**
-     * Update automation status display
+     * Update automation status display (REQ-010): real next-run time + honest status.
      */
     private fun updateAutomationStatus() {
-        // Next automation run time (placeholder)
-        val nextRun = LocalDateTime.now().plusHours(1)
+        // Real next run: last accrual + compound period, or the periodic scheduler cadence
+        val nextRun = bankAutomationService.getNextInterestRun(guild.id)
+        val nextRunText = nextRun?.let {
+            it.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"))
+        } ?: "Pending first accrual"
+
         val nextRunItem = createMenuItem(
             Material.CLOCK,
-            "Next Automation Run",
+            "Next Interest Accrual",
             listOf(
-                nextRun.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),
-                "Scheduled tasks will run automatically",
-                "Based on configured intervals"
+                nextRunText,
+                "Interest accrues every ${interestPeriodHours()} hours",
+                "Per guild balance at the configured rate"
             )
         )
         rewardsPane.addItem(GuiItem(nextRunItem), 4, 0)
 
-        // Automation health status
-        val healthItem = createMenuItem(
-            Material.GREEN_WOOL,
-            "Automation Status",
+        // Automation health status (derived from persisted settings, not hardcoded)
+        val activeCount = activeAutomations.size
+        val statusLore = if (activeCount > 0) {
             listOf(
-                "Status: Healthy",
-                "All automated processes running",
-                "${activeAutomations.size} active tasks"
+                "Status: ${activeCount} automation(s) configured",
+                "Interest rate: ${String.format("%.2f", interestRate * 100)}% per ${interestPeriodHours()}h",
+                "Scheduled deposits: ${if (scheduledDepositsEnabled) "ON" else "OFF"} | Auto-rewards: ${if (autoRewardsEnabled) "ON" else "OFF"}"
             )
+        } else {
+            listOf("Status: No automations configured", "Toggle settings above to enable")
+        }
+        val healthItem = createMenuItem(
+            if (activeCount > 0) Material.GREEN_WOOL else Material.GRAY_WOOL,
+            "Automation Status",
+            statusLore
         )
         rewardsPane.addItem(GuiItem(healthItem), 5, 0)
 
         // Recent automation activity
         val recentActivity = listOf(
-            "Auto-reward distributed (2 hours ago)",
-            "Budget alert sent (4 hours ago)",
-            "Interest calculated (1 day ago)"
+            "Interest accrual: every ${interestPeriodHours()}h",
+            "Audit retention: ${auditRetentionDays()} days",
+            "Scheduler: periodic (5 min checks)"
         )
 
         val activityItem = createMenuItem(
             Material.BOOK,
-            "Recent Automation Activity",
+            "Automation Configuration",
             recentActivity
         )
         rewardsPane.addItem(GuiItem(activityItem), 6, 1)
     }
+
+    private fun interestPeriodHours(): Int =
+        configService.loadConfig().bank.interestCompoundPeriodHours
+
+    private fun auditRetentionDays(): Int =
+        configService.loadConfig().bank.auditLogRetentionDays
 
     /**
      * Update automation display with latest data
@@ -445,11 +476,47 @@ class GuildBankAutomationMenu(
     }
 
     /**
-     * Save automation settings
+     * Save automation settings (REQ-010): persists all knobs per guild.
      */
     private fun saveAutomationSettings() {
-        // TODO: Save to database/configuration
-        player.sendMessage("§aAutomation settings would be saved to database")
+        val current = bankSettingsRepository.getByGuildId(guild.id) ?: BankSettings(guild.id)
+        val updated = current.copy(
+            scheduledDepositsEnabled = scheduledDepositsEnabled,
+            autoRewardsEnabled = autoRewardsEnabled,
+            recurringPaymentsEnabled = recurringPaymentsEnabled,
+            interestRate = interestRate
+        )
+        val saved = bankSettingsRepository.upsert(updated)
+        if (saved) {
+            player.sendMessage("§aAutomation settings saved!")
+        } else {
+            player.sendMessage("§cFailed to save automation settings.")
+        }
+    }
+
+    // ChatInputHandler interface methods (REQ-010)
+    override fun onChatInput(player: Player, input: String) {
+        when (inputMode) {
+            "interestRate" -> {
+                val rate = input.trim().toDoubleOrNull()
+                if (rate == null || rate < 0.0 || rate > 1.0) {
+                    player.sendMessage("§cInvalid interest rate. Enter a decimal between 0 and 1 (e.g. 0.02 = 2%).")
+                } else {
+                    interestRate = rate
+                    player.sendMessage("§aInterest rate set to ${String.format("%.2f", rate * 100)}% per compound period.")
+                }
+            }
+            else -> return
+        }
+        inputMode = null
+        checkActiveAutomations()
+        updateAutomationDisplay()
+        gui.update()
+    }
+
+    override fun onCancel(player: Player) {
+        inputMode = null
+        player.sendMessage("§eInterest rate input cancelled.")
     }
 
     /**

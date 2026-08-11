@@ -88,30 +88,30 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-3 — Bank features (knobs + real menus)
 
-- [ ] **LG-301** Enforce bank config: interest accrual task, max balance, audit retention, suspicious-transaction detection + auto-lock
+- [x] **LG-301** Enforce bank config: interest accrual task, max balance, audit retention, suspicious-transaction detection + auto-lock
   - Tag: `TDD`
   - References: REQ-009
-  - Evidence:
-  - Files: `infrastructure/services/BankServiceBukkit.kt`, bank config model
-- [ ] **LG-302** Bank automation menu: persisted settings, real save, real next-run time + status
+  - Evidence: `BankSettings`/`BankSettingsRepositorySQLite` (bank_settings table) + `BankAutomationService` (interest accrual, per-guild rate override, 30-period catch-up, audit pruning) + `BankInterestScheduler` (5-min BancRunnable, wired in LumaGuilds.onEnable/onDisable); deposit ceiling = min(config cap, progression limit); suspicious-transaction auto-lock on deposit+withdrawal (system actor UUID(0,0) + audit entry); `deleteAuditsOlderThan` per `audit_log_retention_days`. Tests: `BankAutomationServiceTest` (7), `BankConfigEnforcementTest` (6), `BankSettingsRepositorySQLiteTest` (3) — 16 GREEN.
+  - Files: `infrastructure/services/BankServiceBukkit.kt`, `infrastructure/services/BankInterestScheduler.kt`, `application/services/BankAutomationService.kt`, `application/persistence/BankSettingsRepository.kt`, `infrastructure/persistence/guilds/BankSettingsRepositorySQLite.kt`, `domain/entities/BankSettings.kt`, bank config model
+- [x] **LG-302** Bank automation menu: persisted settings, real save, real next-run time + status
   - Tag: `TDD`
   - References: REQ-010
-  - Evidence:
+  - Evidence: `GuildBankAutomationMenu` loads/saves via `BankSettingsRepository`; interest rate via `ChatInputHandler`; Save persists with failure message; next-run shows real `getNextInterestRun()`; status derived from active-automation count + configured rate.
   - Files: `interaction/menus/GuildBankAutomationMenu.kt`, automation persistence
-- [ ] **LG-303** Bank budget menu: real persisted budget + save
+- [x] **LG-303** Bank budget menu: real persisted budget + save
   - Tag: `TDD`
   - References: REQ-011
-  - Evidence:
+  - Evidence: `GuildBankBudgetMenu` loads real persisted monthly/weekly/daily budgets; 3 chat-input buttons; Save persists all three with success/failure feedback.
   - Files: `interaction/menus/GuildBankBudgetMenu.kt`, budget persistence
-- [ ] **LG-304** Bank transaction history: renders actual transactions; search/type/member/date filters functional
+- [x] **LG-304** Bank transaction history: renders actual transactions; search/type/member/date filters functional
   - Tag: `TDD`
   - References: REQ-012
-  - Evidence:
+  - Evidence: `GuildBankTransactionHistoryMenu` renders into StaticPane (10/page, prev/next + page indicator at slots 6-8); empty-state = localized `MENU_BANK_HISTORY_NO_TRANSACTIONS` item; type filter cycles TransactionType; date filter cycles 24h/7d/30d presets with real cutoff in `loadTransactions`; member filter = slot-click PaginatedPane submenu from `MemberService.getGuildMembers`; search wired via `ChatInputHandler` (matches actor name or description).
   - Files: `interaction/menus/GuildBankTransactionHistoryMenu.kt`, transaction repository
-- [ ] **LG-305** Bank security menu: dual-auth threshold setting implemented
+- [x] **LG-305** Bank security menu: dual-auth threshold setting implemented
   - Tag: `TDD`
   - References: REQ-031
-  - Evidence:
+  - Evidence: `GuildBankSecurityMenu` loads/saves dual-auth threshold from/to `BankSettingsRepository`; chat input wired; SAVE persists.
   - Files: bank security menu, dual-auth config
 
 ---

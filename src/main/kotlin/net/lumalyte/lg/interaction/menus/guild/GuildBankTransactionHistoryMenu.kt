@@ -6,10 +6,13 @@ import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
 import com.github.stefvanschie.inventoryframework.pane.Pane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.TransactionType
 import net.lumalyte.lg.domain.values.LocalizationKeys
+import net.lumalyte.lg.interaction.listeners.ChatInputHandler
+import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
@@ -34,16 +37,18 @@ class GuildBankTransactionHistoryMenu(
     private val player: Player,
     private val guild: Guild,
     private var filter: TransactionFilter = TransactionFilter()
-) : Menu, KoinComponent {
+) : Menu, KoinComponent, ChatInputHandler {
 
     private val bankService: BankService by inject()
+    private val memberService: MemberService by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val chatInputListener: ChatInputListener by inject()
 
     // GUI components
     private lateinit var gui: ChestGui
     private lateinit var mainPane: StaticPane
-    private lateinit var transactionPane: PaginatedPane
+    private lateinit var transactionPane: StaticPane
     private lateinit var filterPane: StaticPane
 
     // Transaction data
@@ -53,6 +58,12 @@ class GuildBankTransactionHistoryMenu(
     // Pagination
     private val itemsPerPage = 10
     private var currentPage = 0
+
+    // Chat input mode (search)
+    private var inputMode: String? = null
+
+    // Date range presets (null = All time)
+    private val dateRangeOptions: List<String?> = listOf(null, "24h", "7d", "30d")
 
     init {
         loadTransactions()
@@ -90,7 +101,7 @@ class GuildBankTransactionHistoryMenu(
         gui.addPane(filterPane)
 
         // Create transaction display pane (bottom 4 rows)
-        transactionPane = PaginatedPane(0, 2, 9, 4, Pane.Priority.NORMAL)
+        transactionPane = StaticPane(0, 2, 9, 4, Pane.Priority.NORMAL)
         gui.addPane(transactionPane)
 
         setupNavigation()
@@ -155,23 +166,23 @@ class GuildBankTransactionHistoryMenu(
      * Setup filter controls
      */
     private fun setupFilters() {
-        // Transaction type filter
+        // Transaction type filter (click cycles through types)
         val typeFilterItem = createMenuItem(
             Material.HOPPER,
-            "Filter by Type",
-            listOf("Current: ${filter.typeFilter?.name ?: "All"}", "Click to change")
+            getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_TYPE),
+            listOf("Current: ${typeFilterLabel(filter.typeFilter)}", "Click to cycle")
         )
         val typeFilterGuiItem = GuiItem(typeFilterItem) { event ->
             event.isCancelled = true
-            openTypeFilterMenu()
+            cycleTypeFilter()
         }
         filterPane.addItem(typeFilterGuiItem, 0, 0)
 
         // Member filter
         val memberFilterItem = createMenuItem(
             Material.PLAYER_HEAD,
-            "Filter by Member",
-            listOf("Current: ${filter.memberFilter ?: "All"}", "Click to change")
+            getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_MEMBER),
+            listOf("Current: ${filter.memberFilter ?: "All"}", "Click to select")
         )
         val memberFilterGuiItem = GuiItem(memberFilterItem) { event ->
             event.isCancelled = true
@@ -179,35 +190,37 @@ class GuildBankTransactionHistoryMenu(
         }
         filterPane.addItem(memberFilterGuiItem, 1, 0)
 
-        // Date range filter
+        // Date range filter (click cycles through presets)
         val dateFilterItem = createMenuItem(
             Material.CLOCK,
             getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_DATE),
-            listOf("Current: ${filter.dateRange ?: "All"}", "Click to change")
+            listOf("Current: ${dateRangeLabel(filter.dateRange)}", "Click to cycle")
         )
         val dateFilterGuiItem = GuiItem(dateFilterItem) { event ->
             event.isCancelled = true
-            openDateFilterMenu()
+            cycleDateFilter()
         }
         filterPane.addItem(dateFilterGuiItem, 2, 0)
 
         // Search filter
         val searchItem = createMenuItem(
             Material.COMPASS,
-            "Search Transactions",
-            listOf("Click to search")
+            getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_SEARCH),
+            listOf(
+                "Current: ${filter.searchQuery ?: "None"}",
+                "Click to search by member or description"
+            )
         )
         val searchGuiItem = GuiItem(searchItem) { event ->
             event.isCancelled = true
-            // TODO: Open search dialog
-            player.sendMessage("§eSearch functionality coming soon!")
+            startSearchInput()
         }
         filterPane.addItem(searchGuiItem, 3, 0)
 
         // Clear filters
         val clearItem = createMenuItem(
             Material.WATER_BUCKET,
-            "Clear Filters",
+            getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_CLEAR),
             listOf("Remove all filters")
         )
         val clearGuiItem = GuiItem(clearItem) { event ->
@@ -218,45 +231,57 @@ class GuildBankTransactionHistoryMenu(
             gui.update()
         }
         filterPane.addItem(clearGuiItem, 4, 0)
-
-        // Page navigation
-        updatePageNavigation()
     }
 
     /**
      * Setup transaction history display
      */
     private fun setupTransactionHistory() {
-        val currentItems = getCurrentPageItems()
-
-        if (currentItems.isEmpty()) {
-            // TODO: Add to pane when API is resolved
-            // val noTransactionsItem = createMenuItem(
-            //     Material.BARRIER,
-            //     getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_NO_TRANSACTIONS),
-            //     listOf("Try adjusting your filters")
-            // )
-            // transactionPane.addItem(GuiItem(noTransactionsItem))
-        } else {
-            // TODO: Add transaction items when API is resolved
-            // currentItems.forEach { transaction ->
-            //     val transactionItem = createTransactionItem(transaction)
-            //     transactionPane.addItem(GuiItem(transactionItem))
-            // }
-        }
-
-        // For now, show a placeholder message
-        player.sendMessage("§eTransaction history display coming soon!")
+        updateTransactionDisplay()
     }
 
     /**
      * Update page navigation controls
      */
     private fun updatePageNavigation() {
-        // Simplified navigation for now
         val totalPages = (filteredTransactions.size + itemsPerPage - 1) / itemsPerPage
 
+        // Clear stale navigation controls (slots 6-8 of filter row)
+        for (slot in 6..8) {
+            filterPane.removeItem(slot, 0)
+        }
+
         if (totalPages > 1) {
+            // Previous page button
+            if (currentPage > 0) {
+                val prevItem = createMenuItem(
+                    Material.ARROW,
+                    getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_PAGE_PREVIOUS),
+                    listOf("Go to page $currentPage")
+                )
+                val prevGuiItem = GuiItem(prevItem) { event ->
+                    event.isCancelled = true
+                    currentPage--
+                    updateTransactionDisplay()
+                }
+                filterPane.addItem(prevGuiItem, 7, 0)
+            }
+
+            // Next page button
+            if (currentPage < totalPages - 1) {
+                val nextItem = createMenuItem(
+                    Material.ARROW,
+                    getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_PAGE_NEXT),
+                    listOf("Go to page ${currentPage + 2}")
+                )
+                val nextGuiItem = GuiItem(nextItem) { event ->
+                    event.isCancelled = true
+                    currentPage++
+                    updateTransactionDisplay()
+                }
+                filterPane.addItem(nextGuiItem, 8, 0)
+            }
+
             // Page indicator
             val pageItem = createMenuItem(
                 Material.PAPER,
@@ -271,29 +296,167 @@ class GuildBankTransactionHistoryMenu(
      * Update the transaction display
      */
     private fun updateTransactionDisplay() {
-        // Clear existing items (simplified approach)
-        // For now, recreate the transaction display each time
+        transactionPane.clear()
 
-        if (filteredTransactions.isEmpty()) {
-            // Add a "no transactions" message to the filter pane temporarily
+        val currentItems = getCurrentPageItems()
+
+        if (currentItems.isEmpty()) {
             val noTransactionsItem = createMenuItem(
                 Material.BARRIER,
                 getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_NO_TRANSACTIONS),
                 listOf("Try adjusting your filters")
             )
-            // Note: We'll handle this display differently for now
+            transactionPane.addItem(GuiItem(noTransactionsItem), 4, 1)
         } else {
-            // Display logic will be handled in setupTransactionHistory
+            var slotIndex = 0
+            currentItems.forEach { transaction ->
+                val transactionItem = createTransactionItem(transaction)
+                val row = slotIndex / 9
+                val col = slotIndex % 9
+                transactionPane.addItem(GuiItem(transactionItem), col, row)
+                slotIndex++
+            }
         }
+
+        updatePageNavigation()
     }
 
     /**
      * Get transactions for the current page
      */
     private fun getCurrentPageItems(): List<BankTransaction> {
+        if (filteredTransactions.isEmpty()) return emptyList()
         val startIndex = currentPage * itemsPerPage
+        if (startIndex >= filteredTransactions.size) return emptyList()
         val endIndex = minOf(startIndex + itemsPerPage, filteredTransactions.size)
         return filteredTransactions.subList(startIndex, endIndex)
+    }
+
+    /**
+     * Cycle the type filter to the next transaction type
+     */
+    private fun cycleTypeFilter() {
+        val options: List<TransactionType?> = listOf(null) + TransactionType.entries
+        val currentIndex = options.indexOf(filter.typeFilter)
+        filter = filter.copy(typeFilter = options[(currentIndex + 1) % options.size])
+        loadTransactions()
+        updateTransactionDisplay()
+        gui.update()
+    }
+
+    /**
+     * Cycle the date range filter to the next preset
+     */
+    private fun cycleDateFilter() {
+        val currentIndex = dateRangeOptions.indexOf(filter.dateRange)
+        filter = filter.copy(dateRange = dateRangeOptions[(currentIndex + 1) % dateRangeOptions.size])
+        loadTransactions()
+        updateTransactionDisplay()
+        gui.update()
+    }
+
+    /**
+     * Open a slot-click selection menu of guild members to filter by
+     */
+    private fun openMemberFilterMenu() {
+        val members = memberService.getGuildMembers(guild.id).sortedBy { member ->
+            Bukkit.getOfflinePlayer(member.playerId).name ?: ""
+        }
+
+        val memberGui = ChestGui(6, "Select Member to Filter By")
+        memberGui.setOnGlobalClick { event -> event.isCancelled = true }
+
+        val memberPane = PaginatedPane(0, 0, 9, 5)
+        memberGui.addPane(memberPane)
+
+        val memberItems = mutableListOf<GuiItem>()
+
+        // "All members" option to clear the filter
+        val allItem = createMenuItem(
+            Material.BARRIER,
+            "All Members",
+            listOf("Clear member filter")
+        )
+        memberItems += GuiItem(allItem) { event ->
+            event.isCancelled = true
+            filter = filter.copy(memberFilter = null)
+            player.closeInventory()
+            loadTransactions()
+            updateTransactionDisplay()
+            gui.update()
+            gui.show(player)
+        }
+
+        members.forEach { member ->
+            val name = Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown Player"
+            val memberItem = createMenuItem(
+                Material.PLAYER_HEAD,
+                name,
+                listOf("Click to filter by $name")
+            )
+            memberItems += GuiItem(memberItem) { event ->
+                event.isCancelled = true
+                filter = filter.copy(memberFilter = name)
+                player.closeInventory()
+                loadTransactions()
+                updateTransactionDisplay()
+                gui.update()
+                gui.show(player)
+            }
+        }
+
+        // Populate pages with members (45 per page = 9x5 grid)
+        memberPane.populateWithGuiItems(memberItems)
+
+        // Navigation row
+        val navPane = StaticPane(0, 5, 9, 1)
+        memberGui.addPane(navPane)
+
+        val backItem = createMenuItem(
+            Material.ARROW,
+            getLocalizedString(LocalizationKeys.MENU_BANK_BACK_TO_CONTROL_PANEL),
+            listOf("Back to transaction history")
+        )
+        navPane.addItem(GuiItem(backItem) { event ->
+            event.isCancelled = true
+            player.closeInventory()
+            gui.show(player)
+        }, 0, 0)
+
+        memberGui.show(player)
+    }
+
+    /**
+     * Start chat input mode for the search query
+     */
+    private fun startSearchInput() {
+        inputMode = "search"
+        chatInputListener.startInputMode(player, this)
+        player.sendMessage("§eType a search term (matches member name or description). Type 'cancel' to abort.")
+    }
+
+    override fun onChatInput(player: Player, input: String) {
+        when (inputMode) {
+            "search" -> {
+                val query = input.trim()
+                if (query.isEmpty()) {
+                    player.sendMessage("§cSearch term cannot be empty.")
+                } else {
+                    filter = filter.copy(searchQuery = query)
+                    loadTransactions()
+                    updateTransactionDisplay()
+                    gui.update()
+                    player.sendMessage("§aSearching for: §f$query §a(${filteredTransactions.size} matches)")
+                }
+            }
+            else -> return
+        }
+        inputMode = null
+    }
+
+    override fun onCancel(player: Player) {
+        inputMode = null
+        player.sendMessage("§eSearch cancelled.")
     }
 
     /**
@@ -342,7 +505,9 @@ class GuildBankTransactionHistoryMenu(
         // Load all transactions for this guild
         allTransactions = bankService.getTransactionHistory(guild.id, null)
 
-        // Apply filters
+        // Compute date cutoff once for the date range filter
+        val dateCutoff = dateRangeCutoff(filter.dateRange)
+
         filteredTransactions = allTransactions.filter { transaction ->
             // Type filter
             if (filter.typeFilter != null && transaction.type != filter.typeFilter) {
@@ -358,8 +523,18 @@ class GuildBankTransactionHistoryMenu(
             }
 
             // Date range filter
-            if (filter.dateRange != null) {
-                // TODO: Implement date range filtering
+            if (dateCutoff != null && transaction.timestamp.isBefore(dateCutoff)) {
+                return@filter false
+            }
+
+            // Search query (matches member name or description)
+            if (!filter.searchQuery.isNullOrBlank()) {
+                val query = filter.searchQuery!!.lowercase()
+                val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name?.lowercase() ?: ""
+                val description = transaction.description?.lowercase() ?: ""
+                if (query !in actorName && query !in description) {
+                    return@filter false
+                }
             }
 
             true
@@ -370,27 +545,41 @@ class GuildBankTransactionHistoryMenu(
     }
 
     /**
-     * Open transaction type filter menu
+     * Convert a date range preset string to an Instant cutoff (null = all time)
      */
-    private fun openTypeFilterMenu() {
-        // TODO: Create filter selection menu
-        player.sendMessage("§eType filter menu coming soon!")
+    private fun dateRangeCutoff(range: String?): Instant? {
+        val now = Instant.now()
+        return when (range) {
+            "24h" -> now.minusSeconds(24 * 60 * 60)
+            "7d" -> now.minusSeconds(7 * 24 * 60 * 60)
+            "30d" -> now.minusSeconds(30 * 24 * 60 * 60)
+            else -> null
+        }
     }
 
     /**
-     * Open member filter menu
+     * Human-readable label for a date range preset
      */
-    private fun openMemberFilterMenu() {
-        // TODO: Create member selection menu
-        player.sendMessage("§eMember filter menu coming soon!")
+    private fun dateRangeLabel(range: String?): String {
+        return when (range) {
+            "24h" -> "Last 24 Hours"
+            "7d" -> "Last 7 Days"
+            "30d" -> "Last 30 Days"
+            else -> "All Time"
+        }
     }
 
     /**
-     * Open date filter menu
+     * Human-readable label for a transaction type filter
      */
-    private fun openDateFilterMenu() {
-        // TODO: Create date range selection menu
-        player.sendMessage("§eDate filter menu coming soon!")
+    private fun typeFilterLabel(type: TransactionType?): String {
+        return when (type) {
+            null -> "All"
+            TransactionType.DEPOSIT -> "Deposits"
+            TransactionType.WITHDRAWAL -> "Withdrawals"
+            TransactionType.FEE -> "Fees"
+            TransactionType.DEDUCTION -> "Deductions"
+        }
     }
 
     /**
@@ -442,4 +631,3 @@ data class TransactionFilter(
     val dateRange: String? = null,
     val searchQuery: String? = null
 )
-
