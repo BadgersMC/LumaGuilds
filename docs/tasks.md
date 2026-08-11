@@ -296,3 +296,170 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-045
   - Evidence:
   - Files: `domain/events/*` (21 files, 38 Bukkit imports), `domain/entities/{VaultInventory,ViewerSession,WriteBuffer}.kt`, `LayerRulesTest`, `docs/implementation.md`
+
+---
+
+## PR-11 — Backlog: immediate fixes (operator, Fain)
+
+- [ ] **LG-1101** Resolve existing guild bugs
+  - Tag: `TDD`
+  - References: operator backlog (bugs channel `<#1421662495923372194>`)
+  - Evidence:
+  - Files: TBD — bug list must be pasted into this doc before tracking
+- [ ] **LG-1102** Economy commands fix: `/g balance` + `/g baltop` correct data; `/g balance` tab-completes all guild names
+  - Tag: `TDD`
+  - References: REQ-046
+  - Evidence:
+  - Files: guild balance/baltop commands, tab-completion provider
+- [ ] **LG-1103** Guild emoji removal — emoji can be cleared once set
+  - Tag: `TDD`
+  - References: REQ-047
+  - Evidence:
+  - Files: emoji menu/service
+- [ ] **LG-1104** Custom guild emojis via config — guild-name → Nexo permission grant for all members
+  - Tag: `TDD`
+  - References: REQ-048
+  - Evidence:
+  - Files: config section, `NexoEmojiService` (↳ LG-902 reflection cleanup)
+  - Notes: lifecycle reconciliation — revoke on config-removal, guild rename/disband, member leave, and mapping change (A→B revokes A, grants B); tests cover grant, revoke, rename, config-removal, and value replacement
+
+## PR-12 — Backlog: progression & economy (operator, Fain)
+
+- [ ] **LG-1201** Progression revamp — activity-based XP, no AFK farming, lower-level guilds not stunted
+  - Tag: `TDD`
+  - References: REQ-049
+  - Evidence:
+  - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
+  - Notes: deterministic acceptance tests — per-source caps, no-AFK-farm proof per source, XP/hour flat-or-decreasing across level bands (anti-stunting; must NOT rise with level)
+- [ ] **LG-1202** Comprehensive 0–200 reward tier list — documented per-level rewards incl. new level-100+ perks
+  - Tag: `DOC`
+  - References: REQ-050
+  - Evidence:
+  - Files: docs + reward config/registry
+- [ ] **LG-1203** Extended guild home capacity at levels 125, 150, 175, 200 (raises cap; activation still costs gold — see LG-1206)
+  - Tag: `TDD`
+  - References: REQ-051
+  - Evidence:
+  - Files: home limits config, progression hooks
+- [ ] **LG-1204** Dynamic XP rates — operator-hosted "increased XP" days
+  - Tag: `TDD`
+  - References: REQ-052
+  - Evidence:
+  - Files: XP multiplier config, scheduler
+- [ ] **LG-1205** XP penalties — guilds lose XP/levels on stake events (e.g. war loss)
+  - Tag: `TDD`
+  - References: REQ-053
+  - Evidence:
+  - Files: XP deduction path, war-end hooks (↳ PR-4)
+- [ ] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`), level grants capacity only; level-loss keeps paid homes, blocks new activations until capacity restored
+  - Tag: `TDD`
+  - References: REQ-054
+  - Evidence:
+  - Files: creation flow, home activation flow, gold economy, level-loss reconciliation
+- [ ] **LG-1207** Guild-creation cooldown — 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
+  - Tag: `TDD`
+  - References: REQ-055
+  - Evidence:
+  - Files: guild creation, deletion timestamps
+- [ ] **LG-1208** Guild prestige system (theorize) — level reset at cap, special emoji, permanent unlocked features; balanced with level rebalance
+  - Tag: `DOC`
+  - References: REQ-056
+  - Evidence:
+  - Files: design doc first
+
+## PR-13 — Backlog: wars & combat (operator, Fain)
+
+- [ ] **LG-1301** War system overhaul — accurate kill tracking with measurable gameplay impact: per-guild war kill counter (opposing-guild kills only, persisted, reset on war end) driving resolution at `war_kill_win_target` (default 25), surfaced in `/g info` + war menus
+  - Tag: `TDD`
+  - References: REQ-057
+  - Evidence:
+  - Files: war services (↳ PR-4 LG-401..405), kill counter persistence, win-by-kills resolution
+- [ ] **LG-1302** World War — configurable secret predicate triggers a server-wide World War (idempotent, cooldown-gated, debug-force override)
+  - Tag: `TDD`
+  - References: REQ-058
+  - Evidence:
+  - Files: trigger detection/evaluation scheduler, war-scaling, config
+- [ ] **LG-1303** War banners — deployable tactical teleport banner: 15 min, destructible, raw-gold cost, 1 active/guild, cooldown, rank-permission gated, broadcast on placement
+  - Tag: `TDD`
+  - References: REQ-059
+  - Evidence:
+  - Files: banner entity, placement/break listeners, broadcast
+- [ ] **LG-1304** Better war notifications — prominent declaration alert, persisted unread notices replayed on login, victory/loss broadcasts
+  - Tag: `TDD`
+  - References: REQ-060
+  - Evidence:
+  - Files: declaration alert, unread-notice store + login replay, end-of-war broadcast (↳ PR-4)
+  - Notes: replay must transition the notice to read/acknowledged — acceptance test proves a notice replays once and is cleared, never re-replaying on subsequent logins
+- [ ] **LG-1305** Customizable war win conditions — unique kill counts, ransoms, death-duel "Champion" mode, high-stakes XP boost/deduction
+  - Tag: `TDD`
+  - References: REQ-061
+  - Evidence:
+  - Files: war objectives, surrender flow, duel arena (↳ LG-1205)
+
+## PR-14 — Backlog: chat & communication (operator, Fain)
+
+- [ ] **LG-1401** Login notifications — in-game alert when a guild member logs in
+  - Tag: `TDD`
+  - References: REQ-062
+  - Evidence:
+  - Files: `PlayerJoinEvent` handler (pattern: `apollo/GuildTeamListener.onPlayerJoin:26`), guild notification
+- [ ] **LG-1402** Rank prefixes in guild chat — member's rank shown next to name (legacy restore)
+  - Tag: `TDD`
+  - References: REQ-063
+  - Evidence:
+  - Files: guild chat formatter (↳ RoseChat hook)
+- [ ] **LG-1403** Guild admin chat — dedicated private channel for admins/leadership
+  - Tag: `TDD`
+  - References: REQ-064
+  - Evidence:
+  - Files: chat channel registry, permission gate
+- [ ] **LG-1404** Custom guild channels — guilds create/name own chat channels (pending RoseChat feasibility)
+  - Tag: `TDD`
+  - References: REQ-065
+  - Evidence:
+  - Files: channel CRUD, RoseChat integration
+
+## PR-15 — Backlog: QoL, UI & Discord integration (operator, Fain)
+
+- [ ] **LG-1501** Guild Statistics node completion — internal invitation tracker/leaderboard (most invites per member)
+  - Tag: `TDD`
+  - References: REQ-066
+  - Evidence:
+  - Files: `GuildStatisticsMenu.kt` (↳ LG-602 drill-downs, LG-806)
+- [ ] **LG-1502** Dynamic spawn banners — physical spawn banners track top guilds by Guild Level Leaderboard
+  - Tag: `TDD`
+  - References: REQ-067
+  - Evidence:
+  - Files: banner update scheduler, leaderboard hook
+- [ ] **LG-1503** Guild list GUI & leaderboards — all guilds, paged at the service boundary, 4 deterministic sort modes (all-time active, weekly active weighted by unique PvP kills, level low→high, creation old→new, ties → name → creation)
+  - Tag: `TDD`
+  - References: REQ-068
+  - Evidence:
+  - Files: guild list menu, paged lookup action (page/pageSize/sortKey/ascending + total count — NOT `GuildLookup.getAllGuilds()`), sort providers
+  - Notes: page size from `guild_list.page_size` (default 18); prev/next page buttons with acceptance evidence; tie-break rules stable across refreshes
+- [ ] **LG-1504** Guild banners in list — physical banner shown per guild, plain white default when unset
+  - Tag: `TDD`
+  - References: REQ-069
+  - Evidence:
+  - Files: banner resolution, list renderer
+- [ ] **LG-1505** Expandable Enemy/Ally lists in `/g info` — full guild list beyond top 3
+  - Tag: `TDD`
+  - References: REQ-070
+  - Evidence:
+  - Files: `/g info` view, pagination
+- [ ] **LG-1506** Dynamic Discord roles — level perk auto-creates/links a Discord role, grants/removes on join/leave
+  - Tag: `TDD`
+  - References: REQ-071
+  - Evidence:
+  - Files: Discord role service, join/leave hooks
+- [ ] **LG-1507** Enhanced guild descriptions — Discord invite links embeddable in guild description
+  - Tag: `TDD`
+  - References: REQ-072
+  - Evidence:
+  - Files: description edit flow, renderer
+- [ ] **LG-1508** Disband announcements — broadcast when a guild is disbanded
+  - Tag: `TDD`
+  - References: REQ-073
+  - Evidence:
+  - Files: guild delete path, broadcast
+

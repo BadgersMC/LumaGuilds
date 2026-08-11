@@ -251,3 +251,94 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 **Ubiquitous.** THE SYSTEM SHALL keep the `domain/**` layer free of framework/server imports (`org.bukkit`, `org.koin`, `co.aikar`, `net.kyori`), decoupling the 21 domain files (38 imports — mostly `domain/events/*` extending `org.bukkit.event.Event`) from Bukkit so the `forbidden:` contract in `docs/implementation.md` becomes enforceable.
 
 > Origin: CodeRabbit PR #89 comment on `docs/implementation.md:21` — `forbidden: []` is not consumed, and Konsist's `dependsOnNothing()` only checks declared layers, so domain→org.bukkit imports pass the guard. Deferred to PR-10 (LG-1001); when merged, LayerRulesTest gains an external-package assertion and the forbidden list is populated.
+---
+
+## Section F — Operator backlog (Aug 11, Fain)
+
+> Product backlog promoted to SPEAR requirements. Origin: operator notes (Fain),
+> parts 1+2 — see git history on `docs/fain-backlog`. Items are actionable but
+> not yet scheduled; PR grouping lives in `docs/tasks.md` (PR-11..PR-15).
+
+### REQ-046
+**Event-driven.** WHEN a player runs `/g balance` or `/g baltop` THEN THE SYSTEM SHALL return correct balances/leaderboard data, AND `/g balance` SHALL tab-complete all guild names on the server.
+
+### REQ-047
+**Event-driven.** WHEN a guild has set an emoji THEN THE SYSTEM SHALL allow clearing/removing it (currently impossible once set).
+
+### REQ-048
+**Conditional.** GIVEN an operator config entry mapping a guild name (string) to an emoji permission, WHEN that guild exists THEN THE SYSTEM SHALL grant all its members the configured Nexo permission (chat + guild-emoji usage); WHEN the mapping is removed, the guild is renamed/disbanded, or a member leaves THEN THE SYSTEM SHALL revoke the permission; WHEN an operator changes a mapping from permission A to permission B THEN THE SYSTEM SHALL revoke A and grant B (configuration-value replacement) so no guild-scoped Nexo permission outlives its grant.
+
+### REQ-049
+**State-driven.** THE SYSTEM SHALL overhaul guild XP so that XP accrues from actual activity and AFK farming is eliminated, WITHOUT stunting lower-level guilds. Acceptance criteria: (a) XP is earned only from explicit activity sources (enumerated per event: kills, PvP, boss kills, brewing, mining/collecting, invites, war wins); (b) each source has a hard per-period cap so idle/loop actions cannot farm it; (c) any source that was previously AFK-farmable is removed or capped; (d) lower-level guilds progress at least as fast per active player-hour as higher-level guilds — the XP/hour curve is flat or decreasing as guild level rises (anti-stunting rule: XP/hour must NOT increase with level).
+
+### REQ-050
+**Documented.** THE SYSTEM SHALL ship a complete, documented 0–200 reward tier list (what a guild earns at every level), including new perks/rewards specifically for level 100+ guilds.
+
+### REQ-051
+**Conditional.** GIVEN guild progression, WHEN a guild reaches levels 125, 150, 175, or 200 THEN THE SYSTEM SHALL unlock one additional guild home *capacity* per threshold — the threshold grants the right to own the home, but activation still costs raw gold (see REQ-054). A level unlock never bypasses the gold cost; it raises the guild's home cap.
+
+### REQ-052
+**Event-driven.** WHEN an operator enables an "increased XP" period (e.g. double-XP weekend) THEN THE SYSTEM SHALL multiply applicable XP gains for its duration.
+
+### REQ-053
+**Event-driven.** WHEN a guild loses a war (or other configured stake event) THEN THE SYSTEM SHALL deduct configured XP/levels from that guild.
+
+### REQ-054
+**Conditional.** GIVEN raw-gold economy, THE SYSTEM SHALL require raw gold to create a guild and to activate each guild home, with costs scaling higher as more homes are unlocked. Cost model (contract): home #1..N costs `baseCost * scale^(n-1)`; the level threshold (REQ-051) grants capacity, the gold payment activates the home; both are required — a level without gold grants nothing, gold without level cannot exceed the cap. Level-loss reconciliation (REQ-053): WHEN a level deduction drops a guild below a home-cap threshold, THEN THE SYSTEM SHALL retain already-activated homes (paid features are never confiscated), deny activation of further homes until capacity is regained, and disable *unactivated* capacity slots in excess of the new cap.
+
+### REQ-055
+**State-driven.** THE SYSTEM SHALL enforce a 15-day guild-creation cooldown for players who create and then delete a guild within 7 days of creation (contract: `create_then_delete_window_days = 7`, `creation_cooldown_days = 15`, both operator-configurable). Deleting a guild older than the window does not start a cooldown. The cooldown starts at deletion time and blocks that player from creating a new guild until it expires.
+
+### REQ-056
+**Documented.** THE SYSTEM SHALL define a guild-prestige design: level reset at cap, special emoji, permanent retention of a few unlocked features across prestiges — balanced against the level rebalance (theorize first, ship later).
+
+### REQ-057
+**Event-driven.** WHEN a guild war is active THEN THE SYSTEM SHALL accurately track player kills and make them actually impact gameplay (war system overhaul; residual gaps after PR-4). Measurable contract: each war carries a kill counter per guild that (a) increments only on kills of opposing-guild members during the active war, (b) resets when the war ends, (c) is persisted so restarts do not lose it, and (d) drives war resolution — a guild whose counter reaches `combat.war_kill_win_target` (config, default 25) wins the war; the counter is also surfaced in `/g info` and war menus so its gameplay impact is observable.
+
+### REQ-058
+**Conditional.** GIVEN a secret server-side predicate is met THEN THE SYSTEM SHALL trigger a massive, server-wide World War involving all guilds. Contract: (a) the predicate is defined in config as an operator-tunable expression with a documented default (initial default: a single guild reaches level 150 or total server guild level sum exceeds a configured threshold); (b) the predicate is evaluated on a fixed interval (config: `world_war.evaluation_interval_minutes`, default 5) and at guild-level-up; (c) the trigger is idempotent — it fires at most once per cooldown period (config: `world_war.cooldown_days`, default 30) and never re-fires while a World War is active; (d) a config/test override flag (`world_war.debug_force`) exists so the trigger can be exercised deterministically in tests.
+
+### REQ-059
+**Event-driven.** WHEN a guild member places a war banner THEN THE SYSTEM SHALL (a) create a tactical teleport point for guild members bypassing teleport requests/guild-home slots, (b) make it destructible by any player, (c) last 15 minutes, (d) cost raw gold, (e) enforce one active banner per guild + placement cooldown, (f) require a specific guild rank permission, AND (g) broadcast `[Guild Name] has placed down a war banner.`
+
+### REQ-060
+**Event-driven.** WHEN war is declared on a guild THEN THE SYSTEM SHALL (a) show a prominent in-game alert to online members, AND (b) persist an unread declaration notice per guild member; WHEN a member who was offline at declaration time logs in THEN THE SYSTEM SHALL replay the pending notice and mark it read/acknowledged; WHEN a war ends THEN THE SYSTEM SHALL broadcast victory/loss messages server-wide.
+
+### REQ-061
+**Conditional.** GIVEN configurable war win conditions, THE SYSTEM SHALL support (a) required unique opposing-player kill counts (dupes excluded), (b) a ransom fee to surrender/end the war, (c) a "Champion" death-duel mode deciding the outcome, AND (d) XP boost/deduction for winner/loser (high-stakes).
+
+### REQ-062
+**Event-driven.** WHEN a guild member logs into the server THEN THE SYSTEM SHALL notify the guild in-game.
+
+### REQ-063
+**State-driven.** THE SYSTEM SHALL display each member's current guild rank next to their name in guild chat (restoring the legacy feature).
+
+### REQ-064
+**Conditional.** GIVEN guild leadership, THE SYSTEM SHALL provide a dedicated private chat channel for guild admins/leadership only.
+
+### REQ-065
+**Conditional.** GIVEN RoseChat feasibility, THEN THE SYSTEM SHALL let guilds create and name custom chat channels for their own organizational structure.
+
+### REQ-066
+**Event-driven.** WHEN a member invites a player to the guild THEN THE SYSTEM SHALL record it, AND the Guild Statistics UI node SHALL display an internal invitation leaderboard (most invites per member).
+
+### REQ-067
+**State-driven.** THE SYSTEM SHALL keep the physical banners at server spawn updated to reflect current top guilds by Guild Level Leaderboard placement.
+
+### REQ-068
+**Event-driven.** WHEN a player opens the guild list GUI THEN THE SYSTEM SHALL list all server guilds with sort options: All-Time Active, Weekly Active (weighted by unique PvP kills), Guild Level (low→high), and Creation Date (old→new). Retrieval contract: paging is bounded at the service boundary — the lookup action accepts `(page, pageSize, sortKey, ascending)` and returns one page plus a total count, never a full `List` sliced in the GUI (the existing `GuildLookup.getAllGuilds()` unbounded path is NOT used); page size defaults to `guild_list.page_size` (default 18); navigation uses prev/next page buttons; sorting is deterministic — ties break by guild name (case-insensitive), then creation date, so page boundaries are stable across refreshes.
+
+### REQ-069
+**Conditional.** GIVEN the guild list GUI, THEN THE SYSTEM SHALL display each guild's physical banner, defaulting to a plain white banner when none is set.
+
+### REQ-070
+**Event-driven.** WHEN a player clicks the Enemy/Ally sections of `/g info` THEN THE SYSTEM SHALL expand to the full guild list (currently only top 3, no way to view the rest).
+
+### REQ-071
+**Conditional.** GIVEN a guild reaches a Discord-role level perk, THEN THE SYSTEM SHALL create/link a Discord role that dynamically grants/removes itself as players join/leave the guild in-game.
+
+### REQ-072
+**Event-driven.** WHEN a guild edits its description THEN THE SYSTEM SHALL allow embedding a Discord invite link for recruitment.
+
+### REQ-073
+**Event-driven.** WHEN a guild is disbanded THEN THE SYSTEM SHALL broadcast a server-wide announcement.
