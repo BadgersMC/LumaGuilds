@@ -344,11 +344,16 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 - [ ] **War system overhaul** — fix current system so it accurately tracks player kills and actually impacts gameplay.
   - ↳ largely covered by PR-4 (LG-401..405); backlog item = residual gameplay impact gaps
+- [ ] **World War** — introduce a *secret* requirement that triggers a massive, server-wide World War.
+  - Notes: secret trigger — design first (what conditions, who can trigger, scale)
 - [ ] **War banners** — deployable banner acting as tactical teleport point for guild members (bypasses teleport requests and guild home slots)
   - Duration & vulnerability: lasts 15 minutes; can be physically attacked and broken by any player.
   - Cost & limits: costs raw gold to place; strict limit of one active banner per guild; cooldown before another can be placed.
   - Permissions: tied to a specific guild rank permission.
   - Notifications: chat broadcast `[Guild Name] has placed down a war banner.`
+- [ ] **Better war notifications**
+  - Prominent indicator/alert for guilds when war is declared on them — offline declarations must not be missed.
+  - Public server messages announcing guild war victories and losses.
 - [ ] **Customizable war win conditions**
   - **Kill counts**: guilds set a required number of opposing-player deaths to win; only unique player kills count (anti-farming).
   - **Ransoms**: guilds set a monetary fee required from the opposing guild to surrender/end the war.
@@ -356,6 +361,22 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - **High-stakes wars**: winning guild gets XP boost; losing guild gets XP deduction.
   - ↳ pairs with XP Penalties above
 
----
+## Guild Chat & Communication
 
-*Part 2 pending — Quality of Life & UI section (includes Guild Statistics node and invitation tracker).*
+- [ ] **Login notifications** — in-game notification alerting the guild whenever a member logs into the server.
+- [ ] **Rank prefixes in guild chat** — display the member's current guild rank next to their name in guild chat (restoring this feature from the old system).
+- [ ] **Guild admin chat** — dedicated, private chat channel exclusively for guild admins and leadership.
+- [ ] **Custom guild channels** — allow guilds to create and name their own custom chat channels to fit their organizational/leadership structures.
+  - Notes: pending feasibility checks with the RoseChat plugin.
+
+## Quality of Life, UI, & Discord Integration
+
+- [ ] **Guild Statistics node** — complete the Guild Statistics UI node; include an internal guild tracker/leaderboard showing which members have invited the most players to the guild (invitation tracker).
+  - ↳ SPEAR overlap: LG-602 (14 stubbed statistics drill-downs), LG-806 (statistics online tracking)
+- [ ] **Dynamic spawn banners** — physical banners at server spawn automatically update to reflect the current top guilds based on their Guild Level Leaderboard placement.
+- [ ] **Guild list GUI & leaderboards** — interface listing all server guilds with sorting options: All-Time Active, Weekly Active (heavily weighted by unique PvP kills), Guild Level (lowest→highest), Guild Creation Date (oldest→newest).
+- [ ] **Guild banners in list** — every guild displays its physical guild banner in the list; default to a plain white banner if none is set.
+- [ ] **Expandable alliance/enemy lists** — click the "Enemy"/"Ally" sections in `/g info` to view the full list of guilds (currently only top 3 shown, no way to see the rest).
+- [ ] **Dynamic Discord roles** — level perk that automatically creates and links a Discord role to the guild; role dynamically grants/removes itself when a player joins or leaves the guild in-game.
+- [ ] **Enhanced guild descriptions** — allow guilds to add Discord invite links directly into their guild description for easier recruitment.
+- [ ] **Disband announcements** — broadcast message when a guild is disbanded.
