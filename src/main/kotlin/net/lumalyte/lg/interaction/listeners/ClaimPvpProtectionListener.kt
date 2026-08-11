@@ -43,18 +43,46 @@ class ClaimPvpProtectionListener : Listener, KoinComponent {
         val attacker = resolveAttacker(damager) ?: return
         if (attacker.uniqueId == victim.uniqueId) return
 
-        val territoryGuildId = resolveTerritoryGuild(
+        when (val resolution = resolveTerritoryGuild(
             victim.world.uid,
             victim.location.blockX,
             victim.location.blockZ
-        ) ?: return
+        )) {
+            // No claim — territory rules don't apply
+            TerritoryResolution.NoClaim -> Unit
 
-        if (shouldCancelPvp(attacker.uniqueId, victim.uniqueId, territoryGuildId)) {
-            logger.debug(
-                "Claim PvP blocked: ${attacker.name} -> ${victim.name} in claim of guild $territoryGuildId"
-            )
-            event.isCancelled = true
+            // Claim storage unavailable — fail closed: never allow damage we
+            // cannot verify is outside a protected claim.
+            TerritoryResolution.StorageError -> {
+                logger.error(
+                    "Claim PvP lookup failed at ${victim.world.uid} (${victim.location.blockX}, ${victim.location.blockZ}) " +
+                        "- cancelling damage from ${attacker.name} to ${victim.name} (fail closed)"
+                )
+                event.isCancelled = true
+            }
+
+            is TerritoryResolution.GuildClaim ->
+                if (shouldCancelPvp(attacker.uniqueId, victim.uniqueId, resolution.guildId)) {
+                    logger.debug(
+                        "Claim PvP blocked: ${attacker.name} -> ${victim.name} in claim of guild ${resolution.guildId}"
+                    )
+                    event.isCancelled = true
+                }
         }
+    }
+
+    /**
+     * Outcome of resolving the guild that owns the claim at a block position.
+     */
+    internal sealed class TerritoryResolution {
+        /** No claim exists at the position — territory rules don't apply. */
+        object NoClaim : TerritoryResolution()
+
+        /** Claim storage failed — the lookup could not be completed. */
+        object StorageError : TerritoryResolution()
+
+        /** A guild-owned claim exists at the position. */
+        data class GuildClaim(val guildId: UUID) : TerritoryResolution()
     }
 
     /**
@@ -69,21 +97,27 @@ class ClaimPvpProtectionListener : Listener, KoinComponent {
 
     /**
      * Resolves the guild that owns the claim at the given block position, or
-     * null when there is no claim / no guild ownership. Territory PvP rules
-     * only apply to guild-owned claims.
+     * NoClaim when there is no claim / no guild ownership. Territory PvP rules
+     * only apply to guild-owned claims. StorageError is kept distinct so
+     * callers can fail closed.
      */
-    internal fun resolveTerritoryGuild(worldId: UUID, blockX: Int, blockZ: Int): UUID? {
+    internal fun resolveTerritoryGuild(worldId: UUID, blockX: Int, blockZ: Int): TerritoryResolution {
         val claimResult = getClaimAtPosition.execute(
             worldId,
             net.lumalyte.lg.domain.values.Position2D(blockX, blockZ)
         )
-        val claim = when (claimResult) {
-            is GetClaimAtPositionResult.Success -> claimResult.claim
-            else -> return null // No claim — territory rules don't apply
+        return when (claimResult) {
+            is GetClaimAtPositionResult.Success -> {
+                val territoryGuildId = claimResult.claim.teamId
+                if (territoryGuildId != null && guildService.getGuild(territoryGuildId) != null) {
+                    TerritoryResolution.GuildClaim(territoryGuildId)
+                } else {
+                    TerritoryResolution.NoClaim
+                }
+            }
+            GetClaimAtPositionResult.NoClaimFound -> TerritoryResolution.NoClaim
+            GetClaimAtPositionResult.StorageError -> TerritoryResolution.StorageError
         }
-        val territoryGuildId = claim.teamId ?: return null
-        if (guildService.getGuild(territoryGuildId) == null) return null
-        return territoryGuildId
     }
 
     /**

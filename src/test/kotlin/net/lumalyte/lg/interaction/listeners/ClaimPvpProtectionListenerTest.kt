@@ -85,19 +85,20 @@ class ClaimPvpProtectionListenerTest {
         every { guildService.getGuild(territoryGuildId) } returns mockk(relaxed = true)
 
         val result = listener.resolveTerritoryGuild(worldId, 10, 20)
-        assertTrue(result == territoryGuildId)
+        assertTrue(result == ClaimPvpProtectionListener.TerritoryResolution.GuildClaim(territoryGuildId))
         verify { getClaimAtPosition.execute(worldId, net.lumalyte.lg.domain.values.Position2D(10, 20)) }
     }
 
     @Test
-    fun `resolveTerritoryGuild returns null when no claim exists`() {
+    fun `resolveTerritoryGuild returns no claim when no claim exists`() {
         every { getClaimAtPosition.execute(worldId, any()) } returns GetClaimAtPositionResult.NoClaimFound
 
-        assertTrue(listener.resolveTerritoryGuild(worldId, 10, 20) == null)
+        assertTrue(listener.resolveTerritoryGuild(worldId, 10, 20) ==
+            ClaimPvpProtectionListener.TerritoryResolution.NoClaim)
     }
 
     @Test
-    fun `resolveTerritoryGuild returns null for a personal claim without guild`() {
+    fun `resolveTerritoryGuild returns no claim for a personal claim without guild`() {
         val claim = Claim(
             id = UUID.randomUUID(),
             worldId = worldId,
@@ -111,7 +112,16 @@ class ClaimPvpProtectionListenerTest {
         )
         every { getClaimAtPosition.execute(worldId, any()) } returns GetClaimAtPositionResult.Success(claim)
 
-        assertTrue(listener.resolveTerritoryGuild(worldId, 10, 20) == null)
+        assertTrue(listener.resolveTerritoryGuild(worldId, 10, 20) ==
+            ClaimPvpProtectionListener.TerritoryResolution.NoClaim)
+    }
+
+    @Test
+    fun `resolveTerritoryGuild returns storage error when claim lookup fails`() {
+        every { getClaimAtPosition.execute(worldId, any()) } returns GetClaimAtPositionResult.StorageError
+
+        assertTrue(listener.resolveTerritoryGuild(worldId, 10, 20) ==
+            ClaimPvpProtectionListener.TerritoryResolution.StorageError)
     }
 
     // ---------- full event path ----------
@@ -160,6 +170,22 @@ class ClaimPvpProtectionListenerTest {
         listener.onPlayerDamage(event)
 
         assertFalse(event.isCancelled)
+        verify(exactly = 0) { combatService.canAttack(any(), any(), any()) }
+    }
+
+    @Test
+    fun `onPlayerDamage fails closed when claim lookup hits a storage error`() {
+        val attacker = player(UUID.randomUUID())
+        val victim = player(UUID.randomUUID())
+        every { getClaimAtPosition.execute(worldId, any()) } returns GetClaimAtPositionResult.StorageError
+
+        val event = damageEvent(attacker, victim)
+
+        listener.onPlayerDamage(event)
+
+        // Fail closed: damage is cancelled and canAttack is never consulted,
+        // because the claim status could not be verified.
+        assertTrue(event.isCancelled)
         verify(exactly = 0) { combatService.canAttack(any(), any(), any()) }
     }
 
