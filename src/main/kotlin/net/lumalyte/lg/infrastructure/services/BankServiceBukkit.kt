@@ -27,8 +27,51 @@ class BankServiceBukkit(
     private val progressionConfigService: ProgressionConfigService,
     private val configService: ConfigService,
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
+    private val guildService: net.lumalyte.lg.application.services.GuildService,
     private val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager
 ) : BankService {
+
+    companion object {
+        /** Actor UUID for system-initiated actions (auto-lock, interest accrual). */
+        val SYSTEM_ACTOR: UUID = UUID(0L, 0L)
+
+        /**
+         * Effective deposit ceiling (REQ-009): `bank.max_bank_balance` is the hard cap;
+         * the progression-derived limit refines it downward when present.
+         */
+        fun effectiveMaxBalance(configCap: Int, progressionLimit: Int?): Int =
+            if (progressionLimit == null) configCap else minOf(configCap, progressionLimit)
+
+        /**
+         * Highest bankLimit across the levels a guild has reached, or null when no
+         * level actually grants one (then the config cap applies alone).
+         *
+         * NOTE: `bankLimit` defaults to 0 in the config model when a level has no
+         * explicit `bank_limit`, and 0 means "no bank limit granted at this level".
+         * Treating 0 as a real limit would collapse the ceiling to 0 for guilds
+         * whose progression levels carry no bank_limit rewards, and then
+         * effectiveMaxBalance(cap, 0) = 0 would block EVERY deposit.
+         */
+        fun computeProgressionBankLimit(
+            levelRewards: Map<Int, net.lumalyte.lg.config.LevelRewardConfig>,
+            currentLevel: Int
+        ): Int? {
+            var limit: Int? = null
+            for (level in 1..currentLevel) {
+                val balance = levelRewards[level]?.bankLimit ?: continue
+                if (balance <= 0) continue // 0 = not granted; skip
+                if (limit == null || balance > limit) limit = balance
+            }
+            return limit
+        }
+
+        /**
+         * Suspicious-transaction auto-lock decision (REQ-009): triggers at/above
+         * `bank.suspicious_transaction_threshold` only when `bank.auto_lock_suspicious_accounts` is enabled.
+         */
+        fun shouldAutoLock(amount: Int, threshold: Int, autoLockEnabled: Boolean): Boolean =
+            autoLockEnabled && amount >= threshold
+    }
 
     private val logger = LoggerFactory.getLogger(BankServiceBukkit::class.java)
 
@@ -149,18 +192,34 @@ class BankServiceBukkit(
                 return null
             }
 
-            // Check guild bank balance limit (progression-based)
+            // Suspicious-transaction auto-lock (REQ-009): refuse BEFORE any funds
+            // move and freeze the account, so a qualifying transaction can never
+            // succeed. (Previously this ran after the transfer, so the suspicious
+            // deposit always landed and the freeze only blocked the next one.)
+            val bankConfig = getConfig().bank
+            if (shouldAutoLock(amount, bankConfig.suspiciousTransactionThreshold, bankConfig.autoLockSuspiciousAccounts)) {
+                guildService.setBankFrozen(guildId, true, SYSTEM_ACTOR)
+                recordAudit(BankAudit(
+                    guildId = guildId,
+                    actorId = SYSTEM_ACTOR,
+                    action = AuditAction.PERMISSION_DENIED,
+                    details = "Account auto-locked: suspicious transaction refused (deposit of $amount)"
+                ))
+                logger.warn("Guild $guildId auto-locked; suspicious deposit of $amount refused")
+                return null
+            }
+
+            // Check guild bank balance limit: progression-derived, capped by the config ceiling (REQ-009)
             val currentBalance = getBalance(guildId)
             val progression = progressionRepository.getGuildProgression(guildId)
             val progressionConfig = progressionConfigService.getProgressionConfig()
             val levelRewards = progressionConfig.getActiveLevelRewards()
-            var maxBalance = 100000 // Default starting balance limit
-            if (progression != null) {
-                for (level in 1..progression.currentLevel) {
-                    val balance = levelRewards[level]?.bankLimit ?: 0
-                    if (balance > maxBalance) maxBalance = balance
-                }
+            val progressionLimit = if (progression != null) {
+                computeProgressionBankLimit(levelRewards, progression.currentLevel)
+            } else {
+                null
             }
+            val maxBalance = effectiveMaxBalance(getConfig().bank.maxBankBalance, progressionLimit)
             if (currentBalance + amount > maxBalance) {
                 logger.warn("Deposit would exceed guild bank limit: $currentBalance + $amount > $maxBalance")
                 recordAudit(BankAudit(
@@ -327,6 +386,23 @@ class BankServiceBukkit(
                 return null
             }
 
+            // Suspicious-transaction auto-lock (REQ-009): refuse BEFORE any funds
+            // move and freeze the account, so a qualifying transaction can never
+            // succeed. (Previously this ran after the transfer, so the suspicious
+            // withdrawal always landed and the freeze only blocked the next one.)
+            val bankConfig = getConfig().bank
+            if (shouldAutoLock(amount, bankConfig.suspiciousTransactionThreshold, bankConfig.autoLockSuspiciousAccounts)) {
+                guildService.setBankFrozen(guildId, true, SYSTEM_ACTOR)
+                recordAudit(BankAudit(
+                    guildId = guildId,
+                    actorId = SYSTEM_ACTOR,
+                    action = AuditAction.PERMISSION_DENIED,
+                    details = "Account auto-locked: suspicious transaction refused (withdrawal of $amount)"
+                ))
+                logger.warn("Guild $guildId auto-locked; suspicious withdrawal of $amount refused")
+                return null
+            }
+
             // Check sufficient funds including fee
             val fee = calculateWithdrawalFee(guildId, amount)
             if (!hasSufficientFunds(guildId, amount, true)) {
@@ -417,6 +493,7 @@ class BankServiceBukkit(
             }
 
             logger.info("Player $playerId withdrew $amount from guild $guildId (fee: $fee, balance: $newBalance)")
+
             return transaction
         } catch (e: SQLException) {
             logger.error("Database error processing withdrawal for player $playerId from guild $guildId", e)
@@ -649,7 +726,9 @@ class BankServiceBukkit(
 
     override fun deductFromGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean {
         try {
-            val systemActor = UUID.randomUUID() // System deductions have no player actor
+            // System-initiated deductions use the stable SYSTEM_ACTOR so the audit
+            // trail can be filtered by system actor (interest, war costs, etc.).
+            val systemActor = SYSTEM_ACTOR
 
             // Debit the unified guild balance (store B). Atomic; -1 if insufficient.
             val debitedBalance = vaultInventoryManager.withdrawGold(guildId, systemActor, amount.toLong())
@@ -682,7 +761,9 @@ class BankServiceBukkit(
     override fun creditToGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean {
         if (amount <= 0) return false
         try {
-            val systemActor = UUID.randomUUID() // System credits have no player actor
+            // System-initiated credits use the stable SYSTEM_ACTOR (interest accrual,
+            // admin credits) so the audit trail can be filtered by system actor.
+            val systemActor = SYSTEM_ACTOR
 
             // Credit the unified guild balance (store B). Atomic and immediately visible.
             val newBalance = try {

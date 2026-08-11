@@ -288,6 +288,27 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
         }
     }
 
+    override fun deleteAuditsOlderThan(guildId: UUID, cutoff: java.time.Instant): Int {
+        // Timestamps are stored as ISO-8601 UTC strings (Instant.toString). Raw
+        // text comparison is NOT chronologically correct when fractional seconds
+        // differ (e.g. "…00:00:00Z" vs "…00:00:00.001Z" compare wrong), so parse
+        // both sides with julianday(), which understands ISO-8601 incl. fractions.
+        val sql = """
+            DELETE FROM bank_audit
+            WHERE guild_id = ? AND julianday(timestamp) < julianday(?)
+        """.trimIndent()
+
+        return try {
+            val rowsAffected = storage.connection.executeUpdate(sql, guildId.toString(), cutoff.toString())
+            if (rowsAffected > 0) {
+                audits.entries.removeAll { it.value.guildId == guildId && it.value.timestamp.isBefore(cutoff) }
+            }
+            rowsAffected
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to prune bank audit log", e)
+        }
+    }
+
     override fun getTransactionCountForGuild(guildId: UUID): Int {
         val sql = "SELECT COUNT(*) as count FROM bank_transactions WHERE guild_id = ?"
 

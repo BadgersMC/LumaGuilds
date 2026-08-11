@@ -4,13 +4,17 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.Pane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.application.persistence.BankSettingsRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.AuditAction
 import net.lumalyte.lg.domain.entities.BankAudit
+import net.lumalyte.lg.domain.entities.BankSettings
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.values.LocalizationKeys
+import net.lumalyte.lg.interaction.listeners.ChatInputHandler
+import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
@@ -27,16 +31,18 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
 /**
- * Guild Bank Security and Audit menu with fraud detection and dual authorization
+ * Guild Bank Security and Audit menu with fraud detection and dual authorization (REQ-031)
  */
 class GuildBankSecurityMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild
-) : Menu, KoinComponent {
+) : Menu, KoinComponent, ChatInputHandler {
 
     private val bankService: BankService by inject()
     private val guildService: GuildService by inject()
+    private val bankSettingsRepository: BankSettingsRepository by inject()
+    private val chatInputListener: ChatInputListener by inject()
     private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
 
     // GUI components
@@ -45,10 +51,13 @@ class GuildBankSecurityMenu(
     private lateinit var securityPane: StaticPane
     private lateinit var auditPane: StaticPane
 
-    // Security settings
+    // Security settings (dual-auth threshold persisted per guild)
     private var dualAuthThreshold: Int = 1000
     private var emergencyFreeze: Boolean = false
     private var securityAlerts: MutableList<String> = mutableListOf()
+
+    // Active input mode for chat-based configuration
+    private var inputMode: String? = null
 
     init {
         loadSecuritySettings()
@@ -79,10 +88,12 @@ class GuildBankSecurityMenu(
     }
 
     /**
-     * Load security settings from the guild entity.
+     * Load security settings: dual-auth threshold from persisted per-guild settings (REQ-031),
+     * freeze state from the guild entity.
      */
     private fun loadSecuritySettings() {
-        dualAuthThreshold = 1000
+        val settings = bankSettingsRepository.getByGuildId(guild.id) ?: BankSettings(guild.id)
+        dualAuthThreshold = settings.dualAuthThreshold
         // Read persisted freeze state from database via guild entity
         val currentGuild = guildService.getGuild(guild.id)
         emergencyFreeze = currentGuild?.bankFrozen ?: false
@@ -252,8 +263,9 @@ class GuildBankSecurityMenu(
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
+            // saveSecuritySettings() reports the upsert result itself — no
+            // unconditional success message here (would contradict a failure).
             saveSecuritySettings()
-            player.sendMessage("§aSecurity settings saved!")
         }
         mainPane.addItem(saveGuiItem, 7, 0)
 
@@ -286,8 +298,9 @@ class GuildBankSecurityMenu(
         )
         val dualAuthGuiItem = GuiItem(dualAuthItem) { event ->
             event.isCancelled = true
-            // TODO: Open threshold input
-            player.sendMessage("§eDual authorization threshold setting coming soon!")
+            inputMode = "dualAuth"
+            chatInputListener.startInputMode(player, this@GuildBankSecurityMenu)
+            player.sendMessage("§eType the dual-authorization threshold in coins. Type 'cancel' to abort.")
         }
         securityPane.addItem(dualAuthGuiItem, 0, 0)
 
@@ -422,13 +435,48 @@ class GuildBankSecurityMenu(
     }
 
     /**
-     * Save security settings.
+     * Save security settings (REQ-031): persists the dual-auth threshold per guild.
      * Note: the emergency freeze toggle saves immediately via guildService.setBankFrozen().
-     * This button currently acknowledges that state — future settings (dual-auth threshold,
-     * fraud detection) can be persisted here when implemented.
      */
     private fun saveSecuritySettings() {
-        player.sendMessage("§aSecurity settings saved. (Emergency freeze state is always saved immediately on toggle.)")
+        val current = bankSettingsRepository.getByGuildId(guild.id) ?: BankSettings(guild.id)
+        val updated = current.copy(dualAuthThreshold = dualAuthThreshold)
+        val saved = bankSettingsRepository.upsert(updated)
+        if (saved) {
+            player.sendMessage("§aSecurity settings saved. (Emergency freeze state is always saved immediately on toggle.)")
+        } else {
+            player.sendMessage("§cFailed to save security settings.")
+        }
+    }
+
+    // ChatInputHandler interface methods (REQ-031)
+    override fun onChatInput(player: Player, input: String) {
+        // Guard FIRST: if the listener session outlived the menu interaction,
+        // inputMode is null and this is ordinary chat — do not intercept it.
+        val mode = inputMode ?: return
+
+        val threshold = input.trim().toIntOrNull()
+        if (threshold == null || threshold < 0) {
+            player.sendMessage("§cInvalid threshold. Enter a whole number of coins (0 or more).")
+            inputMode = null
+            return
+        }
+        when (mode) {
+            "dualAuth" -> {
+                dualAuthThreshold = threshold
+                player.sendMessage("§aDual-authorization threshold set to $threshold coins. Press Save to persist.")
+            }
+            else -> return
+        }
+        inputMode = null
+        analyzeSecurityRisks()
+        updateSecurityDisplay()
+        gui.update()
+    }
+
+    override fun onCancel(player: Player) {
+        inputMode = null
+        player.sendMessage("§eDual-authorization threshold input cancelled.")
     }
 
     /**

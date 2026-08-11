@@ -62,6 +62,15 @@ interface BankRepository {
     fun getAuditForGuild(guildId: UUID, limit: Int? = null): List<BankAudit>
 
     /**
+     * Deletes audit entries older than the given cutoff for a guild (retention enforcement).
+     *
+     * @param guildId The ID of the guild.
+     * @param cutoff Audits strictly older than this instant are removed.
+     * @return The number of audits deleted.
+     */
+    fun deleteAuditsOlderThan(guildId: UUID, cutoff: java.time.Instant): Int
+
+    /**
      * Gets the total number of transactions for a guild.
      *
      * @param guildId The ID of the guild.
