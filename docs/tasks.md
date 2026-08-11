@@ -322,6 +322,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence:
   - Files: config section, `NexoEmojiService` (↳ LG-902 reflection cleanup)
   - Notes: lifecycle reconciliation — revoke on config-removal, guild rename/disband, member leave, and mapping change (A→B revokes A, grants B); tests cover grant, revoke, rename, config-removal, and value replacement
+  - Harvest: `CustomEmojiCommand` + `setEmojiAdmin()` from closed PR #7 (superseded) — rebuild admin-command flow against current rank/permission model
 
 ## PR-12 — Backlog: progression & economy (operator, Fain)
 
@@ -331,11 +332,15 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence:
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
   - Notes: deterministic acceptance tests — per-source caps, no-AFK-farm proof per source, XP/hour flat-or-decreasing across level bands (anti-stunting; must NOT rise with level)
+  - Baseline: guilds are ALREADY at level 100 on the live server — `ProgressionConfig.maxLevel` (default 30) is never read at runtime, so the cap is unenforced; the 100→200 curve is the priority, not 0→100
+  - Harvest: XP formula `500*(L-1)^1.15 + L*150`, rate limiting, source table from closed PR #7 `progression.yml` (rebased 0→200)
 - [ ] **LG-1202** Comprehensive 0–200 reward tier list — documented per-level rewards incl. new level-100+ perks
   - Tag: `DOC`
   - References: REQ-050
   - Evidence:
   - Files: docs + reward config/registry
+  - Baseline: guilds already past level 100 — prioritize 100→200 content (perks, homes at 125/150/175/200) over re-documenting 0→100
+  - Harvest: level-reward table from closed PR #7 `progression.yml` as the 0→100 starting point
 - [ ] **LG-1203** Extended guild home capacity at levels 125, 150, 175, 200 (raises cap; activation still costs gold — see LG-1206)
   - Tag: `TDD`
   - References: REQ-051
@@ -403,6 +408,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-062
   - Evidence:
   - Files: `PlayerJoinEvent` handler (pattern: `apollo/GuildTeamListener.onPlayerJoin:26`), guild notification
+  - Harvest: `AnnouncementService` + `AnnouncementRepository` from closed PR #7 (superseded) — rebuild against current persistence (SQLite migrations)
 - [ ] **LG-1402** Rank prefixes in guild chat — member's rank shown next to name (legacy restore)
   - Tag: `TDD`
   - References: REQ-063
@@ -426,6 +432,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-066
   - Evidence:
   - Files: `GuildStatisticsMenu.kt` (↳ LG-602 drill-downs, LG-806)
+  - Harvest: `InvitationService` + `GuildInvitationRepositorySQLite` (+ migration) from closed PR #7 (superseded) — verify schema against current migrations before reuse
 - [ ] **LG-1502** Dynamic spawn banners — physical spawn banners track top guilds by Guild Level Leaderboard
   - Tag: `TDD`
   - References: REQ-067
@@ -462,4 +469,5 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-073
   - Evidence:
   - Files: guild delete path, broadcast
+  - Harvest: `AnnouncementService` + repo from closed PR #7 (superseded) — shared with LG-1401
 
