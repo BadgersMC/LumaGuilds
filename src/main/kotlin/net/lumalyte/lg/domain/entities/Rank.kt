@@ -53,7 +53,6 @@ enum class RankPermission {
     DEPOSIT_TO_BANK,          // Deposit to virtual bank (Vault economy)
     WITHDRAW_FROM_BANK,       // Withdraw from virtual bank
     VIEW_BANK_TRANSACTIONS,   // View transaction history
-    EXPORT_BANK_DATA,         // Export bank data
     MANAGE_BANK_SETTINGS,     // Manage bank settings
     // Physical Vault (Chest-based storage)
     PLACE_VAULT,              // Place the guild vault chest

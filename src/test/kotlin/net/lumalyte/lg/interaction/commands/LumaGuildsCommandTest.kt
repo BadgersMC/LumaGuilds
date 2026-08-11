@@ -46,7 +46,6 @@ class LumaGuildsCommandTest {
             modules(module {
                 single { adminOverrideService }
                 single { permissionResolver }
-                single { mockk<net.lumalyte.lg.application.services.FileExportManager>(relaxed = true) }
                 single { mockk<net.lumalyte.lg.application.services.GuildService>(relaxed = true) }
             })
         }
@@ -181,12 +180,13 @@ class LumaGuildsCommandTest {
     }
 
     @Test
-    fun `tab completion should not include override with non-matching input`() {
-        // When: Player tab completes /bellclaims download
-        val completions = command.onTabComplete(player, mockCommand, "bellclaims", arrayOf("download"))
+    fun `tab completion should exclude removed export subcommands`() {
+        // When: Player tab completes /bellclaims with an empty prefix (full first-level list)
+        val completions = command.onTabComplete(player, mockCommand, "bellclaims", arrayOf(""))
 
-        // Then: List should not be looking for override (different context)
-        // When typing "download", tab completion moves to filename suggestions
-        assertFalse(completions.size == 1 && completions[0] == "override")
+        // Then: Removed export subcommands must not be suggested
+        listOf("download", "exports", "cancel").forEach { removed ->
+            assertFalse(completions.contains(removed), "removed subcommand '$removed' must not be suggested")
+        }
     }
 }

@@ -161,7 +161,6 @@ class BedrockGuildRankListMenu(
             RankPermission.DEPOSIT_TO_BANK -> bedrockLocalization.getBedrockString(player, "permission.deposit.bank")
             RankPermission.WITHDRAW_FROM_BANK -> bedrockLocalization.getBedrockString(player, "permission.withdraw.bank")
             RankPermission.VIEW_BANK_TRANSACTIONS -> bedrockLocalization.getBedrockString(player, "permission.view.bank.transactions")
-            RankPermission.EXPORT_BANK_DATA -> bedrockLocalization.getBedrockString(player, "permission.export.bank.data")
             RankPermission.MANAGE_BANK_SETTINGS -> bedrockLocalization.getBedrockString(player, "permission.manage.bank.settings")
             RankPermission.PLACE_VAULT -> bedrockLocalization.getBedrockString(player, "permission.place.vault")
             RankPermission.ACCESS_VAULT -> bedrockLocalization.getBedrockString(player, "permission.access.vault")

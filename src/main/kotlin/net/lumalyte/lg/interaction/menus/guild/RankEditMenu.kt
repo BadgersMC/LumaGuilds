@@ -253,7 +253,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             ),
             "Banking" to listOf(
                 RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK,
-                RankPermission.VIEW_BANK_TRANSACTIONS, RankPermission.EXPORT_BANK_DATA,
+                RankPermission.VIEW_BANK_TRANSACTIONS,
                 RankPermission.MANAGE_BANK_SETTINGS,
                 RankPermission.PLACE_VAULT, RankPermission.ACCESS_VAULT,
                 RankPermission.DEPOSIT_TO_VAULT, RankPermission.WITHDRAW_FROM_VAULT,

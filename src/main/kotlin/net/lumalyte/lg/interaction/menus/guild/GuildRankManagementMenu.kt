@@ -216,7 +216,6 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_BANK,
                 net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK,
                 net.lumalyte.lg.domain.entities.RankPermission.VIEW_BANK_TRANSACTIONS,
-                net.lumalyte.lg.domain.entities.RankPermission.EXPORT_BANK_DATA,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANK_SETTINGS,
                 net.lumalyte.lg.domain.entities.RankPermission.PLACE_VAULT,
                 net.lumalyte.lg.domain.entities.RankPermission.ACCESS_VAULT,

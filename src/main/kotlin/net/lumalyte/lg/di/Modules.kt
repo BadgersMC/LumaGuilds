@@ -183,9 +183,6 @@ import net.lumalyte.lg.infrastructure.services.VisualisationPerformanceServiceBu
 import net.lumalyte.lg.infrastructure.services.WorldManipulationServiceBukkit
 import net.lumalyte.lg.infrastructure.services.scheduling.SchedulerServiceBukkit
 import net.lumalyte.lg.infrastructure.utilities.LocalizationProviderProperties
-import net.lumalyte.lg.application.services.CsvExportService
-import net.lumalyte.lg.application.services.FileExportManager
-import net.lumalyte.lg.application.services.DiscordCsvService
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -484,7 +481,9 @@ fun socialModule() = module {
     single<PartyRepository> { PartyRepositorySQLite(get()) }
     single<PlayerPartyPreferenceRepository> { PlayerPartyPreferenceRepositorySQLite(get()) }
     single<PartyRequestRepository> { PartyRequestRepositorySQLite(get()) }
-    single<ChatSettingsRepository> { ChatSettingsRepositorySQLite(get()) }
+    single<ChatSettingsRepository> {
+        ChatSettingsRepositorySQLite(get(), get<ConfigService>().loadConfig().chat.defaultChannelVisibility)
+    }
 
     // Services
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get()) }
@@ -640,20 +639,6 @@ fun utilitiesModule() = module {
     // Async task service for virtual thread I/O operations
     single<net.lumalyte.lg.infrastructure.services.AsyncTaskService> {
         net.lumalyte.lg.infrastructure.services.AsyncTaskService()
-    }
-
-    // Export services
-    single<CsvExportService> { CsvExportService() }
-    single<DiscordCsvService> {
-        val config = get<ConfigService>().loadConfig()
-        DiscordCsvService(config.discord.webhookUrl, asyncTaskService = get())
-    }
-    single<FileExportManager> {
-        FileExportManager(
-            pluginDataFolder = get<LumaGuilds>().dataFolder,
-            csvExportService = get(),
-            discordCsvService = get()
-        )
     }
 
     // Other utilities
