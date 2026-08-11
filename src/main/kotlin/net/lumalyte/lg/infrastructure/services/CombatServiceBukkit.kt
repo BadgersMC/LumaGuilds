@@ -1,13 +1,19 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.CombatService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ModeService
+import net.lumalyte.lg.application.services.RelationService
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RelationType
 import org.slf4j.LoggerFactory
 import java.util.UUID
 
-class CombatServiceBukkit(private val modeService: ModeService) : CombatService {
+class CombatServiceBukkit(
+    private val modeService: ModeService,
+    private val memberService: MemberService,
+    private val relationService: RelationService
+) : CombatService {
 
     private val logger = LoggerFactory.getLogger(CombatServiceBukkit::class.java)
 
@@ -114,17 +120,11 @@ class CombatServiceBukkit(private val modeService: ModeService) : CombatService 
         return null
     }
 
-    // Helper methods to access services without circular dependencies
-    // These would normally be injected or accessed through a service locator
     private fun getPlayerGuilds(playerId: UUID): Set<UUID> {
-        // This would be injected in a real implementation
-        // For now, return empty set as a placeholder
-        return emptySet()
+        return memberService.getPlayerGuilds(playerId)
     }
 
-    private fun getRelationType(guildA: UUID, guildB: UUID): net.lumalyte.lg.domain.entities.RelationType {
-        // This would be injected in a real implementation
-        // For now, return NEUTRAL as a placeholder
-        return net.lumalyte.lg.domain.entities.RelationType.NEUTRAL
+    private fun getRelationType(guildA: UUID, guildB: UUID): RelationType {
+        return relationService.getRelationType(guildA, guildB)
     }
 }

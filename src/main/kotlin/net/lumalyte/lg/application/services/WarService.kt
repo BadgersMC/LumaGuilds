@@ -13,6 +13,9 @@ interface WarService {
     /**
      * Declares war on another guild.
      *
+     * REQ-024: this creates a PENDING war declaration requiring the defending
+     * guild's accept/decline — it no longer auto-accepts into an active war.
+     *
      * @param declaringGuildId The ID of the declaring guild.
      * @param defendingGuildId The ID of the defending guild.
      * @param duration The duration of the war.
@@ -26,7 +29,22 @@ interface WarService {
         duration: Duration = Duration.ofDays(7),
         objectives: Set<WarObjective> = emptySet(),
         actorId: UUID
-    ): War?
+    ): WarDeclaration?
+
+    /**
+     * Creates a pending war declaration (explicit wager/terms variant).
+     *
+     * @return The created declaration, or null if one already exists between the guilds.
+     */
+    fun createWarDeclaration(
+        declaringGuildId: UUID,
+        defendingGuildId: UUID,
+        duration: Duration,
+        objectives: Set<WarObjective>,
+        wagerAmount: Int = 0,
+        terms: String? = null,
+        actorId: UUID
+    ): WarDeclaration?
 
     /**
      * Accepts a war declaration.

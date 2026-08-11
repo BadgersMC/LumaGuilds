@@ -118,30 +118,30 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-4 — Combat & wars (knobs + real services)
 
-- [ ] **LG-401** Enforce combat config: war duration, grace period, max simultaneous wars, kill/win/lose XP, kill cooldown, same-player kill limit, anti-griefing
+- [x] **LG-401** Enforce combat config: war duration, grace period, max simultaneous wars, kill/win/lose XP, kill cooldown, same-player kill limit, anti-griefing
   - Tag: `TDD`
   - References: REQ-008
-  - Evidence:
+  - Evidence: `WarConfigEnforcementTest` (10 cases: duration cap, max-wars base+progression, no-auto-accept, reject, anti-farming). `WarServiceBukkit.kt` — `effectiveWarDuration` (duration cap), `maxWarsForGuild` (config base, progression refines up), grace-aware expiry in `processExpiredWars`, `awardWarExperience`/`awardWarKillExperience` (win/lose/kill XP). `WarKillTrackingListener.kt` — farming check suppresses kill XP. `CombatAntiGriefListener.kt` — explosion block-damage suppressed for warring players when `anti_griefing_enabled`.
   - Files: `infrastructure/services/WarServiceBukkit.kt`, combat listener
-- [ ] **LG-402** Implement `CombatServiceBukkit.getPlayerGuilds()` and `getRelationType()` against the guild/relation domain
+- [x] **LG-402** Implement `CombatServiceBukkit.getPlayerGuilds()` and `getRelationType()` against the guild/relation domain
   - Tag: `TDD`
   - References: REQ-014
-  - Evidence:
+  - Evidence: `CombatServiceBukkit.kt` injects `MemberService` + `RelationService`; `getPlayerGuilds()` → `memberService.getPlayerGuilds()`, `getRelationType()` → `relationService.getRelationType()`. DI: `Modules.kt` `CombatServiceBukkit(get(), get(), get())`.
   - Files: `infrastructure/services/CombatServiceBukkit.kt:119-129`
-- [ ] **LG-403** War declaration accept/decline flow (no instant auto-accept)
+- [x] **LG-403** War declaration accept/decline flow (no instant auto-accept)
   - Tag: `TDD`
   - References: REQ-024
-  - Evidence:
+  - Evidence: `declareWar()` returns `WarDeclaration?` and delegates to `createWarDeclaration()` (promoted to `WarService` interface) — no auto-accept. `acceptWarDeclaration()` activates: ACTIVE + startedAt + objectives + warStats + `GuildWarDeclaredEvent`. All three menus (Java + 2 Bedrock) route through `createWarDeclaration`; auto-accept shortcuts and menu-side escrow/`refundWager()` removed. Tested in `WarConfigEnforcementTest`.
   - Files: `WarServiceBukkit.kt:80`, declaration menu
-- [ ] **LG-404** Load and enforce `combat.war_farming_cooldown_hours`
+- [x] **LG-404** Load and enforce `combat.war_farming_cooldown_hours`
   - Tag: `TDD`
   - References: REQ-026
-  - Evidence:
+  - Evidence: `ConfigServiceBukkit.loadCombatConfig()` now reads `war_farming_cooldown_hours` (was silently defaulting to 1h); consumed by `getWarFarmingCooldownSeconds()`.
   - Files: `config.yml:408`, war service
-- [ ] **LG-405** War declaration escrow withdraw completed in the war service
+- [x] **LG-405** War declaration escrow withdraw completed in the war service
   - Tag: `TDD`
   - References: REQ-039
-  - Evidence:
+  - Evidence: Escrow is now entirely service-side — `createWager` (in `WarServiceBukkit`) deducts both guilds on acceptance; the declaration menus no longer move bank funds (removed menu-side `bankService.withdraw` + `refundWager()`). Defending-guild wager match still via `createWager` after `acceptWarDeclaration`.
   - Files: `GuildWarDeclarationMenu.kt:527`, war escrow service
 
 ---

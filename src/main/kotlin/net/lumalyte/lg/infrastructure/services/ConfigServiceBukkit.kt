@@ -247,6 +247,7 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             samePlayerKillLimit = config.getInt("combat.same_player_kill_limit", 3),
             antiGriefingEnabled = config.getBoolean("combat.anti_griefing_enabled", true),
             warDeclarationCooldownHours = config.getInt("combat.war_declaration_cooldown_hours", 24),
+            warFarmingCooldownHours = config.getInt("combat.war_farming_cooldown_hours", 1),
             warDurationHours = config.getInt("combat.war_duration_hours", 168),
             warEndGracePeriodMinutes = config.getInt("combat.war_end_grace_period_minutes", 30),
             maxSimultaneousWars = config.getInt("combat.max_simultaneous_wars", 3),
