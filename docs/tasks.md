@@ -296,3 +296,66 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-045
   - Evidence:
   - Files: `domain/events/*` (21 files, 38 Bukkit imports), `domain/entities/{VaultInventory,ViewerSession,WriteBuffer}.kt`, `LayerRulesTest`, `docs/implementation.md`
+
+---
+
+# Product backlog — operator notes (Fain, Aug 11)
+
+> Category-based wishlist from Fain, tracked here alongside the SPEAR PRs.
+> Items are **not** SPEAR tasks (no REQ mapping yet); they feed future PRs or
+> dedicated feature work. `[x]` = shipped, `[ ]` = open. Where an item overlaps
+> an existing SPEAR task, a `↳` line points at it.
+>
+> **Note on the bugs channel:** items referencing `<#1421662495923372194>`
+> (Discord bugs channel) cannot be enumerated from here — Hermes has no Discord
+> history access. The bug list needs to be pasted into this doc (or a linked
+> file) before they can be tracked/assigned.
+
+## Immediate Action Items & Bug Fixes
+
+- [ ] **Resolve existing guild bugs**
+  - Source: Discord bugs channel `<#1421662495923372194>` (per operator, "we are" already working these)
+  - Notes: need the actual bug list pasted here to track. 
+- [ ] **Economy commands fix — `/g balance` + `/g baltop`**
+  - Fix both commands so they work properly.
+  - Update `/g balance` to support tab-completion (auto-fill) for all guild names on the server.
+  - Notes: verify live config via PaperMC docs for expected behavior.
+- [ ] **Emoji removal bug** — guild emojis cannot be cleared/removed once a guild has set one.
+- [ ] **Custom guild emojis via config** (operator will also manually grant WOT their emoji)
+  - Add a config system: type a guild name (string) → grants all members of that guild a Nexo permission to use an emoji in chat / as their guild emoji.
+  - Current workaround: manually granting the guild leader the emoji perm so they can set the guild emoji.
+  - ↳ touches `NexoEmojiService` (see LG-902 reflection cleanup)
+
+## Guild Progression & Economy
+
+- [ ] **Progression revamp** — overhaul the XP system to incentivize actual activity and eliminate AFK farming; ensure lower-level guilds are not stunted.
+  - ↳ related: PR-4 anti-farming work (LG-401), LG-204 `brewing_xp`
+- [ ] **Comprehensive 0-200 reward tier list** — fully documented list of exactly what a guild earns at every level 0→200; brand-new perks/rewards specifically for level 100+ guilds.
+- [ ] **Extended guild homes** — unlock additional guild homes at levels 125, 150, 175, 200 (on the path to level 200).
+- [ ] **Dynamic XP rates** — mechanics to host "increased XP" days (e.g. double-XP weekend).
+- [ ] **XP penalties** — ways for guilds to lose XP or levels to raise stakes (e.g. losing a Guild War = deduction).
+  - ↳ pairs with High-Stakes Wars below
+- [ ] **Gold costs** — raw gold cost to create a guild and to unlock guild homes; cost scales higher as more homes are unlocked.
+- [ ] **Creation cooldown** — 15-day guild creation cooldown for players who create and immediately delete a guild (anti-spam).
+- [ ] **Guild prestige system (theorize)** — guild resets level at cap; earns a special emoji; keeps a few unlocked features permanently (even across multiple prestiges). Must be worth it; balancing must coincide with the level rebalance.
+  - Notes: design-first (theorize), no commitment to ship yet.
+
+## Guild Wars & Combat
+
+- [ ] **War system overhaul** — fix current system so it accurately tracks player kills and actually impacts gameplay.
+  - ↳ largely covered by PR-4 (LG-401..405); backlog item = residual gameplay impact gaps
+- [ ] **War banners** — deployable banner acting as tactical teleport point for guild members (bypasses teleport requests and guild home slots)
+  - Duration & vulnerability: lasts 15 minutes; can be physically attacked and broken by any player.
+  - Cost & limits: costs raw gold to place; strict limit of one active banner per guild; cooldown before another can be placed.
+  - Permissions: tied to a specific guild rank permission.
+  - Notifications: chat broadcast `[Guild Name] has placed down a war banner.`
+- [ ] **Customizable war win conditions**
+  - **Kill counts**: guilds set a required number of opposing-player deaths to win; only unique player kills count (anti-farming).
+  - **Ransoms**: guilds set a monetary fee required from the opposing guild to surrender/end the war.
+  - **Death duels**: "Champion" system — designated fighters from each guild duel to decide the war outcome.
+  - **High-stakes wars**: winning guild gets XP boost; losing guild gets XP deduction.
+  - ↳ pairs with XP Penalties above
+
+---
+
+*Part 2 pending — Quality of Life & UI section (includes Guild Statistics node and invitation tracker).*
