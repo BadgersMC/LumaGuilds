@@ -893,6 +893,7 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(MoveToolListener(), this)
         server.pluginManager.registerEvents(PartitionUpdateListener(), this)
         server.pluginManager.registerEvents(PlayerClaimProtectionListener(), this)
+        server.pluginManager.registerEvents(ClaimPvpProtectionListener(), this)
         server.pluginManager.registerEvents(ToolRemovalListener(), this)
         server.pluginManager.registerEvents(WorldClaimProtectionListener(), this)
         server.pluginManager.registerEvents(CloseInventoryListener(), this)

@@ -519,7 +519,7 @@ fun progressionModule() = module {
 
     // Services
     single<KillService> { KillServiceBukkit(get()) }
-    single<CombatService> { CombatServiceBukkit(get(), get(), get()) }
+    single<CombatService> { CombatServiceBukkit(get(), get(), get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>()) }
     single<WarService> { WarServiceBukkit(get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
@@ -594,6 +594,7 @@ fun vaultModule() = module {
     single<net.lumalyte.lg.application.services.GuildVaultService> {
         net.lumalyte.lg.infrastructure.services.GuildVaultServiceBukkit(
             get<LumaGuilds>(),
+            get(),
             get(),
             get(),
             get(),
