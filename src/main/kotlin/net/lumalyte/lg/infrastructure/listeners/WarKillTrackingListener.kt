@@ -88,8 +88,17 @@ class WarKillTrackingListener : Listener, KoinComponent {
 
                         // Update the war stats
                         if (warService.updateWarStats(updatedStats)) {
+                            // Anti-farming: suppress XP when the same killer exceeds
+                            // the per-victim kill limit within the cooldown (REQ-008)
+                            val isFarming = warService.recordWarKillAndCheckFarming(killer.uniqueId, victim.uniqueId)
+
                             Bukkit.getPluginManager().callEvent(GuildWarKillEvent(war.id, killer.uniqueId, victim.uniqueId, killerGuild, victimGuild))
                             logger.info("War kill recorded: ${killer.name} (guild $killerGuild) killed ${victim.name} (guild $victimGuild) in war ${war.id}")
+
+                            // Award configured kill XP to the killer's guild (REQ-008)
+                            if (!isFarming) {
+                                warService.awardWarKillExperience(killerGuild)
+                            }
 
                             // Notify both players
                             killer.sendMessage("§6⚔ WAR KILL! §7You killed §c${victim.name}§7!")

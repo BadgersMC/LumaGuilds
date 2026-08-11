@@ -519,7 +519,7 @@ fun progressionModule() = module {
 
     // Services
     single<KillService> { KillServiceBukkit(get()) }
-    single<CombatService> { CombatServiceBukkit(get()) }
+    single<CombatService> { CombatServiceBukkit(get(), get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>()) }
     single<WarService> { WarServiceBukkit(get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
