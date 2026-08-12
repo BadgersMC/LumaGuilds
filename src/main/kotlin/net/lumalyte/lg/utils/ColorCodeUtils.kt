@@ -9,6 +9,9 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
  */
 object ColorCodeUtils {
 
+    /** Safe glyph id shape — rejects MiniMessage control characters (e.g. `x><reset>`). */
+    private val VALID_GLYPH_ID = Regex("^[a-zA-Z0-9_-]+$")
+
     /**
      * Converts a guild emoji (stored in Discord format, e.g. `:catsmileysmile:`) into
      * the Nexo glyph MiniMessage tag (`<glyph:catsmileysmile>`).
@@ -18,12 +21,16 @@ object ColorCodeUtils {
      * renders in MiniMessage formatters that have glyph support — e.g. Velocitab on the
      * proxy via NexoProxy, and backend chat/scoreboards via Nexo's formatting engine.
      *
-     * Non-`:name:` values pass through unchanged; null or blank return `""`.
+     * Non-`:name:` values pass through unchanged; null or blank return `""`. Emoji names
+     * containing MiniMessage control characters (anything outside `[a-zA-Z0-9_-]`) pass
+     * through unchanged so they can never inject tags into the generated output.
      */
     fun emojiToGlyphTag(emoji: String?): String {
         if (emoji.isNullOrBlank()) return ""
         if (emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2) {
-            return "<glyph:${emoji.substring(1, emoji.length - 1)}>"
+            val name = emoji.substring(1, emoji.length - 1)
+            if (!VALID_GLYPH_ID.matches(name)) return emoji
+            return "<glyph:$name>"
         }
         return emoji
     }

@@ -8,6 +8,9 @@ import org.slf4j.LoggerFactory
 /** Font used by Nexo glyphs when the glyph does not declare its own font. */
 private const val DEFAULT_GLYPH_FONT = "nexo:default"
 
+/** Safe glyph id shape — rejects MiniMessage control characters (e.g. `x><reset>`). */
+private val VALID_GLYPH_ID = Regex("^[a-zA-Z0-9_-]+$")
+
 /**
  * Service for interacting with Nexo emojis.
  * Handles emoji validation and permission checking for guild emoji system.
@@ -138,6 +141,9 @@ class NexoEmojiService(
     fun emojiToFontTag(emoji: String?): String {
         if (emoji.isNullOrBlank()) return ""
         val emojiName = extractEmojiName(emoji) ?: return emoji
+        // Reject glyph ids containing MiniMessage control characters (e.g. ":x><reset>:")
+        // so they can never reach the generated tag — isValidEmojiFormat only checks delimiters.
+        if (!VALID_GLYPH_ID.matches(emojiName)) return emoji
         val glyph = resolveGlyphByName(emojiName) ?: return "<glyph:$emojiName>"
         val char = reflectGlyphChar(glyph)
         if (char.isNullOrBlank()) return "<glyph:$emojiName>"
@@ -155,7 +161,10 @@ class NexoEmojiService(
         val fontManager = getFontManager() ?: return null
         return try {
             fontManager.javaClass.getMethod("glyphFromName", String::class.java).invoke(fontManager, name)
-        } catch (e: Exception) {
+        } catch (e: ReflectiveOperationException) {
+            logger.debug("glyphFromName failed for '$name': ${e.message}")
+            null
+        } catch (e: IllegalArgumentException) {
             logger.debug("glyphFromName failed for '$name': ${e.message}")
             null
         }
@@ -163,14 +172,17 @@ class NexoEmojiService(
 
     /**
      * Reflectively reads the glyph's unicode char. Tries common accessor names in order;
-     * the value may be a String (e.g. "\uE001"), a single Char, or a short String form.
+     * the value may be a String (e.g. "\uE001"), a single Char, a short String form, or a
+     * collection (Nexo's `getChars()` — the first char is the primary rendering char).
      */
     private fun reflectGlyphChar(glyph: Any): String? {
-        for (accessor in listOf("getChar", "char", "getCharacter", "character", "getGlyphCode", "glyphCode", "getCode", "code")) {
+        for (accessor in listOf("getChars", "getChar", "char", "getCharacter", "character", "getGlyphCode", "glyphCode", "getCode", "code")) {
             val value = invokeNoArgGetter(glyph, accessor) ?: continue
             when (value) {
                 is String -> if (value.isNotEmpty()) return value
                 is Char -> return value.toString()
+                is Iterable<*> -> value.firstOrNull { it != null }?.let { return it.toString() }
+                is Array<*> -> value.firstOrNull { it != null }?.let { return it.toString() }
                 else -> {
                     val s = value.toString()
                     if (s.isNotEmpty() && s.length <= 2) return s
@@ -204,7 +216,9 @@ class NexoEmojiService(
                 }
                 method.trySetAccessible()
                 return method.invoke(target)
-            } catch (e: Exception) {
+            } catch (e: ReflectiveOperationException) {
+                // try the next accessor variant
+            } catch (e: IllegalArgumentException) {
                 // try the next accessor variant
             }
         }
