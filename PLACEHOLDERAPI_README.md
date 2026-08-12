@@ -19,6 +19,8 @@ All placeholders use the `%lumaguilds_` prefix.
 - `%lumaguilds_guild_name%` - Player's guild name
 - `%lumaguilds_guild_tag%` - Player's guild tag (formatted)
 - `%lumaguilds_guild_emoji%` - Player's guild emoji (Nexo format)
+- `%lumaguilds_guild_emoji_minimessage%` - Guild emoji as Nexo glyph tag (`<glyph:name>`) for MiniMessage formatters (Velocitab via NexoProxy)
+- `%lumaguilds_guild_emoji_font%` - Guild emoji as raw MiniMessage font fragment (`<font:<glyphfont>><char></font>`) for consumers without glyph-tag support (UnlimitedNameTags, IC-DiscordSRV-Addon playerlist, Velocitab via PapiProxyBridge)
 - `%lumaguilds_guild_level%` - Player's guild level
 - `%lumaguilds_guild_balance%` - Player's guild bank balance
 - `%lumaguilds_guild_mode%` - Player's guild mode (Peaceful/Hostile)

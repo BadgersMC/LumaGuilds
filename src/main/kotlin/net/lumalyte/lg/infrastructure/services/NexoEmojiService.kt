@@ -1,8 +1,12 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.utils.ColorCodeUtils
 import org.bukkit.entity.Player
 import org.slf4j.LoggerFactory
+
+/** Font used by Nexo glyphs when the glyph does not declare its own font. */
+private const val DEFAULT_GLYPH_FONT = "nexo:default"
 
 /**
  * Service for interacting with Nexo emojis.
@@ -109,11 +113,102 @@ class NexoEmojiService(
     /**
      * Creates an emoji placeholder from an emoji name.
      *
-     * @param emojiName The name of the emoji (e.g., "catsmileysmile").
-     * @return The formatted placeholder (e.g., ":catsmileysmile:").
+     * @param emojiName The name of the emoji (e.g. "catsmileysmile").
+     * @return The formatted placeholder (e.g. ":catsmileysmile:").
      */
     fun createEmojiPlaceholder(emojiName: String): String {
         return ":$emojiName:"
+    }
+
+    /**
+     * Converts a guild emoji (`:catsmileysmile:`) into a raw MiniMessage font fragment
+     * (`<font:nexo:default>\uE001</font>`) for consumers whose MiniMessage cannot resolve
+     * Nexo's custom `<glyph:...>` tag — e.g. UnlimitedNameTags (backend display-entity
+     * nametags), the InteractiveChatDiscordSrvAddon playerlist image renderer, and Velocitab
+     * via PapiProxyBridge. `<font:...>` is a standard Adventure tag and the char is drawn
+     * from the glyph's own font in the mandatory resource pack, so no glyph-tag registration
+     * is needed. This is the renderable counterpart to `%lumaguilds_guild_emoji_minimessage%`.
+     *
+     * Resolves the glyph char + font through Nexo's FontManager (same reflection path as
+     * [hasEmojiPermission]); falls back to the `<glyph:name>` tag when Nexo is absent or the
+     * char/font cannot be read (matching [ColorCodeUtils.emojiToGlyphTag] output).
+     *
+     * Non-`:name:` values pass through unchanged; null or blank return `""`.
+     */
+    fun emojiToFontTag(emoji: String?): String {
+        if (emoji.isNullOrBlank()) return ""
+        val emojiName = extractEmojiName(emoji) ?: return emoji
+        val glyph = resolveGlyphByName(emojiName) ?: return "<glyph:$emojiName>"
+        val char = reflectGlyphChar(glyph)
+        if (char.isNullOrBlank()) return "<glyph:$emojiName>"
+        val font = reflectGlyphFont(glyph) ?: DEFAULT_GLYPH_FONT
+        return "<font:$font>$char</font>"
+    }
+
+    /**
+     * Looks up a Nexo glyph object by name via FontManager reflection.
+     *
+     * @param name glyph id without colons (e.g. `catsmileysmile`).
+     * @return the glyph object, or null if Nexo/FontManager is unavailable or the lookup fails.
+     */
+    private fun resolveGlyphByName(name: String): Any? {
+        val fontManager = getFontManager() ?: return null
+        return try {
+            fontManager.javaClass.getMethod("glyphFromName", String::class.java).invoke(fontManager, name)
+        } catch (e: Exception) {
+            logger.debug("glyphFromName failed for '$name': ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Reflectively reads the glyph's unicode char. Tries common accessor names in order;
+     * the value may be a String (e.g. "\uE001"), a single Char, or a short String form.
+     */
+    private fun reflectGlyphChar(glyph: Any): String? {
+        for (accessor in listOf("getChar", "char", "getCharacter", "character", "getGlyphCode", "glyphCode", "getCode", "code")) {
+            val value = invokeNoArgGetter(glyph, accessor) ?: continue
+            when (value) {
+                is String -> if (value.isNotEmpty()) return value
+                is Char -> return value.toString()
+                else -> {
+                    val s = value.toString()
+                    if (s.isNotEmpty() && s.length <= 2) return s
+                }
+            }
+        }
+        return null
+    }
+
+    /**
+     * Reflectively reads the glyph's font key (e.g. `nexo:default`), or null when no
+     * accessor yields a usable value.
+     */
+    private fun reflectGlyphFont(glyph: Any): String? {
+        for (accessor in listOf("getFont", "font", "getFontName", "fontName", "getFontKey", "fontKey")) {
+            val value = invokeNoArgGetter(glyph, accessor)?.toString()?.trim() ?: continue
+            if (value.isBlank() || value == "null" || value == "minecraft") continue
+            return value
+        }
+        return null
+    }
+
+    /** Invokes a zero-arg getter reflectively, trying public then declared methods. */
+    private fun invokeNoArgGetter(target: Any, name: String): Any? {
+        for (publicFirst in listOf(true, false)) {
+            try {
+                val method = if (publicFirst) {
+                    target.javaClass.getMethod(name)
+                } else {
+                    target.javaClass.getDeclaredMethod(name)
+                }
+                method.trySetAccessible()
+                return method.invoke(target)
+            } catch (e: Exception) {
+                // try the next accessor variant
+            }
+        }
+        return null
     }
     
     /**
