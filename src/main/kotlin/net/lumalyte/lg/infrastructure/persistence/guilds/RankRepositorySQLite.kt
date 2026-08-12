@@ -41,12 +41,25 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
     
     private fun preload() {
         val sql = "SELECT * FROM ranks ORDER BY guild_id, priority"
-        
+
         try {
             val results = storage.connection.getResults(sql)
             for (result in results) {
                 val rank = mapResultSetToRank(result)
                 ranks[rank.id] = rank
+                // Self-clean: persist the parsed (cleaned) set back when the stored
+                // permissions column contains values that no longer exist in the enum.
+                // Atomic per-row UPDATE, converges after one boot — no operator SQL needed.
+                val rawPermissions = result.getString("permissions")
+                if (hasStalePermissions(rawPermissions, rank.permissions)) {
+                    val cleaned = rank.permissions.joinToString(",") { it.name }
+                    storage.connection.executeUpdate(
+                        "UPDATE ranks SET permissions = ? WHERE id = ?",
+                        cleaned,
+                        rank.id.toString()
+                    )
+                    logger.info("Cleaned stale permissions for rank {} (stored '{}' -> '{}')", rank.id, rawPermissions, cleaned)
+                }
             }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to preload ranks", e)
@@ -201,6 +214,17 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
                     }
                 }
                 .toSet()
+        }
+
+        /**
+         * True when the stored `permissions` column contains values not present in
+         * [RankPermission] — i.e. the row needs its cleaned set written back.
+         * Order and duplicates in the stored string do not count as stale.
+         */
+        fun hasStalePermissions(permissionsStr: String?, parsed: Set<RankPermission>): Boolean {
+            if (permissionsStr.isNullOrBlank()) return false
+            val storedTokens = permissionsStr.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+            return storedTokens != parsed.map { it.name }.toSet()
         }
     }
 

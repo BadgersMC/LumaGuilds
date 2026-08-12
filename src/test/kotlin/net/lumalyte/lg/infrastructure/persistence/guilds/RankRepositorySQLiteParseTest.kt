@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import net.lumalyte.lg.domain.entities.RankPermission
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -44,5 +45,22 @@ class RankRepositorySQLiteParseTest {
             setOf(RankPermission.MANAGE_RANKS),
             RankRepositorySQLite.parseRankPermissions("MANAGE_RANKS,MANAGE_RANKS")
         )
+    }
+
+    @Test
+    fun `detects stale rows that need cleanup`() {
+        assertTrue(RankRepositorySQLite.hasStalePermissions("MANAGE_RANKS,EXPORT_BANK_DATA", setOf(RankPermission.MANAGE_RANKS)))
+        assertTrue(RankRepositorySQLite.hasStalePermissions("EXPORT_BANK_DATA", emptySet()))
+        assertTrue(RankRepositorySQLite.hasStalePermissions("EXPORT_BANK_DATA,MANAGE_MEMBERS", setOf(RankPermission.MANAGE_MEMBERS)))
+    }
+
+    @Test
+    fun `does not rewrite clean rows`() {
+        // order and duplicates are not stale
+        assertFalse(RankRepositorySQLite.hasStalePermissions("MANAGE_RANKS", setOf(RankPermission.MANAGE_RANKS)))
+        assertFalse(RankRepositorySQLite.hasStalePermissions("MANAGE_MEMBERS,MANAGE_RANKS", setOf(RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS)))
+        assertFalse(RankRepositorySQLite.hasStalePermissions("MANAGE_RANKS,MANAGE_RANKS", setOf(RankPermission.MANAGE_RANKS)))
+        assertFalse(RankRepositorySQLite.hasStalePermissions(null, emptySet()))
+        assertFalse(RankRepositorySQLite.hasStalePermissions("", emptySet()))
     }
 }
