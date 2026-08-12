@@ -369,8 +369,8 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [ ] **LG-1208** Guild prestige system (theorize) — level reset at cap, special emoji, permanent unlocked features; balanced with level rebalance
   - Tag: `DOC`
   - References: REQ-056
-  - Evidence:
-  - Files: design doc first
+  - Evidence: design agreed Aug 12 — `docs/design/prestige.md` (double requirement: L200 + escalating gold; P1 home slot at all levels; P2 alliance slot; P3 +10% XP; P4 war slot; P5 member capacity; P6+ cosmetic; 7-day hold cooldown; +25% re-level XP; Roman-numeral + emoji display, `%lumaguilds_guild_prestige%` placeholder)
+  - Files: design doc first — `docs/design/prestige.md`; implementation later feeds LG-1201/1202 (cap 200), LG-1206 (gold economy), LG-1502/1503 (leaderboard/banners), LG-1104 (emoji grants)
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 
