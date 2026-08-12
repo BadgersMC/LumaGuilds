@@ -6,13 +6,14 @@ import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.util.UUID
 
 class RankRepositorySQLite(private val storage: Storage<Database>) : RankRepository {
-    
+
     private val ranks: MutableMap<UUID, Rank> = mutableMapOf()
-    
+
     init {
         createRankTable()
         preload()
@@ -40,12 +41,25 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
     
     private fun preload() {
         val sql = "SELECT * FROM ranks ORDER BY guild_id, priority"
-        
+
         try {
             val results = storage.connection.getResults(sql)
             for (result in results) {
                 val rank = mapResultSetToRank(result)
                 ranks[rank.id] = rank
+                // Self-clean: persist the parsed (cleaned) set back when the stored
+                // permissions column contains values that no longer exist in the enum.
+                // Atomic per-row UPDATE, converges after one boot — no operator SQL needed.
+                val rawPermissions = result.getString("permissions")
+                if (hasStalePermissions(rawPermissions, rank.permissions)) {
+                    val cleaned = rank.permissions.joinToString(",") { it.name }
+                    storage.connection.executeUpdate(
+                        "UPDATE ranks SET permissions = ? WHERE id = ?",
+                        cleaned,
+                        rank.id.toString()
+                    )
+                    logger.info("Cleaned stale permissions for rank {} (stored '{}' -> '{}')", rank.id, rawPermissions, cleaned)
+                }
             }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to preload ranks", e)
@@ -60,9 +74,7 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
         val permissionsStr = rs.getString("permissions")
         val icon = rs.getString("icon")
 
-        val permissions = if (permissionsStr != null) {
-            permissionsStr.split(",").filter { it.isNotBlank() }.map { RankPermission.valueOf(it.trim()) }.toSet()
-        } else emptySet()
+        val permissions = parseRankPermissions(permissionsStr)
 
         return Rank(
             id = id,
@@ -169,13 +181,52 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
     }
     
     override fun isNameTaken(guildId: UUID, name: String): Boolean = getByName(guildId, name) != null
-    
+
     override fun getNextPriority(guildId: UUID): Int {
         val existingRanks = getByGuild(guildId)
         return if (existingRanks.isEmpty()) 0 else existingRanks.maxOf { it.priority } + 1
     }
-    
+
     override fun getCountByGuild(guildId: UUID): Int = getByGuild(guildId).size
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(RankRepositorySQLite::class.java)
+
+        /**
+         * Parses a stored `permissions` column into enum values, skipping unknown names.
+         *
+         * Self-heals enum/DB drift: permission values removed from [RankPermission]
+         * (e.g. `EXPORT_BANK_DATA` after the CSV export removal, #90) remain in live
+         * rank rows and must not crash preload. Unknown names are dropped with a warning;
+         * the cleaned set is persisted the next time the rank is saved.
+         */
+        fun parseRankPermissions(permissionsStr: String?): Set<RankPermission> {
+            if (permissionsStr.isNullOrBlank()) return emptySet()
+            return permissionsStr.split(",")
+                .filter { it.isNotBlank() }
+                .mapNotNull { raw ->
+                    val name = raw.trim()
+                    try {
+                        RankPermission.valueOf(name)
+                    } catch (e: IllegalArgumentException) {
+                        logger.warn("Unknown rank permission '$name' in DB — ignoring (cleaned on next rank save)")
+                        null
+                    }
+                }
+                .toSet()
+        }
+
+        /**
+         * True when the stored `permissions` column contains values not present in
+         * [RankPermission] — i.e. the row needs its cleaned set written back.
+         * Order and duplicates in the stored string do not count as stale.
+         */
+        fun hasStalePermissions(permissionsStr: String?, parsed: Set<RankPermission>): Boolean {
+            if (permissionsStr.isNullOrBlank()) return false
+            val storedTokens = permissionsStr.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+            return storedTokens != parsed.map { it.name }.toSet()
+        }
+    }
 
     override fun swapPriorities(rankAId: UUID, rankBId: UUID): Boolean {
         val rankA = ranks[rankAId] ?: return false
