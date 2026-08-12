@@ -26,10 +26,21 @@ class ProgressionRepositorySQLite(
     private val guildProgressions: MutableMap<UUID, GuildProgression> = mutableMapOf()
     private val activityMetrics: MutableMap<UUID, GuildActivityMetrics> = mutableMapOf()
 
+    // Memoized curve, invalidated when the config values change (reload-safe).
+    private var curveCacheKey: String? = null
+    private var curveCache: ProgressionCurve? = null
+
     /** The config-driven leveling curve — single source of truth for XP math. */
     private fun curve(): ProgressionCurve {
         val config = configService.loadConfig().progression
-        return ProgressionCurve(config.baseXp, config.levelExponent, config.linearBonusPerLevel)
+        val key = "${config.baseXp}|${config.levelExponent}|${config.linearBonusPerLevel}"
+        curveCache?.let { cached ->
+            if (curveCacheKey == key) return cached
+        }
+        val built = ProgressionCurve.from(config)
+        curveCache = built
+        curveCacheKey = key
+        return built
     }
 
     init {
@@ -143,9 +154,20 @@ class ProgressionRepositorySQLite(
         try {
             val results = storage.connection.getResults(sql)
             val curve = curve()
+            val pendingHeals = mutableListOf<Pair<UUID, Int>>()
             for (result in results) {
                 val progression = mapResultSetToGuildProgression(result)
-                guildProgressions[progression.guildId] = healStaleNextLevel(progression, curve)
+                if (hasStaleNextLevel(
+                        progression.totalExperience, progression.currentLevel,
+                        progression.experienceThisLevel, progression.experienceForNextLevel, curve
+                    )
+                ) {
+                    pendingHeals += progression.guildId to curve.experienceForNextLevel(progression.currentLevel)
+                }
+                guildProgressions[progression.guildId] = progression
+            }
+            if (pendingHeals.isNotEmpty()) {
+                applyStaleNextLevelHeals(pendingHeals)
             }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to preload guild progressions", e)
@@ -153,30 +175,36 @@ class ProgressionRepositorySQLite(
     }
 
     /**
-     * Rewrites `experience_for_next_level` when it doesn't match the config curve and the
-     * row is otherwise internally consistent. Self-heals the regression where
+     * Rewrites `experience_for_next_level` for rows that don't match the config curve but
+     * are otherwise internally consistent. Self-heals the regression where
      * `GuildProgression.create()` used a hardcoded different formula (fresh guilds stored
-     * 1200 instead of 2369 at level 1); converges after one boot.
+     * 1200 instead of 2369 at level 1); converges after one boot. All rows are applied in
+     * a single transaction so the heal costs one fsync on the startup thread.
      */
-    private fun healStaleNextLevel(progression: GuildProgression, curve: ProgressionCurve): GuildProgression {
-        val expectedNext = curve.experienceForNextLevel(progression.currentLevel)
-        if (!hasStaleNextLevel(
-                progression.totalExperience, progression.currentLevel,
-                progression.experienceThisLevel, progression.experienceForNextLevel, curve
-            )
-        ) {
-            return progression
-        }
-        return try {
-            storage.connection.executeUpdate(
-                "UPDATE guild_progression SET experience_for_next_level = ? WHERE guild_id = ?",
-                expectedNext, progression.guildId.toString()
-            )
-            logger.info("Healed stale experience_for_next_level for guild {} ({} -> {})", progression.guildId, progression.experienceForNextLevel, expectedNext)
-            progression.copy(experienceForNextLevel = expectedNext)
+    private fun applyStaleNextLevelHeals(pendingHeals: List<Pair<UUID, Int>>) {
+        var committed = false
+        try {
+            storage.connection.executeUpdate("BEGIN")
+            for ((guildId, expectedNext) in pendingHeals) {
+                storage.connection.executeUpdate(
+                    "UPDATE guild_progression SET experience_for_next_level = ? WHERE guild_id = ?",
+                    expectedNext, guildId.toString()
+                )
+                guildProgressions[guildId] = guildProgressions[guildId]?.copy(experienceForNextLevel = expectedNext)
+                    ?: GuildProgression.create(guildId, expectedNext)
+            }
+            storage.connection.executeUpdate("COMMIT")
+            committed = true
+            logger.info("Healed stale experience_for_next_level for {} guild(s) ({} total rows checked)", pendingHeals.size, guildProgressions.size)
         } catch (e: SQLException) {
-            logger.warn("Failed to heal stale experience_for_next_level for guild {}: {}", progression.guildId, e.message)
-            progression
+            if (!committed) {
+                try {
+                    storage.connection.executeUpdate("ROLLBACK")
+                } catch (rollbackError: SQLException) {
+                    logger.warn("Rollback failed after heal error: {}", rollbackError.message)
+                }
+            }
+            logger.warn("Failed to heal stale experience_for_next_level for {} guild(s): {}", pendingHeals.size, e.message)
         }
     }
 

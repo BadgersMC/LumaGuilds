@@ -30,10 +30,21 @@ class ProgressionServiceBukkit(
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
 
+    // Memoized curve, invalidated when the config values change (reload-safe).
+    private var curveCacheKey: String? = null
+    private var curveCache: ProgressionCurve? = null
+
     /** The config-driven leveling curve — single source of truth for XP math. */
     private fun curve(): ProgressionCurve {
         val config = configService.loadConfig().progression
-        return ProgressionCurve(config.baseXp, config.levelExponent, config.linearBonusPerLevel)
+        val key = "${config.baseXp}|${config.levelExponent}|${config.linearBonusPerLevel}"
+        curveCache?.let { cached ->
+            if (curveCacheKey == key) return cached
+        }
+        val built = ProgressionCurve.from(config)
+        curveCache = built
+        curveCacheKey = key
+        return built
     }
 
     override fun awardExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? {

@@ -25,8 +25,12 @@ class ProgressionRepositorySQLiteHealTest {
     fun `does not touch rows already on the curve`() {
         // fresh guild with the correct curve value
         assertFalse(ProgressionRepositorySQLite.hasStaleNextLevel(0, 1, 0, 2369, curve))
-        // leveled guild: total == cumulative + this, next matches curve (level 2 -> 3936)
-        assertFalse(ProgressionRepositorySQLite.hasStaleNextLevel(2369 + 100, 2, 100, 3936, curve))
+    }
+
+    @Test
+    fun `heals stale rows whose totals are consistent`() {
+        // stale next (1200 != 3936 for level 2) AND total == cumulative + this -> heal
+        assertTrue(ProgressionRepositorySQLite.hasStaleNextLevel(2369 + 100, 2, 100, 1200, curve))
     }
 
     @Test

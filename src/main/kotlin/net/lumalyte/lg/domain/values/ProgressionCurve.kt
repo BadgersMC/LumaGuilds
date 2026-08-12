@@ -1,5 +1,6 @@
 package net.lumalyte.lg.domain.values
 
+import net.lumalyte.lg.config.ProgressionConfig
 import kotlin.math.pow
 
 /**
@@ -61,4 +62,14 @@ class ProgressionCurve(
     /** XP earned within the current level (0 .. threshold-1). */
     fun experienceInCurrentLevel(totalExperience: Int): Int =
         totalExperience - totalExperienceForLevel(levelFromExperience(totalExperience))
+
+    companion object {
+        /**
+         * The single config-to-curve accessor. Every caller (progression service,
+         * repository) must go through this so the curve can never be constructed
+         * differently in two places.
+         */
+        fun from(config: ProgressionConfig): ProgressionCurve =
+            ProgressionCurve(config.baseXp, config.levelExponent, config.linearBonusPerLevel)
+    }
 }
