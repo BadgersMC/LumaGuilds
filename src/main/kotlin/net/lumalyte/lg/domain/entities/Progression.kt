@@ -45,52 +45,19 @@ data class GuildProgression(
     companion object {
         /**
          * Creates a new guild progression with default values.
+         *
+         * @param guildId the guild this progression belongs to
+         * @param experienceForNextLevel XP required for the first level-up, taken from
+         * the config-driven [net.lumalyte.lg.domain.values.ProgressionCurve] — never
+         * hardcode a second formula here (regression: a hardcoded `800 * (level-1)^1.3`
+         * variant made fresh guilds show 1200 XP-to-next vs 2369 everywhere else).
          */
-        fun create(guildId: UUID): GuildProgression {
+        fun create(guildId: UUID, experienceForNextLevel: Int): GuildProgression {
             return GuildProgression(
                 guildId = guildId,
-                experienceForNextLevel = calculateExperienceForLevel(2),
+                experienceForNextLevel = experienceForNextLevel,
                 unlockedPerks = setOf(PerkType.CUSTOM_BANNER_COLORS, PerkType.ANIMATED_EMOJIS) // Always unlocked
             )
-        }
-
-        /**
-         * Calculates the experience required for a specific level.
-         * Uses a balanced growth formula that starts reasonable and has a gradual taper-off.
-         * Formula: baseXP * (level^1.3) + (level * 200) for competitive but fair progression
-         */
-        fun calculateExperienceForLevel(level: Int): Int {
-            if (level <= 1) return 0
-            val baseXP = 800.0
-            val exponent = 1.3 // Gentler curve than 1.5
-            val linearBonus = level * 200 // Adds linear growth to prevent harsh walls
-            return (baseXP * Math.pow(level.toDouble() - 1, exponent) + linearBonus).toInt()
-        }
-
-        /**
-         * Calculates the total experience required to reach a specific level.
-         */
-        fun calculateTotalExperienceForLevel(targetLevel: Int): Int {
-            var total = 0
-            for (level in 2..targetLevel) {
-                total += calculateExperienceForLevel(level)
-            }
-            return total
-        }
-
-        /**
-         * Determines the level for a given total experience amount.
-         */
-        fun calculateLevelFromExperience(totalExperience: Int): Int {
-            var level = 1
-            var remainingXP = totalExperience
-
-            while (remainingXP >= calculateExperienceForLevel(level + 1)) {
-                remainingXP -= calculateExperienceForLevel(level + 1)
-                level++
-            }
-
-            return level
         }
     }
 }
