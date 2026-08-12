@@ -26,6 +26,15 @@ class ColorCodeUtilsEmojiGlyphTest {
     }
 
     @Test
+    fun `rejects emoji names with MiniMessage control characters`() {
+        // isValidEmojiFormat only checks delimiters; the glyph-id guard must stop
+        // MiniMessage control characters from reaching the generated tag.
+        assertEquals(":x><reset>:", ColorCodeUtils.emojiToGlyphTag(":x><reset>:"))
+        assertEquals(":<red>evil</red>:", ColorCodeUtils.emojiToGlyphTag(":<red>evil</red>:"))
+        assertEquals(":emoji with spaces:", ColorCodeUtils.emojiToGlyphTag(":emoji with spaces:"))
+    }
+
+    @Test
     fun `returns empty for null or blank`() {
         assertEquals("", ColorCodeUtils.emojiToGlyphTag(null))
         assertEquals("", ColorCodeUtils.emojiToGlyphTag(""))

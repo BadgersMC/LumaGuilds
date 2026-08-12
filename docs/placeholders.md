@@ -19,6 +19,7 @@ Resolve to `""` (empty) if the player has no guild — except `has_guild`, which
 | `%lumaguilds_guild_tag_raw%` | Tag exactly as stored (may be legacy `&` codes or MiniMessage) |
 | `%lumaguilds_guild_emoji%` | Nexo placeholder (`%nexo_<name>%`) — resolves only where Nexo's PAPI expansion runs (backend) |
 | `%lumaguilds_guild_emoji_minimessage%` | Nexo glyph tag for MiniMessage formatters like Velocitab (rendered proxy-side via NexoProxy). Matching `:name:` values become `<glyph:name>`; null/blank returns empty; other values pass through unchanged |
+| `%lumaguilds_guild_emoji_font%` | Raw MiniMessage font fragment (`<font:<glyphfont>><char></font>`) for MiniMessage consumers without Nexo glyph-tag support (UnlimitedNameTags, IC-DiscordSRV-Addon playerlist, Velocitab via PapiProxyBridge). Resolves char/font from Nexo's FontManager; falls back to `<glyph:name>` when Nexo is unavailable |
 | `%lumaguilds_guild_level%` | Current level |
 | `%lumaguilds_guild_balance%` | Bank balance |
 | `%lumaguilds_guild_mode%` | `Peaceful` / `Hostile` |

@@ -34,6 +34,7 @@ The same variants apply to `guild_display` and `guild_chat_format`.
 | `guild_tag_plain` | Text (plain) | Guild tag with formatting stripped |
 | `guild_emoji` | Text | Guild emoji, converted to Nexo PAPI format (`%nexo_<name>%`) — resolves only where Nexo's PAPI expansion runs (backend) |
 | `guild_emoji_minimessage` | Text | Guild emoji as Nexo glyph tag for MiniMessage formatters (Velocitab via NexoProxy). Matching `:name:` values become `<glyph:name>`; null/blank returns empty; other values pass through unchanged |
+| `guild_emoji_font` | Text | Guild emoji as raw MiniMessage font fragment (`<font:<glyphfont>><char></font>`) — renders in MiniMessage consumers without Nexo glyph-tag support (UnlimitedNameTags, IC-DiscordSRV-Addon playerlist, Velocitab via PapiProxyBridge). Resolves the char/font from Nexo's FontManager; falls back to `<glyph:name>` when Nexo is unavailable |
 | `guild_level` | Integer | Current guild level |
 | `guild_balance` | Integer | Virtual bank balance (coins) |
 | `guild_mode` | Text | `Peaceful` or `Hostile` |

@@ -4,6 +4,7 @@ import net.lumalyte.lg.application.persistence.LeaderboardRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.infrastructure.services.NexoEmojiService
 import net.lumalyte.lg.utils.ColorCodeUtils
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -38,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap
  * - %lumaguilds_guild_tag_plain% - Tag with all formatting stripped
  * - %lumaguilds_guild_emoji% - Player's guild emoji (converted to %nexo_<emoji>% format for backend tab/scoreboard/chat)
  * - %lumaguilds_guild_emoji_minimessage% - Player's guild emoji as Nexo glyph tag (<glyph:emoji>) for MiniMessage formatters (Velocitab via NexoProxy)
+ * - %lumaguilds_guild_emoji_font% - Player's guild emoji as raw font fragment (<font:<glyphfont>><char></font>) for MiniMessage consumers without glyph-tag support (UnlimitedNameTags, IC-DiscordSRV-Addon playerlist, Velocitab via PapiProxyBridge)
  * - %lumaguilds_guild_level% - Player's guild level
  * - %lumaguilds_guild_balance% - Player's guild bank balance
  * - %lumaguilds_guild_members% - Player's guild member count
@@ -90,6 +92,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private val relationService: RelationService by inject()
     private val progressionRepository: ProgressionRepository by inject()
     private val leaderboardRepository: LeaderboardRepository by inject()
+    private val nexoEmojiService: NexoEmojiService by inject()
 
     private val miniMessage = MiniMessage.miniMessage()
     private val plainSerializer = PlainTextComponentSerializer.plainText()
@@ -143,6 +146,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "guild_tag_plain" -> renderTagAsPlain(guild)
             "guild_emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
             "guild_emoji_minimessage" -> ColorCodeUtils.emojiToGlyphTag(guild.emoji)
+            "guild_emoji_font" -> nexoEmojiService.emojiToFontTag(guild.emoji)
             "guild_level" -> guild.level.toString()
             // BankService.getBalance resolves to the unified guild balance (store B: vault gold),
             // the single source of truth shared by /g bal, /g baltop, /g menu -> Bank and the vault.
