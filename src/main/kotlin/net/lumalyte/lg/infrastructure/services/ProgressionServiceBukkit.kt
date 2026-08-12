@@ -8,6 +8,7 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PerkType
+import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.domain.events.GuildLevelUpEvent
 import org.bukkit.Bukkit
@@ -17,7 +18,6 @@ import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import kotlin.math.pow
 
 class ProgressionServiceBukkit(
     private val progressionRepository: ProgressionRepository,
@@ -29,6 +29,12 @@ class ProgressionServiceBukkit(
 ) : ProgressionService {
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
+
+    /** The config-driven leveling curve — single source of truth for XP math. */
+    private fun curve(): ProgressionCurve {
+        val config = configService.loadConfig().progression
+        return ProgressionCurve(config.baseXp, config.levelExponent, config.linearBonusPerLevel)
+    }
 
     override fun awardExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? {
         try {
@@ -45,7 +51,7 @@ class ProgressionServiceBukkit(
 
             // Get or create guild progression
             val progression = progressionRepository.getGuildProgression(guildId)
-                ?: GuildProgression.create(guildId)
+                ?: GuildProgression.create(guildId, getExperienceForNextLevel(1))
 
             val oldLevel = progression.currentLevel
             val newTotalExperience = progression.totalExperience + experience
@@ -100,24 +106,14 @@ class ProgressionServiceBukkit(
         }
     }
 
-    override fun getExperienceForNextLevel(currentLevel: Int): Int {
-        val config = configService.loadConfig().progression
-        
-        // Use the configurable leveling curve
-        val baseXp = config.baseXp
-        val exponent = config.levelExponent
-        val linearBonus = config.linearBonusPerLevel
-        
-        // Calculate XP needed for next level: base * (level^exponent) + (level * linearBonus)
-        val nextLevel = currentLevel + 1
-        return (baseXp * nextLevel.toDouble().pow(exponent) + (nextLevel * linearBonus)).toInt()
-    }
+    override fun getExperienceForNextLevel(currentLevel: Int): Int =
+        curve().experienceForNextLevel(currentLevel)
 
     override fun removeExperience(guildId: UUID, amount: Int, source: ExperienceSource): Int {
         try {
             if (amount <= 0) return getLevelFromExperience(progressionRepository.getGuildProgression(guildId)?.totalExperience ?: 0)
             val progression = progressionRepository.getGuildProgression(guildId)
-                ?: GuildProgression.create(guildId)
+                ?: GuildProgression.create(guildId, getExperienceForNextLevel(1))
 
             val newTotalExperience = (progression.totalExperience - amount).coerceAtLeast(0)
             val newLevel = getLevelFromExperience(newTotalExperience)
@@ -154,7 +150,7 @@ class ProgressionServiceBukkit(
     override fun reduceLevel(guildId: UUID, levels: Int, source: ExperienceSource): Int {
         try {
             val progression = progressionRepository.getGuildProgression(guildId)
-                ?: GuildProgression.create(guildId)
+                ?: GuildProgression.create(guildId, getExperienceForNextLevel(1))
 
             val currentLevel = progression.currentLevel
             val targetLevel = (currentLevel - levels).coerceAtLeast(1)
@@ -191,39 +187,11 @@ class ProgressionServiceBukkit(
         }
     }
 
-    override fun getTotalExperienceForLevel(targetLevel: Int): Int {
-        if (targetLevel <= 1) return 0
-        
-        var totalXp = 0
-        for (level in 1 until targetLevel) {
-            totalXp += getExperienceForNextLevel(level)
-        }
-        return totalXp
-    }
+    override fun getTotalExperienceForLevel(targetLevel: Int): Int =
+        curve().totalExperienceForLevel(targetLevel)
 
-    override fun getLevelFromExperience(totalExperience: Int): Int {
-        if (totalExperience <= 0) return 1
-        
-        var currentLevel = 1
-        var experienceUsed = 0
-        
-        while (true) {
-            val xpNeeded = getExperienceForNextLevel(currentLevel)
-            if (experienceUsed + xpNeeded > totalExperience) {
-                break
-            }
-            experienceUsed += xpNeeded
-            currentLevel++
-            
-            // Safety check to prevent infinite loops
-            if (currentLevel > 100) {
-                logger.warn("Level calculation exceeded maximum level (100) for experience $totalExperience")
-                break
-            }
-        }
-        
-        return currentLevel
-    }
+    override fun getLevelFromExperience(totalExperience: Int): Int =
+        curve().levelFromExperience(totalExperience)
 
     override fun getLevelProgress(totalExperience: Int): Pair<Int, Int> {
         val currentLevel = getLevelFromExperience(totalExperience)
@@ -236,11 +204,8 @@ class ProgressionServiceBukkit(
     /**
      * Gets the experience within the current level (0 to experienceForNextLevel-1).
      */
-    private fun getExperienceInCurrentLevel(totalExperience: Int): Int {
-        val currentLevel = getLevelFromExperience(totalExperience)
-        val totalXpForCurrentLevel = getTotalExperienceForLevel(currentLevel)
-        return totalExperience - totalXpForCurrentLevel
-    }
+    private fun getExperienceInCurrentLevel(totalExperience: Int): Int =
+        curve().experienceInCurrentLevel(totalExperience)
 
     override fun getPerksForLevel(level: Int): List<PerkType> {
         val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)

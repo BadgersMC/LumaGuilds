@@ -6,20 +6,31 @@ import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.persistence.ActivityMetricType
 import net.lumalyte.lg.application.persistence.ProgressionStats
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PerkType
+import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class ProgressionRepositorySQLite(private val storage: Storage<Database>) : ProgressionRepository {
+class ProgressionRepositorySQLite(
+    private val storage: Storage<Database>,
+    private val configService: ConfigService,
+) : ProgressionRepository {
 
     private val logger = LoggerFactory.getLogger(ProgressionRepositorySQLite::class.java)
     private val guildProgressions: MutableMap<UUID, GuildProgression> = mutableMapOf()
     private val activityMetrics: MutableMap<UUID, GuildActivityMetrics> = mutableMapOf()
+
+    /** The config-driven leveling curve — single source of truth for XP math. */
+    private fun curve(): ProgressionCurve {
+        val config = configService.loadConfig().progression
+        return ProgressionCurve(config.baseXp, config.levelExponent, config.linearBonusPerLevel)
+    }
 
     init {
         // Try to create tables and preload, but don't fail if migration hasn't run yet
@@ -131,12 +142,41 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
 
         try {
             val results = storage.connection.getResults(sql)
+            val curve = curve()
             for (result in results) {
                 val progression = mapResultSetToGuildProgression(result)
-                guildProgressions[progression.guildId] = progression
+                guildProgressions[progression.guildId] = healStaleNextLevel(progression, curve)
             }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to preload guild progressions", e)
+        }
+    }
+
+    /**
+     * Rewrites `experience_for_next_level` when it doesn't match the config curve and the
+     * row is otherwise internally consistent. Self-heals the regression where
+     * `GuildProgression.create()` used a hardcoded different formula (fresh guilds stored
+     * 1200 instead of 2369 at level 1); converges after one boot.
+     */
+    private fun healStaleNextLevel(progression: GuildProgression, curve: ProgressionCurve): GuildProgression {
+        val expectedNext = curve.experienceForNextLevel(progression.currentLevel)
+        if (!hasStaleNextLevel(
+                progression.totalExperience, progression.currentLevel,
+                progression.experienceThisLevel, progression.experienceForNextLevel, curve
+            )
+        ) {
+            return progression
+        }
+        return try {
+            storage.connection.executeUpdate(
+                "UPDATE guild_progression SET experience_for_next_level = ? WHERE guild_id = ?",
+                expectedNext, progression.guildId.toString()
+            )
+            logger.info("Healed stale experience_for_next_level for guild {} ({} -> {})", progression.guildId, progression.experienceForNextLevel, expectedNext)
+            progression.copy(experienceForNextLevel = expectedNext)
+        } catch (e: SQLException) {
+            logger.warn("Failed to heal stale experience_for_next_level for guild {}: {}", progression.guildId, e.message)
+            progression
         }
     }
 
@@ -284,8 +324,10 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             val exists = result?.getInt("count") ?: 0 > 0
 
             if (!exists) {
-                // Create default progression
-                val defaultProgression = GuildProgression.create(guildId)
+                // Create default progression using the config-driven curve (never a
+                // hardcoded second formula — regression: fresh guilds showed 1200
+                // XP-to-next while the curve says 2369 at level 1).
+                val defaultProgression = GuildProgression.create(guildId, curve().experienceForNextLevel(1))
                 if (saveGuildProgression(defaultProgression)) {
                     guildProgressions[guildId] = defaultProgression
                     return defaultProgression
@@ -626,6 +668,27 @@ class ProgressionRepositorySQLite(private val storage: Storage<Database>) : Prog
             }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to get recent level ups", e)
+        }
+    }
+
+    companion object {
+        /**
+         * True when the stored `experience_for_next_level` doesn't match the config curve
+         * for the guild's level AND the row is otherwise internally consistent
+         * (total == cumulative thresholds + xp-this-level) — i.e. it's safe to rewrite.
+         *
+         * Regression: `GuildProgression.create()` hardcoded a different formula, leaving
+         * fresh guilds (0 XP) with 1200 instead of the curve's 2369 at level 1.
+         */
+        fun hasStaleNextLevel(
+            totalExperience: Int,
+            level: Int,
+            experienceThisLevel: Int,
+            storedNext: Int,
+            curve: ProgressionCurve,
+        ): Boolean {
+            if (storedNext == curve.experienceForNextLevel(level)) return false
+            return totalExperience == curve.totalExperienceForLevel(level) + experienceThisLevel
         }
     }
 }

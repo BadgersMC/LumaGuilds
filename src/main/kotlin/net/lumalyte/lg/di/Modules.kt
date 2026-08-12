@@ -514,7 +514,7 @@ fun socialModule() = module {
 fun progressionModule() = module {
     // Repositories
     single<KillRepository> { KillRepositorySQLite(get()) }
-    single<ProgressionRepository> { ProgressionRepositorySQLite(get()) }
+    single<ProgressionRepository> { ProgressionRepositorySQLite(get(), get()) }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
 
     // Services
