@@ -190,6 +190,7 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import net.milkbowl.vault.chat.Chat
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.Plugin
+import org.bukkit.plugin.java.JavaPlugin
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -204,6 +205,7 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     // Plugin dependencies
     single<Plugin> { plugin }
     single<LumaGuilds> { plugin }
+    single<JavaPlugin> { plugin }
     single<File> { plugin.dataFolder }
     single<FileConfiguration> { plugin.config }
     single<Chat?> { plugin.metadata }
