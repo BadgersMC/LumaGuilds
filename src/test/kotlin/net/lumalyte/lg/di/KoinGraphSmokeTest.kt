@@ -78,42 +78,47 @@ internal class KoinGraphSmokeTest {
             SQLiteMigrations(plugin, conn, claimsEnabled = true).migrate()
         }
 
-        startKoin {
-            modules(appModule(plugin, storage, claimsEnabled = true))
-        }
-
-        val koin = GlobalContext.get()
-        val rootScope = koin.scopeRegistry.rootScope
-        val factories = koin.instanceRegistry.instances.values.toList()
-
-        assertTrue(factories.isNotEmpty(), "Koin graph registered zero definitions")
-
-        // Force-construct every registered definition by calling its factory.
-        // A definition whose constructor references an unregistered type throws
-        // InstanceNotFoundException (Koin 4) / NoDefinitionFoundException (Koin 3).
-        val failures = mutableListOf<String>()
-        for (factory in factories) {
-            val bean = factory.beanDefinition
-            val context = ResolutionContext(
-                logger = koin.logger,
-                scope = rootScope,
-                clazz = bean.primaryType,
-                qualifier = bean.qualifier,
-                parameters = ParametersHolder()
-            )
-            try {
-                factory.get(context)
-            } catch (e: Throwable) {
-                val name = bean.primaryType.simpleName ?: bean.primaryType.toString()
-                failures.add("$name: ${e::class.simpleName} — ${causeChain(e)}")
+        try {
+            startKoin {
+                modules(appModule(plugin, storage, claimsEnabled = true))
             }
-        }
 
-        assertTrue(
-            failures.isEmpty(),
-            "Koin graph has ${failures.size} unresolvable definition(s):\n" +
-                failures.joinToString("\n")
-        )
+            val koin = GlobalContext.get()
+            val rootScope = koin.scopeRegistry.rootScope
+            val factories = koin.instanceRegistry.instances.values.toList()
+
+            assertTrue(factories.isNotEmpty(), "Koin graph registered zero definitions")
+
+            // Force-construct every registered definition by calling its factory.
+            // A definition whose constructor references an unregistered type throws
+            // InstanceNotFoundException (Koin 4) / NoDefinitionFoundException (Koin 3).
+            val failures = mutableListOf<String>()
+            for (factory in factories) {
+                val bean = factory.beanDefinition
+                val context = ResolutionContext(
+                    logger = koin.logger,
+                    scope = rootScope,
+                    clazz = bean.primaryType,
+                    qualifier = bean.qualifier,
+                    parameters = ParametersHolder()
+                )
+                try {
+                    factory.get(context)
+                } catch (e: Throwable) {
+                    val name = bean.primaryType.simpleName ?: bean.primaryType.toString()
+                    failures.add("$name: ${e::class.simpleName} — ${causeChain(e)}")
+                }
+            }
+
+            assertTrue(
+                failures.isEmpty(),
+                "Koin graph has ${failures.size} unresolvable definition(s):\n" +
+                    failures.joinToString("\n")
+            )
+        } finally {
+            // Close the HikariCP connection pool before the temp directory is deleted
+            storage.connection.close()
+        }
     }
 
     /** Flattens the root-cause chain into a readable one-liner. */
