@@ -73,6 +73,10 @@ dependencies {
     }
     compileOnly("com.github.placeholderapi:placeholderapi:2.11.6")
     compileOnly("com.artillexstudios:AxKothAPI:4")
+    // The Koin graph smoke test constructs every service (incl. placeholder + KOTH
+    // hooks) — these APIs must be on the test classpath too.
+    testImplementation("com.github.placeholderapi:placeholderapi:2.11.6")
+    testImplementation("com.artillexstudios:AxKothAPI:4")
     // RoseChat is required at compile-time for the GuildChatListener channel switch.
     // Drop the built jar into libs/ from the RoseChat project (libs/ is gitignored).
     compileOnly(files("libs/RoseChat-RC-2.jar"))
@@ -84,6 +88,9 @@ dependencies {
     // compileOnly: LiteBans bundles the API at runtime, shading it would cause
     // a version conflict. jitpack.io is declared in repositories above.
     compileOnly("com.gitlab.ruany:LiteBansAPI:0.6.1")
+    // The Koin graph smoke test constructs every service, including the LiteBans
+    // strike hook — the API must be on the test classpath too.
+    testImplementation("com.gitlab.ruany:LiteBansAPI:0.6.1")
 
     // EnthusiaMarket public API (net.badgersmc.em.api.ShopGuildLookup) for guild-shop
     // integration. Slim api-only jar (one interface, depends only on Bukkit) — NOT the

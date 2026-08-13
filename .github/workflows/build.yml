@@ -57,6 +57,11 @@ jobs:
         ROSE_JAR=$(ls build/libs/RoseChat-RC-2*.jar | grep -v -- '-sources\|-javadoc' | head -1)
         cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
 
+    - name: Test with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: ./gradlew test
+
     - name: Build Gradle using shadowJar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
