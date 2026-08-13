@@ -63,6 +63,16 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/libs"
           cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
 
+      # Run the full test suite, including the Koin graph smoke test. The v2.1.23
+      # release shipped a jar whose Koin graph referenced an unregistered type — a
+      # class-presence check would pass that jar (the class file exists; the
+      # registration doesn't). KoinGraphSmokeTest force-resolves every definition,
+      # so a broken graph fails here, before the artifact is published.
+      - name: Test with Gradle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew test --no-daemon -PreleaseVersion=${{ steps.bump.outputs.version }}
+
       - name: Build shadowJar
         run: ./gradlew shadowJar --no-daemon -PreleaseVersion=${{ steps.bump.outputs.version }}
 
