@@ -972,8 +972,14 @@ class LumaGuilds : JavaPlugin() {
         val guildDisbandedListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener>()
         server.pluginManager.registerEvents(guildDisbandedListener, this)
 
-        // Clean up RoseChat channels when guild status changes
-        if (server.pluginManager.isPluginEnabled("RoseChat")) {
+        // Clean up RoseChat channels when guild status changes.
+        // LumaGuilds can enable BEFORE RoseChat despite `depend: [RoseChat]`
+        // (observed on the Fuji test server: RoseChat enabled ~4 minutes later),
+        // so an `isPluginEnabled("RoseChat")` guard alone would silently skip
+        // the provider registration and guild/ally/modchat channels would never
+        // load. Mirror the LiteBans pattern: wire immediately when RoseChat is
+        // already enabled, otherwise register on its PluginEnableEvent.
+        val wireRoseChatHook = {
             val roseChatCleanupListener = get().get<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener>()
             server.pluginManager.registerEvents(roseChatCleanupListener, this)
             logColored("✓ RoseChat integration registered for chat cleanup")
@@ -988,6 +994,16 @@ class LumaGuilds : JavaPlugin() {
             // now that the provider exists (RoseChat's first attempt at startup
             // found no provider and skipped the guild sections).
             registerRoseChatChannels()
+        }
+        when {
+            server.pluginManager.isPluginEnabled("RoseChat") -> wireRoseChatHook()
+            server.pluginManager.getPlugin("RoseChat") != null -> {
+                // RoseChat loaded but not yet enabled (reverse load order) — wire when it enables.
+                server.pluginManager.registerEvents(
+                    net.lumalyte.lg.infrastructure.listeners.RoseChatEnableListener { wireRoseChatHook() },
+                    this,
+                )
+            }
         }
 
         // Register admin override listener (for logout cleanup) - only when claims enabled
