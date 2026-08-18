@@ -16,6 +16,7 @@ import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.application.services.LeaderboardService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.PlaytimeActivityService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.config.ProgressionConfig
@@ -67,6 +68,7 @@ class ProgressionEventListener : Listener, KoinComponent {
     private val configService: ConfigService by inject()
     private val asyncTaskService: AsyncTaskService by inject()
     private val leaderboardService: LeaderboardService by inject()
+    private val playtimeActivityService: PlaytimeActivityService by inject()
     private val plugin: Plugin by inject()
     private val virtualDispatcher: CoroutineDispatcher by inject(named("VirtualDispatcher"))
 
@@ -283,6 +285,7 @@ class ProgressionEventListener : Listener, KoinComponent {
      * Database operations run on virtual threads to avoid blocking main thread.
      */
     private fun awardExperience(player: Player, amount: Int, source: ExperienceSource) {
+        if (playtimeActivityService.isXpBlocked(player)) return
         val guildIds = playerGuildCache[player.uniqueId]
         if (guildIds.isNullOrEmpty()) return
         enqueueGuildExperience(guildIds, amount * lunarMultiplier(player), source)
@@ -293,6 +296,7 @@ class ProgressionEventListener : Listener, KoinComponent {
      * Batches XP awards and processes them async on virtual threads.
      */
     private fun awardExperienceWithCooldown(player: Player, amount: Int, source: ExperienceSource) {
+        if (playtimeActivityService.isXpBlocked(player)) return
         val guildIds = playerGuildCache[player.uniqueId]
         if (guildIds.isNullOrEmpty()) return
         awardExperienceWithCooldown(player.uniqueId, guildIds, amount, source, lunarMultiplier(player))
