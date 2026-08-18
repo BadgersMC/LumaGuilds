@@ -45,13 +45,14 @@ class GuildRankListMenu(
         }
         gui.addPane(pane)
 
-        val maxSlots = (height - 1) * 9 // Reserve last row for back button
+        val reservedOverflowSlot = (height - 2) * 9 + 4 // Slot (4, height-2) for overflow notice
+        val maxSlots = reservedOverflowSlot // Ranks populate slots 0..reservedOverflowSlot-1
         var slot = 0
         for (rank in ranks) {
             if (slot >= maxSlots) {
-                // Overflow notice
+                val omitted = ranks.size - slot
                 val overflowItem = ItemStack.of(Material.PAPER)
-                    .name("§e... and ${ranks.size - slot} more ranks")
+                    .name("§e... and $omitted more ${if (omitted == 1) "rank" else "ranks"}")
                 pane.addItem(GuiItem(overflowItem), 4, height - 2)
                 break
             }

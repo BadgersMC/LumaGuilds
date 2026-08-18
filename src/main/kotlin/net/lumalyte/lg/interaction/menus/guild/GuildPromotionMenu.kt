@@ -62,6 +62,10 @@ class GuildPromotionMenu(
 
         var slot = 0
         for (member in members) {
+            if (slot >= (rows - 1) * 9) {
+                // Overflow — remaining members don't fit
+                break
+            }
             val rank = rankById[member.rankId]
             val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: member.playerId.toString().take(8)
             val isOnline = Bukkit.getPlayer(member.playerId)?.isOnline == true
