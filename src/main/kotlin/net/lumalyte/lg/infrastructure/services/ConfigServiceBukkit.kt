@@ -123,7 +123,8 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
             dailyWarExpCost = config.getInt("guild.daily_war_exp_cost", 10),
             dailyWarMoneyCost = config.getInt("guild.daily_war_money_cost", 100),
             warFarmingCooldownHours = config.getInt("guild.war_farming_cooldown_hours", 24),
-            nameFilter = loadNameFilterConfig()
+            nameFilter = loadNameFilterConfig(),
+            emojiGrants = loadEmojiGrantsConfig()
         )
     }
 
@@ -138,6 +139,18 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
                 collapseRepeats = config.getBoolean("guild.name_filter.normalization.collapse_repeats", true)
             )
         )
+    }
+
+    private fun loadEmojiGrantsConfig(): Map<String, String> {
+        val section = config.getConfigurationSection("guild.emoji_grants") ?: return emptyMap()
+        val result = mutableMapOf<String, String>()
+        for (key in section.getKeys(false)) {
+            val value = section.getString(key) ?: continue
+            if (value.isNotBlank()) {
+                result[key.lowercase()] = value
+            }
+        }
+        return result
     }
     
     private fun loadBankConfig(): BankConfig {
