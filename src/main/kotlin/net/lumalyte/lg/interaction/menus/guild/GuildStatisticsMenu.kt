@@ -247,9 +247,40 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    // Detail view functions (placeholders for now)
+    // Detail view functions
     private fun openKillStatsDetail() {
-        player.sendMessage("§e🔪 Detailed kill statistics coming soon!")
+        try {
+            val killStats = killService.getGuildKillStats(guild.id)
+
+            val gui = ChestGui(4, "§4🔪 ${guild.name} - Kill Statistics")
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 4)
+            gui.addPane(pane)
+
+            val summaryItem = ItemStack.of(Material.DIAMOND_SWORD)
+                .name("§4⚔ KILL STATISTICS")
+                .lore("§7Total Kills: §a${killStats.totalKills}")
+                .lore("§7Total Deaths: §c${killStats.totalDeaths}")
+                .lore("§7Net Kills: §${if (killStats.netKills >= 0) "a" else "c"}${killStats.netKills}")
+                .lore("§7K/D Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
+                .lore("")
+                .lore("§7Kill Efficiency: §f${calculateEfficiency(killStats)}%")
+            pane.addItem(GuiItem(summaryItem), 4, 1)
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name("§cBack to Statistics")
+                .lore("§7Return to guild statistics")
+            pane.addItem(GuiItem(backItem) { open() }, 4, 3)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage("§c❌ Failed to load kill statistics: ${e.message}")
+            logger.error("Error opening kill stats detail for guild ${guild.id}", e)
+        }
     }
 
     private fun openWarStatsDetail() {
@@ -464,11 +495,96 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun openMemberStatsDetail() {
-        player.sendMessage("§e👥 Detailed member statistics coming soon!")
+        try {
+            val members = memberService.getGuildMembers(guild.id)
+            val memberCount = memberService.getMemberCount(guild.id)
+
+            val gui = ChestGui(5, "§b👥 ${guild.name} - Members")
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 5)
+            gui.addPane(pane)
+
+            val summaryItem = ItemStack.of(Material.PLAYER_HEAD)
+                .name("§b👥 MEMBER SUMMARY")
+                .lore("§7Total Members: §f$memberCount")
+                .lore("§7Online: §a${Bukkit.getOnlinePlayers().count { p -> members.any { it.playerId == p.uniqueId } }}")
+            pane.addItem(GuiItem(summaryItem), 4, 0)
+
+            var col = 0
+            var row = 0
+            members.take(21).forEach { member ->
+                val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: member.playerId.toString().take(8)
+                val isOnline = Bukkit.getPlayer(member.playerId) != null
+                val memberItem = ItemStack.of(Material.PLAYER_HEAD)
+                    .name("§${if (isOnline) "a" else "7"}$playerName")
+                    .lore("§7Online: §${if (isOnline) "aYes" else "7No"}")
+                pane.addItem(GuiItem(memberItem), 1 + col, 1 + row)
+                col++
+                if (col >= 7) {
+                    col = 0
+                    row++
+                }
+            }
+
+            if (members.size > 21) {
+                val moreItem = ItemStack.of(Material.PAPER)
+                    .name("§e... and ${members.size - 21} more members")
+                pane.addItem(GuiItem(moreItem), 4, 4)
+            }
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name("§cBack to Statistics")
+                .lore("§7Return to guild statistics")
+            pane.addItem(GuiItem(backItem) { open() }, 8, 4)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage("§c❌ Failed to load member statistics: ${e.message}")
+            logger.error("Error opening member stats detail for guild ${guild.id}", e)
+        }
     }
 
     private fun openPerformanceDetail() {
-        player.sendMessage("§e📊 Detailed performance analysis coming soon!")
+        try {
+            val killStats = killService.getGuildKillStats(guild.id)
+            val memberCount = memberService.getMemberCount(guild.id)
+
+            val avgKillsPerMember = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
+            val avgDeathsPerMember = if (memberCount > 0) killStats.totalDeaths.toDouble() / memberCount else 0.0
+
+            val gui = ChestGui(4, "§e📊 ${guild.name} - Performance")
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 4)
+            gui.addPane(pane)
+
+            val perfItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
+                .name("§e📊 PERFORMANCE METRICS")
+                .lore("§7Avg Kills/Member: §f${decimalFormat.format(avgKillsPerMember)}")
+                .lore("§7Avg Deaths/Member: §f${decimalFormat.format(avgDeathsPerMember)}")
+                .lore("§7Kill Efficiency: §e${calculateEfficiency(killStats)}%")
+                .lore("§7K/D Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
+                .lore("")
+                .lore("§7Overall Rating: §${getPerformanceColor(killStats, memberCount)}${getPerformanceRating(killStats, memberCount)}")
+            pane.addItem(GuiItem(perfItem), 4, 1)
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name("§cBack to Statistics")
+                .lore("§7Return to guild statistics")
+            pane.addItem(GuiItem(backItem) { open() }, 4, 3)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage("§c❌ Failed to load performance statistics: ${e.message}")
+            logger.error("Error opening performance detail for guild ${guild.id}", e)
+        }
     }
 
     private fun addTopKillersButton(pane: StaticPane, x: Int, y: Int) {
@@ -758,19 +874,168 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     // Additional detail view functions
     private fun openTopKillersDetail() {
-        player.sendMessage("§e🏆 Detailed top killers rankings coming soon!")
+        try {
+            val guildMembers = memberService.getGuildMembers(guild.id).map { it.playerId }
+            val topKillers = killService.getTopKillers(guildMembers, 10)
+
+            val gui = ChestGui(5, "§c🏆 ${guild.name} - Top Killers")
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 5)
+            gui.addPane(pane)
+
+            val titleItem = ItemStack.of(Material.TOTEM_OF_UNDYING)
+                .name("§c🏆 TOP KILLERS")
+                .lore("§7Guild's most lethal members")
+
+            if (topKillers.isNotEmpty()) {
+                titleItem.lore("")
+                topKillers.take(10).forEachIndexed { index, (playerId, stats) ->
+                    val playerName = Bukkit.getOfflinePlayer(playerId).name ?: playerId.toString().take(8)
+                    titleItem.lore("§${getRankColor(index + 1)}${index + 1}. $playerName: §f${stats.totalKills} kills")
+                }
+            } else {
+                titleItem.lore("§7No kill data available")
+            }
+            pane.addItem(GuiItem(titleItem), 4, 1)
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name("§cBack to Statistics")
+                .lore("§7Return to guild statistics")
+            pane.addItem(GuiItem(backItem) { open() }, 4, 4)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage("§c❌ Failed to load top killers: ${e.message}")
+            logger.error("Error opening top killers detail for guild ${guild.id}", e)
+        }
     }
 
     private fun openTopContributorsDetail() {
-        player.sendMessage("§e💰 Detailed contribution analysis coming soon!")
+        try {
+            val contributions = bankService.getMemberContributions(guild.id)
+            val topContributors = contributions
+                .filter { it.netContribution > 0 }
+                .sortedByDescending { it.netContribution }
+                .take(10)
+
+            val gui = ChestGui(5, "§6💰 ${guild.name} - Top Contributors")
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 5)
+            gui.addPane(pane)
+
+            val titleItem = ItemStack.of(Material.GOLD_BLOCK)
+                .name("§6💰 TOP CONTRIBUTORS")
+                .lore("§7Most generous members")
+
+            if (topContributors.isNotEmpty()) {
+                titleItem.lore("")
+                topContributors.forEachIndexed { index, contribution ->
+                    val playerName = contribution.playerName ?: "Unknown"
+                    titleItem.lore("§${getRankColor(index + 1)}${index + 1}. $playerName: §f$${contribution.netContribution}")
+                }
+            } else {
+                titleItem.lore("§7No contribution data")
+            }
+            pane.addItem(GuiItem(titleItem), 4, 1)
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name("§cBack to Statistics")
+                .lore("§7Return to guild statistics")
+            pane.addItem(GuiItem(backItem) { open() }, 4, 4)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage("§c❌ Failed to load top contributors: ${e.message}")
+            logger.error("Error opening top contributors detail for guild ${guild.id}", e)
+        }
     }
 
     private fun openKDAnalysisDetail() {
-        player.sendMessage("§e📈 Detailed K/D ratio analysis coming soon!")
+        try {
+            val killStats = killService.getGuildKillStats(guild.id)
+
+            val gui = ChestGui(4, "§d📈 ${guild.name} - K/D Analysis")
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 4)
+            gui.addPane(pane)
+
+            val kdItem = ItemStack.of(Material.COMPARATOR)
+                .name("§d📈 K/D ANALYSIS")
+                .lore("§7K/D Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
+                .lore("§7Total Kills: §a${killStats.totalKills}")
+                .lore("§7Total Deaths: §c${killStats.totalDeaths}")
+                .lore("§7Net Kills: §${if (killStats.netKills >= 0) "a" else "c"}${killStats.netKills}")
+                .lore("")
+                .lore("§7Performance Grade: §${getKDRatingColor(killStats.killDeathRatio)}${getKDRating(killStats.killDeathRatio)}")
+                .lore("§7Efficiency Score: §f${calculateEfficiencyScore(killStats)}/100")
+            pane.addItem(GuiItem(kdItem), 4, 1)
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name("§cBack to Statistics")
+                .lore("§7Return to guild statistics")
+            pane.addItem(GuiItem(backItem) { open() }, 4, 3)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage("§c❌ Failed to load K/D analysis: ${e.message}")
+            logger.error("Error opening K/D analysis for guild ${guild.id}", e)
+        }
     }
 
     private fun openRecentActivityDetail() {
-        player.sendMessage("§e🕐 Detailed recent activity coming soon!")
+        try {
+            val recentKills = killService.getRecentGuildKills(guild.id, 15)
+
+            val gui = ChestGui(5, "§f🕐 ${guild.name} - Recent Activity")
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 5)
+            gui.addPane(pane)
+
+            val titleItem = ItemStack.of(Material.CLOCK)
+                .name("§f🕐 RECENT ACTIVITY")
+                .lore("§7Recent kills: ${recentKills.size}")
+                .lore("§7Activity Level: §${getActivityColor(recentKills.size)}${getActivityLevel(recentKills.size)}")
+
+            if (recentKills.isNotEmpty()) {
+                titleItem.lore("")
+                recentKills.take(10).forEach { kill ->
+                    val killerName = Bukkit.getOfflinePlayer(kill.killerId).name ?: kill.killerId.toString().take(8)
+                    val victimName = Bukkit.getOfflinePlayer(kill.victimId).name ?: kill.victimId.toString().take(8)
+                    val weapon = if (!kill.weapon.isNullOrEmpty()) " §7with §f${kill.weapon}" else ""
+                    titleItem.lore("§a$killerName §7→ §c$victimName$weapon")
+                }
+            }
+            if (recentKills.size > 10) {
+                titleItem.lore("§7... and ${recentKills.size - 10} more")
+            }
+            pane.addItem(GuiItem(titleItem), 4, 1)
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name("§cBack to Statistics")
+                .lore("§7Return to guild statistics")
+            pane.addItem(GuiItem(backItem) { open() }, 4, 4)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage("§c❌ Failed to load recent activity: ${e.message}")
+            logger.error("Error opening recent activity for guild ${guild.id}", e)
+        }
     }
 
     private fun openPeriodStatsMenu() {

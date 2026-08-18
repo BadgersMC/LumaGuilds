@@ -382,8 +382,29 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             .lore("§cClick to reset")
 
         val resetGuiItem = GuiItem(resetItem) {
-            player.sendMessage("§eReset functionality coming soon!")
-            player.sendMessage("§7This will clear all permissions for this rank.")
+            // Prevent resetting the owner rank
+            if (isOwnerRank()) {
+                player.sendMessage("§c❌ Cannot reset the owner rank!")
+                player.sendMessage("§7The owner rank permissions are permanent and cannot be changed.")
+                player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return@GuiItem
+            }
+            // Prevent resetting your own rank
+            if (isEditingOwnRank()) {
+                player.sendMessage("§c❌ You cannot reset your own rank's permissions!")
+                player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return@GuiItem
+            }
+            val success = rankService.setRankPermissions(rank.id, emptySet(), player.uniqueId)
+            if (success) {
+                // Refresh the local rank from the service
+                rank = rankService.listRanks(guild.id).find { it.id == rank.id } ?: rank
+                player.sendMessage("§a✅ Rank permissions reset successfully!")
+                player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
+                open() // Refresh
+            } else {
+                player.sendMessage("§cFailed to reset permissions. You may not have permission.")
+            }
         }
         pane.addItem(resetGuiItem, 3, 5)
 
