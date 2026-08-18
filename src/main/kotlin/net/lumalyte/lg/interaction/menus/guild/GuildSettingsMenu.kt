@@ -74,8 +74,8 @@ class GuildSettingsMenu(
             .name("§f📖 GUILD NAME")
             .lore("§7Current: §f${guild.name}")
             .lore("§7")
-            .lore("§7Name editing coming soon")
-            .lore("§7Contact admin to change name")
+            .lore("§eTip: Use §f/g rename <name>§e to change")
+            .lore("§7the guild name from chat")
 
         pane.addItem(GuiItem(nameItem), 0, 0)
 

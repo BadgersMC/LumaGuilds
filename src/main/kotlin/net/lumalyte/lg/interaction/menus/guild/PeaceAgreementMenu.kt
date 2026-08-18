@@ -371,12 +371,45 @@ class PeaceAgreementMenu(
     }
 
     private fun showWarSelectionForPeace() {
-        // Implementation for selecting which war to propose peace for
-        player.sendMessage("§eWar selection for peace proposals coming soon!")
+        // Show active wars that can be used for peace proposals
+        try {
+            val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
+            if (activeWars.isEmpty()) {
+                player.sendMessage("§cYour guild is not currently at war with anyone.")
+                return
+            }
+            player.sendMessage("§6§l=== Active Wars ===")
+            activeWars.forEach { war ->
+                val enemyId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
+                val enemyGuild = guildService.getGuild(enemyId)
+                val enemyName = enemyGuild?.name ?: "Unknown"
+                player.sendMessage("§7- §c$enemyName")
+            }
+            player.sendMessage("§eUse §f/g peace propose <guild>§e to send a peace request.")
+        } catch (e: Exception) {
+            player.sendMessage("§cCould not load war data for peace proposals.")
+        }
     }
 
     private fun showPeaceHistory() {
-        player.sendMessage("§ePeace history coming soon!")
+        // Show recently ended wars (peace history)
+        try {
+            val warHistory = warService.getWarHistory(guild.id, 10)
+            if (warHistory.isEmpty()) {
+                player.sendMessage("§7No war history found for this guild.")
+                return
+            }
+            player.sendMessage("§6§l=== War History ===")
+            warHistory.forEach { war ->
+                val enemyId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
+                val enemyGuild = guildService.getGuild(enemyId)
+                val enemyName = enemyGuild?.name ?: "Unknown"
+                val status = if (war.isActive) "Active" else "Ended"
+                player.sendMessage("§7- §f$enemyName §7($status)")
+            }
+        } catch (e: Exception) {
+            player.sendMessage("§cCould not load peace history.")
+        }
     }
 
     // ChatInputHandler implementation
