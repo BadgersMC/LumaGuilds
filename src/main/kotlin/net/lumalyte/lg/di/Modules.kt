@@ -504,6 +504,12 @@ fun socialModule() = module {
     single<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get(), get())
     }
+    single<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService> {
+        net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService(get(), get(), get(), get())
+    }
+    single<net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener> {
+        net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener(get())
+    }
     single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
         net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get())
     }

@@ -145,8 +145,11 @@ data class GuildConfig(
     var peaceAgreementSystemEnabled: Boolean = false, // If true, replaces default war ending with peace agreements
     var dailyWarExpCost: Int = 10, // EXP lost per day during war
     var dailyWarMoneyCost: Int = 100, // Money lost per day during war (virtual currency)
-    var warFarmingCooldownHours: Int = 24 // Hours before guild can earn EXP after war ends
+    var warFarmingCooldownHours: Int = 24, // Hours before guild can earn EXP after war ends
     // NOTE: Physical currency war costs are configured in vault.physical_daily_war_cost
+
+    // Emoji Grants — map guild names to emoji permission nodes
+    var emojiGrants: Map<String, String> = emptyMap()
 )
 
 data class BankConfig(
