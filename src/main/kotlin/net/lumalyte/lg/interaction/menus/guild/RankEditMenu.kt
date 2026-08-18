@@ -382,8 +382,14 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             .lore("§cClick to reset")
 
         val resetGuiItem = GuiItem(resetItem) {
-            player.sendMessage("§eReset functionality coming soon!")
-            player.sendMessage("§7This will clear all permissions for this rank.")
+            val success = rankService.setRankPermissions(rank.id, emptySet(), player.uniqueId)
+            if (success) {
+                player.sendMessage("§a✅ Rank permissions reset successfully!")
+                player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
+                open() // Refresh
+            } else {
+                player.sendMessage("§cFailed to reset permissions. You may not have permission.")
+            }
         }
         pane.addItem(resetGuiItem, 3, 5)
 

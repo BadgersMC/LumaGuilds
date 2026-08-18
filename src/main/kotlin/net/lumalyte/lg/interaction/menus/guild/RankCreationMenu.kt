@@ -384,9 +384,16 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun openPermissionCategorySelection(categoryName: String, permissions: List<RankPermission>) {
-        // Create a simplified version of PermissionCategoryMenu for creation
-        player.sendMessage("§e🔧 $categoryName permission selection coming soon!")
-        player.sendMessage("§7You'll be able to select individual permissions.")
+        // Toggle permissions for this category during rank creation
+        val allSelected = permissions.all { it in selectedPermissions }
+        if (allSelected) {
+            selectedPermissions.removeAll(permissions.toSet())
+            player.sendMessage("§7Removed all §f$categoryName §7permissions.")
+        } else {
+            selectedPermissions.addAll(permissions)
+            player.sendMessage("§aAdded all §f$categoryName §7permissions.")
+        }
+        open() // Refresh the creation menu
     }
 
     private fun groupPermissionsByCategory(permissions: Set<RankPermission>): Map<String, List<RankPermission>> {
