@@ -55,6 +55,7 @@ class GuildDisbandConfirmationMenu(
                 player.sendMessage("§c❌ Guild §f${guild.name} §chas been disbanded.")
                 player.playSound(player.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f)
                 player.closeInventory()
+                menuNavigator.clearMenuStack()
             } else {
                 player.sendMessage("§cFailed to disband guild. You may not be the owner.")
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)

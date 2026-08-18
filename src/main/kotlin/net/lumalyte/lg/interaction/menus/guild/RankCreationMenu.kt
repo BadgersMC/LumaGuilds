@@ -384,14 +384,25 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun openPermissionCategorySelection(categoryName: String, permissions: List<RankPermission>) {
-        // Toggle permissions for this category during rank creation
+        // Toggle individual permissions for this category during rank creation
         val allSelected = permissions.all { it in selectedPermissions }
         if (allSelected) {
-            selectedPermissions.removeAll(permissions.toSet())
-            player.sendMessage("§7Removed all §f$categoryName §7permissions.")
+            // Remove all — toggle them off one by one
+            permissions.forEach { perm ->
+                selectedPermissions.remove(perm)
+                player.sendMessage("§7Removed §f${perm.name}§7.")
+            }
+            player.sendMessage("§7All §f$categoryName §7permissions removed.")
         } else {
-            selectedPermissions.addAll(permissions)
-            player.sendMessage("§aAdded all §f$categoryName §7permissions.")
+            // Add only the ones not yet selected
+            val added = permissions.filter { it !in selectedPermissions }
+            added.forEach { perm ->
+                selectedPermissions.add(perm)
+                player.sendMessage("§aAdded §f${perm.name}§a.")
+            }
+            if (added.size < permissions.size) {
+                player.sendMessage("§eSome $categoryName permissions were already enabled.")
+            }
         }
         open() // Refresh the creation menu
     }

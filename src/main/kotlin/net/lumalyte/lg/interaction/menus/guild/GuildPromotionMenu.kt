@@ -78,7 +78,7 @@ class GuildPromotionMenu(
                 val rankIdx = ranks.indexOf(rank)
                 if (it.click == ClickType.LEFT) {
                     // Promote
-                    if (rankIdx != null && rankIdx > 0) {
+                    if (rankIdx >= 0 && rankIdx > 0) {
                         val newRank = ranks[rankIdx - 1]
                         val success = memberService.promoteMember(member.playerId, guild.id, player.uniqueId)
                         if (success) {
@@ -93,7 +93,7 @@ class GuildPromotionMenu(
                     }
                 } else if (it.click == ClickType.RIGHT) {
                     // Demote
-                    if (rankIdx != null && rankIdx < ranks.size - 1) {
+                    if (rankIdx >= 0 && rankIdx < ranks.size - 1) {
                         val newRank = ranks[rankIdx + 1]
                         val success = memberService.demoteMember(member.playerId, guild.id, player.uniqueId)
                         if (success) {

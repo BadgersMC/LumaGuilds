@@ -539,7 +539,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val backItem = ItemStack.of(Material.ARROW)
                 .name("§cBack to Statistics")
                 .lore("§7Return to guild statistics")
-            pane.addItem(GuiItem(backItem) { open() }, 4, 4)
+            pane.addItem(GuiItem(backItem) { open() }, 8, 4)
 
             gui.show(player)
         } catch (e: Exception) {

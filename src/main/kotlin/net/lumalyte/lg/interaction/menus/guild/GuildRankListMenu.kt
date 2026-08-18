@@ -45,8 +45,16 @@ class GuildRankListMenu(
         }
         gui.addPane(pane)
 
+        val maxSlots = (height - 1) * 9 // Reserve last row for back button
         var slot = 0
         for (rank in ranks) {
+            if (slot >= maxSlots) {
+                // Overflow notice
+                val overflowItem = ItemStack.of(Material.PAPER)
+                    .name("§e... and ${ranks.size - slot} more ranks")
+                pane.addItem(GuiItem(overflowItem), 4, height - 2)
+                break
+            }
             val displayIcon = try {
                 rank.icon?.let { Material.valueOf(it.uppercase()) } ?: Material.NAME_TAG
             } catch (_: Exception) { Material.NAME_TAG }

@@ -372,6 +372,7 @@ class PeaceAgreementMenu(
 
     private fun showWarSelectionForPeace() {
         // Show active wars that can be used for peace proposals
+        player.closeInventory()
         try {
             val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
             if (activeWars.isEmpty()) {
@@ -393,6 +394,7 @@ class PeaceAgreementMenu(
 
     private fun showPeaceHistory() {
         // Show recently ended wars (peace history)
+        player.closeInventory()
         try {
             val warHistory = warService.getWarHistory(guild.id, 10)
             if (warHistory.isEmpty()) {
