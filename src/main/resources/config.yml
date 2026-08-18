@@ -419,6 +419,15 @@ combat:
   war_win_experience: 500       # XP gained for winning a war
   war_lose_experience: 100      # XP gained for losing a war (participation)
 
+  # Emoji Grants — map guild names to Nexo emoji permission nodes
+  # Members of the listed guild are automatically granted the permission to use
+  # the corresponding emoji in chat. Format: "Guild Name: lumaguilds.emoji.<name>"
+  # Example:
+  #   emoji_grants:
+  #     "MyGuild": "lumaguilds.emoji.crown"
+  #     "AwesomeGuild": "lumaguilds.emoji.star"
+  emoji_grants: {}
+
 # =====================================
 # Chat System Configuration
 # =====================================

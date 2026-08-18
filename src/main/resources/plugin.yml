@@ -109,6 +109,12 @@ permissions:
   lumaguilds.guild.bannerman:
     description: Toggle guild bannerman rendering (banner on members' backs)
     default: true
+  lumaguilds.guild.bal:
+    description: View guild bank balance
+    default: true
+  lumaguilds.guild.baltop:
+    description: View guild balance leaderboard
+    default: true
   lumaguilds.guild.create:
     description: Create new guilds
     default: true

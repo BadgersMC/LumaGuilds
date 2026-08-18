@@ -972,6 +972,11 @@ class LumaGuilds : JavaPlugin() {
         val guildDisbandedListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener>()
         server.pluginManager.registerEvents(guildDisbandedListener, this)
 
+        // Register emoji grant listener and grant permissions for all configured guilds
+        val emojiGrantListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener>()
+        server.pluginManager.registerEvents(emojiGrantListener, this)
+        get().get<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService>().grantAll()
+
         // Clean up RoseChat channels when guild status changes.
         // LumaGuilds can enable BEFORE RoseChat despite `depend: [RoseChat]`
         // (observed on the Fuji test server: RoseChat enabled ~4 minutes later),

@@ -54,6 +54,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
     private val strikeService: net.lumalyte.lg.application.services.StrikeService by inject()
+    private val bankService: net.lumalyte.lg.application.services.BankService by inject()
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
@@ -732,6 +733,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (emoji == null) {
             val menuNavigator = MenuNavigator(player)
             menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
+            return
+        }
+
+        // Clear the emoji if the player passes "clear", "none", or "remove"
+        val clearKeywords = setOf("clear", "none", "remove")
+        if (emoji.lowercase() in clearKeywords) {
+            val success = guildService.setEmoji(guild.id, null, playerId)
+            if (success) {
+                player.sendMessage("§a✅ Guild emoji cleared successfully!")
+                player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
+            } else {
+                player.sendMessage("§c❌ Failed to clear emoji. Please try again.")
+            }
             return
         }
 
@@ -2464,6 +2478,55 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage("§c✗ Failed to send peace request.")
             player.sendMessage("§7There may already be a pending request.")
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+        }
+    }
+
+    @Subcommand("balance|bal")
+    @CommandPermission("lumaguilds.guild.bal")
+    @CommandCompletion("@guilds")
+    fun onBalance(player: Player, @Optional guildName: String?) {
+        val playerId = player.uniqueId
+
+        // Resolve which guild to show
+        val guild = if (guildName != null) {
+            guildService.getGuildByName(guildName)
+        } else {
+            val guilds = guildService.getPlayerGuilds(playerId)
+            if (guilds.isEmpty()) {
+                player.sendMessage("§cYou are not in a guild.")
+                return
+            }
+            guilds.first()
+        }
+
+        if (guild == null) {
+            player.sendMessage("§cNo guild named '$guildName' found.")
+            return
+        }
+
+        val balance = bankService.getBalance(guild.id)
+        val formatted = java.text.NumberFormat.getIntegerInstance().format(balance.toLong())
+        player.sendMessage("§8[§6LumaGuilds§8] §e${guild.name}§7's balance: §6$$formatted")
+    }
+
+    @Subcommand("baltop")
+    @CommandPermission("lumaguilds.guild.baltop")
+    fun onBaltop(player: Player) {
+        val top = bankService.getTopBalances(15)
+        if (top.isEmpty()) {
+            player.sendMessage("§cNo guild balance data available.")
+            return
+        }
+
+        val nameById = guildService.getAllGuilds().associateBy { it.id }
+        player.sendMessage("§8[§6LumaGuilds§8] §fTop Guilds by Balance")
+        player.sendMessage("§7━━━━━━━━━━━━━━━━━━━━")
+        var index = 0
+        for ((guildId, balance) in top) {
+            val guild = nameById[guildId]
+            val label = guild?.name ?: guildId.toString().take(8)
+            val formatted = java.text.NumberFormat.getIntegerInstance().format(balance.toLong())
+            player.sendMessage("§7${++index}. §e$label §8— §6$$formatted")
         }
     }
 
