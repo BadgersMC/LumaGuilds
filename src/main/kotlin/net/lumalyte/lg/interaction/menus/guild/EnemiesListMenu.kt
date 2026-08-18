@@ -228,8 +228,10 @@ class EnemiesListMenu(
         val warDetailsGuiItem = GuiItem(warDetailsItem) {
             player.sendMessage("§c=== War with $guildName ===")
             player.sendMessage("§7Started: ${formatDuration(Duration.between(relation.createdAt, Instant.now()))} ago")
-            player.sendMessage("§7")
-            player.sendMessage("§7War details and statistics coming soon!")
+            player.sendMessage("§7Type: §cHostile (${relation.type.name})")
+            if (relation.expiresAt != null) {
+                player.sendMessage("§7Expires: ${formatDuration(Duration.between(Instant.now(), relation.expiresAt))}")
+            }
         }
         pane.addItem(warDetailsGuiItem, 7, 1)
 
