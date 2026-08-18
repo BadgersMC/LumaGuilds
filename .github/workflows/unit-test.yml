@@ -17,6 +17,7 @@ jobs:
     # Single source of truth: cache key + build step both read this (see build.yml).
     env:
       ROSECHAT_PREHOOK_REF: 3fe078a   # last RoseChat commit before the LumaGuilds hook
+      PLAYTIME_API_REF: 2a5b57d       # wsg138/PlayTimePlugin commit the API jar is built from
 
     permissions:
       contents: read
@@ -54,6 +55,33 @@ jobs:
         mkdir -p "$GITHUB_WORKSPACE/libs"
         ROSE_JAR=$(ls build/libs/RoseChat-RC-2*.jar | grep -v -- '-sources\|-javadoc' | head -1)
         cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
+
+    # EnthusiaPlaytime is a Maven project; compiling its API classes directly is
+    # faster and more deterministic than a Maven build. The API surface (service
+    # interface + state enums + model POJOs) is pure java.util, so plain javac
+    # needs no external dependencies. Keep PLAYTIME_API_REF in sync with build.yml.
+    - name: Cache EnthusiaPlaytime API jar
+      id: playtime-cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: libs/EnthusiaPlaytime-api.jar
+        key: playtime-api-${{ env.PLAYTIME_API_REF }}
+
+    - name: Build EnthusiaPlaytime API jar
+      if: steps.playtime-cache.outputs.cache-hit != 'true'
+      run: |
+        git clone https://github.com/wsg138/PlayTimePlugin.git /tmp/playtime
+        cd /tmp/playtime
+        git checkout "$PLAYTIME_API_REF"
+        mkdir -p "$GITHUB_WORKSPACE/libs" /tmp/playtime-classes
+        javac -d /tmp/playtime-classes \
+          src/main/java/org/enthusia/playtime/api/PlaytimeService.java \
+          src/main/java/org/enthusia/playtime/api/PlaytimeRange.java \
+          src/main/java/org/enthusia/playtime/api/PlaytimeMetric.java \
+          src/main/java/org/enthusia/playtime/activity/ActivityState.java \
+          src/main/java/org/enthusia/playtime/data/model/PlaytimeSnapshot.java \
+          src/main/java/org/enthusia/playtime/data/model/RangeTotals.java
+        jar cf "$GITHUB_WORKSPACE/libs/EnthusiaPlaytime-api.jar" -C /tmp/playtime-classes .
 
     - name: Test with Gradle
       env:

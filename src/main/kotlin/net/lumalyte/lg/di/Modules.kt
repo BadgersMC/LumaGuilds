@@ -107,6 +107,7 @@ import net.lumalyte.lg.application.persistence.BankRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ModeService
+import net.lumalyte.lg.application.services.PlaytimeActivityService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.services.GuildBannerService
 import net.lumalyte.lg.application.persistence.GuildBannerRepository
@@ -131,6 +132,7 @@ import net.lumalyte.lg.infrastructure.services.PartyServiceBukkit
 import net.lumalyte.lg.infrastructure.services.ChatServiceBukkit
 import net.lumalyte.lg.infrastructure.services.BankServiceBukkit
 import net.lumalyte.lg.infrastructure.services.ModeServiceBukkit
+import net.lumalyte.lg.infrastructure.services.PlaytimeActivityServiceBukkit
 import net.lumalyte.lg.infrastructure.services.ProgressionServiceBukkit
 import net.lumalyte.lg.infrastructure.services.CombatServiceBukkit
 import net.lumalyte.lg.infrastructure.services.GuildBannerServiceBukkit
@@ -523,6 +525,7 @@ fun progressionModule() = module {
     single<KillService> { KillServiceBukkit(get()) }
     single<CombatService> { CombatServiceBukkit(get(), get(), get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>()) }
+    single<PlaytimeActivityService> { PlaytimeActivityServiceBukkit() }
     single<WarService> { WarServiceBukkit(get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {

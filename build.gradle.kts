@@ -80,7 +80,9 @@ dependencies {
     // RoseChat is required at compile-time for the GuildChatListener channel switch.
     // Drop the built jar into libs/ from the RoseChat project (libs/ is gitignored).
     compileOnly(files("libs/RoseChat-RC-2.jar"))
+    compileOnly(files("libs/EnthusiaPlaytime-api.jar"))
     testImplementation(files("libs/RoseChat-RC-2.jar"))
+    testImplementation(files("libs/EnthusiaPlaytime-api.jar"))
 
     // LiteBans API (litebans.api.* — Events/Entry/Database) for Guild Strikes.
     // Resolved from JitPack (official API repo: gitlab.com/ruany/LiteBansAPI),
