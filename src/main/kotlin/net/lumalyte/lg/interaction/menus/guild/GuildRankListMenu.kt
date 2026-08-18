@@ -45,12 +45,15 @@ class GuildRankListMenu(
         }
         gui.addPane(pane)
 
+        val totalDataSlots = (height - 1) * 9
         val reservedOverflowSlot = (height - 2) * 9 + 4 // Slot (4, height-2) for overflow notice
-        val maxSlots = reservedOverflowSlot // Ranks populate slots 0..reservedOverflowSlot-1
+        var displayed = 0
         var slot = 0
         for (rank in ranks) {
-            if (slot >= maxSlots) {
-                val omitted = ranks.size - slot
+            // Skip the reserved overflow slot
+            if (slot == reservedOverflowSlot) slot++
+            if (slot >= totalDataSlots) {
+                val omitted = ranks.size - displayed
                 val overflowItem = ItemStack.of(Material.PAPER)
                     .name("§e... and $omitted more ${if (omitted == 1) "rank" else "ranks"}")
                 pane.addItem(GuiItem(overflowItem), 4, height - 2)
@@ -76,6 +79,7 @@ class GuildRankListMenu(
                 item.lore("§7No special permissions")
             }
             pane.addItem(GuiItem(item), slot % 9, slot / 9)
+            displayed++
             slot++
         }
 
