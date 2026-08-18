@@ -57,6 +57,7 @@ class GuildDisbandConfirmationMenu(
                 player.closeInventory()
             } else {
                 player.sendMessage("§cFailed to disband guild. You may not be the owner.")
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         }, 3, 2)
 

@@ -31,6 +31,15 @@ class GuildPromotionMenu(
     private val rankService: RankService by inject()
 
     override fun open() {
+        // Check permission first
+        val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
+        if (!hasPermission) {
+            player.sendMessage("§c❌ You don't have permission to manage ranks!")
+            player.sendMessage("§7Required permission: §fMANAGE_RANKS")
+            menuNavigator.goBack()
+            return
+        }
+
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
         val rankById = ranks.associateBy { it.id }
         val members = memberService.getGuildMembers(guild.id).sortedBy { rankById[it.rankId]?.priority ?: Int.MAX_VALUE }
