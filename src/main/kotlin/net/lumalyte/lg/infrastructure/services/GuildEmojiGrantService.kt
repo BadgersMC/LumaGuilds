@@ -26,13 +26,22 @@ class GuildEmojiGrantService(
     private val logger = LoggerFactory.getLogger(GuildEmojiGrantService::class.java)
 
     /**
-     * Returns the emoji permission node configured for a guild, or null if none.
-     * Guild name matching is case-insensitive.
+     * Returns the emoji permission node configured for a guild by its ID.
+     * Loads the guild from the repository; returns null if the guild no longer exists.
      */
     fun resolveEmojiGrant(guildId: UUID): String? {
         val guild = guildService.getGuild(guildId) ?: return null
+        return resolveEmojiGrantByName(guild.name)
+    }
+
+    /**
+     * Returns the emoji permission node configured for a guild by its name.
+     * Case-insensitive matching. Does not require the guild to exist in the repository,
+     * so it can be called after a guild has been deleted (e.g. on disband).
+     */
+    fun resolveEmojiGrantByName(guildName: String): String? {
         val grants = configService.loadConfig().guild.emojiGrants
-        return grants[guild.name.lowercase()]
+        return grants[guildName.lowercase()]
     }
 
     /**
@@ -92,15 +101,23 @@ class GuildEmojiGrantService(
         revokePermission(playerId, permission)
     }
 
-    private fun grantPermission(playerId: UUID, permission: String) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+    /**
+     * Grants a raw permission node to a player via LuckPerms console command.
+     * Runs on the server's main thread because Bukkit.dispatchCommand is not thread-safe.
+     */
+    fun grantPermission(playerId: UUID, permission: String) {
+        Bukkit.getScheduler().runTask(plugin, Runnable {
             val cmd = "lp user $playerId permission set $permission true"
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd)
         })
     }
 
-    private fun revokePermission(playerId: UUID, permission: String) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+    /**
+     * Revokes a raw permission node from a player via LuckPerms console command.
+     * Runs on the server's main thread because Bukkit.dispatchCommand is not thread-safe.
+     */
+    fun revokePermission(playerId: UUID, permission: String) {
+        Bukkit.getScheduler().runTask(plugin, Runnable {
             val cmd = "lp user $playerId permission unset $permission"
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd)
         })

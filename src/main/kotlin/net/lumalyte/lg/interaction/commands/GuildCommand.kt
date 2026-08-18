@@ -715,6 +715,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val playerRank = rankService.getPlayerRank(playerId, guild.id)
         val hasEmojiPermission = playerRank?.permissions?.any { permission ->
             permission in setOf(
+                RankPermission.MANAGE_EMOJI,
                 RankPermission.MANAGE_BANNER,
                 RankPermission.MANAGE_MEMBERS,
                 RankPermission.MANAGE_CLAIMS

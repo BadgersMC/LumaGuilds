@@ -37,13 +37,18 @@ class GuildEmojiGrantListener(
         }
     }
 
+    /**
+     * Revokes emoji permissions for all former members when a guild is disbanded.
+     * Resolves the permission from the disanded guild's name because the guild
+     * record is already deleted from the repository by the time this fires.
+     */
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildDisbanded(event: GuildDisbandedEvent) {
         try {
-            val permission = emojiGrantService.resolveEmojiGrant(event.guild.id)
+            val permission = emojiGrantService.resolveEmojiGrantByName(event.guild.name)
             if (permission != null) {
                 for (memberId in event.memberIds) {
-                    emojiGrantService.revokeForPlayer(memberId, event.guild.id)
+                    emojiGrantService.revokePermission(memberId, permission)
                 }
             }
         } catch (e: Exception) {
