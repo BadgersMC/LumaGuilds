@@ -604,4 +604,40 @@ class ProgressionServiceBukkit(
             PerkType.ALLY_HOME_ACCESS -> "Ally Home Teleportation"
         }
     }
+
+    override fun getDailySourceXp(guildId: UUID): Map<ExperienceSource, Int> {
+        return try {
+            val todayStart = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.DAYS)
+            val transactions = progressionRepository.getExperienceTransactions(guildId, 1000)
+                .filter { it.timestamp >= todayStart }
+                .groupBy { it.source }
+                .mapValues { (_, txns) -> txns.sumOf { it.amount.coerceAtLeast(0) } }
+            ExperienceSource.entries.associateWith { transactions[it] ?: 0 }
+        } catch (e: Exception) {
+            logger.error("Error calculating daily source XP for guild $guildId", e)
+            emptyMap()
+        }
+    }
+
+    override fun getDailyCap(source: ExperienceSource): Int {
+        return when (source) {
+            ExperienceSource.BANK_DEPOSIT -> 1000
+            ExperienceSource.MEMBER_JOINED -> 200
+            ExperienceSource.WAR_WON -> 500
+            ExperienceSource.WAR_LOST -> 200
+            ExperienceSource.PLAYER_KILL -> 1000
+            ExperienceSource.MOB_KILL -> 800
+            ExperienceSource.CROP_BREAK -> 500
+            ExperienceSource.BLOCK_BREAK -> 600
+            ExperienceSource.BLOCK_PLACE -> 600
+            ExperienceSource.CRAFTING -> 400
+            ExperienceSource.SMELTING -> 400
+            ExperienceSource.FISHING -> 300
+            ExperienceSource.ENCHANTING -> 300
+            ExperienceSource.CLAIM_CREATED -> 500
+            ExperienceSource.CLAIM_DESTROYED -> 0
+            ExperienceSource.WEEKLY_ACTIVITY -> 0
+            ExperienceSource.ADMIN_BONUS -> Int.MAX_VALUE
+        }
+    }
 }

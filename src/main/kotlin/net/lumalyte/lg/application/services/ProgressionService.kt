@@ -217,6 +217,17 @@ interface ProgressionService {
      * GuildProgression.currentLevel. Returns the number of guild rows updated.
      */
     fun syncGuildLevels(): Int
+
+    /**
+     * Returns the amount of XP earned per source for a guild today.
+     * Used by the progression menu to display daily caps and progress.
+     */
+    fun getDailySourceXp(guildId: UUID): Map<ExperienceSource, Int>
+
+    /**
+     * Gets the daily XP cap for a given experience source.
+     */
+    fun getDailyCap(source: ExperienceSource): Int
 }
 
 /**
