@@ -52,29 +52,18 @@ class GuildPromotionMenu(
             return
         }
 
-        val rows = ((members.size + 8) / 9 + 1).coerceIn(3, 6)
-        val totalDataSlots = (rows - 1) * 9
-        val needsOverflow = members.size > totalDataSlots
-        val gui = ChestGui(rows, "§6Members — ${guild.name}")
-        val pane = StaticPane(0, 0, 9, rows)
+        val gui = ChestGui(6, "§6Members — ${guild.name}")
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
             if (e.click == ClickType.SHIFT_LEFT || e.click == ClickType.SHIFT_RIGHT)
                 e.isCancelled = true
         }
-        gui.addPane(pane)
 
-        var slot = 0
-        for (member in members) {
-            if (slot >= totalDataSlots) {
-                // Overflow: show notice and stop
-                val omitted = members.size - slot
-                val overflowItem = ItemStack.of(Material.PAPER)
-                    .name("§e... and $omitted more ${if (omitted == 1) "member" else "members"}")
-                    .lore("§7Upgrade your guild to show more!")
-                pane.addItem(GuiItem(overflowItem) { it.isCancelled = true }, 4, rows - 2)
-                break
-            }
+        // Paginated member grid (9x5 = 45 per page) + static nav row
+        val paginatedPane = PaginatedPane(0, 0, 9, 5)
+        val staticPane = StaticPane(0, 5, 9, 1)
+
+        val memberItems = members.map { member ->
             val rank = rankById[member.rankId]
             val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: member.playerId.toString().take(8)
             val isOnline = Bukkit.getPlayer(member.playerId)?.isOnline == true
@@ -87,7 +76,7 @@ class GuildPromotionMenu(
                 .lore("§7Left-click to promote")
                 .lore("§7Right-click to demote")
 
-            pane.addItem(GuiItem(item) {
+            GuiItem(item) {
                 val rankIdx = ranks.indexOf(rank)
                 if (it.click == ClickType.LEFT) {
                     // Promote
@@ -124,16 +113,50 @@ class GuildPromotionMenu(
                         player.sendMessage("§c$playerName is already at the lowest rank.")
                     }
                 }
-            }, slot % 9, slot / 9)
-            slot++
+            }
         }
+
+        paginatedPane.populateWithGuiItems(memberItems)
+
+        // Navigation row (y=5)
+        if (paginatedPane.pages > 1) {
+            // Previous page
+            val prevItem = ItemStack.of(Material.ARROW)
+                .name("§e⬅ Previous Page")
+                .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
+            staticPane.addItem(GuiItem(prevItem) {
+                if (paginatedPane.page > 0) {
+                    paginatedPane.page--
+                    gui.update()
+                }
+            }, 0, 0)
+
+            // Next page
+            val nextItem = ItemStack.of(Material.ARROW)
+                .name("§eNext Page ➡")
+                .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
+            staticPane.addItem(GuiItem(nextItem) {
+                if (paginatedPane.page < paginatedPane.pages - 1) {
+                    paginatedPane.page++
+                    gui.update()
+                }
+            }, 8, 0)
+        }
+
+        // Member count display
+        val infoItem = ItemStack.of(Material.PLAYER_HEAD)
+            .name("§6Total Members: §f${members.size}")
+            .lore("§7Guild: §f${guild.name}")
+        staticPane.addItem(GuiItem(infoItem) { it.isCancelled = true }, 4, 0)
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
             .name("§e⬅ BACK")
             .lore("§7Return to guild settings")
-        pane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 8, rows - 1)
+        staticPane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 7, 0)
 
+        gui.addPane(paginatedPane)
+        gui.addPane(staticPane)
         gui.show(player)
     }
 
