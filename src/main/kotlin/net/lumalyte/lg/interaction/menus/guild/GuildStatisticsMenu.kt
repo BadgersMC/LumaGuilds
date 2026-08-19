@@ -278,7 +278,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load kill statistics: ${e.message}")
+            player.sendMessage("§c❌ Failed to load kill statistics. Please try again later.")
             logger.error("Error opening kill stats detail for guild ${guild.id}", e)
         }
     }
@@ -313,7 +313,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.show(player)
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Failed to load war statistics: ${e.message}")
+            player.sendMessage("§c❌ Failed to load war statistics. Please try again later.")
             logger.error("Error opening war stats detail for guild ${guild.id}", e)
         }
     }
@@ -543,7 +543,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load member statistics: ${e.message}")
+            player.sendMessage("§c❌ Failed to load member statistics. Please try again later.")
             logger.error("Error opening member stats detail for guild ${guild.id}", e)
         }
     }
@@ -582,7 +582,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load performance statistics: ${e.message}")
+            player.sendMessage("§c❌ Failed to load performance statistics. Please try again later.")
             logger.error("Error opening performance detail for guild ${guild.id}", e)
         }
     }
@@ -909,7 +909,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load top killers: ${e.message}")
+            player.sendMessage("§c❌ Failed to load top killers. Please try again later.")
             logger.error("Error opening top killers detail for guild ${guild.id}", e)
         }
     }
@@ -953,7 +953,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load top contributors: ${e.message}")
+            player.sendMessage("§c❌ Failed to load top contributors. Please try again later.")
             logger.error("Error opening top contributors detail for guild ${guild.id}", e)
         }
     }
@@ -989,7 +989,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load K/D analysis: ${e.message}")
+            player.sendMessage("§c❌ Failed to load K/D analysis. Please try again later.")
             logger.error("Error opening K/D analysis for guild ${guild.id}", e)
         }
     }
@@ -1033,7 +1033,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load recent activity: ${e.message}")
+            player.sendMessage("§c❌ Failed to load recent activity. Please try again later.")
             logger.error("Error opening recent activity for guild ${guild.id}", e)
         }
     }
@@ -1111,7 +1111,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Error generating balance chart: ${e.message}")
+            player.sendMessage("§c❌ Error generating balance chart. Please try again later.")
             e.printStackTrace()
         }
     }
@@ -1165,7 +1165,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Error generating kill trend chart: ${e.message}")
+            player.sendMessage("§c❌ Error generating kill trend chart. Please try again later.")
             e.printStackTrace()
         }
     }
@@ -1210,7 +1210,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Error generating contributions chart: ${e.message}")
+            player.sendMessage("§c❌ Error generating contributions chart. Please try again later.")
             e.printStackTrace()
         }
     }

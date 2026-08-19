@@ -275,7 +275,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             }
 
             categoryItem.lore("§7")
-            categoryItem.lore("§eClick to manage permissions")
+            categoryItem.lore("§eClick to toggle all §f$categoryName §epermissions")
 
             val categoryGuiItem = GuiItem(categoryItem) {
                 openPermissionCategorySelection(categoryName, permissions)

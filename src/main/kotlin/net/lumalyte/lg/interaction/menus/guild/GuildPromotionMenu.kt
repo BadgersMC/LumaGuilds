@@ -20,6 +20,7 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.bukkit.plugin.Plugin
 
 class GuildPromotionMenu(
     private val menuNavigator: MenuNavigator,
@@ -29,6 +30,7 @@ class GuildPromotionMenu(
 
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
+    private val plugin: Plugin by inject()
 
     override fun open() {
         // Check permission first
@@ -50,22 +52,18 @@ class GuildPromotionMenu(
             return
         }
 
-        val rows = ((members.size + 8) / 9 + 1).coerceIn(3, 6)
-        val gui = ChestGui(rows, "§6Members — ${guild.name}")
-        val pane = StaticPane(0, 0, 9, rows)
+        val gui = ChestGui(6, "§6Members — ${guild.name}")
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
             if (e.click == ClickType.SHIFT_LEFT || e.click == ClickType.SHIFT_RIGHT)
                 e.isCancelled = true
         }
-        gui.addPane(pane)
 
-        var slot = 0
-        for (member in members) {
-            if (slot >= (rows - 1) * 9) {
-                // Overflow — remaining members don't fit
-                break
-            }
+        // Paginated member grid (9x5 = 45 per page) + static nav row
+        val paginatedPane = PaginatedPane(0, 0, 9, 5)
+        val staticPane = StaticPane(0, 5, 9, 1)
+
+        val memberItems = members.map { member ->
             val rank = rankById[member.rankId]
             val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: member.playerId.toString().take(8)
             val isOnline = Bukkit.getPlayer(member.playerId)?.isOnline == true
@@ -78,17 +76,19 @@ class GuildPromotionMenu(
                 .lore("§7Left-click to promote")
                 .lore("§7Right-click to demote")
 
-            pane.addItem(GuiItem(item) {
+            GuiItem(item) {
                 val rankIdx = ranks.indexOf(rank)
                 if (it.click == ClickType.LEFT) {
                     // Promote
                     if (rankIdx >= 0 && rankIdx > 0) {
-                        val newRank = ranks[rankIdx - 1]
                         val success = memberService.promoteMember(member.playerId, guild.id, player.uniqueId)
                         if (success) {
-                            player.sendMessage("§a§f$playerName §apromoted to §f${newRank.name}§a.")
+                            // Fetch the exact rank the service assigned
+                            val updatedMember = memberService.getMember(member.playerId, guild.id)
+                            val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx - 1].name
+                            player.sendMessage("§a§f$playerName §apromoted to §f$newRankName§a.")
                             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
-                            open()
+                            reloadSafely()
                         } else {
                             player.sendMessage("§cFailed to promote $playerName.")
                         }
@@ -98,12 +98,14 @@ class GuildPromotionMenu(
                 } else if (it.click == ClickType.RIGHT) {
                     // Demote
                     if (rankIdx >= 0 && rankIdx < ranks.size - 1) {
-                        val newRank = ranks[rankIdx + 1]
                         val success = memberService.demoteMember(member.playerId, guild.id, player.uniqueId)
                         if (success) {
-                            player.sendMessage("§e§f$playerName §edemoted to §f${newRank.name}§e.")
+                            // Fetch the exact rank the service assigned
+                            val updatedMember = memberService.getMember(member.playerId, guild.id)
+                            val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx + 1].name
+                            player.sendMessage("§e§f$playerName §edemoted to §f$newRankName§e.")
                             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f)
-                            open()
+                            reloadSafely()
                         } else {
                             player.sendMessage("§cFailed to demote $playerName.")
                         }
@@ -111,17 +113,59 @@ class GuildPromotionMenu(
                         player.sendMessage("§c$playerName is already at the lowest rank.")
                     }
                 }
-            }, slot % 9, slot / 9)
-            slot++
+            }
         }
+
+        paginatedPane.populateWithGuiItems(memberItems)
+
+        // Navigation row (y=5)
+        if (paginatedPane.pages > 1) {
+            // Previous page
+            val prevItem = ItemStack.of(Material.ARROW)
+                .name("§e⬅ Previous Page")
+                .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
+            staticPane.addItem(GuiItem(prevItem) {
+                if (paginatedPane.page > 0) {
+                    paginatedPane.page--
+                    gui.update()
+                }
+            }, 0, 0)
+
+            // Next page
+            val nextItem = ItemStack.of(Material.ARROW)
+                .name("§eNext Page ➡")
+                .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
+            staticPane.addItem(GuiItem(nextItem) {
+                if (paginatedPane.page < paginatedPane.pages - 1) {
+                    paginatedPane.page++
+                    gui.update()
+                }
+            }, 8, 0)
+        }
+
+        // Member count display
+        val infoItem = ItemStack.of(Material.PLAYER_HEAD)
+            .name("§6Total Members: §f${members.size}")
+            .lore("§7Guild: §f${guild.name}")
+        staticPane.addItem(GuiItem(infoItem) { it.isCancelled = true }, 4, 0)
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
             .name("§e⬅ BACK")
             .lore("§7Return to guild settings")
-        pane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 8, rows - 1)
+        staticPane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 7, 0)
 
+        gui.addPane(paginatedPane)
+        gui.addPane(staticPane)
         gui.show(player)
+    }
+
+    /**
+     * Reopens the menu on the next tick to avoid desyncing the cursor
+     * during InventoryClickEvent dispatch.
+     */
+    private fun reloadSafely() {
+        Bukkit.getScheduler().runTask(plugin, Runnable { open() })
     }
 
     override fun passData(data: Any?) {
