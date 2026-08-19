@@ -21,6 +21,7 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -38,6 +39,7 @@ class PeaceAgreementMenu(
     private val guildService: GuildService by inject()
     private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
     private val chatInputListener: ChatInputListener by inject()
+    private val logger = LoggerFactory.getLogger(PeaceAgreementMenu::class.java)
 
     // State for input handling
     private var inputMode: String? = null // "peace_terms", "offering_money", "offering_exp"
@@ -388,6 +390,7 @@ class PeaceAgreementMenu(
             }
             player.sendMessage("§eUse §f/g peace propose <guild>§e to send a peace request.")
         } catch (e: Exception) {
+            logger.error("Failed to load active wars for peace proposal for guild ${guild.id}", e)
             player.sendMessage("§cCould not load war data for peace proposals.")
         }
     }
@@ -410,6 +413,7 @@ class PeaceAgreementMenu(
                 player.sendMessage("§7- §f$enemyName §7($status)")
             }
         } catch (e: Exception) {
+            logger.error("Failed to load peace history for guild ${guild.id}", e)
             player.sendMessage("§cCould not load peace history.")
         }
     }

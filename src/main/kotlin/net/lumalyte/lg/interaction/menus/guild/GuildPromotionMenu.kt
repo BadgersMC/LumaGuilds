@@ -20,6 +20,7 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.bukkit.plugin.Plugin
 
 class GuildPromotionMenu(
     private val menuNavigator: MenuNavigator,
@@ -29,6 +30,7 @@ class GuildPromotionMenu(
 
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
+    private val plugin: Plugin by inject()
 
     override fun open() {
         // Check permission first
@@ -51,6 +53,8 @@ class GuildPromotionMenu(
         }
 
         val rows = ((members.size + 8) / 9 + 1).coerceIn(3, 6)
+        val totalDataSlots = (rows - 1) * 9
+        val needsOverflow = members.size > totalDataSlots
         val gui = ChestGui(rows, "§6Members — ${guild.name}")
         val pane = StaticPane(0, 0, 9, rows)
         gui.setOnTopClick { e -> e.isCancelled = true }
@@ -62,8 +66,13 @@ class GuildPromotionMenu(
 
         var slot = 0
         for (member in members) {
-            if (slot >= (rows - 1) * 9) {
-                // Overflow — remaining members don't fit
+            if (slot >= totalDataSlots) {
+                // Overflow: show notice and stop
+                val omitted = members.size - slot
+                val overflowItem = ItemStack.of(Material.PAPER)
+                    .name("§e... and $omitted more ${if (omitted == 1) "member" else "members"}")
+                    .lore("§7Upgrade your guild to show more!")
+                pane.addItem(GuiItem(overflowItem) { it.isCancelled = true }, 4, rows - 2)
                 break
             }
             val rank = rankById[member.rankId]
@@ -83,12 +92,14 @@ class GuildPromotionMenu(
                 if (it.click == ClickType.LEFT) {
                     // Promote
                     if (rankIdx >= 0 && rankIdx > 0) {
-                        val newRank = ranks[rankIdx - 1]
                         val success = memberService.promoteMember(member.playerId, guild.id, player.uniqueId)
                         if (success) {
-                            player.sendMessage("§a§f$playerName §apromoted to §f${newRank.name}§a.")
+                            // Fetch the exact rank the service assigned
+                            val updatedMember = memberService.getMember(member.playerId, guild.id)
+                            val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx - 1].name
+                            player.sendMessage("§a§f$playerName §apromoted to §f$newRankName§a.")
                             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
-                            open()
+                            reloadSafely()
                         } else {
                             player.sendMessage("§cFailed to promote $playerName.")
                         }
@@ -98,12 +109,14 @@ class GuildPromotionMenu(
                 } else if (it.click == ClickType.RIGHT) {
                     // Demote
                     if (rankIdx >= 0 && rankIdx < ranks.size - 1) {
-                        val newRank = ranks[rankIdx + 1]
                         val success = memberService.demoteMember(member.playerId, guild.id, player.uniqueId)
                         if (success) {
-                            player.sendMessage("§e§f$playerName §edemoted to §f${newRank.name}§e.")
+                            // Fetch the exact rank the service assigned
+                            val updatedMember = memberService.getMember(member.playerId, guild.id)
+                            val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx + 1].name
+                            player.sendMessage("§e§f$playerName §edemoted to §f$newRankName§e.")
                             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f)
-                            open()
+                            reloadSafely()
                         } else {
                             player.sendMessage("§cFailed to demote $playerName.")
                         }
@@ -122,6 +135,14 @@ class GuildPromotionMenu(
         pane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 8, rows - 1)
 
         gui.show(player)
+    }
+
+    /**
+     * Reopens the menu on the next tick to avoid desyncing the cursor
+     * during InventoryClickEvent dispatch.
+     */
+    private fun reloadSafely() {
+        Bukkit.getScheduler().runTask(plugin, Runnable { open() })
     }
 
     override fun passData(data: Any?) {
