@@ -84,9 +84,6 @@ class GuildProgressionMenu(
         }
         gui.addPane(pane)
 
-        // Background
-        fillBackground(pane)
-
         // ---- Row 0: Guild level header ----
         addGuildLevelHeader(pane, progression)
 
@@ -126,14 +123,6 @@ class GuildProgressionMenu(
         val level = progressionService.getLevelFromExperience(prog.totalExperience)
         val unlockedPerks = progressionService.getUnlockedPerks(guild.id)
         return GuildProgressionDisplay(level, prog.totalExperience, currentXp, neededXp, unlockedPerks.size)
-    }
-
-    private fun fillBackground(pane: StaticPane) {
-        val bg = NexoItemProvider.getItemStack("lg_bg_6_row")
-            ?: ItemStack.of(Material.GRAY_STAINED_GLASS_PANE).name(" ")
-        for (x in 0..8) for (y in 0..5) {
-            pane.addItem(GuiItem(bg.clone()) { it.isCancelled = true }, x, y)
-        }
     }
 
     private fun addGuildLevelHeader(pane: StaticPane, prog: GuildProgressionDisplay) {
