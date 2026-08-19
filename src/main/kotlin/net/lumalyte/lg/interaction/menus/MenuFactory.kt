@@ -352,8 +352,8 @@ class MenuFactory(
             if (net.lumalyte.lg.utils.NexoItemProvider.isAvailable()) {
                 net.lumalyte.lg.interaction.menus.guild.GuildDashboard(
                     menuNavigator, player, guild,
-                    guildService, rankService, memberService, vaultService,
-                    this, menuItemBuilder, configService
+                    guildService, rankService, memberService,
+                    this
                 )
             } else {
                 val progressionService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.ProgressionService>()

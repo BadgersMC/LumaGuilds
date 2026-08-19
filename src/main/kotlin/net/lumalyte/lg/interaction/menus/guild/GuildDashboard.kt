@@ -8,7 +8,6 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.lumalyte.lg.utils.MenuItemBuilder
 import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -28,10 +27,7 @@ class GuildDashboard(
     private val guildService: GuildService,
     private val rankService: RankService,
     private val memberService: MemberService,
-    private val vaultService: GuildVaultService,
-    private val menuFactory: MenuFactory,
-    private val menuItemBuilder: MenuItemBuilder,
-    private val configService: ConfigService
+    private val menuFactory: MenuFactory
 ) : Menu {
 
     override fun open() {
