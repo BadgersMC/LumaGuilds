@@ -26,6 +26,14 @@ class GuildDisbandConfirmationMenu(
     private val guildService: GuildService by inject()
 
     override fun open() {
+        // Permission pre-check before rendering the destructive button
+        // (matches the MANAGE_RANKS gate enforced by GuildService.disbandGuild)
+        if (!guildService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)) {
+            player.sendMessage("§c❌ You don't have permission to disband this guild!")
+            menuNavigator.goBack()
+            return
+        }
+
         val gui = ChestGui(3, "§c§lDisband ${guild.name}?")
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { e -> e.isCancelled = true }

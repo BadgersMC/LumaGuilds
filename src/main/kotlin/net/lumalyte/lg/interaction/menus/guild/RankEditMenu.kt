@@ -322,7 +322,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 else -> categoryItem.lore("§c❌ No permissions enabled")
             }
             categoryItem.lore("§7")
-            categoryItem.lore("§eClick to manage permissions")
+            categoryItem.lore("§eClick to open permission management")
 
             val categoryGuiItem = GuiItem(categoryItem) {
                 // Prevent owner from removing their own permissions
@@ -377,7 +377,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         val resetItem = ItemStack.of(Material.BARRIER)
             .name("§c🔄 Reset Permissions")
             .lore("§7Clear all permissions")
-            .lore("§7This cannot be undone")
+            .lore("§7This action is irreversible")
             .lore("§7")
             .lore("§cClick to reset")
 
@@ -398,7 +398,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             val success = rankService.setRankPermissions(rank.id, emptySet(), player.uniqueId)
             if (success) {
                 // Refresh the local rank from the service
-                rank = rankService.listRanks(guild.id).find { it.id == rank.id } ?: rank
+                rank = rankService.getRank(rank.id) ?: rank
                 player.sendMessage("§a✅ Rank permissions reset successfully!")
                 player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
                 open() // Refresh
