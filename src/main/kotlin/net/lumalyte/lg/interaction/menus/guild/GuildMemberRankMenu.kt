@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -42,7 +44,7 @@ class GuildMemberRankMenu(
     private val ranksPerPage = 9 // 3 columns × 3 rows (rows 1-3)
 
     override fun open() {
-        val gui = ChestGui(5, "§6Rank Management")
+        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

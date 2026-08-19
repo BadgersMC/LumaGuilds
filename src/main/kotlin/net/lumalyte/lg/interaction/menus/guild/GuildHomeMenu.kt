@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -32,7 +34,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private val rankService: net.lumalyte.lg.application.services.RankService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, "§6Guild Homes - ${guild.name}")
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -271,7 +273,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             return
         }
 
-        val gui = ChestGui(4, "§cRemove Guild Homes")
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4))
         val pane = StaticPane(0, 0, 9, 4)
 
         // Prevent moving items in the top or bottom inventory (same as main menu)

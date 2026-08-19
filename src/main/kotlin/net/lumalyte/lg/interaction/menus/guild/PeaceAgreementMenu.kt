@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -55,7 +57,7 @@ class PeaceAgreementMenu(
             return
         }
 
-        val gui = ChestGui(6, "§6Peace Agreements - ${guild.name}")
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -221,7 +223,7 @@ class PeaceAgreementMenu(
             offeringExp = 0
         }
 
-        val gui = ChestGui(4, "§6Propose Peace Agreement")
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

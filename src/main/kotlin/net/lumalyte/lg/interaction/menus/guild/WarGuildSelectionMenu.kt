@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.GuiTheme
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -35,7 +38,7 @@ class WarGuildSelectionMenu(
         val totalPages = (availableGuilds.size + GUILDS_PER_PAGE - 1) / GUILDS_PER_PAGE
         val actualPage = currentPage.coerceIn(0, (totalPages - 1).coerceAtLeast(0))
 
-        val gui = ChestGui(6, "§4⚔ Select War Target (${actualPage + 1}/$totalPages)")
+        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click == ClickType.SHIFT_LEFT || it.click == ClickType.SHIFT_RIGHT) it.isCancelled = true }

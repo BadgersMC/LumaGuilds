@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -28,7 +30,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
-        val gui = ChestGui(6, "§bDiplomatic Relations - ${guild.name}")
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
