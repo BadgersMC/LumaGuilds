@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
@@ -29,7 +31,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
     private val rankService: RankService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, "§6${guild.name} - Members")
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { event ->
             if (event.click == ClickType.SHIFT_LEFT || event.click == ClickType.SHIFT_RIGHT) {

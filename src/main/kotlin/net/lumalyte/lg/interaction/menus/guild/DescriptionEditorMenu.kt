@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -50,7 +52,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         // Validate current input
         validationError = validateDescription(inputDescription)
 
-        val gui = ChestGui(4, "§6Edit Guild Description")
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

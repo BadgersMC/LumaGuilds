@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -56,7 +58,7 @@ class GuildWarAcceptanceMenu(
             return
         }
 
-        val gui = ChestGui(5, "§4⚔ War Declaration - ${guild.name}")
+        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

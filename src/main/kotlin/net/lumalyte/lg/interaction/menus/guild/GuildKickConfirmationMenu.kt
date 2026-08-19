@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -31,7 +33,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui = ChestGui(3, "§6Confirm Kick - ${guild.name}")
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

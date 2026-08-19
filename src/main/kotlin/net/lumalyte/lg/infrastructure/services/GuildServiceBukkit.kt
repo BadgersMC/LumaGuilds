@@ -710,6 +710,15 @@ class GuildServiceBukkit(
         return member.rankId in home.allowedRankIds
     }
 
+    override fun setGuiTheme(guildId: UUID, theme: net.lumalyte.lg.utils.GuiTheme, actorId: UUID): Boolean {
+        val guild = guildRepository.getById(guildId) ?: return false
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            return false
+        }
+        val updatedGuild = guild.copy(guiTheme = theme)
+        return guildRepository.update(updatedGuild)
+    }
+
     override fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean {
         if (guildRepository.getById(sourceGuildId) == null) return false
         val targetGuild = guildRepository.getById(targetGuildId) ?: return false

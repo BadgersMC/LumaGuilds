@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -145,7 +147,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             return
         }
 
-        val gui = ChestGui(6, "§6Edit Rank: ${rank.name}")
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

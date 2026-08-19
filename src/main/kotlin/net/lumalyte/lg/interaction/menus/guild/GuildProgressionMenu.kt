@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -71,7 +73,7 @@ class GuildProgressionMenu(
         }
 
         val totalPages = (trackableSources.size + itemsPerPage - 1) / itemsPerPage
-        val gui = ChestGui(6, "§0§8⭐ §7Guild Progression §8• Page ${currentPage + 1}/$totalPages")
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->

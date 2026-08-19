@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.GuiTheme
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -31,7 +34,7 @@ class WarObjectivesSelectionMenu(
     override fun open() {
         val claimsEnabled = configService.loadConfig().claimsEnabled
 
-        val gui = ChestGui(5, "§6⚔ War Objectives")
+        val gui = ChestGui(5, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 5))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click == ClickType.SHIFT_LEFT || it.click == ClickType.SHIFT_RIGHT) it.isCancelled = true }

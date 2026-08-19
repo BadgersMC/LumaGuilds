@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -49,7 +51,7 @@ class PlayerModerationMenu(
         }
 
         val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown Player"
-        val gui = ChestGui(3, "§6Moderate: $targetName")
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

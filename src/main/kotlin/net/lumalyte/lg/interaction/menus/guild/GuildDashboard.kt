@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -30,11 +32,6 @@ class GuildDashboard(
     private val menuFactory: MenuFactory
 ) : Menu {
 
-    companion object {
-        /** Nexo item ID for inventory filler slots (not a background overlay). */
-        const val FILLER_NEXO_ID = "lg_filler"
-    }
-
     override fun open() {
         val playerId = player.uniqueId
 
@@ -52,7 +49,7 @@ class GuildDashboard(
             return
         }
 
-        val gui = ChestGui(3, "§0§8⚔ §7${guild.name}")
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
@@ -62,9 +59,6 @@ class GuildDashboard(
             ) e.isCancelled = true
         }
         gui.addPane(pane)
-
-        // Fill background first (nav buttons overwrite their slots)
-        fillBackground(pane)
 
         // Guild info display at top center
         addGuildInfoDisplay(pane, 4, 0)
@@ -112,21 +106,6 @@ class GuildDashboard(
         }
 
         gui.show(player)
-    }
-
-    /**
-     * Fills all slots with the 3-row background texture.
-     * Nav buttons are added after this, so they overwrite their positions.
-     */
-    private fun fillBackground(pane: StaticPane) {
-        val bgItem = NexoItemProvider.getItemStack(FILLER_NEXO_ID)
-            ?: ItemStack.of(Material.GRAY_STAINED_GLASS_PANE).name(" ")
-
-        for (x in 0..8) {
-            for (y in 0..2) {
-                pane.addItem(GuiItem(bgItem.clone()) { it.isCancelled = true }, x, y)
-            }
-        }
     }
 
     /**

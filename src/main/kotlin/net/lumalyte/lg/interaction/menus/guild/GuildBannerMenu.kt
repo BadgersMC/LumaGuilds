@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -48,7 +50,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         activeMenus.remove(player.uniqueId)
 
         // Create a 3x9 GUI for banner selection
-        val gui = ChestGui(3, "§6Guild Banner - ${guild.name}")
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent ->
             // Allow clicks on the banner placement slot (slot 11)
