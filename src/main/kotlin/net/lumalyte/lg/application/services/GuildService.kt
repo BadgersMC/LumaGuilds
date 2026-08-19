@@ -373,4 +373,16 @@ interface GuildService {
      * ally-home. Caller must have MANAGE_HOME.
      */
     fun setAllyHomeAllowedGuilds(guildId: UUID, allowedGuildIds: Set<UUID>, actorId: UUID): Boolean
+
+    /**
+     * Changes the GUI background theme for all guild menus.
+     * The theme is rendered as a Nexo font-glyph overlay; the glyph
+     * must be defined in the Nexo resource pack configuration.
+     *
+     * @param guildId The ID of the guild.
+     * @param theme The new theme.
+     * @param actorId The ID of the player performing the action.
+     * @return true if successful, false otherwise.
+     */
+    fun setGuiTheme(guildId: UUID, theme: net.lumalyte.lg.utils.GuiTheme, actorId: UUID): Boolean
 }

@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 
@@ -120,7 +122,7 @@ class GuildBankMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, getLocalizedTitle())
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main pane for balance and quick actions

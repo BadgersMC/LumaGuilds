@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -46,7 +48,7 @@ class GuildSettingsMenu(
         guild = guildService.getGuild(guild.id) ?: guild
 
         // Create 6x9 double chest GUI
-        val gui = ChestGui(6, "§6Guild Settings - ${guild.name}")
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -267,6 +269,25 @@ class GuildSettingsMenu(
             .lore("§7[${player.name}] $currentTag §7Hello!")
 
         pane.addItem(GuiItem(previewItem), 4, 2)
+
+        // GUI Theme Selector
+        val themeItem = ItemStack.of(Material.PAINTING)
+            .name("§f🎨 GUI THEME")
+            .lore("§7Current: §f${guild.guiTheme.displayName}")
+            .lore("§7")
+            .lore("§7Changes the background texture")
+            .lore("§7of all guild menus.")
+            .lore("§7")
+            .lore("§eClick to change theme")
+
+        val themeGuiItem = GuiItem(themeItem) {
+            if (!guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)) {
+                player.sendMessage("§c❌ You don't have permission to change guild settings")
+                return@GuiItem
+            }
+            openThemeSelector()
+        }
+        pane.addItem(themeGuiItem, 5, 2)
     }
 
     private fun addLocationModeSection(pane: StaticPane) {
@@ -468,6 +489,53 @@ class GuildSettingsMenu(
             // Menu operation - catching all exceptions to prevent UI failure
             description // Fallback to raw text if parsing fails
         }
+    }
+
+    /**
+     * Opens a small sub-menu showing all available GUI themes.
+     * The player clicks one to apply it; the settings menu then reopens
+     * with the new theme applied.
+     */
+    private fun openThemeSelector() {
+        val gui = ChestGui(1, MenuTitleBuilder.build(guild.guiTheme, 1))
+        val pane = StaticPane(0, 0, 9, 1)
+        gui.setOnGlobalClick { it.isCancelled = true }
+        gui.addPane(pane)
+
+        val themes = net.lumalyte.lg.utils.GuiTheme.entries
+        // Place up to 6 themes in a single row; each takes 1 slot
+        // with a gap between them for visual clarity.
+        themes.forEachIndexed { index, theme ->
+            val isCurrent = theme == guild.guiTheme
+            val slot = index * 1 + index  // 0, 2, 4, 6, 8, 10 — but max 6 in 9 slots
+            // Recalculate: 9 slots, 6 themes, spread evenly
+            val pos = if (themes.size <= 9) index else index * 9 / themes.size
+
+            val item = ItemStack.of(
+                when {
+                    isCurrent -> Material.GREEN_STAINED_GLASS_PANE
+                    else -> Material.GRAY_STAINED_GLASS_PANE
+                }
+            )
+                .name("${if (isCurrent) "§a▶ " else "§7"}${theme.displayName}")
+                .lore(if (isCurrent) "§7Current theme" else "§eClick to apply")
+
+            pane.addItem(GuiItem(item) {
+                if (!isCurrent) {
+                    guildService.setGuiTheme(guild.id, theme, player.uniqueId)
+                    guild = guild.copy(guiTheme = theme)
+                    player.sendMessage("§a✅ GUI theme changed to ${theme.displayName}")
+                    open()
+                }
+            }, pos, 0)
+        }
+
+        // Back button at the last slot
+        val backItem = ItemStack.of(Material.BARRIER)
+            .name("§c⬅ Back")
+        pane.addItem(GuiItem(backItem) { open() }, 8, 0)
+
+        gui.show(player)
     }
 
     override fun passData(data: Any?) {

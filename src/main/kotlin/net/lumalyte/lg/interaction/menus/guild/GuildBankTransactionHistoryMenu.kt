@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.MenuTitleBuilder
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
@@ -92,7 +94,7 @@ class GuildBankTransactionHistoryMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_TITLE, guild.name))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main pane for navigation and filters
@@ -377,7 +379,7 @@ class GuildBankTransactionHistoryMenu(
         }
         val sortedMembers = members.sortedBy { memberNames[it.playerId]?.lowercase() }
 
-        val memberGui = ChestGui(6, "Select Member to Filter By")
+        val memberGui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
         memberGui.setOnGlobalClick { event -> event.isCancelled = true }
 
         val memberPane = PaginatedPane(0, 0, 9, 5)
