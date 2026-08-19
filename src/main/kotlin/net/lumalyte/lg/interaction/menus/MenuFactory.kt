@@ -346,9 +346,24 @@ class MenuFactory(
             val rankService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.RankService>()
             val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
             val vaultService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildVaultService>()
-            val progressionService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.ProgressionService>()
-            val progressionRepository = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
-            net.lumalyte.lg.interaction.menus.guild.GuildControlPanelMenu(menuNavigator, player, guild, guildService, rankService, memberService, vaultService, this, configService, progressionService, progressionRepository)
+            val menuItemBuilder = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.utils.MenuItemBuilder>()
+
+            // Use the new dashboard when Nexo is available, fall back to old panel
+            if (net.lumalyte.lg.utils.NexoItemProvider.isAvailable()) {
+                net.lumalyte.lg.interaction.menus.guild.GuildDashboard(
+                    menuNavigator, player, guild,
+                    guildService, rankService, memberService,
+                    this
+                )
+            } else {
+                val progressionService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.ProgressionService>()
+                val progressionRepository = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
+                net.lumalyte.lg.interaction.menus.guild.GuildControlPanelMenu(
+                    menuNavigator, player, guild,
+                    guildService, rankService, memberService, vaultService,
+                    this, configService, progressionService, progressionRepository
+                )
+            }
         }
     }
 
@@ -734,6 +749,29 @@ class MenuFactory(
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildStatisticsMenu(menuNavigator, player, guild, logger)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildStatisticsMenu(menuNavigator, player, guild)
+        }
+    }
+
+    /**
+     * Creates a guild progression menu appropriate for the player's platform
+     */
+    fun createGuildProgressionMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return if (shouldUseBedrockMenus(player)) {
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger)
+        } else {
+            val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
+            val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
+            val progressionService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.ProgressionService>()
+            val menuItemBuilder = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.utils.MenuItemBuilder>()
+            net.lumalyte.lg.interaction.menus.guild.GuildProgressionMenu(
+                menuNavigator, player, guild,
+                guildService, memberService, progressionService,
+                this, menuItemBuilder, configService
+            )
         }
     }
 
