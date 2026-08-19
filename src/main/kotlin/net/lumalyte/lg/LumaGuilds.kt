@@ -1033,6 +1033,9 @@ class LumaGuilds : JavaPlugin() {
         } else {
             logger.info("LiteBans not yet enabled - Guild Strikes hook will wire when it enables")
         }
+
+        // Register NexoItemProvider listener — fires on NexoItemsLoadedEvent
+        net.lumalyte.lg.utils.NexoItemProvider.register(this)
     }
 
     /**

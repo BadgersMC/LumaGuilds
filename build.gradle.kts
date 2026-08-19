@@ -25,6 +25,10 @@ repositories {
         url = uri("https://nexus.sirblobman.xyz/public/")
     }
     maven {
+        name = "nexomc-releases"
+        url = uri("https://repo.nexomc.com/releases")
+    }
+    maven {
         name = "lunarclient-public"
         url = uri("https://repo.lunarclient.dev/")
     }
@@ -83,6 +87,10 @@ dependencies {
     compileOnly(files("libs/EnthusiaPlaytime-api.jar"))
     testImplementation(files("libs/RoseChat-RC-2.jar"))
     testImplementation(files("libs/EnthusiaPlaytime-api.jar"))
+
+    // Nexo API (com.nexomc.nexo.api.NexoItems) for custom item textures/icons.
+    // compileOnly — Nexo bundles its API at runtime; shading would conflict.
+    compileOnly("com.nexomc:nexo:1.21.0")
 
     // LiteBans API (litebans.api.* — Events/Entry/Database) for Guild Strikes.
     // Resolved from JitPack (official API repo: gitlab.com/ruany/LiteBansAPI),
