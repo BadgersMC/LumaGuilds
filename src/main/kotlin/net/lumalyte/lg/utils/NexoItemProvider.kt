@@ -16,42 +16,66 @@ object NexoItemProvider {
 
     private val logger = LoggerFactory.getLogger(NexoItemProvider::class.java)
 
-    /** Cache of Nexo API classes discovered via reflection. */
-    private var apiClass: Class<*>? = null
-    private var apiMethod: java.lang.reflect.Method? = null
+    /** Cache of Nexo API info discovered via reflection. */
+    private data class ApiInfo(
+        val clazz: Class<*>,
+        val instance: Any?,   // null for static methods, INSTANCE for Kotlin objects
+        val method: java.lang.reflect.Method
+    )
+
+    private var api: ApiInfo? = null
 
     /**
      * Returns true if the Nexo plugin is loaded and its API is accessible.
      */
     fun isAvailable(): Boolean {
-        if (apiClass == null) {
+        if (api == null) {
             resolveApi()
         }
-        return apiClass != null
+        return api != null
     }
 
     /**
      * Attempts to resolve a Nexo API class and getItemStack method.
      * Tries NexoAPI first (newer versions), then NexoItems (1.22.x).
+     *
+     * For Kotlin object classes (NexoItems), the method is an instance method
+     * on the singleton (accessed via the `INSTANCE` field), NOT a static method.
+     * We resolve the INSTANCE once and reuse it on every call.
      */
     private fun resolveApi() {
-        // Try NexoAPI (newer versions: 1.22.x+)
-        for (className in listOf("com.nexomc.nexo.api.NexoAPI", "com.nexomc.nexo.api.NexoItems")) {
+        val candidates = listOf(
+            // Newer Nexo versions: com.nexomc.nexo.api.NexoAPI (static getItemStack)
+            ApiCandidate("com.nexomc.nexo.api.NexoAPI", isKotlinObject = false),
+            // Nexo 1.22.x: com.nexomc.nexo.api.NexoItems (Kotlin object, instance method)
+            ApiCandidate("com.nexomc.nexo.api.NexoItems", isKotlinObject = true),
+        )
+
+        for (candidate in candidates) {
             try {
-                val clazz = Class.forName(className)
-                val methodName = if (className.contains("NexoAPI")) "getItemStack" else "getItemStack"
-                val method = clazz.getMethod(methodName, String::class.java)
-                apiClass = clazz
-                apiMethod = method
-                logger.debug("Nexo API resolved: {}.{}()", className, methodName)
+                val clazz = Class.forName(candidate.className)
+                val method = clazz.getMethod("getItemStack", String::class.java)
+
+                val instance = if (candidate.isKotlinObject) {
+                    // Kotlin object — method is instance-level on the singleton
+                    clazz.getField("INSTANCE").get(null)
+                } else {
+                    null // static method
+                }
+
+                api = ApiInfo(clazz, instance, method)
+                logger.info("Nexo API resolved: {}.getItemStack() (receiver: {})",
+                    candidate.className, if (instance != null) "INSTANCE" else "static")
                 return
             } catch (_: ClassNotFoundException) {
-                // try next class name
+                logger.info("Nexo class {} not found", candidate.className)
             } catch (_: NoSuchMethodException) {
-                // try next class name
+                logger.info("Nexo class {} found but getItemStack method missing", candidate.className)
+            } catch (_: NoSuchFieldException) {
+                logger.info("Nexo class {} found but no INSTANCE field (not a Kotlin object?)", candidate.className)
             }
         }
-        logger.debug("Nexo API not available — running in compatibility mode")
+        logger.info("Nexo API not available — running in compatibility mode")
     }
 
     /**
@@ -61,10 +85,9 @@ object NexoItemProvider {
      * @return The ItemStack from Nexo, or null if Nexo is unavailable or the ID is not found.
      */
     fun getItemStack(itemId: String): ItemStack? {
-        if (apiClass == null) resolveApi()
-        val method = apiMethod ?: return null
+        val info = api ?: return null
         return try {
-            method.invoke(null, itemId) as? ItemStack
+            info.method.invoke(info.instance, itemId) as? ItemStack
         } catch (e: Exception) {
             logger.debug("Nexo getItemStack failed for '$itemId': ${e.message}")
             null
@@ -81,4 +104,9 @@ object NexoItemProvider {
     fun getItemStackOrFallback(itemId: String, fallback: () -> ItemStack): ItemStack {
         return getItemStack(itemId) ?: fallback()
     }
+
+    private data class ApiCandidate(
+        val className: String,
+        val isKotlinObject: Boolean
+    )
 }
