@@ -22,7 +22,8 @@ class PlaytimeActivityServiceBukkit : PlaytimeActivityService {
 
     override fun isXpBlocked(player: Player): Boolean {
         val service = try {
-            Bukkit.getServicesManager().load(PlaytimeService::class.java)
+            @Suppress("UNCHECKED_CAST")
+            Bukkit.getServicesManager().load(PlaytimeService::class.java) as? PlaytimeService
         } catch (e: Throwable) {
             null // PlayTime absent — never block XP
         } ?: return false
