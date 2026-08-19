@@ -30,6 +30,11 @@ class GuildDashboard(
     private val menuFactory: MenuFactory
 ) : Menu {
 
+    companion object {
+        /** Nexo item ID for inventory filler slots (not a background overlay). */
+        const val FILLER_NEXO_ID = "lg_filler"
+    }
+
     override fun open() {
         val playerId = player.uniqueId
 
@@ -114,7 +119,7 @@ class GuildDashboard(
      * Nav buttons are added after this, so they overwrite their positions.
      */
     private fun fillBackground(pane: StaticPane) {
-        val bgItem = NexoItemProvider.getItemStack("lg_bg_3_row")
+        val bgItem = NexoItemProvider.getItemStack(FILLER_NEXO_ID)
             ?: ItemStack.of(Material.GRAY_STAINED_GLASS_PANE).name(" ")
 
         for (x in 0..8) {
