@@ -322,7 +322,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 else -> categoryItem.lore("§c❌ No permissions enabled")
             }
             categoryItem.lore("§7")
-            categoryItem.lore("§eClick to toggle all §f$categoryName §epermissions")
+            categoryItem.lore("§eClick to open permission management")
 
             val categoryGuiItem = GuiItem(categoryItem) {
                 // Prevent owner from removing their own permissions
