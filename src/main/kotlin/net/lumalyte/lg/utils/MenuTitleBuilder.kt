@@ -11,8 +11,8 @@ package net.lumalyte.lg.utils
  * To align this artwork with the native Minecraft inventory window
  * (also 176 px wide):
  *
- *   shift:-8  compensates for the default left-margin of the chest-GUI
- *             title cursor so the glyph starts at column 0 of the window.
+ *   shift:20  moves the cursor right by 20 pixels so the 176-wide
+ *             artwork starts at column 0 of the window.
  *
  *   ascent: 12  must be set on each glyph in the Nexo resource pack
  *               (the font baseline is ~12 px from the window top).
@@ -26,7 +26,7 @@ package net.lumalyte.lg.utils
 object MenuTitleBuilder {
 
     /** Horizontal prefix that places the glyph at the window origin. */
-    private const val GLYPH_PREFIX: String = "<shift:-8>"
+    private const val GLYPH_PREFIX: String = "<shift:20>"
 
     /**
      * Returns a ChestGui title string that renders a Nexo font-glyph

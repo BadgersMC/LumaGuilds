@@ -66,11 +66,11 @@ class MenuTitleBuilderTest {
     // ---------------------------------------------------------------
 
     @Test
-    fun `positioning prefix is always shift -8`() {
+    fun `positioning prefix is always shift 20`() {
         val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3)
         assertTrue(
-            title.startsWith("<shift:-8>"),
-            "Expected title '$title' to start with '<shift:-8>'"
+            title.startsWith("<shift:20>"),
+            "Expected title '$title' to start with '<shift:20>'"
         )
     }
 
