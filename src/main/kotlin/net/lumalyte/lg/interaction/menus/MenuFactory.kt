@@ -753,6 +753,29 @@ class MenuFactory(
     }
 
     /**
+     * Creates a guild progression menu appropriate for the player's platform
+     */
+    fun createGuildProgressionMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        return if (shouldUseBedrockMenus(player)) {
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger)
+        } else {
+            val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
+            val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
+            val progressionService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.ProgressionService>()
+            val menuItemBuilder = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.utils.MenuItemBuilder>()
+            net.lumalyte.lg.interaction.menus.guild.GuildProgressionMenu(
+                menuNavigator, player, guild,
+                guildService, memberService, progressionService,
+                this, menuItemBuilder, configService
+            )
+        }
+    }
+
+    /**
      * Creates a guild invite menu appropriate for the player's platform
      */
     fun createGuildInviteMenu(

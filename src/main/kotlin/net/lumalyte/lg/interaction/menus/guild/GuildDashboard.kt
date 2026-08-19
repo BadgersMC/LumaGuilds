@@ -97,7 +97,7 @@ class GuildDashboard(
 
         addNavButton(pane, 2, 2, "lg_nav_progression", Material.EXPERIENCE_BOTTLE, "§aProgression",
             "§7Guild leveling, XP,", "§7and unlocked perks") {
-            menuNavigator.openMenu(menuFactory.createGuildStatisticsMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(menuFactory.createGuildProgressionMenu(menuNavigator, player, guild))
         }
 
         addNavButton(pane, 4, 2, "lg_nav_diplomacy", Material.BOOK, "§dDiplomacy",
