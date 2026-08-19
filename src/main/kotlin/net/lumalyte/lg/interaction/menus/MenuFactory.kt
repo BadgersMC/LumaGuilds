@@ -345,25 +345,14 @@ class MenuFactory(
             val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
             val rankService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.RankService>()
             val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
-            val vaultService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildVaultService>()
-            val menuItemBuilder = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.utils.MenuItemBuilder>()
 
-            // Use the new dashboard when Nexo is available, fall back to old panel
-            if (net.lumalyte.lg.utils.NexoItemProvider.isAvailable()) {
-                net.lumalyte.lg.interaction.menus.guild.GuildDashboard(
-                    menuNavigator, player, guild,
-                    guildService, rankService, memberService,
-                    this
-                )
-            } else {
-                val progressionService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.ProgressionService>()
-                val progressionRepository = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
-                net.lumalyte.lg.interaction.menus.guild.GuildControlPanelMenu(
-                    menuNavigator, player, guild,
-                    guildService, rankService, memberService, vaultService,
-                    this, configService, progressionService, progressionRepository
-                )
-            }
+            // Always use the new dashboard layout — Nexo only provides prettier
+            // textures; the layout and fallback items work without it.
+            net.lumalyte.lg.interaction.menus.guild.GuildDashboard(
+                menuNavigator, player, guild,
+                guildService, rankService, memberService,
+                this
+            )
         }
     }
 
