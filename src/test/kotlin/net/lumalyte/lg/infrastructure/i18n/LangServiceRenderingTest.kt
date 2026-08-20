@@ -46,6 +46,21 @@ class LangServiceRenderingTest {
         )
     }
 
+    @Test
+    fun `trust message renders named permission player and claim placeholders`() {
+        val rendered = langService().msg(
+            "command.claim.trust.success",
+            "permission" to "Build",
+            "player" to "Ada",
+            "claim" to "North Farm",
+        )
+
+        assertEquals(
+            "Permission Build has been assigned to player Ada in claim North Farm.",
+            plainText.serialize(rendered),
+        )
+    }
+
     private fun langService(): LangService = LangService(
         object : LangHost {
             override val dataFolder: File = this@LangServiceRenderingTest.dataFolder.toFile()
