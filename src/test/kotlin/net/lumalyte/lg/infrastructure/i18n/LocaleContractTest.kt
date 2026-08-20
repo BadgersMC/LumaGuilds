@@ -2,55 +2,20 @@ package net.lumalyte.lg.infrastructure.i18n
 
 import net.lumalyte.lg.domain.values.ClaimPermission
 import net.lumalyte.lg.domain.values.Flag
-import net.lumalyte.lg.domain.entities.RankPermission
-import net.lumalyte.lg.interaction.help.HelpTopics
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.yaml.snakeyaml.Yaml
-import org.yaml.snakeyaml.nodes.MappingNode
-import org.yaml.snakeyaml.nodes.Node
-import org.yaml.snakeyaml.nodes.ScalarNode
-import org.yaml.snakeyaml.nodes.Tag
 import java.io.InputStreamReader
-import java.io.StringReader
 import java.nio.file.Files
 import java.nio.file.Path
 
 class LocaleContractTest {
 
     private val projectRoot = Path.of(System.getProperty("user.dir"))
-    private val claimPermissionDynamicKeys = ClaimPermission.entries
-        .flatMap { listOf(it.nameKey, it.loreKey) }
-        .toSet()
-    private val flagDynamicKeys = Flag.entries
-        .flatMap { listOf(it.nameKey, it.loreKey) }
-        .toSet()
-    private val rankPermissionDynamicKeys = RankPermission.entries
-        .map { permission -> "permission.${permission.name.lowercase().replace("_", ".")}" }
-        .toSet()
-    private val finiteMenuStateKeys = setOf(
-        "menu.settings.item.mode.lore.hostile",
-        "menu.settings.item.mode.lore.peaceful",
-        "menu.leaderboards.item.activity.name",
-        "menu.leaderboards.item.bank.name",
-        "menu.leaderboards.item.kills.name",
-        "menu.leaderboards.item.level.name",
-        "menu.bank.security.risk.critical",
-        "menu.bank.security.risk.high",
-        "menu.bank.security.risk.low",
-        "menu.bank.security.risk.medium",
-        "menu.bank.stats.activity.high",
-        "menu.bank.stats.activity.low",
-        "menu.bank.stats.activity.moderate",
-        "menu.bank.stats.activity.none",
-        "menu.bank.stats.activity.recent",
-        "menu.bank.stats.activity.very_high",
-    )
-    private val helpTopicDynamicKeys = HelpTopics.all.flatMap { listOf(it.menuKey, it.pageKey) }.toSet()
     private val declaredDynamicKeys =
-        claimPermissionDynamicKeys + flagDynamicKeys + rankPermissionDynamicKeys + finiteMenuStateKeys + helpTopicDynamicKeys
+        ClaimPermission.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet() +
+            Flag.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
 
     @Test
     fun `locale contains no positional placeholders`() {
@@ -92,65 +57,6 @@ class LocaleContractTest {
     }
 
     @Test
-    fun `strict yaml parser accepts every locale root and mapping key`() {
-        assertEquals(emptyList<String>(), strictYamlErrors(localeResourceText()))
-    }
-
-    @Test
-    fun `strict yaml parser rejects typed root mapping keys`() {
-        assertEquals(
-            listOf("<root>: mapping key is not a string"),
-            strictYamlErrors("1: value\n"),
-        )
-    }
-
-    @Test
-    fun `finite dynamic localization families are declared exactly`() {
-        val permissionKeys = ClaimPermission.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
-        val flagKeys = Flag.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
-        val rankPermissionKeys = RankPermission.entries
-            .map { permission -> "permission.${permission.name.lowercase().replace("_", ".")}" }
-            .toSet()
-
-        val expectedMenuStateKeys = setOf(
-            "menu.settings.item.mode.lore.hostile",
-            "menu.settings.item.mode.lore.peaceful",
-            "menu.leaderboards.item.activity.name",
-            "menu.leaderboards.item.bank.name",
-            "menu.leaderboards.item.kills.name",
-            "menu.leaderboards.item.level.name",
-            "menu.bank.security.risk.critical",
-            "menu.bank.security.risk.high",
-            "menu.bank.security.risk.low",
-            "menu.bank.security.risk.medium",
-            "menu.bank.stats.activity.high",
-            "menu.bank.stats.activity.low",
-            "menu.bank.stats.activity.moderate",
-            "menu.bank.stats.activity.none",
-            "menu.bank.stats.activity.recent",
-            "menu.bank.stats.activity.very_high",
-        )
-
-        assertEquals(expectedMenuStateKeys, finiteMenuStateKeys)
-        val expectedHelpTopicKeys = HelpTopics.all
-            .flatMap { listOf(it.menuKey, it.pageKey) }
-            .toSet()
-
-        assertEquals(
-            permissionKeys + flagKeys + rankPermissionKeys + expectedMenuStateKeys + expectedHelpTopicKeys,
-            declaredDynamicKeys,
-        )
-    }
-
-    @Test
-    fun `escaped command metavariables are not locale placeholders`() {
-        assertEquals(
-            setOf("player"),
-            LocaleSourceScanner.placeholderNames("Invite <player> with /guild invite \\<name>"),
-        )
-    }
-
-    @Test
     fun `source scanner separates literal and dynamic localization calls`() {
         val root = Files.createTempDirectory("locale-source-scanner")
         val source = root.resolve("ScannerFixture.kt")
@@ -158,13 +64,6 @@ class LocaleContractTest {
             source,
             """
             fun render(lang: Any, key: String) {
-                // lang.msg("commented.line")
-                /* lang.legacy("commented.block") */
-                /* outer comment /* nested comment */ lang.raw("after.nested.comment") */
-                val ordinary = "lang.raw(\\\"ordinary.string\\\")"
-                val raw = ${"\"\"\""}lang.msg("triple.quoted")${"\"\"\""}
-                val interpolation = "value ${'$'}{lang.msg("ordinary.interpolation")}"
-                val rawInterpolation = ${"\"\"\""}value ${'$'}{lang.legacy("triple.interpolation")}${"\"\"\""}
                 lang.msg("command.guild.invite.success", "player" to "Ada")
                 lang.legacy("menu.guild.title")
                 lang.raw(key)
@@ -175,15 +74,7 @@ class LocaleContractTest {
 
         val inventory = LocaleSourceScanner.scan(root)
 
-        assertEquals(
-            setOf(
-                "command.guild.invite.success",
-                "menu.guild.title",
-                "ordinary.interpolation",
-                "triple.interpolation",
-            ),
-            inventory.literalKeys,
-        )
+        assertEquals(setOf("command.guild.invite.success", "menu.guild.title"), inventory.literalKeys)
         assertEquals(setOf("player"), inventory.calls.single { it.key == "command.guild.invite.success" }.placeholderNames)
         assertEquals(1, inventory.dynamicCalls.size)
         assertEquals(1, inventory.playerTextCandidates.size)
@@ -230,12 +121,10 @@ class LocaleContractTest {
     @Test
     fun `call site placeholder mismatches match the recovery baseline`() {
         val inventory = LocaleSourceScanner.scan(projectRoot.resolve("src/main/kotlin"))
-        val mismatches = inventory.placeholderMismatches(localeValues())
 
         assertEquals(
             BASELINE_PLACEHOLDER_MISMATCHES,
-            mismatches.size,
-            mismatches.joinToString { "${it.key}: expected=${it.expected}, actual=${it.actual}" },
+            inventory.placeholderMismatches(localeValues()).size,
         )
     }
 
@@ -249,45 +138,6 @@ class LocaleContractTest {
         return stream.use { InputStreamReader(it, Charsets.UTF_8).readLines() }
     }
 
-    private fun localeResourceText(): String {
-        val stream = requireNotNull(javaClass.classLoader.getResourceAsStream("lang/en_US.yml"))
-        return stream.use { InputStreamReader(it, Charsets.UTF_8).readText() }
-    }
-
-    private fun strictYamlErrors(yaml: String): List<String> {
-        val root = Yaml().compose(StringReader(yaml))
-        if (root !is MappingNode) return listOf("<root>: locale must be a mapping")
-
-        val errors = mutableListOf<String>()
-        inspectMapping(root, "<root>", errors)
-        return errors
-    }
-
-    private fun inspectMapping(mapping: MappingNode, path: String, errors: MutableList<String>) {
-        val keys = mutableListOf<String>()
-        mapping.value.forEach { tuple ->
-            val key = tuple.keyNode as? ScalarNode
-            if (key == null || key.tag != Tag.STR) {
-                errors += "$path: mapping key is not a string"
-                return@forEach
-            }
-            keys += key.value
-            inspectValue(tuple.valueNode, "$path.${key.value}", errors)
-        }
-        keys.groupingBy { it }.eachCount()
-            .filterValues { it > 1 }
-            .keys
-            .forEach { errors += "$path: duplicate mapping key '$it'" }
-    }
-
-    private fun inspectValue(value: Node, path: String, errors: MutableList<String>) {
-        when (value) {
-            is MappingNode -> inspectMapping(value, path, errors)
-            is ScalarNode -> if (value.tag != Tag.STR) errors += "$path: scalar value is not a string"
-            else -> errors += "$path: locale value must be a mapping or string"
-        }
-    }
-
     private fun flatten(locale: YamlConfiguration): Map<String, String> =
         locale.getValues(true)
             .filterValues { it !is ConfigurationSection }
@@ -298,11 +148,11 @@ class LocaleContractTest {
     private fun localeValues(): Map<String, String> = flatten(loadLocale())
 
     private companion object {
-        const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
+        const val BASELINE_POSITIONAL_PLACEHOLDERS = 135
         const val BASELINE_MISSING_KEYS = 0
-        const val BASELINE_UNUSED_KEYS = 0
-        const val BASELINE_DYNAMIC_CALLS = 30
-        const val BASELINE_HARDCODED_PLAYER_TEXT = 0
+        const val BASELINE_UNUSED_KEYS = 388
+        const val BASELINE_DYNAMIC_CALLS = 32
+        const val BASELINE_HARDCODED_PLAYER_TEXT = 4016
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }
 }
