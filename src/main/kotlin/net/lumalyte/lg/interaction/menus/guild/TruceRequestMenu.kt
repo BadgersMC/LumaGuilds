@@ -49,7 +49,7 @@ class TruceRequestMenu(
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§eRequest Truce"))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -147,7 +147,7 @@ class TruceRequestMenu(
     }
 
     private fun openDurationSelection(targetGuild: Guild) {
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§eSelect Truce Duration"))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

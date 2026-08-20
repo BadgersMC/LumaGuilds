@@ -43,7 +43,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private val decimalFormat = DecimalFormat("#.##")
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6${guild.name} - Statistics"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -254,7 +254,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         try {
             val killStats = killService.getGuildKillStats(guild.id)
 
-            val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4))
+            val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6${guild.name} - Statistics"))
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -290,7 +290,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
             val warHistory = warService.getWarHistory(guild.id, 20)
 
-            val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+            val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6${guild.name} - Statistics"))
             val pane = StaticPane(0, 0, 9, 6)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
@@ -501,7 +501,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val members = memberService.getGuildMembers(guild.id)
             val memberCount = memberService.getMemberCount(guild.id)
 
-            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5))
+            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6${guild.name} - Statistics"))
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -558,7 +558,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val avgKillsPerMember = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
             val avgDeathsPerMember = if (memberCount > 0) killStats.totalDeaths.toDouble() / memberCount else 0.0
 
-            val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4))
+            val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6${guild.name} - Statistics"))
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -880,7 +880,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val guildMembers = memberService.getGuildMembers(guild.id).map { it.playerId }
             val topKillers = killService.getTopKillers(guildMembers, 10)
 
-            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5))
+            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6${guild.name} - Statistics"))
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -924,7 +924,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .sortedByDescending { it.netContribution }
                 .take(10)
 
-            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5))
+            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6${guild.name} - Statistics"))
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -964,7 +964,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         try {
             val killStats = killService.getGuildKillStats(guild.id)
 
-            val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4))
+            val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6${guild.name} - Statistics"))
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -1000,7 +1000,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         try {
             val recentKills = killService.getRecentGuildKills(guild.id, 15)
 
-            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5))
+            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6${guild.name} - Statistics"))
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)

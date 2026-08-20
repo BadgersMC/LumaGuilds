@@ -77,7 +77,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
         }
         println("[LumaGuilds] GuildEmojiMenu: Final validation result: ${validationError ?: "VALID"}")
 
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Guild Emoji - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
@@ -477,7 +477,7 @@ class EmojiSelectionMenu(
         val totalPages = (unlockedEmojis.size + itemsPerPage - 1) / itemsPerPage
 
         // Create double chest GUI (6 rows x 9 columns = 54 slots)
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Select Emoji - Page ${currentPage + 1}/$totalPages"))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

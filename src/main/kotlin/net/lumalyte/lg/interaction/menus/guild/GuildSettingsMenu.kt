@@ -48,7 +48,7 @@ class GuildSettingsMenu(
         guild = guildService.getGuild(guild.id) ?: guild
 
         // Create 6x9 double chest GUI
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Guild Settings - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -497,7 +497,7 @@ class GuildSettingsMenu(
      * with the new theme applied.
      */
     private fun openThemeSelector() {
-        val gui = ChestGui(1, MenuTitleBuilder.build(guild.guiTheme, 1))
+        val gui = ChestGui(1, MenuTitleBuilder.build(guild.guiTheme, 1, "§6Guild Settings - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 1)
         gui.setOnGlobalClick { it.isCancelled = true }
         gui.addPane(pane)

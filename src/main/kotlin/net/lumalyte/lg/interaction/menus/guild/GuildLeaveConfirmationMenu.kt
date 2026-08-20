@@ -28,7 +28,7 @@ class GuildLeaveConfirmationMenu(
     private val memberService: MemberService by inject()
 
     override fun open() {
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§e§lLeave ${guild.name}?"))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->

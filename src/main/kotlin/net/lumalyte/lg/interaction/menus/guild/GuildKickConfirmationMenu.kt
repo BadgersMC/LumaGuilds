@@ -33,7 +33,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Confirm Kick - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

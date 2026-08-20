@@ -6,41 +6,52 @@ package net.lumalyte.lg.utils
  *
  * The themed PNGs have their artwork at canvas origin (0,0) within
  * a 256x256 transparent canvas. The content measures 176 pixels
- * wide x rowHeight tall (e.g. 168 px for 3 rows).
+ * wide x rowHeight tall.
  *
- * To align this artwork with the native Minecraft inventory window
- * (also 176 px wide):
+ * Title component structure:
  *
- *   shift:20  moves the cursor right by 20 pixels so the 176-wide
- *             artwork starts at column 0 of the window.
+ *   <shift:-7>                    calibrated horizontal offset
+ *   <glyph:guild_bg_<theme>_<R>>  background overlay (advances cursor ~256px)
+ *   <shift:-241>                  rewind cursor back to ~8px from default start
+ *   §f<title>                     visible title text in the top bar
  *
- *   ascent: 12  must be set on each glyph in the Nexo resource pack
- *               (the font baseline is ~12 px from the window top).
+ * The rewind value of -241 is calculated as:
+ *   want D + 8 (title margin) - (D - 7 + 256) = -241
+ *   where D = default cursor start, 256 = glyph texture width
  *
  * DO NOT use the neutral theme as a positioning reference — its
  * assets are oversized and are being corrected separately.
  *
  * Glyph naming: guild_bg_<theme>_<rows>_row
- * e.g. guild_bg_neutral_3_row, guild_bg_emberstone_4_row
  */
 object MenuTitleBuilder {
 
-    /** Horizontal prefix that places the glyph at the window origin. */
-    private const val GLYPH_PREFIX: String = "<shift:-7>"
+    /** Calibrated horizontal offset placing the glyph at the window origin. */
+    private const val HORIZONTAL_OFFSET: String = "<shift:-8>"
+
+    /** Rewind past the 256-pixel glyph advance + advance to title margin. */
+    private const val REWIND_TO_TITLE: String = "<shift:-241>"
 
     /**
      * Returns a ChestGui title string that renders a Nexo font-glyph
-     * background overlay for the given theme and row count.
+     * background with an optional visible title in the top bar.
      *
-     * Result: <shift:-8><glyph:guild_bg_<theme>_<rows>_row>
+     * Result:
+     *   <shift:-7><glyph:guild_bg_<theme>_<R>_row><shift:-241>§f<title>
      *
      * @param theme  GUI background theme (default: NEUTRAL)
      * @param rows   Inventory row count (3-6)
+     * @param title  Optional visible title text (default: empty = no title)
      * @return       Title string for the ChestGui constructor.
      */
-    fun build(theme: GuiTheme = GuiTheme.NEUTRAL, rows: Int): String {
+    fun build(theme: GuiTheme = GuiTheme.NEUTRAL, rows: Int, title: String = ""): String {
         val themeKey = theme.name.lowercase()
         val glyphName = "guild_bg_${themeKey}_${rows}_row"
-        return "${GLYPH_PREFIX}<glyph:${glyphName}>"
+        val prefix = "${HORIZONTAL_OFFSET}<glyph:${glyphName}>"
+        return if (title.isNotEmpty()) {
+            "${prefix}${REWIND_TO_TITLE}§f${title}"
+        } else {
+            prefix
+        }
     }
 }
