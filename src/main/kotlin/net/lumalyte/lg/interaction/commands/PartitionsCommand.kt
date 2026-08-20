@@ -32,7 +32,7 @@ class PartitionsCommand : ClaimCommand(), KoinComponent {
 
         // Check if page is empty
         if (page * 10 - 9 > partitions.count() || page < 1) {
-            player.sendMessage("§cInvalid page specified.")
+            player.sendMessage(lang.msg("command.common.invalid_page"))
             return
         }
 

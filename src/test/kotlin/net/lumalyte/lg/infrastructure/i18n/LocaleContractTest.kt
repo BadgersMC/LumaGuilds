@@ -126,6 +126,14 @@ class LocaleContractTest {
     }
 
     @Test
+    fun `escaped command metavariables are not locale placeholders`() {
+        assertEquals(
+            setOf("player"),
+            LocaleSourceScanner.placeholderNames("Invite <player> with /guild invite \\<name>"),
+        )
+    }
+
+    @Test
     fun `source scanner separates literal and dynamic localization calls`() {
         val root = Files.createTempDirectory("locale-source-scanner")
         val source = root.resolve("ScannerFixture.kt")
@@ -275,9 +283,9 @@ class LocaleContractTest {
     private companion object {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
-        const val BASELINE_UNUSED_KEYS = 342
+        const val BASELINE_UNUSED_KEYS = 341
         const val BASELINE_DYNAMIC_CALLS = 23
-        const val BASELINE_HARDCODED_PLAYER_TEXT = 4016
+        const val BASELINE_HARDCODED_PLAYER_TEXT = 3340
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }
 }

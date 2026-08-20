@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.commands
 
 import io.mockk.every
 import io.mockk.mockk
+import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -20,17 +22,17 @@ internal class QuickChatGuardPermissionTest {
 
     private val guildService = mockk<GuildService>()
     private val memberService = mockk<MemberService>()
+    private val lang = mockk<LangService>()
     private val player = mockk<Player>(relaxed = true)
     private val playerId = UUID.randomUUID()
     private val guildA = Guild(id = UUID.randomUUID(), name = "A", createdAt = Instant.now())
     private val guildB = Guild(id = UUID.randomUUID(), name = "B", createdAt = Instant.now())
 
-    private companion object {
-        const val NO_PERM = "no perm"
-    }
+    private val noPermission = Component.text("no perm")
 
     init {
         every { player.uniqueId } returns playerId
+        every { lang.msg("guild.not_member") } returns Component.text("not a member")
     }
 
     @Test
@@ -42,7 +44,7 @@ internal class QuickChatGuardPermissionTest {
         assertTrue(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, NO_PERM,
+                RankPermission.MODERATE_CHAT, noPermission, lang,
             ),
         )
     }
@@ -56,7 +58,7 @@ internal class QuickChatGuardPermissionTest {
         assertFalse(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, NO_PERM,
+                RankPermission.MODERATE_CHAT, noPermission, lang,
             ),
         )
     }
@@ -73,7 +75,7 @@ internal class QuickChatGuardPermissionTest {
         assertTrue(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, NO_PERM,
+                RankPermission.MODERATE_CHAT, noPermission, lang,
             ),
         )
     }
@@ -90,7 +92,7 @@ internal class QuickChatGuardPermissionTest {
         assertFalse(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, NO_PERM,
+                RankPermission.MODERATE_CHAT, noPermission, lang,
             ),
         )
     }
@@ -101,7 +103,7 @@ internal class QuickChatGuardPermissionTest {
         assertFalse(
             player.requireGuildPermission(
                 guildService, memberService,
-                RankPermission.MODERATE_CHAT, NO_PERM,
+                RankPermission.MODERATE_CHAT, noPermission, lang,
             ),
         )
     }
@@ -115,7 +117,7 @@ internal class QuickChatGuardPermissionTest {
             )
         } returns true
         val result = player.requireGuildForPermission(
-            guildService, memberService, RankPermission.SEND_ANNOUNCEMENTS, NO_PERM,
+            guildService, memberService, RankPermission.SEND_ANNOUNCEMENTS, noPermission, lang,
         )
         assertEquals(guildA.id, result?.id)
     }
@@ -131,7 +133,7 @@ internal class QuickChatGuardPermissionTest {
         assertNull(
             player.requireGuildForPermission(
                 guildService, memberService,
-                RankPermission.SEND_ANNOUNCEMENTS, NO_PERM,
+                RankPermission.SEND_ANNOUNCEMENTS, noPermission, lang,
             ),
         )
     }
@@ -150,7 +152,7 @@ internal class QuickChatGuardPermissionTest {
             )
         } returns true
         val result = player.requireGuildForPermission(
-            guildService, memberService, RankPermission.SEND_ANNOUNCEMENTS, NO_PERM,
+            guildService, memberService, RankPermission.SEND_ANNOUNCEMENTS, noPermission, lang,
         )
         assertEquals(guildB.id, result?.id)
     }
@@ -161,7 +163,7 @@ internal class QuickChatGuardPermissionTest {
         assertNull(
             player.requireGuildForPermission(
                 guildService, memberService,
-                RankPermission.SEND_ANNOUNCEMENTS, NO_PERM,
+                RankPermission.SEND_ANNOUNCEMENTS, noPermission, lang,
             ),
         )
     }

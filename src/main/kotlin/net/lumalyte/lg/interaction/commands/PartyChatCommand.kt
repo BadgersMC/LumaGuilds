@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.commands
 
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.application.services.GuildService
@@ -25,6 +26,7 @@ import java.util.UUID
 @CommandAlias("pc|pchat|partychat")
 class PartyChatCommand : BaseCommand(), KoinComponent {
 
+    private val lang: LangService by inject()
     private val chatService: ChatService by inject()
     private val partyService: PartyService by inject()
     private val guildService: GuildService by inject()
@@ -35,7 +37,7 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
     private fun checkPartiesEnabled(player: Player): Boolean {
         if (!configService.loadConfig().partiesEnabled) {
-            player.sendMessage("§c❌ Parties are disabled on this server!")
+            player.sendMessage(lang.msg("command.migrated.party_chat.checkpartiesenabled.parties_are_disabled_on_this_server"))
             return false
         }
         return true
@@ -103,14 +105,14 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
             if (hadActiveParty) {
                 val success = preferenceRepository.removeByPlayerId(playerId)
                 if (success) {
-                    player.sendMessage("§a✅ Switched to GLOBAL chat")
-                    player.sendMessage("§7Your messages will now go to global chat, not party chat")
-                    player.sendMessage("§7Use §f/pc switch <partyname> §7to switch back to a party")
+                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.switched_to_global_chat"))
+                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.your_messages_will_now_go_to_global"))
+                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.use_pc_switch_partyname_to_switch_back"))
                 } else {
-                    player.sendMessage("§c❌ Failed to switch to global chat!")
+                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.failed_to_switch_to_global_chat"))
                 }
             } else {
-                player.sendMessage("§7You are already using global chat")
+                player.sendMessage(lang.msg("command.migrated.party_chat.switch.you_are_already_using_global_chat"))
             }
             return
         }
@@ -121,8 +123,8 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         if (targetParty != null) {
             switchToParty(player, targetParty)
         } else {
-            player.sendMessage("§c❌ Party not found: §f$targetName")
-            player.sendMessage("§7Use §f/pc switch §7to see available parties")
+            player.sendMessage(lang.msg("command.migrated.party_chat.switch.party_not_found", "target_name" to targetName))
+            player.sendMessage(lang.msg("command.migrated.party_chat.switch.use_pc_switch_to_see_available_parties"))
         }
     }
 
@@ -136,7 +138,7 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         val playerGuildIds = getPlayerGuildIds(playerId)
 
         if (playerGuildIds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in any guild!")
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.you_are_not_in_any_guild"))
             return
         }
 
@@ -150,31 +152,31 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         }
 
         if (accessibleParties.isEmpty()) {
-            player.sendMessage("§c❌ No available parties to switch to!")
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.no_available_parties_to_switch_to"))
             return
         }
 
         val currentParty = getCurrentActiveParty(playerId)
         val isUsingGlobal = preferenceRepository.getByPlayerId(playerId) == null
 
-        player.sendMessage("§6=== Available Parties ===")
+        player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.available_parties"))
 
         // Show GLOBAL option
         if (isUsingGlobal) {
-            player.sendMessage("§a▶ GLOBAL §7(current)")
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.global_current"))
         } else {
-            player.sendMessage("§7  GLOBAL")
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.global"))
         }
 
         accessibleParties.forEach { party ->
             val isCurrent = currentParty?.id == party.id
-            val marker = if (isCurrent) "§a▶" else "§7 "
-            val currentTag = if (isCurrent) " §7(current)" else ""
-            player.sendMessage("$marker §f${party.name ?: "Unnamed"}$currentTag")
+            val marker = if (isCurrent) lang.legacy("command.migrated.party_chat.switchlist.blank_line") else lang.legacy("command.migrated.party_chat.switchlist.blank_line_2")
+            val currentTag = if (isCurrent) lang.legacy("command.migrated.party_chat.switchlist.current") else ""
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.blank_line_3", "marker" to marker, "unnamed" to (party.name ?: lang.legacy("command.migrated.party_chat.common.unnamed")), "current_tag" to currentTag))
         }
 
-        player.sendMessage("§6========================")
-        player.sendMessage("§7Use §f/pc switch <name> §7to switch")
+        player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.blank_line_4"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.use_pc_switch_name_to_switch"))
     }
 
     @Subcommand("toggle")
@@ -194,9 +196,9 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
         // Show appropriate message based on new state
         if (newVisibilityState) {
-            player.sendMessage("§a✅ Party chat: §nON")
-            player.sendMessage("§7You will now see party messages in your chat")
-            player.sendMessage("§7Use §f/pc switch <party> §7to also send to a party channel")
+            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.party_chat_on"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.you_will_now_see_party_messages_in"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.use_pc_switch_party_to_also_send"))
         } else {
             // When toggling OFF, also clear the active party preference so the player's
             // messages go to global chat. Leaving the preference while visibility is off
@@ -206,13 +208,13 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
             if (hadActiveParty) {
                 val removed = preferenceRepository.removeByPlayerId(playerId)
                 if (!removed) {
-                    player.sendMessage("§c❌ Failed to switch to global chat!")
+                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.failed_to_switch_to_global_chat"))
                     return
                 }
             }
-            player.sendMessage("§e⚠️ Party chat: §nOFF")
-            player.sendMessage("§7You will no longer see party messages")
-            player.sendMessage("§7Your messages now go to global chat")
+            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.party_chat_off"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.you_will_no_longer_see_party_messages"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.your_messages_now_go_to_global_chat"))
         }
     }
 
@@ -222,17 +224,17 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
     fun onHelp(player: Player) {
         if (!checkPartiesEnabled(player)) return
 
-        player.sendMessage("§6=== Party Chat Commands ===")
-        player.sendMessage("§f/pc §7- Show current party info")
-        player.sendMessage("§f/pc <message> §7- Send message to current party")
-        player.sendMessage("§f/pc switch §7- List available parties")
-        player.sendMessage("§f/pc switch <name> §7- Switch to party or GLOBAL")
-        player.sendMessage("§f/pc toggle §7- Toggle seeing party messages (visibility)")
-        player.sendMessage("§f/pc clear §7- Return to default party")
-        player.sendMessage("§f/pc help §7- Show this help")
-        player.sendMessage("§6=========================")
-        player.sendMessage("§7Use §f/pc switch GLOBAL §7to send to global chat!")
-        player.sendMessage("§7Party preferences persist across restarts!")
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.party_chat_commands"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_show_current_party_info"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_message_send_message_to_current_party"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_switch_list_available_parties"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_switch_name_switch_to_party_or"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_toggle_toggle_seeing_party_messages_visibility"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_clear_return_to_default_party"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_help_show_this_help"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.blank_line"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.use_pc_switch_global_to_send_to"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.help.party_preferences_persist_across_restarts"))
     }
 
     @Subcommand("clear")
@@ -245,13 +247,13 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         if (hadActiveParty) {
             val success = preferenceRepository.removeByPlayerId(playerId)
             if (success) {
-                player.sendMessage("§a✅ Returned to GLOBAL chat")
-                player.sendMessage("§7Your messages will now go to global chat")
+                player.sendMessage(lang.msg("command.migrated.party_chat.clear.returned_to_global_chat"))
+                player.sendMessage(lang.msg("command.migrated.party_chat.clear.your_messages_will_now_go_to_global"))
             } else {
-                player.sendMessage("§c❌ Failed to clear party preference!")
+                player.sendMessage(lang.msg("command.migrated.party_chat.clear.failed_to_clear_party_preference"))
             }
         } else {
-            player.sendMessage("§7You are already using global chat")
+            player.sendMessage(lang.msg("command.migrated.party_chat.switch.you_are_already_using_global_chat"))
         }
 
         // Show current party info after clearing
@@ -264,8 +266,8 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         val party = getCurrentActiveParty(playerId)
 
         if (party == null) {
-            player.sendMessage("§a✅ You are currently using §nGLOBAL§a chat")
-            player.sendMessage("§7Your messages go to global chat, not party chat")
+            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.you_are_currently_using_global_chat"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.your_messages_go_to_global_chat_not"))
 
             // Show available parties
             val playerGuildIds = getPlayerGuildIds(playerId)
@@ -275,8 +277,8 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
                 }.toSet()
 
                 if (activeParties.isNotEmpty()) {
-                    player.sendMessage("§7Available parties: §f${activeParties.size}")
-                    player.sendMessage("§7Use §f/pc switch §7to see and join a party")
+                    player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.available_parties", "size" to activeParties.size))
+                    player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_switch_to_see_and_join"))
                 }
             }
             return
@@ -284,21 +286,32 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
         // Verify the party is still active
         if (!party.isActive()) {
-            player.sendMessage("§c❌ Your active party is no longer available!")
+            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.your_active_party_is_no_longer_available"))
             preferenceRepository.removeByPlayerId(playerId) // Clear the invalid reference
             return
         }
 
-        player.sendMessage("§6=== Current Party ===")
-        player.sendMessage("§7Name: §f${party.name ?: "Unnamed"}")
-        player.sendMessage("§7Guilds: §f${party.guildIds.size}")
-        player.sendMessage("§7Restrictions: §f${if (party.hasRoleRestrictions()) "Role-restricted" else "Open to all"}")
-        player.sendMessage("§7Expires: §f${party.expiresAt?.let { "in ${java.time.Duration.between(java.time.Instant.now(), it).toHours()}h" } ?: "Never"}")
-        player.sendMessage("§7Status: §aActive (you are sending to this party)")
-        player.sendMessage("§6=====================")
-        player.sendMessage("§7Use §f/pc <message> §7to send a message")
-        player.sendMessage("§7Use §f/pc switch §7to see other parties")
-        player.sendMessage("§7Use §f/pc switch GLOBAL §7to return to global chat")
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.current_party"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.name", "unnamed" to (party.name ?: lang.legacy("command.migrated.party_chat.common.unnamed"))))
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.guilds", "size" to party.guildIds.size))
+        val restrictions = if (party.hasRoleRestrictions()) {
+            lang.legacy("command.migrated.party_chat.showcurrentpartyinfo.role_restricted")
+        } else {
+            lang.legacy("command.migrated.party_chat.showcurrentpartyinfo.open_to_all")
+        }
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.restrictions", "all" to restrictions))
+        val expiry = party.expiresAt?.let {
+            lang.legacy(
+                "command.migrated.party_chat.showcurrentpartyinfo.expires_in_hours",
+                "hours" to java.time.Duration.between(java.time.Instant.now(), it).toHours(),
+            )
+        } ?: lang.legacy("command.migrated.party_chat.showcurrentpartyinfo.never")
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.expires_h", "h" to expiry))
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.status_active_you_are_sending_to_this"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.blank_line"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_message_to_send_a_message"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_switch_to_see_other_parties"))
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_switch_global_to_return_to"))
     }
 
     private fun findPartyByName(playerId: UUID, partyName: String): net.lumalyte.lg.domain.entities.Party? {
@@ -327,13 +340,13 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         val success = preferenceRepository.save(preference)
 
         if (success) {
-            player.sendMessage("§a✅ Switched to party: §f${party.name ?: "Unnamed"}")
-            player.sendMessage("§7All your messages will now go to this party chat!")
-            player.sendMessage("§7Use §f/pc §7to see current party info")
-            player.sendMessage("§7Use §f/pc switch GLOBAL §7to return to global chat")
-            player.sendMessage("§7§oThis preference will persist across server restarts!")
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.switched_to_party", "unnamed" to (party.name ?: lang.legacy("command.migrated.party_chat.common.unnamed"))))
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.all_your_messages_will_now_go_to"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.use_pc_to_see_current_party_info"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_switch_global_to_return_to"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.this_preference_will_persist_across_server_restarts"))
         } else {
-            player.sendMessage("§c❌ Failed to save party preference!")
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.failed_to_save_party_preference"))
         }
     }
 
@@ -342,15 +355,15 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         val party = getCurrentActiveParty(playerId)
 
         if (party == null) {
-            player.sendMessage("§c❌ You are not in an active party!")
-            player.sendMessage("§7Use §f/pc <partyname> §7to switch to a party first")
+            player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.you_are_not_in_an_active_party"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.use_pc_partyname_to_switch_to_a"))
             return
         }
 
         // Verify the party is still active
         if (!party.isActive()) {
-            player.sendMessage("§c❌ Your active party is no longer available!")
-            player.sendMessage("§7The party may have been disbanded or expired.")
+            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.your_active_party_is_no_longer_available"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.the_party_may_have_been_disbanded_or"))
             preferenceRepository.removeByPlayerId(playerId) // Clear the invalid reference
             return
         }
@@ -358,20 +371,20 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         // Check if player can join this party (role restrictions)
         val playerGuilds = getPlayerGuildIds(playerId)
         val playerGuildId = playerGuilds.firstOrNull() ?: run {
-            player.sendMessage("§c❌ You are not in any guild!")
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.you_are_not_in_any_guild"))
             return
         }
         val playerRankId = getPlayerRankInGuild(playerId, playerGuildId)
 
         if (playerRankId != null && !party.canPlayerJoin(playerRankId)) {
-            player.sendMessage("§c❌ You don't have permission to chat in this party!")
+            player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.you_don_t_have_permission_to_chat"))
             return
         }
 
         // Check if player is banned from this party/channel
         if (party.isPlayerBanned(playerId)) {
-            player.sendMessage("§c❌ You are banned from this channel!")
-            player.sendMessage("§7Contact a moderator to appeal.")
+            player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.you_are_banned_from_this_channel"))
+            player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.contact_a_moderator_to_appeal"))
             return
         }
 
@@ -383,12 +396,12 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
                 val remaining = Duration.between(Instant.now(), muteExpiration)
                 val hours = remaining.toHours()
                 val minutes = remaining.toMinutes() % 60
-                player.sendMessage("§c❌ You are muted in this channel!")
-                player.sendMessage("§7Time remaining: §f${hours}h ${minutes}m")
+                player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.you_are_muted_in_this_channel"))
+                player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.time_remaining_h_m", "hours" to hours, "minutes" to minutes))
             } else {
                 // Permanent mute
-                player.sendMessage("§c❌ You are permanently muted in this channel!")
-                player.sendMessage("§7Contact a moderator to appeal.")
+                player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.you_are_permanently_muted_in_this_channel"))
+                player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.contact_a_moderator_to_appeal"))
             }
             return
         }
@@ -400,12 +413,12 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
             // Check if there are any online party members to provide better feedback
             val onlineMembers = partyService.getOnlinePartyMembers(party.id)
             if (onlineMembers.isEmpty()) {
-                player.sendMessage("§e⚠️ No party members are currently online to receive your message")
-                player.sendMessage("§7Your message was not sent because there are no recipients")
+                player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.no_party_members_are_currently_online_to"))
+                player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.your_message_was_not_sent_because_there"))
             } else {
                 // Other reason for failure
-                player.sendMessage("§c❌ Failed to send party message!")
-                player.sendMessage("§7Some party members may have party chat visibility disabled")
+                player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.failed_to_send_party_message"))
+                player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.some_party_members_may_have_party_chat"))
             }
         }
         // Note: No success message is sent to avoid spam
