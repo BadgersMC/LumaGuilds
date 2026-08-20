@@ -68,11 +68,11 @@ class MenuTitleBuilderTest {
     // ---------------------------------------------------------------
 
     @Test
-    fun `positioning prefix is always shift -8`() {
+    fun `positioning prefix is always shift -9`() {
         val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3)
         assertTrue(
-            title.startsWith("<shift:-8>"),
-            "Expected title '$title' to start with '<shift:-8>'"
+            title.startsWith("<shift:-9>"),
+            "Expected title '$title' to start with '<shift:-9>'"
         )
     }
 
@@ -133,7 +133,7 @@ class MenuTitleBuilderTest {
     @Test
     fun `title text appears after rewind shift`() {
         val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3, "⚔ My Guild")
-        val expectedEnd = "<shift:-241>§f⚔ My Guild"
+        val expectedEnd = "<shift:-239>§f⚔ My Guild"
         assertTrue(
             title.endsWith(expectedEnd),
             "Expected title '$title' to end with '$expectedEnd'"
@@ -153,7 +153,7 @@ class MenuTitleBuilderTest {
     fun `background glyph appears before rewind and title`() {
         val title = MenuTitleBuilder.build(GuiTheme.MOSSBOUND, 4, "Info")
         val glyphIdx = title.indexOf("<glyph:guild_bg_mossbound_4_row>")
-        val rewindIdx = title.indexOf("<shift:-241>")
+        val rewindIdx = title.indexOf("<shift:-239>")
         val textIdx = title.indexOf("§fInfo")
         assertTrue(glyphIdx >= 0, "Glyph must be present")
         assertTrue(rewindIdx > glyphIdx, "Rewind shift must come after glyph (got idx $rewindIdx vs $glyphIdx)")
@@ -177,7 +177,7 @@ class MenuTitleBuilderTest {
     @Test
     fun `three row menu with title`() {
         val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3, "⚔ Dashboard")
-        assertTrue(title.startsWith("<shift:-8>"), "3-row must start with shift:-8")
+        assertTrue(title.startsWith("<shift:-9>"), "3-row must start with shift:-9")
         assertTrue(title.contains("<glyph:guild_bg_neutral_3_row>"), "3-row must use 3_row glyph")
         assertTrue(title.contains("§f⚔ Dashboard"), "Title text must be present")
     }
@@ -185,7 +185,7 @@ class MenuTitleBuilderTest {
     @Test
     fun `six row menu with title`() {
         val title = MenuTitleBuilder.build(GuiTheme.CARVED_SLATE, 6, "Member Management")
-        assertTrue(title.startsWith("<shift:-8>"), "6-row must start with shift:-8")
+        assertTrue(title.startsWith("<shift:-9>"), "6-row must start with shift:-9")
         assertTrue(title.contains("<glyph:guild_bg_carved_slate_6_row>"), "6-row must use 6_row glyph")
         assertTrue(title.contains("§fMember Management"), "Title text must be present")
     }
