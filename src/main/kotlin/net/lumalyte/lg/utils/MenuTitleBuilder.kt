@@ -26,7 +26,7 @@ package net.lumalyte.lg.utils
 object MenuTitleBuilder {
 
     /** Horizontal prefix that places the glyph at the window origin. */
-    private const val GLYPH_PREFIX: String = "<shift:6>"
+    private const val GLYPH_PREFIX: String = "<shift:-7>"
 
     /**
      * Returns a ChestGui title string that renders a Nexo font-glyph
