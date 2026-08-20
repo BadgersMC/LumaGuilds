@@ -165,7 +165,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("command.migrated.guild.create.open_menu_guild_menu"))
 
             // Broadcast guild creation to all online players
-            val creationMessage = lang.msg("command.migrated.guild.create.a_new_guild_has_been_founded_by", "name" to name, "player" to player.name)
+            val creationMessage = lang.legacy("command.migrated.guild.create.a_new_guild_has_been_founded_by", "name" to name, "player" to player.name)
             net.lumalyte.lg.utils.ChatUtils.broadcastMessage(creationMessage, player)
 
             // Log the guild creation
@@ -479,13 +479,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
             allHomes.homes.forEach { entry ->
                 val name = entry.key
                 val home = entry.value
+                val marker = if (name == "main") lang.legacy("command.migrated.guild.homes.main") else ""
                 val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
-                val row = if (name == "main") {
-                    lang.msg("command.migrated.guild.homes.home_row_main", "name" to name, "world_name" to worldName)
-                } else {
-                    lang.msg("command.migrated.guild.homes.home_row", "name" to name, "world_name" to worldName)
-                }
-                player.sendMessage(row)
+                player.sendMessage(lang.msg("command.migrated.guild.homes.blank_line", "name" to name, "marker" to marker, "world_name" to worldName))
             }
             player.sendMessage(lang.msg("command.migrated.guild.homes.use_guild_home_name_to_teleport_to"))
         } else {
@@ -872,7 +868,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
             if (!canSwitch) {
                 val cooldownMsg = getCooldownMessage(guild, mainConfig.guild.modeSwitchCooldownDays)
-                player.sendMessage(lang.msg("command.migrated.guild.mode.cooldown_prefix").append(cooldownMsg))
+                player.sendMessage(lang.msg("command.migrated.guild.mode.blank_line", "cooldown_msg" to cooldownMsg))
                 return
             }
         } else if (guildMode == GuildMode.HOSTILE) {
@@ -881,7 +877,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
             if (!canSwitch) {
                 val lockMsg = getHostileLockMessage(guild, mainConfig.guild.hostileModeMinimumDays)
-                player.sendMessage(lang.msg("command.migrated.guild.mode.lock_prefix").append(lockMsg))
+                player.sendMessage(lang.msg("command.migrated.guild.mode.blank_line_2", "lock_msg" to lockMsg))
                 return
             }
         }
@@ -911,32 +907,32 @@ class GuildCommand : BaseCommand(), KoinComponent {
         return java.time.Instant.now().isAfter(lockEnd)
     }
 
-    private fun getCooldownMessage(guild: Guild, cooldownDays: Int): Component {
-        val modeChanged = guild.modeChangedAt ?: return lang.msg("command.migrated.guild.mode.no_previous_changes")
+    private fun getCooldownMessage(guild: Guild, cooldownDays: Int): String {
+        val modeChanged = guild.modeChangedAt ?: return lang.legacy("command.migrated.guild.mode.no_previous_changes")
 
         val cooldownEnd = modeChanged.plus(java.time.Duration.ofDays(cooldownDays.toLong()))
         val remaining = java.time.Duration.between(java.time.Instant.now(), cooldownEnd)
 
-        if (remaining.isNegative) return lang.msg("command.migrated.guild.mode.cooldown_expired")
+        if (remaining.isNegative) return lang.legacy("command.migrated.guild.mode.cooldown_expired")
 
         val days = remaining.toDays()
         val hours = remaining.toHours() % 24
 
-        return lang.msg("command.migrated.guild.mode.switch_to_peaceful", "days" to days, "hours" to hours)
+        return lang.legacy("command.migrated.guild.mode.switch_to_peaceful", "days" to days, "hours" to hours)
     }
 
-    private fun getHostileLockMessage(guild: Guild, minimumDays: Int): Component {
-        val modeChanged = guild.modeChangedAt ?: return lang.msg("command.migrated.guild.mode.no_previous_changes")
+    private fun getHostileLockMessage(guild: Guild, minimumDays: Int): String {
+        val modeChanged = guild.modeChangedAt ?: return lang.legacy("command.migrated.guild.mode.no_previous_changes")
 
         val lockEnd = modeChanged.plus(java.time.Duration.ofDays(minimumDays.toLong()))
         val remaining = java.time.Duration.between(java.time.Instant.now(), lockEnd)
 
-        if (remaining.isNegative) return lang.msg("command.migrated.guild.mode.lock_expired")
+        if (remaining.isNegative) return lang.legacy("command.migrated.guild.mode.lock_expired")
 
         val days = remaining.toDays()
         val hours = remaining.toHours() % 24
 
-        return lang.msg("command.migrated.guild.mode.switch_to_hostile", "days" to days, "hours" to hours)
+        return lang.legacy("command.migrated.guild.mode.switch_to_hostile", "days" to days, "hours" to hours)
     }
     
     @Subcommand("history")
@@ -977,29 +973,18 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         history.forEachIndexed { index, entry ->
             val guildName = guildService.getGuild(entry.guildId)?.name
+            val guildDisplay = if (guildName != null) lang.legacy("command.migrated.guild.history.blank_line", "guild" to guildName) else lang.legacy("command.migrated.guild.history.unknown")
             val joinDate = formatter.format(entry.joinedAt)
 
-            val suffix: Component? = when {
-                entry.isOpen -> lang.msg("command.migrated.guild.history.current")
-                entry.departureReason == DepartureReason.LEFT -> lang.msg("command.migrated.guild.history.left")
-                entry.departureReason == DepartureReason.KICKED -> lang.msg("command.migrated.guild.history.kicked")
-                entry.departureReason == DepartureReason.DISBANDED -> lang.msg("command.migrated.guild.history.guild_disbanded")
-                else -> null
+            val suffix = when {
+                entry.isOpen -> lang.legacy("command.migrated.guild.history.current")
+                entry.departureReason == DepartureReason.LEFT -> lang.legacy("command.migrated.guild.history.left")
+                entry.departureReason == DepartureReason.KICKED -> lang.legacy("command.migrated.guild.history.kicked")
+                entry.departureReason == DepartureReason.DISBANDED -> lang.legacy("command.migrated.guild.history.guild_disbanded")
+                else -> ""
             }
 
-            var row = lang.msg("command.migrated.guild.history.joined_prefix", "index" to index + 1)
-                .append(
-                    if (guildName != null) {
-                        lang.msg("command.migrated.guild.history.guild", "guild" to guildName)
-                    } else {
-                        lang.msg("command.migrated.guild.history.unknown")
-                    },
-                )
-                .append(lang.msg("command.migrated.guild.history.joined_date", "join_date" to joinDate))
-            if (suffix != null) {
-                row = row.append(lang.msg("command.migrated.guild.history.status_separator")).append(suffix)
-            }
-            player.sendMessage(row)
+            player.sendMessage(lang.msg("command.migrated.guild.history.joined", "index" to index + 1, "guild_display" to guildDisplay, "join_date" to joinDate, "suffix" to suffix))
         }
 
         player.sendMessage(lang.msg("command.migrated.guild.history.blank_line_2", "length" to "═".repeat(20 + displayName.length)))
@@ -1138,11 +1123,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
         for ((guildId, count) in counts.entries.sortedByDescending { it.value }) {
             val guild = nameById[guildId]
             val label = guild?.let { GuildResolver.displayName(it) } ?: guildId.toString().take(8)
-            var row = lang.msg("command.migrated.guild.strikes.strike_s", "index" to ++index, "label" to label, "count" to count)
-            if (threshold > 0 && (activeCounts[guildId] ?: 0) >= threshold) {
-                row = row.append(lang.msg("command.migrated.guild.strikes.up_for_penalty"))
-            }
-            player.sendMessage(row)
+            val flag = if (threshold > 0 && (activeCounts[guildId] ?: 0) >= threshold) lang.legacy("command.migrated.guild.strikes.up_for_penalty") else ""
+            player.sendMessage(lang.msg("command.migrated.guild.strikes.strike_s", "index" to ++index, "label" to label, "count" to count, "flag" to flag))
         }
         player.sendMessage(lang.msg("command.migrated.guild.strikes.run_g_strikes_guild_for_the_punishments"))
     }
@@ -1185,11 +1167,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         val activeCount = strikes.count { it.active }
-        var header = lang.msg("command.migrated.guild.showguildstrikedetails.lumaguilds_strike_s", "name" to name, "size" to strikes.size)
-        if (threshold > 0 && activeCount >= threshold) {
-            header = header.append(lang.msg("command.migrated.guild.strikes.up_for_penalty"))
+        val status = if (threshold > 0 && activeCount >= threshold) {
+            lang.legacy("command.migrated.guild.strikes.up_for_penalty")
+        } else {
+            ""
         }
-        player.sendMessage(header)
+        player.sendMessage(lang.msg("command.migrated.guild.showguildstrikedetails.lumaguilds_strike_s", "name" to name, "size" to strikes.size, "status" to status))
         if (threshold > 0) {
             player.sendMessage(lang.msg("command.migrated.guild.showguildstrikedetails.penalty_threshold_active_strikes", "threshold" to threshold))
         }
@@ -1198,24 +1181,25 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // would otherwise flood the player's chat.
         val maxShown = 15
         strikes.take(maxShown).forEach { strike ->
-            val type = strike.punishmentType.uppercase()
-            val playerName = strike.playerName ?: strike.playerUuid.toString().take(8)
-            var row = when (type) {
-                "BAN" -> lang.msg("command.migrated.guild.showguildstrikedetails.row_ban", "type" to type, "player" to playerName)
-                "MUTE" -> lang.msg("command.migrated.guild.showguildstrikedetails.row_mute", "type" to type, "player" to playerName)
-                "KICK" -> lang.msg("command.migrated.guild.showguildstrikedetails.row_kick", "type" to type, "player" to playerName)
-                else -> lang.msg("command.migrated.guild.showguildstrikedetails.row_other", "type" to type, "player" to playerName)
+            val typeColor = when (strike.punishmentType.uppercase()) {
+                "BAN" -> lang.legacy("command.migrated.guild.showguildstrikedetails.blank_line")
+                "MUTE" -> lang.legacy("command.migrated.guild.showguildstrikedetails.blank_line_2")
+                "KICK" -> lang.legacy("command.migrated.guild.showguildstrikedetails.blank_line_3")
+                else -> lang.legacy("command.common.blank_line")
             }
-            strike.reason?.takeIf { it.isNotBlank() }?.let {
-                row = row.append(lang.msg("command.migrated.guild.showguildstrikedetails.reason", "reason" to it.take(80)))
-            }
-            strike.executorName?.let {
-                row = row.append(lang.msg("command.migrated.guild.showguildstrikedetails.by", "executor" to it))
-            }
-            row = row.append(
+            val lifted = if (strike.active) "" else lang.legacy("command.migrated.guild.showguildstrikedetails.lifted")
+            val reason = strike.reason?.takeIf { it.isNotBlank() }?.let { lang.legacy("command.migrated.guild.showguildstrikedetails.blank_line_4", "take" to it.take(80)) } ?: ""
+            val by = strike.executorName?.let { lang.legacy("command.migrated.guild.showguildstrikedetails.by", "it" to it) } ?: ""
+            player.sendMessage(
                 lang.msg(
-                    "command.migrated.guild.showguildstrikedetails.issued_at",
+                    "command.migrated.guild.showguildstrikedetails.row",
+                    "type_color" to typeColor,
+                    "uppercase" to strike.punishmentType.uppercase(),
+                    "player" to (strike.playerName ?: strike.playerUuid.toString().take(8)),
+                    "reason" to reason,
+                    "by" to by,
                     "issued_at" to formatStrikeDate(strike.issuedAt),
+                    "lifted" to lifted,
                 ),
             )
             if (!strike.active) {
@@ -1699,7 +1683,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 successorPlayer.sendMessage(lang.msg("command.migrated.guild.leave.use_guild_menu_to_manage_your_guild"))
             }
 
-            player.sendMessage(lang.msg("command.migrated.guild.leave.ownership_automatically_transferred_to", "rank" to (successorPlayer?.name ?: lang.raw("command.migrated.guild.leave.next_highest_rank"))))
+            player.sendMessage(lang.msg("command.migrated.guild.leave.ownership_automatically_transferred_to", "rank" to (successorPlayer?.name ?: lang.legacy("command.migrated.guild.leave.next_highest_rank"))))
         }
 
         // Remove player from guild
@@ -1829,13 +1813,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         val nameFilterConfig2 = configService.loadConfig().guild.nameFilter
-        net.lumalyte.lg.utils.GuildTagValidator.validationFailure(tag, nameFilterConfig2)?.let { failure ->
-            when (failure) {
-                is net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag ->
-                    player.sendMessage(lang.msg("command.guild.tag.validation.interactive", "tag" to failure.tagName))
-                net.lumalyte.lg.utils.GuildTagValidator.Failure.InappropriateContent ->
-                    player.sendMessage(lang.msg("command.guild.tag.validation.inappropriate"))
-            }
+        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag, nameFilterConfig2)?.let { reason ->
+            player.sendMessage(lang.msg("command.migrated.guild.create.blank_line", "reason" to reason))
             return
         }
 
@@ -2003,6 +1982,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
         )
 
         val config = configService.loadConfig()
+
+        // Check if location is safe (if safety check is enabled)
+        if (config.guild.homeTeleportSafetyCheck) {
+            val safetyResult = GuildHomeSafety.evaluateSafety(location)
+            if (!safetyResult.safe) {
+                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.warning_that_home_looks_unsafe", "reason" to safetyResult.reason))
+                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.use_guild_sethome_confirm_within_10s_to"))
+                return
+            }
+        }
 
         val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
 
@@ -2247,11 +2236,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
         val found = HelpTopics.bySlug(topic)
         if (found == null) {
-            player.sendMessage(
-                lang.msg("command.guild.help.unknown_topic_prefix")
-                    .append(Component.text(topic, NamedTextColor.YELLOW))
-                    .append(lang.msg("command.guild.help.unknown_topic_suffix")),
-            )
+            val helpCommand = Component.text("/g help", NamedTextColor.YELLOW)
+                .clickEvent(ClickEvent.runCommand("/g help"))
+            player.sendMessage(lang.msg(
+                "command.guild.help.unknown_topic",
+                "topic" to topic,
+                "help_command" to helpCommand,
+            ))
             return
         }
         player.sendMessage(renderer.renderTopicPage(found, lang))
@@ -2391,7 +2382,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             notifyGuildMembers(targetGuild.id, lang.msg("command.migrated.guild.enemy.has_declared_war_on_your_guild", "guild" to guild.name))
 
             // Broadcast to all online players
-            net.lumalyte.lg.utils.ChatUtils.broadcastMessage(lang.msg("command.migrated.guild.enemy.has_declared_war_on", "guild" to guild.name, "guild_2" to targetGuild.name), player)
+            net.lumalyte.lg.utils.ChatUtils.broadcastMessage(lang.legacy("command.migrated.guild.enemy.has_declared_war_on", "guild" to guild.name, "guild_2" to targetGuild.name), player)
         } else {
             player.sendMessage(lang.msg("command.migrated.guild.enemy.failed_to_declare_war"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
