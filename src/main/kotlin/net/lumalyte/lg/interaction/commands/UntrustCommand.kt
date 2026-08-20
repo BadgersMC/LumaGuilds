@@ -31,7 +31,7 @@ class UntrustCommand : ClaimCommand(), KoinComponent {
         val claimId = partition.claimId
         val playerId = player.uniqueId
         val targetPlayerId = targetPlayer.player.uniqueId
-        val targetPlayerName = targetPlayer.player.displayName()
+        val targetPlayerName = targetPlayer.player.name
 
         // Execute action to revoke permission and fetch associated locale text
         val outcome = revokePlayerClaimPermission.execute(claimId, targetPlayerId, permission)
