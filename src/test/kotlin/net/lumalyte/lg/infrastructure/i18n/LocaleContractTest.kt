@@ -6,16 +6,29 @@ import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.nodes.MappingNode
+import org.yaml.snakeyaml.nodes.Node
+import org.yaml.snakeyaml.nodes.ScalarNode
+import org.yaml.snakeyaml.nodes.Tag
 import java.io.InputStreamReader
+import java.io.StringReader
 import java.nio.file.Files
 import java.nio.file.Path
 
 class LocaleContractTest {
 
     private val projectRoot = Path.of(System.getProperty("user.dir"))
-    private val declaredDynamicKeys =
-        ClaimPermission.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet() +
-            Flag.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
+    private val claimPermissionDynamicKeys = ClaimPermission.entries
+        .flatMap { listOf(it.nameKey, it.loreKey) }
+        .toSet()
+    private val flagDynamicKeys = Flag.entries
+        .flatMap { listOf(it.nameKey, it.loreKey) }
+        .toSet()
+    // Current finite menu-state enums do not construct LangService keys. Keep the family explicit so new
+    // enum-backed menu states must be declared here instead of excluding an entire locale namespace.
+    private val finiteMenuStateKeys = emptySet<String>()
+    private val declaredDynamicKeys = claimPermissionDynamicKeys + flagDynamicKeys + finiteMenuStateKeys
 
     @Test
     fun `locale contains no positional placeholders`() {
@@ -57,6 +70,27 @@ class LocaleContractTest {
     }
 
     @Test
+    fun `strict yaml parser accepts every locale root and mapping key`() {
+        assertEquals(emptyList<String>(), strictYamlErrors(localeResourceText()))
+    }
+
+    @Test
+    fun `strict yaml parser rejects typed root mapping keys`() {
+        assertEquals(
+            listOf("<root>: mapping key is not a string"),
+            strictYamlErrors("1: value\n"),
+        )
+    }
+
+    @Test
+    fun `finite dynamic localization families are declared exactly`() {
+        val permissionKeys = ClaimPermission.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
+        val flagKeys = Flag.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
+
+        assertEquals(permissionKeys + flagKeys + finiteMenuStateKeys, declaredDynamicKeys)
+    }
+
+    @Test
     fun `source scanner separates literal and dynamic localization calls`() {
         val root = Files.createTempDirectory("locale-source-scanner")
         val source = root.resolve("ScannerFixture.kt")
@@ -64,6 +98,10 @@ class LocaleContractTest {
             source,
             """
             fun render(lang: Any, key: String) {
+                // lang.msg("commented.line")
+                /* lang.legacy("commented.block") */
+                val ordinary = "lang.raw(\\\"ordinary.string\\\")"
+                val raw = ${"\"\"\""}lang.msg("triple.quoted")${"\"\"\""}
                 lang.msg("command.guild.invite.success", "player" to "Ada")
                 lang.legacy("menu.guild.title")
                 lang.raw(key)
@@ -136,6 +174,45 @@ class LocaleContractTest {
     private fun localeResourceLines(): List<String> {
         val stream = requireNotNull(javaClass.classLoader.getResourceAsStream("lang/en_US.yml"))
         return stream.use { InputStreamReader(it, Charsets.UTF_8).readLines() }
+    }
+
+    private fun localeResourceText(): String {
+        val stream = requireNotNull(javaClass.classLoader.getResourceAsStream("lang/en_US.yml"))
+        return stream.use { InputStreamReader(it, Charsets.UTF_8).readText() }
+    }
+
+    private fun strictYamlErrors(yaml: String): List<String> {
+        val root = Yaml().compose(StringReader(yaml))
+        if (root !is MappingNode) return listOf("<root>: locale must be a mapping")
+
+        val errors = mutableListOf<String>()
+        inspectMapping(root, "<root>", errors)
+        return errors
+    }
+
+    private fun inspectMapping(mapping: MappingNode, path: String, errors: MutableList<String>) {
+        val keys = mutableListOf<String>()
+        mapping.value.forEach { tuple ->
+            val key = tuple.keyNode as? ScalarNode
+            if (key == null || key.tag != Tag.STR) {
+                errors += "$path: mapping key is not a string"
+                return@forEach
+            }
+            keys += key.value
+            inspectValue(tuple.valueNode, "$path.${key.value}", errors)
+        }
+        keys.groupingBy { it }.eachCount()
+            .filterValues { it > 1 }
+            .keys
+            .forEach { errors += "$path: duplicate mapping key '$it'" }
+    }
+
+    private fun inspectValue(value: Node, path: String, errors: MutableList<String>) {
+        when (value) {
+            is MappingNode -> inspectMapping(value, path, errors)
+            is ScalarNode -> if (value.tag != Tag.STR) errors += "$path: scalar value is not a string"
+            else -> errors += "$path: locale value must be a mapping or string"
+        }
     }
 
     private fun flatten(locale: YamlConfiguration): Map<String, String> =

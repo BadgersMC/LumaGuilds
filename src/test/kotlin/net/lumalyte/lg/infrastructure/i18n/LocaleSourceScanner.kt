@@ -86,15 +86,16 @@ object LocaleSourceScanner {
         playerTextCandidates: MutableList<PlayerTextCandidate>,
     ) {
         val source = Files.readString(file)
+        val executableSource = executableMask(source)
         source.lineSequence().forEachIndexed { index, line ->
             if ('§' in line) {
                 playerTextCandidates += PlayerTextCandidate(file, index + 1, line.trim())
             }
         }
 
-        rendererCall.findAll(source).forEach { match ->
-            val openParenthesis = source.indexOf('(', match.range.first)
-            val callSource = source.substring(openParenthesis + 1, callEnd(source, openParenthesis)).trim()
+        rendererCall.findAll(executableSource).forEach { match ->
+            val openParenthesis = executableSource.indexOf('(', match.range.first)
+            val callSource = source.substring(openParenthesis + 1, callEnd(executableSource, openParenthesis)).trim()
             val line = source.substring(0, match.range.first).count { it == '\n' } + 1
             val literal = literalKey.find(callSource)
 
@@ -140,6 +141,106 @@ object LocaleSourceScanner {
             }
         }
         return source.length
+    }
+
+    private fun executableMask(source: String): String {
+        val masked = source.toCharArray()
+        var index = 0
+        var state = KotlinLexicalState.CODE
+
+        fun maskCurrent() {
+            if (masked[index] != '\n' && masked[index] != '\r') masked[index] = ' '
+        }
+
+        while (index < source.length) {
+            when (state) {
+                KotlinLexicalState.CODE -> when {
+                    source.startsWith("//", index) -> {
+                        maskCurrent()
+                        masked[index + 1] = ' '
+                        index += 2
+                        state = KotlinLexicalState.LINE_COMMENT
+                    }
+                    source.startsWith("/*", index) -> {
+                        maskCurrent()
+                        masked[index + 1] = ' '
+                        index += 2
+                        state = KotlinLexicalState.BLOCK_COMMENT
+                    }
+                    source.startsWith("\"\"\"", index) -> {
+                        repeat(3) { masked[index + it] = ' ' }
+                        index += 3
+                        state = KotlinLexicalState.TRIPLE_QUOTED_STRING
+                    }
+                    source[index] == '\"' -> {
+                        maskCurrent()
+                        index++
+                        state = KotlinLexicalState.STRING
+                    }
+                    source[index] == '\'' -> {
+                        maskCurrent()
+                        index++
+                        state = KotlinLexicalState.CHARACTER
+                    }
+                    else -> index++
+                }
+                KotlinLexicalState.LINE_COMMENT -> {
+                    if (source[index] == '\n') {
+                        index++
+                        state = KotlinLexicalState.CODE
+                    } else {
+                        maskCurrent()
+                        index++
+                    }
+                }
+                KotlinLexicalState.BLOCK_COMMENT -> {
+                    if (source.startsWith("*/", index)) {
+                        masked[index] = ' '
+                        masked[index + 1] = ' '
+                        index += 2
+                        state = KotlinLexicalState.CODE
+                    } else {
+                        maskCurrent()
+                        index++
+                    }
+                }
+                KotlinLexicalState.TRIPLE_QUOTED_STRING -> {
+                    if (source.startsWith("\"\"\"", index)) {
+                        repeat(3) { masked[index + it] = ' ' }
+                        index += 3
+                        state = KotlinLexicalState.CODE
+                    } else {
+                        maskCurrent()
+                        index++
+                    }
+                }
+                KotlinLexicalState.STRING, KotlinLexicalState.CHARACTER -> {
+                    val quote = if (state == KotlinLexicalState.STRING) '\"' else '\''
+                    if (source[index] == '\\' && index + 1 < source.length) {
+                        maskCurrent()
+                        masked[index + 1] = ' '
+                        index += 2
+                    } else if (source[index] == quote) {
+                        maskCurrent()
+                        index++
+                        state = KotlinLexicalState.CODE
+                    } else {
+                        maskCurrent()
+                        index++
+                    }
+                }
+            }
+        }
+        return String(masked)
+    }
+
+    private enum class KotlinLexicalState {
+        CODE,
+        LINE_COMMENT,
+        BLOCK_COMMENT,
+        STRING,
+        CHARACTER,
+        TRIPLE_QUOTED_STRING,
     }
 
     private fun String.lineAt(index: Int): String =
