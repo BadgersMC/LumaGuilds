@@ -25,9 +25,24 @@ class LocaleContractTest {
     private val flagDynamicKeys = Flag.entries
         .flatMap { listOf(it.nameKey, it.loreKey) }
         .toSet()
-    // Current finite menu-state enums do not construct LangService keys. Keep the family explicit so new
-    // enum-backed menu states must be declared here instead of excluding an entire locale namespace.
-    private val finiteMenuStateKeys = emptySet<String>()
+    private val finiteMenuStateKeys = setOf(
+        "menu.settings.item.mode.lore.hostile",
+        "menu.settings.item.mode.lore.peaceful",
+        "menu.leaderboards.item.activity.name",
+        "menu.leaderboards.item.bank.name",
+        "menu.leaderboards.item.kills.name",
+        "menu.leaderboards.item.level.name",
+        "menu.bank.security.risk.critical",
+        "menu.bank.security.risk.high",
+        "menu.bank.security.risk.low",
+        "menu.bank.security.risk.medium",
+        "menu.bank.stats.activity.high",
+        "menu.bank.stats.activity.low",
+        "menu.bank.stats.activity.moderate",
+        "menu.bank.stats.activity.none",
+        "menu.bank.stats.activity.recent",
+        "menu.bank.stats.activity.very_high",
+    )
     private val declaredDynamicKeys = claimPermissionDynamicKeys + flagDynamicKeys + finiteMenuStateKeys
 
     @Test
@@ -87,7 +102,27 @@ class LocaleContractTest {
         val permissionKeys = ClaimPermission.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
         val flagKeys = Flag.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
 
-        assertEquals(permissionKeys + flagKeys + finiteMenuStateKeys, declaredDynamicKeys)
+        val expectedMenuStateKeys = setOf(
+            "menu.settings.item.mode.lore.hostile",
+            "menu.settings.item.mode.lore.peaceful",
+            "menu.leaderboards.item.activity.name",
+            "menu.leaderboards.item.bank.name",
+            "menu.leaderboards.item.kills.name",
+            "menu.leaderboards.item.level.name",
+            "menu.bank.security.risk.critical",
+            "menu.bank.security.risk.high",
+            "menu.bank.security.risk.low",
+            "menu.bank.security.risk.medium",
+            "menu.bank.stats.activity.high",
+            "menu.bank.stats.activity.low",
+            "menu.bank.stats.activity.moderate",
+            "menu.bank.stats.activity.none",
+            "menu.bank.stats.activity.recent",
+            "menu.bank.stats.activity.very_high",
+        )
+
+        assertEquals(expectedMenuStateKeys, finiteMenuStateKeys)
+        assertEquals(permissionKeys + flagKeys + expectedMenuStateKeys, declaredDynamicKeys)
     }
 
     @Test
@@ -100,8 +135,11 @@ class LocaleContractTest {
             fun render(lang: Any, key: String) {
                 // lang.msg("commented.line")
                 /* lang.legacy("commented.block") */
+                /* outer comment /* nested comment */ lang.raw("after.nested.comment") */
                 val ordinary = "lang.raw(\\\"ordinary.string\\\")"
                 val raw = ${"\"\"\""}lang.msg("triple.quoted")${"\"\"\""}
+                val interpolation = "value ${'$'}{lang.msg("ordinary.interpolation")}" 
+                val rawInterpolation = ${"\"\"\""}value ${'$'}{lang.legacy("triple.interpolation")}${"\"\"\""}
                 lang.msg("command.guild.invite.success", "player" to "Ada")
                 lang.legacy("menu.guild.title")
                 lang.raw(key)
@@ -112,7 +150,15 @@ class LocaleContractTest {
 
         val inventory = LocaleSourceScanner.scan(root)
 
-        assertEquals(setOf("command.guild.invite.success", "menu.guild.title"), inventory.literalKeys)
+        assertEquals(
+            setOf(
+                "command.guild.invite.success",
+                "menu.guild.title",
+                "ordinary.interpolation",
+                "triple.interpolation",
+            ),
+            inventory.literalKeys,
+        )
         assertEquals(setOf("player"), inventory.calls.single { it.key == "command.guild.invite.success" }.placeholderNames)
         assertEquals(1, inventory.dynamicCalls.size)
         assertEquals(1, inventory.playerTextCandidates.size)
@@ -227,7 +273,7 @@ class LocaleContractTest {
     private companion object {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 135
         const val BASELINE_MISSING_KEYS = 0
-        const val BASELINE_UNUSED_KEYS = 388
+        const val BASELINE_UNUSED_KEYS = 372
         const val BASELINE_DYNAMIC_CALLS = 32
         const val BASELINE_HARDCODED_PLAYER_TEXT = 4016
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
