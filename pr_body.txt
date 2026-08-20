@@ -1,0 +1,6 @@
+**Changes:** `MenuTitleBuilder.kt`
+
+- `HORIZONTAL_OFFSET`: `<shift:-8>` -> `<shift:-9>` (1px left)
+- `REWIND_TO_TITLE`: `<shift:-241>` -> `<shift:-239>` (math consistency with new offset)
+
+No other files, no PNGs, no ascent changes. All 49 guild menus pick this up automatically.
