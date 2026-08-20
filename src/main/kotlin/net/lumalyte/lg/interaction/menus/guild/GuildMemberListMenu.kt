@@ -31,7 +31,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
     private val rankService: RankService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6${guild.name} - Members"))
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { event ->
             if (event.click == ClickType.SHIFT_LEFT || event.click == ClickType.SHIFT_RIGHT) {

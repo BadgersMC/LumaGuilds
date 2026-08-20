@@ -87,7 +87,7 @@ class GuildBankStatisticsMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString(LocalizationKeys.MENU_BANK_STATS_TITLE, guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane

@@ -50,7 +50,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         activeMenus.remove(player.uniqueId)
 
         // Create a 3x9 GUI for banner selection
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Guild Banner - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent ->
             // Allow clicks on the banner placement slot (slot 11)

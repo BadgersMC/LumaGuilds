@@ -209,7 +209,7 @@ class GuildBankSecurityMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5))
+        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "Security & Audit - ${guild.name}"))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane

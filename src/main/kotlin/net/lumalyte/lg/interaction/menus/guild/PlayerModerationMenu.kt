@@ -51,7 +51,7 @@ class PlayerModerationMenu(
         }
 
         val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown Player"
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Moderate: $targetName"))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

@@ -39,7 +39,7 @@ class GuildStrikePenaltyConfirmMenu(
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     override fun open() {
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§4§lConfirm - ${penaltyType.name.replace('_', ' ')}"))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { event -> event.isCancelled = true }
         gui.setOnBottomClick { event ->

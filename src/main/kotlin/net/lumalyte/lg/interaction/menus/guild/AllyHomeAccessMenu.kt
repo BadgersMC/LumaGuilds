@@ -51,7 +51,7 @@ class AllyHomeAccessMenu(
             }
         val allowed = current.allyHomeAllowedGuilds.toMutableSet()
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6Ally-home Access"))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick {

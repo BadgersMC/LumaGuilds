@@ -46,7 +46,7 @@ class HomeAccessMenu(
             return
         }
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6Access: $homeName"))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick {

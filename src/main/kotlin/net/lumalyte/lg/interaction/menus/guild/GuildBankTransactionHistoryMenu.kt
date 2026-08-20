@@ -94,7 +94,7 @@ class GuildBankTransactionHistoryMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_TITLE, guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main pane for navigation and filters
@@ -379,7 +379,7 @@ class GuildBankTransactionHistoryMenu(
         }
         val sortedMembers = members.sortedBy { memberNames[it.playerId]?.lowercase() }
 
-        val memberGui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        val memberGui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_TITLE, guild.name)))
         memberGui.setOnGlobalClick { event -> event.isCancelled = true }
 
         val memberPane = PaginatedPane(0, 0, 9, 5)

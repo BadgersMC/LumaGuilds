@@ -39,7 +39,7 @@ class GuildStrikePenaltyMenu(
     private val penaltyService: PenaltyService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§4§lPenalties - ${GuildResolver.displayName(guild)}"))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { event -> event.isCancelled = true }
         gui.setOnBottomClick { event ->

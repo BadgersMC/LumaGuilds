@@ -39,7 +39,7 @@ class GuildSelectionMenu(
     private val itemsPerPage = 45 // 9x5 grid
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6))
+        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6, "§6Select Guilds to Invite"))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

@@ -122,7 +122,7 @@ class GuildBankMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedTitle()))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main pane for balance and quick actions

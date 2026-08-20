@@ -71,7 +71,7 @@ class GuildMemberContributionsMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6${guild.name} - Member Contributions"))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main pane for navigation

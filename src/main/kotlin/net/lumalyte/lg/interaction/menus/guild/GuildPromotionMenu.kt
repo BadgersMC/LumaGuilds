@@ -54,7 +54,7 @@ class GuildPromotionMenu(
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Members — ${guild.name}"))
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
             if (e.click == ClickType.SHIFT_LEFT || e.click == ClickType.SHIFT_RIGHT)

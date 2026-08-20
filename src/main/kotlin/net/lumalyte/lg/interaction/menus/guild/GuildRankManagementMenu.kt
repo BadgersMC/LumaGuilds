@@ -44,7 +44,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
             return
         }
 
-        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5))
+        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6Rank Management - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
