@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.listeners
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 import net.lumalyte.lg.application.actions.claim.partition.CreatePartition
 import net.lumalyte.lg.application.actions.claim.partition.GetPartitionByPosition
@@ -11,7 +13,6 @@ import net.lumalyte.lg.application.actions.player.visualisation.ClearSelectionVi
 import net.lumalyte.lg.application.actions.player.visualisation.DisplaySelectionVisualisation
 import net.lumalyte.lg.application.actions.player.visualisation.DisplayVisualisation
 import net.lumalyte.lg.application.actions.player.visualisation.RefreshVisualisation
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import org.bukkit.Location
 import org.bukkit.entity.Player
@@ -31,7 +32,6 @@ import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.domain.values.Position2D
 import net.lumalyte.lg.interaction.menus.misc.EditToolMenu
 import net.lumalyte.lg.domain.values.Area
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toCustomItemData
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition2D
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
@@ -47,7 +47,7 @@ import kotlin.concurrent.thread
  * Actions based on using the claim tool.
  */
 class EditToolListener: Listener, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val getPartitionByPosition: GetPartitionByPosition by inject()
     private val displayVisualisation: DisplayVisualisation by inject()
     private val createPartition: CreatePartition by inject()
@@ -92,8 +92,7 @@ class EditToolListener: Listener, KoinComponent {
                 clearSelectionVisualisation.execute(event.player.uniqueId)
                 firstSelectedCornerResize.remove(event.player.uniqueId)
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(
-                        event.player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_UNSELECT_RESIZE))
+                    lang.msg("feedback.edit_tool.unselect_resize")
                         .color(TextColor.color(255, 85, 85)))
                 return
             }
@@ -109,8 +108,7 @@ class EditToolListener: Listener, KoinComponent {
                 clearSelectionVisualisation.execute(event.player.uniqueId)
                 firstSelectedCornerCreate.remove(event.player.uniqueId)
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(
-                        event.player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_UNSELECT_BUILD))
+                    lang.msg("feedback.edit_tool.unselect_build")
                         .color(TextColor.color(255, 85, 85)))
                 return
             }
@@ -138,8 +136,7 @@ class EditToolListener: Listener, KoinComponent {
         if (partitionBuilder != null) {
             firstSelectedCornerResize.remove(event.player.uniqueId)
             event.player.sendActionBar(
-                Component.text(localizationProvider.get(event.player.uniqueId,
-                    LocalizationKeys.FEEDBACK_EDIT_TOOL_UNEQUIP_BUILD))
+                lang.msg("feedback.edit_tool.unequip_build")
                 .color(TextColor.color(255, 85, 85)))
             return
         }
@@ -149,8 +146,7 @@ class EditToolListener: Listener, KoinComponent {
         if (partitionResizer != null) {
             firstSelectedCornerCreate.remove(event.player.uniqueId)
             event.player.sendActionBar(
-                Component.text(localizationProvider.get(
-                    event.player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_UNEQUIP_RESIZE))
+                lang.msg("feedback.edit_tool.unequip_resize")
                     .color(TextColor.color(255, 85, 85)))
         }
     }
@@ -163,8 +159,7 @@ class EditToolListener: Listener, KoinComponent {
         val partition = getPartitionByPosition.execute(location.toPosition2D(), location.world.uid)
         if (partition != null) {
             player.sendActionBar(
-                Component.text(localizationProvider.get(
-                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_INVALID))
+                lang.msg("feedback.edit_tool.invalid")
                     .color(TextColor.color(255, 85, 85)))
             thread(start = true) {
                 Thread.sleep(1)
@@ -199,8 +194,7 @@ class EditToolListener: Listener, KoinComponent {
         if (selectedClaim == null) {
             displayVisualisation.execute(player.uniqueId, location.toPosition3D())
             return player.sendActionBar(
-                Component.text(localizationProvider.get(
-                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_INVALID))
+                lang.msg("feedback.edit_tool.invalid")
                     .color(TextColor.color(255, 85, 85)))
         }
 
@@ -209,8 +203,7 @@ class EditToolListener: Listener, KoinComponent {
         // Check if the player already hit their claim block limit
         if (remainingClaimBlockCount < 1) {
             return player.sendActionBar(
-                Component.text(localizationProvider.get(
-                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_INSUFFICIENT))
+                lang.msg("feedback.edit_tool.insufficient", "blocks" to 1)
                     .color(TextColor.color(255, 85, 85)))
         }
 
@@ -222,9 +215,8 @@ class EditToolListener: Listener, KoinComponent {
             displaySelectionVisualisation.execute(player.uniqueId, location.toPosition3D())
         }
         return player.sendActionBar(
-            Component.text(localizationProvider.get(
-                player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_START_EXTENSION,
-                remainingClaimBlockCount)).color(TextColor.color(85, 255, 85)))
+            lang.msg("feedback.edit_tool.start_extension", "remaining_blocks" to remainingClaimBlockCount)
+                .color(TextColor.color(85, 255, 85)))
     }
 
     /**
@@ -239,13 +231,10 @@ class EditToolListener: Listener, KoinComponent {
                 is CreatePartitionResult.Success -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId,
-                                    LocalizationKeys.FEEDBACK_EDIT_TOOL_NEW_PARTITION,
-                                    result.claim.name,
-                                    0
-                                )
+                            lang.msg(
+                                "feedback.edit_tool.new_partition",
+                                "claim" to result.claim.name,
+                                "remaining_blocks" to 0,
                             )
                                 .color(TextColor.color(85, 255, 85))
                         )
@@ -258,11 +247,7 @@ class EditToolListener: Listener, KoinComponent {
                 is CreatePartitionResult.Disconnected -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_NOT_CONNECTED
-                                )
-                            )
+                            lang.msg("feedback.edit_tool.not_connected")
                                 .color(TextColor.color(255, 85, 85))
                         )
                     }
@@ -270,13 +255,7 @@ class EditToolListener: Listener, KoinComponent {
                 is CreatePartitionResult.InsufficientBlocks -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId,
-                                    LocalizationKeys.FEEDBACK_EDIT_TOOL_INSUFFICIENT,
-                                    result.requiredExtraBlocks
-                                )
-                            )
+                            lang.msg("feedback.edit_tool.insufficient", "blocks" to result.requiredExtraBlocks)
                                 .color(TextColor.color(255, 85, 85))
                         )
                     }
@@ -284,11 +263,7 @@ class EditToolListener: Listener, KoinComponent {
                 is CreatePartitionResult.Overlaps -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_OVERLAP
-                                )
-                            )
+                            lang.msg("feedback.edit_tool.overlap")
                                 .color(TextColor.color(255, 85, 85))
                         )
                     }
@@ -296,11 +271,7 @@ class EditToolListener: Listener, KoinComponent {
                 is CreatePartitionResult.TooClose -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_TOO_CLOSE
-                                )
-                            )
+                            lang.msg("feedback.edit_tool.too_close")
                                 .color(TextColor.color(255, 85, 85))
                         )
                     }
@@ -308,13 +279,7 @@ class EditToolListener: Listener, KoinComponent {
                 is CreatePartitionResult.TooSmall -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId,
-                                    LocalizationKeys.FEEDBACK_EDIT_TOOL_MINIMUM_SIZE,
-                                    result.minimumSize
-                                )
-                            )
+                            lang.msg("feedback.edit_tool.minimum_size", "minimum_size" to result.minimumSize)
                                 .color(TextColor.color(255, 85, 85))
                         )
                     }
@@ -322,11 +287,7 @@ class EditToolListener: Listener, KoinComponent {
                 is CreatePartitionResult.StorageError -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId, LocalizationKeys.GENERAL_ERROR
-                                )
-                            )
+                            lang.msg("general.error")
                                 .color(TextColor.color(255, 85, 85))
                         )
                     }
@@ -356,8 +317,7 @@ class EditToolListener: Listener, KoinComponent {
         if (hasOverride) {}
         else if (claim.playerId != player.uniqueId) {
             player.sendActionBar(
-                Component.text(localizationProvider.get(
-                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_PERMISSION))
+                lang.msg("feedback_edit_tool.permission")
                     .color(TextColor.color(255, 85, 85)))
             return false
         }
@@ -369,8 +329,7 @@ class EditToolListener: Listener, KoinComponent {
         firstSelectedCornerResize[player.uniqueId] = Pair(partition.id, location.toPosition2D())
         val remainingClaimBlockCount = getRemainingClaimBlockCount.execute(player.uniqueId)
         player.sendActionBar(
-            Component.text(localizationProvider.get(
-                player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_START_RESIZE, remainingClaimBlockCount))
+            lang.msg("feedback_edit_tool.start_resize", "remaining_blocks" to remainingClaimBlockCount)
                 .color(TextColor.color(85, 255, 85)))
         thread(start = true) {
             Thread.sleep(1)
@@ -389,11 +348,7 @@ class EditToolListener: Listener, KoinComponent {
                     is ResizePartitionResult.Success -> {
                         schedulerService.executeOnMain {
                             player.sendActionBar(
-                                Component.text(
-                                    localizationProvider.get(
-                                        player.uniqueId,
-                                        LocalizationKeys.FEEDBACK_EDIT_TOOL_SUCCESSFUL_RESIZE,
-                                        result.remainingBlocks))
+                                lang.msg("feedback_edit_tool.successful_resize", "remaining_blocks" to result.remainingBlocks)
                                     .color(TextColor.color(85, 255, 85)))
 
                             clearSelectionVisualisation.execute(player.uniqueId)
@@ -404,64 +359,49 @@ class EditToolListener: Listener, KoinComponent {
                 }
                 is ResizePartitionResult.Disconnected -> {
                     schedulerService.executeOnMain {
-                        player.sendActionBar(Component.text(localizationProvider.get(
-                            player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_NOT_CONNECTED))
+                        player.sendActionBar(lang.msg("feedback.edit_tool.not_connected")
                             .color(TextColor.color(255, 85, 85)))
                     }
                 }
                 is ResizePartitionResult.ExposedClaimAnchor -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_IN_CLAIM))
+                            lang.msg("feedback.edit_tool.in_claim")
                                 .color(TextColor.color(255, 85, 85)))
                     }
                 }
                 is ResizePartitionResult.InsufficientBlocks -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_INSUFFICIENT))
+                            lang.msg("feedback.edit_tool.insufficient", "blocks" to result.requiredExtraBlocks)
                                 .color(TextColor.color(255, 85, 85)))
                     }
                 }
                 is ResizePartitionResult.Overlaps -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_OVERLAP))
+                            lang.msg("feedback.edit_tool.overlap")
                                 .color(TextColor.color(255, 85, 85)))
                     }
                 }
                 is ResizePartitionResult.TooClose -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId, LocalizationKeys.FEEDBACK_EDIT_TOOL_TOO_CLOSE))
+                            lang.msg("feedback.edit_tool.too_close")
                                 .color(TextColor.color(255, 85, 85)))
                     }
                 }
                 is ResizePartitionResult.TooSmall -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId,
-                                    LocalizationKeys.FEEDBACK_EDIT_TOOL_MINIMUM_SIZE,
-                                    result.minimumSize))
+                            lang.msg("feedback.edit_tool.minimum_size", "minimum_size" to result.minimumSize)
                                 .color(TextColor.color(255, 85, 85)))
                     }
                 }
                 is ResizePartitionResult.StorageError -> {
                     schedulerService.executeOnMain {
                         player.sendActionBar(
-                            Component.text(
-                                localizationProvider.get(
-                                    player.uniqueId, LocalizationKeys.GENERAL_ERROR))
+                            lang.msg("general.error")
                                 .color(TextColor.color(255, 85, 85)))
                     }
                 }

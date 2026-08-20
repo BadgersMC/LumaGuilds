@@ -72,7 +72,6 @@ class LumaGuilds : JavaPlugin() {
 
         pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         scheduler = server.scheduler
-        initLang()
         initialiseVaultDependency()
         initialisePlaceholderAPI()
         initialiseAxKothIntegration()
@@ -414,19 +413,6 @@ class LumaGuilds : JavaPlugin() {
             e.printStackTrace()
             throw RuntimeException("Failed to initialize database - unexpected SQL error", e)
         }
-    }
-
-    fun initLang() {
-        val defaultLanguageFilenames = listOf(
-            "en.properties"
-        )
-
-        // Move languages to the required folder and add readme for override instructions
-        defaultLanguageFilenames.forEach { filename ->
-            val resourcePathInJar = "lang/defaults/$filename"
-            saveResource(resourcePathInJar, true)
-        }
-        saveResource("lang/overrides/README.txt", true)
     }
 
     /**

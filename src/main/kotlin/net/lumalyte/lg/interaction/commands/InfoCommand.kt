@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
+
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Subcommand
@@ -9,7 +11,6 @@ import net.lumalyte.lg.application.actions.claim.flag.GetClaimFlags
 import net.lumalyte.lg.application.actions.claim.partition.GetClaimPartitions
 import net.lumalyte.lg.application.actions.claim.permission.GetClaimPermissions
 import net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermissionInClaim
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import org.bukkit.entity.Player
 import net.lumalyte.lg.infrastructure.ChatInfoBuilder
 import org.bukkit.Bukkit
@@ -23,7 +24,7 @@ import java.util.*
 
 @CommandAlias("claim")
 class InfoCommand : ClaimCommand(), KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val getClaimDetails: GetClaimDetails by inject()
     private val getClaimFlags: GetClaimFlags by inject()
     private val getClaimPermissions: GetClaimPermissions by inject()
@@ -45,33 +46,19 @@ class InfoCommand : ClaimCommand(), KoinComponent {
             .withZone(ZoneId.systemDefault())
 
         // Add header and description
-        val chatInfo = ChatInfoBuilder(localizationProvider, player.uniqueId,
-            localizationProvider.get(player.uniqueId, LocalizationKeys.COMMAND_CLAIM_INFO_HEADER, claim.name))
+        val chatInfo = ChatInfoBuilder(lang, player.uniqueId,
+            lang.legacy("command.claim.info.header", "claim" to claim.name))
         if (claim.description.isNotEmpty()) chatInfo.addParagraph("${claim.description}\n")
 
         // Add metadata values
-        val ownerName = Bukkit.getOfflinePlayer(player.uniqueId).name ?: localizationProvider.get(
-            player.uniqueId, LocalizationKeys.GENERAL_NAME_ERROR)
-        chatInfo.addRow(localizationProvider.get(
-            player.uniqueId, LocalizationKeys.COMMAND_CLAIM_INFO_ROW_OWNER, ownerName))
-        chatInfo.addRow(localizationProvider.get(
-            player.uniqueId, LocalizationKeys.COMMAND_CLAIM_INFO_ROW_CREATION_DATE,
-            dateTimeFormatter.format(claim.creationTime)))
-        chatInfo.addRow(localizationProvider.get(
-            player.uniqueId, LocalizationKeys.COMMAND_CLAIM_INFO_ROW_PARTITION_COUNT,
-            getClaimPartitions.execute(claimId).count().toString()))
-        chatInfo.addRow(localizationProvider.get(
-            player.uniqueId, LocalizationKeys.COMMAND_CLAIM_INFO_ROW_BLOCK_COUNT,
-            getClaimBlockCount.execute(claimId).toString()))
-        chatInfo.addRow(localizationProvider.get(
-            player.uniqueId, LocalizationKeys.COMMAND_CLAIM_INFO_ROW_FLAGS,
-            getClaimFlags.execute(claimId).map { localizationProvider.get(player.uniqueId, it.nameKey) }))
-        chatInfo.addRow(localizationProvider.get(
-            player.uniqueId, LocalizationKeys.COMMAND_CLAIM_INFO_ROW_DEFAULT_PERMISSIONS,
-            getClaimPermissions.execute(claimId).map { localizationProvider.get(player.uniqueId, it.nameKey) }))
-        chatInfo.addRow(localizationProvider.get(
-            player.uniqueId, LocalizationKeys.COMMAND_CLAIM_INFO_ROW_TRUSTED_USERS,
-            getPlayersWithPermissionInClaim.execute(claimId).count().toString()))
+        val ownerName = Bukkit.getOfflinePlayer(player.uniqueId).name ?: lang.legacy("general.name_error")
+        chatInfo.addRow(lang.legacy("command.claim.info.row.owner", "owner" to ownerName))
+        chatInfo.addRow(lang.legacy("command.claim.info.row.creation_date", "creation_date" to dateTimeFormatter.format(claim.creationTime)))
+        chatInfo.addRow(lang.legacy("command.claim.info.row.partition_count", "partition_count" to getClaimPartitions.execute(claimId).count().toString()))
+        chatInfo.addRow(lang.legacy("command.claim.info.row.block_count", "block_count" to getClaimBlockCount.execute(claimId).toString()))
+        chatInfo.addRow(lang.legacy("command.claim.info.row.flags", "flags" to getClaimFlags.execute(claimId).map { lang.legacy(it.nameKey) }))
+        chatInfo.addRow(lang.legacy("command.claim.info.row.default_permissions", "permissions" to getClaimPermissions.execute(claimId).map { lang.legacy(it.nameKey) }))
+        chatInfo.addRow(lang.legacy("command.claim.info.row.trusted_users", "trusted_users" to getPlayersWithPermissionInClaim.execute(claimId).count().toString()))
         chatInfo.addSpace()
 
         // Output to player

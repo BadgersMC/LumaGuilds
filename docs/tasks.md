@@ -183,7 +183,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-7 — Localization migration (cross-cutting)
 
-- [ ] **LG-701** Migrate guild/bank/war/admin command messages off hardcoded `§`-strings onto `lang/defaults/*.properties`; zero unreferenced lang keys remain
+- [~] **LG-701** Migrate guild/bank/war/admin command messages off hardcoded `§`-strings onto `lang/defaults/*.properties`; zero unreferenced lang keys remain
   - Tag: `TDD`
   - References: REQ-016
   - Evidence:

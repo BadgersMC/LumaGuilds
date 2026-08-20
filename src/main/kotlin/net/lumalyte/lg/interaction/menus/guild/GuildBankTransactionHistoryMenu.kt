@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -12,7 +14,6 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.TransactionType
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
@@ -45,7 +46,7 @@ class GuildBankTransactionHistoryMenu(
 
     private val bankService: BankService by inject()
     private val memberService: MemberService by inject()
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val chatInputListener: ChatInputListener by inject()
 
@@ -94,7 +95,7 @@ class GuildBankTransactionHistoryMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_TITLE, guild.name)))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString("menu.bank.history.title", "guild" to guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main pane for navigation and filters
@@ -121,7 +122,7 @@ class GuildBankTransactionHistoryMenu(
         // Back to bank button
         val backItem = createMenuItem(
             Material.ARROW,
-            getLocalizedString(LocalizationKeys.MENU_BANK_BACK_TO_CONTROL_PANEL),
+            getLocalizedString("menu.bank.back_to_control_panel"),
             listOf("Return to guild bank")
         )
         val backGuiItem = GuiItem(backItem) { event ->
@@ -133,7 +134,7 @@ class GuildBankTransactionHistoryMenu(
         // Statistics button
         val statsItem = createMenuItem(
             Material.BOOK,
-            getLocalizedString(LocalizationKeys.MENU_BANK_STATS_TITLE),
+            getLocalizedString("menu.bank.stats.title"),
             listOf("View detailed bank statistics and analytics")
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
@@ -157,7 +158,7 @@ class GuildBankTransactionHistoryMenu(
         // Close button
         val closeItem = createMenuItem(
             Material.BARRIER,
-            getLocalizedString(LocalizationKeys.MENU_BANK_CLOSE),
+            getLocalizedString("menu.bank.close"),
             listOf("Close menu")
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
@@ -174,7 +175,7 @@ class GuildBankTransactionHistoryMenu(
         // Transaction type filter (click cycles through types)
         val typeFilterItem = createMenuItem(
             Material.HOPPER,
-            getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_TYPE),
+            getLocalizedString("menu.bank.history.filter.type"),
             listOf("Current: ${typeFilterLabel(filter.typeFilter)}", "Click to cycle")
         )
         val typeFilterGuiItem = GuiItem(typeFilterItem) { event ->
@@ -186,7 +187,7 @@ class GuildBankTransactionHistoryMenu(
         // Member filter
         val memberFilterItem = createMenuItem(
             Material.PLAYER_HEAD,
-            getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_MEMBER),
+            getLocalizedString("menu.bank.history.filter.member"),
             listOf("Current: ${filter.memberFilter ?: "All"}", "Click to select")
         )
         val memberFilterGuiItem = GuiItem(memberFilterItem) { event ->
@@ -198,7 +199,7 @@ class GuildBankTransactionHistoryMenu(
         // Date range filter (click cycles through presets)
         val dateFilterItem = createMenuItem(
             Material.CLOCK,
-            getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_DATE),
+            getLocalizedString("menu.bank.history.filter.date"),
             listOf("Current: ${dateRangeLabel(filter.dateRange)}", "Click to cycle")
         )
         val dateFilterGuiItem = GuiItem(dateFilterItem) { event ->
@@ -210,7 +211,7 @@ class GuildBankTransactionHistoryMenu(
         // Search filter
         val searchItem = createMenuItem(
             Material.COMPASS,
-            getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_SEARCH),
+            getLocalizedString("menu.bank.history.filter.search"),
             listOf(
                 "Current: ${filter.searchQuery ?: "None"}",
                 "Click to search by member or description"
@@ -225,7 +226,7 @@ class GuildBankTransactionHistoryMenu(
         // Clear filters
         val clearItem = createMenuItem(
             Material.WATER_BUCKET,
-            getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_FILTER_CLEAR),
+            getLocalizedString("menu.bank.history.filter.clear"),
             listOf("Remove all filters")
         )
         val clearGuiItem = GuiItem(clearItem) { event ->
@@ -261,7 +262,7 @@ class GuildBankTransactionHistoryMenu(
             if (currentPage > 0) {
                 val prevItem = createMenuItem(
                     Material.ARROW,
-                    getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_PAGE_PREVIOUS),
+                    getLocalizedString("menu.bank.history.page.previous"),
                     listOf("Go to page $currentPage")
                 )
                 val prevGuiItem = GuiItem(prevItem) { event ->
@@ -277,7 +278,7 @@ class GuildBankTransactionHistoryMenu(
             if (currentPage < totalPages - 1) {
                 val nextItem = createMenuItem(
                     Material.ARROW,
-                    getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_PAGE_NEXT),
+                    getLocalizedString("menu.bank.history.page.next"),
                     listOf("Go to page ${currentPage + 2}")
                 )
                 val nextGuiItem = GuiItem(nextItem) { event ->
@@ -315,7 +316,7 @@ class GuildBankTransactionHistoryMenu(
         if (currentItems.isEmpty()) {
             val noTransactionsItem = createMenuItem(
                 Material.BARRIER,
-                getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_NO_TRANSACTIONS),
+                getLocalizedString("menu.bank.history.no_transactions"),
                 listOf("Try adjusting your filters")
             )
             transactionPane.addItem(GuiItem(noTransactionsItem), 4, 1)
@@ -379,7 +380,7 @@ class GuildBankTransactionHistoryMenu(
         }
         val sortedMembers = members.sortedBy { memberNames[it.playerId]?.lowercase() }
 
-        val memberGui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_TITLE, guild.name)))
+        val memberGui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString("menu.bank.history.title", "guild" to guild.name)))
         memberGui.setOnGlobalClick { event -> event.isCancelled = true }
 
         val memberPane = PaginatedPane(0, 0, 9, 5)
@@ -437,7 +438,7 @@ class GuildBankTransactionHistoryMenu(
 
         val backItem = createMenuItem(
             Material.ARROW,
-            getLocalizedString(LocalizationKeys.MENU_BANK_BACK_TO_CONTROL_PANEL),
+            getLocalizedString("menu.bank.back_to_control_panel"),
             listOf("Back to transaction history")
         )
         navPane.addItem(GuiItem(backItem) { event ->
@@ -641,8 +642,8 @@ class GuildBankTransactionHistoryMenu(
     /**
      * Get localized string with optional parameters
      */
-    private fun getLocalizedString(key: String, vararg params: Any?): String {
-        return localizationProvider.get(player.uniqueId, key, *params)
+    private fun getLocalizedString(key: String, vararg placeholders: Pair<String, Any?>): String {
+        return lang.legacy(key, *placeholders)
     }
 }
 

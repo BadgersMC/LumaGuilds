@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.listeners
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.application.actions.claim.transfer.DoesPlayerHaveTransferRequest
 import net.lumalyte.lg.application.actions.claim.anchor.GetClaimAnchorAtPosition
 import net.lumalyte.lg.application.actions.claim.CreateClaim
@@ -16,7 +18,6 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import net.lumalyte.lg.domain.entities.Claim
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu
@@ -28,7 +29,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 class ClaimAnchorListener(): Listener, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val getClaimAnchorAtPosition: GetClaimAnchorAtPosition by inject()
     private val createClaim: CreateClaim by inject()
     private val doesPlayerHaveTransferRequest: DoesPlayerHaveTransferRequest by inject()
@@ -52,7 +53,7 @@ class ClaimAnchorListener(): Listener, KoinComponent {
             is GetClaimAnchorAtPositionResult.Success -> claim = claimResult.claim
             is GetClaimAnchorAtPositionResult.NoClaimAnchorFound -> {}
             is GetClaimAnchorAtPositionResult.StorageError -> {
-                event.player.sendMessage(localizationProvider.get(playerId, LocalizationKeys.GENERAL_ERROR))
+                event.player.sendMessage(lang.msg("general.error"))
                 return
             }
         }
@@ -64,7 +65,7 @@ class ClaimAnchorListener(): Listener, KoinComponent {
             when (transferResult) {
                 is DoesPlayerHaveTransferRequestResult.Success -> playerHasTransferRequest = transferResult.hasRequest
                 else -> {
-                    event.player.sendMessage(localizationProvider.get(playerId, LocalizationKeys.GENERAL_ERROR))
+                    event.player.sendMessage(lang.msg("general.error"))
                 }
             }
 
@@ -77,9 +78,9 @@ class ClaimAnchorListener(): Listener, KoinComponent {
 
             // Notify no ability to interact with the claim without being owner or without an active transfer request
             if (claim.playerId != event.player.uniqueId && !playerHasTransferRequest && !claimOverride) {
-                val playerName = Bukkit.getOfflinePlayer(claim.playerId).name ?: LocalizationKeys.GENERAL_NAME_ERROR
-                event.player.sendActionBar(Component.text(
-                    localizationProvider.get(playerId, LocalizationKeys.FEEDBACK_CLAIM_OWNER, playerName))
+                val playerName = Bukkit.getOfflinePlayer(claim.playerId).name ?: "general.name_error"
+                event.player.sendActionBar(
+                    lang.msg("feedback.claim.owner", "owner" to playerName)
                     .color(TextColor.color(255, 85, 85)))
                 return
             }

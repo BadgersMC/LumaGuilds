@@ -1,10 +1,11 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.application.errors.PlayerNotFoundException
 import net.lumalyte.lg.application.services.ToolItemService
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.Claim
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toCustomItemData
 import net.lumalyte.lg.infrastructure.namespaces.ItemKeys
 import net.lumalyte.lg.utils.lore
@@ -15,14 +16,14 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import java.util.UUID
 
-class ToolItemServiceBukkit(private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider,
+class ToolItemServiceBukkit(private val lang: LangService,
                             private val config: MainConfig): ToolItemService {
     override fun giveClaimTool(playerId: UUID): Boolean {
         // Create the claim tool with special metadata
         val tool = ItemStack.of(Material.STICK)
-            .name(localizationProvider.get(playerId, LocalizationKeys.ITEM_CLAIM_TOOL_NAME))
-            .lore(localizationProvider.get(playerId, LocalizationKeys.ITEM_CLAIM_TOOL_LORE_MAIN_HAND))
-            .lore(localizationProvider.get(playerId, LocalizationKeys.ITEM_CLAIM_TOOL_LORE_OFF_HAND))
+            .name(lang.legacy("item.claim_tool.name"))
+            .lore(lang.legacy("item.claim_tool.lore.main_hand"))
+            .lore(lang.legacy("item.claim_tool.lore.off_hand"))
         val itemMeta = tool.itemMeta
         // Use modern CustomModelDataComponent instead of deprecated setCustomModelData
         if (itemMeta != null) {
@@ -43,8 +44,8 @@ class ToolItemServiceBukkit(private val localizationProvider: net.lumalyte.lg.ap
     override fun giveMoveTool(playerId: UUID, claim: Claim): Boolean {
         // Create the claim tool with special metadata
         val tool = ItemStack.of(Material.BELL)
-            .name(localizationProvider.get(playerId, LocalizationKeys.ITEM_MOVE_TOOL_NAME, claim.name))
-            .lore(localizationProvider.get(playerId, LocalizationKeys.ITEM_MOVE_TOOL_LORE))
+            .name(lang.legacy("item.move_tool.name", "claim" to claim.name))
+            .lore(lang.legacy("item.move_tool.lore"))
         val itemMeta = tool.itemMeta
         // Use modern CustomModelDataComponent instead of deprecated setCustomModelData
         if (itemMeta != null) {

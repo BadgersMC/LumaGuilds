@@ -3,6 +3,7 @@ package net.lumalyte.lg.utils
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import net.lumalyte.lg.domain.values.ClaimPermission
+import net.badgersmc.nexus.i18n.LangService
 import java.util.UUID
 
 /**
@@ -10,7 +11,7 @@ import java.util.UUID
  *
  * @return ItemStack of the associated item for the given permission enum.
  */
-fun ClaimPermission.getIcon(localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider, playerId: UUID): ItemStack {
+fun ClaimPermission.getIcon(lang: LangService, playerId: UUID): ItemStack {
     var item = when (this) {
         ClaimPermission.BUILD -> ItemStack.of(Material.DIAMOND_PICKAXE)
         ClaimPermission.HARVEST -> ItemStack.of(Material.WHEAT)
@@ -29,7 +30,7 @@ fun ClaimPermission.getIcon(localizationProvider: net.lumalyte.lg.application.ut
     }
 
     // Get localized name and lore using the keys from the domain enum
-    item = item.name(localizationProvider.get(playerId, this.nameKey))
-    item = item.lore(localizationProvider.get(playerId, this.loreKey))
+    item = item.name(lang.legacy(this.nameKey))
+    item = item.lore(lang.legacy(this.loreKey))
     return item
 }

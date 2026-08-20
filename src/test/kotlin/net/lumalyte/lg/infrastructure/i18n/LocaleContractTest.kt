@@ -205,10 +205,12 @@ class LocaleContractTest {
     @Test
     fun `call site placeholder mismatches match the recovery baseline`() {
         val inventory = LocaleSourceScanner.scan(projectRoot.resolve("src/main/kotlin"))
+        val mismatches = inventory.placeholderMismatches(localeValues())
 
         assertEquals(
             BASELINE_PLACEHOLDER_MISMATCHES,
-            inventory.placeholderMismatches(localeValues()).size,
+            mismatches.size,
+            mismatches.joinToString { "${it.key}: expected=${it.expected}, actual=${it.actual}" },
         )
     }
 
@@ -271,10 +273,10 @@ class LocaleContractTest {
     private fun localeValues(): Map<String, String> = flatten(loadLocale())
 
     private companion object {
-        const val BASELINE_POSITIONAL_PLACEHOLDERS = 135
+        const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
-        const val BASELINE_UNUSED_KEYS = 372
-        const val BASELINE_DYNAMIC_CALLS = 32
+        const val BASELINE_UNUSED_KEYS = 342
+        const val BASELINE_DYNAMIC_CALLS = 23
         const val BASELINE_HARDCODED_PLAYER_TEXT = 4016
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }

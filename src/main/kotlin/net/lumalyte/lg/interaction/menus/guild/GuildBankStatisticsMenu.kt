@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -10,7 +12,6 @@ import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.BankStats
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.TransactionType
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
@@ -37,7 +38,7 @@ class GuildBankStatisticsMenu(
 ) : Menu, KoinComponent {
 
     private val bankService: BankService by inject()
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
 
@@ -87,7 +88,7 @@ class GuildBankStatisticsMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString(LocalizationKeys.MENU_BANK_STATS_TITLE, guild.name)))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString("menu.bank.stats.title")))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane
@@ -119,7 +120,7 @@ class GuildBankStatisticsMenu(
         // Back to bank button
         val backItem = createMenuItem(
             Material.ARROW,
-            getLocalizedString(LocalizationKeys.MENU_BANK_BACK_TO_CONTROL_PANEL),
+            getLocalizedString("menu.bank.back_to_control_panel"),
             listOf("Return to guild bank")
         )
         val backGuiItem = GuiItem(backItem) { event ->
@@ -190,7 +191,7 @@ class GuildBankStatisticsMenu(
         // Close button
         val closeItem = createMenuItem(
             Material.BARRIER,
-            getLocalizedString(LocalizationKeys.MENU_BANK_CLOSE),
+            getLocalizedString("menu.bank.close"),
             listOf("Close menu")
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
@@ -336,7 +337,7 @@ class GuildBankStatisticsMenu(
         // Budget management
         val budgetItem = createMenuItem(
             Material.GOLD_INGOT,
-            getLocalizedString(LocalizationKeys.MENU_BANK_STATS_BUDGET_STATUS),
+            getLocalizedString("menu.bank.stats.budget.status"),
             listOf(
                 "Manage spending limits and alerts",
                 "Set monthly, weekly, and daily budgets",
@@ -556,8 +557,8 @@ class GuildBankStatisticsMenu(
     /**
      * Get localized string with optional parameters
      */
-    private fun getLocalizedString(key: String, vararg params: Any?): String {
-        return localizationProvider.get(player.uniqueId, key, *params)
+    private fun getLocalizedString(key: String): String {
+        return lang.legacy(key)
     }
 }
 

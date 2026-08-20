@@ -1,9 +1,10 @@
 package net.lumalyte.lg.interaction.menus.common
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.HopperGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
@@ -18,7 +19,7 @@ import kotlin.getValue
 
 class ConfirmationMenu(val menuNavigator: MenuNavigator, val player: Player, val title: String,
                        val callbackAction: () -> Unit): Menu, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         val gui = HopperGui(title)
@@ -31,8 +32,8 @@ class ConfirmationMenu(val menuNavigator: MenuNavigator, val player: Player, val
 
         // Add no menu item
         val noItem = ItemStack.of(Material.RED_CONCRETE)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CONFIRMATION_ITEM_NO_NAME))
-            .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CONFIRMATION_ITEM_NO_LORE))
+            .name(lang.legacy("menu.confirmation.item.no.name"))
+            .lore(lang.legacy("menu.confirmation.item.no.lore"))
 
         val guiNoItem = GuiItem(noItem) { guiEvent ->
             menuNavigator.goBack()
@@ -41,8 +42,8 @@ class ConfirmationMenu(val menuNavigator: MenuNavigator, val player: Player, val
 
         // Add yes menu item
         val yesItem = ItemStack.of(Material.GREEN_CONCRETE)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CONFIRMATION_ITEM_YES_NAME))
-            .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CONFIRMATION_ITEM_YES_LORE))
+            .name(lang.legacy("menu.confirmation.item.yes.name"))
+            .lore(lang.legacy("menu.confirmation.item.yes.lore"))
         val guiYesItem = GuiItem(yesItem) { guiEvent ->
             callbackAction()
             menuNavigator.goBack()

@@ -7,72 +7,72 @@ enum class Flag(val nameKey: String, val loreKey: String) {
     /**
      * When fire can spread from one block to another in the claim.
      */
-    FIRE(LocalizationKeys.FLAG_FIRE_NAME,
-        LocalizationKeys.FLAG_FIRE_LORE),
+    FIRE("flag.fire.name",
+        "flag.fire.lore"),
 
     /**
      * When a mob destroys or otherwise changes blocks in the claim.
      */
-    MOB(LocalizationKeys.FLAG_MOB_NAME,
-        LocalizationKeys.FLAG_MOB_LORE),
+    MOB("flag.mob.name",
+        "flag.mob.lore"),
 
     /**
      * When TNT or other entities explode blocks in the claim.
      */
-    EXPLOSION(LocalizationKeys.FLAG_EXPLOSION_NAME,
-        LocalizationKeys.FLAG_EXPLOSION_LORE),
+    EXPLOSION("flag.explosion.name",
+        "flag.explosion.lore"),
 
     /**
      * When a piston placed outside of the claim can move blocks in the claim.
      */
-    PISTON(LocalizationKeys.FLAG_PISTON_NAME,
-        LocalizationKeys.FLAG_PISTON_LORE),
+    PISTON("flag.piston.name",
+        "flag.piston.lore"),
 
     /**
      * When fluids can flow into the claim.
      */
-    FLUID(LocalizationKeys.FLAG_FLUID_NAME,
-        LocalizationKeys.FLAG_FLUID_LORE),
+    FLUID("flag.fluid.name",
+        "flag.fluid.lore"),
 
     /**
      * When trees planted outside a claim grows into the claim.
      */
-    TREE(LocalizationKeys.FLAG_TREE_NAME,
-        LocalizationKeys.FLAG_TREE_LORE),
+    TREE("flag.tree.name",
+        "flag.tree.lore"),
 
     /**
      * When sculk placed outside a claim spreads into the claim.
      */
-    SCULK(LocalizationKeys.FLAG_SCULK_NAME,
-        LocalizationKeys.FLAG_SCULK_LORE),
+    SCULK("flag.sculk.name",
+        "flag.sculk.lore"),
 
     /**
      * When dispensers dispense into the claim.
      */
-    DISPENSER(LocalizationKeys.FLAG_DISPENSER_NAME,
-        LocalizationKeys.FLAG_DISPENSER_LORE),
+    DISPENSER("flag.dispenser.name",
+        "flag.dispenser.lore"),
 
     /**
      * When sponge placed outside the claim can drain water in the claim.
      */
-    SPONGE(LocalizationKeys.FLAG_SPONGE_NAME,
-        LocalizationKeys.FLAG_SPONGE_LORE),
+    SPONGE("flag.sponge.name",
+        "flag.sponge.lore"),
 
     /**
      * When lighting can cause damage to a claim.
      */
-    LIGHTNING(LocalizationKeys.FLAG_LIGHTNING_NAME,
-        LocalizationKeys.FLAG_LIGHTNING_LORE),
+    LIGHTNING("flag.lightning.name",
+        "flag.lightning.lore"),
 
     /**
      * When falling blocks can materialise when landing in a claim.
      */
-    FALLING_BLOCK(LocalizationKeys.FLAG_FALLING_BLOCK_NAME,
-        LocalizationKeys.FLAG_FALLING_BLOCK_LORE),
+    FALLING_BLOCK("flag.falling_block.name",
+        "flag.falling_block.lore"),
 
     /**
      * When passive entities can be placed in vehicles in a claim.
      */
-    PASSIVE_ENTITY_VEHICLE(LocalizationKeys.FLAG_PASSIVE_ENTITY_VEHICLE_NAME,
-        LocalizationKeys.FLAG_PASSIVE_ENTITY_VEHICLE_LORE)
+    PASSIVE_ENTITY_VEHICLE("flag.passive_entity_vehicle.name",
+        "flag.passive_entity_vehicle.lore")
 }

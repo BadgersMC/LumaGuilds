@@ -184,7 +184,9 @@ import net.lumalyte.lg.infrastructure.services.VisualisationServiceBukkit
 import net.lumalyte.lg.infrastructure.services.VisualisationPerformanceServiceBukkit
 import net.lumalyte.lg.infrastructure.services.WorldManipulationServiceBukkit
 import net.lumalyte.lg.infrastructure.services.scheduling.SchedulerServiceBukkit
-import net.lumalyte.lg.infrastructure.utilities.LocalizationProviderProperties
+import net.badgersmc.nexus.i18n.LangService
+import net.badgersmc.nexus.i18n.LangHost
+import net.badgersmc.nexus.i18n.Locale
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -254,7 +256,9 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     single<PlayerMetadataService> { PlayerMetadataServiceVault(get(), get()) }
 
     // Utilities
-    single<net.lumalyte.lg.application.utilities.LocalizationProvider> { LocalizationProviderProperties(get(), get(), get()) }
+    single<LangService> {
+        LangService(LangHost.of(plugin), Locale("en_US"), net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang::class.java)
+    }
     single<PlatformDetectionService> { FloodgatePlatformDetectionService(get<LumaGuilds>().logger) }
     single<BedrockLocalizationService> { BedrockLocalizationServiceFloodgate(get<LumaGuilds>().dataFolder, get(), get()) }
     single<FormCacheService> {
