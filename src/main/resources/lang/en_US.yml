@@ -1,0 +1,895 @@
+# LumaGuilds — en_US locale.
+#
+# All values are MiniMessage strings. Placeholders use <name> syntax.
+#
+accept_transfer_condition:
+  invalid_claim: The claim you are trying to accept can no longer be found.
+  invalid_request: There is no longer an active transfer request.
+  owner: You already own this claim.
+command:
+  bank:
+    balance:
+      message: 'Guild bank balance: <0> coins'
+    deposit:
+      success: 'Deposited <0> coins. Fee: <1> coins.'
+      usage: '/guild bank deposit <amount>'
+    withdraw:
+      success: 'Withdrew <0> coins. Fee: <1> coins.'
+      usage: '/guild bank withdraw <amount>'
+  claim:
+    add_flag:
+      already_exists: 'Claim <0> already has flag <1>.'
+      success: 'Flag <0> has been added to claim <1>.'
+    already_have_tool: You already have the claim tool in your inventory.
+    description:
+      blacklisted_word: 'Description contains a blacklisted word: <0>'
+      blank: Description is blank.
+      exceed_limit: 'Description of <0> characters exceeds character limit of <1>.'
+      invalid_character: 'Description contains invalid characters: <0>'
+      success: 'New description has been set for claim <0>'
+    info:
+      header: '<0> Summary'
+      row:
+        block_count: 'Block Count: <0>'
+        creation_date: 'Creation Date: <0>'
+        default_permissions: 'Default Permissions: <0>'
+        flags: 'Flags: <0>'
+        owner: 'Owner: <0>'
+        partition_count: 'Partition Count: <0>'
+        trusted_users: 'Trusted Users: <0>'
+    remove:
+      disconnected: Cannot remove this partition as it would result in a fragmented claim.
+      exposed_anchor: Cannot remove this partition as the claim bell is in it.
+      success: 'Partition has been removed for claim <0>.'
+      unknown_partition: 'This partition for claim <0> does not exist.'
+    remove_flag:
+      does_not_exist: 'Claim <0> does not have flag <1>.'
+      success: 'Flag <0> disabled for claim <1>.'
+    rename:
+      already_exists: 'Name <0> is already in use.'
+      blacklisted_word: 'Name contains a blacklisted word: <0>'
+      blank: Name is blank.
+      exceed_limit: 'Name of <0> characters exceeds character limit of <1>.'
+      invalid_character: 'Name contains invalid characters: <0>'
+      success: 'Claim <0> has been renamed to <1>'
+    success: You have been given the claim tool
+    trust:
+      already_exists: 'Player <0> already has permission <1> in claim <2>.'
+      success: 'Permission <0> has been assigned to player <1> in claim <2>.'
+    trust_all:
+      already_exists: 'Claim <0> already has <1> granted claim wide.'
+      success: 'Permission <0> has been granted claim wide in claim <1>.'
+    trust_list:
+      header: '<0> Trusted Players'
+      no_players: This claim has no trusted players.
+      row: '<0>: <1>'
+    untrust:
+      does_not_exist: 'Player <0> does not have permission <1> in claim <2>.'
+      success: 'Permission <0> has been revoked from player <1> in claim <2>.'
+    untrust_all:
+      does_not_exist: 'Claim <0> does not have permission <1> granted claim wide.'
+      success: 'Permission <0> has been revoked claim wide in claim <1>.'
+  claim_list:
+    header: Claims
+    no_claims: You have no claims. Interact with a bell to get started.
+    row: '<0> <<0>, <1>, <2>> | <0> Blocks'
+  claim_override:
+    disabled: Claim override has been Disabled
+    enabled: Claim override has been Enabled
+  common:
+    invalid_page: Invalid page specified.
+    no_claim_permission: You don't have permission to modify this claim.
+    unknown_claim: Claim was not found.
+    unknown_partition: There is no claim partition at your current location.
+  guild:
+    create:
+      success: 'Guild created successfully!'
+      usage: '/guild create <name>'
+    disband:
+      confirm: Type /guild disband confirm to permanently delete your guild.
+      success: Guild disbanded.
+    home:
+      usage: /guild home
+    info:
+      bank: 'Bank Balance: <0>'
+      header: '<0> Guild Information'
+      level: 'Level: <0>'
+      members: 'Members: <0>/<1>'
+      mode: 'Mode: <0>'
+    invite:
+      success: 'Invitation sent to <0>.'
+      usage: '/guild invite <player>'
+    kick:
+      success: 'Player <0> has been kicked from the guild.'
+      usage: '/guild kick <player>'
+    leave:
+      success: You have left the guild.
+    list:
+      header: Guild Members
+    sethome:
+      success: Guild home set successfully.
+      usage: /guild sethome
+  info_box:
+    index: '<0>. <1>'
+    paged: 'Page <0>/<1>'
+  partitions:
+    header: '<0> Partitions'
+    row: 'Lower (<0>, <1>) | Upper (<2>, <3>)'
+  war:
+    declare:
+      success: 'War declared on <0>!'
+      usage: '/guild war declare <guild>'
+    history:
+      header: War History
+    list:
+      header: Active Wars
+creation_condition:
+  blocks: You have insufficient claim blocks.
+  claims: You have run out of claims.
+  existing: You already have a claim with that name.
+  overlap: The resulting claim would overlap another claim.
+  unnamed: Name cannot be blank.
+  world_border: Too close to the world border to establish a claim.
+error:
+  bank:
+    amount_too_large: 'Amount too large. Maximum: <0>'
+    amount_too_small: 'Amount too small. Minimum: <0>'
+    invalid_amount: Invalid amount specified.
+    negative_amount: Amount cannot be negative.
+  guild:
+    cannot_target_self: You cannot target yourself.
+    invalid_characters: Guild name contains invalid characters.
+    name_too_long: Guild name is too long.
+    name_too_short: Guild name is too short.
+    not_admin: You need admin permissions for that action.
+    not_owner: Only the guild owner can do that.
+    player_not_found: Player not found.
+    player_not_member: That player is not a member of your guild.
+  war:
+    already_at_war: Already at war with that guild.
+    cannot_war_self: Cannot declare war on your own guild.
+    peaceful_mode: Cannot declare war while in peaceful mode.
+    target_peaceful: Cannot declare war on a peaceful guild.
+feedback:
+  claim:
+    denied: "You can't do that in <0>'s claim!"
+    owner: 'This claim bell is owned by <0>'
+  destruction:
+    attached: That block is attached to the claim bell
+    pending: 'Break <0> more times in <1> seconds to destroy this claim'
+    permission: "You cannot break <0>'s claim bell"
+    success: 'Claim <0> has been destroyed'
+  edit_tool:
+    in_claim: That selection would result in the claim bell being outside the claim area
+    insufficient: 'That resize would require an additional <0> blocks'
+    invalid: That spot is neither next to nor a corner of any existing claim
+    minimum_size: 'The selection must be at least <0>x<0> blocks'
+    new_partition: 'New partition has been added to <0>. You have <1> blocks remaining'
+    not_connected: That selection would not be attached to your claim
+    overlap: That selection overlaps an existing claim
+    start_extension: 'New claim extension started. You have <0> blocks remaining'
+    too_close: That selection is too close to another claim
+    unequip_build: Claim tool unequipped. Claim building has been cancelled
+    unequip_resize: Claim tool unequipped. Claim resizing has been cancelled
+    unselect_build: Block unselected. Claim building has been cancelled
+    unselect_resize: Block unselected. Claim resizing has been cancelled
+  move_tool:
+    no_permission: You cannot move this claim bell
+    outside_border: Place this block within the claim borders
+    success: Claim position has been moved
+  transfer:
+    success: This claim has been transferred
+feedback_edit_tool:
+  permission: You don't have permission to modify this claim
+  start_resize: 'Claim corner selected, select a different location to resize. You have <0> blocks remaining'
+  successful_resize: 'Partition successfully resized. You have <0> blocks remaining'
+flag:
+  dispenser:
+    lore: Allows dispensers placed outside to dispense into the claim
+    name: Dispenser
+  explosion:
+    lore: Allows TNT to damage claim blocks
+    name: Explosions
+  falling_block:
+    lore: Allows blocks such as sand and anvils to be launched into the claim
+    name: Falling Block
+  fire:
+    lore: Allows fire to burn and spread to other blocks
+    name: Fire
+  fluid:
+    lore: Allows fluids to flow into the claim
+    name: Fluid
+  lightning:
+    lore: Allows lightning to cause damage and set the ground alight
+    name: Lightning
+  mob:
+    lore: Allows mobs to damage claim blocks
+    name: Mob
+  passive_entity_vehicle:
+    lore: Allows animals to enter vehicles such as boats and minecarts
+    name: Animal Vehicles
+  piston:
+    lore: Allows pistons placed outside the claim to move claim blocks
+    name: Piston
+  sculk:
+    lore: Allows sculk catalysts placed outside to grow into the claim
+    name: Sculk
+  sponge:
+    lore: Allows sponges placed outside to drain fluids in the claim
+    name: Sponge
+  tree:
+    lore: Allows trees planted outside to grow into the claim
+    name: Tree
+form:
+  button:
+    cancel: Use /menu to cancel.
+    retry: Please correct the errors and try again.
+  error:
+    processing: An error occurred while processing your request.
+  title:
+    guild:
+      rank:
+        management: Guild Rank Management
+  validation:
+    errors:
+      title: 'Validation Errors:'
+    title: Validation Errors
+general:
+  error: 'An internal error has occurred, contact your administrator for support.'
+  list_separator: ','
+  name_error: (Name not found)
+guild:
+  already_exists: A guild with that name already exists.
+  already_member: You are already a member of a guild.
+  bank:
+    balance: 'Guild bank balance: <0> coins'
+    daily_limit: Daily withdrawal limit exceeded.
+    deposited: 'Deposited <0> coins to the guild bank. Fee: <1>'
+    insufficient_funds: Insufficient funds in guild bank.
+    insufficient_personal_funds: You don't have enough money.
+    transaction_limit: Transaction exceeds limit.
+    withdrawn: 'Withdrew <0> coins from the guild bank. Fee: <1>'
+  chat:
+    ally_disabled: Ally chat visibility disabled.
+    ally_enabled: Ally chat visibility enabled.
+    announced: '<0> announced: <1>'
+    channel_disabled: Guild chat channel disabled.
+    channel_enabled: Guild chat channel enabled.
+    cooldown: Please wait before sending another message.
+    emoji_not_allowed: You don't have permission to use that emoji.
+    ping_all: '<0> pinged everyone: <1>'
+  created: 'Guild <0> has been created successfully!'
+  disbanded: 'Guild <0> has been disbanded.'
+  home:
+    cooldown: 'You must wait <0> seconds before teleporting again.'
+    not_set: Your guild doesn't have a home set.
+    set: Guild home has been set to your current location.
+    teleported: 'Welcome home!'
+    teleporting: 'Teleporting to guild home in <0> seconds...'
+    unsafe: 'Cannot teleport to guild home - location is unsafe.'
+  invalid_name: Guild name must be between 1 and 32 characters.
+  joined: 'Welcome to guild <0>!'
+  left: 'You have left guild <0>.'
+  max_members_reached: This guild has reached its maximum member capacity.
+  mode:
+    blocked_by_war: Cannot change mode while involved in an active war.
+    changed: 'Guild mode has been changed to <0>.'
+    cooldown: 'You must wait <0> before changing modes again.'
+    hostile: Hostile
+    peaceful: Peaceful
+  no_permission: You don't have permission to do that in this guild.
+  not_found: Guild not found.
+  not_member: You are not a member of any guild.
+  progression:
+    experience_gained: 'Guild gained <0> experience!'
+    level_up: 'Your guild has reached level <0>!'
+    perk_unlocked: 'Perk unlocked: <0>'
+  rank:
+    created: 'Rank <0> has been created.'
+    deleted: 'Rank <0> has been deleted.'
+    demoted: 'Player <0> has been demoted to <1>.'
+    invalid_name: Rank name must be between 1 and 16 characters.
+    max_reached: Maximum number of ranks reached.
+    not_found: Rank not found.
+    promoted: 'Player <0> has been promoted to <1>.'
+    renamed: 'Rank <0> has been renamed to <1>.'
+  relation:
+    ally:
+      accepted: 'You are now allied with <0>!'
+      rejected: 'Alliance with <0> has been rejected.'
+      request_received: '<0> wants to form an alliance with your guild.'
+      request_sent: 'Alliance request sent to <0>.'
+    enemy:
+      set: 'You are now enemies with <0>.'
+    neutral:
+      set: 'Relation with <0> set to neutral.'
+    truce:
+      accepted: 'Truce established with <0>.'
+      request_sent: 'Truce request sent to <0>.'
+  tag:
+    confirm:
+      change:
+        message: 'Are you sure you want to change the guild tag to: <0>'
+        title: Confirm Tag Change
+      clear:
+        message: 'Are you sure you want to clear the guild tag? The guild name will be used instead.'
+        title: Clear Guild Tag
+  war:
+    cooldown: Must wait before declaring war again.
+    declared: 'War has been declared on <0>!'
+    defeat: 'Defeat. Your guild lost the war against <0>.'
+    ended: 'War with <0> has ended. Result: <1>'
+    max_wars: 'Cannot declare more wars - limit reached.'
+    received: 'Guild <0> has declared war on your guild!'
+    victory: 'Victory! Your guild won the war against <0>.'
+item:
+  claim_tool:
+    lore:
+      main_hand: Use in main hand to edit claim borders
+      off_hand: Use in offhand to open menu
+    name: Claim Tool
+  move_tool:
+    lore: Place this where you want the new location to be.
+    name: "Move Claim '<0>'"
+menu:
+  all_players:
+    item:
+      search:
+        lore: Find Players by Name
+        name: Search
+    title: All Players
+  bank:
+    automation:
+      active_count: Active Automations
+      alert_config: Alert Configuration
+      auto_rewards: 'Auto-Rewards Distribution'
+      budget_alerts: Budget Alerts
+      interest_rate: Interest Rate
+      next_run: Next Automation Run
+      payment_setup: Recurring Payment Setup
+      recent_activity: Recent Automation Activity
+      recurring_payments: Recurring Payments
+      reward_setup: Reward Distribution Setup
+      save_settings: Save Automation Settings
+      scheduled_deposits: Scheduled Deposits
+      status: Automation Status
+      title: 'Automation & Rewards'
+    back_to_control_panel: Back to Control Panel
+    balance:
+      current: 'Balance: $<0>'
+      no_transactions: No transactions yet
+      title: Current Balance
+    budget:
+      alerts: Budget Alerts
+      daily: Daily Budget
+      monthly: Monthly Budget
+      no_alerts: No Budget Alerts
+      percent: Percent Used
+      remaining: Remaining
+      save: Save Budget Settings
+      spent: Spent
+      status: Budget Status
+      title: Budget Management
+      weekly: Weekly Budget
+    close: Close
+    custom:
+      deposit: Custom Deposit
+      withdraw: Custom Withdraw
+    feedback:
+      amount_too_large: 'The maximum amount is $<0>.'
+      amount_too_small: 'The minimum amount is $<0>.'
+      deposit_success: 'Successfully deposited $<0> to the guild bank!'
+      insufficient_guild_funds: The guild bank doesn't have enough funds for that withdrawal.
+      insufficient_player_funds: You don't have enough money to deposit that amount.
+      invalid_amount: Please enter a valid amount.
+      no_permission: You don't have permission to perform this action.
+      withdraw_success: 'Successfully withdrew $<0> from the guild bank!'
+    history:
+      filter:
+        clear: Clear Filters
+        date: Filter by Date
+        member: Filter by Member
+        search: Search Transactions
+        type: Filter by Type
+      no_transactions: No transactions found
+      page:
+        next: Next Page
+        previous: Previous Page
+      title: 'Transaction History - <0>'
+      transaction_format: '<0> - $<1> (<2>)'
+      view_more: View More Transactions
+    item:
+      balance:
+        lore: '<0> coins'
+        name: Bank Balance
+      deposit:
+        lore: Add money to guild bank
+        name: Deposit Money
+      history:
+        lore: View recent transactions
+        name: Transaction History
+      withdraw:
+        lore: Take money from guild bank
+        name: Withdraw Money
+    quick:
+      deposit:
+        '100': Deposit $100
+        '1000': 'Deposit $1,000'
+        '10000': 'Deposit $10,000'
+        all: Deposit All
+      withdraw:
+        '100': Withdraw $100
+        '1000': 'Withdraw $1,000'
+        '10000': 'Withdraw $10,000'
+        all: Withdraw All
+    security:
+      alerts: Security Alerts
+      audit_log: Audit Log
+      dual_auth: Dual Authorization
+      emergency_freeze: Emergency Freeze
+      events: Recent Security Events
+      fraud_detection: Fraud Detection
+      no_alerts: No Security Alerts
+      risk:
+        critical: Critical Risk
+        high: High Risk
+        low: Low Risk
+        medium: Medium Risk
+      risk_level: Security Risk Level
+      save_settings: Save Security Settings
+      title: 'Security & Audit'
+    stats:
+      activity:
+        high: High Activity
+        low: Low Activity
+        moderate: Moderate Activity
+        none: No Recent Activity
+        recent: Recent Activity
+        very_high: Very High Activity
+      budget:
+        status: Budget Status
+      contributor:
+        top: Top Contributor
+      member:
+        summary: Member Summary
+      refresh:
+        data: Refresh Data
+      tax:
+        collection: Tax Collection
+      title: Bank Statistics
+      total_deposits: 'Total Deposits: $<0>'
+      total_withdrawals: 'Total Withdrawals: $<0>'
+      transaction_count: 'Total Transactions: <0>'
+      trend:
+        monthly: Monthly Growth
+        peak: Peak Activity
+        weekly: Weekly Trend
+      volume: 'Transaction Volume: $<0>'
+    title: 'Guild Bank - <0>'
+    transaction:
+      deposit: Deposit
+      fee: Fee
+      withdrawal: Withdrawal
+  claim:
+    error:
+      no_claim: '<red>Error: No claim available'
+      no_player: '<red>Error: No target player available'
+    conversion:
+      success: '<green>Claim successfully converted to guild claim!'
+      guild_access: '<yellow>Guild members now have access based on their roles.'
+      not_found: '<red>Claim not found.'
+      not_owner: '<red>You are not the owner of this claim.'
+      already_guild: '<red>This claim is already a guild claim.'
+      no_guild: '<red>You must be in a guild to convert a claim.'
+      error: '<red>An error occurred while converting the claim.'
+  claim_list:
+    title: Claims
+  claim_wide_permissions:
+    item:
+      info:
+        name: Changes permissions for all players
+    title: Default Claim Permissions
+  common:
+    item:
+      back:
+        name: Back
+      close:
+        name: Close
+      confirm:
+        name: Confirm
+      deselect_all:
+        name: Deselect All
+      error:
+        lore: Contact your local administrator for support.
+        name: An internal error has occurred
+      next:
+        name: Next
+      page:
+        name: 'Page <0> of <1>'
+      prev:
+        name: Prev
+      select_all:
+        name: Select All
+  confirm_partition_delete:
+    title: 'Delete Partition?'
+  confirmation:
+    cancelled: Action cancelled.
+    default_message: 'Are you sure you want to proceed?'
+    item:
+      'no':
+        lore: Take me back
+        name: 'No'
+      'yes':
+        lore: 'Warning, this is a permanent action!'
+        name: 'Yes'
+    timeout_cancel: Action cancelled due to timeout.
+    timeout_confirm: Action confirmed due to timeout.
+    timeout_no_action: 'Confirmation timed out - no action taken.'
+  creation:
+    item:
+      cannot_create:
+        name: Cannot Create Claim
+      create:
+        lore:
+          protected: The area around this bell will be protected from griefing.
+          remaining: 'You have <0> claims remaining.'
+        name: Create Claim
+    title: Claim Creation
+  edit_tool:
+    item:
+      cannot_delete:
+        lore: Deleting this would result in your claim being fragmented.
+        name: Can't Delete Partition
+      change_mode:
+        lore:
+          edit: Edit Mode
+          edit_active: '> Edit Mode'
+          view: View Mode
+          view_active: '> View Mode'
+        name: Change Mode
+      claim:
+        lore:
+          blocks: 'Claim Blocks: <0>'
+          claim_name: 'Name: <0>'
+          location: 'Location: <<0>, <1>, <2>>'
+          partitions: 'Partitions: <0>, <1> / <2>, <3>'
+        name: Claim
+      delete:
+        name: Delete Partition
+      no_claim:
+        lore: Select an area in a claim to see more options.
+        name: No Claim Here
+      no_permission:
+        lore: Select an area in your claim to see more options.
+        name: Not Your Claim
+      partition:
+        lore:
+          blocks: 'Blocks: <0>'
+          location: 'Location: <0>'
+        name: Partition
+    title: Claim Tool
+  flags:
+    title: Claim Flags
+  guild:
+    item:
+      bank:
+        lore: Access guild treasury
+        name: Guild Bank
+      home:
+        lore: Set or teleport to guild home
+        name: Guild Home
+      info:
+        lore:
+          balance: 'Bank: <0> coins'
+          level: 'Level: <0>'
+          members: 'Members: <0>/<1>'
+          mode: 'Mode: <0>'
+          name: 'Name: <0>'
+        name: Guild Info
+      members:
+        lore: Manage guild members and ranks
+        name: Members
+      relations:
+        lore: Manage alliances and enemies
+        name: Relations
+      settings:
+        lore: Configure guild options
+        name: Guild Settings
+      wars:
+        lore: View active wars and history
+        name: Wars
+    title: Guild Management
+  icon:
+    item:
+      info:
+        lore: You will get to keep the item.
+        name: Place an item in the top slot to set it as the icon
+    title: Set Claim Icon
+  leaderboards:
+    item:
+      activity:
+        name: Most Active Guilds
+      bank:
+        name: Richest Guilds
+      kills:
+        name: Top Guilds by Kills
+      level:
+        name: Top Guilds by Level
+    title: Guild Leaderboards
+  management:
+    item:
+      convert_guild:
+        lore: Make this claim accessible to guild members based on their roles
+        name: Convert to Guild Claim
+      flags:
+        name: Claim Flags
+      icon:
+        lore: Changes the icon that shows up on the claim list
+        name: Edit Claim Icon
+      move:
+        lore: Place the provided item where you want to move the claim bell
+        name: Move Claim
+      permissions:
+        name: 'Trusted Players:'
+      rename:
+        lore: Renames this claim
+        name: Rename Claim
+      share_guild:
+        lore: Gives all guild members access to this claim
+        name: Share with Guild
+      tool:
+        lore: Gives you a copy of the claim tool
+        name: Claim Tool
+    title: "Claim '<0>'"
+  members:
+    item:
+      invite:
+        lore: Invite a player to the guild
+        name: Invite Player
+      member:
+        lore:
+          joined: 'Joined: <0>'
+          offline: 'Status: Offline'
+          online: 'Status: Online'
+          rank: 'Rank: <0>'
+    title: Guild Members
+  naming:
+    item:
+      cannot_create:
+        name: Cannot Create Claim
+    title: Naming Claim
+  player_permissions:
+    item:
+      cancel_transfer:
+        lore: This will cancel the transfer request for this player
+        name: Cancel Transfer Request
+      cannot_transfer:
+        name: Cannot Transfer Claim
+      transfer:
+        lore: 'This will transfer the current claim to <0>'
+        name: Transfer Claim
+    title: "<0>'s Permissions"
+  player_search:
+    item:
+      player:
+        name: Player
+      player_unknown:
+        lore: Only players who have logged in to the server at least once will appear.
+        name: That player does not exist
+    title: Search for Player
+  relations:
+    item:
+      ally:
+        lore: Allied guilds
+        name: Ally
+      declare_enemy:
+        lore: Set as enemy
+        name: Declare Enemy
+      enemy:
+        lore: Enemy guilds
+        name: Enemy
+      neutral:
+        lore: Neutral guilds
+        name: Neutral
+      request_ally:
+        lore: Send alliance request
+        name: Request Alliance
+    title: Guild Relations
+  renaming:
+    item:
+      existing:
+        name: That name has already been taken
+      unknown:
+        name: The claim you are trying to rename does not exist anymore
+    title: Renaming Claim
+  settings:
+    item:
+      banner:
+        lore: Change guild banner
+        name: Guild Banner
+      disband:
+        lore: Permanently delete this guild
+        name: Disband Guild
+      emoji:
+        lore: Set guild emoji tag
+        name: Guild Emoji
+      mode:
+        lore:
+          hostile: 'Current: Hostile'
+          peaceful: 'Current: Peaceful'
+        name: Guild Mode
+    title: Guild Settings
+  transfer:
+    title: 'Accept Claim Transfer?'
+  transfer_send:
+    title: 'Transfer Claim?'
+  trusted_players:
+    item:
+      all_players:
+        lore: Find a player from a list of all online players
+        name: All Players
+      default_permissions:
+        lore: Configures the permissions that untrusted players will have
+        name: Default Permissions
+      has_permission:
+        lore: 'Has <0> permissions'
+    title: Trusted Players
+  wars:
+    item:
+      active:
+        lore: Currently ongoing wars
+        name: Active Wars
+      declare:
+        lore: Start a war with another guild
+        name: Declare War
+      history:
+        lore: Previous wars and results
+        name: War History
+    title: Guild Wars
+permission:
+  accept:
+    alliances: Accept Alliances
+    party:
+      invites: Accept Party Invites
+  access:
+    admin:
+      commands: Access Admin Commands
+  build:
+    lore: Grants permission to build
+    name: Build
+  bypass:
+    restrictions: Bypass Restrictions
+  container:
+    lore: 'Grants permission to open inventories (Chest, Furnace, Anvil)'
+    name: Container
+  create:
+    claims: Create Claims
+  declare:
+    war: Declare War
+  delete:
+    claims: Delete Claims
+  deposit:
+    bank: Deposit to Bank
+  detonate:
+    lore: Grants permission to directly set off explosives
+    name: Detonate
+  display:
+    lore: 'Grants permission to manipulate display items (Item Frames, Armour Stands, Flower Pots)'
+    name: Display
+  door:
+    lore: Grants permission to open and close doors
+    name: Door
+  event:
+    lore: Grants permission to start a raid event
+    name: Event
+  harvest:
+    lore: Grants permission to harvest and apply bone meal to crops
+    name: Harvest
+  husbandry:
+    lore: Grants permission to interact with passive animals
+    name: Husbandry
+  manage:
+    bank:
+      settings: Manage Bank Settings
+    banner: Manage Banner
+    claims: Manage Claims
+    description: Manage Description
+    emoji: Manage Emoji
+    flags: Manage Flags
+    guild:
+      settings: Manage Guild Settings
+    home: Manage Home
+    integrations: Manage Integrations
+    members: Manage Members
+    mode: Manage Mode
+    parties: Manage Parties
+    permissions: Manage Permissions
+    ranks: Manage Ranks
+    relations: Manage Relations
+  moderate:
+    chat: Moderate Chat
+  redstone:
+    lore: 'Grants permission to use redstone interactions (Buttons, Levers, Pressure Plates)'
+    name: Redstone
+  send:
+    announcements: Send Announcements
+    party:
+      requests: Send Party Requests
+    pings: Send Pings
+  sign:
+    lore: Grants permission to edit signs
+    name: Sign
+  sleep:
+    lore: Grants permission to sleep and set respawn points at a respawn anchor
+    name: Sleep
+  trade:
+    lore: Grants permission to trade with villagers
+    name: Trade
+  vehicle:
+    lore: 'Grants permission to break and place vehicles (Boats, Minecarts)'
+    name: Vehicle
+  view:
+    audit:
+      logs: View Audit Logs
+    bank:
+      transactions: View Bank Transactions
+    lore: Allows you to view lecterns
+    name: View
+  withdraw:
+    bank: Withdraw from Bank
+rank:
+  management:
+    error:
+      create:
+        failed: Failed to create rank
+      'no':
+        permission: You don't have permission to manage ranks
+      rank:
+        not:
+          found: Selected rank not found
+      update:
+        failed: Failed to update rank
+    info:
+      creating: Creating new rank
+      editing: 'Editing existing rank: <0>'
+      guild: 'Guild: <0>'
+      header: Rank Management Information
+      instructions: Configure rank permissions and hierarchy below.
+      ranks: 'Total Ranks: <0>'
+    member:
+      limit:
+        label: Member Limit
+    mode:
+      create: Create New Rank
+      edit: Edit Existing Rank
+      label: Mode
+    name:
+      label: Rank Name
+      placeholder: Enter rank name
+    permissions:
+      guild: Guild Management Permissions
+    priority:
+      label: Rank Priority
+    select:
+      rank:
+        label: Select Rank to Edit
+    success:
+      created: 'Rank <0> created successfully'
+      updated: 'Rank <0> updated successfully'
+    validation:
+      hierarchy: Rank priority conflicts with existing rank
+      name:
+        duplicate: Rank name already exists
+        length: Rank name must be between 1 and 24 characters
+      permissions: At least one permission must be selected
+      priority:
+        conflict: Priority level already assigned to another rank
+        range: 'Priority must be non-negative'
+send_transfer_condition:
+  blocks: Player has insufficient claim blocks.
+  claims: Player has run out of claims.
+  exist: "This claim no longer exists, you probably shouldn't still be here."
+  owner: "You own this claim, you probably shouldn't still be here."
+interaction:
+  partition:
+    invalid_page: '<red>Invalid page specified.'
