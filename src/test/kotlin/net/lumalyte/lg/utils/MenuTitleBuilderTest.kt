@@ -133,7 +133,7 @@ class MenuTitleBuilderTest {
     @Test
     fun `title text appears after rewind shift`() {
         val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3, "⚔ My Guild")
-        val expectedEnd = "<shift:-239>§f⚔ My Guild"
+        val expectedEnd = "<shift:-161>§f⚔ My Guild"
         assertTrue(
             title.endsWith(expectedEnd),
             "Expected title '$title' to end with '$expectedEnd'"
@@ -153,7 +153,7 @@ class MenuTitleBuilderTest {
     fun `background glyph appears before rewind and title`() {
         val title = MenuTitleBuilder.build(GuiTheme.MOSSBOUND, 4, "Info")
         val glyphIdx = title.indexOf("<glyph:guild_bg_mossbound_4_row>")
-        val rewindIdx = title.indexOf("<shift:-239>")
+        val rewindIdx = title.indexOf("<shift:-161>")
         val textIdx = title.indexOf("§fInfo")
         assertTrue(glyphIdx >= 0, "Glyph must be present")
         assertTrue(rewindIdx > glyphIdx, "Rewind shift must come after glyph (got idx $rewindIdx vs $glyphIdx)")
