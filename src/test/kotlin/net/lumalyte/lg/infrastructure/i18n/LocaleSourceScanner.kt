@@ -44,7 +44,7 @@ object LocaleSourceScanner {
     private val rendererCall = Regex("""\blang\.(msg|legacy|raw)\s*\(""")
     private val literalKey = Regex("^\"([^\"]+)\"")
     private val namedPair = Regex("""["']([A-Za-z][A-Za-z0-9_]*)["']\s+to\b""")
-    private val placeholder = Regex("""</?([A-Za-z][A-Za-z0-9_-]*)(?::[^>]*)?>""")
+    private val placeholder = Regex("""(?<!\\)</?([A-Za-z][A-Za-z0-9_-]*)(?::[^>]*)?>""")
 
     private val miniMessageTags = setOf(
         "aqua", "black", "blue", "dark_aqua", "dark_blue", "dark_gray", "dark_green", "dark_purple",

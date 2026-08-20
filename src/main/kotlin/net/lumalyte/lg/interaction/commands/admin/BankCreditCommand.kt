@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.commands.admin
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
@@ -7,6 +8,8 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Admin command to manually credit a player's Vault balance.
@@ -16,7 +19,9 @@ import org.bukkit.entity.Player
  */
 class BankCreditCommand(
     private val bankService: BankService
-) : CommandExecutor, TabCompleter {
+) : CommandExecutor, TabCompleter, KoinComponent {
+
+    private val lang: LangService by inject()
 
     override fun onCommand(
         sender: CommandSender,
@@ -25,12 +30,12 @@ class BankCreditCommand(
         args: Array<out String>
     ): Boolean {
         if (!sender.hasPermission("lumaguilds.admin.bank.credit")) {
-            sender.sendMessage("§cYou don't have permission to use this command")
+            sender.sendMessage(lang.msg("admin.common.no_permission"))
             return true
         }
 
         if (args.size < 2) {
-            sender.sendMessage("§cUsage: /bankcredit <player> <amount>")
+            sender.sendMessage(lang.msg("admin.migrated.bank_credit.command.usage_bankcredit_player_amount"))
             return true
         }
 
@@ -40,20 +45,20 @@ class BankCreditCommand(
         // Parse amount
         val amount = amountStr.toIntOrNull()
         if (amount == null || amount <= 0) {
-            sender.sendMessage("§cInvalid amount: $amountStr (must be a positive integer)")
+            sender.sendMessage(lang.msg("admin.migrated.bank_credit.command.invalid_amount_must_be_a_positive_integer", "amount_str" to amountStr))
             return true
         }
 
         // Get target player UUID (online or offline)
         val targetPlayer = Bukkit.getPlayer(targetName)
         if (targetPlayer == null) {
-            sender.sendMessage("§cPlayer '$targetName' not found or not online")
-            sender.sendMessage("§7Note: Player must be online to receive credits")
+            sender.sendMessage(lang.msg("admin.migrated.bank_credit.command.player_not_found_or_not_online", "target_name" to targetName))
+            sender.sendMessage(lang.msg("admin.migrated.bank_credit.command.note_player_must_be_online_to_receive"))
             return true
         }
 
         // Credit the player
-        sender.sendMessage("§eCrediting §f$amount §ecoins to §f${targetPlayer.name}§e...")
+        sender.sendMessage(lang.msg("admin.migrated.bank_credit.command.crediting_coins_to", "amount" to amount, "player" to targetPlayer.name))
 
         val success = bankService.depositPlayer(
             targetPlayer.uniqueId,
@@ -62,14 +67,14 @@ class BankCreditCommand(
         )
 
         if (success) {
-            sender.sendMessage("§a✓ Successfully credited §f$amount §acoins to §f${targetPlayer.name}")
-            sender.sendMessage("§7New balance: §f${bankService.getPlayerBalance(targetPlayer.uniqueId)} coins")
+            sender.sendMessage(lang.msg("admin.bank_credit.success", "amount" to amount, "player" to targetPlayer.name))
+            sender.sendMessage(lang.msg("admin.migrated.bank_credit.command.new_balance_coins", "unique_id" to bankService.getPlayerBalance(targetPlayer.uniqueId)))
 
             // Notify the player
-            targetPlayer.sendMessage("§a✓ You have been credited §f$amount §acoins by an administrator")
+            targetPlayer.sendMessage(lang.msg("admin.migrated.bank_credit.command.you_have_been_credited_coins_by_an", "amount" to amount))
         } else {
-            sender.sendMessage("§c✗ Failed to credit player")
-            sender.sendMessage("§7Check server logs for details (Vault economy may be unavailable)")
+            sender.sendMessage(lang.msg("admin.bank_credit.failure"))
+            sender.sendMessage(lang.msg("admin.migrated.bank_credit.command.check_server_logs_for_details_vault_economy"))
         }
 
         return true

@@ -4,6 +4,7 @@ import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Default
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -24,6 +25,7 @@ import org.koin.core.component.inject
  */
 @CommandAlias("ga")
 internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
+    private val lang: LangService by inject()
     private val chatService: ChatService by inject()
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -33,11 +35,11 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
         val guildId = resolveGuildForAnnounce(player) ?: return
-        player.sendMessage("§6=== Guild Announcements ===")
-        player.sendMessage("§7Use §f/ga <message> §7to announce to all guild members.")
-        player.sendMessage("§7Add a color code: §f/ga &4 <message> §7for custom colors.")
-        player.sendMessage("§7Colors: §0&0 §1&1 §2&2 §3&3 §4&4 §5&5 §6&6 §7&7 §8&8 §9&9")
-        player.sendMessage("§7Default is §6&6 §7(gold). Cooldown: 5 minutes.")
+        player.sendMessage(lang.msg("command.migrated.quick_announce.default.guild_announcements"))
+        player.sendMessage(lang.msg("command.migrated.quick_announce.default.use_ga_message_to_announce_to_all"))
+        player.sendMessage(lang.msg("command.migrated.quick_announce.default.add_a_color_code_ga_4_message"))
+        player.sendMessage(lang.msg("command.migrated.quick_announce.default.colors_0_1_2_3_4_5"))
+        player.sendMessage(lang.msg("command.migrated.quick_announce.default.default_is_6_gold_cooldown_5_minutes"))
     }
 
     /** Sends an announcement with optional color override. First arg may be `&` + digit. */
@@ -49,23 +51,23 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
         if (message.isBlank()) {
             val msg =
                 if (args.isEmpty()) {
-                    "§c❌ Provide a message. Usage: /ga [&color] <message>"
+                    lang.legacy("command.migrated.quick_announce.announce.provide_a_message_usage_ga_color_message")
                 } else {
-                    "§c❌ Message cannot be empty."
+                    lang.legacy("command.migrated.quick_ally_chat.message.message_cannot_be_empty")
                 }
             player.sendMessage(msg)
             return
         }
         val ok = chatService.sendGuildAnnouncement(guildId, player.uniqueId, message, colorDigit)
         if (!ok) {
-            player.sendMessage("§c❌ Failed to send announcement.")
+            player.sendMessage(lang.msg("command.migrated.quick_announce.announce.failed_to_send_announcement"))
         }
     }
 
     private fun resolveGuildForAnnounce(player: Player): java.util.UUID? {
         val guilds = guildService.getPlayerGuilds(player.uniqueId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
+            player.sendMessage(lang.msg("command.migrated.guild.guildchat.you_are_not_in_a_guild"))
             return null
         }
         val guildId = resolveAnnouncementGuild(player, guildService, memberService)
@@ -80,10 +82,9 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
         }
         player.sendMessage(
             if (hasAny) {
-                "§c❌ You have announcement permission in multiple guilds. " +
-                    "Please leave extra guilds or ask an admin for help."
+                lang.msg("command.migrated.quick_announce.resolveguildforannounce.you_have_announcement_permission_in_multiple_guilds")
             } else {
-                "§c❌ You don't have permission to send announcements!"
+                lang.msg("command.migrated.quick_announce.resolveguildforannounce.you_don_t_have_permission_to_send")
             },
         )
         return null
