@@ -147,42 +147,71 @@ object LocaleSourceScanner {
         val masked = source.toCharArray()
         var index = 0
         var state = KotlinLexicalState.CODE
+        var blockCommentDepth = 0
+        val interpolations = mutableListOf<InterpolationContext>()
 
         fun maskCurrent() {
             if (masked[index] != '\n' && masked[index] != '\r') masked[index] = ' '
         }
 
+        fun startInterpolation(returnState: KotlinLexicalState) {
+            masked[index] = ' '
+            masked[index + 1] = ' '
+            index += 2
+            interpolations += InterpolationContext(returnState)
+            state = KotlinLexicalState.CODE
+        }
+
         while (index < source.length) {
             when (state) {
-                KotlinLexicalState.CODE -> when {
-                    source.startsWith("//", index) -> {
-                        maskCurrent()
-                        masked[index + 1] = ' '
-                        index += 2
-                        state = KotlinLexicalState.LINE_COMMENT
-                    }
-                    source.startsWith("/*", index) -> {
-                        maskCurrent()
-                        masked[index + 1] = ' '
-                        index += 2
-                        state = KotlinLexicalState.BLOCK_COMMENT
-                    }
-                    source.startsWith("\"\"\"", index) -> {
-                        repeat(3) { masked[index + it] = ' ' }
-                        index += 3
-                        state = KotlinLexicalState.TRIPLE_QUOTED_STRING
-                    }
-                    source[index] == '\"' -> {
-                        maskCurrent()
+                KotlinLexicalState.CODE -> {
+                    if (interpolations.isNotEmpty() && source[index] == '}') {
+                        val interpolation = interpolations.last()
+                        interpolation.braceDepth--
+                        if (interpolation.braceDepth == 0) {
+                            maskCurrent()
+                            index++
+                            state = interpolation.returnState
+                            interpolations.removeLast()
+                            continue
+                        }
+                    } else if (interpolations.isNotEmpty() && source[index] == '{') {
+                        interpolations.last().braceDepth++
                         index++
-                        state = KotlinLexicalState.STRING
+                        continue
                     }
-                    source[index] == '\'' -> {
-                        maskCurrent()
-                        index++
-                        state = KotlinLexicalState.CHARACTER
+
+                    when {
+                        source.startsWith("//", index) -> {
+                            maskCurrent()
+                            masked[index + 1] = ' '
+                            index += 2
+                            state = KotlinLexicalState.LINE_COMMENT
+                        }
+                        source.startsWith("/*", index) -> {
+                            maskCurrent()
+                            masked[index + 1] = ' '
+                            index += 2
+                            blockCommentDepth = 1
+                            state = KotlinLexicalState.BLOCK_COMMENT
+                        }
+                        source.startsWith("\"\"\"", index) -> {
+                            repeat(3) { masked[index + it] = ' ' }
+                            index += 3
+                            state = KotlinLexicalState.TRIPLE_QUOTED_STRING
+                        }
+                        source[index] == '\"' -> {
+                            maskCurrent()
+                            index++
+                            state = KotlinLexicalState.STRING
+                        }
+                        source[index] == '\'' -> {
+                            maskCurrent()
+                            index++
+                            state = KotlinLexicalState.CHARACTER
+                        }
+                        else -> index++
                     }
-                    else -> index++
                 }
                 KotlinLexicalState.LINE_COMMENT -> {
                     if (source[index] == '\n') {
@@ -194,18 +223,26 @@ object LocaleSourceScanner {
                     }
                 }
                 KotlinLexicalState.BLOCK_COMMENT -> {
-                    if (source.startsWith("*/", index)) {
+                    if (source.startsWith("/*", index)) {
                         masked[index] = ' '
                         masked[index + 1] = ' '
                         index += 2
-                        state = KotlinLexicalState.CODE
+                        blockCommentDepth++
+                    } else if (source.startsWith("*/", index)) {
+                        masked[index] = ' '
+                        masked[index + 1] = ' '
+                        index += 2
+                        blockCommentDepth--
+                        if (blockCommentDepth == 0) state = KotlinLexicalState.CODE
                     } else {
                         maskCurrent()
                         index++
                     }
                 }
                 KotlinLexicalState.TRIPLE_QUOTED_STRING -> {
-                    if (source.startsWith("\"\"\"", index)) {
+                    if (source.startsWith("\${", index)) {
+                        startInterpolation(KotlinLexicalState.TRIPLE_QUOTED_STRING)
+                    } else if (source.startsWith("\"\"\"", index)) {
                         repeat(3) { masked[index + it] = ' ' }
                         index += 3
                         state = KotlinLexicalState.CODE
@@ -220,6 +257,8 @@ object LocaleSourceScanner {
                         maskCurrent()
                         masked[index + 1] = ' '
                         index += 2
+                    } else if (state == KotlinLexicalState.STRING && source.startsWith("\${", index)) {
+                        startInterpolation(KotlinLexicalState.STRING)
                     } else if (source[index] == quote) {
                         maskCurrent()
                         index++
@@ -233,6 +272,11 @@ object LocaleSourceScanner {
         }
         return String(masked)
     }
+
+    private data class InterpolationContext(
+        val returnState: KotlinLexicalState,
+        var braceDepth: Int = 1,
+    )
 
     private enum class KotlinLexicalState {
         CODE,
