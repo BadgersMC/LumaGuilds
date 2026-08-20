@@ -123,7 +123,7 @@ class GuildBankTransactionHistoryMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf(lang.raw("menu.bank.history.navigation.back_description"))
+            listOf("Return to guild bank")
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -135,7 +135,7 @@ class GuildBankTransactionHistoryMenu(
         val statsItem = createMenuItem(
             Material.BOOK,
             getLocalizedString("menu.bank.stats.title"),
-            listOf(lang.raw("menu.bank.navigation.statistics_description"))
+            listOf("View detailed bank statistics and analytics")
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -162,7 +162,7 @@ class GuildBankTransactionHistoryMenu(
         val closeItem = createMenuItem(
             Material.BARRIER,
             getLocalizedString("menu.bank.close"),
-            listOf(lang.raw("menu.common.close_description"))
+            listOf("Close menu")
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -179,10 +179,7 @@ class GuildBankTransactionHistoryMenu(
         val typeFilterItem = createMenuItem(
             Material.HOPPER,
             getLocalizedString("menu.bank.history.filter.type"),
-            listOf(
-                lang.legacy("menu.bank.history.filter.current", "value" to typeFilterLabel(filter.typeFilter)),
-                lang.raw("menu.bank.history.filter.cycle")
-            )
+            listOf("Current: ${typeFilterLabel(filter.typeFilter)}", "Click to cycle")
         )
         val typeFilterGuiItem = GuiItem(typeFilterItem) { event ->
             event.isCancelled = true
@@ -194,10 +191,7 @@ class GuildBankTransactionHistoryMenu(
         val memberFilterItem = createMenuItem(
             Material.PLAYER_HEAD,
             getLocalizedString("menu.bank.history.filter.member"),
-            listOf(
-                lang.legacy("menu.bank.history.filter.current", "value" to (filter.memberFilter ?: lang.raw("menu.bank.history.value.all"))),
-                lang.raw("menu.bank.history.filter.select")
-            )
+            listOf("Current: ${filter.memberFilter ?: "All"}", "Click to select")
         )
         val memberFilterGuiItem = GuiItem(memberFilterItem) { event ->
             event.isCancelled = true
@@ -209,10 +203,7 @@ class GuildBankTransactionHistoryMenu(
         val dateFilterItem = createMenuItem(
             Material.CLOCK,
             getLocalizedString("menu.bank.history.filter.date"),
-            listOf(
-                lang.legacy("menu.bank.history.filter.current", "value" to dateRangeLabel(filter.dateRange)),
-                lang.raw("menu.bank.history.filter.cycle")
-            )
+            listOf("Current: ${dateRangeLabel(filter.dateRange)}", "Click to cycle")
         )
         val dateFilterGuiItem = GuiItem(dateFilterItem) { event ->
             event.isCancelled = true
@@ -239,7 +230,7 @@ class GuildBankTransactionHistoryMenu(
         val clearItem = createMenuItem(
             Material.WATER_BUCKET,
             getLocalizedString("menu.bank.history.filter.clear"),
-            listOf(lang.raw("menu.bank.history.filter.clear_description"))
+            listOf("Remove all filters")
         )
         val clearGuiItem = GuiItem(clearItem) { event ->
             event.isCancelled = true
@@ -275,7 +266,7 @@ class GuildBankTransactionHistoryMenu(
                 val prevItem = createMenuItem(
                     Material.ARROW,
                     getLocalizedString("menu.bank.history.page.previous"),
-                    listOf(lang.legacy("menu.common.page.go_to", "page" to currentPage))
+                    listOf("Go to page $currentPage")
                 )
                 val prevGuiItem = GuiItem(prevItem) { event ->
                     event.isCancelled = true
@@ -291,7 +282,7 @@ class GuildBankTransactionHistoryMenu(
                 val nextItem = createMenuItem(
                     Material.ARROW,
                     getLocalizedString("menu.bank.history.page.next"),
-                    listOf(lang.legacy("menu.common.page.go_to", "page" to currentPage + 2))
+                    listOf("Go to page ${currentPage + 2}")
                 )
                 val nextGuiItem = GuiItem(nextItem) { event ->
                     event.isCancelled = true
@@ -329,7 +320,7 @@ class GuildBankTransactionHistoryMenu(
             val noTransactionsItem = createMenuItem(
                 Material.BARRIER,
                 getLocalizedString("menu.bank.history.no_transactions"),
-                listOf(lang.raw("menu.bank.history.no_transactions_description"))
+                listOf("Try adjusting your filters")
             )
             transactionPane.addItem(GuiItem(noTransactionsItem), 4, 1)
         } else {
@@ -451,7 +442,7 @@ class GuildBankTransactionHistoryMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf(lang.raw("menu.bank.history.member_filter.back_description"))
+            listOf("Back to transaction history")
         )
         navPane.addItem(GuiItem(backItem) { event ->
             event.isCancelled = true

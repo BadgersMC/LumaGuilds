@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.BedrockLocalizationService
 import net.lumalyte.lg.application.services.TextDirection
+import net.badgersmc.nexus.i18n.LangService
 import org.bukkit.entity.Player
 import java.util.*
 import java.util.logging.Logger
@@ -10,6 +11,8 @@ import java.util.logging.Logger
  * Implementation of BedrockLocalizationService using Floodgate for locale detection.
  */
 class BedrockLocalizationServiceFloodgate(
+    private val dataFolder: File,
+    private val lang: LangService,
     private val logger: Logger
 ) : BedrockLocalizationService {
 
@@ -53,6 +56,37 @@ class BedrockLocalizationServiceFloodgate(
 
     override fun isRTLLocale(locale: Locale): Boolean {
         return rtlLanguages.contains(locale.language.lowercase())
+    }
+
+    override fun getBedrockString(player: Player, key: String, vararg args: Any?): String {
+        val locale = getBedrockLocale(player)
+        return getBedrockString(locale, key, *args)
+    }
+
+    override fun getBedrockString(locale: Locale, key: String, vararg args: Any?): String {
+        // Try the exact key first (without "bedrock." prefix)
+        var translation = getBedrockTranslation(locale, key, *args)
+        if (translation != key) {
+            return formatForRTL(translation, locale)
+        }
+
+        // Try Bedrock-specific translation with "bedrock." prefix
+        val bedrockKey = "bedrock.$key"
+        translation = getBedrockTranslation(locale, bedrockKey, *args)
+        if (translation != bedrockKey) {
+            return formatForRTL(translation, locale)
+        }
+
+        // Fall back to regular localization
+        val regularTranslation = try {
+            lang.legacy(key)
+        } catch (e: Exception) {
+            // Floodgate integration - catching all exceptions for compatibility
+            logger.warning("Error getting regular localization for key '$key': ${e.message}")
+            key
+        }
+
+        return formatForRTL(regularTranslation, locale)
     }
 
     override fun formatForRTL(text: String, locale: Locale): String {

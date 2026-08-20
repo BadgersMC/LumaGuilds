@@ -155,8 +155,8 @@ class GuildBankAutomationMenu(
         // Back to bank button
         val backItem = createMenuItem(
             Material.ARROW,
-            lang.raw("menu.bank_automation.navigation.bank.name"),
-            listOf(lang.raw("menu.bank_automation.navigation.bank.description"))
+            getLocalizedString("menu.bank.back_to_control_panel"),
+            listOf("Return to guild bank")
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -167,8 +167,8 @@ class GuildBankAutomationMenu(
         // Back to statistics button
         val statsItem = createMenuItem(
             Material.BOOK,
-            lang.raw("menu.bank_automation.navigation.statistics.name"),
-            listOf(lang.raw("menu.bank_automation.navigation.statistics.description"))
+            getLocalizedString("menu.bank.stats.title"),
+            listOf("Return to statistics")
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -193,8 +193,8 @@ class GuildBankAutomationMenu(
         // Close button
         val closeItem = createMenuItem(
             Material.BARRIER,
-            lang.raw("menu.bank_automation.navigation.close.name"),
-            listOf(lang.raw("menu.bank_automation.navigation.close.description"))
+            getLocalizedString("menu.bank.close"),
+            listOf("Close menu")
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -546,15 +546,10 @@ class GuildBankAutomationMenu(
         return item
     }
 
-    private fun toggleStatus(enabled: Boolean): String = if (enabled) {
-        lang.raw("menu.bank_automation.common.status.enabled")
-    } else {
-        lang.raw("menu.bank_automation.common.status.disabled")
-    }
-
-    private fun toggleWord(enabled: Boolean): String = if (enabled) {
-        lang.raw("menu.bank_automation.common.enabled_word")
-    } else {
-        lang.raw("menu.bank_automation.common.disabled_word")
+    /**
+     * Get localized string with optional parameters
+     */
+    private fun getLocalizedString(key: String): String {
+        return lang.legacy(key)
     }
 }

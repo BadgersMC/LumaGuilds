@@ -111,7 +111,7 @@ class GuildMemberContributionsMenu(
         val closeItem = createMenuItem(
             Material.BARRIER,
             getLocalizedString("menu.bank.close"),
-            listOf(lang.raw("menu.common.close_description"))
+            listOf("Close menu")
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true

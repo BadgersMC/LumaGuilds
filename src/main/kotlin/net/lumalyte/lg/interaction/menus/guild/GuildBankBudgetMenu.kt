@@ -168,7 +168,7 @@ class GuildBankBudgetMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf(lang.raw("menu.bank_budget.navigation.bank"))
+            listOf("Return to guild bank")
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -180,7 +180,7 @@ class GuildBankBudgetMenu(
         val statsItem = createMenuItem(
             Material.BOOK,
             getLocalizedString("menu.bank.stats.title"),
-            listOf(lang.raw("menu.bank_budget.navigation.statistics"))
+            listOf("Return to statistics")
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -206,7 +206,7 @@ class GuildBankBudgetMenu(
         val closeItem = createMenuItem(
             Material.BARRIER,
             getLocalizedString("menu.bank.close"),
-            listOf(lang.raw("menu.bank_budget.navigation.close"))
+            listOf("Close menu")
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
