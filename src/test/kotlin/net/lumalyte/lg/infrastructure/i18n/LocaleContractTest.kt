@@ -138,7 +138,7 @@ class LocaleContractTest {
                 /* outer comment /* nested comment */ lang.raw("after.nested.comment") */
                 val ordinary = "lang.raw(\\\"ordinary.string\\\")"
                 val raw = ${"\"\"\""}lang.msg("triple.quoted")${"\"\"\""}
-                val interpolation = "value ${'$'}{lang.msg("ordinary.interpolation")}" 
+                val interpolation = "value ${'$'}{lang.msg("ordinary.interpolation")}"
                 val rawInterpolation = ${"\"\"\""}value ${'$'}{lang.legacy("triple.interpolation")}${"\"\"\""}
                 lang.msg("command.guild.invite.success", "player" to "Ada")
                 lang.legacy("menu.guild.title")
