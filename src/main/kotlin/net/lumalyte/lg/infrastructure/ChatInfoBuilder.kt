@@ -33,8 +33,8 @@ class ChatInfoBuilder(private val lang: LangService, private val playerId: UUID,
 
     fun addIndexed(index: Int, text: String) {
         newLine()
-        val indexedRow = lang.legacy("command.info_box.index", "index" to index, "text" to text)
-        elements.append(Component.text(indexedRow, NamedTextColor.WHITE))
+        val indexedRow = lang.msg("command.info_box.index", "index" to index, "text" to text)
+        elements.append(indexedRow)
     }
 
     fun addSpace() {
@@ -47,7 +47,7 @@ class ChatInfoBuilder(private val lang: LangService, private val playerId: UUID,
     }
 
     fun createPaged(currentPage: Int, pages: Int): Component {
-        val pageText = lang.legacy(
+        val pageText = lang.msg(
             "command.info_box.paged", "current_page" to currentPage, "total_pages" to pages)
         val finalisedElement = elements.append(Component.text("\n-----", NamedTextColor.WHITE))
             .append(pageText)
