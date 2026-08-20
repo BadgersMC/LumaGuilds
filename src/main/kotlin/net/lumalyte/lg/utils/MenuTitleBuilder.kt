@@ -10,13 +10,13 @@ package net.lumalyte.lg.utils
  *
  * Title component structure:
  *
- *   <shift:-7>                    calibrated horizontal offset
+ *   <shift:-9>                    calibrated horizontal offset
  *   <glyph:guild_bg_<theme>_<R>>  background overlay (advances cursor ~256px)
- *   <shift:-241>                  rewind cursor back to ~8px from default start
+ *   <shift:-239>                  rewind cursor back to ~8px from default start
  *   §f<title>                     visible title text in the top bar
  *
- * The rewind value of -241 is calculated as:
- *   want D + 8 (title margin) - (D - 7 + 256) = -241
+ * The rewind value of -239 is calculated as:
+ *   want D + 8 (title margin) - (D - 9 + 256) = -239
  *   where D = default cursor start, 256 = glyph texture width
  *
  * DO NOT use the neutral theme as a positioning reference — its
@@ -27,17 +27,17 @@ package net.lumalyte.lg.utils
 object MenuTitleBuilder {
 
     /** Calibrated horizontal offset placing the glyph at the window origin. */
-    private const val HORIZONTAL_OFFSET: String = "<shift:-8>"
+    private const val HORIZONTAL_OFFSET: String = "<shift:-9>"
 
     /** Rewind past the 256-pixel glyph advance + advance to title margin. */
-    private const val REWIND_TO_TITLE: String = "<shift:-241>"
+    private const val REWIND_TO_TITLE: String = "<shift:-239>"
 
     /**
      * Returns a ChestGui title string that renders a Nexo font-glyph
      * background with an optional visible title in the top bar.
      *
      * Result:
-     *   <shift:-7><glyph:guild_bg_<theme>_<R>_row><shift:-241>§f<title>
+     *   <shift:-9><glyph:guild_bg_<theme>_<R>_row><shift:-239>§f<title>
      *
      * @param theme  GUI background theme (default: NEUTRAL)
      * @param rows   Inventory row count (3-6)
