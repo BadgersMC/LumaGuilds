@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -9,7 +11,6 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.MemberContribution
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
@@ -33,7 +34,7 @@ class GuildMemberContributionsMenu(
 ) : Menu, KoinComponent {
 
     private val bankService: BankService by inject()
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     // GUI components
@@ -110,7 +111,7 @@ class GuildMemberContributionsMenu(
         // Close button
         val closeItem = createMenuItem(
             Material.BARRIER,
-            getLocalizedString(LocalizationKeys.MENU_BANK_CLOSE),
+            getLocalizedString("menu.bank.close"),
             listOf("Close menu")
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
@@ -392,7 +393,7 @@ class GuildMemberContributionsMenu(
      * Get localized string
      */
     private fun getLocalizedString(key: String): String {
-        return localizationProvider.get(player.uniqueId, key)
+        return lang.legacy(key)
     }
 
     /**

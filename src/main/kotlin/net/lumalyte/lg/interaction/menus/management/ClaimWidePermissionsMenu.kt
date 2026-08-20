@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.management
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -10,7 +12,6 @@ import net.lumalyte.lg.application.actions.claim.permission.RevokeAllClaimWidePe
 import net.lumalyte.lg.application.actions.claim.permission.RevokeClaimWidePermission
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.domain.values.ClaimPermission
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.getIcon
@@ -25,7 +26,7 @@ import java.util.UUID
 
 class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                                private val claim: Claim?): Menu, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val grantAllClaimWidePermissions : GrantAllClaimWidePermissions by inject()
     private val revokeAllClaimWidePermissions: RevokeAllClaimWidePermissions by inject()
     private val getClaimPermissions: GetClaimPermissions by inject()
@@ -40,7 +41,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
 
         // Create player permissions menu
         val playerId = player.uniqueId
-        val gui = ChestGui(6, localizationProvider.get(playerId, LocalizationKeys.MENU_CLAIM_WIDE_PERMISSIONS_TITLE))
+        val gui = ChestGui(6, lang.legacy("menu.claim_wide_permissions.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -59,7 +60,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
         }
 
         addSelector(playerId, controlsPane, ItemStack.of(Material.BELL)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CLAIM_WIDE_PERMISSIONS_ITEM_INFO_NAME)),
+            .name(lang.legacy("menu.claim_wide_permissions.item.info.name")),
             deselectAction, selectAction)
 
         // Add horizontal divider
@@ -82,7 +83,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
         var xSlot = 0
         var ySlot = 0
         for (permission in disabledPermissions) {
-            val permissionItem = permission.getIcon(localizationProvider, playerId)
+            val permissionItem = permission.getIcon(lang, playerId)
 
             val guiPermissionItem = GuiItem(permissionItem) {
                 grantClaimWidePermission.execute(claim.id, permission)
@@ -104,7 +105,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
         xSlot = 0
         ySlot = 0
         for (permission in enabledPermissions) {
-            val permissionItem = permission.getIcon(localizationProvider, playerId)
+            val permissionItem = permission.getIcon(lang, playerId)
 
             val guiPermissionItem = GuiItem(permissionItem) {
                 revokeClaimWidePermission.execute(claim.id, permission)
@@ -140,7 +141,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
 
         // Add go back item
         val exitItem = ItemStack.of(Material.NETHER_STAR)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_BACK_NAME))
+            .name(lang.legacy("menu.common.item.back.name"))
 
         val guiExitItem = GuiItem(exitItem) { backButtonAction() }
         controlsPane.addItem(guiExitItem, 0, 0)
@@ -155,13 +156,13 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
 
         // Add deselect all button
         val deselectItem = ItemStack.of(Material.HONEY_BLOCK)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_DESELECT_ALL_NAME))
+            .name(lang.legacy("menu.common.item.deselect_all.name"))
         val guiDeselectItem = GuiItem(deselectItem) { deselectAction() }
         controlsPane.addItem(guiDeselectItem, 2, 0)
 
         // Add select all button
         val selectItem = ItemStack.of(Material.SLIME_BLOCK)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_SELECT_ALL_NAME))
+            .name(lang.legacy("menu.common.item.select_all.name"))
         val guiSelectItem = GuiItem(selectItem) { selectAction() }
         controlsPane.addItem(guiSelectItem, 6, 0)
     }

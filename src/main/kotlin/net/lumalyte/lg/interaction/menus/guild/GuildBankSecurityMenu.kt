@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -14,7 +16,6 @@ import net.lumalyte.lg.domain.entities.BankAudit
 import net.lumalyte.lg.domain.entities.BankSettings
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.Guild
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
@@ -45,7 +46,7 @@ class GuildBankSecurityMenu(
     private val guildService: GuildService by inject()
     private val bankSettingsRepository: BankSettingsRepository by inject()
     private val chatInputListener: ChatInputListener by inject()
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -236,7 +237,7 @@ class GuildBankSecurityMenu(
         // Back to bank button
         val backItem = createMenuItem(
             Material.ARROW,
-            getLocalizedString(LocalizationKeys.MENU_BANK_BACK_TO_CONTROL_PANEL),
+            getLocalizedString("menu.bank.back_to_control_panel"),
             listOf("Return to guild bank")
         )
         val backGuiItem = GuiItem(backItem) { event ->
@@ -274,7 +275,7 @@ class GuildBankSecurityMenu(
         // Close button
         val closeItem = createMenuItem(
             Material.BARRIER,
-            getLocalizedString(LocalizationKeys.MENU_BANK_CLOSE),
+            getLocalizedString("menu.bank.close"),
             listOf("Close menu")
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
@@ -508,7 +509,7 @@ class GuildBankSecurityMenu(
     /**
      * Get localized string with optional parameters
      */
-    private fun getLocalizedString(key: String, vararg params: Any?): String {
-        return localizationProvider.get(player.uniqueId, key, *params)
+    private fun getLocalizedString(key: String): String {
+        return lang.legacy(key)
     }
 }

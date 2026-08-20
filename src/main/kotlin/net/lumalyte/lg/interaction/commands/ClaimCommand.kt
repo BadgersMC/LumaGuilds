@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
+
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
@@ -14,14 +16,13 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.entities.Partition
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 open class ClaimCommand : BaseCommand(), KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val getPartitionByPosition: GetPartitionByPosition by inject()
     private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
     private val getClaimDetails: GetClaimDetails by inject()
@@ -32,20 +33,16 @@ open class ClaimCommand : BaseCommand(), KoinComponent {
     @Syntax("claim")
     fun onClaim(player: Player) {
         when (givePlayerClaimTool.execute(player.uniqueId)) {
-            GivePlayerClaimToolResult.PlayerAlreadyHasTool -> player.sendMessage(localizationProvider.get(
-                player.uniqueId, LocalizationKeys.COMMAND_CLAIM_ALREADY_HAVE_TOOL))
-            GivePlayerClaimToolResult.Success -> player.sendMessage(localizationProvider.get(
-                player.uniqueId, LocalizationKeys.COMMAND_CLAIM_SUCCESS))
-            GivePlayerClaimToolResult.PlayerNotFound -> player.sendMessage(localizationProvider.get(
-                player.uniqueId, LocalizationKeys.GENERAL_ERROR))
+            GivePlayerClaimToolResult.PlayerAlreadyHasTool -> player.sendMessage(lang.msg("command.claim.already_have_tool"))
+            GivePlayerClaimToolResult.Success -> player.sendMessage(lang.msg("command.claim.success"))
+            GivePlayerClaimToolResult.PlayerNotFound -> player.sendMessage(lang.msg("general.error"))
         }
     }
 
     fun getPartitionAtPlayer(player: Player): Partition? {
         val claimPartition = getPartitionByPosition.execute(player.location.toPosition3D(), player.world.uid)
         if (claimPartition == null) {
-            player.sendMessage(localizationProvider.get(
-                player.uniqueId, LocalizationKeys.COMMAND_COMMON_UNKNOWN_PARTITION))
+            player.sendMessage(lang.msg("command.common.unknown_partition"))
             return null
         }
         return claimPartition
@@ -62,8 +59,7 @@ open class ClaimCommand : BaseCommand(), KoinComponent {
         // Check if player owns claim
         val claim = getClaimDetails.execute(partition.claimId) ?: return false
         if (player.uniqueId != claim.playerId) {
-            player.sendMessage(localizationProvider.get(
-                player.uniqueId, LocalizationKeys.COMMAND_COMMON_NO_CLAIM_PERMISSION))
+            player.sendMessage(lang.msg("command.common.no_claim_permission"))
             return false
         }
         return true

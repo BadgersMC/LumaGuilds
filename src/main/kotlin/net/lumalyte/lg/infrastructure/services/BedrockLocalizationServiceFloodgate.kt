@@ -2,7 +2,7 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.BedrockLocalizationService
 import net.lumalyte.lg.application.services.TextDirection
-import net.lumalyte.lg.application.utilities.LocalizationProvider
+import net.badgersmc.nexus.i18n.LangService
 import org.bukkit.entity.Player
 import java.io.File
 import java.text.MessageFormat
@@ -15,7 +15,7 @@ import java.util.logging.Logger
  */
 class BedrockLocalizationServiceFloodgate(
     private val dataFolder: File,
-    private val localizationProvider: LocalizationProvider,
+    private val lang: LangService,
     private val logger: Logger
 ) : BedrockLocalizationService {
 
@@ -89,7 +89,7 @@ class BedrockLocalizationServiceFloodgate(
 
         // Fall back to regular localization
         val regularTranslation = try {
-            localizationProvider.getConsole(key, *args)
+            lang.legacy(key)
         } catch (e: Exception) {
             // Floodgate integration - catching all exceptions for compatibility
             logger.warning("Error getting regular localization for key '$key': ${e.message}")

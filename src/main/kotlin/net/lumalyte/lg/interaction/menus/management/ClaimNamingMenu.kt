@@ -1,10 +1,11 @@
 package net.lumalyte.lg.interaction.menus.management
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.AnvilGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.actions.claim.CreateClaim
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -23,7 +24,7 @@ import kotlin.getValue
 
 class ClaimNamingMenu(private val player: Player, private val menuNavigator: MenuNavigator,
                         private val location: Location): Menu, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val createClaim: CreateClaim by inject()
     private var name = ""
     private var isConfirming = false
@@ -31,7 +32,7 @@ class ClaimNamingMenu(private val player: Player, private val menuNavigator: Men
     override fun open() {
         // Create homes menu
         val playerId = player.uniqueId
-        val gui = AnvilGui(localizationProvider.get(playerId, LocalizationKeys.MENU_NAMING_TITLE))
+        val gui = AnvilGui(lang.legacy("menu.naming.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -59,7 +60,7 @@ class ClaimNamingMenu(private val player: Player, private val menuNavigator: Men
         // Add confirm menu item.
         val thirdPane = StaticPane(0, 0, 1, 1)
         val confirmItem = ItemStack.of(Material.NETHER_STAR)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_CONFIRM_NAME))
+            .name(lang.legacy("menu.common.item.confirm.name"))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             val result = createClaim.execute(player.uniqueId, name, location.toPosition3D(), location.world.uid)
             when (result) {
@@ -76,7 +77,7 @@ class ClaimNamingMenu(private val player: Player, private val menuNavigator: Men
 
                 is net.lumalyte.lg.application.results.claim.CreateClaimResult.LimitExceeded -> {
                     val paperItem = ItemStack.of(Material.PAPER)
-                        .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_CLAIMS))
+                        .name(lang.legacy("creation_condition.claims"))
                     val guiPaperItem = GuiItem(paperItem) { guiEvent ->
                         secondPane.removeItem(0, 0)
                         bellItem.name(name)
@@ -91,7 +92,7 @@ class ClaimNamingMenu(private val player: Player, private val menuNavigator: Men
 
                 is net.lumalyte.lg.application.results.claim.CreateClaimResult.NameAlreadyExists -> {
                     val paperItem = ItemStack.of(Material.PAPER)
-                        .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_EXISTING))
+                        .name(lang.legacy("creation_condition.existing"))
                     val guiPaperItem = GuiItem(paperItem) { guiEvent ->
                         secondPane.removeItem(0, 0)
                         bellItem.name(name)
@@ -106,7 +107,7 @@ class ClaimNamingMenu(private val player: Player, private val menuNavigator: Men
 
                 is net.lumalyte.lg.application.results.claim.CreateClaimResult.NameCannotBeBlank -> {
                     val paperItem = ItemStack.of(Material.PAPER)
-                        .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_UNNAMED))
+                        .name(lang.legacy("creation_condition.unnamed"))
                     val guiPaperItem = GuiItem(paperItem) { guiEvent ->
                         secondPane.removeItem(0, 0)
                         bellItem.name(name)
@@ -119,7 +120,7 @@ class ClaimNamingMenu(private val player: Player, private val menuNavigator: Men
                 }
                 is net.lumalyte.lg.application.results.claim.CreateClaimResult.TooCloseToWorldBorder -> {
                     val paperItem = ItemStack.of(Material.PAPER)
-                        .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_WORLD_BORDER))
+                        .name(lang.legacy("creation_condition.world_border"))
                     val guiPaperItem = GuiItem(paperItem) { guiEvent ->
                         secondPane.removeItem(0, 0)
                         bellItem.name(name)

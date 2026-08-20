@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.management
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -7,7 +9,6 @@ import net.lumalyte.lg.application.actions.claim.IsNewClaimLocationValid
 import net.lumalyte.lg.application.actions.claim.ListPlayerClaims
 import net.lumalyte.lg.application.results.claim.IsNewClaimLocationValidResult
 import net.lumalyte.lg.application.services.PlayerMetadataService
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition2D
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -23,7 +24,7 @@ import org.koin.core.component.inject
 
 class ClaimCreationMenu(private val player: Player, private val menuNavigator: MenuNavigator,
                         private val location: Location): Menu, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val playerMetadataService: PlayerMetadataService by inject()
     private val listPlayerClaims: ListPlayerClaims by inject()
     private val isNewClaimLocationValid: IsNewClaimLocationValid by inject()
@@ -31,7 +32,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
 
     override fun open() {
         val playerId = player.uniqueId
-        val gui = ChestGui(1, localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_TITLE))
+        val gui = ChestGui(1, lang.legacy("menu.creation.title"))
         val pane = StaticPane(0, 0, 9, 1)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
@@ -43,8 +44,8 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
         if (playerClaimCount >=
                 playerMetadataService.getPlayerClaimLimit(playerId)) {
             val iconEditorItem = ItemStack.of(Material.MAGMA_CREAM)
-                .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CANNOT_CREATE_NAME))
-                .lore(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_CLAIMS))
+                .name(lang.legacy("menu.creation.item.cannot_create.name"))
+                .lore(lang.legacy("creation_condition.claims"))
             val guiIconEditorItem = GuiItem(iconEditorItem) { guiEvent -> guiEvent.isCancelled = true }
             pane.addItem(guiIconEditorItem, 4, 0)
             gui.show(player)
@@ -55,10 +56,12 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
         when (isNewClaimLocationValid.execute(location.toPosition2D(), location.world.uid)) {
             IsNewClaimLocationValidResult.Valid -> {
                 val iconEditorItem = ItemStack.of(Material.BELL)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CREATE_NAME))
-                    .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CREATE_LORE_PROTECTED))
-                    .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CREATE_LORE_REMAINING,
-                        playerMetadataService.getPlayerClaimLimit(playerId) - playerClaimCount))
+                    .name(lang.legacy("menu.creation.item.create.name"))
+                    .lore(lang.legacy("menu.creation.item.create.lore.protected"))
+                    .lore(lang.legacy(
+                        "menu.creation.item.create.lore.remaining",
+                        "remaining_claims" to playerMetadataService.getPlayerClaimLimit(playerId) - playerClaimCount,
+                    ))
                 val guiIconEditorItem = GuiItem(iconEditorItem) {
                     menuNavigator.openMenu(ClaimNamingMenu(player, menuNavigator, location))
                 }
@@ -67,8 +70,8 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
             }
             IsNewClaimLocationValidResult.Overlap -> {
                 val iconEditorItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CANNOT_CREATE_NAME))
-                    .lore(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_OVERLAP))
+                    .name(lang.legacy("menu.creation.item.cannot_create.name"))
+                    .lore(lang.legacy("creation_condition.overlap"))
                 val guiIconEditorItem = GuiItem(iconEditorItem) { guiEvent -> guiEvent.isCancelled = true }
                 pane.addItem(guiIconEditorItem, 4, 0)
                 gui.show(player)
@@ -76,17 +79,17 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
             }
             IsNewClaimLocationValidResult.TooCloseToWorldBorder -> {
                 val iconEditorItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.MENU_CREATION_ITEM_CANNOT_CREATE_NAME))
-                    .lore(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_WORLD_BORDER))
+                    .name(lang.legacy("menu.creation.item.cannot_create.name"))
+                    .lore(lang.legacy("creation_condition.world_border"))
                 val guiIconEditorItem = GuiItem(iconEditorItem) { guiEvent -> guiEvent.isCancelled = true }
                 pane.addItem(guiIconEditorItem, 4, 0)
                 gui.show(player)
                 return
             }
             IsNewClaimLocationValidResult.StorageError ->
-                player.sendMessage(localizationProvider.get(playerId, LocalizationKeys.GENERAL_ERROR))
+                player.sendMessage(lang.msg("general.error"))
             else ->
-                player.sendMessage(localizationProvider.get(playerId, LocalizationKeys.GENERAL_ERROR))
+                player.sendMessage(lang.msg("general.error"))
 
         }
     }

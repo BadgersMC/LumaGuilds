@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -14,7 +16,6 @@ import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.entities.TransactionType
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
@@ -47,7 +48,7 @@ class GuildBankMenu(
 ) : Menu, KoinComponent, Listener {
 
     private val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager by inject()
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val guildService: net.lumalyte.lg.application.services.GuildService by inject()
     private val bankService: BankService by inject() // Keep for transaction history only
@@ -161,7 +162,7 @@ class GuildBankMenu(
         // Deposit buttons (top row)
         val deposit100Item = createQuickActionItem(
             Material.LIME_WOOL,
-            LocalizationKeys.MENU_BANK_QUICK_DEPOSIT_100,
+            "menu.bank.quick.deposit.100",
             100,
             true
         )
@@ -169,7 +170,7 @@ class GuildBankMenu(
 
         val deposit1000Item = createQuickActionItem(
             Material.LIME_WOOL,
-            LocalizationKeys.MENU_BANK_QUICK_DEPOSIT_1000,
+            "menu.bank.quick.deposit.1000",
             1000,
             true
         )
@@ -177,7 +178,7 @@ class GuildBankMenu(
 
         val deposit10000Item = createQuickActionItem(
             Material.LIME_WOOL,
-            LocalizationKeys.MENU_BANK_QUICK_DEPOSIT_10000,
+            "menu.bank.quick.deposit.10000",
             10000,
             true
         )
@@ -185,7 +186,7 @@ class GuildBankMenu(
 
         val depositAllItem = createQuickActionItem(
             Material.LIME_WOOL,
-            LocalizationKeys.MENU_BANK_QUICK_DEPOSIT_ALL,
+            "menu.bank.quick.deposit.all",
             -1, // Special value for all
             true
         )
@@ -194,7 +195,7 @@ class GuildBankMenu(
         // Withdraw buttons (second row)
         val withdraw100Item = createQuickActionItem(
             Material.RED_WOOL,
-            LocalizationKeys.MENU_BANK_QUICK_WITHDRAW_100,
+            "menu.bank.quick.withdraw.100",
             100,
             false
         )
@@ -202,7 +203,7 @@ class GuildBankMenu(
 
         val withdraw1000Item = createQuickActionItem(
             Material.RED_WOOL,
-            LocalizationKeys.MENU_BANK_QUICK_WITHDRAW_1000,
+            "menu.bank.quick.withdraw.1000",
             1000,
             false
         )
@@ -210,7 +211,7 @@ class GuildBankMenu(
 
         val withdraw10000Item = createQuickActionItem(
             Material.RED_WOOL,
-            LocalizationKeys.MENU_BANK_QUICK_WITHDRAW_10000,
+            "menu.bank.quick.withdraw.10000",
             10000,
             false
         )
@@ -218,7 +219,7 @@ class GuildBankMenu(
 
         val withdrawAllItem = createQuickActionItem(
             Material.RED_WOOL,
-            LocalizationKeys.MENU_BANK_QUICK_WITHDRAW_ALL,
+            "menu.bank.quick.withdraw.all",
             -1, // Special value for all
             false
         )
@@ -232,7 +233,7 @@ class GuildBankMenu(
         // Custom deposit button
         val customDepositItem = createMenuItem(
             Material.GREEN_WOOL,
-            getLocalizedString(LocalizationKeys.MENU_BANK_CUSTOM_DEPOSIT),
+            getLocalizedString("menu.bank.custom.deposit"),
             listOf("Enter custom deposit amount")
         )
         val depositGuiItem = GuiItem(customDepositItem) { event ->
@@ -244,7 +245,7 @@ class GuildBankMenu(
         // Custom withdraw button
         val customWithdrawItem = createMenuItem(
             Material.RED_WOOL,
-            getLocalizedString(LocalizationKeys.MENU_BANK_CUSTOM_WITHDRAW),
+            getLocalizedString("menu.bank.custom.withdraw"),
             listOf("Enter custom withdrawal amount")
         )
         val withdrawGuiItem = GuiItem(customWithdrawItem) { event ->
@@ -264,13 +265,13 @@ class GuildBankMenu(
         val historyItem = if (transactions.isEmpty()) {
             createMenuItem(
                 Material.BARRIER,
-                getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_TITLE),
-                listOf(getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_NO_TRANSACTIONS))
+                getLocalizedString("menu.bank.history.title", "guild" to guild.name),
+                listOf(getLocalizedString("menu.bank.history.no_transactions"))
             )
         } else {
             createMenuItem(
                 Material.BOOK,
-                getLocalizedString(LocalizationKeys.MENU_BANK_HISTORY_TITLE),
+                getLocalizedString("menu.bank.history.title", "guild" to guild.name),
                 listOf("${transactions.size} recent transactions", "Click to view full history")
             )
         }
@@ -298,7 +299,7 @@ class GuildBankMenu(
         // Statistics button
         val statsItem = createMenuItem(
             Material.BOOK,
-            getLocalizedString(LocalizationKeys.MENU_BANK_STATS_TITLE),
+            getLocalizedString("menu.bank.stats.title"),
             listOf("View detailed bank statistics and analytics")
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
@@ -334,7 +335,7 @@ class GuildBankMenu(
         // Back button
         val backItem = createMenuItem(
             Material.ARROW,
-            getLocalizedString(LocalizationKeys.MENU_BANK_BACK_TO_CONTROL_PANEL),
+            getLocalizedString("menu.bank.back_to_control_panel"),
             listOf("Return to guild control panel")
         )
         val backGuiItem = GuiItem(backItem) { event ->
@@ -502,11 +503,11 @@ class GuildBankMenu(
             // Reload guild to get updated state
             guild = guildService.getGuild(guild.id) ?: guild
 
-            val message = getLocalizedString(
-                LocalizationKeys.MENU_BANK_FEEDBACK_DEPOSIT_SUCCESS,
-                amount.toString()
-            )
-            player.sendMessage(Component.text(message).color(NamedTextColor.GREEN))
+            val message = lang.msg(
+                "menu.bank.feedback.deposit_success",
+                "amount" to amount,
+            ).color(NamedTextColor.GREEN)
+            player.sendMessage(message)
             showSuccessFeedback("Deposit successful!", amount.toLong())
             true
         } catch (e: Exception) {
@@ -574,11 +575,11 @@ class GuildBankMenu(
             // Reload guild to get updated state
             guild = guildService.getGuild(guild.id) ?: guild
 
-            val message = getLocalizedString(
-                LocalizationKeys.MENU_BANK_FEEDBACK_WITHDRAW_SUCCESS,
-                amount.toString()
-            )
-            player.sendMessage(Component.text(message).color(NamedTextColor.GREEN))
+            val message = lang.msg(
+                "menu.bank.feedback.withdraw_success",
+                "amount" to amount,
+            ).color(NamedTextColor.GREEN)
+            player.sendMessage(message)
             showSuccessFeedback("Withdrawal successful!", -amount.toLong())
             true
         } catch (e: Exception) {
@@ -595,9 +596,9 @@ class GuildBankMenu(
      */
     private fun createTransactionItem(transaction: BankTransaction): ItemStack {
         val transactionType = when (transaction.type) {
-            TransactionType.DEPOSIT -> getLocalizedString(LocalizationKeys.MENU_BANK_TRANSACTION_DEPOSIT)
-            TransactionType.WITHDRAWAL -> getLocalizedString(LocalizationKeys.MENU_BANK_TRANSACTION_WITHDRAWAL)
-            TransactionType.FEE -> getLocalizedString(LocalizationKeys.MENU_BANK_TRANSACTION_FEE)
+            TransactionType.DEPOSIT -> getLocalizedString("menu.bank.transaction.deposit")
+            TransactionType.WITHDRAWAL -> getLocalizedString("menu.bank.transaction.withdrawal")
+            TransactionType.FEE -> getLocalizedString("menu.bank.transaction.fee")
             TransactionType.DEDUCTION -> "Deduction"
         }
 
@@ -649,15 +650,15 @@ class GuildBankMenu(
     /**
      * Get localized string with optional parameters
      */
-    private fun getLocalizedString(key: String, vararg params: Any?): String {
-        return localizationProvider.get(player.uniqueId, key, *params)
+    private fun getLocalizedString(key: String, vararg placeholders: Pair<String, Any?>): String {
+        return lang.legacy(key, *placeholders)
     }
 
     /**
      * Get localized title for the GUI
      */
     private fun getLocalizedTitle(): String {
-        return getLocalizedString(LocalizationKeys.MENU_BANK_TITLE, guild.name)
+        return getLocalizedString("menu.bank.title", "guild" to guild.name)
     }
 
     /**
@@ -831,9 +832,9 @@ class GuildBankMenu(
 
         val balanceItem = createMenuItem(
             Material.EMERALD,
-            getLocalizedString(LocalizationKeys.MENU_BANK_BALANCE_CURRENT, currentBalance.toString()),
+            getLocalizedString("menu.bank.balance.current", "balance" to currentBalance),
             listOf(
-                getLocalizedString(LocalizationKeys.MENU_BANK_BALANCE_TITLE),
+                getLocalizedString("menu.bank.balance.title"),
                 trend
             )
         )

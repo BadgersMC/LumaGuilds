@@ -1,12 +1,13 @@
 package net.lumalyte.lg.interaction.menus.management
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.FurnaceGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.actions.claim.metadata.UpdateClaimIcon
 import net.lumalyte.lg.application.results.claim.metadata.UpdateClaimIconResult
 import net.lumalyte.lg.domain.entities.Claim
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
@@ -21,7 +22,7 @@ import kotlin.concurrent.thread
 
 class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuNavigator,
                     private val claim: Claim?): Menu, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val updateClaimIcon: UpdateClaimIcon by inject()
 
     override fun open() {
@@ -31,7 +32,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
         }
 
         val playerId = player.uniqueId
-        val gui = FurnaceGui(localizationProvider.get(playerId, LocalizationKeys.MENU_ICON_TITLE))
+        val gui = FurnaceGui(lang.legacy("menu.icon.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -40,8 +41,8 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
 
         // Add info paper menu item
         val paperItem = ItemStack.of(Material.PAPER)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_ICON_ITEM_INFO_NAME))
-            .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_ICON_ITEM_INFO_LORE))
+            .name(lang.legacy("menu.icon.item.info.name"))
+            .lore(lang.legacy("menu.icon.item.info.lore"))
         val guiIconEditorItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
         fuelPane.addItem(guiIconEditorItem, 0, 0)
         gui.fuelComponent.addPane(fuelPane)
@@ -71,7 +72,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
         // Add confirm menu item
         val outputPane = StaticPane(0, 0, 1, 1)
         val confirmItem = ItemStack.of(Material.NETHER_STAR)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_CONFIRM_NAME))
+            .name(lang.legacy("menu.common.item.confirm.name"))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             guiEvent.isCancelled = true
             val newIcon = gui.ingredientComponent.getItem(0, 0)
