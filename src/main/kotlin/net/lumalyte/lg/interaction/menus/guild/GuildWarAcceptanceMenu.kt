@@ -58,7 +58,7 @@ class GuildWarAcceptanceMenu(
             return
         }
 
-        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5))
+        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§4⚔ War Declaration - ${guild.name}"))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->

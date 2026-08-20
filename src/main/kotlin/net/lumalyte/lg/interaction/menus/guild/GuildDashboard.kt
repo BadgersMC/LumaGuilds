@@ -49,7 +49,7 @@ class GuildDashboard(
             return
         }
 
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§0§8⚔ §7${guild.name}"))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->

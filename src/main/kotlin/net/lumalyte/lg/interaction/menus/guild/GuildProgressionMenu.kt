@@ -73,7 +73,7 @@ class GuildProgressionMenu(
         }
 
         val totalPages = (trackableSources.size + itemsPerPage - 1) / itemsPerPage
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§0§8⭐ §7Guild Progression §8• Page ${currentPage + 1}/$totalPages"))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
