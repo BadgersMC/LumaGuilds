@@ -8,16 +8,19 @@ import net.badgersmc.nexus.i18n.Locale
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.VaultBackupService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang
 import net.lumalyte.lg.infrastructure.i18n.LocaleSourceScanner
 import net.lumalyte.lg.interaction.commands.admin.BankCreditCommand
 import net.lumalyte.lg.interaction.commands.admin.VaultRollbackCommand
 import org.bukkit.command.Command
+import org.bukkit.Location
 import org.bukkit.plugin.Plugin
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -48,6 +51,7 @@ class CommandLocalizationTest {
     private lateinit var bankService: BankService
     private lateinit var guildService: GuildService
     private lateinit var memberService: MemberService
+    private lateinit var configService: ConfigService
     private lateinit var lang: LangService
 
     private val plainText = PlainTextComponentSerializer.plainText()
@@ -63,6 +67,9 @@ class CommandLocalizationTest {
         bankService = mockk(relaxed = true)
         guildService = mockk(relaxed = true)
         memberService = mockk(relaxed = true)
+        configService = mockk(relaxed = true) {
+            every { loadConfig() } returns MainConfig()
+        }
         lang = LangService(
             object : LangHost {
                 override val dataFolder: File = this@CommandLocalizationTest.dataFolder.toFile()
@@ -78,6 +85,7 @@ class CommandLocalizationTest {
                 single { guildService }
                 single { memberService }
                 single { bankService }
+                single { configService }
             })
         }
     }
@@ -220,13 +228,64 @@ class CommandLocalizationTest {
     }
 
     @Test
+    fun `unknown help topic keeps the localized help command clickable`() {
+        GuildCommand().onHelp(player, "missing")
+
+        val message = requireNotNull(player.nextComponentMessage())
+        assertEquals(
+            "/g help",
+            message.findRunCommandClick("/g help")?.clickEvent()?.value(),
+        )
+    }
+
+    @Test
+    fun `unsafe home feedback translates typed safety issue and confirmation`() {
+        val allowed = GuildCommand().checkHomeSafety(
+            player,
+            Location(null, 0.0, 64.0, 0.0),
+            "/guild home confirm",
+        )
+
+        assertEquals(false, allowed)
+        assertEquals(
+            listOf(
+                "[Warning] That home looks unsafe: Invalid world or location.",
+                "Type /guild home confirm within 10s to teleport anyway.",
+            ),
+            player.renderedMessages(),
+        )
+        net.lumalyte.lg.utils.GuildHomeSafety.consumePending(player)
+    }
+
+    @Test
+    fun `interactive guild tag failure is localized by command adapter`() {
+        val guild = guild("Starlight")
+        every { guildService.getPlayerGuilds(player.uniqueId) } returns setOf(guild)
+        every {
+            memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_BANNER)
+        } returns true
+
+        GuildCommand().onTag(player, "<click:run_command:'/op me'>Click")
+
+        assertEquals(
+            listOf("Guild tags cannot contain interactive 'click' tags. Use colors and formatting only."),
+            player.renderedMessages(),
+        )
+    }
+
+    @Test
     fun `command sources contain no hardcoded legacy player text`() {
-        val commandRoot = Path.of(System.getProperty("user.dir"))
-            .resolve("src/main/kotlin/net/lumalyte/lg/interaction/commands")
+        val sourceRoot = Path.of(System.getProperty("user.dir")).resolve("src/main/kotlin/net/lumalyte/lg")
+        val commandOwnedRoots = listOf(
+            sourceRoot.resolve("interaction/commands"),
+            sourceRoot.resolve("interaction/help"),
+            sourceRoot.resolve("utils/GuildHomeSafety.kt"),
+            sourceRoot.resolve("utils/GuildTagValidator.kt"),
+        )
 
         assertEquals(
             emptyList<String>(),
-            LocaleSourceScanner.scan(commandRoot).playerTextCandidates
+            commandOwnedRoots.flatMap { LocaleSourceScanner.scan(it).playerTextCandidates }
                 .map { "${it.file}:${it.line} ${it.source}" },
         )
     }
@@ -247,3 +306,12 @@ class CommandLocalizationTest {
         }
     }
 }
+
+private fun Component.allComponents(): List<Component> =
+    listOf(this) + children().flatMap { it.allComponents() }
+
+private fun Component.findRunCommandClick(command: String): Component? =
+    allComponents().firstOrNull {
+        it.clickEvent()?.action() == net.kyori.adventure.text.event.ClickEvent.Action.RUN_COMMAND &&
+            it.clickEvent()?.value() == command
+    }

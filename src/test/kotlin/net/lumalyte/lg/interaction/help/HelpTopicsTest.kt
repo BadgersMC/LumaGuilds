@@ -28,7 +28,8 @@ class HelpTopicsTest {
     fun `bySlug returns the matching topic`() {
         val homes = HelpTopics.bySlug("homes")
         assertNotNull(homes)
-        assertEquals("Homes", homes.displayName)
+        assertEquals("command.guild.help.topics.homes.menu", homes.menuKey)
+        assertEquals("command.guild.help.topics.homes.page", homes.pageKey)
     }
 
     @Test
@@ -50,12 +51,10 @@ class HelpTopicsTest {
     }
 
     @Test
-    fun `every topic summary fits the 140-char wiki front-matter limit`() {
+    fun `topic metadata contains only stable localization keys`() {
         HelpTopics.all.forEach { topic ->
-            assertTrue(
-                topic.summary.length <= 140,
-                "Topic ${topic.slug} summary is ${topic.summary.length} chars",
-            )
+            assertEquals("command.guild.help.topics.${topic.slug}.menu", topic.menuKey)
+            assertEquals("command.guild.help.topics.${topic.slug}.page", topic.pageKey)
         }
     }
 }

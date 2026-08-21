@@ -1,5 +1,6 @@
 package net.lumalyte.lg.utils
 
+import net.kyori.adventure.text.Component
 import org.bukkit.entity.Player
 
 /**
@@ -29,6 +30,16 @@ object ChatUtils {
     fun broadcastMessage(message: String, excludePlayer: Player? = null) {
         val server = org.bukkit.Bukkit.getServer()
 
+        for (onlinePlayer in server.onlinePlayers) {
+            if (onlinePlayer != excludePlayer) {
+                onlinePlayer.sendMessage(message)
+            }
+        }
+    }
+
+    /** Broadcasts an Adventure component without flattening formatting or events. */
+    fun broadcastMessage(message: Component, excludePlayer: Player? = null) {
+        val server = org.bukkit.Bukkit.getServer()
         for (onlinePlayer in server.onlinePlayers) {
             if (onlinePlayer != excludePlayer) {
                 onlinePlayer.sendMessage(message)

@@ -31,13 +31,12 @@ object GuildHomeSafety {
 
     private val PENDING = ConcurrentHashMap<UUID, Pending>()
 
-    fun checkOrAskConfirm(player: Player, target: Location, confirmCommand: String): Boolean {
-        val sr = evaluateSafety(target)
-        if (sr.safe) return true
-        PENDING[player.uniqueId] = Pending(target.clone(), System.currentTimeMillis() + CONFIRM_TTL_MS)
-        player.sendMessage("§e[Warning] §7That home looks unsafe: §c${sr.reason}")
-        player.sendMessage("§7Type §a$confirmCommand §7within 10s to teleport anyway.")
-        return false
+    fun checkAndRemember(player: Player, target: Location): SafetyResult {
+        val result = evaluateSafety(target)
+        if (!result.safe) {
+            PENDING[player.uniqueId] = Pending(target.clone(), System.currentTimeMillis() + CONFIRM_TTL_MS)
+        }
+        return result
     }
 
     fun consumePending(player: Player): Location? {
@@ -46,11 +45,11 @@ object GuildHomeSafety {
     }
 
     fun evaluateSafety(base: Location): SafetyResult {
-        val w: World = base.world ?: return unsafe("Invalid world or location.")
+        val w: World = base.world ?: return unsafe(Issue.INVALID_WORLD)
         val minY = w.minHeight
         val maxY = w.maxHeight
 
-        if (base.y < minY + 1 || base.y > maxY - 2) return unsafe("Location height is out of range.")
+        if (base.y < minY + 1 || base.y > maxY - 2) return unsafe(Issue.HEIGHT_OUT_OF_RANGE)
 
         val feetLoc = base.clone()
         val belowLoc = base.clone().add(0.0, -1.0, 0.0)
@@ -58,16 +57,21 @@ object GuildHomeSafety {
         val feet: Block = feetLoc.block
         val below: Block = belowLoc.block
 
-        if (DAMAGING.contains(feet.type)) return unsafe("Damaging block at feet.")
-        if (DAMAGING.contains(below.type)) return unsafe("Damaging block below.")
-
-        if (feet.type == Material.LAVA) return unsafe("Lava at feet.")
+        if (DAMAGING.contains(feet.type)) return unsafe(Issue.DAMAGING_BLOCK_AT_FEET)
+        if (DAMAGING.contains(below.type)) return unsafe(Issue.DAMAGING_BLOCK_BELOW)
 
         return safe()
     }
 
     private fun safe(): SafetyResult = SafetyResult(true, null)
-    private fun unsafe(reason: String): SafetyResult = SafetyResult(false, reason)
+    private fun unsafe(issue: Issue): SafetyResult = SafetyResult(false, issue)
 
-    data class SafetyResult(val safe: Boolean, val reason: String?)
+    data class SafetyResult(val safe: Boolean, val issue: Issue?)
+
+    enum class Issue {
+        INVALID_WORLD,
+        HEIGHT_OUT_OF_RANGE,
+        DAMAGING_BLOCK_AT_FEET,
+        DAMAGING_BLOCK_BELOW,
+    }
 }

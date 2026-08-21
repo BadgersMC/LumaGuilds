@@ -170,9 +170,13 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
         accessibleParties.forEach { party ->
             val isCurrent = currentParty?.id == party.id
-            val marker = if (isCurrent) lang.legacy("command.migrated.party_chat.switchlist.blank_line") else lang.legacy("command.migrated.party_chat.switchlist.blank_line_2")
-            val currentTag = if (isCurrent) lang.legacy("command.migrated.party_chat.switchlist.current") else ""
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.blank_line_3", "marker" to marker, "unnamed" to (party.name ?: lang.legacy("command.migrated.party_chat.common.unnamed")), "current_tag" to currentTag))
+            val partyName = party.name ?: lang.raw("command.migrated.party_chat.common.unnamed")
+            val row = if (isCurrent) {
+                lang.msg("command.migrated.party_chat.switchlist.party_current", "party" to partyName)
+            } else {
+                lang.msg("command.migrated.party_chat.switchlist.party", "party" to partyName)
+            }
+            player.sendMessage(row)
         }
 
         player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.blank_line_4"))
@@ -292,21 +296,24 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         }
 
         player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.current_party"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.name", "unnamed" to (party.name ?: lang.legacy("command.migrated.party_chat.common.unnamed"))))
+        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.name", "unnamed" to (party.name ?: lang.raw("command.migrated.party_chat.common.unnamed"))))
         player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.guilds", "size" to party.guildIds.size))
         val restrictions = if (party.hasRoleRestrictions()) {
-            lang.legacy("command.migrated.party_chat.showcurrentpartyinfo.role_restricted")
+            lang.raw("command.migrated.party_chat.showcurrentpartyinfo.role_restricted")
         } else {
-            lang.legacy("command.migrated.party_chat.showcurrentpartyinfo.open_to_all")
+            lang.raw("command.migrated.party_chat.showcurrentpartyinfo.open_to_all")
         }
         player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.restrictions", "all" to restrictions))
-        val expiry = party.expiresAt?.let {
-            lang.legacy(
-                "command.migrated.party_chat.showcurrentpartyinfo.expires_in_hours",
-                "hours" to java.time.Duration.between(java.time.Instant.now(), it).toHours(),
+        if (party.expiresAt != null) {
+            player.sendMessage(
+                lang.msg(
+                    "command.migrated.party_chat.showcurrentpartyinfo.expires_in_hours_line",
+                    "hours" to java.time.Duration.between(java.time.Instant.now(), party.expiresAt).toHours(),
+                ),
             )
-        } ?: lang.legacy("command.migrated.party_chat.showcurrentpartyinfo.never")
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.expires_h", "h" to expiry))
+        } else {
+            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.expires_never_line"))
+        }
         player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.status_active_you_are_sending_to_this"))
         player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.blank_line"))
         player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_message_to_send_a_message"))
@@ -340,7 +347,7 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         val success = preferenceRepository.save(preference)
 
         if (success) {
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.switched_to_party", "unnamed" to (party.name ?: lang.legacy("command.migrated.party_chat.common.unnamed"))))
+            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.switched_to_party", "unnamed" to (party.name ?: lang.raw("command.migrated.party_chat.common.unnamed"))))
             player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.all_your_messages_will_now_go_to"))
             player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.use_pc_to_see_current_party_info"))
             player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_switch_global_to_return_to"))
