@@ -51,9 +51,9 @@ internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
         if (message.isBlank()) {
             val msg =
                 if (args.isEmpty()) {
-                    lang.legacy("command.migrated.quick_announce.announce.provide_a_message_usage_ga_color_message")
+                    lang.msg("command.migrated.quick_announce.announce.provide_a_message_usage_ga_color_message")
                 } else {
-                    lang.legacy("command.migrated.quick_ally_chat.message.message_cannot_be_empty")
+                    lang.msg("command.migrated.quick_ally_chat.message.message_cannot_be_empty")
                 }
             player.sendMessage(msg)
             return

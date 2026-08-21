@@ -93,8 +93,73 @@ command:
       success: Guild disbanded.
     home:
       usage: /guild home
+      safety:
+        warning: '<yellow>[Warning] <gray>That home looks unsafe: <red><reason>'
+        confirm: '<gray>Type <green><confirm_command> <gray>within 10s to teleport anyway.'
+        reason:
+          invalid_world: Invalid world or location.
+          height_out_of_range: Location height is out of range.
+          damaging_block_at_feet: Damaging block at feet.
+          damaging_block_below: Damaging block below.
     help:
-      unknown_topic: '<red>Unknown help topic ''<yellow><topic><red>''. Type <help_command><red> to see all topics.'
+      unknown_topic: '<red>Unknown help topic ''<yellow><topic><red>''. Type <click:run_command:''/g help''><yellow>/g help</click><red> to see all topics.'
+      menu:
+        header: '<gold><bold>─── LumaGuilds Help ───'
+        intro: '<gray>Pick a topic (click or type /g help \<topic>):'
+        wiki: '<gray>Full wiki: <click:open_url:''https://badgersmc.github.io/LumaGuilds/players''><hover:show_text:''<gold>Open in browser''><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players</hover></click>'
+      topics:
+        guilds:
+          menu: '<click:run_command:''/g help guilds''><hover:show_text:''<gold>Open Guilds help''><dark_gray>  [<yellow>Guilds<dark_gray>] <gray>Create, join, leave, transfer, and disband guilds.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Guilds ───<newline><gray>Create, join, leave, transfer, and disband guilds.<newline><yellow>Commands:<newline><click:suggest_command:'/g create '><hover:show_text:'<gold>Create a new guild.<newline><gray>Click to prefill in chat'><white>  /g create \<name></hover></click><newline><click:suggest_command:'/g join '><hover:show_text:'<gold>Request to join a guild.<newline><gray>Click to prefill in chat'><white>  /g join \<guild></hover></click><newline><click:suggest_command:'/g leave'><hover:show_text:'<gold>Leave your current guild.<newline><gray>Click to prefill in chat'><white>  /g leave</hover></click><newline><click:suggest_command:'/g disband'><hover:show_text:'<gold>Disband your guild (owner only).<newline><gray>Click to prefill in chat'><white>  /g disband</hover></click><newline><click:suggest_command:'/g transfer '><hover:show_text:'<gold>Transfer ownership.<newline><gray>Click to prefill in chat'><white>  /g transfer \<player></hover></click><newline><click:suggest_command:'/g info '><hover:show_text:'<gold>View guild information.<newline><gray>Click to prefill in chat'><white>  /g info [guild]</hover></click><newline><click:suggest_command:'/g list'><hover:show_text:'<gold>Browse all guilds.<newline><gray>Click to prefill in chat'><white>  /g list</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/guilds/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/guilds/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        homes:
+          menu: '<click:run_command:''/g help homes''><hover:show_text:''<gold>Open Homes help''><dark_gray>  [<yellow>Homes<dark_gray>] <gray>Set, name, visit, and restrict access to guild homes.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Homes ───<newline><gray>Set, name, visit, and restrict access to guild homes.<newline><yellow>Commands:<newline><click:suggest_command:'/g sethome '><hover:show_text:'<gold>Set a home at your current location.<newline><gray>Click to prefill in chat'><white>  /g sethome [name]</hover></click><newline><click:suggest_command:'/g home '><hover:show_text:'<gold>Teleport to a guild home.<newline><gray>Click to prefill in chat'><white>  /g home [name]</hover></click><newline><click:suggest_command:'/g homes'><hover:show_text:'<gold>List your guild homes.<newline><gray>Click to prefill in chat'><white>  /g homes</hover></click><newline><click:suggest_command:'/g removehome '><hover:show_text:'<gold>Remove a named home.<newline><gray>Click to prefill in chat'><white>  /g removehome \<name></hover></click><newline><click:suggest_command:'/g setallyhome'><hover:show_text:'<gold>Set your guild ally-home.<newline><gray>Click to prefill in chat'><white>  /g setallyhome</hover></click><newline><click:suggest_command:'/g removeallyhome'><hover:show_text:'<gold>Remove your guild ally-home.<newline><gray>Click to prefill in chat'><white>  /g removeallyhome</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/homes/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/homes/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        ranks:
+          menu: '<click:run_command:''/g help ranks''><hover:show_text:''<gold>Open Ranks & Permissions help''><dark_gray>  [<yellow>Ranks & Permissions<dark_gray>] <gray>Create ranks, set permissions, and manage member rank assignments.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Ranks & Permissions ───<newline><gray>Create ranks, set permissions, and manage member rank assignments.<newline><yellow>Commands:<newline><click:suggest_command:'/g ranks'><hover:show_text:'<gold>Open the rank management menu.<newline><gray>Click to prefill in chat'><white>  /g ranks</hover></click><newline><click:suggest_command:'/g menu'><hover:show_text:'<gold>Open the guild control panel.<newline><gray>Click to prefill in chat'><white>  /g menu</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/ranks/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/ranks/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        chat:
+          menu: '<click:run_command:''/g help chat''><hover:show_text:''<gold>Open Chat help''><dark_gray>  [<yellow>Chat<dark_gray>] <gray>Toggle guild and ally chat, and customize how your tag appears in messages.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Chat ───<newline><gray>Toggle guild and ally chat, and customize how your tag appears in messages.<newline><yellow>Commands:<newline><click:suggest_command:'/g chat'><hover:show_text:'<gold>Toggle guild chat on/off.<newline><gray>Click to prefill in chat'><white>  /g chat</hover></click><newline><click:suggest_command:'/gc '><hover:show_text:'<gold>Send one message to guild chat.<newline><gray>Click to prefill in chat'><white>  /gc \<message></hover></click><newline><click:suggest_command:'/g allychat'><hover:show_text:'<gold>Toggle ally chat on/off.<newline><gray>Click to prefill in chat'><white>  /g allychat</hover></click><newline><click:suggest_command:'/gac '><hover:show_text:'<gold>Send one message to ally chat.<newline><gray>Click to prefill in chat'><white>  /gac \<message></hover></click><newline><click:suggest_command:'/g modchat'><hover:show_text:'<gold>Toggle mod chat on/off (moderators).<newline><gray>Click to prefill in chat'><white>  /g modchat</hover></click><newline><click:suggest_command:'/gmc '><hover:show_text:'<gold>Send one message to mod chat.<newline><gray>Click to prefill in chat'><white>  /gmc \<message></hover></click><newline><click:suggest_command:'/ga '><hover:show_text:'<gold>Send a guild announcement.<newline><gray>Click to prefill in chat'><white>  /ga [color] \<msg></hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/chat/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/chat/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        alliances:
+          menu: '<click:run_command:''/g help alliances''><hover:show_text:''<gold>Open Alliances & Diplomacy help''><dark_gray>  [<yellow>Alliances & Diplomacy<dark_gray>] <gray>Form alliances, declare enemies, sign truces, and manage ally-home access.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Alliances & Diplomacy ───<newline><gray>Form alliances, declare enemies, sign truces, and manage ally-home access.<newline><yellow>Commands:<newline><click:suggest_command:'/g ally '><hover:show_text:'<gold>Request or accept an alliance.<newline><gray>Click to prefill in chat'><white>  /g ally \<guild></hover></click><newline><click:suggest_command:'/g enemy '><hover:show_text:'<gold>Mark a guild as enemy.<newline><gray>Click to prefill in chat'><white>  /g enemy \<guild></hover></click><newline><click:suggest_command:'/g truce '><hover:show_text:'<gold>Sign a truce.<newline><gray>Click to prefill in chat'><white>  /g truce \<guild></hover></click><newline><click:suggest_command:'/g neutral '><hover:show_text:'<gold>Clear a relation.<newline><gray>Click to prefill in chat'><white>  /g neutral \<guild></hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/alliances/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/alliances/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        war:
+          menu: '<click:run_command:''/g help war''><hover:show_text:''<gold>Open War help''><dark_gray>  [<yellow>War<dark_gray>] <gray>Declare and fight wars between guilds.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · War ───<newline><gray>Declare and fight wars between guilds.<newline><yellow>Commands:<newline><click:suggest_command:'/g war '><hover:show_text:'<gold>Open the war control flow.<newline><gray>Click to prefill in chat'><white>  /g war \<guild></hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/war/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/war/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        progression:
+          menu: '<click:run_command:''/g help progression''><hover:show_text:''<gold>Open Progression & Levels help''><dark_gray>  [<yellow>Progression & Levels<dark_gray>] <gray>Earn guild XP from member activity, level up, and unlock perks.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Progression & Levels ───<newline><gray>Earn guild XP from member activity, level up, and unlock perks.<newline><yellow>Commands:<newline><click:suggest_command:'/g info'><hover:show_text:'<gold>See your guild level and XP.<newline><gray>Click to prefill in chat'><white>  /g info</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/progression/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/progression/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        vault:
+          menu: '<click:run_command:''/g help vault''><hover:show_text:''<gold>Open Vault help''><dark_gray>  [<yellow>Vault<dark_gray>] <gray>Use the shared guild vault for storing items.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Vault ───<newline><gray>Use the shared guild vault for storing items.<newline><yellow>Commands:<newline><click:suggest_command:'/g vault'><hover:show_text:'<gold>Open the guild vault.<newline><gray>Click to prefill in chat'><white>  /g vault</hover></click><newline><click:suggest_command:'/g getvault'><hover:show_text:'<gold>Get a vault chest item.<newline><gray>Click to prefill in chat'><white>  /g getvault</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/vault/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/vault/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        identity:
+          menu: '<click:run_command:''/g help identity''><hover:show_text:''<gold>Open Tags, Banners & Identity help''><dark_gray>  [<yellow>Tags, Banners & Identity<dark_gray>] <gray>Set your guild tag, description, and banner.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Tags, Banners & Identity ───<newline><gray>Set your guild tag, description, and banner.<newline><yellow>Commands:<newline><click:suggest_command:'/g tag '><hover:show_text:'<gold>Set or edit your guild tag.<newline><gray>Click to prefill in chat'><white>  /g tag [text]</hover></click><newline><click:suggest_command:'/g desc '><hover:show_text:'<gold>Set your guild description.<newline><gray>Click to prefill in chat'><white>  /g desc \<text></hover></click><newline><click:suggest_command:'/g rename '><hover:show_text:'<gold>Rename your guild.<newline><gray>Click to prefill in chat'><white>  /g rename \<name></hover></click><newline><click:suggest_command:'/g emoji'><hover:show_text:'<gold>Pick a guild emoji.<newline><gray>Click to prefill in chat'><white>  /g emoji</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/identity/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/identity/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        mode:
+          menu: '<click:run_command:''/g help mode''><hover:show_text:''<gold>Open Mode help''><dark_gray>  [<yellow>Mode (Peaceful / Hostile)<dark_gray>] <gray>Switch your guild between peaceful and hostile mode.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Mode (Peaceful / Hostile) ───<newline><gray>Switch your guild between peaceful and hostile mode.<newline><yellow>Commands:<newline><click:suggest_command:'/g mode'><hover:show_text:'<gold>Open the mode selection menu.<newline><gray>Click to prefill in chat'><white>  /g mode</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/mode/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/mode/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        lfg:
+          menu: '<click:run_command:''/g help lfg''><hover:show_text:''<gold>Open LFG & Invites help''><dark_gray>  [<yellow>LFG & Invites<dark_gray>] <gray>Manage invites, decline requests, and use LFG to find a guild.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · LFG & Invites ───<newline><gray>Manage invites, decline requests, and use LFG to find a guild.<newline><yellow>Commands:<newline><click:suggest_command:'/g invite '><hover:show_text:'<gold>Invite a player to your guild.<newline><gray>Click to prefill in chat'><white>  /g invite \<player></hover></click><newline><click:suggest_command:'/g invites'><hover:show_text:'<gold>List your pending invites.<newline><gray>Click to prefill in chat'><white>  /g invites</hover></click><newline><click:suggest_command:'/g decline '><hover:show_text:'<gold>Decline an invite.<newline><gray>Click to prefill in chat'><white>  /g decline \<guild></hover></click><newline><click:suggest_command:'/g lfg'><hover:show_text:'<gold>Toggle LFG (looking-for-guild).<newline><gray>Click to prefill in chat'><white>  /g lfg</hover></click><newline><click:suggest_command:'/g kick '><hover:show_text:'<gold>Kick a member from your guild.<newline><gray>Click to prefill in chat'><white>  /g kick \<player></hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/lfg/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/lfg/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+        bedrock:
+          menu: '<click:run_command:''/g help bedrock''><hover:show_text:''<gold>Open Bedrock differences help''><dark_gray>  [<yellow>Bedrock differences<dark_gray>] <gray>Where LumaGuilds behaves differently on Bedrock/Geyser.</hover></click>'
+          page: |-
+            <gold><bold>─── Help · Bedrock differences ───<newline><gray>Where LumaGuilds behaves differently on Bedrock/Geyser.<newline><yellow>Commands:<newline><hover:show_text:'<gold>Bedrock menus open as forms; clickable chat maps to taps.'><white>  (see wiki)</hover><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/bedrock/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/bedrock/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+    tag:
+      validation:
+        interactive: '<red>Guild tags cannot contain interactive ''<tag>'' tags. Use colors and formatting only.'
+        inappropriate: '<red>Name contains inappropriate content.'
     info:
       bank: 'Bank Balance: <balance>'
       header: '<guild> Guild Information'
@@ -406,8 +471,6 @@ command:
         guild_set_successfully: '<green>✅ Guild <home_label> set successfully!'
         members_can_now_use_guild_home_to: '<gray>Members can now use <gold>/guild home <gray>to teleport here.'
         this_location_is_within_your_guild_s: '<gray>This location is within your guild''s claim area.'
-        use_guild_sethome_confirm_within_10s_to: '<gray>Use <gold>/guild sethome confirm <gray>within 10s to set anyway.'
-        warning_that_home_looks_unsafe: '<yellow>[Warning] <gray>That home looks unsafe: <red><reason>'
       sethome:
         an_error_occurred_while_checking_your_location: '<red>An error occurred while checking your location.'
         no_pending_unsafe_location_to_confirm_or: '<red>No pending unsafe location to confirm, or confirmation expired.'
@@ -550,14 +613,13 @@ command:
         you_don_t_have_permission_to_chat: '<red>❌ You don''t have permission to chat in this party!'
         your_message_was_not_sent_because_there: '<gray>Your message was not sent because there are no recipients'
       showcurrentpartyinfo:
-        expires_in_hours: 'in <hours>h'
-        never: 'Never'
+        expires_in_hours_line: '<gray>Expires: <white>in <hours>h'
+        expires_never_line: '<gray>Expires: <white>Never'
         open_to_all: 'Open to all'
         role_restricted: 'Role-restricted'
         available_parties: '<gray>Available parties: <white><size>'
         blank_line: '<gold>====================='
         current_party: '<gold>=== Current Party ==='
-        expires_h: '<gray>Expires: <white><h>'
         guilds: '<gray>Guilds: <white><size>'
         name: '<gray>Name: <white><unnamed>'
         restrictions: '<gray>Restrictions: <white><all>'
@@ -579,14 +641,12 @@ command:
         your_messages_will_now_go_to_global: '<gray>Your messages will now go to global chat, not party chat'
       switchlist:
         available_parties: '<gold>=== Available Parties ==='
-        blank_line: '<green>▶'
-        blank_line_2: '<gray> '
-        blank_line_3: '<marker> <white><unnamed><current_tag>'
         blank_line_4: '<gold>========================'
-        current: ' <gray>(current)'
         global: '<gray>  GLOBAL'
         global_current: '<green>▶ GLOBAL <gray>(current)'
         no_available_parties_to_switch_to: '<red>❌ No available parties to switch to!'
+        party: '<gray>  <white><party>'
+        party_current: '<green>▶ <white><party> <gray>(current)'
         use_pc_switch_name_to_switch: '<gray>Use <white>/pc switch \<name> <gray>to switch'
         you_are_not_in_any_guild: '<red>❌ You are not in any guild!'
       switchtoparty:
