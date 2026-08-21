@@ -135,9 +135,9 @@ class BedrockTagEditorMenu(
                         net.lumalyte.lg.utils.GuildTagValidator.validationFailure(value, configService.loadConfig().guild.nameFilter)?.let {
                             val reason = when (it) {
                                 is net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag ->
-                                    "Guild tags cannot contain interactive '${it.tagName}' tags. Use colors and formatting only."
+                                    lang.legacy("command.guild.tag.validation.interactive", "tag" to it.tagName)
                                 net.lumalyte.lg.utils.GuildTagValidator.Failure.InappropriateContent ->
-                                    "Name contains inappropriate content."
+                                    lang.legacy("command.guild.tag.validation.inappropriate")
                             }
                             return@getValidator ValidationResult.invalid(reason)
                         }

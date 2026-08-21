@@ -367,9 +367,9 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         net.lumalyte.lg.utils.GuildTagValidator.validationFailure(tag, configService.loadConfig().guild.nameFilter)?.let {
             return when (it) {
                 is net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag ->
-                    "Guild tags cannot contain interactive '${it.tagName}' tags. Use colors and formatting only."
+                    lang.legacy("command.guild.tag.validation.interactive", "tag" to it.tagName)
                 net.lumalyte.lg.utils.GuildTagValidator.Failure.InappropriateContent ->
-                    "Name contains inappropriate content."
+                    lang.legacy("command.guild.tag.validation.inappropriate")
             }
         }
 
