@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.i18n
 
 import net.lumalyte.lg.domain.values.ClaimPermission
 import net.lumalyte.lg.domain.values.Flag
+import net.lumalyte.lg.interaction.help.HelpTopics
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -43,7 +44,9 @@ class LocaleContractTest {
         "menu.bank.stats.activity.recent",
         "menu.bank.stats.activity.very_high",
     )
-    private val declaredDynamicKeys = claimPermissionDynamicKeys + flagDynamicKeys + finiteMenuStateKeys
+    private val helpTopicDynamicKeys = HelpTopics.all.flatMap { listOf(it.menuKey, it.pageKey) }.toSet()
+    private val declaredDynamicKeys =
+        claimPermissionDynamicKeys + flagDynamicKeys + finiteMenuStateKeys + helpTopicDynamicKeys
 
     @Test
     fun `locale contains no positional placeholders`() {
@@ -122,7 +125,14 @@ class LocaleContractTest {
         )
 
         assertEquals(expectedMenuStateKeys, finiteMenuStateKeys)
-        assertEquals(permissionKeys + flagKeys + expectedMenuStateKeys, declaredDynamicKeys)
+        val expectedHelpTopicKeys = HelpTopics.all
+            .flatMap { listOf(it.menuKey, it.pageKey) }
+            .toSet()
+
+        assertEquals(
+            permissionKeys + flagKeys + expectedMenuStateKeys + expectedHelpTopicKeys,
+            declaredDynamicKeys,
+        )
     }
 
     @Test
@@ -284,8 +294,8 @@ class LocaleContractTest {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
         const val BASELINE_UNUSED_KEYS = 341
-        const val BASELINE_DYNAMIC_CALLS = 23
-        const val BASELINE_HARDCODED_PLAYER_TEXT = 3340
+        const val BASELINE_DYNAMIC_CALLS = 25
+        const val BASELINE_HARDCODED_PLAYER_TEXT = 3338
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }
 }

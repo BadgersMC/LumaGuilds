@@ -17,7 +17,6 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.interaction.help.HelpTopics
 import net.lumalyte.lg.interaction.help.HelpTopicsRenderer
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -165,7 +164,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("command.migrated.guild.create.open_menu_guild_menu"))
 
             // Broadcast guild creation to all online players
-            val creationMessage = lang.legacy("command.migrated.guild.create.a_new_guild_has_been_founded_by", "name" to name, "player" to player.name)
+            val creationMessage = lang.msg("command.migrated.guild.create.a_new_guild_has_been_founded_by", "name" to name, "player" to player.name)
             net.lumalyte.lg.utils.ChatUtils.broadcastMessage(creationMessage, player)
 
             // Log the guild creation
@@ -342,12 +341,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check safety and handle confirmation system
         if (config.guild.homeTeleportSafetyCheck) {
-            val unsafeConfirmCommand = if (adjustedHomeName == null) {
-                "/guild sethome unsafe"
-            } else {
-                "/guild sethome $adjustedHomeName unsafe"
-            }
-            if (!checkHomeSafety(player, location, unsafeConfirmCommand)) {
+            if (!checkHomeSafety(player, location, "/guild sethome unsafe")) {
                 return
             }
         }
@@ -1813,8 +1807,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         val nameFilterConfig2 = configService.loadConfig().guild.nameFilter
-        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag, nameFilterConfig2)?.let { reason ->
-            player.sendMessage(lang.msg("command.migrated.guild.create.blank_line", "reason" to reason))
+        net.lumalyte.lg.utils.GuildTagValidator.validationFailure(tag, nameFilterConfig2)?.let { failure ->
+            when (failure) {
+                is net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag ->
+                    player.sendMessage(lang.msg("command.guild.tag.validation.interactive", "tag" to failure.tagName))
+                net.lumalyte.lg.utils.GuildTagValidator.Failure.InappropriateContent ->
+                    player.sendMessage(lang.msg("command.guild.tag.validation.inappropriate"))
+            }
             return
         }
 
@@ -1982,16 +1981,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         )
 
         val config = configService.loadConfig()
-
-        // Check if location is safe (if safety check is enabled)
-        if (config.guild.homeTeleportSafetyCheck) {
-            val safetyResult = GuildHomeSafety.evaluateSafety(location)
-            if (!safetyResult.safe) {
-                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.warning_that_home_looks_unsafe", "reason" to safetyResult.reason))
-                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.use_guild_sethome_confirm_within_10s_to"))
-                return
-            }
-        }
 
         val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
 
@@ -2236,12 +2225,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
         val found = HelpTopics.bySlug(topic)
         if (found == null) {
-            val helpCommand = Component.text("/g help", NamedTextColor.YELLOW)
-                .clickEvent(ClickEvent.runCommand("/g help"))
             player.sendMessage(lang.msg(
                 "command.guild.help.unknown_topic",
                 "topic" to topic,
-                "help_command" to helpCommand,
             ))
             return
         }
@@ -2382,7 +2368,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             notifyGuildMembers(targetGuild.id, lang.msg("command.migrated.guild.enemy.has_declared_war_on_your_guild", "guild" to guild.name))
 
             // Broadcast to all online players
-            net.lumalyte.lg.utils.ChatUtils.broadcastMessage(lang.legacy("command.migrated.guild.enemy.has_declared_war_on", "guild" to guild.name, "guild_2" to targetGuild.name), player)
+            net.lumalyte.lg.utils.ChatUtils.broadcastMessage(lang.msg("command.migrated.guild.enemy.has_declared_war_on", "guild" to guild.name, "guild_2" to targetGuild.name), player)
         } else {
             player.sendMessage(lang.msg("command.migrated.guild.enemy.failed_to_declare_war"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)

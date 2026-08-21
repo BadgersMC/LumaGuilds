@@ -133,7 +133,13 @@ class BedrockTagEditorMenu(
 
                         // Reject interactive MiniMessage event tags (click/hover/insertion)
                         net.lumalyte.lg.utils.GuildTagValidator.validationFailure(value, configService.loadConfig().guild.nameFilter)?.let {
-                            return@getValidator GuildTagValidationMessages.invalid(lang, it)
+                            val reason = when (it) {
+                                is net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag ->
+                                    "Guild tags cannot contain interactive '${it.tagName}' tags. Use colors and formatting only."
+                                net.lumalyte.lg.utils.GuildTagValidator.Failure.InappropriateContent ->
+                                    "Name contains inappropriate content."
+                            }
+                            return@getValidator ValidationResult.invalid(reason)
                         }
 
                         // Allow both § codes (Bedrock) and MiniMessage format
