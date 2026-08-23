@@ -90,6 +90,17 @@ class TagValidationLocalizationTest {
     }
 
     @Test
+    fun `bedrock validation result carries localized sentinel output`() {
+        val result = GuildTagValidationMessages.invalid(
+            lang,
+            net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag("click"),
+        )
+
+        assertEquals(false, result.isValid)
+        assertEquals("SENTINEL interactive click", result.errorMessage)
+    }
+
+    @Test
     fun `both tag editor adapters delegate failures without recreating english`() {
         val sourceRoot = Path.of(System.getProperty("user.dir"))
             .resolve("src/main/kotlin/net/lumalyte/lg/interaction/menus")
@@ -99,7 +110,11 @@ class TagValidationLocalizationTest {
         )
         val sources = adapters.map { java.nio.file.Files.readString(it) }
 
-        assertEquals(listOf(true, true), sources.map { "GuildTagValidationMessages.legacy" in it })
+        assertEquals(true, "GuildTagValidationMessages.legacy(lang, it)" in sources[0])
+        assertEquals(
+            true,
+            "return@getValidator GuildTagValidationMessages.invalid(lang, it)" in sources[1],
+        )
         assertEquals(
             listOf(emptyList(), emptyList()),
             sources.map { source ->
