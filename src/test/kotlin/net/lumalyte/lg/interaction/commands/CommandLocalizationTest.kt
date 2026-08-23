@@ -324,12 +324,13 @@ class CommandLocalizationTest {
         val world = server.addSimpleWorld("unsafe-world")
         val unsafeLocation = Location(world, 20.0, 64.0, 20.0)
         unsafeLocation.block.type = Material.LAVA
-        player.teleport(Location(world, 2.0, 70.0, 2.0))
+        player.teleport(unsafeLocation)
         every { configService.loadConfig() } returns MainConfig(claimsEnabled = false)
         every { guildService.getPlayerGuilds(player.uniqueId) } returns setOf(guild)
         every { guildService.getHome(guild.id, any()) } returns null
         every { guildService.setHome(guild.id, "main", any(), player.uniqueId) } returns true
-        GuildHomeSafety.checkAndRemember(player, unsafeLocation)
+        GuildCommand().onSetHome(player, null, null)
+        player.teleport(Location(world, 2.0, 70.0, 2.0))
 
         GuildCommand().onSetHome(player, "unsafe", null)
 
@@ -338,6 +339,33 @@ class CommandLocalizationTest {
                 guild.id,
                 "main",
                 match { it.position == Position3D(20, 64, 20) },
+                player.uniqueId,
+            )
+        }
+        assertEquals(null, GuildHomeSafety.consumePending(player))
+    }
+
+    @Test
+    fun `named unsafe sethome confirmation consumes the original pending location`() {
+        val guild = guild("Starlight")
+        val world = server.addSimpleWorld("named-unsafe-world")
+        val unsafeLocation = Location(world, 30.0, 64.0, 40.0)
+        unsafeLocation.block.type = Material.LAVA
+        player.teleport(unsafeLocation)
+        every { configService.loadConfig() } returns MainConfig(claimsEnabled = false)
+        every { guildService.getPlayerGuilds(player.uniqueId) } returns setOf(guild)
+        every { guildService.getHome(guild.id, "lodge") } returns null
+        every { guildService.setHome(guild.id, "lodge", any(), player.uniqueId) } returns true
+
+        GuildCommand().onSetHome(player, "lodge", null)
+        player.teleport(Location(world, 3.0, 70.0, 4.0))
+        GuildCommand().onSetHome(player, "lodge", "unsafe")
+
+        io.mockk.verify(exactly = 1) {
+            guildService.setHome(
+                guild.id,
+                "lodge",
+                match { it.position == Position3D(30, 64, 40) },
                 player.uniqueId,
             )
         }

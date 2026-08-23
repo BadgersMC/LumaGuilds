@@ -365,12 +365,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Reject interactive MiniMessage event tags (click/hover/insertion)
         net.lumalyte.lg.utils.GuildTagValidator.validationFailure(tag, configService.loadConfig().guild.nameFilter)?.let {
-            return when (it) {
-                is net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag ->
-                    lang.legacy("command.guild.tag.validation.interactive", "tag" to it.tagName)
-                net.lumalyte.lg.utils.GuildTagValidator.Failure.InappropriateContent ->
-                    lang.legacy("command.guild.tag.validation.inappropriate")
-            }
+            return GuildTagValidationMessages.legacy(lang, it)
         }
 
         // Try to parse with MiniMessage
