@@ -2,34 +2,26 @@ package net.lumalyte.lg.interaction.menus
 
 import io.mockk.every
 import io.mockk.mockk
-import net.badgersmc.nexus.i18n.LangHost
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.i18n.Locale
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.Guild
-import net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang
-import net.lumalyte.lg.infrastructure.i18n.LocaleSourceScanner
 import net.lumalyte.lg.interaction.menus.guild.TagEditorMenu
+import net.lumalyte.lg.utils.GuildTagValidationMessages
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.mockbukkit.mockbukkit.MockBukkit
 import org.mockbukkit.mockbukkit.ServerMock
-import java.io.File
 import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertEquals
 
 class TagValidationLocalizationTest {
-
-    @TempDir
-    lateinit var dataFolder: Path
 
     private lateinit var server: ServerMock
     private lateinit var lang: LangService
@@ -38,14 +30,14 @@ class TagValidationLocalizationTest {
     @BeforeEach
     fun setUp() {
         server = MockBukkit.mock()
-        lang = LangService(
-            object : LangHost {
-                override val dataFolder: File = this@TagValidationLocalizationTest.dataFolder.toFile()
-                override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
-            },
-            Locale("en_US"),
-            LumaGuildsLang::class.java,
-        )
+        lang = mockk {
+            every {
+                legacy("command.guild.tag.validation.interactive", "tag" to "click")
+            } returns "SENTINEL interactive click"
+            every {
+                legacy("command.guild.tag.validation.inappropriate")
+            } returns "SENTINEL inappropriate"
+        }
         configService = mockk {
             every { loadConfig() } returns MainConfig()
         }
@@ -74,36 +66,48 @@ class TagValidationLocalizationTest {
         val result = validate.invoke(menu, "<click:run_command:'/op me'>Click") as String?
 
         assertEquals(
-            lang.legacy("command.guild.tag.validation.interactive", "tag" to "click"),
+            "SENTINEL interactive click",
             result,
         )
     }
 
     @Test
-    fun `both tag editor adapters reference localized typed failures`() {
+    fun `shared tag failure renderer uses locale output for every typed failure`() {
+        assertEquals(
+            "SENTINEL interactive click",
+            GuildTagValidationMessages.legacy(
+                lang,
+                net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag("click"),
+            ),
+        )
+        assertEquals(
+            "SENTINEL inappropriate",
+            GuildTagValidationMessages.legacy(
+                lang,
+                net.lumalyte.lg.utils.GuildTagValidator.Failure.InappropriateContent,
+            ),
+        )
+    }
+
+    @Test
+    fun `both tag editor adapters delegate failures without recreating english`() {
         val sourceRoot = Path.of(System.getProperty("user.dir"))
             .resolve("src/main/kotlin/net/lumalyte/lg/interaction/menus")
         val adapters = listOf(
             sourceRoot.resolve("guild/TagEditorMenu.kt"),
             sourceRoot.resolve("bedrock/BedrockTagEditorMenu.kt"),
         )
+        val sources = adapters.map { java.nio.file.Files.readString(it) }
+
+        assertEquals(listOf(true, true), sources.map { "GuildTagValidationMessages.legacy" in it })
         assertEquals(
-            listOf(
-                setOf(
-                    "command.guild.tag.validation.interactive",
-                    "command.guild.tag.validation.inappropriate",
-                ),
-                setOf(
-                    "command.guild.tag.validation.interactive",
-                    "command.guild.tag.validation.inappropriate",
-                ),
-            ),
-            adapters.map { LocaleSourceScanner.scan(it).literalKeys.intersect(
-                setOf(
-                    "command.guild.tag.validation.interactive",
-                    "command.guild.tag.validation.inappropriate",
-                ),
-            ) },
+            listOf(emptyList(), emptyList()),
+            sources.map { source ->
+                listOf(
+                    "Guild tags cannot contain interactive",
+                    "Guild tag contains inappropriate content",
+                ).filter(source::contains)
+            },
         )
     }
 

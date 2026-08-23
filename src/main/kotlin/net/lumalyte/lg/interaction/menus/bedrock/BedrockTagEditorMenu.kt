@@ -7,6 +7,7 @@ import net.lumalyte.lg.application.services.ValidationResult
 import net.lumalyte.lg.application.services.ValidatorType
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuildTagValidationMessages
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
@@ -156,12 +157,7 @@ class BedrockTagEditorMenu(
 
                         // Reject interactive MiniMessage event tags (click/hover/insertion)
                         net.lumalyte.lg.utils.GuildTagValidator.validationFailure(value, configService.loadConfig().guild.nameFilter)?.let {
-                            val reason = when (it) {
-                                is net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag ->
-                                    lang.legacy("command.guild.tag.validation.interactive", "tag" to it.tagName)
-                                net.lumalyte.lg.utils.GuildTagValidator.Failure.InappropriateContent ->
-                                    lang.legacy("command.guild.tag.validation.inappropriate")
-                            }
+                            val reason = GuildTagValidationMessages.legacy(lang, it)
                             return@getValidator ValidationResult.invalid(reason)
                         }
 
