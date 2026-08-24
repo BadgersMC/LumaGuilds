@@ -86,7 +86,6 @@ import net.lumalyte.lg.application.services.scheduling.SchedulerService
 
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.LfgService
-import net.lumalyte.lg.application.services.MapRendererService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RelationService
@@ -138,7 +137,6 @@ import net.lumalyte.lg.infrastructure.services.GuildBannerServiceBukkit
 import net.lumalyte.lg.infrastructure.services.AuditServiceBukkit
 import net.lumalyte.lg.infrastructure.services.KillServiceBukkit
 import net.lumalyte.lg.infrastructure.services.LeaderboardServiceBukkit
-import net.lumalyte.lg.infrastructure.services.MapRendererServiceBukkit
 import net.lumalyte.lg.infrastructure.services.WarServiceBukkit
 import net.lumalyte.lg.infrastructure.services.FloodgatePlatformDetectionService
 import net.lumalyte.lg.application.services.PlatformDetectionService
@@ -653,7 +651,7 @@ fun vaultModule() = module {
 }
 
 /**
- * Utilities module - Export, teleportation, and map rendering
+ * Utilities module - Export and teleportation
  */
 fun utilitiesModule() = module {
     // Async task service for virtual thread I/O operations
@@ -665,7 +663,6 @@ fun utilitiesModule() = module {
     single<net.lumalyte.lg.infrastructure.services.TeleportationService> {
         net.lumalyte.lg.infrastructure.services.TeleportationService(get(), get())
     }
-    single<MapRendererService> { MapRendererServiceBukkit() }
 }
 
 /**
