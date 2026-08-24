@@ -398,3 +398,21 @@ leaderboards:
     - WEEKLY_ACTIVITY
     - BANK_BALANCE
     - MEMBER_COUNT
+
+# =====================================
+# Shared Weekly Guild Quests
+# =====================================
+quests:
+  enabled: false
+  reset_day: MONDAY
+  reset_hour_utc: 0
+  quest_count: 3
+  full_set_bonus_xp: 5000
+  reward_xp:
+    common: 500
+    challenging: 1500
+    headline: 3000
+    conditioned: 5000
+  # Operators add typed quest candidates here. Every guild receives the same
+  # generated set; progress and rewards remain per guild.
+  definitions: {}

@@ -93,6 +93,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private val progressionRepository: ProgressionRepository by inject()
     private val leaderboardRepository: LeaderboardRepository by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
+    private val questService: QuestService by inject()
 
     private val miniMessage = MiniMessage.miniMessage()
     private val plainSerializer = PlainTextComponentSerializer.plainText()
@@ -103,6 +104,12 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private data class TopRow(val guildId: UUID, val value: Double)
     private val topCache = ConcurrentHashMap<String, CachedTop>()
     private val topCacheTtlSeconds = 30L
+    private data class CachedQuestState(
+        val expiresAt: Instant,
+        val progress: Map<String, net.lumalyte.lg.domain.entities.GuildQuestProgress>,
+        val bonusAwarded: Boolean
+    )
+    private val questCache = ConcurrentHashMap<UUID, CachedQuestState>()
 
     override fun getIdentifier(): String = "lumaguilds"
 
@@ -121,6 +128,10 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         when {
             ident == "guild_total_count" -> return safeGuildCount()
             ident.startsWith("top_") -> return handleTopPlaceholder(ident)
+            ident.startsWith("guild_weekly_") -> {
+                val guildId = player?.uniqueId?.let { memberService.getPlayerGuilds(it).firstOrNull() }
+                return handleWeeklyQuestPlaceholder(ident, guildId)
+            }
         }
 
         if (player == null) return null
@@ -299,6 +310,70 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 null // Placeholder not found
             }
         }
+    }
+
+    private fun handleWeeklyQuestPlaceholder(identifier: String, guildId: UUID?): String {
+        return try {
+            handleWeeklyQuestPlaceholderUnsafe(identifier, guildId)
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    private fun handleWeeklyQuestPlaceholderUnsafe(identifier: String, guildId: UUID?): String {
+        val active = questService.activeQuestSet()
+        if (identifier == "guild_weekly_quests_time_remaining") return net.lumalyte.lg.utils.QuestDisplayFormatter.duration(questService.timeRemaining())
+        if (identifier == "guild_weekly_quests_count" || identifier == "guild_weekly_quests_total") {
+            return active?.quests?.size?.toString() ?: "0"
+        }
+        if (identifier == "guild_weekly_quests_bonus_exp") return questService.fullSetBonusExperience.toString()
+        val state = guildId?.let(::cachedQuestState)
+        if (identifier == "guild_weekly_quests_bonus_awarded") return (state?.bonusAwarded ?: false).toString()
+
+        val progress = state?.progress.orEmpty()
+        if (identifier == "guild_weekly_quests_completed") {
+            return active?.quests?.count { quest ->
+                quest.targetCount > 0 && (progress[quest.id]?.currentCount ?: 0) >= quest.targetCount
+            }?.toString() ?: "0"
+        }
+        if (identifier == "guild_weekly_quests_all_completed") {
+            val milestones = active?.quests?.filter { it.targetCount > 0 }.orEmpty()
+            return (milestones.isNotEmpty() && milestones.all { (progress[it.id]?.currentCount ?: 0) >= it.targetCount }).toString()
+        }
+
+        val match = WEEKLY_QUEST_PATTERN.matchEntire(identifier) ?: return ""
+        val index = match.groupValues[1].toIntOrNull()?.minus(1) ?: return ""
+        val field = match.groupValues[2]
+        val quest = active?.quests?.getOrNull(index) ?: return ""
+        val current = progress[quest.id]
+        val count = current?.currentCount ?: 0
+        val percentage = if (quest.targetCount > 0) ((count.coerceAtMost(quest.targetCount) * 100) / quest.targetCount) else 0
+        return when (field) {
+            "name" -> "${net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.action.name)} ${net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.target.id)}"
+            "description" -> buildString {
+                append(quest.targetCount).append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.target.id))
+                quest.condition?.let { append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(it.type.name)).append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(it.value.orEmpty())) }
+            }.trim()
+            "action" -> quest.action.name
+            "target" -> quest.target.id
+            "required" -> quest.targetCount.toString()
+            "progress" -> count.toString()
+            "progress_percent" -> percentage.toString()
+            "completed" -> (quest.targetCount > 0 && count >= quest.targetCount).toString()
+            "claimed" -> (current?.claimed == true).toString()
+            "reward_exp" -> quest.experienceReward.toString()
+            else -> ""
+        }
+    }
+
+    private fun cachedQuestState(guildId: UUID): CachedQuestState {
+        val now = Instant.now()
+        questCache[guildId]?.takeIf { it.expiresAt.isAfter(now) }?.let { return it }
+        return CachedQuestState(
+            now.plusSeconds(topCacheTtlSeconds),
+            questService.guildProgress(guildId).associateBy { it.questId },
+            questService.isWeeklyBonusAwarded(guildId)
+        ).also { questCache[guildId] = it }
     }
 
     /**
@@ -558,5 +633,6 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     companion object {
         private const val TOP_CACHE_LIMIT = 25
         private val TOP_CATEGORIES = setOf("level", "balance", "activity", "members", "age")
+        private val WEEKLY_QUEST_PATTERN = Regex("guild_weekly_quest_(\\d+)_(.+)")
     }
 }

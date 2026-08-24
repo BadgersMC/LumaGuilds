@@ -525,6 +525,12 @@ fun progressionModule() = module {
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get(), get()) }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.QuestRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite(get())
+    }
+    single<net.lumalyte.lg.application.persistence.BlockProvenanceRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.BlockProvenanceRepositorySQLite(get())
+    }
 
     // Services
     single<KillService> { KillServiceBukkit(get()) }
@@ -556,12 +562,25 @@ fun progressionModule() = module {
     single<net.lumalyte.lg.infrastructure.services.ProgressionConfigService> {
         net.lumalyte.lg.infrastructure.services.ProgressionConfigService(get())
     }
+    single<net.lumalyte.lg.application.services.QuestRewardSink> {
+        net.lumalyte.lg.infrastructure.services.QuestRewardSinkBukkit(get())
+    }
+    single {
+        net.lumalyte.lg.application.services.QuestService(
+            repository = get(),
+            rewards = get(),
+            fullSetBonusExperience = get<net.lumalyte.lg.infrastructure.services.ProgressionConfigService>()
+                .getProgressionConfig().quests.fullSetBonusXp
+        )
+    }
+    single { net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator(get(), get()) }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
         net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get(), get())
     }
 
     // Listeners
     single<ProgressionEventListener> { ProgressionEventListener() }
+    single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get()) }
 }
 
 /**

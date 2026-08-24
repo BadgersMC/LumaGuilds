@@ -32,7 +32,10 @@ data class ProgressionSystemConfig(
     val activity: ActivityTrackingConfig = ActivityTrackingConfig(),
 
     // Leaderboards
-    val leaderboards: LeaderboardConfig = LeaderboardConfig()
+    val leaderboards: LeaderboardConfig = LeaderboardConfig(),
+
+    // Shared weekly guild quests
+    val quests: QuestSystemConfig = QuestSystemConfig()
 ) {
     /**
      * Gets the appropriate level rewards based on claims_based setting
@@ -41,6 +44,46 @@ data class ProgressionSystemConfig(
         return if (claimsBased) levelsClaims else levelsNoClaims
     }
 }
+
+data class QuestSystemConfig(
+    val enabled: Boolean = false,
+    val resetDay: DayOfWeek = DayOfWeek.MONDAY,
+    val resetHourUtc: Int = 0,
+    val questCount: Int = 3,
+    val fullSetBonusXp: Int = 5_000,
+    val rewardXp: QuestRewardXpConfig = QuestRewardXpConfig(),
+    val definitions: List<QuestDefinitionConfig> = emptyList()
+)
+
+data class QuestRewardXpConfig(
+    val common: Int = 500,
+    val challenging: Int = 1_500,
+    val headline: Int = 3_000,
+    val conditioned: Int = 5_000
+)
+
+data class QuestDefinitionConfig(
+    val id: String,
+    val nameKey: String,
+    val descriptionKey: String,
+    val action: String,
+    val target: String,
+    val amount: Long,
+    val tier: String,
+    val weight: Int = 1,
+    val conditionType: String? = null,
+    val conditionValue: String? = null,
+    val naturalDimensions: Set<String> = emptySet(),
+    val naturalBiomes: Set<String> = emptySet(),
+    val minimumAmount: Long = amount,
+    val maximumAmount: Long = amount,
+    val provenancePolicy: String = "ANY",
+    val leaderboard: Boolean = false,
+    val leaderboardPayouts: Map<Int, Int> = emptyMap(),
+    val itemRewards: List<QuestItemRewardConfig> = emptyList()
+)
+
+data class QuestItemRewardConfig(val itemId: String, val amount: Int)
 
 /**
  * Leveling formula configuration
