@@ -403,7 +403,7 @@ leaderboards:
 # Shared Weekly Guild Quests
 # =====================================
 quests:
-  enabled: true
+  enabled: false
   reset_day: MONDAY
   reset_hour_utc: 0
   quest_count: 3

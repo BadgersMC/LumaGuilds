@@ -75,11 +75,16 @@ class ProgressionConfigService(private val plugin: Plugin) {
                 leaderboard = yamlConfig.getBoolean("$path.leaderboard", false),
                 leaderboardPayouts = yamlConfig.getConfigurationSection("$path.leaderboard_payouts")?.getKeys(false).orEmpty()
                     .mapNotNull { rank -> rank.toIntOrNull()?.let { it to yamlConfig.getInt("$path.leaderboard_payouts.$rank") } }
-                    .toMap()
+                    .toMap(),
+                itemRewards = yamlConfig.getMapList("$path.item_rewards").mapNotNull { reward ->
+                    val itemId = reward["item"]?.toString()?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+                    val amountValue = (reward["amount"] as? Number)?.toInt()?.takeIf { it > 0 } ?: return@mapNotNull null
+                    net.lumalyte.lg.config.QuestItemRewardConfig(itemId, amountValue)
+                }
             )
         }
         return QuestSystemConfig(
-            enabled = yamlConfig.getBoolean("$base.enabled", true),
+            enabled = yamlConfig.getBoolean("$base.enabled", false) && definitions.isNotEmpty(),
             resetDay = loadDayOfWeek(yamlConfig.getString("$base.reset_day") ?: "MONDAY"),
             resetHourUtc = yamlConfig.getInt("$base.reset_hour_utc", 0).coerceIn(0, 23),
             questCount = yamlConfig.getInt("$base.quest_count", 3).coerceAtLeast(1),

@@ -31,6 +31,8 @@ class QuestService(
 ) {
     fun activeQuestSet(): WeeklyQuestSet? = repository.getActiveQuestSet()
 
+    fun deactivate() = repository.deactivateActiveQuestSet()
+
     fun progressFor(guildId: UUID, questId: String): GuildQuestProgress {
         val active = requireNotNull(repository.getActiveQuestSet()) { "No active weekly quest set" }
         require(active.quests.any { it.id == questId }) { "Unknown active quest: $questId" }
@@ -85,7 +87,6 @@ class QuestService(
                     ?: GuildQuestProgress(active.weekId, quest.id, guildId)
                 repository.saveProgress(current.withIncrementedCount(amount, quest.targetCount))
             }
-        awardFullSetBonusIfComplete(active, guildId)
     }
 
     fun claimQuest(actorId: UUID, guildId: UUID, questId: String): Boolean {
@@ -106,15 +107,19 @@ class QuestService(
         if (active?.weekId == nextQuestSet.weekId) return
         active?.quests?.filter { it.leaderboard }?.forEach { quest ->
             val maxRank = quest.leaderboardPayouts.keys.maxOrNull() ?: 0
-            if (maxRank > 0 && repository.tryMarkLeaderboardPaid(active.weekId, quest.id)) {
+            if (maxRank > 0) {
                 repository.getQuestLeaderboard(active.weekId, quest.id, maxRank)
                     .forEachIndexed { index, progress ->
-                        quest.leaderboardPayouts[index + 1]?.takeIf { it > 0 }?.let {
-                            rewards.awardExperience(progress.guildId, it)
+                        quest.leaderboardPayouts[index + 1]?.takeIf { it > 0 }?.let { amount ->
+                            if (!repository.isLeaderboardRecipientPaid(active.weekId, quest.id, progress.guildId)) {
+                                rewards.awardExperience(progress.guildId, amount)
+                                repository.markLeaderboardRecipientPaid(active.weekId, quest.id, progress.guildId)
+                            }
                         }
                     }
             }
         }
+        active?.let { repository.deleteWeekProgress(it.weekId) }
         repository.saveActiveQuestSet(nextQuestSet)
     }
 
@@ -123,7 +128,7 @@ class QuestService(
         val milestones = active.quests.filter { it.targetCount > 0 }
         if (milestones.isEmpty()) return
         val allComplete = milestones.all { quest ->
-            (repository.getProgress(active.weekId, quest.id, guildId)?.currentCount ?: 0) >= quest.targetCount
+            repository.getProgress(active.weekId, quest.id, guildId)?.claimed == true
         }
         if (allComplete && repository.tryMarkWeeklyBonusAwarded(active.weekId, guildId)) {
             rewards.awardExperience(guildId, fullSetBonusExperience)

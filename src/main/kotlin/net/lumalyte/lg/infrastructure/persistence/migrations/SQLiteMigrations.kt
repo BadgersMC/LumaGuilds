@@ -144,6 +144,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(25)
                 dbVersion = 25
             }
+            if (dbVersion < 26) {
+                migrateToVersion26()
+                updateDatabaseVersion(26)
+                dbVersion = 26
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1664,5 +1669,17 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         )
         executeMigrationCommands(sqlCommands)
         componentLogger.info(Component.text("✓ Migration v25 complete: guild_penalties table added"))
+    }
+
+    private fun migrateToVersion26() {
+        executeMigrationCommands(listOf(
+            """
+            CREATE TABLE IF NOT EXISTS quest_player_placed_blocks (
+                world_id TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL,
+                PRIMARY KEY (world_id, x, y, z)
+            )
+            """.trimIndent()
+        ))
+        componentLogger.info(Component.text("✓ Migration v26 complete: weekly quest provenance added"))
     }
 }

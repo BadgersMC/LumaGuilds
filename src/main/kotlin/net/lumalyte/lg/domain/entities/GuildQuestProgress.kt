@@ -13,7 +13,7 @@ data class GuildQuestProgress(
 ) {
     fun withIncrementedCount(amount: Long, targetCount: Long, now: Instant = Instant.now()): GuildQuestProgress {
         require(amount >= 0) { "Progress increment cannot be negative" }
-        val updated = currentCount + amount
+        val updated = if (Long.MAX_VALUE - currentCount < amount) Long.MAX_VALUE else currentCount + amount
         return copy(
             currentCount = updated,
             completedAt = completedAt ?: if (targetCount > 0 && updated >= targetCount) now else null

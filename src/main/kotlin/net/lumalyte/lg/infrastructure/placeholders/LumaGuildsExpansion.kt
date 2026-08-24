@@ -104,6 +104,12 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private data class TopRow(val guildId: UUID, val value: Double)
     private val topCache = ConcurrentHashMap<String, CachedTop>()
     private val topCacheTtlSeconds = 30L
+    private data class CachedQuestState(
+        val expiresAt: Instant,
+        val progress: Map<String, net.lumalyte.lg.domain.entities.GuildQuestProgress>,
+        val bonusAwarded: Boolean
+    )
+    private val questCache = ConcurrentHashMap<UUID, CachedQuestState>()
 
     override fun getIdentifier(): String = "lumaguilds"
 
@@ -307,15 +313,24 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     }
 
     private fun handleWeeklyQuestPlaceholder(identifier: String, guildId: UUID?): String {
+        return try {
+            handleWeeklyQuestPlaceholderUnsafe(identifier, guildId)
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    private fun handleWeeklyQuestPlaceholderUnsafe(identifier: String, guildId: UUID?): String {
         val active = questService.activeQuestSet()
-        if (identifier == "guild_weekly_quests_time_remaining") return formatQuestDuration(questService.timeRemaining())
+        if (identifier == "guild_weekly_quests_time_remaining") return net.lumalyte.lg.utils.QuestDisplayFormatter.duration(questService.timeRemaining())
         if (identifier == "guild_weekly_quests_count" || identifier == "guild_weekly_quests_total") {
             return active?.quests?.size?.toString() ?: "0"
         }
         if (identifier == "guild_weekly_quests_bonus_exp") return questService.fullSetBonusExperience.toString()
-        if (identifier == "guild_weekly_quests_bonus_awarded") return (guildId?.let(questService::isWeeklyBonusAwarded) ?: false).toString()
+        val state = guildId?.let(::cachedQuestState)
+        if (identifier == "guild_weekly_quests_bonus_awarded") return (state?.bonusAwarded ?: false).toString()
 
-        val progress = if (guildId == null) emptyMap() else questService.guildProgress(guildId).associateBy { it.questId }
+        val progress = state?.progress.orEmpty()
         if (identifier == "guild_weekly_quests_completed") {
             return active?.quests?.count { quest ->
                 quest.targetCount > 0 && (progress[quest.id]?.currentCount ?: 0) >= quest.targetCount
@@ -334,10 +349,10 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         val count = current?.currentCount ?: 0
         val percentage = if (quest.targetCount > 0) ((count.coerceAtMost(quest.targetCount) * 100) / quest.targetCount) else 0
         return when (field) {
-            "name" -> "${displayQuestToken(quest.action.name)} ${displayQuestToken(quest.target.id)}"
+            "name" -> "${net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.action.name)} ${net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.target.id)}"
             "description" -> buildString {
-                append(quest.targetCount).append(' ').append(displayQuestToken(quest.target.id))
-                quest.condition?.let { append(' ').append(displayQuestToken(it.type.name)).append(' ').append(displayQuestToken(it.value.orEmpty())) }
+                append(quest.targetCount).append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.target.id))
+                quest.condition?.let { append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(it.type.name)).append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(it.value.orEmpty())) }
             }.trim()
             "action" -> quest.action.name
             "target" -> quest.target.id
@@ -351,15 +366,14 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         }
     }
 
-    private fun formatQuestDuration(duration: Duration): String {
-        val days = duration.toDays()
-        val hours = duration.minusDays(days).toHours()
-        val minutes = duration.minusDays(days).minusHours(hours).toMinutes()
-        return "${days}d ${hours}h ${minutes}m"
-    }
-
-    private fun displayQuestToken(value: String): String = value.lowercase().split('_').joinToString(" ") {
-        it.replaceFirstChar(Char::uppercase)
+    private fun cachedQuestState(guildId: UUID): CachedQuestState {
+        val now = Instant.now()
+        questCache[guildId]?.takeIf { it.expiresAt.isAfter(now) }?.let { return it }
+        return CachedQuestState(
+            now.plusSeconds(topCacheTtlSeconds),
+            questService.guildProgress(guildId).associateBy { it.questId },
+            questService.isWeeklyBonusAwarded(guildId)
+        ).also { questCache[guildId] = it }
     }
 
     /**

@@ -66,6 +66,15 @@ class QuestGenerationValidatorTest {
         )
     }
 
+    @Test
+    fun `malformed numeric condition value is rejected`() {
+        val target = wheat.copy(supportedConditions = setOf(QuestConditionType.ABOVE_Y))
+        val result = validator.validate(quest(QuestAction.HARVEST_CROPS, target, 1_000,
+            QuestCondition(QuestConditionType.ABOVE_Y, "not-a-number")))
+
+        assertEquals(listOf(QuestValidationFailure.CONDITION_VALUE_INVALID), result.failures)
+    }
+
     private fun quest(
         action: QuestAction,
         target: QuestTarget,

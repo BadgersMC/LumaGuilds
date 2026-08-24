@@ -31,6 +31,7 @@ import org.bukkit.event.inventory.CraftItemEvent
 import org.bukkit.event.inventory.FurnaceExtractEvent
 import org.bukkit.event.player.PlayerFishEvent
 import org.slf4j.LoggerFactory
+import java.time.Instant
 
 class QuestProgressListener(
     private val questService: QuestService,
@@ -39,6 +40,8 @@ class QuestProgressListener(
     private val progressionConfigService: ProgressionConfigService
 ) : Listener {
     private val logger = LoggerFactory.getLogger(QuestProgressListener::class.java)
+    private var trackedMaterialsExpiresAt: Instant = Instant.EPOCH
+    private var trackedMaterials: Set<String> = emptySet()
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerKill(event: PlayerDeathEvent) = safely("player kill") {
@@ -58,6 +61,12 @@ class QuestProgressListener(
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) = safely("block break") {
         if (!eligible(event.player)) return@safely
+        if (!shouldTrackProvenance(event.block.type.name)) {
+            val data = event.block.blockData
+            val action = if (data is Ageable && data.age >= data.maximumAge) QuestAction.HARVEST_CROPS else QuestAction.MINE_BLOCKS
+            incrementFor(event.player, action, event.block.type.name, context = context(event.player, event.block))
+            return@safely
+        }
         val position = event.block.position()
         val playerPlaced = provenance.wasPlayerPlaced(position)
         provenance.remove(position)
@@ -114,22 +123,22 @@ class QuestProgressListener(
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onEntityExplode(event: EntityExplodeEvent) = safely("entity explosion") {
-        event.blockList().forEach { provenance.remove(it.position()) }
+        provenance.removeAll(event.blockList().map { it.position() })
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockExplode(event: BlockExplodeEvent) = safely("block explosion") {
-        event.blockList().forEach { provenance.remove(it.position()) }
+        provenance.removeAll(event.blockList().map { it.position() })
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPistonExtend(event: BlockPistonExtendEvent) = safely("piston extend") {
-        event.blocks.asReversed().forEach { block -> provenance.move(block.position(), block.getRelative(event.direction).position()) }
+        provenance.moveAll(event.blocks.asReversed().map { block -> block.position() to block.getRelative(event.direction).position() })
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPistonRetract(event: BlockPistonRetractEvent) = safely("piston retract") {
-        event.blocks.forEach { block -> provenance.move(block.position(), block.getRelative(event.direction).position()) }
+        provenance.moveAll(event.blocks.map { block -> block.position() to block.getRelative(event.direction).position() })
     }
 
     private fun incrementFor(
@@ -156,13 +165,16 @@ class QuestProgressListener(
     private fun eligible(player: Player): Boolean = player.gameMode != GameMode.CREATIVE && player.gameMode != GameMode.SPECTATOR
 
     private fun shouldTrackProvenance(material: String): Boolean {
-        val configured = progressionConfigService.getProgressionConfig().quests.definitions.any {
-            it.target == material && it.provenancePolicy == BlockProvenancePolicy.NATURAL_ONLY.name
+        val now = Instant.now()
+        if (!trackedMaterialsExpiresAt.isAfter(now)) {
+            val configured = progressionConfigService.getProgressionConfig().quests.definitions.asSequence()
+                .filter { it.provenancePolicy == BlockProvenancePolicy.NATURAL_ONLY.name }.map { it.target }
+            val active = questService.activeQuestSet()?.quests.orEmpty().asSequence()
+                .filter { it.target.provenancePolicy == BlockProvenancePolicy.NATURAL_ONLY }.map { it.target.id }
+            trackedMaterials = (configured + active).toSet()
+            trackedMaterialsExpiresAt = now.plusSeconds(30)
         }
-        val active = questService.activeQuestSet()?.quests?.any {
-            it.target.id == material && it.target.provenancePolicy == BlockProvenancePolicy.NATURAL_ONLY
-        } == true
-        return configured || active
+        return material in trackedMaterials
     }
 
     private fun Block.position() = BlockPosition(world.uid, x, y, z)

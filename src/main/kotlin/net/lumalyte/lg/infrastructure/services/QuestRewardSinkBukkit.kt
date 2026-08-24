@@ -18,10 +18,15 @@ class QuestRewardSinkBukkit(private val progressionService: ProgressionService) 
     override fun awardItems(actorId: UUID, rewards: List<QuestItemReward>) {
         val player = Bukkit.getPlayer(actorId) ?: return
         rewards.forEach { reward ->
-            val item = NexoItemProvider.getItemStackOrFallback(reward.itemId) {
+            val template = NexoItemProvider.getItemStackOrFallback(reward.itemId) {
                 ItemStack.of(Material.CHEST)
-            }.apply { amount = reward.amount.coerceIn(1, maxStackSize) }
-            player.inventory.addItem(item).values.forEach { player.world.dropItemNaturally(player.location, it) }
+            }
+            var remaining = reward.amount.coerceAtLeast(0)
+            while (remaining > 0) {
+                val item = template.clone().apply { amount = remaining.coerceAtMost(maxStackSize) }
+                remaining -= item.amount
+                player.inventory.addItem(item).values.forEach { player.world.dropItemNaturally(player.location, it) }
+            }
         }
     }
 }

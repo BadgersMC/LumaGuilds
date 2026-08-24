@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import net.lumalyte.lg.domain.entities.GuildQuestProgress
 import net.lumalyte.lg.domain.entities.QuestDefinition
+import net.lumalyte.lg.domain.entities.QuestItemReward
 import net.lumalyte.lg.domain.entities.QuestRewardTier
 import net.lumalyte.lg.domain.entities.QuestTarget
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
@@ -61,8 +62,33 @@ class QuestRepositorySQLiteTest {
         assertFalse(repository.tryMarkClaimed(set.weekId, "zombies", guild))
         assertTrue(repository.tryMarkWeeklyBonusAwarded(set.weekId, guild))
         assertFalse(repository.tryMarkWeeklyBonusAwarded(set.weekId, guild))
-        assertTrue(repository.tryMarkLeaderboardPaid(set.weekId, "zombies"))
-        assertFalse(repository.tryMarkLeaderboardPaid(set.weekId, "zombies"))
+        assertFalse(repository.isLeaderboardRecipientPaid(set.weekId, "zombies", guild))
+        repository.markLeaderboardRecipientPaid(set.weekId, "zombies", guild)
+        assertTrue(repository.isLeaderboardRecipientPaid(set.weekId, "zombies", guild))
+    }
+
+    @Test
+    fun `progress upsert preserves a concurrent claim and maximum count`() {
+        val set = questSet()
+        val guild = UUID.randomUUID()
+        repository.saveProgress(GuildQuestProgress(set.weekId, "zombies", guild, 100))
+        assertTrue(repository.tryMarkClaimed(set.weekId, "zombies", guild))
+
+        repository.saveProgress(GuildQuestProgress(set.weekId, "zombies", guild, 90))
+
+        val stored = repository.getProgress(set.weekId, "zombies", guild)!!
+        assertTrue(stored.claimed)
+        assertEquals(100, stored.currentCount)
+    }
+
+    @Test
+    fun `namespaced item rewards round trip`() {
+        val set = questSet().let { value ->
+            value.copy(quests = listOf(value.quests.single().copy(itemRewards = listOf(QuestItemReward("minecraft:diamond", 2)))))
+        }
+        repository.saveActiveQuestSet(set)
+
+        assertEquals(listOf(QuestItemReward("minecraft:diamond", 2)), repository.getActiveQuestSet()!!.quests.single().itemRewards)
     }
 
     private fun questSet(): WeeklyQuestSet {

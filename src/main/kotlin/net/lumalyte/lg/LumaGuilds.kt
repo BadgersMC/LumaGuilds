@@ -937,7 +937,12 @@ class LumaGuilds : JavaPlugin() {
 
         val questProgressListener = get().get<net.lumalyte.lg.infrastructure.listeners.QuestProgressListener>()
         server.pluginManager.registerEvents(questProgressListener, this)
-        get().get<net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator>().start(this)
+        try {
+            get().get<net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator>().start(this)
+            logColored("✓ Weekly quest coordinator started")
+        } catch (e: Exception) {
+            logColored("❌ Failed to start weekly quest coordinator: ${e.message}")
+        }
 
         // Register guild channel creation listener (for creating default channels)
         val guildChannelCreationListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener>()
