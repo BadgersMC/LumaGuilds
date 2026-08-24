@@ -19,8 +19,8 @@ class LumaGuildsLangResourceTest {
 
         assertNotNull(locale.getString("menu.management.title"))
         assertEquals(
-            "<green>Claim successfully converted to guild claim!",
-            locale.getString("menu.claim.conversion.success")
+            "<green>✅ Claim converted to guild ownership.",
+            locale.getString("bedrock.claim_management.feedback.converted")
         )
     }
 
@@ -29,8 +29,8 @@ class LumaGuildsLangResourceTest {
         val locale = loadLocale()
 
         assertEquals(
-            "You don't have permission to manage ranks",
-            locale.getString("rank.management.error.no.permission")
+            "<red>[ERROR] You do not have permission to manage ranks.",
+            locale.getString("bedrock.rank_management.error.no_permission")
         )
     }
 

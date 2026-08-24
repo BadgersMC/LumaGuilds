@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -29,9 +30,14 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
 
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6${guild.name} - Members"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(
+            guild.guiTheme,
+            6,
+            lang.legacy("menu.member_list.title", "guild" to guild.name),
+        ))
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { event ->
             if (event.click == ClickType.SHIFT_LEFT || event.click == ClickType.SHIFT_RIGHT) {
@@ -52,22 +58,31 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         val memberItems = members.map { member ->
             val rank = rankService.getPlayerRank(member.playerId, guild.id)
             val offlinePlayer = Bukkit.getOfflinePlayer(member.playerId)
-            val playerName = offlinePlayer.name ?: "Unknown Player"
+            val playerName = offlinePlayer.name ?: lang.raw("menu.guild_confirmation.common.unknown_player")
 
             val memberItem = ItemStack.of(Material.PLAYER_HEAD)
-                .name("§f$playerName")
-                .lore("§7Rank: §f${rank?.name ?: "Member"}")
+                .name(lang.legacy("menu.member_list.item.member.name", "player" to playerName))
+                .lore(lang.legacy(
+                    "menu.member_list.item.member.lore.rank",
+                    "rank" to (rank?.name ?: lang.raw("menu.member_list.default_rank")),
+                ))
 
-            val joinFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-            memberItem.lore("§7Joined: §f${member.joinedAt.atZone(java.time.ZoneId.systemDefault()).format(joinFormatter)}")
+            val joinFormatter = DateTimeFormatter.ofPattern(lang.raw("menu.member_list.date_pattern"))
+            memberItem.lore(lang.legacy(
+                "menu.member_list.item.member.lore.joined",
+                "joined" to member.joinedAt.atZone(java.time.ZoneId.systemDefault()).format(joinFormatter),
+            ))
 
             if (offlinePlayer.isOnline) {
-                memberItem.lore("§aCurrently Online")
+                memberItem.lore(lang.legacy("menu.member_list.item.member.lore.online"))
             } else {
                 offlinePlayer.lastPlayed.takeIf { it > 0 }?.let { lastPlayed ->
                     val lastSeenDate = java.time.Instant.ofEpochMilli(lastPlayed)
                         .atZone(java.time.ZoneId.systemDefault())
-                    memberItem.lore("§7Last seen: §f${lastSeenDate.format(joinFormatter)}")
+                    memberItem.lore(lang.legacy(
+                        "menu.member_list.item.member.lore.last_seen",
+                        "last_seen" to lastSeenDate.format(joinFormatter),
+                    ))
                 }
             }
 
@@ -86,8 +101,8 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         if (paginatedPane.pages > 1) {
             // Previous page button
             val prevButton = ItemStack.of(Material.ARROW)
-                .name("§e⬅ Previous Page")
-                .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
+                .name(lang.legacy("menu.member_list.item.previous.name"))
+                .lore(lang.legacy("menu.common.item.page.name", "current_page" to (paginatedPane.page + 1), "total_pages" to paginatedPane.pages))
 
             val prevGuiItem = GuiItem(prevButton) {
                 if (paginatedPane.page > 0) {
@@ -99,8 +114,8 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
 
             // Next page button
             val nextButton = ItemStack.of(Material.ARROW)
-                .name("§eNext Page ➡")
-                .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
+                .name(lang.legacy("menu.member_list.item.next.name"))
+                .lore(lang.legacy("menu.common.item.page.name", "current_page" to (paginatedPane.page + 1), "total_pages" to paginatedPane.pages))
 
             val nextGuiItem = GuiItem(nextButton) {
                 if (paginatedPane.page < paginatedPane.pages - 1) {
@@ -113,14 +128,14 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
 
         // Member count display
         val infoItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name("§6Total Members: §f${members.size}")
-            .lore("§7Guild: §f${guild.name}")
+            .name(lang.legacy("menu.member_list.item.summary.name", "member_count" to members.size))
+            .lore(lang.legacy("menu.member_list.item.summary.lore", "guild" to guild.name))
         staticPane.addItem(GuiItem(infoItem), 4, 0)
 
         // Back button
         val backButton = ItemStack.of(Material.BARRIER)
-            .name("§c⬅ BACK")
-            .lore("§7Return to guild info")
+            .name(lang.legacy("menu.member_list.item.back.name"))
+            .lore(lang.legacy("menu.member_list.item.back.lore"))
 
         val backGuiItem = GuiItem(backButton) {
             menuNavigator.goBack()

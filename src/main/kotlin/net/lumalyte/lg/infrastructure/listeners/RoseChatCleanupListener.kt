@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.listeners
 
 import dev.rosewood.rosechat.api.RoseChatAPI
 import dev.rosewood.rosechat.message.RosePlayer
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PartyService
@@ -32,7 +33,8 @@ internal class RoseChatCleanupListener(
     private val guildService: GuildService,
     private val memberService: MemberService,
     private val partyService: PartyService,
-    private val relationService: RelationService
+    private val relationService: RelationService,
+    private val lang: LangService,
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(RoseChatCleanupListener::class.java)
@@ -131,10 +133,7 @@ internal class RoseChatCleanupListener(
             val defaultChannel = api.channelManager.defaultChannel
             if (defaultChannel != null && channelId != defaultChannel.id) {
                 rosePlayer.switchChannel(defaultChannel)
-                player.sendMessage(
-                    "§7[§6!§7] §eYou have been moved to Global chat because you are no longer in " +
-                        "that channel's guild/party.",
-                )
+                player.sendMessage(lang.msg("notification.guild_chat.moved_to_global"))
             }
         }
     }

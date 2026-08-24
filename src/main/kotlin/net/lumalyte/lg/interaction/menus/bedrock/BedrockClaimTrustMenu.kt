@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermissionInClaim
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -23,36 +24,39 @@ class BedrockClaimTrustMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val trustedPlayers = getPlayersWithPermissionInClaim.execute(claim.id)
 
-        val content = buildString {
-            appendLine(bedrockLocalization.getBedrockString(player, "claim.trust.title"))
-            appendLine()
-            if (trustedPlayers.isEmpty()) {
-                appendLine(bedrockLocalization.getBedrockString(player, "claim.trust.none"))
-            } else {
-                appendLine("§7${bedrockLocalization.getBedrockString(player, "claim.trust.total", trustedPlayers.size)}")
-                appendLine()
-                trustedPlayers.take(10).forEach { playerId ->
-                    val playerName = Bukkit.getOfflinePlayer(playerId).name ?: "Unknown"
-                    appendLine("§7• §f$playerName")
-                }
-                if (trustedPlayers.size > 10) {
-                    appendLine("§7... ${bedrockLocalization.getBedrockString(player, "claim.trust.more", trustedPlayers.size - 10)}")
-                }
+        val content = if (trustedPlayers.isEmpty()) {
+            lang.legacy("bedrock.claim_trust.content.empty")
+        } else {
+            val rows = trustedPlayers.take(10).joinToString("\n") { playerId ->
+                val playerName = Bukkit.getOfflinePlayer(playerId).name ?: lang.raw("menu.common.unknown_player")
+                lang.legacy("bedrock.claim_trust.player_row", "player" to playerName)
             }
+            val overflow = if (trustedPlayers.size > 10) {
+                lang.legacy("bedrock.claim_trust.more", "count" to trustedPlayers.size - 10)
+            } else {
+                lang.raw("menu.common.blank")
+            }
+            lang.legacy(
+                "bedrock.claim_trust.content.list",
+                "count" to trustedPlayers.size,
+                "players" to rows,
+                "overflow" to overflow
+            )
         }
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "claim.trust.menu.title")} - ${claim.name}")
+            .title(lang.legacy("bedrock.claim_trust.title", "claim" to claim.name))
             .content(content)
-            .button(bedrockLocalization.getBedrockString(player, "claim.trust.add"))
-            .button(bedrockLocalization.getBedrockString(player, "claim.trust.remove"))
-            .button(bedrockLocalization.getBedrockString(player, "claim.trust.wide.permissions"))
-            .button(bedrockLocalization.getBedrockString(player, "common.back"))
+            .button(lang.raw("bedrock.claim_trust.button.add"))
+            .button(lang.raw("bedrock.claim_trust.button.remove"))
+            .button(lang.raw("bedrock.claim_trust.button.wide_permissions"))
+            .button(lang.raw("bedrock.claim_trust.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> {
@@ -64,7 +68,7 @@ class BedrockClaimTrustMenu(
                         if (trustedPlayers.isNotEmpty()) {
                             menuNavigator.openMenu(menuFactory.createClaimPlayerMenu(menuNavigator, player, claim))
                         } else {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.trust.none.to.remove"))
+                            player.sendMessage(lang.msg("bedrock.claim_trust.feedback.none_to_remove"))
                         }
                     }
                     2 -> {

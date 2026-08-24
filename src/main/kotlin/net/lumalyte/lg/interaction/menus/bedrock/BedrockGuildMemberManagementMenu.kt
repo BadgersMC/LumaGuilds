@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -23,19 +24,20 @@ class BedrockGuildMemberManagementMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val memberService: MemberService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val members = memberService.getGuildMembers(guild.id)
         val memberCount = members.size
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.members.management.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.member_management.title", "guild" to guild.name))
             .content(buildMemberContent(memberCount))
-            .button(bedrockLocalization.getBedrockString(player, "guild.members.view.list"))
-            .button(bedrockLocalization.getBedrockString(player, "guild.members.invite"))
-            .button(bedrockLocalization.getBedrockString(player, "guild.members.kick"))
-            .button(bedrockLocalization.getBedrockString(player, "guild.members.promote"))
-            .button(bedrockLocalization.getBedrockString(player, "guild.members.demote"))
+            .button(lang.raw("bedrock.member_management.button.list"))
+            .button(lang.raw("bedrock.member_management.button.invite"))
+            .button(lang.raw("bedrock.member_management.button.kick"))
+            .button(lang.raw("bedrock.member_management.button.promote"))
+            .button(lang.raw("bedrock.member_management.button.demote"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> openMemberList()
@@ -52,13 +54,7 @@ class BedrockGuildMemberManagementMenu(
     }
 
     private fun buildMemberContent(memberCount: Int): String {
-        return """
-            |${bedrockLocalization.getBedrockString(player, "guild.members.management.description")}
-            |
-            |${bedrockLocalization.getBedrockString(player, "guild.members.count")}: $memberCount
-            |
-            |${bedrockLocalization.getBedrockString(player, "guild.members.management.options")}:
-        """.trimMargin()
+        return lang.legacy("bedrock.member_management.content", "count" to memberCount)
     }
 
     private fun openMemberList() {

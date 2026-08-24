@@ -123,7 +123,7 @@ class GuildBankTransactionHistoryMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf("Return to guild bank")
+            listOf(lang.raw("menu.bank.history.navigation.back_description"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -135,7 +135,7 @@ class GuildBankTransactionHistoryMenu(
         val statsItem = createMenuItem(
             Material.BOOK,
             getLocalizedString("menu.bank.stats.title"),
-            listOf("View detailed bank statistics and analytics")
+            listOf(lang.raw("menu.bank.navigation.statistics_description"))
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -146,8 +146,11 @@ class GuildBankTransactionHistoryMenu(
         // Member Contributions button
         val contributionsItem = createMenuItem(
             Material.PLAYER_HEAD,
-            "Member Contributions",
-            listOf("See who contributes and who freeloads", "Net deposits vs withdrawals")
+            lang.raw("menu.bank.navigation.contributions_name"),
+            listOf(
+                lang.raw("menu.bank.navigation.contributions_description"),
+                lang.raw("menu.bank.navigation.contributions_detail")
+            )
         )
         val contributionsGuiItem = GuiItem(contributionsItem) { event ->
             event.isCancelled = true
@@ -159,7 +162,7 @@ class GuildBankTransactionHistoryMenu(
         val closeItem = createMenuItem(
             Material.BARRIER,
             getLocalizedString("menu.bank.close"),
-            listOf("Close menu")
+            listOf(lang.raw("menu.common.close_description"))
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -176,7 +179,10 @@ class GuildBankTransactionHistoryMenu(
         val typeFilterItem = createMenuItem(
             Material.HOPPER,
             getLocalizedString("menu.bank.history.filter.type"),
-            listOf("Current: ${typeFilterLabel(filter.typeFilter)}", "Click to cycle")
+            listOf(
+                lang.legacy("menu.bank.history.filter.current", "value" to typeFilterLabel(filter.typeFilter)),
+                lang.raw("menu.bank.history.filter.cycle")
+            )
         )
         val typeFilterGuiItem = GuiItem(typeFilterItem) { event ->
             event.isCancelled = true
@@ -188,7 +194,10 @@ class GuildBankTransactionHistoryMenu(
         val memberFilterItem = createMenuItem(
             Material.PLAYER_HEAD,
             getLocalizedString("menu.bank.history.filter.member"),
-            listOf("Current: ${filter.memberFilter ?: "All"}", "Click to select")
+            listOf(
+                lang.legacy("menu.bank.history.filter.current", "value" to (filter.memberFilter ?: lang.raw("menu.bank.history.value.all"))),
+                lang.raw("menu.bank.history.filter.select")
+            )
         )
         val memberFilterGuiItem = GuiItem(memberFilterItem) { event ->
             event.isCancelled = true
@@ -200,7 +209,10 @@ class GuildBankTransactionHistoryMenu(
         val dateFilterItem = createMenuItem(
             Material.CLOCK,
             getLocalizedString("menu.bank.history.filter.date"),
-            listOf("Current: ${dateRangeLabel(filter.dateRange)}", "Click to cycle")
+            listOf(
+                lang.legacy("menu.bank.history.filter.current", "value" to dateRangeLabel(filter.dateRange)),
+                lang.raw("menu.bank.history.filter.cycle")
+            )
         )
         val dateFilterGuiItem = GuiItem(dateFilterItem) { event ->
             event.isCancelled = true
@@ -213,8 +225,8 @@ class GuildBankTransactionHistoryMenu(
             Material.COMPASS,
             getLocalizedString("menu.bank.history.filter.search"),
             listOf(
-                "Current: ${filter.searchQuery ?: "None"}",
-                "Click to search by member or description"
+                lang.legacy("menu.bank.history.filter.current", "value" to (filter.searchQuery ?: lang.raw("menu.bank.history.value.none"))),
+                lang.raw("menu.bank.history.filter.search_description")
             )
         )
         val searchGuiItem = GuiItem(searchItem) { event ->
@@ -227,7 +239,7 @@ class GuildBankTransactionHistoryMenu(
         val clearItem = createMenuItem(
             Material.WATER_BUCKET,
             getLocalizedString("menu.bank.history.filter.clear"),
-            listOf("Remove all filters")
+            listOf(lang.raw("menu.bank.history.filter.clear_description"))
         )
         val clearGuiItem = GuiItem(clearItem) { event ->
             event.isCancelled = true
@@ -263,7 +275,7 @@ class GuildBankTransactionHistoryMenu(
                 val prevItem = createMenuItem(
                     Material.ARROW,
                     getLocalizedString("menu.bank.history.page.previous"),
-                    listOf("Go to page $currentPage")
+                    listOf(lang.legacy("menu.common.page.go_to", "page" to currentPage))
                 )
                 val prevGuiItem = GuiItem(prevItem) { event ->
                     event.isCancelled = true
@@ -279,7 +291,7 @@ class GuildBankTransactionHistoryMenu(
                 val nextItem = createMenuItem(
                     Material.ARROW,
                     getLocalizedString("menu.bank.history.page.next"),
-                    listOf("Go to page ${currentPage + 2}")
+                    listOf(lang.legacy("menu.common.page.go_to", "page" to currentPage + 2))
                 )
                 val nextGuiItem = GuiItem(nextItem) { event ->
                     event.isCancelled = true
@@ -293,8 +305,8 @@ class GuildBankTransactionHistoryMenu(
             // Page indicator
             val pageItem = createMenuItem(
                 Material.PAPER,
-                "Page ${currentPage + 1}/$totalPages",
-                listOf("${filteredTransactions.size} total transactions")
+                lang.legacy("menu.common.page.indicator", "current" to currentPage + 1, "total" to totalPages),
+                listOf(lang.legacy("menu.bank.history.page.total_transactions", "count" to filteredTransactions.size))
             )
             filterPane.addItem(GuiItem(pageItem), 6, 0)
         }
@@ -317,7 +329,7 @@ class GuildBankTransactionHistoryMenu(
             val noTransactionsItem = createMenuItem(
                 Material.BARRIER,
                 getLocalizedString("menu.bank.history.no_transactions"),
-                listOf("Try adjusting your filters")
+                listOf(lang.raw("menu.bank.history.no_transactions_description"))
             )
             transactionPane.addItem(GuiItem(noTransactionsItem), 4, 1)
         } else {
@@ -376,7 +388,7 @@ class GuildBankTransactionHistoryMenu(
         // Resolve each member name once before sorting/rendering.
         val members = memberService.getGuildMembers(guild.id)
         val memberNames = members.associate { member ->
-            member.playerId to (Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown Player")
+            member.playerId to (Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.common.unknown_player"))
         }
         val sortedMembers = members.sortedBy { memberNames[it.playerId]?.lowercase() }
 
@@ -391,8 +403,8 @@ class GuildBankTransactionHistoryMenu(
         // "All members" option to clear the filter
         val allItem = createMenuItem(
             Material.BARRIER,
-            "All Members",
-            listOf("Clear member filter")
+            lang.raw("menu.bank.history.member_filter.all_name"),
+            listOf(lang.raw("menu.bank.history.member_filter.all_description"))
         )
         memberItems += GuiItem(allItem) { event ->
             event.isCancelled = true
@@ -409,11 +421,11 @@ class GuildBankTransactionHistoryMenu(
         }
 
         sortedMembers.forEach { member ->
-            val name = memberNames[member.playerId] ?: "Unknown Player"
+            val name = memberNames[member.playerId] ?: lang.raw("menu.common.unknown_player")
             val memberItem = createMenuItem(
                 Material.PLAYER_HEAD,
                 name,
-                listOf("Click to filter by $name")
+                listOf(lang.legacy("menu.bank.history.member_filter.select_member", "player" to name))
             )
             memberItems += GuiItem(memberItem) { event ->
                 event.isCancelled = true
@@ -439,7 +451,7 @@ class GuildBankTransactionHistoryMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf("Back to transaction history")
+            listOf(lang.raw("menu.bank.history.member_filter.back_description"))
         )
         navPane.addItem(GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -459,7 +471,7 @@ class GuildBankTransactionHistoryMenu(
     private fun startSearchInput() {
         inputMode = "search"
         chatInputListener.startInputMode(player, this)
-        player.sendMessage("§eType a search term (matches member name or description). Type 'cancel' to abort.")
+        player.sendMessage(lang.msg("menu.bank.history.search.prompt"))
     }
 
     override fun onChatInput(player: Player, input: String) {
@@ -467,13 +479,13 @@ class GuildBankTransactionHistoryMenu(
             "search" -> {
                 val query = input.trim()
                 if (query.isEmpty()) {
-                    player.sendMessage("§cSearch term cannot be empty.")
+                    player.sendMessage(lang.msg("menu.bank.history.search.empty"))
                 } else {
                     filter = filter.copy(searchQuery = query)
                     loadTransactions()
                     updateTransactionDisplay()
                     gui.update()
-                    player.sendMessage("§aSearching for: §f$query §a(${filteredTransactions.size} matches)")
+                    player.sendMessage(lang.msg("menu.bank.history.search.success", "query" to query, "count" to filteredTransactions.size))
                 }
             }
             else -> return
@@ -483,14 +495,14 @@ class GuildBankTransactionHistoryMenu(
 
     override fun onCancel(player: Player) {
         inputMode = null
-        player.sendMessage("§eSearch cancelled.")
+        player.sendMessage(lang.msg("menu.bank.history.search.cancelled"))
     }
 
     /**
      * Create a transaction item for display
      */
     private fun createTransactionItem(transaction: BankTransaction): ItemStack {
-        val actorName = actorNames[transaction.actorId] ?: "Unknown"
+        val actorName = actorNames[transaction.actorId] ?: lang.raw("menu.bank.history.value.unknown")
         val timestamp = formatTimestamp(transaction.timestamp)
 
         val material = when (transaction.type) {
@@ -501,10 +513,10 @@ class GuildBankTransactionHistoryMenu(
         }
 
         val typeDisplay = when (transaction.type) {
-            TransactionType.DEPOSIT -> "Deposit"
-            TransactionType.WITHDRAWAL -> "Withdrawal"
-            TransactionType.FEE -> "Fee"
-            TransactionType.DEDUCTION -> "Deduction"
+            TransactionType.DEPOSIT -> lang.raw("menu.bank.history.type.deposit")
+            TransactionType.WITHDRAWAL -> lang.raw("menu.bank.history.type.withdrawal")
+            TransactionType.FEE -> lang.raw("menu.bank.history.type.fee")
+            TransactionType.DEDUCTION -> lang.raw("menu.bank.history.type.deduction")
         }
 
         val amountDisplay = if (transaction.type == TransactionType.WITHDRAWAL) {
@@ -515,12 +527,12 @@ class GuildBankTransactionHistoryMenu(
 
         return createMenuItem(
             material,
-            "$typeDisplay - $amountDisplay",
+            lang.legacy("menu.bank.history.transaction.name", "type" to typeDisplay, "amount" to amountDisplay),
             listOf(
-                "By: $actorName",
-                "Time: $timestamp",
+                lang.legacy("menu.bank.history.transaction.actor", "player" to actorName),
+                lang.legacy("menu.bank.history.transaction.time", "time" to timestamp),
                 transaction.description ?: "",
-                if (transaction.fee > 0) "Fee: $${transaction.fee}" else ""
+                if (transaction.fee > 0) lang.legacy("menu.bank.history.transaction.fee", "amount" to transaction.fee) else ""
             ).filter { it.isNotEmpty() }
         )
     }
@@ -536,7 +548,7 @@ class GuildBankTransactionHistoryMenu(
         // profile lookup and both paths run on the main thread in response to a
         // menu click — do not call it per element).
         actorNames = allTransactions.map { it.actorId }.distinct().associateWith { actorId ->
-            Bukkit.getOfflinePlayer(actorId).name ?: "Unknown"
+            Bukkit.getOfflinePlayer(actorId).name ?: lang.raw("menu.bank.history.value.unknown")
         }
 
         // Compute date cutoff once for the date range filter
@@ -591,7 +603,12 @@ class GuildBankTransactionHistoryMenu(
      * Human-readable label for a date range preset
      */
     private fun dateRangeLabel(range: String?): String {
-        return DateRangePreset.fromKey(range)?.label ?: DateRangePreset.ALL.label
+        return when (DateRangePreset.fromKey(range) ?: DateRangePreset.ALL) {
+            DateRangePreset.ALL -> lang.raw("menu.bank.history.date_range.all")
+            DateRangePreset.LAST_24_HOURS -> lang.raw("menu.bank.history.date_range.last_24_hours")
+            DateRangePreset.LAST_7_DAYS -> lang.raw("menu.bank.history.date_range.last_7_days")
+            DateRangePreset.LAST_30_DAYS -> lang.raw("menu.bank.history.date_range.last_30_days")
+        }
     }
 
     /**
@@ -599,11 +616,11 @@ class GuildBankTransactionHistoryMenu(
      */
     private fun typeFilterLabel(type: TransactionType?): String {
         return when (type) {
-            null -> "All"
-            TransactionType.DEPOSIT -> "Deposits"
-            TransactionType.WITHDRAWAL -> "Withdrawals"
-            TransactionType.FEE -> "Fees"
-            TransactionType.DEDUCTION -> "Deductions"
+            null -> lang.raw("menu.bank.history.value.all")
+            TransactionType.DEPOSIT -> lang.raw("menu.bank.history.type.deposits")
+            TransactionType.WITHDRAWAL -> lang.raw("menu.bank.history.type.withdrawals")
+            TransactionType.FEE -> lang.raw("menu.bank.history.type.fees")
+            TransactionType.DEDUCTION -> lang.raw("menu.bank.history.type.deductions")
         }
     }
 
@@ -612,7 +629,7 @@ class GuildBankTransactionHistoryMenu(
      */
     private fun formatTimestamp(timestamp: Instant): String {
         val localDateTime = LocalDateTime.ofInstant(timestamp, ZoneId.systemDefault())
-        return localDateTime.format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"))
+        return localDateTime.format(DateTimeFormatter.ofPattern(lang.raw("menu.bank.history.date_format")))
     }
 
     /**
@@ -662,11 +679,11 @@ data class TransactionFilter(
  * for the key (persisted in [TransactionFilter.dateRange]), the cutoff, and the
  * display label — adding or renaming a preset requires one edit.
  */
-enum class DateRangePreset(val key: String?, val label: String, val cutoffSeconds: Long?) {
-    ALL(null, "All Time", null),
-    LAST_24_HOURS("24h", "Last 24 Hours", 24 * 60 * 60),
-    LAST_7_DAYS("7d", "Last 7 Days", 7 * 24 * 60 * 60),
-    LAST_30_DAYS("30d", "Last 30 Days", 30 * 24 * 60 * 60);
+enum class DateRangePreset(val key: String?, val cutoffSeconds: Long?) {
+    ALL(null, null),
+    LAST_24_HOURS("24h", 24 * 60 * 60),
+    LAST_7_DAYS("7d", 7 * 24 * 60 * 60),
+    LAST_30_DAYS("30d", 30 * 24 * 60 * 60);
 
     companion object {
         fun fromKey(key: String?): DateRangePreset? = entries.firstOrNull { it.key == key }

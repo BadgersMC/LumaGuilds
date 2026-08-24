@@ -42,6 +42,8 @@ class GuildBankSecurityMenu(
     private val guild: Guild
 ) : Menu, KoinComponent, ChatInputHandler {
 
+    private enum class RiskLevel { LOW, MEDIUM, HIGH, CRITICAL }
+
     private val bankService: BankService by inject()
     private val guildService: GuildService by inject()
     private val bankSettingsRepository: BankSettingsRepository by inject()
@@ -119,7 +121,7 @@ class GuildBankSecurityMenu(
 
         // Emergency freeze status
         if (emergencyFreeze) {
-            securityAlerts.add("🚨 EMERGENCY FREEZE ACTIVE - All transactions blocked!")
+            securityAlerts.add(lang.raw("menu.bank_security.alert.freeze"))
         }
     }
 
@@ -134,7 +136,7 @@ class GuildBankSecurityMenu(
         val failedAuths = recentAudits.count { it.action == AuditAction.PERMISSION_DENIED }
 
         if (failedAuths >= 3) {
-            securityAlerts.add("⚠ Multiple authentication failures detected")
+            securityAlerts.add(lang.raw("menu.bank_security.alert.authentication_failures"))
         }
 
         // Check for unusual transaction times
@@ -144,7 +146,7 @@ class GuildBankSecurityMenu(
         }
 
         if (unusualHours.size >= 2) {
-            securityAlerts.add("⚠ Unusual transaction timing detected")
+            securityAlerts.add(lang.raw("menu.bank_security.alert.unusual_timing"))
         }
     }
 
@@ -158,7 +160,7 @@ class GuildBankSecurityMenu(
         }
 
         if (largeTransactions.isNotEmpty()) {
-            securityAlerts.add("⚠ Large withdrawal detected (${largeTransactions.last().amount} coins)")
+            securityAlerts.add(lang.legacy("menu.bank_security.alert.large_withdrawal", "amount" to largeTransactions.last().amount))
         }
 
         // Check for rapid large transactions
@@ -168,7 +170,7 @@ class GuildBankSecurityMenu(
         }
 
         if (recentLarge.size >= 2) {
-            securityAlerts.add("⚠ Multiple large transactions in short time")
+            securityAlerts.add(lang.raw("menu.bank_security.alert.multiple_large"))
         }
     }
 
@@ -182,13 +184,13 @@ class GuildBankSecurityMenu(
         }
 
         if (recentWithdrawals.size >= 5) {
-            securityAlerts.add("⚠ Rapid withdrawal pattern detected")
+            securityAlerts.add(lang.raw("menu.bank_security.alert.rapid_withdrawal"))
         }
 
         // Check for same amount withdrawals (potential fraud)
         val amounts = recentWithdrawals.map { it.amount }.toSet()
         if (amounts.size == 1 && recentWithdrawals.size >= 3) {
-            securityAlerts.add("⚠ Identical withdrawal amounts detected")
+            securityAlerts.add(lang.raw("menu.bank_security.alert.identical_withdrawals"))
         }
     }
 
@@ -202,7 +204,7 @@ class GuildBankSecurityMenu(
         }
 
         if (recentFailures.size >= 5) {
-            securityAlerts.add("🚨 High number of authentication failures")
+            securityAlerts.add(lang.raw("menu.bank_security.alert.high_authentication_failures"))
         }
     }
 
@@ -210,7 +212,7 @@ class GuildBankSecurityMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "Security & Audit - ${guild.name}"))
+        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.legacy("menu.bank_security.title", "guild" to guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane
@@ -238,7 +240,7 @@ class GuildBankSecurityMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf("Return to guild bank")
+            listOf(lang.raw("menu.bank_security.navigation.bank"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -249,8 +251,8 @@ class GuildBankSecurityMenu(
         // Audit log button
         val auditItem = createMenuItem(
             Material.WRITABLE_BOOK,
-            "View Audit Log",
-            listOf("Detailed transaction audit trail")
+            lang.raw("menu.bank_security.navigation.audit.name"),
+            listOf(lang.raw("menu.bank_security.navigation.audit.description"))
         )
         val auditGuiItem = GuiItem(auditItem) { event ->
             event.isCancelled = true
@@ -261,8 +263,8 @@ class GuildBankSecurityMenu(
         // Save settings button
         val saveItem = createMenuItem(
             Material.WRITABLE_BOOK,
-            "Save Security Settings",
-            listOf("Apply current security configuration")
+            lang.raw("menu.bank_security.navigation.save.name"),
+            listOf(lang.raw("menu.bank_security.navigation.save.description"))
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
@@ -276,7 +278,7 @@ class GuildBankSecurityMenu(
         val closeItem = createMenuItem(
             Material.BARRIER,
             getLocalizedString("menu.bank.close"),
-            listOf("Close menu")
+            listOf(lang.raw("menu.bank_security.navigation.close"))
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -292,29 +294,29 @@ class GuildBankSecurityMenu(
         // Dual authorization threshold
         val dualAuthItem = createMenuItem(
             Material.IRON_DOOR,
-            "Dual Authorization Threshold",
+            lang.raw("menu.bank_security.dual_auth.name"),
             listOf(
-                "Current: ${dualAuthThreshold} coins",
-                "Transactions above this amount",
-                "require approval from another officer"
+                lang.legacy("menu.bank_security.dual_auth.current", "amount" to dualAuthThreshold),
+                lang.raw("menu.bank_security.dual_auth.description"),
+                lang.raw("menu.bank_security.dual_auth.requirement")
             )
         )
         val dualAuthGuiItem = GuiItem(dualAuthItem) { event ->
             event.isCancelled = true
             inputMode = "dualAuth"
             chatInputListener.startInputMode(player, this@GuildBankSecurityMenu)
-            player.sendMessage("§eType the dual-authorization threshold in coins. Type 'cancel' to abort.")
+            player.sendMessage(lang.msg("menu.bank_security.feedback.threshold_prompt"))
         }
         securityPane.addItem(dualAuthGuiItem, 0, 0)
 
         // Emergency freeze toggle
         val freezeItem = createMenuItem(
             if (emergencyFreeze) Material.RED_WOOL else Material.GREEN_WOOL,
-            "Emergency Freeze",
+            lang.raw("menu.bank_security.freeze.name"),
             listOf(
-                "Status: ${if (emergencyFreeze) "ACTIVE" else "Inactive"}",
-                "Blocks all bank transactions",
-                "Use only in case of suspected breach"
+                if (emergencyFreeze) lang.raw("menu.bank_security.freeze.status.active") else lang.raw("menu.bank_security.freeze.status.inactive"),
+                lang.raw("menu.bank_security.freeze.description"),
+                lang.raw("menu.bank_security.freeze.warning")
             )
         )
         val freezeGuiItem = GuiItem(freezeItem) { event ->
@@ -324,13 +326,13 @@ class GuildBankSecurityMenu(
             if (success) {
                 emergencyFreeze = newFrozen
                 if (newFrozen) {
-                    player.sendMessage("§c🔒 EMERGENCY FREEZE ACTIVATED — All bank transactions are now blocked!")
-                    player.sendMessage("§eOpen the menu again to deactivate once the threat has passed.")
+                    player.sendMessage(lang.msg("menu.bank_security.feedback.freeze_activated"))
+                    player.sendMessage(lang.msg("menu.bank_security.feedback.freeze_hint"))
                 } else {
-                    player.sendMessage("§a✅ Emergency freeze deactivated — Bank transactions are now allowed.")
+                    player.sendMessage(lang.msg("menu.bank_security.feedback.freeze_deactivated"))
                 }
             } else {
-                player.sendMessage("§c❌ Failed to update bank freeze state. You may lack the MANAGE_GUILD_SETTINGS permission.")
+                player.sendMessage(lang.msg("menu.bank_security.feedback.freeze_failed"))
             }
             analyzeSecurityRisks()
             updateSecurityDisplay()
@@ -349,11 +351,11 @@ class GuildBankSecurityMenu(
         if (securityAlerts.isEmpty()) {
             val noAlertsItem = createMenuItem(
                 Material.GREEN_WOOL,
-                "Security Status: Good",
+                lang.raw("menu.bank_security.status.good.name"),
                 listOf(
-                    "No security alerts detected",
-                    "All systems operating normally",
-                    "Continue monitoring regularly"
+                    lang.raw("menu.bank_security.status.good.description"),
+                    lang.raw("menu.bank_security.status.good.systems"),
+                    lang.raw("menu.bank_security.status.good.monitoring")
                 )
             )
             auditPane.addItem(GuiItem(noAlertsItem), 0, 0)
@@ -366,8 +368,8 @@ class GuildBankSecurityMenu(
                         alert.contains("⚠") -> Material.YELLOW_WOOL
                         else -> Material.ORANGE_WOOL
                     },
-                    "Security Alert",
-                    listOf(alert, "Monitor closely and take action if needed")
+                    lang.raw("menu.bank_security.alert.name"),
+                    listOf(alert, lang.raw("menu.bank_security.alert.action"))
                 )
                 auditPane.addItem(GuiItem(alertItem), index % 9, index / 9)
             }
@@ -382,17 +384,16 @@ class GuildBankSecurityMenu(
 
         val statusItem = createMenuItem(
             when (riskLevel) {
-                "Low" -> Material.GREEN_WOOL
-                "Medium" -> Material.YELLOW_WOOL
-                "High" -> Material.ORANGE_WOOL
-                "Critical" -> Material.RED_WOOL
-                else -> Material.GRAY_WOOL
+                RiskLevel.LOW -> Material.GREEN_WOOL
+                RiskLevel.MEDIUM -> Material.YELLOW_WOOL
+                RiskLevel.HIGH -> Material.ORANGE_WOOL
+                RiskLevel.CRITICAL -> Material.RED_WOOL
             },
-            "Security Risk Level",
+            lang.raw("menu.bank_security.risk.name"),
             listOf(
-                "Current Level: $riskLevel",
-                "Based on recent activity patterns",
-                "Regular monitoring recommended"
+                lang.legacy("menu.bank_security.risk.current", "level" to riskLevelName(riskLevel)),
+                lang.raw("menu.bank_security.risk.description"),
+                lang.raw("menu.bank_security.risk.monitoring")
             )
         )
         securityPane.addItem(GuiItem(statusItem), 4, 0)
@@ -400,15 +401,15 @@ class GuildBankSecurityMenu(
         // Recent activity summary
         val auditLog = bankService.getAuditLog(guild.id, 10)
         val recentActivity = auditLog.take(3).map { audit ->
-            val actorName = org.bukkit.Bukkit.getOfflinePlayer(audit.actorId).name ?: "Unknown"
+            val actorName = org.bukkit.Bukkit.getOfflinePlayer(audit.actorId).name ?: lang.raw("menu.bank_security.events.unknown_actor")
             val action = audit.action.name.lowercase().replace("_", " ")
-            "$actorName: $action"
+            lang.legacy("menu.bank_security.events.entry", "actor" to actorName, "action" to action)
         }
 
         val activityItem = createMenuItem(
             Material.CLOCK,
-            "Recent Security Events",
-            recentActivity.ifEmpty { listOf("No recent security events") }
+            lang.raw("menu.bank_security.events.name"),
+            recentActivity.ifEmpty { listOf(lang.raw("menu.bank_security.events.empty")) }
         )
         securityPane.addItem(GuiItem(activityItem), 5, 1)
     }
@@ -416,15 +417,22 @@ class GuildBankSecurityMenu(
     /**
      * Calculate overall security risk level
      */
-    private fun calculateRiskLevel(): String {
+    private fun calculateRiskLevel(): RiskLevel {
         return when {
-            emergencyFreeze -> "Critical"
-            securityAlerts.count { it.contains("🚨") } > 0 -> "Critical"
-            securityAlerts.count { it.contains("⚠") } >= 3 -> "High"
-            securityAlerts.count { it.contains("⚠") } >= 1 -> "Medium"
-            securityAlerts.isEmpty() -> "Low"
-            else -> "Medium"
+            emergencyFreeze -> RiskLevel.CRITICAL
+            securityAlerts.count { it.contains("🚨") } > 0 -> RiskLevel.CRITICAL
+            securityAlerts.count { it.contains("⚠") } >= 3 -> RiskLevel.HIGH
+            securityAlerts.count { it.contains("⚠") } >= 1 -> RiskLevel.MEDIUM
+            securityAlerts.isEmpty() -> RiskLevel.LOW
+            else -> RiskLevel.MEDIUM
         }
+    }
+
+    private fun riskLevelName(level: RiskLevel): String = when (level) {
+        RiskLevel.LOW -> lang.raw("menu.bank_security.risk.level.low")
+        RiskLevel.MEDIUM -> lang.raw("menu.bank_security.risk.level.medium")
+        RiskLevel.HIGH -> lang.raw("menu.bank_security.risk.level.high")
+        RiskLevel.CRITICAL -> lang.raw("menu.bank_security.risk.level.critical")
     }
 
     /**
@@ -446,9 +454,9 @@ class GuildBankSecurityMenu(
         val updated = current.copy(dualAuthThreshold = dualAuthThreshold)
         val saved = bankSettingsRepository.upsert(updated)
         if (saved) {
-            player.sendMessage("§aSecurity settings saved. (Emergency freeze state is always saved immediately on toggle.)")
+            player.sendMessage(lang.msg("menu.bank_security.feedback.saved"))
         } else {
-            player.sendMessage("§cFailed to save security settings.")
+            player.sendMessage(lang.msg("menu.bank_security.feedback.save_failed"))
         }
     }
 
@@ -460,14 +468,14 @@ class GuildBankSecurityMenu(
 
         val threshold = input.trim().toIntOrNull()
         if (threshold == null || threshold < 0) {
-            player.sendMessage("§cInvalid threshold. Enter a whole number of coins (0 or more).")
+            player.sendMessage(lang.msg("menu.bank_security.feedback.invalid_threshold"))
             inputMode = null
             return
         }
         when (mode) {
             "dualAuth" -> {
                 dualAuthThreshold = threshold
-                player.sendMessage("§aDual-authorization threshold set to $threshold coins. Press Save to persist.")
+                player.sendMessage(lang.msg("menu.bank_security.feedback.threshold_set", "amount" to threshold))
             }
             else -> return
         }
@@ -479,7 +487,7 @@ class GuildBankSecurityMenu(
 
     override fun onCancel(player: Player) {
         inputMode = null
-        player.sendMessage("§eDual-authorization threshold input cancelled.")
+        player.sendMessage(lang.msg("menu.bank_security.feedback.cancelled"))
     }
 
     /**

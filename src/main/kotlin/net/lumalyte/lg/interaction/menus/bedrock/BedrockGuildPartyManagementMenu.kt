@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.application.services.MemberService
@@ -32,46 +33,47 @@ class BedrockGuildPartyManagementMenu(
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val configService: ConfigService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.party.management.title")} - ${guild.name}")
+            .title("${lang.raw("bedrock.party.management.title")} - ${guild.name}")
             .content(buildPartyManagementContent())
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.current.parties"),
+                lang.raw("bedrock.party.management.current_parties"),
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.requests"),
+                lang.raw("bedrock.party.management.requests"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.create"),
+                lang.raw("bedrock.party.management.create"),
                 config.guildSettingsIconUrl,
                 config.guildSettingsIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.send.request"),
+                lang.raw("bedrock.party.management.send_request"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.settings"),
+                lang.raw("bedrock.party.management.settings"),
                 config.guildSettingsIconUrl,
                 config.guildSettingsIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "menu.back"),
+                lang.raw("bedrock.party.management.back"),
                 config.closeIconUrl,
                 config.closeIconPath
             )
@@ -90,7 +92,7 @@ class BedrockGuildPartyManagementMenu(
 
         // Check if parties are enabled
         if (!config.partiesEnabled) {
-            return bedrockLocalization.getBedrockString(player, "guild.party.management.disabled")
+            return lang.raw("bedrock.party.management.disabled")
         }
 
         val activeParties = partyService.getActivePartiesForGuild(guild.id)
@@ -98,13 +100,13 @@ class BedrockGuildPartyManagementMenu(
         val outgoingRequests = partyService.getPendingRequestsFromGuild(guild.id)
 
         return """
-            |${bedrockLocalization.getBedrockString(player, "guild.party.management.welcome")}
+            |${lang.raw("bedrock.party.management.welcome")}
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.party.management.active.parties")}: ${activeParties.size}
-            |${bedrockLocalization.getBedrockString(player, "guild.party.management.incoming.requests")}: ${incomingRequests.size}
-            |${bedrockLocalization.getBedrockString(player, "guild.party.management.outgoing.requests")}: ${outgoingRequests.size}
+            |${lang.raw("bedrock.party.management.active_parties")}: ${activeParties.size}
+            |${lang.raw("bedrock.party.management.incoming_requests")}: ${incomingRequests.size}
+            |${lang.raw("bedrock.party.management.outgoing_requests")}: ${outgoingRequests.size}
             |
-            |${bedrockLocalization.getBedrockString(player, "guild.party.management.description")}
+            |${lang.raw("bedrock.party.management.description")}
         """.trimMargin()
     }
 
@@ -124,23 +126,23 @@ class BedrockGuildPartyManagementMenu(
         val activeParties = partyService.getActivePartiesForGuild(guild.id)
 
         if (activeParties.isEmpty()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.no.active.parties"))
+            player.sendMessage(lang.raw("bedrock.party.management.no_active_parties"))
             return
         }
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.party.management.current.parties"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.party.management.select.party"))
+            .title(lang.raw("bedrock.party.management.current_parties"))
+            .content(lang.raw("bedrock.party.management.select_party"))
 
         activeParties.forEach { party ->
-            val partyName = party.name ?: bedrockLocalization.getBedrockString(player, "guild.party.management.unnamed")
+            val partyName = party.name ?: lang.raw("bedrock.party.management.unnamed")
             val memberCount = party.guildIds.size
             val createdDate = party.createdAt.atZone(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))
 
             form.addButtonWithImage(
                 config,
-                "$partyName\n${bedrockLocalization.getBedrockString(player, "guild.party.management.members")}: $memberCount | ${bedrockLocalization.getBedrockString(player, "guild.party.management.created")}: $createdDate",
+                "$partyName\n${lang.raw("bedrock.party.management.members")}: $memberCount | ${lang.raw("bedrock.party.management.created")}: $createdDate",
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
@@ -148,7 +150,7 @@ class BedrockGuildPartyManagementMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.party.management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -180,16 +182,16 @@ class BedrockGuildPartyManagementMenu(
         val outgoingRequests = partyService.getPendingRequestsFromGuild(guild.id)
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.party.management.requests"))
+            .title(lang.raw("bedrock.party.management.requests"))
             .content("""
-                |${bedrockLocalization.getBedrockString(player, "guild.party.management.incoming.requests")}: ${incomingRequests.size}
-                |${bedrockLocalization.getBedrockString(player, "guild.party.management.outgoing.requests")}: ${outgoingRequests.size}
+                |${lang.raw("bedrock.party.management.incoming_requests")}: ${incomingRequests.size}
+                |${lang.raw("bedrock.party.management.outgoing_requests")}: ${outgoingRequests.size}
             """.trimMargin())
 
         if (incomingRequests.isNotEmpty()) {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.view.incoming"),
+                lang.raw("bedrock.party.management.view_incoming"),
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
@@ -197,7 +199,7 @@ class BedrockGuildPartyManagementMenu(
         if (outgoingRequests.isNotEmpty()) {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.view.outgoing"),
+                lang.raw("bedrock.party.management.view_outgoing"),
                 config.editIconUrl,
                 config.editIconPath
             )
@@ -205,7 +207,7 @@ class BedrockGuildPartyManagementMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.party.management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -236,20 +238,20 @@ class BedrockGuildPartyManagementMenu(
             net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PARTIES)
 
         if (!canManageParties) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.no.permission"))
+            player.sendMessage(lang.raw("bedrock.party.management.no_permission"))
             return
         }
 
         val form = CustomForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.party.management.create"))
-            .label(bedrockLocalization.getBedrockString(player, "guild.party.management.create.description"))
+            .title(lang.raw("bedrock.party.management.create"))
+            .label(lang.raw("bedrock.party.management.create_description"))
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.party.management.party.name"),
-                bedrockLocalization.getBedrockString(player, "guild.party.management.party.name.placeholder")
+                lang.raw("bedrock.party.management.party_name"),
+                lang.raw("bedrock.party.management.party_name_placeholder")
             )
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.party.management.party.description"),
-                bedrockLocalization.getBedrockString(player, "guild.party.management.party.description.placeholder")
+                lang.raw("bedrock.party.management.party_description"),
+                lang.raw("bedrock.party.management.party_description_placeholder")
             )
             .validResultHandler { response ->
                 handleCreatePartyResponse(response)
@@ -274,20 +276,20 @@ class BedrockGuildPartyManagementMenu(
             net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PARTIES)
 
         if (!canManageParties) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.no.permission"))
+            player.sendMessage(lang.raw("bedrock.party.management.no_permission"))
             return
         }
 
         val form = CustomForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.party.management.send.request"))
-            .label(bedrockLocalization.getBedrockString(player, "guild.party.management.send.request.description"))
+            .title(lang.raw("bedrock.party.management.send_request"))
+            .label(lang.raw("bedrock.party.management.send_request_description"))
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.party.management.target.guild"),
-                bedrockLocalization.getBedrockString(player, "guild.party.management.target.guild.placeholder")
+                lang.raw("bedrock.party.management.target_guild"),
+                lang.raw("bedrock.party.management.target_guild_placeholder")
             )
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.party.management.request.message"),
-                bedrockLocalization.getBedrockString(player, "guild.party.management.request.message.placeholder")
+                lang.raw("bedrock.party.management.request_message"),
+                lang.raw("bedrock.party.management.request_message_placeholder")
             )
             .validResultHandler { response ->
                 handleSendPartyRequestResponse(response)
@@ -313,20 +315,20 @@ class BedrockGuildPartyManagementMenu(
             net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PARTIES)
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.party.management.settings"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.party.management.settings.description"))
+            .title(lang.raw("bedrock.party.management.settings"))
+            .content(lang.raw("bedrock.party.management.settings_description"))
 
         if (canManageParties) {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.settings.permissions"),
+                lang.raw("bedrock.party.management.settings_permissions"),
                 config.guildSettingsIconUrl,
                 config.guildSettingsIconPath
             )
         } else {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.settings.permissions.disabled"),
+                lang.raw("bedrock.party.management.settings_permissions_disabled"),
                 config.guildSettingsIconUrl,
                 config.guildSettingsIconPath
             )
@@ -334,13 +336,13 @@ class BedrockGuildPartyManagementMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info"),
+            lang.raw("bedrock.party.management.settings_info"),
             config.editIconUrl,
             config.editIconPath
         )
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.party.management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -368,27 +370,27 @@ class BedrockGuildPartyManagementMenu(
 
     // Helper methods for handling responses and opening sub-menus
     private fun openPartyDetailsMenu(party: Party) {
-        player.sendMessage("§e${bedrockLocalization.getBedrockString(player, "guild.party.management.party.details.coming.soon")}")
+        player.sendMessage(lang.msg("bedrock.party.management.party_details_coming_soon"))
     }
 
     private fun openIncomingRequestsMenu() {
         val config = getBedrockConfig()
         val incomingRequests = partyService.getPendingRequestsForGuild(guild.id)
         if (incomingRequests.isEmpty()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.no.incoming.requests"))
+            player.sendMessage(lang.raw("bedrock.party.management.no_incoming_requests"))
             return
         }
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.party.management.incoming.requests"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.party.management.select.request"))
+            .title(lang.raw("bedrock.party.management.incoming_requests"))
+            .content(lang.raw("bedrock.party.management.select_request"))
 
         incomingRequests.forEach { request ->
             val fromGuild = guildService.getGuild(request.fromGuildId)
             val fromGuildName = fromGuild?.name ?: "Unknown Guild"
             form.addButtonWithImage(
                 config,
-                "${bedrockLocalization.getBedrockString(player, "guild.party.management.from")}: $fromGuildName\n${bedrockLocalization.getBedrockString(player, "guild.party.management.message")}: ${request.message ?: bedrockLocalization.getBedrockString(player, "guild.party.management.no.message")}",
+                "${lang.raw("bedrock.party.management.from")}: $fromGuildName\n${lang.raw("bedrock.party.management.message")}: ${request.message ?: lang.raw("bedrock.party.management.no_message")}",
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
@@ -396,7 +398,7 @@ class BedrockGuildPartyManagementMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.party.management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -426,20 +428,20 @@ class BedrockGuildPartyManagementMenu(
         val config = getBedrockConfig()
         val outgoingRequests = partyService.getPendingRequestsFromGuild(guild.id)
         if (outgoingRequests.isEmpty()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.no.outgoing.requests"))
+            player.sendMessage(lang.raw("bedrock.party.management.no_outgoing_requests"))
             return
         }
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.party.management.outgoing.requests"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.party.management.select.request"))
+            .title(lang.raw("bedrock.party.management.outgoing_requests"))
+            .content(lang.raw("bedrock.party.management.select_request"))
 
         outgoingRequests.forEach { request ->
             val toGuild = guildService.getGuild(request.toGuildId)
             val toGuildName = toGuild?.name ?: "Unknown Guild"
             form.addButtonWithImage(
                 config,
-                "${bedrockLocalization.getBedrockString(player, "guild.party.management.to")}: $toGuildName\n${bedrockLocalization.getBedrockString(player, "guild.party.management.message")}: ${request.message ?: bedrockLocalization.getBedrockString(player, "guild.party.management.no.message")}",
+                "${lang.raw("bedrock.party.management.to")}: $toGuildName\n${lang.raw("bedrock.party.management.message")}: ${request.message ?: lang.raw("bedrock.party.management.no_message")}",
                 config.editIconUrl,
                 config.editIconPath
             )
@@ -447,7 +449,7 @@ class BedrockGuildPartyManagementMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.party.management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -476,26 +478,26 @@ class BedrockGuildPartyManagementMenu(
     private fun openRequestActionMenu(request: net.lumalyte.lg.domain.entities.PartyRequest, isIncoming: Boolean) {
         val config = getBedrockConfig()
         val form = SimpleForm.builder()
-            .title(if (isIncoming) bedrockLocalization.getBedrockString(player, "guild.party.management.request.action.incoming") else bedrockLocalization.getBedrockString(player, "guild.party.management.request.action.outgoing"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.party.management.request.action.description"))
+            .title(if (isIncoming) lang.raw("bedrock.party.management.request_action_incoming") else lang.raw("bedrock.party.management.request_action_outgoing"))
+            .content(lang.raw("bedrock.party.management.request_action_description"))
 
         if (isIncoming) {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.request.accept"),
+                lang.raw("bedrock.party.management.request_accept"),
                 config.confirmIconUrl,
                 config.confirmIconPath
             )
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.request.reject"),
+                lang.raw("bedrock.party.management.request_reject"),
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
         } else {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.party.management.request.cancel"),
+                lang.raw("bedrock.party.management.request_cancel"),
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
@@ -503,7 +505,7 @@ class BedrockGuildPartyManagementMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.party.management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -514,27 +516,27 @@ class BedrockGuildPartyManagementMenu(
                         // Accept request
                         val success = partyService.acceptPartyRequest((request as net.lumalyte.lg.domain.entities.PartyRequest).id, guild.id, player.uniqueId)
                         if (success != null) {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.request.accepted"))
+                            player.sendMessage(lang.raw("bedrock.party.management.request_accepted"))
                         } else {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.request.failed"))
+                            player.sendMessage(lang.raw("bedrock.party.management.request_failed"))
                         }
                     }
                     isIncoming && clickedButton == 1 -> {
                         // Reject request
                         val success = partyService.rejectPartyRequest((request as net.lumalyte.lg.domain.entities.PartyRequest).id, guild.id, player.uniqueId)
                         if (success) {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.request.rejected"))
+                            player.sendMessage(lang.raw("bedrock.party.management.request_rejected"))
                         } else {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.request.failed"))
+                            player.sendMessage(lang.raw("bedrock.party.management.request_failed"))
                         }
                     }
                     !isIncoming && clickedButton == 0 -> {
                         // Cancel request
                         val success = partyService.cancelPartyRequest((request as net.lumalyte.lg.domain.entities.PartyRequest).id, guild.id, player.uniqueId)
                         if (success) {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.request.cancelled"))
+                            player.sendMessage(lang.raw("bedrock.party.management.request_cancelled"))
                         } else {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.request.failed"))
+                            player.sendMessage(lang.raw("bedrock.party.management.request_failed"))
                         }
                     }
                 }
@@ -559,7 +561,7 @@ class BedrockGuildPartyManagementMenu(
         val partyDescription = response.asInput(1)
 
         if (partyName.isNullOrBlank()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.create.name.required"))
+            player.sendMessage(lang.raw("bedrock.party.management.create_name_required"))
             return
         }
 
@@ -575,9 +577,9 @@ class BedrockGuildPartyManagementMenu(
 
         val createdParty = partyService.createParty(party)
         if (createdParty != null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.create.success", partyName))
+            player.sendMessage(lang.msg("bedrock.party.management.create_success", "party" to partyName))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.create.failed"))
+            player.sendMessage(lang.raw("bedrock.party.management.create_failed"))
         }
 
         getForm() // Refresh main menu
@@ -588,53 +590,53 @@ class BedrockGuildPartyManagementMenu(
         val message = response.asInput(1)
 
         if (targetGuildName.isNullOrBlank()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.send.request.guild.required"))
+            player.sendMessage(lang.raw("bedrock.party.management.send_request_guild_required"))
             return
         }
 
         val targetGuild = guildService.getAllGuilds().find { it.name.equals(targetGuildName, ignoreCase = true) }
         if (targetGuild == null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.send.request.guild.not.found"))
+            player.sendMessage(lang.raw("bedrock.party.management.send_request_guild_not_found"))
             return
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.send.request.self"))
+            player.sendMessage(lang.raw("bedrock.party.management.send_request_self"))
             return
         }
 
         val request = partyService.sendPartyRequest(guild.id, targetGuild.id, player.uniqueId, message)
         if (request != null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.send.request.success", targetGuild.name))
+            player.sendMessage(lang.msg("bedrock.party.management.send_request_success", "guild" to targetGuild.name))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.management.send.request.failed"))
+            player.sendMessage(lang.raw("bedrock.party.management.send_request_failed"))
         }
 
         getForm() // Refresh main menu
     }
 
     private fun openPartyPermissionsMenu() {
-        player.sendMessage("§e${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.permissions.coming.soon")}")
+        player.sendMessage(lang.msg("bedrock.party.management.settings_permissions_coming_soon"))
     }
 
     private fun openPartyInfoMenu() {
         val config = getBedrockConfig()
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info"))
+            .title(lang.raw("bedrock.party.management.settings_info"))
             .content("""
-                |${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.description")}
+                |${lang.raw("bedrock.party.management.settings_info_description")}
                 |
-                |${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.permissions")}
-                |• ${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.view")}: ${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.all.members")}
-                |• ${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.accept")}: ${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.admin.only")}
-                |• ${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.send")}: ${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.admin.only")}
-                |• ${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.manage")}: ${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.admin.only")}
+                |${lang.raw("bedrock.party.management.settings_info_permissions")}
+                |• ${lang.raw("bedrock.party.management.settings_info_view")}: ${lang.raw("bedrock.party.management.settings_info_all_members")}
+                |• ${lang.raw("bedrock.party.management.settings_info_accept")}: ${lang.raw("bedrock.party.management.settings_info_admin_only")}
+                |• ${lang.raw("bedrock.party.management.settings_info_send")}: ${lang.raw("bedrock.party.management.settings_info_admin_only")}
+                |• ${lang.raw("bedrock.party.management.settings_info_manage")}: ${lang.raw("bedrock.party.management.settings_info_admin_only")}
                 |
-                |${bedrockLocalization.getBedrockString(player, "guild.party.management.settings.info.invite.only")}
+                |${lang.raw("bedrock.party.management.settings_info_invite_only")}
             """.trimMargin())
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "menu.back"),
+                lang.raw("bedrock.party.management.back"),
                 config.closeIconUrl,
                 config.closeIconPath
             )

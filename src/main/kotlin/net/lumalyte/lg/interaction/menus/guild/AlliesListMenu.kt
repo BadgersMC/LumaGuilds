@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -39,13 +41,14 @@ class AlliesListMenu(
     private val memberService: MemberService by inject()
     private val relationService: RelationService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private lateinit var alliesPane: PaginatedPane
     private var currentPage = 0
     private val itemsPerPage = 28 // 4 rows x 7 columns
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§aAllied Guilds"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.allies_list.title")))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -93,10 +96,10 @@ class AlliesListMenu(
         if (pageAllies.isEmpty()) {
             // No allies - show empty message
             val emptyItem = ItemStack.of(Material.BARRIER)
-                .name("§7No Allied Guilds")
-                .lore("§7You currently have no alliances.")
-                .lore("§7Use §6/guild ally <guild>§7 or the")
-                .lore("§7diplomatic actions to form alliances.")
+                .name(lang.legacy("menu.allies_list.empty.name"))
+                .lore(lang.legacy("menu.allies_list.empty.description"))
+                .lore(lang.legacy("menu.allies_list.empty.command"))
+                .lore(lang.legacy("menu.allies_list.empty.hint"))
 
             val guiItem = GuiItem(emptyItem) { }
             newPage.addItem(guiItem, 3, 1)
@@ -122,7 +125,7 @@ class AlliesListMenu(
         val otherGuildId = relation.getOtherGuild(guild.id)
         val otherGuild = guildService.getGuild(otherGuildId)
 
-        val guildName = otherGuild?.name ?: "Unknown Guild"
+        val guildName = otherGuild?.name ?: lang.raw("menu.allies_list.fallback.unknown_guild")
         val memberCount = otherGuild?.let { memberService.getMemberCount(it.id) } ?: 0
 
         // Calculate alliance duration
@@ -137,13 +140,18 @@ class AlliesListMenu(
             ItemStack.of(Material.GREEN_BANNER)
         }
 
-        item.name("§a✦ $guildName")
-            .lore("§7Members: §f$memberCount")
-            .lore("§7Alliance Duration: §a$durationText")
-            .lore("§7Level: §f${otherGuild?.level ?: 1}")
-            .lore("§7Mode: ${if (otherGuild?.mode?.name == "PEACEFUL") "§a⚐ Peaceful" else "§c⚔ Hostile"}")
-            .lore("§7")
-            .lore("§eClick for actions")
+        val mode = if (otherGuild?.mode?.name == "PEACEFUL") {
+            lang.legacy("menu.allies_list.guild.mode.peaceful")
+        } else {
+            lang.legacy("menu.allies_list.guild.mode.hostile")
+        }
+        item.name(lang.legacy("menu.allies_list.guild.name", "guild" to guildName))
+            .lore(lang.legacy("menu.allies_list.guild.members", "count" to memberCount))
+            .lore(lang.legacy("menu.allies_list.guild.duration", "duration" to durationText))
+            .lore(lang.legacy("menu.allies_list.guild.level", "level" to (otherGuild?.level ?: 1)))
+            .lore(lang.legacy("menu.allies_list.guild.mode.line", "mode" to mode))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.allies_list.guild.actions"))
 
         return item
     }
@@ -151,10 +159,10 @@ class AlliesListMenu(
     private fun openAllyActionsMenu(relation: Relation) {
         val otherGuildId = relation.getOtherGuild(guild.id)
         val otherGuild = guildService.getGuild(otherGuildId)
-        val guildName = otherGuild?.name ?: "Unknown Guild"
+        val guildName = otherGuild?.name ?: lang.raw("menu.allies_list.fallback.unknown_guild")
 
         // Create actions menu
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§a$guildName"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.allies_list.actions_title", "guild" to guildName)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -165,9 +173,9 @@ class AlliesListMenu(
 
         // View info button
         val infoItem = ItemStack.of(Material.BOOK)
-            .name("§eView Guild Info")
-            .lore("§7View detailed information about")
-            .lore("§f$guildName")
+            .name(lang.legacy("menu.allies_list.actions.info.name"))
+            .lore(lang.legacy("menu.allies_list.actions.info.description"))
+            .lore(lang.legacy("menu.allies_list.actions.info.guild", "guild" to guildName))
 
         val infoGuiItem = GuiItem(infoItem) {
             if (otherGuild != null) {
@@ -180,17 +188,17 @@ class AlliesListMenu(
         val hasPermission = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
 
         val breakItem = ItemStack.of(if (hasPermission) Material.RED_CONCRETE else Material.BARRIER)
-            .name(if (hasPermission) "§cBreak Alliance" else "§7Break Alliance")
-            .lore(if (hasPermission) "§7End your alliance with" else "§7You need MANAGE_RELATIONS")
-            .lore(if (hasPermission) "§f$guildName" else "§7permission to break alliances")
-            .lore("§7")
-            .lore(if (hasPermission) "§cThis action cannot be undone." else "§cPermission Required")
+            .name(if (hasPermission) lang.legacy("menu.allies_list.actions.break_alliance.name") else lang.legacy("menu.allies_list.actions.break_alliance.disabled"))
+            .lore(if (hasPermission) lang.legacy("menu.allies_list.actions.break_alliance.description") else lang.legacy("menu.allies_list.permission.manage_relations"))
+            .lore(if (hasPermission) lang.legacy("menu.allies_list.actions.break_alliance.guild", "guild" to guildName) else lang.legacy("menu.allies_list.actions.break_alliance.permission"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(if (hasPermission) lang.legacy("menu.allies_list.actions.break_alliance.warning") else lang.legacy("menu.allies_list.permission.required"))
 
         val breakGuiItem = GuiItem(breakItem) {
             if (hasPermission) {
                 openBreakConfirmMenu(relation, guildName)
             } else {
-                player.sendMessage("§cYou don't have permission to manage relations.")
+                player.sendMessage(lang.msg("menu.allies_list.feedback.no_permission"))
                 player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         }
@@ -198,8 +206,8 @@ class AlliesListMenu(
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§eBack")
-            .lore("§7Return to allies list")
+            .name(lang.legacy("menu.allies_list.actions.back.name"))
+            .lore(lang.legacy("menu.allies_list.actions.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             open()
@@ -212,7 +220,7 @@ class AlliesListMenu(
 
     private fun openBreakConfirmMenu(relation: Relation, guildName: String) {
         // Create confirmation menu
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§cBreak Alliance?"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.allies_list.confirm.title")))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -223,11 +231,11 @@ class AlliesListMenu(
 
         // Confirm button
         val confirmItem = ItemStack.of(Material.RED_CONCRETE)
-            .name("§c✗ Confirm Break Alliance")
-            .lore("§7Break your alliance with")
-            .lore("§f$guildName")
-            .lore("§7")
-            .lore("§cThis cannot be undone!")
+            .name(lang.legacy("menu.allies_list.confirm.name"))
+            .lore(lang.legacy("menu.allies_list.confirm.description"))
+            .lore(lang.legacy("menu.allies_list.confirm.guild", "guild" to guildName))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.allies_list.confirm.warning"))
 
         val confirmGuiItem = GuiItem(confirmItem) {
             breakAlliance(relation, guildName)
@@ -236,8 +244,8 @@ class AlliesListMenu(
 
         // Cancel button
         val cancelItem = ItemStack.of(Material.ARROW)
-            .name("§eCancel")
-            .lore("§7Return to ally actions")
+            .name(lang.legacy("menu.allies_list.confirm.cancel.name"))
+            .lore(lang.legacy("menu.allies_list.confirm.cancel.description"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             openAllyActionsMenu(relation)
@@ -254,16 +262,16 @@ class AlliesListMenu(
         val success = relationRepository.remove(relation.id)
 
         if (success) {
-            player.sendMessage("§c✗ You broke the alliance with $guildName.")
+            player.sendMessage(lang.msg("menu.allies_list.feedback.broken", "guild" to guildName))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 0.8f)
 
             // Notify the other guild
-            notifyGuildMembers(relation.getOtherGuild(guild.id), "§c${guild.name} §7has broken the alliance with your guild.")
+            notifyGuildMembers(relation.getOtherGuild(guild.id), lang.msg("menu.allies_list.notification.broken", "guild" to guild.name))
 
             // Refresh the menu
             open()
         } else {
-            player.sendMessage("§c✗ Failed to break alliance.")
+            player.sendMessage(lang.msg("menu.allies_list.feedback.break_failed"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             open()
         }
@@ -277,8 +285,8 @@ class AlliesListMenu(
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack.of(Material.ARROW)
-                .name("§f⬅ PREVIOUS PAGE")
-                .lore("§7Go to previous page")
+                .name(lang.legacy("menu.allies_list.navigation.previous.name"))
+                .lore(lang.legacy("menu.allies_list.navigation.previous.description"))
 
             val prevGuiItem = GuiItem(prevItem) {
                 currentPage--
@@ -289,8 +297,8 @@ class AlliesListMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§ePage ${currentPage + 1} / ${if (totalPages > 0) totalPages else 1}")
-            .lore("§7Total allies: §a${allAllies.size}")
+            .name(lang.legacy("menu.allies_list.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
+            .lore(lang.legacy("menu.allies_list.navigation.total", "count" to allAllies.size))
 
         val pageGuiItem = GuiItem(pageItem) { }
         pane.addItem(pageGuiItem, 4, 4)
@@ -298,8 +306,8 @@ class AlliesListMenu(
         // Next page button
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack.of(Material.ARROW)
-                .name("§fNEXT PAGE ➡")
-                .lore("§7Go to next page")
+                .name(lang.legacy("menu.allies_list.navigation.next.name"))
+                .lore(lang.legacy("menu.allies_list.navigation.next.description"))
 
             val nextGuiItem = GuiItem(nextItem) {
                 currentPage++
@@ -311,8 +319,8 @@ class AlliesListMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§eBack to Relations")
-            .lore("§7Return to relations menu")
+            .name(lang.legacy("menu.allies_list.navigation.back.name"))
+            .lore(lang.legacy("menu.allies_list.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
@@ -323,15 +331,19 @@ class AlliesListMenu(
     private fun formatDuration(duration: Duration): String {
         val days = duration.toDays()
         return when {
-            days < 1 -> "Less than 1 day"
-            days < 7 -> "$days day${if (days == 1L) "" else "s"}"
-            days < 30 -> "${days / 7} week${if (days / 7 == 1L) "" else "s"}"
-            days < 365 -> "${days / 30} month${if (days / 30 == 1L) "" else "s"}"
-            else -> "${days / 365} year${if (days / 365 == 1L) "" else "s"}"
+            days < 1 -> lang.raw("menu.allies_list.duration.less_than_day")
+            days < 7 && days == 1L -> lang.legacy("menu.allies_list.duration.day", "count" to days)
+            days < 7 -> lang.legacy("menu.allies_list.duration.days", "count" to days)
+            days < 30 && days / 7 == 1L -> lang.legacy("menu.allies_list.duration.week", "count" to days / 7)
+            days < 30 -> lang.legacy("menu.allies_list.duration.weeks", "count" to days / 7)
+            days < 365 && days / 30 == 1L -> lang.legacy("menu.allies_list.duration.month", "count" to days / 30)
+            days < 365 -> lang.legacy("menu.allies_list.duration.months", "count" to days / 30)
+            days / 365 == 1L -> lang.legacy("menu.allies_list.duration.year", "count" to days / 365)
+            else -> lang.legacy("menu.allies_list.duration.years", "count" to days / 365)
         }
     }
 
-    private fun notifyGuildMembers(guildId: UUID, message: String) {
+    private fun notifyGuildMembers(guildId: UUID, message: Component) {
         val members = memberService.getGuildMembers(guildId)
         members.forEach { member ->
             val onlinePlayer = Bukkit.getPlayer(member.playerId)

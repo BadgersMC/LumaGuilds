@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.listeners
 
 import io.mockk.every
 import io.mockk.mockk
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PartyService
@@ -33,7 +34,7 @@ internal class RoseChatCleanupListenerTest {
     private val partyService = mockk<PartyService>()
     private val relationService = mockk<RelationService>()
 
-    private val listener = RoseChatCleanupListener(guildService, memberService, partyService, relationService)
+    private val listener = RoseChatCleanupListener(guildService, memberService, partyService, relationService, mockk<LangService>())
 
     private val playerId = UUID.randomUUID()
 

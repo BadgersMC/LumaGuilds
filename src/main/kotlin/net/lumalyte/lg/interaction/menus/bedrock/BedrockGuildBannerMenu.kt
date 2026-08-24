@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -22,18 +23,19 @@ class BedrockGuildBannerMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildService: GuildService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val hasBanner = guild.banner != null
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.banner.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.banner.title", "guild" to guild.name))
             .content(buildBannerContent(hasBanner))
             .apply {
                 if (hasBanner) {
-                    button(bedrockLocalization.getBedrockString(player, "guild.banner.clear"))
+                    button(lang.raw("bedrock.banner.button.clear"))
                 }
-                button(bedrockLocalization.getBedrockString(player, "guild.banner.instructions"))
+                button(lang.raw("bedrock.banner.button.instructions"))
             }
             .validResultHandler { response ->
                 val buttonId = response.clickedButtonId()
@@ -47,27 +49,9 @@ class BedrockGuildBannerMenu(
 
     private fun buildBannerContent(hasBanner: Boolean): String {
         return if (hasBanner) {
-            """
-            |${bedrockLocalization.getBedrockString(player, "guild.banner.current.set")}
-            |
-            |${bedrockLocalization.getBedrockString(player, "guild.banner.bedrock.note")}
-            |
-            |${bedrockLocalization.getBedrockString(player, "guild.banner.change.instructions")}:
-            |1. ${bedrockLocalization.getBedrockString(player, "guild.banner.step.1")}
-            |2. ${bedrockLocalization.getBedrockString(player, "guild.banner.step.2")}
-            |3. ${bedrockLocalization.getBedrockString(player, "guild.banner.step.3")}
-            """.trimMargin()
+            lang.legacy("bedrock.banner.content.set")
         } else {
-            """
-            |${bedrockLocalization.getBedrockString(player, "guild.banner.none")}
-            |
-            |${bedrockLocalization.getBedrockString(player, "guild.banner.bedrock.note")}
-            |
-            |${bedrockLocalization.getBedrockString(player, "guild.banner.set.instructions")}:
-            |1. ${bedrockLocalization.getBedrockString(player, "guild.banner.step.1")}
-            |2. ${bedrockLocalization.getBedrockString(player, "guild.banner.step.2")}
-            |3. ${bedrockLocalization.getBedrockString(player, "guild.banner.step.3")}
-            """.trimMargin()
+            lang.legacy("bedrock.banner.content.unset")
         }
     }
 
@@ -94,24 +78,15 @@ class BedrockGuildBannerMenu(
     private fun clearBanner() {
         val success = guildService.setBanner(guild.id, null, player.uniqueId)
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.banner.cleared"))
+            player.sendMessage(lang.msg("bedrock.banner.feedback.cleared"))
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.banner.clear.failed"))
+            player.sendMessage(lang.msg("bedrock.banner.feedback.clear_failed"))
         }
     }
 
     private fun showInstructions() {
-        player.sendMessage(
-            """
-            |${bedrockLocalization.getBedrockString(player, "guild.banner.detailed.instructions")}
-            |
-            |1. ${bedrockLocalization.getBedrockString(player, "guild.banner.detail.1")}
-            |2. ${bedrockLocalization.getBedrockString(player, "guild.banner.detail.2")}
-            |3. ${bedrockLocalization.getBedrockString(player, "guild.banner.detail.3")}
-            |4. ${bedrockLocalization.getBedrockString(player, "guild.banner.detail.4")}
-            """.trimMargin()
-        )
+        player.sendMessage(lang.msg("bedrock.banner.detailed_instructions"))
         bedrockNavigator.goBack()
     }
 

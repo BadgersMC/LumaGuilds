@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -31,12 +32,13 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
     private val memberService: MemberService by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private var inputMode = false
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Invite Player - ${guild.name}"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.guild_invite.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -63,11 +65,11 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
         val infoItem = ItemStack.of(Material.BOOK)
-            .name("§f📋 INVITE PLAYERS")
-            .lore("§7Invite players to join your guild")
-            .lore("§7Click online players or use manual invite")
-            .lore("§7")
-            .lore("§ePlayers must accept the invitation")
+            .name(lang.legacy("menu.guild_invite.info.name"))
+            .lore(lang.legacy("menu.guild_invite.info.description"))
+            .lore(lang.legacy("menu.guild_invite.info.instructions"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_invite.info.warning"))
 
         pane.addItem(GuiItem(infoItem), x, y)
     }
@@ -81,9 +83,9 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
         if (onlinePlayers.isEmpty()) {
             val noPlayersItem = ItemStack.of(Material.BARRIER)
-                .name("§c❌ NO PLAYERS AVAILABLE")
-                .lore("§7No online players to invite")
-                .lore("§7Use manual invite instead")
+                .name(lang.legacy("menu.guild_invite.online.empty.name"))
+                .lore(lang.legacy("menu.guild_invite.online.empty.description"))
+                .lore(lang.legacy("menu.guild_invite.online.empty.alternative"))
 
             pane.addItem(GuiItem(noPlayersItem), x, y)
             return
@@ -100,9 +102,9 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
                 playerHead.itemMeta = meta
             }
 
-            playerHead.name("§a👤 ${onlinePlayer.name}")
-                .lore("§7Click to invite this player")
-                .lore("§7They will receive an invitation")
+            playerHead.name(lang.legacy("menu.guild_invite.online.player.name", "player" to onlinePlayer.name))
+                .lore(lang.legacy("menu.guild_invite.online.player.action"))
+                .lore(lang.legacy("menu.guild_invite.online.player.result"))
 
             val playerGuiItem = GuiItem(playerHead) {
                 // menuFactory already injected
@@ -114,23 +116,23 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addManualInviteButton(pane: StaticPane, x: Int, y: Int) {
         val manualItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§f✏ MANUAL INVITE")
-            .lore("§7Type a player name to invite")
-            .lore("§7Works for offline players too")
+            .name(lang.legacy("menu.guild_invite.manual.name"))
+            .lore(lang.legacy("menu.guild_invite.manual.description"))
+            .lore(lang.legacy("menu.guild_invite.manual.offline"))
 
         if (inputMode) {
-            manualItem.name("§e⏳ WAITING FOR INPUT...")
-                .lore("§7Type player name in chat")
-                .lore("§7Type 'cancel' to stop")
+            manualItem.name(lang.legacy("menu.guild_invite.manual.waiting.name"))
+                .lore(lang.legacy("menu.guild_invite.manual.waiting.instructions"))
+                .lore(lang.legacy("menu.guild_invite.manual.waiting.cancel"))
         } else {
-            manualItem.lore("§7Click to enter player name")
+            manualItem.lore(lang.legacy("menu.guild_invite.manual.action"))
         }
 
         val manualGuiItem = GuiItem(manualItem) {
             if (!inputMode) {
                 startChatInput()
             } else {
-                player.sendMessage("§7Already waiting for input. Type player name or 'cancel'.")
+                player.sendMessage(lang.msg("menu.guild_invite.feedback.already_waiting"))
             }
         }
         pane.addItem(manualGuiItem, x, y)
@@ -138,13 +140,13 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c⬅ BACK")
-            .lore("§7Return to member management")
+            .name(lang.legacy("menu.guild_invite.back.name"))
+            .lore(lang.legacy("menu.guild_invite.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             if (inputMode) {
                 chatInputListener.stopInputMode(player)
-                player.sendMessage("§7Invite input cancelled.")
+                player.sendMessage(lang.msg("menu.guild_invite.feedback.input_cancelled"))
             }
             menuNavigator.goBack()
         }
@@ -162,10 +164,10 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
         chatInputListener.startInputMode(player, this)
 
         player.closeInventory()
-        player.sendMessage("§6=== MANUAL PLAYER INVITE ===")
-        player.sendMessage("§7Type the name of the player to invite:")
-        player.sendMessage("§7Type 'cancel' to stop input mode")
-        player.sendMessage("§6============================")
+        player.sendMessage(lang.msg("menu.guild_invite.chat.header"))
+        player.sendMessage(lang.msg("menu.guild_invite.chat.instructions"))
+        player.sendMessage(lang.msg("menu.guild_invite.chat.cancel"))
+        player.sendMessage(lang.msg("menu.guild_invite.chat.footer"))
     }
 
     // ChatInputHandler methods
@@ -173,7 +175,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
         inputMode = false
 
         if (input.equals("cancel", ignoreCase = true)) {
-            player.sendMessage("§7Invite cancelled.")
+            player.sendMessage(lang.msg("menu.guild_invite.feedback.cancelled"))
             open()
             return
         }
@@ -181,13 +183,13 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
         // Find player by name — uses Floodgate-aware lookup so Bedrock names work without the dot prefix
         val targetPlayer = findPlayerByName(input)
         if (targetPlayer == null) {
-            player.sendMessage("§c❌ Player '$input' is not online!")
+            player.sendMessage(lang.msg("menu.guild_invite.feedback.not_online", "player" to input))
             open()
             return
         }
 
         if (targetPlayer == player) {
-            player.sendMessage("§c❌ You cannot invite yourself!")
+            player.sendMessage(lang.msg("menu.guild_invite.feedback.self_invite"))
             open()
             return
         }
@@ -198,7 +200,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     override fun onCancel(player: Player) {
         inputMode = false
-        player.sendMessage("§7Invite input cancelled.")
+        player.sendMessage(lang.msg("menu.guild_invite.feedback.input_cancelled"))
         open()
     }
 

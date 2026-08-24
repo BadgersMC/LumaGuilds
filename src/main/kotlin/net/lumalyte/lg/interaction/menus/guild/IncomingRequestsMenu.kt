@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -37,13 +39,14 @@ class IncomingRequestsMenu(
     private val memberService: MemberService by inject()
     private val relationService: RelationService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private lateinit var requestsPane: PaginatedPane
     private var currentPage = 0
     private val itemsPerPage = 28 // 4 rows x 7 columns
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Incoming Relation Requests"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.incoming_requests.title")))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -90,10 +93,10 @@ class IncomingRequestsMenu(
         if (pageRequests.isEmpty()) {
             // No requests - show empty message
             val emptyItem = ItemStack.of(Material.BARRIER)
-                .name("§7No Incoming Requests")
-                .lore("§7You don't have any pending relation requests.")
-                .lore("§7When other guilds send you alliance or")
-                .lore("§7truce requests, they will appear here.")
+                .name(lang.legacy("menu.incoming_requests.empty.name"))
+                .lore(lang.legacy("menu.incoming_requests.empty.description"))
+                .lore(lang.legacy("menu.incoming_requests.empty.hint"))
+                .lore(lang.legacy("menu.incoming_requests.empty.location"))
 
             val guiItem = GuiItem(emptyItem) { }
             newPage.addItem(guiItem, 3, 1)
@@ -119,41 +122,41 @@ class IncomingRequestsMenu(
         val otherGuildId = relation.getOtherGuild(guild.id)
         val otherGuild = guildService.getGuild(otherGuildId)
 
-        val guildName = otherGuild?.name ?: "Unknown Guild"
+        val guildName = otherGuild?.name ?: lang.raw("menu.incoming_requests.fallback.unknown_guild")
         val memberCount = otherGuild?.let { memberService.getMemberCount(it.id) } ?: 0
 
         // Determine icon and type text based on relation type
-        val (material, typeName, typeColor) = when (relation.type) {
-            RelationType.ALLY -> Triple(Material.GOLDEN_APPLE, "Alliance Request", "§a")
-            RelationType.TRUCE -> Triple(Material.WHITE_BANNER, "Truce Request", "§e")
-            RelationType.NEUTRAL -> Triple(Material.PAPER, "Peace Request", "§f")
-            else -> Triple(Material.PAPER, "Unknown Request", "§7")
+        val (material, typeName) = when (relation.type) {
+            RelationType.ALLY -> Material.GOLDEN_APPLE to lang.legacy("menu.incoming_requests.type.alliance.display")
+            RelationType.TRUCE -> Material.WHITE_BANNER to lang.legacy("menu.incoming_requests.type.truce.display")
+            RelationType.NEUTRAL -> Material.PAPER to lang.legacy("menu.incoming_requests.type.peace.display")
+            else -> Material.PAPER to lang.legacy("menu.incoming_requests.type.unknown.display")
         }
 
         // Calculate time ago
         val timeAgo = formatTimeAgo(relation.createdAt)
 
         val item = ItemStack.of(material)
-            .name("$typeColor$typeName")
-            .lore("§7From: §f$guildName")
-            .lore("§7Members: §f$memberCount")
-            .lore("§7Received: §f$timeAgo")
+            .name(typeName)
+            .lore(lang.legacy("menu.incoming_requests.request.from", "guild" to guildName))
+            .lore(lang.legacy("menu.incoming_requests.request.members", "count" to memberCount))
+            .lore(lang.legacy("menu.incoming_requests.request.received", "time" to timeAgo))
 
         // Add truce duration if applicable
         if (relation.type == RelationType.TRUCE && relation.expiresAt != null) {
             val durationDays = Duration.between(relation.createdAt, relation.expiresAt).toDays()
-            item.lore("§7Duration: §f$durationDays days")
+            item.lore(lang.legacy("menu.incoming_requests.request.duration", "days" to durationDays))
         }
 
-        item.lore("§7")
-            .lore("§aClick to respond")
+        item.lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.incoming_requests.request.respond"))
 
         return item
     }
 
     private fun openRequestActionMenu(relation: Relation) {
         // Create a small menu with accept/reject options
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Incoming Relation Requests"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.incoming_requests.title")))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -164,13 +167,13 @@ class IncomingRequestsMenu(
 
         val otherGuildId = relation.getOtherGuild(guild.id)
         val otherGuild = guildService.getGuild(otherGuildId)
-        val guildName = otherGuild?.name ?: "Unknown Guild"
+        val guildName = otherGuild?.name ?: lang.raw("menu.incoming_requests.fallback.unknown_guild")
 
         // Accept button
         val acceptItem = ItemStack.of(Material.LIME_CONCRETE)
-            .name("§a✓ Accept Request")
-            .lore("§7Accept the request from")
-            .lore("§f$guildName")
+            .name(lang.legacy("menu.incoming_requests.actions.accept.name"))
+            .lore(lang.legacy("menu.incoming_requests.actions.accept.description"))
+            .lore(lang.legacy("menu.incoming_requests.actions.guild", "guild" to guildName))
 
         val acceptGuiItem = GuiItem(acceptItem) {
             acceptRequest(relation, guildName)
@@ -179,9 +182,9 @@ class IncomingRequestsMenu(
 
         // Reject button
         val rejectItem = ItemStack.of(Material.RED_CONCRETE)
-            .name("§c✗ Reject Request")
-            .lore("§7Reject the request from")
-            .lore("§f$guildName")
+            .name(lang.legacy("menu.incoming_requests.actions.reject.name"))
+            .lore(lang.legacy("menu.incoming_requests.actions.reject.description"))
+            .lore(lang.legacy("menu.incoming_requests.actions.guild", "guild" to guildName))
 
         val rejectGuiItem = GuiItem(rejectItem) {
             rejectRequest(relation, guildName)
@@ -190,8 +193,8 @@ class IncomingRequestsMenu(
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§eBack")
-            .lore("§7Return to requests list")
+            .name(lang.legacy("menu.incoming_requests.actions.back.name"))
+            .lore(lang.legacy("menu.incoming_requests.actions.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             open()
@@ -212,22 +215,22 @@ class IncomingRequestsMenu(
 
         if (result != null) {
             val typeName = when (relation.type) {
-                RelationType.ALLY -> "alliance"
-                RelationType.TRUCE -> "truce"
-                RelationType.NEUTRAL -> "peace agreement"
-                else -> "request"
+                RelationType.ALLY -> lang.raw("menu.incoming_requests.type.alliance.accepted")
+                RelationType.TRUCE -> lang.raw("menu.incoming_requests.type.truce.accepted")
+                RelationType.NEUTRAL -> lang.raw("menu.incoming_requests.type.peace.accepted")
+                else -> lang.raw("menu.incoming_requests.type.unknown.accepted")
             }
 
-            player.sendMessage("§a✓ You accepted the $typeName with $guildName!")
+            player.sendMessage(lang.msg("menu.incoming_requests.feedback.accepted", "type" to typeName, "guild" to guildName))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
 
             // Notify the other guild
-            notifyGuildMembers(relation.getOtherGuild(guild.id), "§a${guild.name} §7has accepted your $typeName request!")
+            notifyGuildMembers(relation.getOtherGuild(guild.id), lang.msg("menu.incoming_requests.notification.accepted", "guild" to guild.name, "type" to typeName))
 
             // Refresh the menu
             open()
         } else {
-            player.sendMessage("§c✗ Failed to accept request. It may have expired or been cancelled.")
+            player.sendMessage(lang.msg("menu.incoming_requests.feedback.accept_failed"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             open()
         }
@@ -238,22 +241,22 @@ class IncomingRequestsMenu(
 
         if (success) {
             val typeName = when (relation.type) {
-                RelationType.ALLY -> "alliance request"
-                RelationType.TRUCE -> "truce request"
-                RelationType.NEUTRAL -> "peace request"
-                else -> "request"
+                RelationType.ALLY -> lang.raw("menu.incoming_requests.type.alliance.rejected")
+                RelationType.TRUCE -> lang.raw("menu.incoming_requests.type.truce.rejected")
+                RelationType.NEUTRAL -> lang.raw("menu.incoming_requests.type.peace.rejected")
+                else -> lang.raw("menu.incoming_requests.type.unknown.rejected")
             }
 
-            player.sendMessage("§c✗ You rejected the $typeName from $guildName.")
+            player.sendMessage(lang.msg("menu.incoming_requests.feedback.rejected", "type" to typeName, "guild" to guildName))
             player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 0.8f)
 
             // Notify the other guild
-            notifyGuildMembers(relation.getOtherGuild(guild.id), "§c${guild.name} §7has rejected your $typeName.")
+            notifyGuildMembers(relation.getOtherGuild(guild.id), lang.msg("menu.incoming_requests.notification.rejected", "guild" to guild.name, "type" to typeName))
 
             // Refresh the menu
             open()
         } else {
-            player.sendMessage("§c✗ Failed to reject request.")
+            player.sendMessage(lang.msg("menu.incoming_requests.feedback.reject_failed"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             open()
         }
@@ -266,8 +269,8 @@ class IncomingRequestsMenu(
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack.of(Material.ARROW)
-                .name("§f⬅ PREVIOUS PAGE")
-                .lore("§7Go to previous page")
+                .name(lang.legacy("menu.incoming_requests.navigation.previous.name"))
+                .lore(lang.legacy("menu.incoming_requests.navigation.previous.description"))
 
             val prevGuiItem = GuiItem(prevItem) {
                 currentPage--
@@ -279,8 +282,8 @@ class IncomingRequestsMenu(
         // Page indicator
         val displayTotalPages = maxOf(totalPages, 1)
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§ePage ${currentPage + 1} / $displayTotalPages")
-            .lore("§7Total requests: §f${allRequests.size}")
+            .name(lang.legacy("menu.incoming_requests.navigation.page", "page" to currentPage + 1, "pages" to displayTotalPages))
+            .lore(lang.legacy("menu.incoming_requests.navigation.total", "count" to allRequests.size))
 
         val pageGuiItem = GuiItem(pageItem) { }
         pane.addItem(pageGuiItem, 4, 4)
@@ -288,8 +291,8 @@ class IncomingRequestsMenu(
         // Next page button
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack.of(Material.ARROW)
-                .name("§fNEXT PAGE ➡")
-                .lore("§7Go to next page")
+                .name(lang.legacy("menu.incoming_requests.navigation.next.name"))
+                .lore(lang.legacy("menu.incoming_requests.navigation.next.description"))
 
             val nextGuiItem = GuiItem(nextItem) {
                 currentPage++
@@ -301,8 +304,8 @@ class IncomingRequestsMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§eBack to Relations")
-            .lore("§7Return to relations menu")
+            .name(lang.legacy("menu.incoming_requests.navigation.back.name"))
+            .lore(lang.legacy("menu.incoming_requests.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
@@ -313,15 +316,15 @@ class IncomingRequestsMenu(
     private fun formatTimeAgo(instant: Instant): String {
         val duration = Duration.between(instant, Instant.now())
         return when {
-            duration.toMinutes() < 1 -> "Just now"
-            duration.toHours() < 1 -> "${duration.toMinutes()}m ago"
-            duration.toDays() < 1 -> "${duration.toHours()}h ago"
-            duration.toDays() < 7 -> "${duration.toDays()}d ago"
-            else -> "${duration.toDays() / 7}w ago"
+            duration.toMinutes() < 1 -> lang.raw("menu.incoming_requests.time.just_now")
+            duration.toHours() < 1 -> lang.legacy("menu.incoming_requests.time.minutes", "count" to duration.toMinutes())
+            duration.toDays() < 1 -> lang.legacy("menu.incoming_requests.time.hours", "count" to duration.toHours())
+            duration.toDays() < 7 -> lang.legacy("menu.incoming_requests.time.days", "count" to duration.toDays())
+            else -> lang.legacy("menu.incoming_requests.time.weeks", "count" to duration.toDays() / 7)
         }
     }
 
-    private fun notifyGuildMembers(guildId: UUID, message: String) {
+    private fun notifyGuildMembers(guildId: UUID, message: Component) {
         val members = memberService.getGuildMembers(guildId)
         members.forEach { member ->
             val onlinePlayer = Bukkit.getPlayer(member.playerId)

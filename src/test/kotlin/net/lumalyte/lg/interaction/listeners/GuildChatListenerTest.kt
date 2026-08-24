@@ -6,6 +6,8 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.verify
+import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -31,6 +33,7 @@ internal class GuildChatListenerTest {
     private val adapter = mockk<RoseChatAdapter>()
     private val guildService = mockk<GuildService>()
     private val memberService = mockk<MemberService>()
+    private val lang = mockk<LangService>(relaxed = true)
 
     private val player = mockk<Player>(relaxed = true)
     private val playerId = UUID.randomUUID()
@@ -50,6 +53,7 @@ internal class GuildChatListenerTest {
             modules(module {
                 single { guildService }
                 single { memberService }
+                single { lang }
                 single { GuildChatListener() }
             })
         }
@@ -74,7 +78,7 @@ internal class GuildChatListenerTest {
 
         val result = listener.toggleModChat(player)
         assertNull(result)
-        verify { player.sendMessage(any<String>()) }
+        verify { player.sendMessage(any<Component>()) }
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -127,7 +131,7 @@ internal class GuildChatListenerTest {
 
         val result = listener.toggleModChat(player)
         assertNull(result)
-        verify { player.sendMessage("§c❌ Only guild moderators can use mod chat!") }
+        verify { player.sendMessage(any<Component>()) }
         verify(exactly = 0) { adapter.switchChannel(any(), any()) }
     }
 
@@ -143,7 +147,7 @@ internal class GuildChatListenerTest {
 
         val result = listener.toggleModChat(player)
         assertNull(result)
-        verify { player.sendMessage("§c❌ You are not in a guild!") }
+        verify { player.sendMessage(any<Component>()) }
         verify(exactly = 0) { adapter.switchChannel(any(), any()) }
     }
 
@@ -168,7 +172,7 @@ internal class GuildChatListenerTest {
         verify(exactly = 0) { guildService.getPlayerGuilds(any()) }
         verify(exactly = 0) { memberService.hasPermission(any(), any(), any()) }
         // No denial message.
-        verify(exactly = 0) { player.sendMessage(ofType(String::class)) }
+        verify(exactly = 0) { player.sendMessage(any<Component>()) }
     }
 
     @Test
@@ -212,7 +216,7 @@ internal class GuildChatListenerTest {
 
         val result = listener.toggleGuildChat(player)
         assertFalse(result)
-        verify { player.sendMessage(any<String>()) }
+        verify { player.sendMessage(any<Component>()) }
     }
 
     @Test
@@ -225,6 +229,6 @@ internal class GuildChatListenerTest {
 
         val result = listener.toggleGuildChat(player)
         assertFalse(result)
-        verify { player.sendMessage("§c❌ You are not in a guild!") }
+        verify { player.sendMessage(any<Component>()) }
     }
 }

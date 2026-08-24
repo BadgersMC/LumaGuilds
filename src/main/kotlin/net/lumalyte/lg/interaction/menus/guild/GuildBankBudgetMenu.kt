@@ -127,20 +127,20 @@ class GuildBankBudgetMenu(
         val weeklyPercent = if (weeklyBudget > 0) (weeklySpending.toDouble() / weeklyBudget) * 100 else 0.0
         val dailyPercent = if (dailyBudget > 0) (dailySpending.toDouble() / dailyBudget) * 100 else 0.0
 
-        if (monthlyPercent >= 90) budgetAlerts.add("Monthly budget at ${String.format("%.1f", monthlyPercent)}%")
-        if (weeklyPercent >= 80) budgetAlerts.add("Weekly budget at ${String.format("%.1f", weeklyPercent)}%")
-        if (dailyPercent >= 75) budgetAlerts.add("Daily budget at ${String.format("%.1f", dailyPercent)}%")
+        if (monthlyPercent >= 90) budgetAlerts.add(lang.legacy("menu.bank_budget.alert.monthly", "percent" to String.format("%.1f", monthlyPercent)))
+        if (weeklyPercent >= 80) budgetAlerts.add(lang.legacy("menu.bank_budget.alert.weekly", "percent" to String.format("%.1f", weeklyPercent)))
+        if (dailyPercent >= 75) budgetAlerts.add(lang.legacy("menu.bank_budget.alert.daily", "percent" to String.format("%.1f", dailyPercent)))
 
-        if (monthlyPercent >= 100) budgetAlerts.add("⚠ Monthly budget exceeded!")
-        if (weeklyPercent >= 100) budgetAlerts.add("⚠ Weekly budget exceeded!")
-        if (dailyPercent >= 100) budgetAlerts.add("⚠ Daily budget exceeded!")
+        if (monthlyPercent >= 100) budgetAlerts.add(lang.raw("menu.bank_budget.alert.monthly_exceeded"))
+        if (weeklyPercent >= 100) budgetAlerts.add(lang.raw("menu.bank_budget.alert.weekly_exceeded"))
+        if (dailyPercent >= 100) budgetAlerts.add(lang.raw("menu.bank_budget.alert.daily_exceeded"))
     }
 
     /**
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "Budget Management - ${guild.name}"))
+        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.legacy("menu.bank_budget.title", "guild" to guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane
@@ -168,7 +168,7 @@ class GuildBankBudgetMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf("Return to guild bank")
+            listOf(lang.raw("menu.bank_budget.navigation.bank"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -180,7 +180,7 @@ class GuildBankBudgetMenu(
         val statsItem = createMenuItem(
             Material.BOOK,
             getLocalizedString("menu.bank.stats.title"),
-            listOf("Return to statistics")
+            listOf(lang.raw("menu.bank_budget.navigation.statistics"))
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -191,8 +191,8 @@ class GuildBankBudgetMenu(
         // Save button
         val saveItem = createMenuItem(
             Material.WRITABLE_BOOK,
-            "Save Budget Settings",
-            listOf("Save current budget limits")
+            lang.raw("menu.bank_budget.navigation.save.name"),
+            listOf(lang.raw("menu.bank_budget.navigation.save.description"))
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
@@ -206,7 +206,7 @@ class GuildBankBudgetMenu(
         val closeItem = createMenuItem(
             Material.BARRIER,
             getLocalizedString("menu.bank.close"),
-            listOf("Close menu")
+            listOf(lang.raw("menu.bank_budget.navigation.close"))
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -222,54 +222,54 @@ class GuildBankBudgetMenu(
         // Monthly budget
         val monthlyItem = createMenuItem(
             Material.CHEST,
-            "Monthly Budget",
+            lang.raw("menu.bank_budget.period.monthly.name"),
             listOf(
-                "Current: ${monthlyBudget} coins",
-                "Click to set monthly spending limit",
-                "Tracks spending over 30 days"
+                lang.legacy("menu.bank_budget.period.current", "amount" to monthlyBudget),
+                lang.raw("menu.bank_budget.period.monthly.action"),
+                lang.raw("menu.bank_budget.period.monthly.range")
             )
         )
         val monthlyGuiItem = GuiItem(monthlyItem) { event ->
             event.isCancelled = true
             inputMode = "monthly"
             chatInputListener.startInputMode(player, this@GuildBankBudgetMenu)
-            player.sendMessage("§eType the monthly budget amount in coins. Type 'cancel' to abort.")
+            player.sendMessage(lang.msg("menu.bank_budget.prompt.monthly"))
         }
         budgetPane.addItem(monthlyGuiItem, 0, 0)
 
         // Weekly budget
         val weeklyItem = createMenuItem(
             Material.TRAPPED_CHEST,
-            "Weekly Budget",
+            lang.raw("menu.bank_budget.period.weekly.name"),
             listOf(
-                "Current: ${weeklyBudget} coins",
-                "Click to set weekly spending limit",
-                "Tracks spending over 7 days"
+                lang.legacy("menu.bank_budget.period.current", "amount" to weeklyBudget),
+                lang.raw("menu.bank_budget.period.weekly.action"),
+                lang.raw("menu.bank_budget.period.weekly.range")
             )
         )
         val weeklyGuiItem = GuiItem(weeklyItem) { event ->
             event.isCancelled = true
             inputMode = "weekly"
             chatInputListener.startInputMode(player, this@GuildBankBudgetMenu)
-            player.sendMessage("§eType the weekly budget amount in coins. Type 'cancel' to abort.")
+            player.sendMessage(lang.msg("menu.bank_budget.prompt.weekly"))
         }
         budgetPane.addItem(weeklyGuiItem, 1, 0)
 
         // Daily budget
         val dailyItem = createMenuItem(
             Material.ENDER_CHEST,
-            "Daily Budget",
+            lang.raw("menu.bank_budget.period.daily.name"),
             listOf(
-                "Current: ${dailyBudget} coins",
-                "Click to set daily spending limit",
-                "Tracks spending over 24 hours"
+                lang.legacy("menu.bank_budget.period.current", "amount" to dailyBudget),
+                lang.raw("menu.bank_budget.period.daily.action"),
+                lang.raw("menu.bank_budget.period.daily.range")
             )
         )
         val dailyGuiItem = GuiItem(dailyItem) { event ->
             event.isCancelled = true
             inputMode = "daily"
             chatInputListener.startInputMode(player, this@GuildBankBudgetMenu)
-            player.sendMessage("§eType the daily budget amount in coins. Type 'cancel' to abort.")
+            player.sendMessage(lang.msg("menu.bank_budget.prompt.daily"))
         }
         budgetPane.addItem(dailyGuiItem, 2, 0)
 
@@ -284,10 +284,10 @@ class GuildBankBudgetMenu(
         if (budgetAlerts.isEmpty()) {
             val noAlertsItem = createMenuItem(
                 Material.GREEN_WOOL,
-                "No Budget Alerts",
+                lang.raw("menu.bank_budget.alert.empty.name"),
                 listOf(
-                    "All budgets are within limits",
-                    "Keep up the good financial management!"
+                    lang.raw("menu.bank_budget.alert.empty.description"),
+                    lang.raw("menu.bank_budget.alert.empty.encouragement")
                 )
             )
             alertsPane.addItem(GuiItem(noAlertsItem), 0, 0)
@@ -296,8 +296,8 @@ class GuildBankBudgetMenu(
             budgetAlerts.take(5).forEachIndexed { index, alert ->
                 val alertItem = createMenuItem(
                     if (alert.contains("⚠")) Material.RED_WOOL else Material.YELLOW_WOOL,
-                    "Budget Alert",
-                    listOf(alert, "Monitor spending closely")
+                    lang.raw("menu.bank_budget.alert.name"),
+                    listOf(alert, lang.raw("menu.bank_budget.alert.monitor"))
                 )
                 alertsPane.addItem(GuiItem(alertItem), index % 9, index / 9)
             }
@@ -331,33 +331,33 @@ class GuildBankBudgetMenu(
         // Status items
         val monthlyStatusItem = createMenuItem(
             getBudgetStatusMaterial(monthlySpent, monthlyBudget),
-            "Monthly Status",
+            lang.raw("menu.bank_budget.status.monthly"),
             listOf(
-                "Spent: ${monthlySpent}/${monthlyBudget} coins",
-                "${String.format("%.1f", (monthlySpent.toDouble() / monthlyBudget) * 100)}% used",
-                "${monthlyBudget - monthlySpent} coins remaining"
+                lang.legacy("menu.bank_budget.status.spent", "spent" to monthlySpent, "budget" to monthlyBudget),
+                lang.legacy("menu.bank_budget.status.used", "percent" to String.format("%.1f", (monthlySpent.toDouble() / monthlyBudget) * 100)),
+                lang.legacy("menu.bank_budget.status.remaining", "amount" to monthlyBudget - monthlySpent)
             )
         )
         budgetPane.addItem(GuiItem(monthlyStatusItem), 4, 0)
 
         val weeklyStatusItem = createMenuItem(
             getBudgetStatusMaterial(weeklySpent, weeklyBudget),
-            "Weekly Status",
+            lang.raw("menu.bank_budget.status.weekly"),
             listOf(
-                "Spent: ${weeklySpent}/${weeklyBudget} coins",
-                "${String.format("%.1f", (weeklySpent.toDouble() / weeklyBudget) * 100)}% used",
-                "${weeklyBudget - weeklySpent} coins remaining"
+                lang.legacy("menu.bank_budget.status.spent", "spent" to weeklySpent, "budget" to weeklyBudget),
+                lang.legacy("menu.bank_budget.status.used", "percent" to String.format("%.1f", (weeklySpent.toDouble() / weeklyBudget) * 100)),
+                lang.legacy("menu.bank_budget.status.remaining", "amount" to weeklyBudget - weeklySpent)
             )
         )
         budgetPane.addItem(GuiItem(weeklyStatusItem), 5, 0)
 
         val dailyStatusItem = createMenuItem(
             getBudgetStatusMaterial(dailySpent, dailyBudget),
-            "Daily Status",
+            lang.raw("menu.bank_budget.status.daily"),
             listOf(
-                "Spent: ${dailySpent}/${dailyBudget} coins",
-                "${String.format("%.1f", (dailySpent.toDouble() / dailyBudget) * 100)}% used",
-                "${dailyBudget - dailySpent} coins remaining"
+                lang.legacy("menu.bank_budget.status.spent", "spent" to dailySpent, "budget" to dailyBudget),
+                lang.legacy("menu.bank_budget.status.used", "percent" to String.format("%.1f", (dailySpent.toDouble() / dailyBudget) * 100)),
+                lang.legacy("menu.bank_budget.status.remaining", "amount" to dailyBudget - dailySpent)
             )
         )
         budgetPane.addItem(GuiItem(dailyStatusItem), 6, 0)
@@ -400,9 +400,9 @@ class GuildBankBudgetMenu(
         )
         val saved = bankSettingsRepository.upsert(updated)
         if (saved) {
-            player.sendMessage("§aBudget settings saved!")
+            player.sendMessage(lang.msg("menu.bank_budget.feedback.saved"))
         } else {
-            player.sendMessage("§cFailed to save budget settings.")
+            player.sendMessage(lang.msg("menu.bank_budget.feedback.save_failed"))
         }
     }
 
@@ -414,22 +414,22 @@ class GuildBankBudgetMenu(
 
         val amount = input.trim().toIntOrNull()
         if (amount == null || amount < 0) {
-            player.sendMessage("§cInvalid amount. Enter a whole number of coins (0 or more).")
+            player.sendMessage(lang.msg("menu.bank_budget.feedback.invalid_amount"))
             inputMode = null
             return
         }
         when (mode) {
             "monthly" -> {
                 monthlyBudget = amount
-                player.sendMessage("§aMonthly budget set to $amount coins. Press Save to persist.")
+                player.sendMessage(lang.msg("menu.bank_budget.feedback.monthly_set", "amount" to amount))
             }
             "weekly" -> {
                 weeklyBudget = amount
-                player.sendMessage("§aWeekly budget set to $amount coins. Press Save to persist.")
+                player.sendMessage(lang.msg("menu.bank_budget.feedback.weekly_set", "amount" to amount))
             }
             "daily" -> {
                 dailyBudget = amount
-                player.sendMessage("§aDaily budget set to $amount coins. Press Save to persist.")
+                player.sendMessage(lang.msg("menu.bank_budget.feedback.daily_set", "amount" to amount))
             }
             else -> return
         }
@@ -441,7 +441,7 @@ class GuildBankBudgetMenu(
 
     override fun onCancel(player: Player) {
         inputMode = null
-        player.sendMessage("§eBudget input cancelled.")
+        player.sendMessage(lang.msg("menu.bank_budget.feedback.cancelled"))
     }
 
     /**

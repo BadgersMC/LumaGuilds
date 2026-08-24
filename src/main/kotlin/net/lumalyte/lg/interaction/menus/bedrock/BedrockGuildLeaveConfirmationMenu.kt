@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
@@ -26,23 +27,24 @@ class BedrockGuildLeaveConfirmationMenu(
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         return SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.leave.confirm.title"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.leave.confirm.message", guild.name, player.name))
-            .button(bedrockLocalization.getBedrockString(player, "guild.leave.confirm.button.leave"))
-            .button(bedrockLocalization.getBedrockString(player, "guild.leave.confirm.button.stay"))
+            .title(lang.raw("bedrock.leave_confirmation.title"))
+            .content(lang.legacy("bedrock.leave_confirmation.content", "guild" to guild.name, "player" to player.name))
+            .button(lang.raw("bedrock.leave_confirmation.button.leave"))
+            .button(lang.raw("bedrock.leave_confirmation.button.stay"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> leaveGuild()
                     1 -> bedrockNavigator.createBackHandler {
-                        player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.confirm.cancelled"))
+                        player.sendMessage(lang.msg("bedrock.leave_confirmation.feedback.cancelled"))
                     }.run()
                 }
             }
             .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.confirm.cancelled"))
+                player.sendMessage(lang.msg("bedrock.leave_confirmation.feedback.cancelled"))
             })
             .build()
     }
@@ -55,8 +57,8 @@ class BedrockGuildLeaveConfirmationMenu(
 
         if (isOwner) {
             // If owner is leaving, we need special handling
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.owner.warning"))
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.owner.message"))
+            player.sendMessage(lang.msg("bedrock.leave_confirmation.feedback.owner_warning"))
+            player.sendMessage(lang.msg("bedrock.leave_confirmation.feedback.owner_instructions"))
             bedrockNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
             return
         }
@@ -65,13 +67,13 @@ class BedrockGuildLeaveConfirmationMenu(
         val success = memberService.removeMember(player.uniqueId, guild.id, player.uniqueId)
 
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.success", guild.name))
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.success.details"))
+            player.sendMessage(lang.msg("bedrock.leave_confirmation.feedback.left", "guild" to guild.name))
+            player.sendMessage(lang.msg("bedrock.leave_confirmation.feedback.left_details"))
 
             // Clear menu stack since player is no longer in guild
             clearMenuStack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.leave.failed"))
+            player.sendMessage(lang.msg("bedrock.leave_confirmation.feedback.failed"))
             bedrockNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
     }

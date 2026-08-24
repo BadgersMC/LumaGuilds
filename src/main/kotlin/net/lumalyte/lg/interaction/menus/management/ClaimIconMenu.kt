@@ -27,7 +27,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
 
     override fun open() {
         if (claim == null) {
-            player.sendMessage("§cError: No claim available")
+            player.sendMessage(lang.msg("menu.common.feedback.no_claim"))
             return
         }
 

@@ -24,14 +24,30 @@ class PenaltyService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /** Outcome of applying a penalty. */
+    enum class PenaltyFeedback {
+        LEVEL_DISABLED, LEVEL_REDUCED, EXP_DISABLED, EXP_REDUCED,
+        MUTE_DISABLED, MUTED, DISBAND_FAILED, DISBANDED,
+    }
+
     sealed interface PenaltyResult {
-        data class Success(val penalty: GuildPenalty, val message: String) : PenaltyResult
-        data class Failure(val message: String) : PenaltyResult
+        val feedback: PenaltyFeedback
+        val parameters: Map<String, Any?>
+
+        data class Success(
+            val penalty: GuildPenalty,
+            override val feedback: PenaltyFeedback,
+            override val parameters: Map<String, Any?> = emptyMap(),
+        ) : PenaltyResult
+
+        data class Failure(
+            override val feedback: PenaltyFeedback,
+            override val parameters: Map<String, Any?> = emptyMap(),
+        ) : PenaltyResult
     }
 
     fun applyLevelReduction(guild: Guild, actorUuid: UUID, actorName: String): PenaltyResult {
         val levels = configProvider().penalties.levelReductionLevels
-        if (levels <= 0) return PenaltyResult.Failure("Level reduction is disabled in config (levels = 0).")
+        if (levels <= 0) return PenaltyResult.Failure(PenaltyFeedback.LEVEL_DISABLED)
         val newLevel = progressionService.reduceLevel(guild.id, levels, ExperienceSource.ADMIN_BONUS)
         val penalty = GuildPenalty(
             guildId = guild.id,
@@ -44,12 +60,12 @@ class PenaltyService(
         )
         penaltyRepository.recordPenalty(penalty)
         logger.info("Level reduction penalty applied to guild {} ({} -> level {}) by {}", guild.name, guild.level, newLevel, actorName)
-        return PenaltyResult.Success(penalty, "§aLevel reduced to §e$newLevel§a for ${guild.name}.")
+        return PenaltyResult.Success(penalty, PenaltyFeedback.LEVEL_REDUCED, mapOf("level" to newLevel, "guild" to guild.name))
     }
 
     fun applyExpReduction(guild: Guild, actorUuid: UUID, actorName: String): PenaltyResult {
         val amount = configProvider().penalties.expReductionAmount
-        if (amount <= 0) return PenaltyResult.Failure("EXP reduction is disabled in config (amount = 0).")
+        if (amount <= 0) return PenaltyResult.Failure(PenaltyFeedback.EXP_DISABLED)
         val newLevel = progressionService.removeExperience(guild.id, amount, ExperienceSource.ADMIN_BONUS)
         val penalty = GuildPenalty(
             guildId = guild.id,
@@ -62,12 +78,12 @@ class PenaltyService(
         )
         penaltyRepository.recordPenalty(penalty)
         logger.info("EXP reduction penalty applied to guild {} (removed {}, now level {}) by {}", guild.name, amount, newLevel, actorName)
-        return PenaltyResult.Success(penalty, "§aRemoved §e$amount XP§a from ${guild.name}.")
+        return PenaltyResult.Success(penalty, PenaltyFeedback.EXP_REDUCED, mapOf("amount" to amount, "guild" to guild.name))
     }
 
     fun applyGuildMute(guild: Guild, actorUuid: UUID, actorName: String): PenaltyResult {
         val durationMs = configProvider().penalties.guildMuteDurationMillis
-        if (durationMs <= 0) return PenaltyResult.Failure("Guild mute is disabled in config (duration = 0).")
+        if (durationMs <= 0) return PenaltyResult.Failure(PenaltyFeedback.MUTE_DISABLED)
         val penalty = GuildPenalty(
             guildId = guild.id,
             type = PenaltyType.GUILD_MUTE,
@@ -80,7 +96,7 @@ class PenaltyService(
         penaltyRepository.recordPenalty(penalty)
         val hours = durationMs / 3_600_000.0
         logger.info("Guild mute penalty applied to guild {} ({}h) by {}", guild.name, formatHours(hours), actorName)
-        return PenaltyResult.Success(penalty, "§a${guild.name} §7is now muted for §e${formatHours(hours)}§7 hour(s).")
+        return PenaltyResult.Success(penalty, PenaltyFeedback.MUTED, mapOf("guild" to guild.name, "hours" to formatHours(hours)))
     }
 
     fun applyDisband(guild: Guild, actorUuid: UUID, actorName: String): PenaltyResult {
@@ -89,7 +105,7 @@ class PenaltyService(
         // doesn't reject the admin who is opening the penalty menu.
         val systemUuid = UUID.fromString("00000000-0000-0000-0000-000000000000")
         val success = guildService.disbandGuild(guild.id, systemUuid)
-        if (!success) return PenaltyResult.Failure("§cFailed to disband ${guild.name}.")
+        if (!success) return PenaltyResult.Failure(PenaltyFeedback.DISBAND_FAILED, mapOf("guild" to guild.name))
 
         // Only record the penalty AFTER the disband actually succeeded — otherwise the
         // audit trail would show a disband that never happened.
@@ -104,7 +120,7 @@ class PenaltyService(
         )
         penaltyRepository.recordPenalty(penalty)
         logger.info("Disband penalty applied to guild {} by {}", guild.name, actorName)
-        return PenaltyResult.Success(penalty, "§c${guild.name} §7has been disbanded.")
+        return PenaltyResult.Success(penalty, PenaltyFeedback.DISBANDED, mapOf("guild" to guild.name))
     }
 
     private fun formatHours(hours: Double): String = "%.1f".format(hours)

@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.PartyService
@@ -30,6 +31,7 @@ class BedrockPartyCreationMenu(
     private val partyService: PartyService by inject()
     private val configService: ConfigService by inject()
     private val guildRepository: GuildRepository by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -39,8 +41,8 @@ class BedrockPartyCreationMenu(
         val mainConfig = configService.loadConfig()
         if (!mainConfig.partiesEnabled) {
             return CustomForm.builder()
-                .title(bedrockLocalization.getBedrockString(player, "guild.party.create.title"))
-                .label(bedrockLocalization.getBedrockString(player, "guild.party.disabled"))
+                .title(lang.raw("bedrock.party.creation.title"))
+                .label(lang.raw("bedrock.party.creation.disabled"))
                 .validResultHandler { _ ->
                     bedrockNavigator.goBack()
                 }
@@ -52,24 +54,24 @@ class BedrockPartyCreationMenu(
         val guildNames = allGuilds.map { it.name }
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.party.create.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.party.creation.guild_title", "guild" to guild.name))
             .apply { partyIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.party.create.description"))
+            .label(lang.raw("bedrock.party.creation.description"))
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.party.name"),
-                bedrockLocalization.getBedrockString(player, "guild.party.name.placeholder"),
+                lang.raw("bedrock.party.creation.name.label"),
+                lang.raw("bedrock.party.creation.name.placeholder"),
                 ""
             )
             .toggle(
-                bedrockLocalization.getBedrockString(player, "guild.party.private"),
+                lang.raw("bedrock.party.creation.private"),
                 mainConfig.party.allowPrivateParties
             )
             .apply {
                 if (guildNames.isNotEmpty()) {
-                    label(bedrockLocalization.getBedrockString(player, "guild.party.invite.other"))
+                    label(lang.raw("bedrock.party.creation.invite_other"))
                     dropdown(
-                        bedrockLocalization.getBedrockString(player, "guild.party.select.guild"),
-                        listOf(bedrockLocalization.getBedrockString(player, "guild.party.none")) + guildNames
+                        lang.raw("bedrock.party.creation.select_guild"),
+                        listOf(lang.raw("bedrock.party.creation.none")) + guildNames
                     )
                 }
             }
@@ -94,7 +96,7 @@ class BedrockPartyCreationMenu(
     private fun handlePartyCreation(partyName: String, isPrivate: Boolean, invitedGuild: Guild?) {
         // Validate party name
         if (partyName.length > 32) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.name.too.long"))
+            player.sendMessage(lang.msg("bedrock.party.creation.feedback.name_too_long"))
             bedrockNavigator.goBack()
             return
         }
@@ -107,15 +109,15 @@ class BedrockPartyCreationMenu(
 
         // Validate party name (no spaces allowed)
         if (partyName.contains(" ")) {
-            player.sendMessage("§c❌ Party names cannot contain spaces!")
-            player.sendMessage("§7Use underscores instead (e.g., My_Party)")
+            player.sendMessage(lang.msg("bedrock.party.creation.feedback.name_spaces"))
+            player.sendMessage(lang.msg("bedrock.party.creation.feedback.name_hint"))
             bedrockNavigator.goBack()
             return
         }
 
         // Check if we have enough guilds for public party
         if (!isPrivate && guildIds.size < 2) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.need.guilds"))
+            player.sendMessage(lang.msg("bedrock.party.creation.feedback.need_guilds"))
             bedrockNavigator.goBack()
             return
         }
@@ -138,18 +140,18 @@ class BedrockPartyCreationMenu(
         val createdParty = partyService.createParty(party)
 
         if (createdParty != null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.created.success"))
+            player.sendMessage(lang.msg("bedrock.party.creation.feedback.created"))
             if (partyName.isNotBlank()) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.name.set", partyName))
+                player.sendMessage(lang.msg("bedrock.party.creation.feedback.name_set", "party" to partyName))
             }
             if (isPrivate) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.private.created"))
+                player.sendMessage(lang.msg("bedrock.party.creation.feedback.private_created"))
             } else if (invitedGuild != null) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.invited", invitedGuild.name))
+                player.sendMessage(lang.msg("bedrock.party.creation.feedback.invited", "guild" to invitedGuild.name))
             }
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.party.created.failed"))
+            player.sendMessage(lang.msg("bedrock.party.creation.feedback.failed"))
             bedrockNavigator.goBack()
         }
     }

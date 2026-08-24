@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.listeners
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.interaction.menus.guild.GuildBannerMenu
 import org.bukkit.Material
@@ -21,6 +22,7 @@ import org.koin.core.component.inject
 class BannerSelectionListener : Listener, KoinComponent {
 
     private val guildService: GuildService by inject()
+    private val lang: LangService by inject()
 
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {
@@ -72,12 +74,12 @@ class BannerSelectionListener : Listener, KoinComponent {
                 }
             }
 
-            player.sendMessage("§7📍 Banner placed! Click '§a⏳ APPLY CHANGES§7' to save.")
+            player.sendMessage(lang.msg("notification.banner.placed"))
         }
         // If player is trying to take a banner from the slot, prevent it
         else if (slotHasBanner) {
             event.isCancelled = true
-            player.sendMessage("§c❌ You cannot take banners from this slot! Use '§e📋 GET BANNER COPY§c' instead.")
+            player.sendMessage(lang.msg("notification.banner.take_blocked"))
         }
         // If player is trying to take the placeholder, prevent it
         else if (isPlaceholderSlot) {
@@ -102,7 +104,7 @@ class BannerSelectionListener : Listener, KoinComponent {
         // Block any drag touching multiple menu slots
         if (topSlots.size > 1) {
             event.isCancelled = true
-            player.sendMessage("§c❌ Drag-clicking across multiple menu slots is disabled.")
+            player.sendMessage(lang.msg("notification.banner.drag_blocked"))
             return
         }
 
@@ -144,7 +146,7 @@ class BannerSelectionListener : Listener, KoinComponent {
             player.setItemOnCursor(ItemStack.of(Material.AIR))
         }
 
-        player.sendMessage("§7📍 Banner placed! Click '§a⏳ APPLY CHANGES§7' to save.")
+        player.sendMessage(lang.msg("notification.banner.placed"))
     }
 
     @EventHandler

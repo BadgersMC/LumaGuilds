@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
@@ -23,29 +24,30 @@ class BedrockRankCreationMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val rankService: RankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val rankIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.rank.create.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.rank_creation.title", "guild" to guild.name))
             .apply { rankIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.rank.create.description"))
+            .label(lang.raw("bedrock.rank_creation.description"))
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.rank.name"),
-                bedrockLocalization.getBedrockString(player, "guild.rank.name.placeholder"),
+                lang.raw("bedrock.rank_creation.name.label"),
+                lang.raw("bedrock.rank_creation.name.placeholder"),
                 ""
             )
-            .label(bedrockLocalization.getBedrockString(player, "guild.rank.permissions.basic"))
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.invite"), false)
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.kick"), false)
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.promote"), false)
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.manage.ranks"), false)
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.manage.settings"), false)
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.declare.war"), false)
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.manage.bank"), false)
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.access.vault"), true) // Default true
+            .label(lang.raw("bedrock.rank_creation.permissions.header"))
+            .toggle(lang.raw("bedrock.rank_creation.permissions.invite"), false)
+            .toggle(lang.raw("bedrock.rank_creation.permissions.kick"), false)
+            .toggle(lang.raw("bedrock.rank_creation.permissions.promote"), false)
+            .toggle(lang.raw("bedrock.rank_creation.permissions.manage_ranks"), false)
+            .toggle(lang.raw("bedrock.rank_creation.permissions.manage_settings"), false)
+            .toggle(lang.raw("bedrock.rank_creation.permissions.declare_war"), false)
+            .toggle(lang.raw("bedrock.rank_creation.permissions.manage_bank"), false)
+            .toggle(lang.raw("bedrock.rank_creation.permissions.access_vault"), true) // Default true
             .validResultHandler { response ->
                 val rankName = response.asInput(1)?.trim() ?: ""
                 val canInvite = response.asToggle(3)
@@ -88,13 +90,13 @@ class BedrockRankCreationMenu(
     ) {
         // Validate name
         if (rankName.isEmpty()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.rank.name.empty"))
+            player.sendMessage(lang.msg("bedrock.rank_creation.feedback.empty_name"))
             bedrockNavigator.goBack()
             return
         }
 
         if (rankName.length > 20) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.rank.name.too.long"))
+            player.sendMessage(lang.msg("bedrock.rank_creation.feedback.name_too_long"))
             bedrockNavigator.goBack()
             return
         }
@@ -114,10 +116,10 @@ class BedrockRankCreationMenu(
         val rank = rankService.addRank(guild.id, rankName, permissions, player.uniqueId)
 
         if (rank != null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.rank.created.success", rankName))
+            player.sendMessage(lang.msg("bedrock.rank_creation.feedback.created", "rank" to rankName))
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.rank.created.failed"))
+            player.sendMessage(lang.msg("bedrock.rank_creation.feedback.failed"))
             bedrockNavigator.goBack()
         }
     }

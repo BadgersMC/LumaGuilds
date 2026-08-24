@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -26,17 +27,22 @@ class GuildDisbandConfirmationMenu(
 ) : Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         // Permission pre-check before rendering the destructive button
         // (matches the MANAGE_RANKS gate enforced by GuildService.disbandGuild)
         if (!guildService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)) {
-            player.sendMessage("§c❌ You don't have permission to disband this guild!")
+            player.sendMessage(lang.msg("menu.guild_confirmation.disband.feedback.no_permission"))
             menuNavigator.goBack()
             return
         }
 
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§c§lDisband ${guild.name}?"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(
+            guild.guiTheme,
+            3,
+            lang.legacy("menu.guild_confirmation.disband.title", "guild" to guild.name),
+        ))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
@@ -47,35 +53,35 @@ class GuildDisbandConfirmationMenu(
 
         // Info item
         val infoItem = ItemStack.of(Material.BARRIER)
-            .name("§c⚠ Disband Guild")
-            .lore("§7Guild: §f${guild.name}")
-            .lore("§7Level: §f${guild.level}")
-            .lore("§7")
-            .lore("§cThis action cannot be undone!")
-            .lore("§7All vault items will be lost.")
+            .name(lang.legacy("menu.guild_confirmation.disband.item.info.name"))
+            .lore(lang.legacy("menu.guild_confirmation.disband.item.info.lore.guild", "guild" to guild.name))
+            .lore(lang.legacy("menu.guild_confirmation.disband.item.info.lore.level", "level" to guild.level))
+            .lore("")
+            .lore(lang.legacy("menu.guild_confirmation.disband.item.info.lore.irreversible"))
+            .lore(lang.legacy("menu.guild_confirmation.disband.item.info.lore.vault_loss"))
         pane.addItem(GuiItem(infoItem), 4, 0)
 
         // Confirm button
         val confirmItem = ItemStack.of(Material.RED_WOOL)
-            .name("§c§lCONFIRM DISBAND")
-            .lore("§7Click to disband this guild permanently")
+            .name(lang.legacy("menu.guild_confirmation.disband.item.confirm.name"))
+            .lore(lang.legacy("menu.guild_confirmation.disband.item.confirm.lore"))
         pane.addItem(GuiItem(confirmItem) {
             val success = guildService.disbandGuild(guild.id, player.uniqueId)
             if (success) {
-                player.sendMessage("§c❌ Guild §f${guild.name} §chas been disbanded.")
+                player.sendMessage(lang.msg("menu.guild_confirmation.disband.feedback.success", "guild" to guild.name))
                 player.playSound(player.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f)
                 player.closeInventory()
                 menuNavigator.clearMenuStack()
             } else {
-                player.sendMessage("§cFailed to disband guild. You may not be the owner.")
+                player.sendMessage(lang.msg("menu.guild_confirmation.disband.feedback.failure"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         }, 3, 2)
 
         // Cancel button
         val cancelItem = ItemStack.of(Material.GREEN_WOOL)
-            .name("§a§lCANCEL")
-            .lore("§7Return to guild settings")
+            .name(lang.legacy("menu.guild_confirmation.common.cancel.name"))
+            .lore(lang.legacy("menu.guild_confirmation.common.cancel.lore"))
         pane.addItem(GuiItem(cancelItem) {
             menuNavigator.goBack()
         }, 5, 2)

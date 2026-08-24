@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.Bukkit
@@ -21,29 +22,31 @@ class BedrockClaimPlayerMenu(
     logger: Logger
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
+    private val lang: LangService by inject()
+
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "claim.player.title")} - ${claim.name}")
-            .label(bedrockLocalization.getBedrockString(player, "claim.player.instructions"))
+            .title(lang.legacy("bedrock.claim_player.title", "claim" to claim.name))
+            .label(lang.raw("bedrock.claim_player.instructions"))
             .input(
-                bedrockLocalization.getBedrockString(player, "claim.player.name"),
-                bedrockLocalization.getBedrockString(player, "claim.player.name.placeholder"),
+                lang.raw("bedrock.claim_player.name.label"),
+                lang.raw("bedrock.claim_player.name.placeholder"),
                 ""
             )
             .validResultHandler { response ->
                 val playerName = response.asInput(2)?.trim() ?: ""
 
                 if (playerName.isEmpty()) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.player.name.required"))
+                    player.sendMessage(lang.msg("bedrock.claim_player.feedback.name_required"))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }
 
                 val targetPlayer = Bukkit.getOfflinePlayer(playerName)
                 if (!targetPlayer.hasPlayedBefore() && !targetPlayer.isOnline) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.player.not.found", playerName))
+                    player.sendMessage(lang.msg("bedrock.claim_player.feedback.not_found", "player" to playerName))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }

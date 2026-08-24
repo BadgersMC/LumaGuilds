@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
@@ -27,6 +28,7 @@ class BedrockGuildBankMenu(
     private val bankService: BankService by inject()
     private val configService: ConfigService by inject()
     private val physicalCurrencyService: PhysicalCurrencyService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         // Use physical currency from inventory if enabled, otherwise use Vault balance
@@ -40,40 +42,35 @@ class BedrockGuildBankMenu(
         val bankIcon = BedrockFormUtils.createFormImage(config, config.guildBankIconUrl, config.guildBankIconPath)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "form.title.guild.bank")} - ${guild.name}")
+            .title(lang.legacy("bedrock.bank.title", "guild" to guild.name))
             .apply { bankIcon?.let { icon(it) } }
             .label(createBalanceInfoSection(playerBalance, guildBalance))
-            .addLocalizedSlider(
-                player, bedrockLocalization,
-                "guild.bank.deposit.slider.label",
+            .slider(
+                lang.raw("bedrock.bank.deposit.slider"),
                 0f,
                 playerBalance.toFloat(),
                 100f,
                 0f
             )
-            .addLocalizedInput(
-                player, bedrockLocalization,
-                "guild.bank.deposit.custom.label",
-                "guild.bank.deposit.custom.placeholder",
+            .input(
+                lang.raw("bedrock.bank.deposit.custom_label"),
+                lang.raw("bedrock.bank.deposit.custom_placeholder"),
                 ""
             )
-            .addLocalizedSlider(
-                player, bedrockLocalization,
-                "guild.bank.withdraw.slider.label",
+            .slider(
+                lang.raw("bedrock.bank.withdraw.slider"),
                 0f,
                 guildBalance.toFloat(),
                 100f,
                 0f
             )
-            .addLocalizedInput(
-                player, bedrockLocalization,
-                "guild.bank.withdraw.custom.label",
-                "guild.bank.withdraw.custom.placeholder",
+            .input(
+                lang.raw("bedrock.bank.withdraw.custom_label"),
+                lang.raw("bedrock.bank.withdraw.custom_placeholder"),
                 ""
             )
-            .addLocalizedToggle(
-                player, bedrockLocalization,
-                "guild.bank.settings.auto.deposit",
+            .toggle(
+                lang.raw("bedrock.bank.auto_deposit"),
                 false // TODO: Get current auto-deposit setting
             )
             .label(createValidationInfoSection())
@@ -88,25 +85,15 @@ class BedrockGuildBankMenu(
     }
 
     private fun createBalanceInfoSection(playerBalance: Int, guildBalance: Int): String {
-        return """
-            |§7${bedrockLocalization.getBedrockString(player, "guild.bank.description")}
-            |
-            |§6§l━━━ BALANCES ━━━
-            |§e${bedrockLocalization.getBedrockString(player, "guild.bank.balance.label")}§7: §a${bedrockLocalization.getBedrockString(player, "guild.bank.balance.amount", playerBalance)}
-            |§6Guild Balance§7: §a${bedrockLocalization.getBedrockString(player, "guild.bank.balance.amount", guildBalance)}
-            |
-            |§7Use the sliders below to deposit or withdraw money.
-        """.trimMargin()
+        return lang.legacy(
+            "bedrock.bank.balance_section",
+            "player_balance" to playerBalance,
+            "guild_balance" to guildBalance
+        )
     }
 
     private fun createValidationInfoSection(): String {
-        return """
-            |§6§l━━━ ${bedrockLocalization.getBedrockString(player, "form.validation.title")} §r§6━━━
-            |§7• ${bedrockLocalization.getBedrockString(player, "validation.invalid.number")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "validation.number.too.small", 0)}
-            |§7• ${bedrockLocalization.getBedrockString(player, "validation.insufficient.funds")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "validation.permission.denied")}
-        """.trimMargin()
+        return lang.legacy("bedrock.bank.validation_section")
     }
 
     private fun handleFormResponse(
@@ -129,13 +116,13 @@ class BedrockGuildBankMenu(
 
             // Validate permissions - only check permissions for actions being performed
             if (depositAmount > 0 && !bankService.canDeposit(player.uniqueId, guild.id)) {
-                player.sendMessage("§c[ERROR] ${localize("guild.bank.error.no.deposit.permission")}")
+                player.sendMessage(lang.msg("bedrock.bank.error.no_deposit_permission"))
                 navigateBack()
                 return
             }
 
             if (withdrawAmount > 0 && !bankService.canWithdraw(player.uniqueId, guild.id)) {
-                player.sendMessage("§c[ERROR] ${localize("guild.bank.error.no.withdraw.permission")}")
+                player.sendMessage(lang.msg("bedrock.bank.error.no_withdraw_permission"))
                 navigateBack()
                 return
             }
@@ -144,23 +131,23 @@ class BedrockGuildBankMenu(
             val validationErrors = mutableListOf<String>()
 
             if (depositAmount > 0 && depositAmount > playerBalance) {
-                validationErrors.add(localize("guild.bank.error.insufficient.player.funds", playerBalance))
+                validationErrors.add(lang.legacy("bedrock.bank.error.insufficient_player_funds", "balance" to playerBalance))
             }
 
             if (withdrawAmount > 0 && withdrawAmount > guildBalance) {
-                validationErrors.add(localize("guild.bank.error.insufficient.guild.funds", guildBalance))
+                validationErrors.add(lang.legacy("bedrock.bank.error.insufficient_guild_funds", "balance" to guildBalance))
             }
 
             if (depositAmount < 0) {
-                validationErrors.add(localize("guild.bank.error.invalid.deposit.amount"))
+                validationErrors.add(lang.raw("bedrock.bank.error.invalid_deposit"))
             }
 
             if (withdrawAmount < 0) {
-                validationErrors.add(localize("guild.bank.error.invalid.withdraw.amount"))
+                validationErrors.add(lang.raw("bedrock.bank.error.invalid_withdraw"))
             }
 
             if (depositAmount > 0 && withdrawAmount > 0) {
-                validationErrors.add(localize("guild.bank.error.both.amounts"))
+                validationErrors.add(lang.raw("bedrock.bank.error.both_amounts"))
             }
 
             if (validationErrors.isNotEmpty()) {
@@ -170,7 +157,7 @@ class BedrockGuildBankMenu(
 
             // Check if any transactions to perform
             if (depositAmount == 0 && withdrawAmount == 0) {
-                player.sendMessage("§7${localize("guild.bank.no.transactions")}")
+                player.sendMessage(lang.msg("bedrock.bank.feedback.no_transactions"))
                 navigateBack()
                 return
             }
@@ -181,7 +168,7 @@ class BedrockGuildBankMenu(
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error processing guild bank form response: ${e.message}")
-            player.sendMessage("§c[ERROR] ${localize("form.error.processing")}")
+            player.sendMessage(lang.msg("bedrock.bank.error.processing"))
             navigateBack()
         }
     }
@@ -202,13 +189,13 @@ class BedrockGuildBankMenu(
     }
 
     private fun showValidationErrors(errors: List<String>) {
-        val errorMessage = errors.joinToString("\n") { "• $it" }
+        val errorMessage = errors.joinToString("\n") { lang.legacy("bedrock.bank.validation.row", "error" to it) }
 
         // Send error message and reopen form
-        player.sendMessage("§c[ERROR] ${localize("form.validation.errors.title")}")
-        player.sendMessage("§7$errorMessage")
-        player.sendMessage("§e${localize("form.button.retry")}")
-        player.sendMessage("§c${localize("form.button.cancel")}")
+        player.sendMessage(lang.msg("bedrock.bank.validation.title"))
+        player.sendMessage(lang.msg("bedrock.bank.validation.errors", "errors" to errorMessage))
+        player.sendMessage(lang.msg("bedrock.bank.validation.retry"))
+        player.sendMessage(lang.msg("bedrock.bank.validation.cancel"))
 
         // Reopen the form for retry
         reopen()
@@ -222,9 +209,9 @@ class BedrockGuildBankMenu(
             val confirmationMessage = buildConfirmationMessage(depositAmount, withdrawAmount, autoDepositEnabled)
 
             val customForm = CustomForm.builder()
-                .title(localize("guild.bank.confirmation.title"))
+                .title(lang.raw("bedrock.bank.confirmation.title"))
                 .label(confirmationMessage)
-                .toggle(localize("form.button.confirm"), false)
+                .toggle(lang.raw("bedrock.bank.confirmation.confirm"), false)
                 .validResultHandler { response ->
                     val confirm = response.next() as? Boolean ?: false
                     if (confirm) {
@@ -243,9 +230,9 @@ class BedrockGuildBankMenu(
         } else {
             // Fallback to message confirmation
             val confirmationMessage = buildConfirmationMessage(depositAmount, withdrawAmount, autoDepositEnabled)
-            player.sendMessage("§e${localize("guild.bank.confirmation.title")}")
-            player.sendMessage("§7$confirmationMessage")
-            player.sendMessage("§a${localize("guild.bank.confirm.instructions")}")
+            player.sendMessage(lang.msg("bedrock.bank.confirmation.title_message"))
+            player.sendMessage(lang.msg("bedrock.bank.confirmation.details", "details" to confirmationMessage))
+            player.sendMessage(lang.msg("bedrock.bank.confirmation.instructions"))
 
             // For message-based confirmation, execute immediately
             executeTransactions(depositAmount, withdrawAmount, autoDepositEnabled)
@@ -256,15 +243,15 @@ class BedrockGuildBankMenu(
         val messages = mutableListOf<String>()
 
         if (depositAmount > 0) {
-            messages.add(localize("guild.bank.confirm.deposit", depositAmount))
+            messages.add(lang.legacy("bedrock.bank.confirmation.deposit", "amount" to depositAmount))
         }
 
         if (withdrawAmount > 0) {
-            messages.add(localize("guild.bank.confirm.withdraw", withdrawAmount))
+            messages.add(lang.legacy("bedrock.bank.confirmation.withdraw", "amount" to withdrawAmount))
         }
 
         if (autoDepositEnabled) {
-            messages.add(localize("guild.bank.confirm.auto.deposit"))
+            messages.add(lang.raw("bedrock.bank.confirmation.auto_deposit"))
         }
 
         return messages.joinToString("\n")
@@ -278,10 +265,10 @@ class BedrockGuildBankMenu(
         if (depositAmount > 0) {
             val transaction = bankService.deposit(guild.id, player.uniqueId, depositAmount)
             if (transaction != null) {
-                changes.add(localize("guild.bank.success.deposit", depositAmount))
+                changes.add(lang.legacy("bedrock.bank.success.deposit", "amount" to depositAmount))
             } else {
                 allSuccessful = false
-                player.sendMessage("§c[ERROR] ${localize("guild.bank.error.deposit.failed")}")
+                player.sendMessage(lang.msg("bedrock.bank.error.deposit_failed"))
             }
         }
 
@@ -289,26 +276,26 @@ class BedrockGuildBankMenu(
         if (withdrawAmount > 0) {
             val transaction = bankService.withdraw(guild.id, player.uniqueId, withdrawAmount)
             if (transaction != null) {
-                changes.add(localize("guild.bank.success.withdraw", withdrawAmount))
+                changes.add(lang.legacy("bedrock.bank.success.withdraw", "amount" to withdrawAmount))
             } else {
                 allSuccessful = false
-                player.sendMessage("§c[ERROR] ${localize("guild.bank.error.withdraw.failed")}")
+                player.sendMessage(lang.msg("bedrock.bank.error.withdraw_failed"))
             }
         }
 
         // Handle auto-deposit setting (placeholder)
         if (autoDepositEnabled) {
             // TODO: Implement auto-deposit setting
-            changes.add(localize("guild.bank.success.auto.deposit.enabled"))
+            changes.add(lang.raw("bedrock.bank.success.auto_deposit_enabled"))
         }
 
         // Show results
         if (changes.isNotEmpty()) {
             if (allSuccessful) {
-                player.sendMessage("§a✅ ${localize("guild.bank.success.title")}")
-                changes.forEach { player.sendMessage("§7• $it") }
+                player.sendMessage(lang.msg("bedrock.bank.success.title"))
+                changes.forEach { player.sendMessage(lang.msg("bedrock.bank.success.row", "change" to it)) }
             } else {
-                player.sendMessage("§e[WARNING] ${localize("guild.bank.partial.success")}")
+                player.sendMessage(lang.msg("bedrock.bank.success.partial"))
             }
         }
 

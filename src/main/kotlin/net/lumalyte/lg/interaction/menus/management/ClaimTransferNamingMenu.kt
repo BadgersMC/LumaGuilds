@@ -35,7 +35,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
 
     override fun open() {
         if (claim == null) {
-            player.sendMessage("§cError: No claim available")
+            player.sendMessage(lang.msg("menu.common.feedback.no_claim"))
             return
         }
 

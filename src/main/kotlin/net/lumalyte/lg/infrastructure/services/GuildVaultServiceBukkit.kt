@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
@@ -40,7 +41,8 @@ class GuildVaultServiceBukkit(
     private val vaultInventoryManager: VaultInventoryManager,
     private val hologramService: VaultHologramService,
     private val rankService: RankService,
-    private val getClaimAtPosition: net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
+    private val getClaimAtPosition: net.lumalyte.lg.application.actions.claim.GetClaimAtPosition,
+    private val lang: LangService,
 ) : GuildVaultService {
 
     private val logger = LoggerFactory.getLogger(GuildVaultServiceBukkit::class.java)
@@ -205,7 +207,7 @@ class GuildVaultServiceBukkit(
         }
 
         if (currentGuild.vaultLocked) {
-            return VaultResult.Failure("§c⚠ VAULT LOCKED: This vault has been locked by a server administrator for security reasons. Contact staff for more information.")
+            return VaultResult.Failure(lang.raw("notification.vault.locked"))
         }
 
         if (!hasVaultPermission(player, currentGuild, requireWithdraw = false)) {

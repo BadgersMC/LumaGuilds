@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -25,45 +26,54 @@ class BedrockGuildBankTransactionHistoryMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
         // Get recent transactions
         val transactions = bankService.getTransactionHistory(guild.id, 15) // Last 15 transactions
-        val dateFormatter = DateTimeFormatter.ofPattern("MM/dd HH:mm").withZone(ZoneId.systemDefault())
+        val dateFormatter = DateTimeFormatter.ofPattern(lang.raw("bedrock.bank.history.date_format"))
+            .withZone(ZoneId.systemDefault())
 
-        val content = buildString {
-            appendLine(bedrockLocalization.getBedrockString(player, "bank.history.title"))
-            appendLine()
-
-            if (transactions.isEmpty()) {
-                appendLine(bedrockLocalization.getBedrockString(player, "bank.history.none"))
-            } else {
-                appendLine("§7=== ${bedrockLocalization.getBedrockString(player, "bank.history.recent")} ===")
-                appendLine()
-                transactions.forEach { transaction ->
-                    val playerName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: "Unknown"
-
-                    val timestamp = dateFormatter.format(transaction.timestamp)
-                    val amountColor = when {
-                        transaction.amount > 0 -> "§a+"
-                        transaction.amount < 0 -> "§c"
-                        else -> "§7"
-                    }
-
-                    appendLine("§7[$timestamp] §f$playerName")
-                    appendLine("  ${amountColor}${transaction.amount} §7- ${transaction.description}")
-                    appendLine()
+        val content = if (transactions.isEmpty()) {
+            lang.legacy("bedrock.bank.history.empty")
+        } else {
+            val rows = transactions.joinToString("\n\n") { transaction ->
+                val playerName = Bukkit.getOfflinePlayer(transaction.actorId).name
+                    ?: lang.raw("bedrock.bank.history.unknown_player")
+                when {
+                    transaction.amount > 0 -> lang.legacy(
+                        "bedrock.bank.history.row.deposit",
+                        "timestamp" to dateFormatter.format(transaction.timestamp),
+                        "player" to playerName,
+                        "amount" to transaction.amount,
+                        "description" to transaction.description
+                    )
+                    transaction.amount < 0 -> lang.legacy(
+                        "bedrock.bank.history.row.withdrawal",
+                        "timestamp" to dateFormatter.format(transaction.timestamp),
+                        "player" to playerName,
+                        "amount" to transaction.amount,
+                        "description" to transaction.description
+                    )
+                    else -> lang.legacy(
+                        "bedrock.bank.history.row.neutral",
+                        "timestamp" to dateFormatter.format(transaction.timestamp),
+                        "player" to playerName,
+                        "amount" to transaction.amount,
+                        "description" to transaction.description
+                    )
                 }
             }
+            lang.legacy("bedrock.bank.history.content", "transactions" to rows)
         }
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "bank.history.menu.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.bank.history.title", "guild" to guild.name))
             .content(content)
-            .button(bedrockLocalization.getBedrockString(player, "bank.history.refresh"))
-            .button(bedrockLocalization.getBedrockString(player, "common.back"))
+            .button(lang.raw("bedrock.bank.history.button.refresh"))
+            .button(lang.raw("bedrock.bank.history.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> {

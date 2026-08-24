@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -39,9 +40,10 @@ class JoinRequirementsMenu(
     private val physicalCurrencyService: PhysicalCurrencyService by inject()
     private val bankService: BankService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "Join ${guild.name}"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.join_requirements.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -68,11 +70,11 @@ class JoinRequirementsMenu(
         val isPeaceful = guild.mode == net.lumalyte.lg.domain.entities.GuildMode.PEACEFUL
 
         val guildItem = ItemStack.of(Material.WHITE_BANNER)
-            .name("§6${guild.name}")
-            .lore("§7Guild you are joining")
-            .lore("§7")
-            .lore("§7Level: §f${guild.level}")
-            .lore("§7Mode: ${if (isPeaceful) "§aPeaceful" else "§cHostile"}")
+            .name(lang.legacy("menu.join_requirements.guild.name", "guild" to guild.name))
+            .lore(lang.legacy("menu.join_requirements.guild.description"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.join_requirements.guild.level", "level" to guild.level))
+            .lore(if (isPeaceful) lang.legacy("menu.join_requirements.guild.mode.peaceful") else lang.legacy("menu.join_requirements.guild.mode.hostile"))
 
         pane.addItem(GuiItem(guildItem), x, y)
     }
@@ -90,9 +92,6 @@ class JoinRequirementsMenu(
             }
 
             val hasEnough = playerBalance >= requirement.amount
-            val statusColor = if (hasEnough) "§a" else "§c"
-            val statusIcon = if (hasEnough) "✓" else "✗"
-
             val currencyMaterial = if (requirement.isPhysicalCurrency) {
                 try { Material.valueOf(requirement.currencyName) } catch (e: Exception) { Material.GOLD_INGOT }
             } else {
@@ -100,20 +99,24 @@ class JoinRequirementsMenu(
             }
 
             ItemStack.of(currencyMaterial)
-                .name("§e💰 JOIN FEE")
-                .lore("§7This guild requires a join fee")
-                .lore("§7")
-                .lore("§7Required: §f${requirement.amount} ${formatCurrencyName(requirement.currencyName)}")
-                .lore("§7Your balance: $statusColor$playerBalance ${formatCurrencyName(requirement.currencyName)}")
-                .lore("§7")
-                .lore("$statusColor$statusIcon ${if (hasEnough) "You have enough!" else "Insufficient funds!"}")
+                .name(lang.legacy("menu.join_requirements.fee.name"))
+                .lore(lang.legacy("menu.join_requirements.fee.description"))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.join_requirements.fee.required", "amount" to requirement.amount, "currency" to formatCurrencyName(requirement.currencyName)))
+                .lore(if (hasEnough) {
+                    lang.legacy("menu.join_requirements.fee.balance.enough", "amount" to playerBalance, "currency" to formatCurrencyName(requirement.currencyName))
+                } else {
+                    lang.legacy("menu.join_requirements.fee.balance.insufficient", "amount" to playerBalance, "currency" to formatCurrencyName(requirement.currencyName))
+                })
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(if (hasEnough) lang.legacy("menu.join_requirements.fee.status.enough") else lang.legacy("menu.join_requirements.fee.status.insufficient"))
         } else {
             // No join fee
             ItemStack.of(Material.EMERALD)
-                .name("§a✓ NO JOIN FEE")
-                .lore("§7This guild has no join fee!")
-                .lore("§7")
-                .lore("§aClick confirm to join for free")
+                .name(lang.legacy("menu.join_requirements.free.name"))
+                .lore(lang.legacy("menu.join_requirements.free.description"))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.join_requirements.free.confirm"))
         }
 
         pane.addItem(GuiItem(item), x, y)
@@ -125,15 +128,15 @@ class JoinRequirementsMenu(
 
         val confirmItem = if (canJoin) {
             ItemStack.of(Material.GREEN_WOOL)
-                .name("§a✅ JOIN GUILD")
-                .lore("§7Click to join ${guild.name}")
-                .lore("§7")
-                .lore("§eClick to proceed")
+                .name(lang.legacy("menu.join_requirements.confirm.name"))
+                .lore(lang.legacy("menu.join_requirements.confirm.description", "guild" to guild.name))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.join_requirements.confirm.proceed"))
         } else {
             ItemStack.of(Material.GRAY_WOOL)
-                .name("§c❌ CANNOT JOIN")
-                .lore("§7You cannot join this guild")
-                .lore("§7")
+                .name(lang.legacy("menu.join_requirements.confirm.disabled"))
+                .lore(lang.legacy("menu.join_requirements.confirm.unavailable"))
+                .lore(lang.legacy("menu.common.blank"))
                 .lore(getCannotJoinReason(canJoinResult))
         }
 
@@ -141,7 +144,7 @@ class JoinRequirementsMenu(
             if (canJoin) {
                 processJoin()
             } else {
-                player.sendMessage("§c❌ ${getCannotJoinReason(canJoinResult)}")
+                player.sendMessage(lang.msg("menu.join_requirements.feedback.cannot_join", "reason" to getCannotJoinReason(canJoinResult)))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         }
@@ -150,14 +153,14 @@ class JoinRequirementsMenu(
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack.of(Material.RED_WOOL)
-            .name("§c❌ CANCEL")
-            .lore("§7Return to guild list")
-            .lore("§7No action will be taken")
+            .name(lang.legacy("menu.join_requirements.cancel.name"))
+            .lore(lang.legacy("menu.join_requirements.cancel.description"))
+            .lore(lang.legacy("menu.join_requirements.cancel.effect"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             player.closeInventory()
             // Return to LFG menu - will be implemented later
-            player.sendMessage("§7Cancelled joining ${guild.name}")
+            player.sendMessage(lang.msg("menu.join_requirements.feedback.cancelled", "guild" to guild.name))
         }
         pane.addItem(cancelGuiItem, x, y)
     }
@@ -169,27 +172,27 @@ class JoinRequirementsMenu(
 
         when (result) {
             is LfgJoinResult.Success -> {
-                player.sendMessage("§a✅ ${result.message}")
+                player.sendMessage(lang.msg("menu.join_requirements.feedback.success", "message" to result.message))
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
             }
             is LfgJoinResult.InsufficientFunds -> {
-                player.sendMessage("§c❌ Insufficient funds! You need ${result.required} ${result.currencyType} but only have ${result.current}")
+                player.sendMessage(lang.msg("menu.join_requirements.feedback.insufficient_funds", "required" to result.required, "currency" to result.currencyType, "current" to result.current))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
             is LfgJoinResult.GuildFull -> {
-                player.sendMessage("§c❌ ${result.message}")
+                player.sendMessage(lang.msg("menu.join_requirements.feedback.error", "message" to result.message))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
             is LfgJoinResult.AlreadyInGuild -> {
-                player.sendMessage("§c❌ ${result.message}")
+                player.sendMessage(lang.msg("menu.join_requirements.feedback.error", "message" to result.message))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
             is LfgJoinResult.VaultUnavailable -> {
-                player.sendMessage("§c❌ ${result.message}")
+                player.sendMessage(lang.msg("menu.join_requirements.feedback.error", "message" to result.message))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
             is LfgJoinResult.Error -> {
-                player.sendMessage("§c❌ ${result.message}")
+                player.sendMessage(lang.msg("menu.join_requirements.feedback.error", "message" to result.message))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         }
@@ -197,12 +200,12 @@ class JoinRequirementsMenu(
 
     private fun getCannotJoinReason(result: LfgJoinResult): String {
         return when (result) {
-            is LfgJoinResult.InsufficientFunds -> "§cNeed ${result.required} ${result.currencyType}"
-            is LfgJoinResult.GuildFull -> "§cGuild is full"
-            is LfgJoinResult.AlreadyInGuild -> "§cYou're already in a guild"
-            is LfgJoinResult.VaultUnavailable -> "§cGuild vault unavailable"
-            is LfgJoinResult.Error -> "§c${result.message}"
-            is LfgJoinResult.Success -> "§aReady to join"
+            is LfgJoinResult.InsufficientFunds -> lang.legacy("menu.join_requirements.reason.insufficient_funds", "required" to result.required, "currency" to result.currencyType)
+            is LfgJoinResult.GuildFull -> lang.legacy("menu.join_requirements.reason.guild_full")
+            is LfgJoinResult.AlreadyInGuild -> lang.legacy("menu.join_requirements.reason.already_member")
+            is LfgJoinResult.VaultUnavailable -> lang.legacy("menu.join_requirements.reason.vault_unavailable")
+            is LfgJoinResult.Error -> lang.legacy("menu.join_requirements.reason.error", "message" to result.message)
+            is LfgJoinResult.Success -> lang.legacy("menu.join_requirements.reason.ready")
         }
     }
 

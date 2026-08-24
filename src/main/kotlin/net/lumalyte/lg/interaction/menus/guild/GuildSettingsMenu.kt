@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -30,6 +31,8 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 class GuildSettingsMenu(
     private val menuNavigator: MenuNavigator,
@@ -41,14 +44,16 @@ class GuildSettingsMenu(
     private val configService: ConfigService,
     private val progressionService: ProgressionService,
     private val progressionRepository: ProgressionRepository
-): Menu {
+): Menu, KoinComponent {
+
+    private val lang: LangService by inject()
 
     override fun open() {
         // Refresh guild data from database to ensure we have latest changes
         guild = guildService.getGuild(guild.id) ?: guild
 
         // Create 6x9 double chest GUI
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Guild Settings - ${guild.name}"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_settings.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -73,11 +78,11 @@ class GuildSettingsMenu(
     private fun addGuildInfoSection(pane: StaticPane) {
         // Guild name display (placeholder for now)
         val nameItem = ItemStack.of(Material.BOOK)
-            .name("§f📖 GUILD NAME")
-            .lore("§7Current: §f${guild.name}")
-            .lore("§7")
-            .lore("§eTip: Use §f/g rename <name>§e to change")
-            .lore("§7the guild name from chat")
+            .name(lang.legacy("menu.guild_settings.item.name.name"))
+            .lore(lang.legacy("menu.guild_settings.item.name.lore.current", "guild" to guild.name))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.name.lore.tip"))
+            .lore(lang.legacy("menu.guild_settings.item.name.lore.chat"))
 
         pane.addItem(GuiItem(nameItem), 0, 0)
 
@@ -86,29 +91,29 @@ class GuildSettingsMenu(
         val currentDescription = guild.description
 
         val descItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§f📝 DESCRIPTION")
+            .name(lang.legacy("menu.guild_settings.item.description.name"))
 
         if (currentDescription != null) {
-            descItem.lore("§7Status: §aSet")
-                .lore("§7Current: §f\"${parseMiniMessageForDisplay(currentDescription)}§r§f\"")
+            descItem.lore(lang.legacy("menu.guild_settings.item.description.lore.set"))
+                .lore(lang.legacy("menu.guild_settings.item.description.lore.current", "description" to parseMiniMessageForDisplay(currentDescription)))
         } else {
-            descItem.lore("§7Status: §cNot set")
+            descItem.lore(lang.legacy("menu.guild_settings.item.description.lore.not_set"))
         }
 
-        descItem.lore("")
+        descItem.lore(lang.legacy("menu.common.blank"))
 
         if (hasDescriptionPermission) {
-            descItem.lore("§eClick to edit description")
+            descItem.lore(lang.legacy("menu.guild_settings.item.description.lore.action"))
         } else {
-            descItem.lore("§cRequires MANAGE_DESCRIPTION permission")
+            descItem.lore(lang.legacy("menu.guild_settings.item.description.lore.locked"))
         }
 
         val guiItem = GuiItem(descItem) {
             if (hasDescriptionPermission) {
                 menuNavigator.openMenu(menuFactory.createDescriptionEditorMenu(menuNavigator, player, guild))
             } else {
-                player.sendMessage("§c❌ You don't have permission to manage guild description")
-                player.sendMessage("§7You need the MANAGE_DESCRIPTION permission")
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.no_description_permission"))
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.description_requirement"))
             }
         }
 
@@ -120,9 +125,9 @@ class GuildSettingsMenu(
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
         val createdItem = ItemStack.of(Material.CLOCK)
-            .name("§f◷ CREATED")
-            .lore("§7Date: §f${localDateTime.format(dateFormatter)}")
-            .lore("§7Time: §f${localDateTime.format(timeFormatter)}")
+            .name(lang.legacy("menu.guild_settings.item.created.name"))
+            .lore(lang.legacy("menu.guild_settings.item.created.lore.date", "date" to localDateTime.format(dateFormatter)))
+            .lore(lang.legacy("menu.guild_settings.item.created.lore.time", "time" to localDateTime.format(timeFormatter)))
 
         pane.addItem(GuiItem(createdItem), 2, 0)
 
@@ -133,7 +138,7 @@ class GuildSettingsMenu(
 
     private fun createLevelingInfoItem(): ItemStack {
         val levelingItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-            .name("§b☆ GUILD PROGRESSION")
+            .name(lang.legacy("menu.control_panel.item.progression.name"))
 
         // Check if claims are enabled in config
         val claimsEnabled = configService.loadConfig().claimsEnabled
@@ -147,61 +152,61 @@ class GuildSettingsMenu(
                 ((experienceThisLevel.toDouble() / experienceForNextLevel.toDouble()) * 100).toInt()
             } else 100
             
-            levelingItem.lore("§7Level: §e${progression.currentLevel}")
-            levelingItem.lore("§7XP Progress: §e$experienceThisLevel§7/§e$experienceForNextLevel §7(§a$progressPercent%§7)")
+            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.level", "level" to progression.currentLevel))
+            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.progress", "current" to experienceThisLevel, "required" to experienceForNextLevel, "percent" to progressPercent))
             
             // Show unlocked perks count
             val unlockedPerks = progressionService.getUnlockedPerks(guild.id)
-            levelingItem.lore("§7Unlocked Perks: §a${unlockedPerks.size}")
+            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.unlocked", "count" to unlockedPerks.size))
         } else {
-            levelingItem.lore("§7Level: §e1 §7(Starting Level)")
-            levelingItem.lore("§7XP Progress: §e0§7/§e800 §7(§a0%§7)")
-            levelingItem.lore("§7Unlocked Perks: §a2 §7(Basic perks)")
+            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.starting_level"))
+            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.starting_progress"))
+            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.starting_perks"))
         }
-        levelingItem.lore("§7")
-        levelingItem.lore("§6📈 Earn Experience Points:")
+        levelingItem.lore(lang.legacy("menu.common.blank"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn_header"))
 
         // Guild activities
-        levelingItem.lore("§7• §f💰 Bank deposits")
-        levelingItem.lore("§7• §f👥 Guild member joins")
-        levelingItem.lore("§7• §f⚔ War victories")
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.bank"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.members"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.wars"))
         
         // Player activities
-        levelingItem.lore("§7• §f🗡 Player & mob kills")
-        levelingItem.lore("§7• §f🌾 Farming & fishing")
-        levelingItem.lore("§7• §f⛏ Mining & building")
-        levelingItem.lore("§7• §f🔨 Crafting & smelting")
-        levelingItem.lore("§7• §f✨ Enchanting")
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.kills"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.farming"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.mining"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.crafting"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.enchanting"))
 
         // Only show claim-related XP if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore("§7• §f🏞 Claiming land")
+            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.claims"))
         }
-        levelingItem.lore("§7")
-        levelingItem.lore("§a🎁 Level Up Rewards:")
+        levelingItem.lore(lang.legacy("menu.common.blank"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards_header"))
 
         // Bank rewards
-        levelingItem.lore("§7• §e💰 Higher bank balance limits")
-        levelingItem.lore("§7• §e💸 Better interest rates")
-        levelingItem.lore("§7• §e💳 Reduced withdrawal fees")
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.balance"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.interest"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.fees"))
         
         // Home rewards
-        levelingItem.lore("§7• §e⌂ Additional home locations")
-        levelingItem.lore("§7• §e⚡ Faster teleport cooldowns")
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.homes"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.teleport"))
 
         // Audio/Visual rewards
-        levelingItem.lore("§7• §e✦ Special particle effects")
-        levelingItem.lore("§7• §e♪ Sound effects & announcements")
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.particles"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.sounds"))
         
         // No system rewards currently
 
         // Only show claim-related rewards if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore("§7• §e📦 More claim blocks")
-            levelingItem.lore("§7• §e⚡ Faster claim regeneration")
+            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.claim_blocks"))
+            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.claim_regeneration"))
         }
-        levelingItem.lore("§7")
-        levelingItem.lore("§7Higher levels = §aBetter perks!")
+        levelingItem.lore(lang.legacy("menu.common.blank"))
+        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.better_perks"))
 
         return levelingItem
     }
@@ -213,23 +218,23 @@ class GuildSettingsMenu(
             val bannerStack = bannerData.deserializeToItemStack()
             if (bannerStack != null) {
                 bannerStack.clone()
-                    .name("§f🏴 BANNER")
-                    .lore("§7Status: §aSet")
-                    .lore("§7Type: §f${bannerStack.type.name.lowercase().replace("_", " ")}")
-                    .lore("§7")
-                    .lore("§7Click to manage banner")
+                    .name(lang.legacy("menu.guild_settings.item.banner.name"))
+                    .lore(lang.legacy("menu.guild_settings.item.banner.lore.set"))
+                    .lore(lang.legacy("menu.guild_settings.item.banner.lore.type", "type" to bannerStack.type.name.lowercase().replace("_", " ")))
+                    .lore(lang.legacy("menu.common.blank"))
+                    .lore(lang.legacy("menu.guild_settings.item.banner.lore.action"))
             } else {
                 ItemStack.of(Material.WHITE_BANNER)
-                    .name("§f🏴 BANNER")
-                    .lore("§7Status: §cError loading banner")
-                    .lore("§7")
-                    .lore("§7Click to manage banner")
+                    .name(lang.legacy("menu.guild_settings.item.banner.name"))
+                    .lore(lang.legacy("menu.guild_settings.item.banner.lore.error"))
+                    .lore(lang.legacy("menu.common.blank"))
+                    .lore(lang.legacy("menu.guild_settings.item.banner.lore.action"))
             }
         } ?: ItemStack.of(Material.WHITE_BANNER)
-            .name("§f🏴 BANNER")
-            .lore("§7Status: §cNot set")
-            .lore("§7")
-            .lore("§7Click to manage banner")
+            .name(lang.legacy("menu.guild_settings.item.banner.name"))
+            .lore(lang.legacy("menu.guild_settings.item.banner.lore.not_set"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.banner.lore.action"))
 
         val bannerGuiItem = GuiItem(bannerItem) {
             menuNavigator.openMenu(menuFactory.createGuildBannerMenu(menuNavigator, player, guild))
@@ -238,10 +243,10 @@ class GuildSettingsMenu(
 
         // Guild Emoji
         val emojiItem = ItemStack.of(Material.FIREWORK_STAR)
-            .name("§f☆ EMOJI")
-            .lore("§7Current: §f${guild.emoji ?: "§cNot set"}")
-            .lore("§7")
-            .lore("§7Click to manage guild emoji")
+            .name(lang.legacy("menu.guild_settings.item.emoji.name"))
+            .lore(lang.legacy("menu.guild_settings.item.emoji.lore.current", "emoji" to (guild.emoji ?: lang.raw("menu.control_panel.state.not_set"))))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.emoji.lore.action"))
 
         val emojiGuiItem = GuiItem(emojiItem) {
             menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
@@ -250,11 +255,11 @@ class GuildSettingsMenu(
 
         // Guild Tag - NEW FEATURE
         val tagItem = ItemStack.of(Material.NAME_TAG)
-            .name("§f🏷 GUILD TAG")
-            .lore("§7Current: §f${guild.tag ?: "§cNot set"}")
-            .lore("§7")
-            .lore("§7Click to edit guild tag")
-            .lore("§7Supports MiniMessage formatting")
+            .name(lang.legacy("menu.guild_settings.item.tag.name"))
+            .lore(lang.legacy("menu.guild_settings.item.tag.lore.current", "tag" to (guild.tag ?: lang.raw("menu.control_panel.state.not_set"))))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.tag.lore.action"))
+            .lore(lang.legacy("menu.guild_settings.item.tag.lore.formatting"))
 
         val tagGuiItem = GuiItem(tagItem) {
             menuNavigator.openMenu(menuFactory.createTagEditorMenu(menuNavigator, player, guild))
@@ -264,25 +269,25 @@ class GuildSettingsMenu(
         // Preview section
         val currentTag = guild.tag ?: guild.name
         val previewItem = ItemStack.of(Material.PAPER)
-            .name("§a🔍 PREVIEW")
-            .lore("§7Chat appearance:")
-            .lore("§7[${player.name}] $currentTag §7Hello!")
+            .name(lang.legacy("menu.guild_settings.item.preview.name"))
+            .lore(lang.legacy("menu.guild_settings.item.preview.lore.description"))
+            .lore(lang.legacy("menu.guild_settings.item.preview.lore.example", "player" to player.name, "tag" to currentTag))
 
         pane.addItem(GuiItem(previewItem), 4, 2)
 
         // GUI Theme Selector
         val themeItem = ItemStack.of(Material.PAINTING)
-            .name("§f🎨 GUI THEME")
-            .lore("§7Current: §f${guild.guiTheme.displayName}")
-            .lore("§7")
-            .lore("§7Changes the background texture")
-            .lore("§7of all guild menus.")
-            .lore("§7")
-            .lore("§eClick to change theme")
+            .name(lang.legacy("menu.guild_settings.item.theme.name"))
+            .lore(lang.legacy("menu.guild_settings.item.theme.lore.current", "theme" to guild.guiTheme.displayName))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.theme.lore.description"))
+            .lore(lang.legacy("menu.guild_settings.item.theme.lore.details"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.theme.lore.action"))
 
         val themeGuiItem = GuiItem(themeItem) {
             if (!guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)) {
-                player.sendMessage("§c❌ You don't have permission to change guild settings")
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.no_settings_permission"))
                 return@GuiItem
             }
             openThemeSelector()
@@ -293,33 +298,36 @@ class GuildSettingsMenu(
     private fun addLocationModeSection(pane: StaticPane) {
         // Guild Home
         val homeItem = ItemStack.of(Material.COMPASS)
-                .name("§f🏠 HOME MANAGEMENT")
+                .name(lang.legacy("menu.guild_settings.item.homes.name"))
 
         val allHomes = guildService.getHomes(guild.id)
         val availableSlots = guildService.getAvailableHomeSlots(guild.id)
 
-        homeItem.lore("§7Homes Set: §f${allHomes.size}§7/${availableSlots}")
-        homeItem.lore("§7")
+        homeItem.lore(lang.legacy("menu.guild_settings.item.homes.lore.count", "count" to allHomes.size, "available" to availableSlots))
+        homeItem.lore(lang.legacy("menu.common.blank"))
 
         if (allHomes.hasHomes()) {
             allHomes.homes.entries.take(3).forEach { entry ->
                 val name = entry.key
-                val marker = if (name == "main") "§e[MAIN]" else ""
-                homeItem.lore("§7• §f$name $marker")
+                homeItem.lore(if (name == "main") {
+                    lang.legacy("menu.guild_settings.item.homes.lore.home_main", "home" to name)
+                } else {
+                    lang.legacy("menu.guild_settings.item.homes.lore.home", "home" to name)
+                })
             }
             if (allHomes.size > 3) {
-                homeItem.lore("§7• §f... and ${allHomes.size - 3} more")
+                homeItem.lore(lang.legacy("menu.guild_settings.item.homes.lore.more", "count" to allHomes.size - 3))
             }
-            homeItem.lore("§7")
-            homeItem.lore("§eClick to manage homes")
+            homeItem.lore(lang.legacy("menu.common.blank"))
+            homeItem.lore(lang.legacy("menu.guild_settings.item.homes.lore.manage"))
         } else {
-            homeItem.lore("§7No homes set yet")
-            homeItem.lore("§7")
-            homeItem.lore("§eClick to set first home")
+            homeItem.lore(lang.legacy("menu.guild_settings.item.homes.lore.none"))
+            homeItem.lore(lang.legacy("menu.common.blank"))
+            homeItem.lore(lang.legacy("menu.guild_settings.item.homes.lore.first"))
         }
 
         if (allHomes.size < availableSlots) {
-            homeItem.lore("§aAvailable slots: §f${availableSlots - allHomes.size}")
+            homeItem.lore(lang.legacy("menu.guild_settings.item.homes.lore.slots", "count" to availableSlots - allHomes.size))
         }
 
         val homeGuiItem = GuiItem(homeItem) {
@@ -331,19 +339,19 @@ class GuildSettingsMenu(
         val openClosedItem = ItemStack.of(
             if (guild.isOpen) Material.LIME_DYE else Material.GRAY_DYE
         )
-            .name("§f🚪 GUILD ACCESS")
-            .lore("§7Current: §f${if (guild.isOpen) "OPEN" else "CLOSED"}")
-            .lore("§7")
-            .lore("§7Open: Anyone can join freely")
-            .lore("§7Closed: Invite-only (default)")
-            .lore("§7")
-            .lore("§eClick to toggle guild access")
+            .name(lang.legacy("menu.guild_settings.item.access.name"))
+            .lore(if (guild.isOpen) lang.legacy("menu.guild_settings.item.access.lore.current.open") else lang.legacy("menu.guild_settings.item.access.lore.current.closed"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.access.lore.open"))
+            .lore(lang.legacy("menu.guild_settings.item.access.lore.closed"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.access.lore.action"))
 
         val hasPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)
         val openClosedGuiItem = GuiItem(openClosedItem) {
             if (!hasPermission) {
-                player.sendMessage("§c❌ You don't have permission to change guild access settings")
-                player.sendMessage("§7You need the MANAGE_GUILD_SETTINGS permission")
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.no_access_permission"))
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.settings_requirement"))
                 return@GuiItem
             }
 
@@ -353,13 +361,13 @@ class GuildSettingsMenu(
 
             if (success) {
                 guild = guild.copy(isOpen = newIsOpen)
-                player.sendMessage("§a✅ Guild is now ${if (newIsOpen) "§aOPEN" else "§cCLOSED"}")
-                player.sendMessage("§7${if (newIsOpen) "Anyone can join your guild freely" else "Your guild is invite-only"}")
+                player.sendMessage(if (newIsOpen) lang.msg("menu.guild_settings.feedback.access_open") else lang.msg("menu.guild_settings.feedback.access_closed"))
+                player.sendMessage(if (newIsOpen) lang.msg("menu.guild_settings.feedback.access_open_description") else lang.msg("menu.guild_settings.feedback.access_closed_description"))
 
                 // Reopen the menu to show updated status
                 open()
             } else {
-                player.sendMessage("§c❌ Failed to update guild access settings")
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.access_failure"))
             }
         }
         pane.addItem(openClosedGuiItem, 1, 4)
@@ -368,19 +376,19 @@ class GuildSettingsMenu(
         val trackingItem = ItemStack.of(
             if (guild.trackingEnabled) Material.RECOVERY_COMPASS else Material.COMPASS
         )
-            .name("§f🗺 LUNAR TRACKING")
-            .lore("§7Current: §f${if (guild.trackingEnabled) "ENABLED" else "DISABLED"}")
-            .lore("§7")
-            .lore("§7Enabled: Guild members visible")
-            .lore("§7on Lunar Client minimap & HUD")
-            .lore("§7Disabled: No location sharing")
-            .lore("§7")
-            .lore("§eClick to toggle Lunar tracking")
+            .name(lang.legacy("menu.guild_settings.item.tracking.name"))
+            .lore(if (guild.trackingEnabled) lang.legacy("menu.guild_settings.item.tracking.lore.current.enabled") else lang.legacy("menu.guild_settings.item.tracking.lore.current.disabled"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.tracking.lore.enabled"))
+            .lore(lang.legacy("menu.guild_settings.item.tracking.lore.hud"))
+            .lore(lang.legacy("menu.guild_settings.item.tracking.lore.disabled"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_settings.item.tracking.lore.action"))
 
         val trackingGuiItem = GuiItem(trackingItem) {
             if (!hasPermission) {
-                player.sendMessage("§c❌ You don't have permission to change guild settings")
-                player.sendMessage("§7You need the MANAGE_GUILD_SETTINGS permission")
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.no_settings_permission"))
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.settings_requirement"))
                 return@GuiItem
             }
 
@@ -389,19 +397,19 @@ class GuildSettingsMenu(
 
             if (success) {
                 guild = guild.copy(trackingEnabled = newTracking)
-                player.sendMessage("§a✅ Lunar tracking is now ${if (newTracking) "§aENABLED" else "§cDISABLED"}")
+                player.sendMessage(if (newTracking) lang.msg("menu.guild_settings.feedback.tracking_enabled") else lang.msg("menu.guild_settings.feedback.tracking_disabled"))
                 open()
             } else {
-                player.sendMessage("§c❌ Failed to update tracking settings")
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.tracking_failure"))
             }
         }
         pane.addItem(trackingGuiItem, 4, 4)
 
         // Guild Members
         val membersItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name("§f👥 MANAGE MEMBERS")
-            .lore("§7Invite and kick guild members")
-            .lore("§7View member list with pagination")
+            .name(lang.legacy("menu.guild_settings.item.members.name"))
+            .lore(lang.legacy("menu.guild_settings.item.members.lore.description"))
+            .lore(lang.legacy("menu.guild_settings.item.members.lore.details"))
 
         val membersGuiItem = GuiItem(membersItem) {
             menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
@@ -415,11 +423,11 @@ class GuildSettingsMenu(
                 if (guild.mode == GuildMode.PEACEFUL)
                     Material.GREEN_WOOL else Material.RED_WOOL
             )
-                .name("§f⚔ GUILD MODE")
-                .lore("§7Current: §f${guild.mode.name}")
-                .lore("§7")
-                .lore("§7Peaceful: No PvP, safe trading")
-                .lore("§7Hostile: PvP enabled, competitive")
+                .name(lang.legacy("menu.guild_settings.item.mode.name"))
+                .lore(if (guild.mode == GuildMode.PEACEFUL) lang.legacy("menu.guild_settings.item.mode.lore.current.peaceful") else lang.legacy("menu.guild_settings.item.mode.lore.current.hostile"))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.guild_settings.item.mode.lore.peaceful"))
+                .lore(lang.legacy("menu.guild_settings.item.mode.lore.hostile"))
 
             // Add cooldown information
             val modeChangedAt = guild.modeChangedAt
@@ -431,8 +439,8 @@ class GuildSettingsMenu(
                         val remaining = Duration.between(Instant.now(), hostileCooldownEnd)
                         val days = remaining.toDays()
                         val hours = remaining.toHours() % 24
-                        modeItem.lore("§7")
-                                .lore("§c◷ Cannot switch to Hostile: ${days}d ${hours}h remaining")
+                        modeItem.lore(lang.legacy("menu.common.blank"))
+                                .lore(lang.legacy("menu.guild_settings.item.mode.lore.hostile_cooldown", "days" to days, "hours" to hours))
                     }
                 } else {
                     // Show peaceful switch cooldown
@@ -441,14 +449,14 @@ class GuildSettingsMenu(
                         val remaining = Duration.between(Instant.now(), peacefulCooldownEnd)
                         val days = remaining.toDays()
                         val hours = remaining.toHours() % 24
-                        modeItem.lore("§7")
-                                .lore("§c◷ Cannot switch to Peaceful: ${days}d ${hours}h remaining")
+                        modeItem.lore(lang.legacy("menu.common.blank"))
+                                .lore(lang.legacy("menu.guild_settings.item.mode.lore.peaceful_cooldown", "days" to days, "hours" to hours))
                     }
                 }
             }
 
-            modeItem.lore("§7")
-                    .lore("§eClick to change mode")
+            modeItem.lore(lang.legacy("menu.common.blank"))
+                    .lore(lang.legacy("menu.guild_settings.item.mode.lore.action"))
 
             val modeGuiItem = GuiItem(modeItem) {
                 menuNavigator.openMenu(menuFactory.createGuildModeMenu(menuNavigator, player, guild))
@@ -457,19 +465,19 @@ class GuildSettingsMenu(
         } else {
             // Show disabled mode indicator
             val modeItem = ItemStack.of(Material.GRAY_WOOL)
-                .name("§f⚔ GUILD MODE")
-                .lore("§7Current: §fHOSTILE")
-                .lore("§7")
-                .lore("§cMode switching disabled")
-                .lore("§7All guilds are hostile by default")
+                .name(lang.legacy("menu.guild_settings.item.mode.name"))
+                .lore(lang.legacy("menu.guild_settings.item.mode.lore.current.hostile"))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.guild_settings.item.mode.lore.disabled"))
+                .lore(lang.legacy("menu.guild_settings.item.mode.lore.default_hostile"))
 
             pane.addItem(GuiItem(modeItem), 3, 4)
         }
 
         // Back button
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c⬅ BACK")
-            .lore("§7Return to control panel")
+            .name(lang.legacy("menu.guild_settings.item.back.name"))
+            .lore(lang.legacy("menu.guild_settings.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -482,7 +490,7 @@ class GuildSettingsMenu(
         return try {
             val miniMessage = MiniMessage.miniMessage()
             val component = miniMessage.deserialize(description)
-            // Convert to legacy format (§ codes) for menu display
+            // Convert to legacy formatting for menu display
             val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
             legacyText
         } catch (e: Exception) {
@@ -497,7 +505,7 @@ class GuildSettingsMenu(
      * with the new theme applied.
      */
     private fun openThemeSelector() {
-        val gui = ChestGui(1, MenuTitleBuilder.build(guild.guiTheme, 1, "§6Guild Settings - ${guild.name}"))
+        val gui = ChestGui(1, MenuTitleBuilder.build(guild.guiTheme, 1, lang.legacy("menu.guild_settings.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 1)
         gui.setOnGlobalClick { it.isCancelled = true }
         gui.addPane(pane)
@@ -517,14 +525,14 @@ class GuildSettingsMenu(
                     else -> Material.GRAY_STAINED_GLASS_PANE
                 }
             )
-                .name("${if (isCurrent) "§a▶ " else "§7"}${theme.displayName}")
-                .lore(if (isCurrent) "§7Current theme" else "§eClick to apply")
+                .name(if (isCurrent) lang.legacy("menu.guild_settings.item.theme_option.name.current", "theme" to theme.displayName) else lang.legacy("menu.guild_settings.item.theme_option.name.available", "theme" to theme.displayName))
+                .lore(if (isCurrent) lang.legacy("menu.guild_settings.item.theme_option.lore.current") else lang.legacy("menu.guild_settings.item.theme_option.lore.apply"))
 
             pane.addItem(GuiItem(item) {
                 if (!isCurrent) {
                     guildService.setGuiTheme(guild.id, theme, player.uniqueId)
                     guild = guild.copy(guiTheme = theme)
-                    player.sendMessage("§a✅ GUI theme changed to ${theme.displayName}")
+                    player.sendMessage(lang.msg("menu.guild_settings.feedback.theme_changed", "theme" to theme.displayName))
                     open()
                 }
             }, pos, 0)
@@ -532,7 +540,7 @@ class GuildSettingsMenu(
 
         // Back button at the last slot
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c⬅ Back")
+            .name(lang.legacy("menu.guild_settings.item.back.name"))
         pane.addItem(GuiItem(backItem) { open() }, 8, 0)
 
         gui.show(player)

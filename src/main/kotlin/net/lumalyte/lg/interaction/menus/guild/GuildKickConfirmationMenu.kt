@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -30,10 +31,15 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Confirm Kick - ${guild.name}"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(
+            guild.guiTheme,
+            3,
+            lang.legacy("menu.guild_confirmation.kick.title", "guild" to guild.name),
+        ))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -58,16 +64,16 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addWarningDisplay(pane: StaticPane, x: Int, y: Int) {
         val warningItem = ItemStack.of(Material.BARRIER)
-            .name("§c⚠ KICK CONFIRMATION")
-            .lore("§cThis action cannot be undone!")
-            .lore("§7")
-            .lore("§7The player will be immediately")
-            .lore("§7removed from the guild.")
-            .lore("§7")
-            .lore("§eThey will lose access to:")
-            .lore("§e• Guild bank")
-            .lore("§e• Guild claims")
-            .lore("§e• Guild permissions")
+            .name(lang.legacy("menu.guild_confirmation.kick.item.warning.name"))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.irreversible"))
+            .lore("")
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.removed_line_1"))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.removed_line_2"))
+            .lore("")
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.loss_header"))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.bank"))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.claims"))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.permissions"))
 
         pane.addItem(GuiItem(warningItem), x, y)
     }
@@ -82,24 +88,25 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
         val meta = head.itemMeta as SkullMeta
 
         // Try to get player name from all players
-        val playerName = Bukkit.getOfflinePlayer(memberToKick.playerId).name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(memberToKick.playerId).name
+            ?: lang.raw("menu.guild_confirmation.common.unknown_player")
 
         head.itemMeta = meta
 
-        val memberItem = head.name("§f👤 $playerName")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Joined: §f${memberToKick.joinedAt}")
-            .lore("§7")
-            .lore("§cThis player will be kicked")
+        val memberItem = head.name(lang.legacy("menu.guild_confirmation.kick.item.player.name", "player" to playerName))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.player.lore.player", "player" to playerName))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.player.lore.joined", "joined" to memberToKick.joinedAt))
+            .lore("")
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.player.lore.result"))
 
         pane.addItem(GuiItem(memberItem), x, y)
     }
 
     private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
         val confirmItem = ItemStack.of(Material.RED_WOOL)
-            .name("§c✅ CONFIRM KICK")
-            .lore("§cPermanently remove from guild")
-            .lore("§7Click to proceed")
+            .name(lang.legacy("menu.guild_confirmation.kick.item.confirm.name"))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.confirm.lore.line_1"))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.confirm.lore.line_2"))
 
         val confirmGuiItem = GuiItem(confirmItem) {
             performKick()
@@ -109,9 +116,9 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack.of(Material.GREEN_WOOL)
-            .name("§a❌ CANCEL")
-            .lore("§7Return to member list")
-            .lore("§7No changes will be made")
+            .name(lang.legacy("menu.guild_confirmation.kick.item.cancel.name"))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.cancel.lore.line_1"))
+            .lore(lang.legacy("menu.guild_confirmation.kick.item.cancel.lore.line_2"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
@@ -121,23 +128,24 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun performKick() {
         val targetPlayer = Bukkit.getPlayer(memberToKick.playerId)
-        val targetName = Bukkit.getOfflinePlayer(memberToKick.playerId)?.name ?: "Unknown Player"
+        val targetName = Bukkit.getOfflinePlayer(memberToKick.playerId)?.name
+            ?: lang.raw("menu.guild_confirmation.common.unknown_player")
 
         // Perform the kick
         val success = memberService.removeMember(memberToKick.playerId, guild.id, player.uniqueId)
 
         if (success) {
-            player.sendMessage("§a✅ Successfully kicked $targetName from ${guild.name}!")
+            player.sendMessage(lang.msg("menu.guild_confirmation.kick.feedback.success", "player" to targetName, "guild" to guild.name))
 
             // Notify the kicked player if they're online
             if (targetPlayer != null) {
-                targetPlayer.sendMessage("§c❌ You have been kicked from ${guild.name} by ${player.name}")
+                targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.kick.feedback.target", "guild" to guild.name, "player" to player.name))
             }
 
             // Return to member management menu
             menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
         } else {
-            player.sendMessage("§c❌ Failed to kick $targetName. Check permissions.")
+            player.sendMessage(lang.msg("menu.guild_confirmation.kick.feedback.failure", "player" to targetName))
             menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
         }
     }

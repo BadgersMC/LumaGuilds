@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -41,6 +42,7 @@ class PeaceAgreementMenu(
     private val guildService: GuildService by inject()
     private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
     private val chatInputListener: ChatInputListener by inject()
+    private val lang: LangService by inject()
     private val logger = LoggerFactory.getLogger(PeaceAgreementMenu::class.java)
 
     // State for input handling
@@ -53,11 +55,11 @@ class PeaceAgreementMenu(
     override fun open() {
         // Check permissions first
         if (!guildService.hasPermission(player.uniqueId, guild.id, RankPermission.DECLARE_WAR)) {
-            player.sendMessage("§c❌ You don't have permission to manage peace agreements for your guild!")
+            player.sendMessage(lang.msg("menu.peace_agreement.feedback.no_permission"))
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Peace Agreements - ${guild.name}"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.peace_agreement.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -84,9 +86,9 @@ class PeaceAgreementMenu(
 
         if (activeWars.isEmpty()) {
             val noWarsItem = ItemStack.of(Material.GRAY_DYE)
-                .name("§7No Active Wars")
-                .lore("§7Your guild is not currently at war")
-                .lore("§7Peace agreements require an active war")
+                .name(lang.legacy("menu.peace_agreement.war.none.name"))
+                .lore(lang.legacy("menu.peace_agreement.war.none.description"))
+                .lore(lang.legacy("menu.peace_agreement.war.none.requirement"))
 
             pane.addItem(GuiItem(noWarsItem), 4, 0)
             return
@@ -98,11 +100,11 @@ class PeaceAgreementMenu(
             val enemyGuild = guildService.getGuild(enemyId)
 
             val warItem = ItemStack.of(Material.RED_WOOL)
-                .name("§c⚔ War vs ${enemyGuild?.name ?: "Unknown"}")
-                .lore("§7Duration: ${war.duration.toDays()} days")
-                .lore("§7Status: ${war.status}")
-                .lore("")
-                .lore("§eClick to propose peace")
+                .name(lang.legacy("menu.peace_agreement.war.name", "guild" to (enemyGuild?.name ?: lang.raw("general.unknown"))))
+                .lore(lang.legacy("menu.peace_agreement.war.duration", "days" to war.duration.toDays()))
+                .lore(lang.legacy("menu.peace_agreement.war.status", "status" to war.status))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.peace_agreement.war.propose"))
 
             val guiItem = GuiItem(warItem) {
                 showPeaceProposalMenu(war.id)
@@ -117,8 +119,8 @@ class PeaceAgreementMenu(
 
         if (pendingAgreements.isEmpty()) {
             val noAgreementsItem = ItemStack.of(Material.GRAY_DYE)
-                .name("§7No Pending Agreements")
-                .lore("§7No peace agreements to respond to")
+                .name(lang.legacy("menu.peace_agreement.pending.none.name"))
+                .lore(lang.legacy("menu.peace_agreement.pending.none.description"))
 
             pane.addItem(GuiItem(noAgreementsItem), 4, 1)
             return
@@ -130,32 +132,32 @@ class PeaceAgreementMenu(
             val war = warService.getWar(agreement.warId)
 
             val agreementItem = ItemStack.of(Material.PAPER)
-                .name("§a☮ Peace from ${proposingGuild?.name ?: "Unknown"}")
-                .lore("§7Terms: ${agreement.peaceTerms}")
-                .lore("§7War: ${war?.let { "vs ${guildService.getGuild(if (it.declaringGuildId == guild.id) it.defendingGuildId else it.declaringGuildId)?.name ?: "Unknown"}" } ?: "Unknown"}")
-                .lore("")
-                .lore("§eLeft-click to accept")
-                .lore("§cShift+Click to reject")
+                .name(lang.legacy("menu.peace_agreement.pending.name", "guild" to (proposingGuild?.name ?: lang.raw("general.unknown"))))
+                .lore(lang.legacy("menu.peace_agreement.pending.terms", "terms" to agreement.peaceTerms))
+                .lore(lang.legacy("menu.peace_agreement.pending.war", "guild" to (war?.let { guildService.getGuild(if (it.declaringGuildId == guild.id) it.defendingGuildId else it.declaringGuildId)?.name } ?: lang.raw("general.unknown"))))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.peace_agreement.pending.accept"))
+                .lore(lang.legacy("menu.peace_agreement.pending.reject"))
 
             val guiItem = GuiItem(agreementItem) { event ->
                 when (event.click) {
                     ClickType.LEFT -> {
                         val endedWar = warService.acceptPeaceAgreement(agreement.id, guild.id)
                         if (endedWar != null) {
-                            player.sendMessage("§a✓ Peace agreement accepted!")
-                            player.sendMessage("§7The war has ended peacefully.")
+                            player.sendMessage(lang.msg("menu.peace_agreement.feedback.accepted"))
+                            player.sendMessage(lang.msg("menu.peace_agreement.feedback.war_ended"))
                             open() // Refresh menu
                         } else {
-                            player.sendMessage("§c✗ Failed to accept peace agreement")
+                            player.sendMessage(lang.msg("menu.peace_agreement.feedback.accept_failed"))
                         }
                     }
                     ClickType.SHIFT_LEFT, ClickType.SHIFT_RIGHT -> {
                         val success = warService.rejectPeaceAgreement(agreement.id, guild.id)
                         if (success) {
-                            player.sendMessage("§c✗ Peace agreement rejected")
+                            player.sendMessage(lang.msg("menu.peace_agreement.feedback.rejected"))
                             open() // Refresh menu
                         } else {
-                            player.sendMessage("§c✗ Failed to reject peace agreement")
+                            player.sendMessage(lang.msg("menu.peace_agreement.feedback.reject_failed"))
                         }
                     }
                     else -> {}
@@ -169,14 +171,14 @@ class PeaceAgreementMenu(
     private fun addPeaceActionsSection(pane: StaticPane) {
         // Propose Peace Button
         val proposeItem = ItemStack.of(Material.WHITE_WOOL)
-            .name("§a☮ Propose Peace")
-            .lore("§7Propose peace terms to end a war")
-            .lore("§7Can include offerings to sweeten the deal")
+            .name(lang.legacy("menu.peace_agreement.action.propose.name"))
+            .lore(lang.legacy("menu.peace_agreement.action.propose.description"))
+            .lore(lang.legacy("menu.peace_agreement.action.propose.offerings"))
 
         val proposeGuiItem = GuiItem(proposeItem) {
             val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
             if (activeWars.isEmpty()) {
-                player.sendMessage("§c✗ Your guild is not currently at war!")
+                player.sendMessage(lang.msg("menu.peace_agreement.feedback.not_at_war"))
                 return@GuiItem
             }
 
@@ -192,9 +194,9 @@ class PeaceAgreementMenu(
 
         // View History Button
         val historyItem = ItemStack.of(Material.BOOK)
-            .name("§e📚 Peace History")
-            .lore("§7View past peace agreements")
-            .lore("§7and war outcomes")
+            .name(lang.legacy("menu.peace_agreement.action.history.name"))
+            .lore(lang.legacy("menu.peace_agreement.action.history.description"))
+            .lore(lang.legacy("menu.peace_agreement.action.history.outcomes"))
 
         val historyGuiItem = GuiItem(historyItem) {
             showPeaceHistory()
@@ -204,8 +206,8 @@ class PeaceAgreementMenu(
 
         // Back Button
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§c⬅ Back")
-            .lore("§7Return to war management")
+            .name(lang.legacy("menu.war_declaration.item.back.name"))
+            .lore(lang.legacy("menu.war_declaration.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.goBack()
@@ -223,7 +225,7 @@ class PeaceAgreementMenu(
             offeringExp = 0
         }
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6Peace Agreements - ${guild.name}"))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.legacy("menu.peace_agreement.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -234,72 +236,72 @@ class PeaceAgreementMenu(
 
         // Peace Terms Input
         val termsItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§f✎ Peace Terms")
-            .lore("§7Current: ${if (peaceTerms.isNotEmpty()) peaceTerms else "§oNone set"}")
-            .lore("")
-            .lore("§eClick to set peace terms")
+            .name(lang.legacy("menu.peace_agreement.proposal.terms.name"))
+            .lore(if (peaceTerms.isNotEmpty()) lang.legacy("menu.peace_agreement.proposal.current", "value" to peaceTerms) else lang.legacy("menu.peace_agreement.proposal.none"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.peace_agreement.proposal.terms.click"))
 
         val termsGuiItem = GuiItem(termsItem) {
             inputMode = "peace_terms"
             chatInputListener.startInputMode(player, this)
             player.closeInventory()
-            player.sendMessage("§eType your peace terms in chat (or 'cancel' to skip):")
+            player.sendMessage(lang.msg("menu.peace_agreement.input.terms.prompt"))
         }
 
         pane.addItem(termsGuiItem, 2, 0)
 
         // Money Offering
         val moneyItem = ItemStack.of(Material.GOLD_INGOT)
-            .name("§6$ Money Offering")
-            .lore("§7Current: ${offeringMoney} coins")
-            .lore("")
-            .lore("§eClick to set money offering")
+            .name(lang.legacy("menu.peace_agreement.proposal.money.name"))
+            .lore(lang.legacy("menu.peace_agreement.proposal.money.current", "amount" to offeringMoney))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.peace_agreement.proposal.money.click"))
 
         val moneyGuiItem = GuiItem(moneyItem) {
             inputMode = "offering_money"
             chatInputListener.startInputMode(player, this)
             player.closeInventory()
-            player.sendMessage("§eEnter the amount of money to offer (or 'cancel' to skip):")
+            player.sendMessage(lang.msg("menu.peace_agreement.input.money.prompt"))
         }
 
         pane.addItem(moneyGuiItem, 4, 0)
 
         // EXP Offering
         val expItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-            .name("§b☆ EXP Offering")
-            .lore("§7Current: ${offeringExp} EXP")
-            .lore("")
-            .lore("§eClick to set EXP offering")
+            .name(lang.legacy("menu.peace_agreement.proposal.exp.name"))
+            .lore(lang.legacy("menu.peace_agreement.proposal.exp.current", "amount" to offeringExp))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.peace_agreement.proposal.exp.click"))
 
         val expGuiItem = GuiItem(expItem) {
             inputMode = "offering_exp"
             chatInputListener.startInputMode(player, this)
             player.closeInventory()
-            player.sendMessage("§eEnter the amount of EXP to offer (or 'cancel' to skip):")
+            player.sendMessage(lang.msg("menu.peace_agreement.input.exp.prompt"))
         }
 
         pane.addItem(expGuiItem, 6, 0)
 
         // Send Agreement Button
         val sendItem = ItemStack.of(Material.EMERALD_BLOCK)
-            .name("§a✓ Send Peace Agreement")
-            .lore("§7Send your peace proposal")
-            .lore("§7to the enemy guild")
+            .name(lang.legacy("menu.peace_agreement.proposal.send.name"))
+            .lore(lang.legacy("menu.peace_agreement.proposal.send.description"))
+            .lore(lang.legacy("menu.peace_agreement.proposal.send.target"))
 
         val canSend = peaceTerms.isNotEmpty()
         if (!canSend) {
-            sendItem.name("§7✓ Send Peace Agreement")
-                .lore("§7Send your peace proposal")
-                .lore("§7to the enemy guild")
-                .lore("")
-                .lore("§c✗ Peace terms required")
+            sendItem.name(lang.legacy("menu.peace_agreement.proposal.send.disabled"))
+                .lore(lang.legacy("menu.peace_agreement.proposal.send.description"))
+                .lore(lang.legacy("menu.peace_agreement.proposal.send.target"))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.peace_agreement.proposal.send.required"))
         }
 
         val sendGuiItem = GuiItem(sendItem) {
             if (canSend) {
                 sendPeaceAgreement()
             } else {
-                player.sendMessage("§c✗ You must set peace terms before sending the agreement!")
+                player.sendMessage(lang.msg("menu.peace_agreement.feedback.terms_required"))
             }
         }
 
@@ -307,8 +309,8 @@ class PeaceAgreementMenu(
 
         // Cancel Button
         val cancelItem = ItemStack.of(Material.REDSTONE_BLOCK)
-            .name("§c✗ Cancel")
-            .lore("§7Return to peace agreements menu")
+            .name(lang.legacy("menu.peace_agreement.proposal.cancel.name"))
+            .lore(lang.legacy("menu.peace_agreement.proposal.cancel.description"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             open()
@@ -338,11 +340,11 @@ class PeaceAgreementMenu(
         )
 
         if (agreement != null) {
-            player.sendMessage("§a✓ Peace agreement sent!")
-            player.sendMessage("§7The enemy guild must accept your proposal.")
+            player.sendMessage(lang.msg("menu.peace_agreement.feedback.sent"))
+            player.sendMessage(lang.msg("menu.peace_agreement.feedback.must_accept"))
 
             if (offering != null) {
-                player.sendMessage("§7Offering: ${offering.totalValue}")
+                player.sendMessage(lang.msg("menu.peace_agreement.feedback.offering", "offering" to offering.totalValue))
             }
 
             // Broadcast to enemy guild members
@@ -358,10 +360,10 @@ class PeaceAgreementMenu(
                     enemyMembers.forEach { member ->
                         val onlinePlayer = server.getPlayer(member.playerId)
                         if (onlinePlayer != null && onlinePlayer.isOnline) {
-                            onlinePlayer.sendMessage("§6☮ ${guild.name} has proposed peace!")
-                            onlinePlayer.sendMessage("§7Terms: $peaceTerms")
+                            onlinePlayer.sendMessage(lang.msg("menu.peace_agreement.notification.proposed", "guild" to guild.name))
+                            onlinePlayer.sendMessage(lang.msg("menu.peace_agreement.notification.terms", "terms" to peaceTerms))
                             if (offering != null) {
-                                onlinePlayer.sendMessage("§7Offering: ${offering.totalValue}")
+                                onlinePlayer.sendMessage(lang.msg("menu.peace_agreement.feedback.offering", "offering" to offering.totalValue))
                             }
                         }
                     }
@@ -370,7 +372,7 @@ class PeaceAgreementMenu(
 
             open()
         } else {
-            player.sendMessage("§c✗ Failed to send peace agreement!")
+            player.sendMessage(lang.msg("menu.peace_agreement.feedback.send_failed"))
         }
     }
 
@@ -380,20 +382,20 @@ class PeaceAgreementMenu(
         try {
             val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
             if (activeWars.isEmpty()) {
-                player.sendMessage("§cYour guild is not currently at war with anyone.")
+                player.sendMessage(lang.msg("menu.peace_agreement.feedback.not_at_war_anyone"))
                 return
             }
-            player.sendMessage("§6§l=== Active Wars ===")
+            player.sendMessage(lang.msg("menu.peace_agreement.selection.header"))
             activeWars.forEach { war ->
                 val enemyId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
                 val enemyGuild = guildService.getGuild(enemyId)
-                val enemyName = enemyGuild?.name ?: "Unknown"
-                player.sendMessage("§7- §c$enemyName")
+                val enemyName = enemyGuild?.name ?: lang.raw("general.unknown")
+                player.sendMessage(lang.msg("menu.peace_agreement.selection.row", "guild" to enemyName))
             }
-            player.sendMessage("§eUse §f/g peace propose <guild>§e to send a peace request.")
+            player.sendMessage(lang.msg("menu.peace_agreement.selection.command"))
         } catch (e: Exception) {
             logger.error("Failed to load active wars for peace proposal for guild ${guild.id}", e)
-            player.sendMessage("§cCould not load war data for peace proposals.")
+            player.sendMessage(lang.msg("menu.peace_agreement.feedback.war_load_failed"))
         }
     }
 
@@ -403,20 +405,20 @@ class PeaceAgreementMenu(
         try {
             val warHistory = warService.getWarHistory(guild.id, 10)
             if (warHistory.isEmpty()) {
-                player.sendMessage("§7No war history found for this guild.")
+                player.sendMessage(lang.msg("menu.peace_agreement.history.none"))
                 return
             }
-            player.sendMessage("§6§l=== War History ===")
+            player.sendMessage(lang.msg("menu.peace_agreement.history.header"))
             warHistory.forEach { war ->
                 val enemyId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
                 val enemyGuild = guildService.getGuild(enemyId)
-                val enemyName = enemyGuild?.name ?: "Unknown"
-                val status = if (war.isActive) "Active" else "Ended"
-                player.sendMessage("§7- §f$enemyName §7($status)")
+                val enemyName = enemyGuild?.name ?: lang.raw("general.unknown")
+                val status = if (war.isActive) lang.raw("menu.peace_agreement.history.active") else lang.raw("menu.peace_agreement.history.ended")
+                player.sendMessage(lang.msg("menu.peace_agreement.history.row", "guild" to enemyName, "status" to status))
             }
         } catch (e: Exception) {
             logger.error("Failed to load peace history for guild ${guild.id}", e)
-            player.sendMessage("§cCould not load peace history.")
+            player.sendMessage(lang.msg("menu.peace_agreement.feedback.history_load_failed"))
         }
     }
 
@@ -425,24 +427,24 @@ class PeaceAgreementMenu(
         when (inputMode) {
             "peace_terms" -> {
                 if (input.lowercase() == "cancel") {
-                    player.sendMessage("§7Peace terms input cancelled")
+                    player.sendMessage(lang.msg("menu.peace_agreement.input.terms.cancelled"))
                 } else {
                     peaceTerms = input
-                    player.sendMessage("§a✓ Peace terms set: §f\"$input\"")
+                    player.sendMessage(lang.msg("menu.peace_agreement.input.terms.set", "terms" to input))
                 }
                 inputMode = null
                 currentWarId?.let { showPeaceProposalMenu(it) }
             }
             "offering_money" -> {
                 if (input.lowercase() == "cancel") {
-                    player.sendMessage("§7Money offering input cancelled")
+                    player.sendMessage(lang.msg("menu.peace_agreement.input.money.cancelled"))
                 } else {
                     val amount = input.toIntOrNull()
                     if (amount != null && amount >= 0) {
                         offeringMoney = amount
-                        player.sendMessage("§a✓ Money offering set: §6$amount coins")
+                        player.sendMessage(lang.msg("menu.peace_agreement.input.money.set", "amount" to amount))
                     } else {
-                        player.sendMessage("§c✗ Invalid amount! Please enter a valid number.")
+                        player.sendMessage(lang.msg("menu.peace_agreement.input.invalid_amount"))
                         return
                     }
                 }
@@ -451,14 +453,14 @@ class PeaceAgreementMenu(
             }
             "offering_exp" -> {
                 if (input.lowercase() == "cancel") {
-                    player.sendMessage("§7EXP offering input cancelled")
+                    player.sendMessage(lang.msg("menu.peace_agreement.input.exp.cancelled"))
                 } else {
                     val amount = input.toIntOrNull()
                     if (amount != null && amount >= 0) {
                         offeringExp = amount
-                        player.sendMessage("§a✓ EXP offering set: §b$amount EXP")
+                        player.sendMessage(lang.msg("menu.peace_agreement.input.exp.set", "amount" to amount))
                     } else {
-                        player.sendMessage("§c✗ Invalid amount! Please enter a valid number.")
+                        player.sendMessage(lang.msg("menu.peace_agreement.input.invalid_amount"))
                         return
                     }
                 }
@@ -470,9 +472,9 @@ class PeaceAgreementMenu(
 
     override fun onCancel(player: Player) {
         when (inputMode) {
-            "peace_terms" -> player.sendMessage("§7Peace terms input cancelled")
-            "offering_money" -> player.sendMessage("§7Money offering input cancelled")
-            "offering_exp" -> player.sendMessage("§7EXP offering input cancelled")
+            "peace_terms" -> player.sendMessage(lang.msg("menu.peace_agreement.input.terms.cancelled"))
+            "offering_money" -> player.sendMessage(lang.msg("menu.peace_agreement.input.money.cancelled"))
+            "offering_exp" -> player.sendMessage(lang.msg("menu.peace_agreement.input.exp.cancelled"))
         }
         inputMode = null
         currentWarId?.let { showPeaceProposalMenu(it) }

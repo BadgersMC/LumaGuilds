@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -32,9 +33,10 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val rankService: net.lumalyte.lg.application.services.RankService by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Guild Homes - ${guild.name}"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_home.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -74,27 +76,27 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val availableSlots = guildService.getAvailableHomeSlots(guild.id)
 
         val slotsItem = ItemStack.of(Material.BOOK)
-            .name("§e🏠 Guild Home Slots")
-            .lore("§7Homes Set: §f${allHomes.size}§7/${availableSlots}")
-            .lore("§7")
+            .name(lang.legacy("menu.guild_home.slots.name"))
+            .lore(lang.legacy("menu.guild_home.slots.count", "count" to allHomes.size, "total" to availableSlots))
+            .lore(lang.legacy("menu.common.blank"))
 
         if (allHomes.hasHomes()) {
             allHomes.homes.forEach { entry ->
                 val name = entry.key
                 val home = entry.value
-                val marker = if (name == "main") "§e[MAIN]" else ""
-                val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
-                slotsItem.lore("§7• §f$name $marker §7- §f$worldName")
+                val marker = if (name == "main") lang.raw("menu.guild_home.slots.main") else ""
+                val worldName = Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown")
+                slotsItem.lore(lang.legacy("menu.guild_home.slots.row", "home" to name, "marker" to marker, "world" to worldName))
             }
         } else {
-            slotsItem.lore("§7No homes set yet")
+            slotsItem.lore(lang.legacy("menu.guild_home.slots.none"))
         }
 
-        slotsItem.lore("§7")
+        slotsItem.lore(lang.legacy("menu.common.blank"))
         if (allHomes.size < availableSlots) {
-            slotsItem.lore("§aClick to set additional homes")
+            slotsItem.lore(lang.legacy("menu.guild_home.slots.additional"))
         } else {
-            slotsItem.lore("§cMaximum slots reached")
+            slotsItem.lore(lang.legacy("menu.guild_home.slots.maximum"))
         }
 
         val guiItem = GuiItem(slotsItem)
@@ -108,9 +110,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         // Set Main Home button
         if (!allHomes.homes.containsKey("main")) {
             val setMainItem = ItemStack.of(Material.GREEN_WOOL)
-                .name("§aSet Main Home")
-                .lore("§7Set your current location as main home")
-                .lore("§7Allows §6/guild home §7teleportation")
+                .name(lang.legacy("menu.guild_home.set.main.name"))
+                .lore(lang.legacy("menu.guild_home.set.main.description"))
+                .lore(lang.legacy("menu.guild_home.set.main.command"))
 
             val mainGuiItem = GuiItem(setMainItem) {
                 setGuildHome("main")
@@ -121,15 +123,15 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         // Set Additional Home button (if slots available)
         if (allHomes.size < availableSlots) {
             val setAdditionalItem = ItemStack.of(Material.LIME_WOOL)
-                .name("§eSet Additional Home")
-                .lore("§7Set a named home location")
-                .lore("§7Allows §6/guild home <name> §7teleportation")
-                .lore("§7Available slots: §f${availableSlots - allHomes.size}")
+                .name(lang.legacy("menu.guild_home.set.additional.name"))
+                .lore(lang.legacy("menu.guild_home.set.additional.description"))
+                .lore(lang.legacy("menu.guild_home.set.additional.command"))
+                .lore(lang.legacy("menu.guild_home.set.additional.available", "count" to availableSlots - allHomes.size))
 
             val additionalGuiItem = GuiItem(setAdditionalItem) {
                 // This would open a menu to input home name, but for now let's use a simple approach
-                player.sendMessage("§6Use §e/guild sethome <name> §6to set additional homes")
-                player.sendMessage("§7Example: §e/guild sethome shop")
+                player.sendMessage(lang.msg("menu.guild_home.feedback.sethome_command"))
+                player.sendMessage(lang.msg("menu.guild_home.feedback.sethome_example"))
             }
             pane.addItem(additionalGuiItem, x + 2, y)
         }
@@ -137,8 +139,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         // Remove Homes button
         if (allHomes.hasHomes()) {
             val removeItem = ItemStack.of(Material.RED_WOOL)
-                .name("§cRemove Homes")
-                .lore("§7Remove guild home locations")
+                .name(lang.legacy("menu.guild_home.remove.name"))
+                .lore(lang.legacy("menu.guild_home.remove.description"))
 
             val removeGuiItem = GuiItem(removeItem) {
                 showRemoveHomesMenu()
@@ -154,13 +156,13 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         if (hasActiveTeleport) {
             // Show cancel teleport button
             val cancelItem = ItemStack.of(Material.CLOCK)
-                .name("§eCancel Teleport")
-                .lore("§7Teleportation in progress...")
-                .lore("§7Remaining: §f${teleportationService.getRemainingSeconds(player.uniqueId) ?: 0} seconds")
+                .name(lang.legacy("menu.guild_home.teleport.cancel.name"))
+                .lore(lang.legacy("menu.guild_home.teleport.cancel.description"))
+                .lore(lang.legacy("menu.guild_home.teleport.cancel.remaining", "seconds" to (teleportationService.getRemainingSeconds(player.uniqueId) ?: 0)))
 
             val cancelGuiItem = GuiItem(cancelItem) {
                 teleportationService.cancelTeleport(player.uniqueId)
-                player.sendMessage("§c❌ Teleportation canceled!")
+                player.sendMessage(lang.msg("menu.guild_home.feedback.teleport_cancelled"))
                 open() // Refresh menu
             }
             pane.addItem(cancelGuiItem, x, y)
@@ -169,10 +171,10 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val mainHome = allHomes.defaultHome
             if (mainHome != null) {
                 val teleportItem = ItemStack.of(Material.ENDER_PEARL)
-                    .name("§bTeleport to Main Home")
-                    .lore("§7Click to start teleportation countdown")
-                    .lore("§7World: §f${Bukkit.getWorld(mainHome.worldId)?.name ?: "Unknown"}")
-                    .lore("§7Countdown: §f5 seconds §7(don't move!)")
+                    .name(lang.legacy("menu.guild_home.teleport.main.name"))
+                    .lore(lang.legacy("menu.guild_home.teleport.main.description"))
+                    .lore(lang.legacy("menu.guild_home.world", "world" to (Bukkit.getWorld(mainHome.worldId)?.name ?: lang.raw("general.unknown"))))
+                    .lore(lang.legacy("menu.guild_home.teleport.main.countdown"))
 
                 val teleportGuiItem = GuiItem(teleportItem) {
                     startTeleportCountdown(mainHome)
@@ -183,9 +185,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             // Show list homes button if there are multiple homes
             if (allHomes.size > 1) {
                 val listItem = ItemStack.of(Material.COMPASS)
-                    .name("§eList All Homes")
-                    .lore("§7View all available homes")
-                    .lore("§7Use §6/guild home <name> §7to teleport")
+                    .name(lang.legacy("menu.guild_home.list.name"))
+                    .lore(lang.legacy("menu.guild_home.list.description"))
+                    .lore(lang.legacy("menu.guild_home.list.command"))
 
                 val listGuiItem = GuiItem(listItem) {
                     showHomesList()
@@ -195,8 +197,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         } else {
             // No homes set
             val noHomeItem = ItemStack.of(Material.GRAY_DYE)
-                .name("§7No Homes Set")
-                .lore("§7Set a home location first")
+                .name(lang.legacy("menu.guild_home.teleport.none.name"))
+                .lore(lang.legacy("menu.guild_home.teleport.none.description"))
 
             pane.addItem(GuiItem(noHomeItem), x, y)
         }
@@ -207,9 +209,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val homes = guildService.getHomes(guild.id).homes.entries.toList()
         homes.take(9).forEachIndexed { idx, (homeName, _) ->
             val item = ItemStack.of(Material.IRON_DOOR)
-                .name("§6🔒 Access: $homeName")
-                .lore("§7Configure which ranks can use this home")
-                .lore("§eClick to manage")
+                .name(lang.legacy("menu.guild_home.access.name", "home" to homeName))
+                .lore(lang.legacy("menu.guild_home.access.description"))
+                .lore(lang.legacy("menu.guild_home.access.click"))
             pane.addItem(GuiItem(item) {
                 menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
             }, idx, 3)
@@ -219,9 +221,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private fun addAllyHomeAccessButton(pane: StaticPane) {
         if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
         val allyAccessItem = ItemStack.of(Material.IRON_DOOR)
-            .name("§6🔒 Ally-home Access")
-            .lore("§7Configure which allied guilds can use your ally-home")
-            .lore("§eClick to manage")
+            .name(lang.legacy("menu.guild_home.ally_access.name"))
+            .lore(lang.legacy("menu.guild_home.ally_access.description"))
+            .lore(lang.legacy("menu.guild_home.access.click"))
         pane.addItem(GuiItem(allyAccessItem) {
             menuNavigator.openMenu(menuFactory.createAllyHomeAccessMenu(menuNavigator, player, guild))
         }, 7, 5)
@@ -231,9 +233,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val allyHomes = guildService.getAllyHomes(guild.id)
         if (allyHomes.isEmpty()) {
             val noAllyItem = ItemStack.of(Material.GRAY_DYE)
-                .name("§7No Ally Homes Available")
-                .lore("§7Allied guilds must also have this perk")
-                .lore("§7and have a home set")
+                .name(lang.legacy("menu.guild_home.ally.none.name"))
+                .lore(lang.legacy("menu.guild_home.ally.none.perk"))
+                .lore(lang.legacy("menu.guild_home.ally.none.home"))
 
             pane.addItem(GuiItem(noAllyItem), x, y)
             return
@@ -242,21 +244,21 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         var slot = x
         for ((guildName, home) in allyHomes) {
             if (slot >= 7) break // Max 7 ally homes on row
-            val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
+            val worldName = Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown")
             val targetGuild = guildService.getGuildByName(guildName)
             val allowed = targetGuild != null &&
                 guildService.canUseAllyHome(player.uniqueId, guild.id, targetGuild.id)
             val allyItem = ItemStack.of(if (allowed) Material.ENDER_EYE else Material.BARRIER)
-                .name(if (allowed) "§d⚔ $guildName" else "§7⚔ $guildName (locked)")
-                .lore("§7Ally guild home")
-                .lore("§7World: §f$worldName")
-                .lore("§7")
-                .lore(if (allowed) "§eClick to teleport" else "§cYour rank lacks USE_ALLY_HOMES, or this guild has not allowed yours.")
+                .name(if (allowed) lang.legacy("menu.guild_home.ally.name", "guild" to guildName) else lang.legacy("menu.guild_home.ally.locked", "guild" to guildName))
+                .lore(lang.legacy("menu.guild_home.ally.description"))
+                .lore(lang.legacy("menu.guild_home.world", "world" to worldName))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(if (allowed) lang.legacy("menu.guild_home.ally.teleport") else lang.legacy("menu.guild_home.ally.denied"))
 
             val guiItem = GuiItem(allyItem) {
                 if (!allowed) {
-                    player.sendMessage("§c❌ You cannot use that ally's home.")
-                    player.sendMessage("§7Either your rank lacks USE_ALLY_HOMES, or that guild has not allowed your guild.")
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.ally_denied"))
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.ally_reason"))
                     return@GuiItem
                 }
                 startTeleportCountdown(home)
@@ -269,11 +271,11 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private fun showRemoveHomesMenu() {
         val allHomes = guildService.getHomes(guild.id)
         if (!allHomes.hasHomes()) {
-            player.sendMessage("§c❌ No homes to remove.")
+            player.sendMessage(lang.msg("menu.guild_home.feedback.no_homes_remove"))
             return
         }
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§cRemove Guild Homes"))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.legacy("menu.guild_home.remove.title")))
         val pane = StaticPane(0, 0, 9, 4)
 
         // Prevent moving items in the top or bottom inventory (same as main menu)
@@ -291,18 +293,18 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val home = entry.value
             if (slot < 27) { // Max 27 slots
                 val removeItem = ItemStack.of(Material.RED_WOOL)
-                    .name("§cRemove '$name'")
-                    .lore("§7World: §f${Bukkit.getWorld(home.worldId)?.name ?: "Unknown"}")
-                    .lore("§7")
-                    .lore("§eClick to remove this home")
+                    .name(lang.legacy("menu.guild_home.remove.home", "home" to name))
+                    .lore(lang.legacy("menu.guild_home.world", "world" to (Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown"))))
+                    .lore(lang.legacy("menu.common.blank"))
+                    .lore(lang.legacy("menu.guild_home.remove.click"))
 
                 val removeGuiItem = GuiItem(removeItem) {
                     val success = guildService.removeHome(guild.id, name, player.uniqueId)
                     if (success) {
-                        player.sendMessage("§a✅ Home '$name' removed!")
+                        player.sendMessage(lang.msg("menu.guild_home.feedback.removed", "home" to name))
                         showRemoveHomesMenu() // Refresh menu
                     } else {
-                        player.sendMessage("§c❌ Failed to remove home '$name'.")
+                        player.sendMessage(lang.msg("menu.guild_home.feedback.remove_failed", "home" to name))
                     }
                 }
                 pane.addItem(removeGuiItem, slot % 9, slot / 9)
@@ -312,8 +314,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§eBack to Home Menu")
-            .lore("§7Return to home management")
+            .name(lang.legacy("menu.guild_home.remove.back.name"))
+            .lore(lang.legacy("menu.guild_home.remove.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             open() // Return to main home menu
@@ -327,20 +329,20 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private fun showHomesList() {
         val allHomes = guildService.getHomes(guild.id)
         if (!allHomes.hasHomes()) {
-            player.sendMessage("§c❌ No homes set.")
+            player.sendMessage(lang.msg("menu.guild_home.feedback.no_homes"))
             return
         }
 
-        player.sendMessage("§6=== Guild Homes ===")
+        player.sendMessage(lang.msg("menu.guild_home.list.header"))
         allHomes.homes.forEach { entry ->
             val name = entry.key
             val home = entry.value
-            val marker = if (name == "main") "§e[MAIN]" else ""
-            val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
-            player.sendMessage("§7• §f$name $marker §7- §f$worldName")
+            val marker = if (name == "main") lang.raw("menu.guild_home.slots.main") else ""
+            val worldName = Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown")
+            player.sendMessage(lang.msg("menu.guild_home.slots.row", "home" to name, "marker" to marker, "world" to worldName))
         }
-        player.sendMessage("§7Use §6/guild home <name> §7to teleport")
-        player.sendMessage("§6==================")
+        player.sendMessage(lang.msg("menu.guild_home.list.command"))
+        player.sendMessage(lang.msg("menu.guild_home.list.footer"))
     }
 
     private fun setGuildHome(homeName: String = "main") {
@@ -354,31 +356,31 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Check if location is safe (if safety check is enabled)
         if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(location)) {
-            player.sendMessage("§c❌ This location is not safe to set as guild home!")
-            player.sendMessage("§7Try setting your home on solid ground with space above you.")
+            player.sendMessage(lang.msg("menu.guild_home.feedback.unsafe_set"))
+            player.sendMessage(lang.msg("menu.guild_home.feedback.safety_hint"))
             open() // Reopen menu to show current state
             return
         }
 
         val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
         if (success) {
-            val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
-            player.sendMessage("§a✅ Guild $homeLabel set to your current location!")
-            player.sendMessage("§7Members can now use §6/guild home ${if (homeName == "main") "" else homeName}§7to teleport here.")
+            val homeLabel = if (homeName == "main") lang.raw("menu.guild_home.feedback.main_home") else lang.legacy("menu.guild_home.feedback.named_home", "home" to homeName)
+            player.sendMessage(lang.msg("menu.guild_home.feedback.set", "home" to homeLabel))
+            player.sendMessage(lang.msg("menu.guild_home.feedback.teleport_command", "home" to if (homeName == "main") "" else homeName))
 
             // Refresh the guild data and reopen menu
             guild = guildService.getGuild(guild.id) ?: guild
             open()
         } else {
-            player.sendMessage("§c❌ Failed to set guild home. Please try again.")
+            player.sendMessage(lang.msg("menu.guild_home.feedback.set_failed"))
             open() // Reopen menu to show current state
         }
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§eBack to Control Panel")
-            .lore("§7Return to guild management")
+            .name(lang.legacy("menu.guild_home.back.name"))
+            .lore(lang.legacy("menu.guild_home.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -389,7 +391,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     private fun startTeleportCountdown(home: GuildHome) {
         val world = Bukkit.getWorld(home.worldId)
         if (world == null) {
-            player.sendMessage("§c❌ Could not find the world for guild home.")
+            player.sendMessage(lang.msg("menu.guild_home.feedback.world_missing"))
             return
         }
 
@@ -403,8 +405,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         )
 
         if (configService.loadConfig().guild.homeTeleportSafetyCheck && !isLocationSafe(targetLocation)) {
-            player.sendMessage("§c❌ Guild home location is not safe to teleport to!")
-            player.sendMessage("§7Try setting your home on solid ground with space above you.")
+            player.sendMessage(lang.msg("menu.guild_home.feedback.unsafe_teleport"))
+            player.sendMessage(lang.msg("menu.guild_home.feedback.safety_hint"))
             return
         }
 

@@ -3,6 +3,7 @@ package net.lumalyte.lg.interaction.menus.guild
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
+import net.badgersmc.nexus.i18n.LangService
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import io.papermc.paper.datacomponent.DataComponentTypes
@@ -42,6 +43,7 @@ class PartyModerationMenu(
     private val memberService: MemberService by inject()
     private val partyService: PartyService by inject()
     private val menuFactory: MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private var currentPage = 0
     private val itemsPerPage = 36 // 9x4 grid for players
@@ -49,11 +51,11 @@ class PartyModerationMenu(
     override fun open() {
         // Check permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)) {
-            player.sendMessage("§c You don't have permission to moderate this channel!")
+            player.sendMessage(lang.msg("menu.party.moderation.feedback.no_permission"))
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Moderate: ${party.name ?: "Channel"}"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.party.moderation.title", "channel" to (party.name ?: lang.raw("menu.party.moderation.channel")))))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -94,8 +96,8 @@ class PartyModerationMenu(
 
         if (pageMembers.isEmpty()) {
             val noPlayersItem = ItemStack.of(Material.BARRIER)
-                .name("§cNo Players Online")
-                .lore("§7No other players are online in this channel")
+                .name(lang.legacy("menu.party.moderation.empty.name"))
+                .lore(lang.legacy("menu.party.moderation.empty.lore"))
             pane.addItem(GuiItem(noPlayersItem), 4, 1)
             return
         }
@@ -121,88 +123,87 @@ class PartyModerationMenu(
         )
 
         val meta = head.itemMeta as SkullMeta
-        val playerName = Bukkit.getOfflinePlayer(playerId).name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(playerId).name ?: lang.raw("menu.party.moderation.unknown_player")
         head.itemMeta = meta
 
         // Check moderation status
         val isMuted = party.isPlayerMuted(playerId)
         val isBanned = party.isPlayerBanned(playerId)
 
-        val statusColor = when {
-            isBanned -> "§c"
-            isMuted -> "§e"
-            else -> "§a"
+        val displayName = when {
+            isBanned -> lang.legacy("menu.party.moderation.player.name_banned", "player" to playerName)
+            isMuted -> lang.legacy("menu.party.moderation.player.name_muted", "player" to playerName)
+            else -> lang.legacy("menu.party.moderation.player.name_ok", "player" to playerName)
         }
 
-        val statusIcon = when {
-            isBanned -> "§c[BANNED]"
-            isMuted -> "§e[MUTED]"
-            else -> "§a[OK]"
-        }
-
-        return head.name("$statusColor$playerName $statusIcon")
-            .lore("§7Player: §f$playerName")
-            .lore("")
+        return head.name(displayName)
+            .lore(lang.legacy("menu.party.moderation.player.player", "player" to playerName))
+            .lore(lang.raw("menu.common.blank"))
             .apply {
                 if (isBanned) {
-                    lore("§c Status: BANNED")
-                    lore("§7Cannot access this channel")
+                    lore(lang.legacy("menu.party.moderation.player.banned"))
+                    lore(lang.legacy("menu.party.moderation.player.banned_lore"))
                 } else if (isMuted) {
                     val expiration = party.mutedPlayers[playerId]
                     if (expiration != null) {
                         val remaining = java.time.Duration.between(java.time.Instant.now(), expiration)
-                        lore("§e Status: MUTED")
-                        lore("§7Expires in: §f${remaining.toHours()}h ${remaining.toMinutes() % 60}m")
+                        lore(lang.legacy("menu.party.moderation.player.muted"))
+                        lore(lang.legacy("menu.party.moderation.player.expires", "hours" to remaining.toHours(), "minutes" to remaining.toMinutes() % 60))
                     } else {
-                        lore("§e Status: PERMANENTLY MUTED")
+                        lore(lang.legacy("menu.party.moderation.player.permanently_muted"))
                     }
                 } else {
-                    lore("§a Status: Normal")
+                    lore(lang.legacy("menu.party.moderation.player.normal"))
                 }
             }
-            .lore("")
-            .lore("§eClick to moderate this player")
+            .lore(lang.raw("menu.common.blank"))
+            .lore(lang.legacy("menu.party.moderation.player.click"))
     }
 
     private fun addModerationStatus(pane: StaticPane) {
         // Muted players count
         val activeMutes = party.getActiveMutes()
         val mutedItem = ItemStack.of(Material.BELL)
-            .name("§e Muted Players: ${activeMutes.size}")
-            .lore("§7Players currently muted in this channel")
+            .name(lang.legacy("menu.party.moderation.muted.name", "count" to activeMutes.size))
+            .lore(lang.legacy("menu.party.moderation.muted.lore"))
             .apply {
                 activeMutes.entries.take(5).forEach { (playerId, expiration) ->
-                    val name = Bukkit.getOfflinePlayer(playerId).name ?: "Unknown"
-                    val expText = expiration?.let { "until ${it}" } ?: "permanent"
-                    lore("§7- §f$name §7($expText)")
+                    val name = Bukkit.getOfflinePlayer(playerId).name ?: lang.raw("menu.party.moderation.unknown")
+                    val expText = expiration?.let { lang.legacy("menu.party.moderation.muted.until", "expiration" to it) } ?: lang.raw("menu.party.moderation.muted.permanent")
+                    lore(lang.legacy("menu.party.moderation.muted.row", "player" to name, "expiration" to expText))
                 }
                 if (activeMutes.size > 5) {
-                    lore("§7... and ${activeMutes.size - 5} more")
+                    lore(lang.legacy("menu.party.moderation.more", "count" to activeMutes.size - 5))
                 }
             }
         pane.addItem(GuiItem(mutedItem), 2, 4)
 
         // Banned players count
         val bannedItem = ItemStack.of(Material.BARRIER)
-            .name("§c Banned Players: ${party.bannedPlayers.size}")
-            .lore("§7Players banned from this channel")
+            .name(lang.legacy("menu.party.moderation.banned.name", "count" to party.bannedPlayers.size))
+            .lore(lang.legacy("menu.party.moderation.banned.lore"))
             .apply {
                 party.bannedPlayers.take(5).forEach { playerId ->
-                    val name = Bukkit.getOfflinePlayer(playerId).name ?: "Unknown"
-                    lore("§7- §f$name")
+                    val name = Bukkit.getOfflinePlayer(playerId).name ?: lang.raw("menu.party.moderation.unknown")
+                    lore(lang.legacy("menu.party.moderation.banned.row", "player" to name))
                 }
                 if (party.bannedPlayers.size > 5) {
-                    lore("§7... and ${party.bannedPlayers.size - 5} more")
+                    lore(lang.legacy("menu.party.moderation.more", "count" to party.bannedPlayers.size - 5))
                 }
             }
         pane.addItem(GuiItem(bannedItem), 6, 4)
 
         // Channel info
+        val restrictionStatus = if (party.hasRoleRestrictions()) {
+            lang.raw("menu.party.moderation.info.restricted")
+        } else {
+            lang.raw("menu.party.moderation.info.open")
+        }
         val infoItem = ItemStack.of(Material.BOOK)
-            .name("§b Channel Info")
-            .lore("§7Name: §f${party.name ?: "Unnamed"}")
-            .lore("§7Guilds: §f${party.guildIds.size}")
-            .lore("§7Restrictions: §f${if (party.hasRoleRestrictions()) "Role-restricted" else "Open"}")
+            .name(lang.legacy("menu.party.moderation.info.name"))
+            .lore(lang.legacy("menu.party.moderation.info.channel", "channel" to (party.name ?: lang.raw("menu.party.moderation.unnamed"))))
+            .lore(lang.legacy("menu.party.moderation.info.guilds", "count" to party.guildIds.size))
+            .lore(lang.legacy("menu.party.moderation.info.restrictions", "status" to restrictionStatus))
         pane.addItem(GuiItem(infoItem), 4, 4)
     }
 
@@ -213,8 +214,8 @@ class PartyModerationMenu(
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack.of(Material.ARROW)
-                .name("§f Previous Page")
-                .lore("§7Go to previous page")
+                .name(lang.legacy("menu.party.moderation.previous.name"))
+                .lore(lang.legacy("menu.party.moderation.previous.lore"))
             pane.addItem(GuiItem(prevItem) {
                 currentPage--
                 open()
@@ -224,8 +225,8 @@ class PartyModerationMenu(
         // Next page button
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack.of(Material.ARROW)
-                .name("§f Next Page")
-                .lore("§7Go to next page")
+                .name(lang.legacy("menu.party.moderation.next.name"))
+                .lore(lang.legacy("menu.party.moderation.next.lore"))
             pane.addItem(GuiItem(nextItem) {
                 currentPage++
                 open()
@@ -234,21 +235,21 @@ class PartyModerationMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§f Page ${currentPage + 1}/$totalPages")
+            .name(lang.legacy("menu.party.moderation.page", "page" to currentPage + 1, "total_pages" to totalPages))
         pane.addItem(GuiItem(pageItem), 2, 5)
 
         // Back button
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c Back")
-            .lore("§7Return to party management")
+            .name(lang.legacy("menu.party.moderation.back.name"))
+            .lore(lang.legacy("menu.party.moderation.back.lore"))
         pane.addItem(GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
         }, 4, 5)
 
         // Refresh button
         val refreshItem = ItemStack.of(Material.SUNFLOWER)
-            .name("§a Refresh")
-            .lore("§7Reload player list and status")
+            .name(lang.legacy("menu.party.moderation.refresh.name"))
+            .lore(lang.legacy("menu.party.moderation.refresh.lore"))
         pane.addItem(GuiItem(refreshItem) {
             // Reload party data from service
             val updatedParty = partyService.getActivePartiesForGuild(guild.id)

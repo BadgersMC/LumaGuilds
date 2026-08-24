@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.Guild
@@ -24,6 +25,7 @@ class BedrockPeaceAgreementMenu(
 
     private val warService: WarService by inject()
     private val guildRepository: GuildRepository by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -34,29 +36,32 @@ class BedrockPeaceAgreementMenu(
         val warOpponents = activeWars.map { war ->
             val opponentId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
             val opponentGuild = guildRepository.getById(opponentId)
-            "vs ${opponentGuild?.name ?: "Unknown"}"
+            lang.legacy(
+                "bedrock.peace_agreement.opponent",
+                "guild" to (opponentGuild?.name ?: lang.raw("bedrock.peace_agreement.unknown_guild"))
+            )
         }
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.peace.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.peace_agreement.title", "guild" to guild.name))
             .apply { peaceIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.peace.description"))
+            .label(lang.raw("bedrock.peace_agreement.description"))
             .apply {
                 if (warOpponents.isEmpty()) {
-                    label(bedrockLocalization.getBedrockString(player, "guild.peace.no.wars"))
+                    label(lang.raw("bedrock.peace_agreement.no_wars"))
                 } else {
                     dropdown(
-                        bedrockLocalization.getBedrockString(player, "guild.peace.select.war"),
+                        lang.raw("bedrock.peace_agreement.select_war"),
                         warOpponents
                     )
                     input(
-                        bedrockLocalization.getBedrockString(player, "guild.peace.terms"),
-                        bedrockLocalization.getBedrockString(player, "guild.peace.terms.placeholder"),
+                        lang.raw("bedrock.peace_agreement.terms.label"),
+                        lang.raw("bedrock.peace_agreement.terms.placeholder"),
                         ""
                     )
                     input(
-                        bedrockLocalization.getBedrockString(player, "guild.peace.reparations"),
-                        bedrockLocalization.getBedrockString(player, "guild.peace.reparations.placeholder"),
+                        lang.raw("bedrock.peace_agreement.reparations.label"),
+                        lang.raw("bedrock.peace_agreement.reparations.placeholder"),
                         "0"
                     )
                 }
@@ -74,7 +79,7 @@ class BedrockPeaceAgreementMenu(
 
                 val selectedWar = activeWars.getOrNull(warIndex)
                 if (selectedWar == null) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.peace.invalid.war"))
+                    player.sendMessage(lang.msg("bedrock.peace_agreement.feedback.invalid_war"))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }
@@ -103,10 +108,10 @@ class BedrockPeaceAgreementMenu(
         )
 
         if (peace != null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.peace.proposed.success"))
+            player.sendMessage(lang.msg("bedrock.peace_agreement.feedback.proposed"))
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.peace.proposed.failed"))
+            player.sendMessage(lang.msg("bedrock.peace_agreement.feedback.failed"))
             bedrockNavigator.goBack()
         }
     }

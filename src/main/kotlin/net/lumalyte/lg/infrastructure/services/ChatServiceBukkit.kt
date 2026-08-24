@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ChatSettingsRepository
 import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import net.lumalyte.lg.application.persistence.PartyRepository
@@ -27,7 +28,8 @@ class ChatServiceBukkit(
     private val configService: ConfigService,
     private val rankService: RankService,
     private val preferenceRepository: PlayerPartyPreferenceRepository,
-    private val partyRepository: PartyRepository
+    private val partyRepository: PartyRepository,
+    private val lang: LangService
 ) : ChatService {
 
     private val logger = LoggerFactory.getLogger(ChatServiceBukkit::class.java)
@@ -89,8 +91,19 @@ class ChatServiceBukkit(
 
     private fun formatAnnouncement(guild: Guild, name: String, message: String, colorDigit: Char): String {
         val headerColor = colorDigit.takeIf { it in '0'..'9' } ?: '6'
-        return "§$headerColor[§l${GuildDisplayUtils.createGuildTag(guild)} ANNOUNCEMENT§r§$headerColor]§r\n" +
-            "§e$name:§r $message"
+        val guildTag = GuildDisplayUtils.createGuildTag(guild)
+        return when (headerColor) {
+            '0' -> lang.legacy("notification.chat.announcement.black", "guild" to guildTag, "player" to name, "message" to message)
+            '1' -> lang.legacy("notification.chat.announcement.dark_blue", "guild" to guildTag, "player" to name, "message" to message)
+            '2' -> lang.legacy("notification.chat.announcement.dark_green", "guild" to guildTag, "player" to name, "message" to message)
+            '3' -> lang.legacy("notification.chat.announcement.dark_aqua", "guild" to guildTag, "player" to name, "message" to message)
+            '4' -> lang.legacy("notification.chat.announcement.dark_red", "guild" to guildTag, "player" to name, "message" to message)
+            '5' -> lang.legacy("notification.chat.announcement.dark_purple", "guild" to guildTag, "player" to name, "message" to message)
+            '7' -> lang.legacy("notification.chat.announcement.gray", "guild" to guildTag, "player" to name, "message" to message)
+            '8' -> lang.legacy("notification.chat.announcement.dark_gray", "guild" to guildTag, "player" to name, "message" to message)
+            '9' -> lang.legacy("notification.chat.announcement.blue", "guild" to guildTag, "player" to name, "message" to message)
+            else -> lang.legacy("notification.chat.announcement.gold", "guild" to guildTag, "player" to name, "message" to message)
+        }
     }
 
     private fun validateAnnouncement(announcerId: UUID, guildId: UUID): Guild? {
@@ -132,9 +145,9 @@ class ChatServiceBukkit(
             val guildDisplayName = GuildDisplayUtils.createGuildTag(guild)
             
             val formattedMessage = if (message != null) {
-                "§c[§l${guildDisplayName} PING§r§c]§r §e$pingerName:§r $message"
+                lang.legacy("notification.chat.ping.message", "guild" to guildDisplayName, "player" to pingerName, "message" to message)
             } else {
-                "§c[§l${guildDisplayName} PING§r§c]§r §e$pingerName§r pinged the guild!"
+                lang.legacy("notification.chat.ping.alert", "guild" to guildDisplayName, "player" to pingerName)
             }
             
             val recipients = getOnlineGuildMembers(guildId)
@@ -253,16 +266,16 @@ class ChatServiceBukkit(
         return when (channel) {
             ChatChannel.GUILD -> {
                 if (guildTag.isNotEmpty()) {
-                    "§2[G] $guildTag §a$senderName:§r $processedMessage"
+                    lang.legacy("notification.chat.guild.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
                 } else {
-                    "§2[G] §a$senderName:§r $processedMessage"
+                    lang.legacy("notification.chat.guild.without_tag", "player" to senderName, "message" to processedMessage)
                 }
             }
             ChatChannel.ALLY -> {
                 if (guildTag.isNotEmpty()) {
-                    "§3[A] $guildTag §b$senderName:§r $processedMessage"
+                    lang.legacy("notification.chat.ally.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
                 } else {
-                    "§3[A] §b$senderName:§r $processedMessage"
+                    lang.legacy("notification.chat.ally.without_tag", "player" to senderName, "message" to processedMessage)
                 }
             }
             ChatChannel.PARTY -> {
@@ -270,9 +283,9 @@ class ChatServiceBukkit(
             }
             ChatChannel.PUBLIC -> {
                 if (guildTag.isNotEmpty()) {
-                    "$guildTag §7$senderName:§r $processedMessage"
+                    lang.legacy("notification.chat.public.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
                 } else {
-                    "§7$senderName:§r $processedMessage"
+                    lang.legacy("notification.chat.public.without_tag", "player" to senderName, "message" to processedMessage)
                 }
             }
         }
@@ -285,21 +298,21 @@ class ChatServiceBukkit(
             if (!config.partyChatEnabled) {
                 // Fallback to basic formatting if disabled
                 return if (guildTag.isNotEmpty()) {
-                    "§d[P] $guildTag §d$senderName:§r $message"
+                    lang.legacy("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
                 } else {
-                    "§d[P] §d$senderName:§r $message"
+                    lang.legacy("notification.chat.party.without_tag", "player" to senderName, "message" to message)
                 }
             }
 
             // Get the party name for the sender using the current active party
             val party = getCurrentActiveParty(senderId)
-            val partyName = party?.name ?: "Party"
+            val partyName = party?.name ?: lang.raw("notification.chat.party.default_name")
 
             // Get the player object for PlaceholderAPI
             val player = Bukkit.getPlayer(senderId)
             if (player == null) {
                 logger.warn("Player $senderId not found for party message formatting")
-                return "§d[P] §d$senderName:§r $message"
+                return lang.legacy("notification.chat.party.without_tag", "player" to senderName, "message" to message)
             }
 
             // Determine if this is a guild-internal party (single guild only)
@@ -340,9 +353,9 @@ class ChatServiceBukkit(
             logger.error("Error formatting party message", e)
             // Fallback to basic formatting
             return if (guildTag.isNotEmpty()) {
-                "§d[P] $guildTag §d$senderName:§r $message"
+                lang.legacy("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
             } else {
-                "§d[P] §d$senderName:§r $message"
+                lang.legacy("notification.chat.party.without_tag", "player" to senderName, "message" to message)
             }
         }
     }

@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -23,14 +24,15 @@ class BedrockClaimIconMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val claimRepository: ClaimRepository by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
         if (claim == null) {
             return CustomForm.builder()
-                .title(bedrockLocalization.getBedrockString(player, "claim.icon.title"))
-                .label(bedrockLocalization.getBedrockString(player, "claim.icon.error"))
+                .title(lang.raw("bedrock.claim_icon.title"))
+                .label(lang.raw("bedrock.claim_icon.error"))
                 .validResultHandler { _ -> bedrockNavigator.goBack() }
                 .build()
         }
@@ -39,16 +41,16 @@ class BedrockClaimIconMenu(
         val commonIcons = listOf("GRASS_BLOCK", "OAK_LOG", "STONE", "DIAMOND_BLOCK", "GOLD_BLOCK", "EMERALD_BLOCK")
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "claim.icon.title")} - ${claim.name}")
-            .label(bedrockLocalization.getBedrockString(player, "claim.icon.current", currentIcon))
+            .title(lang.legacy("bedrock.claim_icon.claim_title", "claim" to claim.name))
+            .label(lang.legacy("bedrock.claim_icon.current", "icon" to currentIcon))
             .dropdown(
-                bedrockLocalization.getBedrockString(player, "claim.icon.select"),
+                lang.raw("bedrock.claim_icon.select"),
                 commonIcons,
                 commonIcons.indexOfFirst { it == currentIcon }.coerceAtLeast(0)
             )
             .input(
-                bedrockLocalization.getBedrockString(player, "claim.icon.custom"),
-                bedrockLocalization.getBedrockString(player, "claim.icon.custom.placeholder"),
+                lang.raw("bedrock.claim_icon.custom.label"),
+                lang.raw("bedrock.claim_icon.custom.placeholder"),
                 ""
             )
             .validResultHandler { response ->
@@ -61,7 +63,7 @@ class BedrockClaimIconMenu(
                         Material.valueOf(customInput)
                         customInput
                     } catch (e: IllegalArgumentException) {
-                        player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.icon.invalid"))
+                        player.sendMessage(lang.msg("bedrock.claim_icon.feedback.invalid"))
                         bedrockNavigator.goBack()
                         return@validResultHandler
                     }
@@ -71,7 +73,7 @@ class BedrockClaimIconMenu(
 
                 if (newIcon != currentIcon) {
                     claimRepository.update(claim.copy(icon = newIcon))
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.icon.updated", newIcon))
+                    player.sendMessage(lang.msg("bedrock.claim_icon.feedback.updated", "icon" to newIcon))
                 }
                 bedrockNavigator.goBack()
             }

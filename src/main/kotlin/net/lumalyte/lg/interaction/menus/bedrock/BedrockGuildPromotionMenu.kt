@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
@@ -30,21 +31,22 @@ class BedrockGuildPromotionMenu(
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val members = getPromotableMembers()
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.promotion.title")} - ${guild.name}")
-            .label(bedrockLocalization.getBedrockString(player, "guild.promotion.description"))
+            .title(lang.legacy("bedrock.promotion.title", "guild" to guild.name))
+            .label(lang.raw("bedrock.promotion.description"))
             .dropdown(
-                bedrockLocalization.getBedrockString(player, "guild.promotion.select.member"),
+                lang.raw("bedrock.promotion.select_member"),
                 createMemberOptions(members),
                 0
             )
             .dropdown(
-                bedrockLocalization.getBedrockString(player, "guild.promotion.select.rank"),
+                lang.raw("bedrock.promotion.select_rank"),
                 createRankOptions(ranks),
                 0
             )
@@ -65,32 +67,32 @@ class BedrockGuildPromotionMenu(
 
     private fun createMemberOptions(members: List<Member>): List<String> {
         if (members.isEmpty()) {
-            return listOf(bedrockLocalization.getBedrockString(player, "guild.promotion.no.members"))
+            return listOf(lang.raw("bedrock.promotion.no_members"))
         }
 
         return members.map { member ->
             val playerName = getPlayerName(member)
-            val currentRank = rankService.getRank(member.rankId)?.name ?: "Unknown"
-            "$playerName (${bedrockLocalization.getBedrockString(player, "guild.promotion.current.rank")}: $currentRank)"
+            val currentRank = rankService.getRank(member.rankId)?.name ?: lang.raw("bedrock.promotion.unknown_rank")
+            lang.legacy("bedrock.promotion.member_option", "player" to playerName, "rank" to currentRank)
         }
     }
 
     private fun createRankOptions(ranks: List<Rank>): List<String> {
         if (ranks.isEmpty()) {
-            return listOf(bedrockLocalization.getBedrockString(player, "guild.promotion.no.ranks"))
+            return listOf(lang.raw("bedrock.promotion.no_ranks"))
         }
 
         return ranks.map { rank ->
-            "${rank.name} (Priority: ${rank.priority})"
+            lang.legacy("bedrock.promotion.rank_option", "rank" to rank.name, "priority" to rank.priority)
         }
     }
 
     private fun getPlayerName(member: Member): String {
         return try {
-            player.server.getPlayer(member.playerId)?.name ?: "Unknown Player"
+            player.server.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.common.unknown_player")
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            "Unknown Player"
+            lang.raw("menu.common.unknown_player")
         }
     }
 
@@ -116,7 +118,7 @@ class BedrockGuildPromotionMenu(
 
             // Check if member is already at this rank
             if (selectedMember.rankId == selectedRank.id) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.promotion.same.rank"))
+                player.sendMessage(lang.msg("bedrock.promotion.feedback.same_rank"))
                 bedrockNavigator.goBack()
                 return
             }
@@ -124,7 +126,7 @@ class BedrockGuildPromotionMenu(
             // Check permissions
             val hasPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)
             if (!hasPermission) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.promotion.no.permission"))
+                player.sendMessage(lang.msg("bedrock.promotion.feedback.no_permission"))
                 bedrockNavigator.goBack()
                 return
             }
@@ -138,9 +140,9 @@ class BedrockGuildPromotionMenu(
             )
 
             if (success) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.promotion.success"))
+                player.sendMessage(lang.msg("bedrock.promotion.feedback.success"))
             } else {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.promotion.error"))
+                player.sendMessage(lang.msg("bedrock.promotion.feedback.error"))
             }
 
             bedrockNavigator.goBack()
@@ -148,7 +150,7 @@ class BedrockGuildPromotionMenu(
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error handling promotion form response: ${e.message}")
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.promotion.error"))
+            player.sendMessage(lang.msg("bedrock.promotion.feedback.error"))
             bedrockNavigator.goBack()
         }
     }

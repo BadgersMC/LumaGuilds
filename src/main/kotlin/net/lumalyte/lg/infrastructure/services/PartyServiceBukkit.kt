@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.persistence.PartyRequestRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.domain.entities.*
+import net.badgersmc.nexus.i18n.LangService
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -17,7 +18,8 @@ class PartyServiceBukkit(
     private val partyRepository: PartyRepository,
     private val partyRequestRepository: PartyRequestRepository,
     private val memberService: MemberService,
-    private val guildService: net.lumalyte.lg.application.services.GuildService
+    private val guildService: net.lumalyte.lg.application.services.GuildService,
+    private val lang: LangService
 ) : PartyService {
     
     private val logger = LoggerFactory.getLogger(PartyServiceBukkit::class.java)
@@ -76,9 +78,9 @@ class PartyServiceBukkit(
 
                     if (guildNames.isNotEmpty()) {
                         val partyMessage = if (guildNames.size == 1) {
-                            "§6★ §eA party has been created: §6${guildNames.first()} §eby §6$leaderName§e!"
+                            lang.legacy("party.notification.created_single", "guild" to guildNames.first(), "leader" to leaderName)
                         } else {
-                            "§6★ §eA party has been created with guilds: §6${guildNames.joinToString(", ")} §eby §6$leaderName§e!"
+                            lang.legacy("party.notification.created_multiple", "guilds" to guildNames.joinToString(", "), "leader" to leaderName)
                         }
 
                         // Send to all online players using ChatUtils for emoji sanitization
@@ -129,11 +131,12 @@ class PartyServiceBukkit(
                 // Send invitation message to all online players
                 val fromGuild = guildService.getGuild(fromGuildId)
                 val toGuild = guildService.getGuild(toGuildId)
-                val requesterPlayer = Bukkit.getServer().getPlayer(requesterId)
-
                 if (fromGuild != null && toGuild != null) {
-                    val requesterName = requesterPlayer?.name ?: "Unknown"
-                    val inviteMessage = "§6∩ §eGuild §6${fromGuild.name} §ehas invited §6${toGuild.name} §eto join a party!"
+                    val inviteMessage = lang.legacy(
+                        "party.notification.invitation_broadcast",
+                        "from_guild" to fromGuild.name,
+                        "to_guild" to toGuild.name,
+                    )
 
                     // Send to all online players using ChatUtils for emoji sanitization
                     net.lumalyte.lg.utils.ChatUtils.broadcastMessage(inviteMessage)
@@ -973,8 +976,8 @@ class PartyServiceBukkit(
                 // Notify target player they were kicked
                 val targetPlayer = Bukkit.getPlayer(targetPlayerId)
                 if (targetPlayer != null && targetPlayer.isOnline) {
-                    val partyName = party.name ?: "the party"
-                    targetPlayer.sendMessage("§c❌ You have been kicked from $partyName")
+                    val partyName = party.name ?: lang.raw("party.notification.unnamed")
+                    targetPlayer.sendMessage(lang.msg("party.notification.kicked", "party" to partyName))
                 }
             }
 

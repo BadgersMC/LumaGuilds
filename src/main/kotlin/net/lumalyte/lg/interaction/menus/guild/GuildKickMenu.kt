@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -31,6 +32,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private lateinit var memberPane: StaticPane
     private var currentPage = 0
@@ -38,7 +40,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
     override fun open() {
         // Create 6x9 double chest GUI
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Kick Member - ${guild.name}"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_kick.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -106,16 +108,16 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
         val meta = head.itemMeta as SkullMeta
 
         // Try to get player name from online players
-        val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.guild_kick.fallback.unknown_player")
 
         head.itemMeta = meta
 
-        return head.name("§c👤 $playerName")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Joined: §f${member.joinedAt}")
-            .lore("§7")
-            .lore("§cClick to kick from guild")
-            .lore("§c⚠ This cannot be undone!")
+        return head.name(lang.legacy("menu.guild_kick.member.name", "player" to playerName))
+            .lore(lang.legacy("menu.guild_kick.member.player", "player" to playerName))
+            .lore(lang.legacy("menu.guild_kick.member.joined", "date" to member.joinedAt))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_kick.member.action"))
+            .lore(lang.legacy("menu.guild_kick.member.warning"))
     }
 
     private fun kickMember(member: Member) {
@@ -131,8 +133,8 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Previous page button
         val prevItem = ItemStack.of(Material.ARROW)
-            .name("§f⬅ PREVIOUS PAGE")
-            .lore("§7Go to previous page")
+            .name(lang.legacy("menu.guild_kick.navigation.previous.name"))
+            .lore(lang.legacy("menu.guild_kick.navigation.previous.description"))
 
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
@@ -144,8 +146,8 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Next page button
         val nextItem = ItemStack.of(Material.ARROW)
-            .name("§fNEXT PAGE ➡")
-            .lore("§7Go to next page")
+            .name(lang.legacy("menu.guild_kick.navigation.next.name"))
+            .lore(lang.legacy("menu.guild_kick.navigation.next.description"))
 
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {
@@ -157,16 +159,16 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§f📄 PAGE ${currentPage + 1}/${maxOf(1, totalPages)}")
-            .lore("§7Current page indicator")
+            .name(lang.legacy("menu.guild_kick.navigation.page", "page" to currentPage + 1, "pages" to maxOf(1, totalPages)))
+            .lore(lang.legacy("menu.guild_kick.navigation.page_description"))
 
         pane.addItem(GuiItem(pageItem), 2, 5)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c⬅ BACK")
-            .lore("§7Return to guild control panel")
+            .name(lang.legacy("menu.guild_kick.navigation.back.name"))
+            .lore(lang.legacy("menu.guild_kick.navigation.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))

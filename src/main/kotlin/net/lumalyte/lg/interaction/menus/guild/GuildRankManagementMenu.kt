@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -30,6 +31,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
     private val memberService: MemberService by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private var currentPage = 0
     private val ranksPerPage = 12 // 4 columns × 3 rows (rows 0-2)
@@ -38,13 +40,17 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         // Security check: Only players with MANAGE_RANKS permission can access this menu
         val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
         if (!hasPermission) {
-            player.sendMessage("§c❌ You don't have permission to manage ranks!")
-            player.sendMessage("§7Required permission: §fMANAGE_RANKS")
+            player.sendMessage(lang.msg("menu.rank_management.feedback.no_permission"))
+            player.sendMessage(lang.msg("menu.rank_management.feedback.required_permission"))
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
             return
         }
 
-        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6Rank Management - ${guild.name}"))
+        val gui = ChestGui(5, MenuTitleBuilder.build(
+            guild.guiTheme,
+            5,
+            lang.legacy("menu.rank_management.title", "guild" to guild.name),
+        ))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
@@ -76,9 +82,9 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
         // Add new rank button
         val createRankItem = ItemStack.of(Material.EMERALD)
-            .name("§aCreate New Rank")
-            .lore("§7Add a new rank to your guild")
-            .lore("§7Maximum 10 ranks per guild")
+            .name(lang.legacy("menu.rank_management.item.create.name"))
+            .lore(lang.legacy("menu.rank_management.item.create.lore.description"))
+            .lore(lang.legacy("menu.rank_management.item.create.lore.limit"))
         val guiCreateItem = GuiItem(createRankItem) {
             menuNavigator.openMenu(menuFactory.createRankCreationMenu(menuNavigator, player, guild))
         }
@@ -86,7 +92,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§7← Back to Control Panel")
+            .name(lang.legacy("menu.rank_management.item.back.name"))
         val guiBackItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
@@ -98,8 +104,8 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
     private fun addNavigationButtons(pane: StaticPane, totalPages: Int, totalRanks: Int) {
         // Previous page button
         val prevItem = ItemStack.of(Material.ARROW)
-            .name("§f⬅ PREVIOUS PAGE")
-            .lore("§7Page ${currentPage + 1} of $totalPages")
+            .name(lang.legacy("menu.rank_management.item.previous.name"))
+            .lore(lang.legacy("menu.rank_management.item.pagination.lore", "current" to currentPage + 1, "total" to totalPages))
 
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
@@ -111,15 +117,15 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§f📄 PAGE ${currentPage + 1}/$totalPages")
-            .lore("§7$totalRanks ranks total")
+            .name(lang.legacy("menu.rank_management.item.page.name", "current" to currentPage + 1, "total" to totalPages))
+            .lore(lang.legacy("menu.rank_management.item.page.lore", "count" to totalRanks))
 
         pane.addItem(GuiItem(pageItem), 4, 3)
 
         // Next page button
         val nextItem = ItemStack.of(Material.ARROW)
-            .name("§fNEXT PAGE ➡")
-            .lore("§7Page ${currentPage + 1} of $totalPages")
+            .name(lang.legacy("menu.rank_management.item.next.name"))
+            .lore(lang.legacy("menu.rank_management.item.pagination.lore", "current" to currentPage + 1, "total" to totalPages))
 
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {
@@ -140,35 +146,37 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         }
 
         val rankItem = ItemStack.of(iconMaterial)
-            .name("§6${rank.name}")
-            .lore("§7Priority: §f${rank.priority}")
-            .lore("§7Members: §f${getMemberCount(rank.id)} players")
-            .lore("§7")
+            .name(lang.legacy("menu.rank_management.item.rank.name", "rank" to rank.name))
+            .lore(lang.legacy("menu.rank_management.item.rank.lore.priority", "priority" to rank.priority))
+            .lore(lang.legacy("menu.rank_management.item.rank.lore.members", "count" to getMemberCount(rank.id)))
+            .lore(lang.legacy("menu.common.blank"))
 
         // Add formatted permissions with proper line breaks
         if (rank.permissions.isNotEmpty()) {
-            rankItem.lore("§e⚙ Permissions:")
+            rankItem.lore(lang.legacy("menu.rank_management.item.rank.lore.permissions"))
             
             // Group permissions by category for better readability
             val permissionsByCategory = groupPermissionsByCategory(rank.permissions)
             
             permissionsByCategory.forEach { (category, perms) ->
                 if (perms.isNotEmpty()) {
-                    rankItem.lore("§7▶ §f$category:")
+                    rankItem.lore(lang.legacy("menu.rank_management.item.rank.lore.category", "category" to category))
                     perms.forEach { permission ->
-                        val displayName = permission.name.replace("_", " ").lowercase()
-                            .split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
-                        rankItem.lore("§7  • §a$displayName")
+                        val permissionKey = "permission.${permission.name.lowercase().replace("_", ".")}"
+                        rankItem.lore(lang.legacy(
+                            "menu.rank_management.item.rank.lore.permission",
+                            "permission" to lang.raw(permissionKey),
+                        ))
                     }
                 }
             }
         } else {
-            rankItem.lore("§c❌ No permissions assigned")
-            rankItem.lore("§7This rank cannot perform any actions")
+            rankItem.lore(lang.legacy("menu.rank_management.item.rank.lore.none"))
+            rankItem.lore(lang.legacy("menu.rank_management.item.rank.lore.none_description"))
         }
         
-        rankItem.lore("§7")
-        rankItem.lore("§eClick to edit this rank")
+        rankItem.lore(lang.legacy("menu.common.blank"))
+        rankItem.lore(lang.legacy("menu.rank_management.item.rank.lore.action"))
 
         val guiItem = GuiItem(rankItem) {
             openRankEditMenu(rank)
@@ -205,7 +213,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_DESCRIPTION,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_MODE,
-                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS -> lang.raw("menu.rank_management.category.guild_management")
 
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RELATIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.DECLARE_WAR,
@@ -213,7 +221,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PARTIES,
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_PARTY_REQUESTS,
                 net.lumalyte.lg.domain.entities.RankPermission.ACCEPT_PARTY_INVITES,
-                net.lumalyte.lg.domain.entities.RankPermission.USE_ALLY_HOMES -> "Diplomacy"
+                net.lumalyte.lg.domain.entities.RankPermission.USE_ALLY_HOMES -> lang.raw("menu.rank_management.category.diplomacy")
 
                 net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_BANK,
                 net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK,
@@ -227,22 +235,22 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 net.lumalyte.lg.domain.entities.RankPermission.BREAK_VAULT,
                 net.lumalyte.lg.domain.entities.RankPermission.ACCESS_SHOP_CHESTS,
                 net.lumalyte.lg.domain.entities.RankPermission.EDIT_SHOP_STOCK,
-                net.lumalyte.lg.domain.entities.RankPermission.MODIFY_SHOP_PRICES -> "Banking"
+                net.lumalyte.lg.domain.entities.RankPermission.MODIFY_SHOP_PRICES -> lang.raw("menu.rank_management.category.banking")
 
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_ANNOUNCEMENTS,
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_PINGS,
-                net.lumalyte.lg.domain.entities.RankPermission.MODERATE_CHAT -> "Communication"
+                net.lumalyte.lg.domain.entities.RankPermission.MODERATE_CHAT -> lang.raw("menu.rank_management.category.communication")
 
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_CLAIMS,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_FLAGS,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PERMISSIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.CREATE_CLAIMS,
-                net.lumalyte.lg.domain.entities.RankPermission.DELETE_CLAIMS -> "Claims"
+                net.lumalyte.lg.domain.entities.RankPermission.DELETE_CLAIMS -> lang.raw("menu.rank_management.category.claims")
 
                 net.lumalyte.lg.domain.entities.RankPermission.ACCESS_ADMIN_COMMANDS,
                 net.lumalyte.lg.domain.entities.RankPermission.BYPASS_RESTRICTIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.VIEW_AUDIT_LOGS,
-                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_INTEGRATIONS -> "Administrative"
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_INTEGRATIONS -> lang.raw("menu.rank_management.category.administrative")
             }
         }
     }
