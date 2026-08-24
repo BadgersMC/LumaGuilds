@@ -27,3 +27,9 @@ The `domain/**` package must stay free of framework and server annotations (no B
 - EARS requirements live in `docs/requirements.md`; tasks in `docs/tasks.md`; SPEAR state in `.claude/spear-state.json` (gitignored).
 - Every task carries exactly one tag (`TDD`/`DOC`/`INFRA`), a `References:` line, and an `Evidence:` block filled with real source citations during execution.
 - TDD tasks run the full cycle: spec → prove (failing test) → engine (min impl) → arch (layer check) → refine (green + close).
+
+## Weekly Guild Quests (PR-16)
+
+The domain owns typed quest definitions, conditions, provenance policies, validation results, and pure generation rules. The application layer owns the active-week lifecycle, progress evaluation, atomic claims, completion bonuses, and leaderboard payout orchestration through repository and Guild EXP ports. Infrastructure translates Bukkit/domain events into quest progress facts, persists active sets/progress/block provenance in SQLite, schedules reset catch-up, and supplies PlaceholderAPI adapters. Interaction renders the existing ChestGUI menu without mutating state except through the claim use case.
+
+One `WeeklyQuestSet` is shared server-wide for a stable reset-period ID. `GuildQuestProgress` is keyed by `(week_id, quest_id, guild_id)`. Location metadata never becomes an implicit condition: it is consulted only when validating an explicitly generated location condition. Reward flags and reset processing are persisted/idempotent; leaderboard payouts run before expired progress is cleared.

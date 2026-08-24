@@ -93,6 +93,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private val progressionRepository: ProgressionRepository by inject()
     private val leaderboardRepository: LeaderboardRepository by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
+    private val questService: QuestService by inject()
 
     private val miniMessage = MiniMessage.miniMessage()
     private val plainSerializer = PlainTextComponentSerializer.plainText()
@@ -121,6 +122,10 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         when {
             ident == "guild_total_count" -> return safeGuildCount()
             ident.startsWith("top_") -> return handleTopPlaceholder(ident)
+            ident.startsWith("guild_weekly_") -> {
+                val guildId = player?.uniqueId?.let { memberService.getPlayerGuilds(it).firstOrNull() }
+                return handleWeeklyQuestPlaceholder(ident, guildId)
+            }
         }
 
         if (player == null) return null
@@ -299,6 +304,62 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 null // Placeholder not found
             }
         }
+    }
+
+    private fun handleWeeklyQuestPlaceholder(identifier: String, guildId: UUID?): String {
+        val active = questService.activeQuestSet()
+        if (identifier == "guild_weekly_quests_time_remaining") return formatQuestDuration(questService.timeRemaining())
+        if (identifier == "guild_weekly_quests_count" || identifier == "guild_weekly_quests_total") {
+            return active?.quests?.size?.toString() ?: "0"
+        }
+        if (identifier == "guild_weekly_quests_bonus_exp") return questService.fullSetBonusExperience.toString()
+        if (identifier == "guild_weekly_quests_bonus_awarded") return (guildId?.let(questService::isWeeklyBonusAwarded) ?: false).toString()
+
+        val progress = if (guildId == null) emptyMap() else questService.guildProgress(guildId).associateBy { it.questId }
+        if (identifier == "guild_weekly_quests_completed") {
+            return active?.quests?.count { quest ->
+                quest.targetCount > 0 && (progress[quest.id]?.currentCount ?: 0) >= quest.targetCount
+            }?.toString() ?: "0"
+        }
+        if (identifier == "guild_weekly_quests_all_completed") {
+            val milestones = active?.quests?.filter { it.targetCount > 0 }.orEmpty()
+            return (milestones.isNotEmpty() && milestones.all { (progress[it.id]?.currentCount ?: 0) >= it.targetCount }).toString()
+        }
+
+        val match = WEEKLY_QUEST_PATTERN.matchEntire(identifier) ?: return ""
+        val index = match.groupValues[1].toIntOrNull()?.minus(1) ?: return ""
+        val field = match.groupValues[2]
+        val quest = active?.quests?.getOrNull(index) ?: return ""
+        val current = progress[quest.id]
+        val count = current?.currentCount ?: 0
+        val percentage = if (quest.targetCount > 0) ((count.coerceAtMost(quest.targetCount) * 100) / quest.targetCount) else 0
+        return when (field) {
+            "name" -> "${displayQuestToken(quest.action.name)} ${displayQuestToken(quest.target.id)}"
+            "description" -> buildString {
+                append(quest.targetCount).append(' ').append(displayQuestToken(quest.target.id))
+                quest.condition?.let { append(' ').append(displayQuestToken(it.type.name)).append(' ').append(displayQuestToken(it.value.orEmpty())) }
+            }.trim()
+            "action" -> quest.action.name
+            "target" -> quest.target.id
+            "required" -> quest.targetCount.toString()
+            "progress" -> count.toString()
+            "progress_percent" -> percentage.toString()
+            "completed" -> (quest.targetCount > 0 && count >= quest.targetCount).toString()
+            "claimed" -> (current?.claimed == true).toString()
+            "reward_exp" -> quest.experienceReward.toString()
+            else -> ""
+        }
+    }
+
+    private fun formatQuestDuration(duration: Duration): String {
+        val days = duration.toDays()
+        val hours = duration.minusDays(days).toHours()
+        val minutes = duration.minusDays(days).minusHours(hours).toMinutes()
+        return "${days}d ${hours}h ${minutes}m"
+    }
+
+    private fun displayQuestToken(value: String): String = value.lowercase().split('_').joinToString(" ") {
+        it.replaceFirstChar(Char::uppercase)
     }
 
     /**
@@ -558,5 +619,6 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     companion object {
         private const val TOP_CACHE_LIMIT = 25
         private val TOP_CATEGORIES = setOf("level", "balance", "activity", "members", "age")
+        private val WEEKLY_QUEST_PATTERN = Regex("guild_weekly_quest_(\\d+)_(.+)")
     }
 }

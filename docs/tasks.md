@@ -483,3 +483,26 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Files: guild delete path, broadcast
   - Harvest: `AnnouncementService` + repo from closed PR #7 (superseded) — shared with LG-1401
 
+## PR-16 — Weekly guild quests
+
+- [x] **LG-1601** Typed weekly quest domain, semantic validator, and bounded shared-set generator
+  - Tag: `TDD`
+  - References: REQ-074, REQ-075; `docs/implementation.md` §Layer Dependency Rules
+  - Evidence: `QuestGenerationValidatorTest` + `QuestGeneratorTest` RED on missing domain API, then GREEN (6 tests); `LayerRulesTest` GREEN; domain contains no Bukkit/framework imports.
+  - Files: `domain/values/QuestAction.kt`, `domain/entities/QuestDefinition.kt`, quest validation/generation domain services, domain tests
+- [x] **LG-1602** Persist shared weekly sets and per-guild progress; implement reset, milestone claims, full-set bonus, and leaderboard payouts
+  - Tag: `TDD`
+  - References: REQ-074, REQ-077
+  - Evidence: `QuestServiceTest` RED then 3 GREEN lifecycle/idempotency tests; `QuestRepositorySQLiteTest` RED then 2 GREEN restart/atomic-marker tests; progression config loads weekly settings and ships generous configurable XP defaults.
+  - Files: quest repository port/SQLite adapter, `application/services/QuestService.kt`, progression config/service, lifecycle tests
+- [x] **LG-1603** Track configured Bukkit/domain activities and enforce per-action block provenance
+  - Tag: `TDD`
+  - References: REQ-076
+  - Evidence: `BlockProvenanceRepositorySQLiteTest` RED then 2 GREEN restart/piston tests; `QuestServiceTest.player placed block cannot satisfy natural only quest` RED then GREEN; listener normalizes 10 activity families and reconciles break/place/explosion/piston provenance.
+  - Files: `infrastructure/listeners/QuestProgressListener.kt`, block-provenance port/SQLite adapter, listener and persistence tests
+- [x] **LG-1604** Add localized weekly quest menu, dashboard navigation, timer/quest placeholders, DI, startup wiring, and shipped configuration
+  - Tag: `TDD`
+  - References: REQ-078, REQ-079
+  - Evidence: dashboard/factory/6-row ChestGUI wired; read-only aggregate/indexed placeholders documented; `MenuLocalizationTest`, `LocaleContractTest`, and `LayerRulesTest` GREEN; `clean test` GREEN (620 tests); `clean compileKotlin` GREEN.
+  - Files: `GuildQuestsMenu.kt`, `GuildDashboard.kt`, `MenuFactory.kt`, `LumaGuildsExpansion.kt`, `Modules.kt`, `LumaGuilds.kt`, `progression.yml`, `lang/en_US.yml`, menu/placeholder contract tests
+

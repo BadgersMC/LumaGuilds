@@ -41,10 +41,57 @@ class ProgressionConfigService(private val plugin: Plugin) {
             levelsNoClaims = loadLevelRewards("levels_no_claims"),
             milestones = loadMilestones(),
             activity = loadActivityTracking(),
-            leaderboards = loadLeaderboards()
+            leaderboards = loadLeaderboards(),
+            quests = loadQuests()
         )
 
         return progressionConfig!!
+    }
+
+    private fun loadQuests(): QuestSystemConfig {
+        val base = "quests"
+        val definitions = yamlConfig.getConfigurationSection("$base.definitions")?.getKeys(false).orEmpty().mapNotNull { id ->
+            val path = "$base.definitions.$id"
+            val action = yamlConfig.getString("$path.action") ?: return@mapNotNull null
+            val target = yamlConfig.getString("$path.target") ?: return@mapNotNull null
+            val amount = yamlConfig.getLong("$path.amount", 0L)
+            if (amount < 0L) return@mapNotNull null
+            QuestDefinitionConfig(
+                id = id,
+                nameKey = yamlConfig.getString("$path.name_key") ?: "quests.$id.name",
+                descriptionKey = yamlConfig.getString("$path.description_key") ?: "quests.$id.description",
+                action = action.uppercase(),
+                target = target.uppercase(),
+                amount = amount,
+                tier = yamlConfig.getString("$path.tier", "COMMON")!!.uppercase(),
+                weight = yamlConfig.getInt("$path.weight", 1).coerceAtLeast(1),
+                conditionType = yamlConfig.getString("$path.condition.type")?.uppercase(),
+                conditionValue = yamlConfig.getString("$path.condition.value")?.uppercase(),
+                naturalDimensions = yamlConfig.getStringList("$path.natural_dimensions").map(String::uppercase).toSet(),
+                naturalBiomes = yamlConfig.getStringList("$path.natural_biomes").map(String::uppercase).toSet(),
+                minimumAmount = yamlConfig.getLong("$path.minimum_amount", amount),
+                maximumAmount = yamlConfig.getLong("$path.maximum_amount", amount),
+                provenancePolicy = yamlConfig.getString("$path.provenance", "ANY")!!.uppercase(),
+                leaderboard = yamlConfig.getBoolean("$path.leaderboard", false),
+                leaderboardPayouts = yamlConfig.getConfigurationSection("$path.leaderboard_payouts")?.getKeys(false).orEmpty()
+                    .mapNotNull { rank -> rank.toIntOrNull()?.let { it to yamlConfig.getInt("$path.leaderboard_payouts.$rank") } }
+                    .toMap()
+            )
+        }
+        return QuestSystemConfig(
+            enabled = yamlConfig.getBoolean("$base.enabled", true),
+            resetDay = loadDayOfWeek(yamlConfig.getString("$base.reset_day") ?: "MONDAY"),
+            resetHourUtc = yamlConfig.getInt("$base.reset_hour_utc", 0).coerceIn(0, 23),
+            questCount = yamlConfig.getInt("$base.quest_count", 3).coerceAtLeast(1),
+            fullSetBonusXp = yamlConfig.getInt("$base.full_set_bonus_xp", 5_000).coerceAtLeast(0),
+            rewardXp = QuestRewardXpConfig(
+                common = yamlConfig.getInt("$base.reward_xp.common", 500),
+                challenging = yamlConfig.getInt("$base.reward_xp.challenging", 1_500),
+                headline = yamlConfig.getInt("$base.reward_xp.headline", 3_000),
+                conditioned = yamlConfig.getInt("$base.reward_xp.conditioned", 5_000)
+            ),
+            definitions = definitions
+        )
     }
 
     /**
