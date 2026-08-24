@@ -234,7 +234,7 @@ class GuildBankMenu(
         val customDepositItem = createMenuItem(
             Material.GREEN_WOOL,
             getLocalizedString("menu.bank.custom.deposit"),
-            listOf("Enter custom deposit amount")
+            listOf(lang.raw("menu.bank.custom.deposit_description"))
         )
         val depositGuiItem = GuiItem(customDepositItem) { event ->
             event.isCancelled = true
@@ -246,7 +246,7 @@ class GuildBankMenu(
         val customWithdrawItem = createMenuItem(
             Material.RED_WOOL,
             getLocalizedString("menu.bank.custom.withdraw"),
-            listOf("Enter custom withdrawal amount")
+            listOf(lang.raw("menu.bank.custom.withdraw_description"))
         )
         val withdrawGuiItem = GuiItem(customWithdrawItem) { event ->
             event.isCancelled = true
@@ -272,7 +272,10 @@ class GuildBankMenu(
             createMenuItem(
                 Material.BOOK,
                 getLocalizedString("menu.bank.history.title", "guild" to guild.name),
-                listOf("${transactions.size} recent transactions", "Click to view full history")
+                listOf(
+                    lang.legacy("menu.bank.history.recent", "count" to transactions.size),
+                    lang.raw("menu.bank.history.open_action")
+                )
             )
         }
 
@@ -300,7 +303,7 @@ class GuildBankMenu(
         val statsItem = createMenuItem(
             Material.BOOK,
             getLocalizedString("menu.bank.stats.title"),
-            listOf("View detailed bank statistics and analytics")
+            listOf(lang.raw("menu.bank.navigation.statistics_description"))
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -336,7 +339,7 @@ class GuildBankMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf("Return to guild control panel")
+            listOf(lang.raw("menu.bank.navigation.back_description"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -517,7 +520,7 @@ class GuildBankMenu(
                 "amount" to amount,
             ).color(NamedTextColor.GREEN)
             player.sendMessage(message)
-            showSuccessFeedback("Deposit successful!", amount.toLong())
+            showSuccessFeedback(lang.raw("menu.bank.feedback.deposit_overlay"), amount.toLong())
             true
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
@@ -589,7 +592,7 @@ class GuildBankMenu(
                 "amount" to amount,
             ).color(NamedTextColor.GREEN)
             player.sendMessage(message)
-            showSuccessFeedback("Withdrawal successful!", -amount.toLong())
+            showSuccessFeedback(lang.raw("menu.bank.feedback.withdraw_overlay"), -amount.toLong())
             true
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
@@ -608,7 +611,7 @@ class GuildBankMenu(
             TransactionType.DEPOSIT -> getLocalizedString("menu.bank.transaction.deposit")
             TransactionType.WITHDRAWAL -> getLocalizedString("menu.bank.transaction.withdrawal")
             TransactionType.FEE -> getLocalizedString("menu.bank.transaction.fee")
-            TransactionType.DEDUCTION -> "Deduction"
+            TransactionType.DEDUCTION -> getLocalizedString("menu.bank.transaction.deduction")
         }
 
         val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: lang.raw("menu.bank.transaction.unknown_actor")

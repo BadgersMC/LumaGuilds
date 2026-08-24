@@ -155,8 +155,8 @@ class GuildBankAutomationMenu(
         // Back to bank button
         val backItem = createMenuItem(
             Material.ARROW,
-            getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf("Return to guild bank")
+            lang.raw("menu.bank_automation.navigation.bank.name"),
+            listOf(lang.raw("menu.bank_automation.navigation.bank.description"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -167,8 +167,8 @@ class GuildBankAutomationMenu(
         // Back to statistics button
         val statsItem = createMenuItem(
             Material.BOOK,
-            getLocalizedString("menu.bank.stats.title"),
-            listOf("Return to statistics")
+            lang.raw("menu.bank_automation.navigation.statistics.name"),
+            listOf(lang.raw("menu.bank_automation.navigation.statistics.description"))
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -193,8 +193,8 @@ class GuildBankAutomationMenu(
         // Close button
         val closeItem = createMenuItem(
             Material.BARRIER,
-            getLocalizedString("menu.bank.close"),
-            listOf("Close menu")
+            lang.raw("menu.bank_automation.navigation.close.name"),
+            listOf(lang.raw("menu.bank_automation.navigation.close.description"))
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -546,10 +546,15 @@ class GuildBankAutomationMenu(
         return item
     }
 
-    /**
-     * Get localized string with optional parameters
-     */
-    private fun getLocalizedString(key: String): String {
-        return lang.legacy(key)
+    private fun toggleStatus(enabled: Boolean): String = if (enabled) {
+        lang.raw("menu.bank_automation.common.status.enabled")
+    } else {
+        lang.raw("menu.bank_automation.common.status.disabled")
+    }
+
+    private fun toggleWord(enabled: Boolean): String = if (enabled) {
+        lang.raw("menu.bank_automation.common.enabled_word")
+    } else {
+        lang.raw("menu.bank_automation.common.disabled_word")
     }
 }

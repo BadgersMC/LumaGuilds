@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.i18n
 
 import net.lumalyte.lg.domain.values.ClaimPermission
 import net.lumalyte.lg.domain.values.Flag
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.help.HelpTopics
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
@@ -26,6 +27,9 @@ class LocaleContractTest {
     private val flagDynamicKeys = Flag.entries
         .flatMap { listOf(it.nameKey, it.loreKey) }
         .toSet()
+    private val rankPermissionDynamicKeys = RankPermission.entries
+        .map { permission -> "permission.${permission.name.lowercase().replace("_", ".")}" }
+        .toSet()
     private val finiteMenuStateKeys = setOf(
         "menu.settings.item.mode.lore.hostile",
         "menu.settings.item.mode.lore.peaceful",
@@ -46,7 +50,7 @@ class LocaleContractTest {
     )
     private val helpTopicDynamicKeys = HelpTopics.all.flatMap { listOf(it.menuKey, it.pageKey) }.toSet()
     private val declaredDynamicKeys =
-        claimPermissionDynamicKeys + flagDynamicKeys + finiteMenuStateKeys + helpTopicDynamicKeys
+        claimPermissionDynamicKeys + flagDynamicKeys + rankPermissionDynamicKeys + finiteMenuStateKeys + helpTopicDynamicKeys
 
     @Test
     fun `locale contains no positional placeholders`() {
@@ -104,6 +108,9 @@ class LocaleContractTest {
     fun `finite dynamic localization families are declared exactly`() {
         val permissionKeys = ClaimPermission.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
         val flagKeys = Flag.entries.flatMap { listOf(it.nameKey, it.loreKey) }.toSet()
+        val rankPermissionKeys = RankPermission.entries
+            .map { permission -> "permission.${permission.name.lowercase().replace("_", ".")}" }
+            .toSet()
 
         val expectedMenuStateKeys = setOf(
             "menu.settings.item.mode.lore.hostile",
@@ -130,7 +137,7 @@ class LocaleContractTest {
             .toSet()
 
         assertEquals(
-            permissionKeys + flagKeys + expectedMenuStateKeys + expectedHelpTopicKeys,
+            permissionKeys + flagKeys + rankPermissionKeys + expectedMenuStateKeys + expectedHelpTopicKeys,
             declaredDynamicKeys,
         )
     }
@@ -293,9 +300,9 @@ class LocaleContractTest {
     private companion object {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
-        const val BASELINE_UNUSED_KEYS = 341
-        const val BASELINE_DYNAMIC_CALLS = 25
-        const val BASELINE_HARDCODED_PLAYER_TEXT = 3338
+        const val BASELINE_UNUSED_KEYS = 0
+        const val BASELINE_DYNAMIC_CALLS = 30
+        const val BASELINE_HARDCODED_PLAYER_TEXT = 0
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }
 }
