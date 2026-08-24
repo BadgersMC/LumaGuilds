@@ -1,7 +1,8 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.badgersmc.nexus.i18n.LangService
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+import net.kyori.adventure.text.Component
+import net.lumalyte.lg.infrastructure.i18n.plain
 import net.lumalyte.lg.utils.CombatUtil
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -124,7 +125,7 @@ class TeleportationService(
         player.sendMessage(
             lang.msg("notification.teleport.countdown_started", "duration" to countdownSecondsPhrase(COUNTDOWN_SECONDS)),
         )
-        player.sendActionBar(LEGACY.deserialize(countdownActionBarLegacyString(COUNTDOWN_SECONDS)))
+        player.sendActionBar(countdownActionBar(COUNTDOWN_SECONDS))
     }
 
     /** Chat phrase: "1 second" vs "N seconds" for countdown copy. */
@@ -132,15 +133,15 @@ class TeleportationService(
         if (seconds == 1) {
             lang.raw("notification.teleport.duration.one")
         } else {
-            lang.legacy("notification.teleport.duration.many", "seconds" to seconds)
+            lang.plain("notification.teleport.duration.many", "seconds" to seconds)
         }
 
-    /** Legacy-section action bar string for "N second(s)" remaining. */
-    private fun countdownActionBarLegacyString(remaining: Int): String =
+    /** Adventure action bar component for "N second(s)" remaining. */
+    private fun countdownActionBar(remaining: Int): Component =
         if (remaining == 1) {
-            lang.legacy("notification.teleport.action_bar.one")
+            lang.msg("notification.teleport.action_bar.one")
         } else {
-            lang.legacy("notification.teleport.action_bar.many", "seconds" to remaining)
+            lang.msg("notification.teleport.action_bar.many", "seconds" to remaining)
         }
 
     /** Per-tick (1s) countdown runnable; checks movement, decrements, triggers teleport at 0. */
@@ -172,7 +173,7 @@ class TeleportationService(
     private fun tickCountdown(session: TeleportSession) {
         session.remainingSeconds--
         if (session.remainingSeconds > 0) {
-            session.player.sendActionBar(LEGACY.deserialize(countdownActionBarLegacyString(session.remainingSeconds)))
+            session.player.sendActionBar(countdownActionBar(session.remainingSeconds))
         }
     }
 
@@ -245,7 +246,6 @@ class TeleportationService(
 
     /** Named magic-number constants used by the countdown and movement check. */
     companion object {
-        private val LEGACY = LegacyComponentSerializer.legacySection()
         private const val COUNTDOWN_SECONDS = 5
         private const val TICKS_PER_SECOND = 20L
         private const val MOVEMENT_TOLERANCE = 0.1

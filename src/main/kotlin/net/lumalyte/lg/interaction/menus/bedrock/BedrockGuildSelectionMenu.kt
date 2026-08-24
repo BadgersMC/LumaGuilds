@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -45,8 +47,8 @@ class BedrockGuildSelectionMenu(
         val pageGuilds = allGuilds.subList(startIndex, endIndex)
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.party.guild_selection.title", "page" to currentPage + 1, "total_pages" to maxOf(1, totalPages)))
-            .content(lang.legacy(
+            .title(lang.bedrock("bedrock.party.guild_selection.title", "page" to currentPage + 1, "total_pages" to maxOf(1, totalPages)))
+            .content(lang.bedrock(
                 "bedrock.party.guild_selection.content",
                 "selected" to selectedGuilds.size,
                 "start" to startIndex + 1,
@@ -59,17 +61,17 @@ class BedrockGuildSelectionMenu(
                     val isSelected = selectedGuilds.contains(guild.id)
                     val memberCount = memberService.getGuildMembers(guild.id).size
                     val statusText = if (isSelected) {
-                        lang.raw("bedrock.party.guild_selection.status.selected")
+                        lang.bedrock("bedrock.party.guild_selection.status.selected")
                     } else {
-                        lang.raw("bedrock.party.guild_selection.status.available")
+                        lang.bedrock("bedrock.party.guild_selection.status.available")
                     }
                     val actionText = if (isSelected) {
-                        lang.raw("bedrock.party.guild_selection.action.remove")
+                        lang.bedrock("bedrock.party.guild_selection.action.remove")
                     } else {
-                        lang.raw("bedrock.party.guild_selection.action.add")
+                        lang.bedrock("bedrock.party.guild_selection.action.add")
                     }
 
-                    button(lang.legacy(
+                    button(lang.bedrock(
                         "bedrock.party.guild_selection.guild_button",
                         "guild" to guild.name,
                         "members" to memberCount,
@@ -80,16 +82,16 @@ class BedrockGuildSelectionMenu(
 
                 // Add navigation buttons (only if needed)
                 if (currentPage > 0) {
-                    button(lang.raw("bedrock.party.guild_selection.button.previous"))
+                    button(lang.bedrock("bedrock.party.guild_selection.button.previous"))
                 }
                 if (currentPage < totalPages - 1) {
-                    button(lang.raw("bedrock.party.guild_selection.button.next"))
+                    button(lang.bedrock("bedrock.party.guild_selection.button.next"))
                 }
 
                 // Add summary and action buttons
-                button(lang.legacy("bedrock.party.guild_selection.button.view_selected", "count" to selectedGuilds.size))
-                button(lang.raw("bedrock.party.guild_selection.button.done"))
-                button(lang.raw("bedrock.party.guild_selection.button.cancel"))
+                button(lang.bedrock("bedrock.party.guild_selection.button.view_selected", "count" to selectedGuilds.size))
+                button(lang.bedrock("bedrock.party.guild_selection.button.done"))
+                button(lang.bedrock("bedrock.party.guild_selection.button.cancel"))
             }
             .validResultHandler { response ->
                 val clickedIndex = response.clickedButtonId()
@@ -164,33 +166,33 @@ class BedrockGuildSelectionMenu(
         val config = getBedrockConfig()
         val guildRows = selectedGuilds.joinToString("\n") { guildId ->
             val guild = guildService.getGuild(guildId)
-            lang.legacy(
+            lang.bedrock(
                 "bedrock.party.guild_selection.summary.guild_row",
-                "guild" to (guild?.name ?: lang.raw("bedrock.party.guild_selection.unknown_guild")),
+                "guild" to (guild?.name ?: lang.bedrock("bedrock.party.guild_selection.unknown_guild")),
             )
         }
         val summaryForm = SimpleForm.builder()
-            .title(lang.raw("bedrock.party.guild_selection.summary.title"))
-            .content(lang.legacy(
+            .title(lang.bedrock("bedrock.party.guild_selection.summary.title"))
+            .content(lang.bedrock(
                 "bedrock.party.guild_selection.summary.content",
                 "guilds" to guildRows,
                 "total" to selectedGuilds.size,
             ))
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.party.guild_selection.summary.continue"),
+                lang.bedrock("bedrock.party.guild_selection.summary.continue"),
                 config.confirmIconUrl,
                 config.confirmIconPath
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.party.guild_selection.summary.create"),
+                lang.bedrock("bedrock.party.guild_selection.summary.create"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.party.guild_selection.summary.clear"),
+                lang.bedrock("bedrock.party.guild_selection.summary.clear"),
                 config.cancelIconUrl,
                 config.cancelIconPath
             )

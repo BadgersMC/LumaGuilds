@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.common
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.HopperGui
@@ -32,8 +33,8 @@ class ConfirmationMenu(val menuNavigator: MenuNavigator, val player: Player, val
 
         // Add no menu item
         val noItem = ItemStack.of(Material.RED_CONCRETE)
-            .name(lang.legacy("menu.confirmation.item.no.name"))
-            .lore(lang.legacy("menu.confirmation.item.no.lore"))
+            .name(lang.gui("menu.confirmation.item.no.name"))
+            .lore(lang.gui("menu.confirmation.item.no.lore"))
 
         val guiNoItem = GuiItem(noItem) { guiEvent ->
             menuNavigator.goBack()
@@ -42,8 +43,8 @@ class ConfirmationMenu(val menuNavigator: MenuNavigator, val player: Player, val
 
         // Add yes menu item
         val yesItem = ItemStack.of(Material.GREEN_CONCRETE)
-            .name(lang.legacy("menu.confirmation.item.yes.name"))
-            .lore(lang.legacy("menu.confirmation.item.yes.lore"))
+            .name(lang.gui("menu.confirmation.item.yes.name"))
+            .lore(lang.gui("menu.confirmation.item.yes.lore"))
         val guiYesItem = GuiItem(yesItem) { guiEvent ->
             callbackAction()
             menuNavigator.goBack()

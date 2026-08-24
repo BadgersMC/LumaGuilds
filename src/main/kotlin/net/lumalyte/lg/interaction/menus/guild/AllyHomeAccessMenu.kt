@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -53,7 +55,7 @@ class AllyHomeAccessMenu(
             }
         val allowed = current.allyHomeAllowedGuilds.toMutableSet()
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.legacy("menu.ally_home_access.title")))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.ally_home_access.title")))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick {
@@ -67,10 +69,10 @@ class AllyHomeAccessMenu(
             val on = allyId in allowed
             val item = ItemStack.of(if (on) Material.LIME_DYE else Material.GRAY_DYE)
                 .name(
-                    if (on) lang.legacy("menu.ally_home_access.ally.allowed", "guild" to allyName)
-                    else lang.legacy("menu.ally_home_access.ally.denied", "guild" to allyName)
+                    if (on) lang.gui("menu.ally_home_access.ally.allowed", "guild" to allyName)
+                    else lang.gui("menu.ally_home_access.ally.denied", "guild" to allyName)
                 )
-                .lore(lang.legacy("menu.ally_home_access.ally.toggle"))
+                .lore(lang.gui("menu.ally_home_access.ally.toggle"))
             pane.addItem(GuiItem(item) {
                 if (allyId in allowed) allowed.remove(allyId) else allowed.add(allyId)
                 guildService.setAllyHomeAllowedGuilds(guild.id, allowed.toSet(), player.uniqueId)
@@ -79,12 +81,12 @@ class AllyHomeAccessMenu(
         }
 
         val info = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.ally_home_access.info.name"))
-            .lore(lang.legacy("menu.ally_home_access.info.description"))
-            .lore(lang.legacy("menu.ally_home_access.info.instructions"))
+            .name(lang.gui("menu.ally_home_access.info.name"))
+            .lore(lang.gui("menu.ally_home_access.info.description"))
+            .lore(lang.gui("menu.ally_home_access.info.instructions"))
         pane.addItem(GuiItem(info), 4, 3)
 
-        val backItem = ItemStack.of(Material.ARROW).name(lang.legacy("menu.ally_home_access.back"))
+        val backItem = ItemStack.of(Material.ARROW).name(lang.gui("menu.ally_home_access.back"))
         pane.addItem(GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
         }, 8, 3)

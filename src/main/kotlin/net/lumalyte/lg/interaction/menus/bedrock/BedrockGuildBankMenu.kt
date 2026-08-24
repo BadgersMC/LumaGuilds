@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
@@ -42,35 +44,35 @@ class BedrockGuildBankMenu(
         val bankIcon = BedrockFormUtils.createFormImage(config, config.guildBankIconUrl, config.guildBankIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.bank.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.bank.title", "guild" to guild.name))
             .apply { bankIcon?.let { icon(it) } }
             .label(createBalanceInfoSection(playerBalance, guildBalance))
             .slider(
-                lang.raw("bedrock.bank.deposit.slider"),
+                lang.bedrock("bedrock.bank.deposit.slider"),
                 0f,
                 playerBalance.toFloat(),
                 100f,
                 0f
             )
             .input(
-                lang.raw("bedrock.bank.deposit.custom_label"),
-                lang.raw("bedrock.bank.deposit.custom_placeholder"),
+                lang.bedrock("bedrock.bank.deposit.custom_label"),
+                lang.bedrock("bedrock.bank.deposit.custom_placeholder"),
                 ""
             )
             .slider(
-                lang.raw("bedrock.bank.withdraw.slider"),
+                lang.bedrock("bedrock.bank.withdraw.slider"),
                 0f,
                 guildBalance.toFloat(),
                 100f,
                 0f
             )
             .input(
-                lang.raw("bedrock.bank.withdraw.custom_label"),
-                lang.raw("bedrock.bank.withdraw.custom_placeholder"),
+                lang.bedrock("bedrock.bank.withdraw.custom_label"),
+                lang.bedrock("bedrock.bank.withdraw.custom_placeholder"),
                 ""
             )
             .toggle(
-                lang.raw("bedrock.bank.auto_deposit"),
+                lang.bedrock("bedrock.bank.auto_deposit"),
                 false // TODO: Get current auto-deposit setting
             )
             .label(createValidationInfoSection())
@@ -85,7 +87,7 @@ class BedrockGuildBankMenu(
     }
 
     private fun createBalanceInfoSection(playerBalance: Int, guildBalance: Int): String {
-        return lang.legacy(
+        return lang.bedrock(
             "bedrock.bank.balance_section",
             "player_balance" to playerBalance,
             "guild_balance" to guildBalance
@@ -93,7 +95,7 @@ class BedrockGuildBankMenu(
     }
 
     private fun createValidationInfoSection(): String {
-        return lang.legacy("bedrock.bank.validation_section")
+        return lang.bedrock("bedrock.bank.validation_section")
     }
 
     private fun handleFormResponse(
@@ -131,23 +133,23 @@ class BedrockGuildBankMenu(
             val validationErrors = mutableListOf<String>()
 
             if (depositAmount > 0 && depositAmount > playerBalance) {
-                validationErrors.add(lang.legacy("bedrock.bank.error.insufficient_player_funds", "balance" to playerBalance))
+                validationErrors.add(lang.bedrock("bedrock.bank.error.insufficient_player_funds", "balance" to playerBalance))
             }
 
             if (withdrawAmount > 0 && withdrawAmount > guildBalance) {
-                validationErrors.add(lang.legacy("bedrock.bank.error.insufficient_guild_funds", "balance" to guildBalance))
+                validationErrors.add(lang.bedrock("bedrock.bank.error.insufficient_guild_funds", "balance" to guildBalance))
             }
 
             if (depositAmount < 0) {
-                validationErrors.add(lang.raw("bedrock.bank.error.invalid_deposit"))
+                validationErrors.add(lang.bedrock("bedrock.bank.error.invalid_deposit"))
             }
 
             if (withdrawAmount < 0) {
-                validationErrors.add(lang.raw("bedrock.bank.error.invalid_withdraw"))
+                validationErrors.add(lang.bedrock("bedrock.bank.error.invalid_withdraw"))
             }
 
             if (depositAmount > 0 && withdrawAmount > 0) {
-                validationErrors.add(lang.raw("bedrock.bank.error.both_amounts"))
+                validationErrors.add(lang.bedrock("bedrock.bank.error.both_amounts"))
             }
 
             if (validationErrors.isNotEmpty()) {
@@ -189,7 +191,7 @@ class BedrockGuildBankMenu(
     }
 
     private fun showValidationErrors(errors: List<String>) {
-        val errorMessage = errors.joinToString("\n") { lang.legacy("bedrock.bank.validation.row", "error" to it) }
+        val errorMessage = errors.joinToString("\n") { lang.bedrock("bedrock.bank.validation.row", "error" to it) }
 
         // Send error message and reopen form
         player.sendMessage(lang.msg("bedrock.bank.validation.title"))
@@ -209,9 +211,9 @@ class BedrockGuildBankMenu(
             val confirmationMessage = buildConfirmationMessage(depositAmount, withdrawAmount, autoDepositEnabled)
 
             val customForm = CustomForm.builder()
-                .title(lang.raw("bedrock.bank.confirmation.title"))
+                .title(lang.bedrock("bedrock.bank.confirmation.title"))
                 .label(confirmationMessage)
-                .toggle(lang.raw("bedrock.bank.confirmation.confirm"), false)
+                .toggle(lang.bedrock("bedrock.bank.confirmation.confirm"), false)
                 .validResultHandler { response ->
                     val confirm = response.next() as? Boolean ?: false
                     if (confirm) {
@@ -243,15 +245,15 @@ class BedrockGuildBankMenu(
         val messages = mutableListOf<String>()
 
         if (depositAmount > 0) {
-            messages.add(lang.legacy("bedrock.bank.confirmation.deposit", "amount" to depositAmount))
+            messages.add(lang.bedrock("bedrock.bank.confirmation.deposit", "amount" to depositAmount))
         }
 
         if (withdrawAmount > 0) {
-            messages.add(lang.legacy("bedrock.bank.confirmation.withdraw", "amount" to withdrawAmount))
+            messages.add(lang.bedrock("bedrock.bank.confirmation.withdraw", "amount" to withdrawAmount))
         }
 
         if (autoDepositEnabled) {
-            messages.add(lang.raw("bedrock.bank.confirmation.auto_deposit"))
+            messages.add(lang.bedrock("bedrock.bank.confirmation.auto_deposit"))
         }
 
         return messages.joinToString("\n")
@@ -265,7 +267,7 @@ class BedrockGuildBankMenu(
         if (depositAmount > 0) {
             val transaction = bankService.deposit(guild.id, player.uniqueId, depositAmount)
             if (transaction != null) {
-                changes.add(lang.legacy("bedrock.bank.success.deposit", "amount" to depositAmount))
+                changes.add(lang.bedrock("bedrock.bank.success.deposit", "amount" to depositAmount))
             } else {
                 allSuccessful = false
                 player.sendMessage(lang.msg("bedrock.bank.error.deposit_failed"))
@@ -276,7 +278,7 @@ class BedrockGuildBankMenu(
         if (withdrawAmount > 0) {
             val transaction = bankService.withdraw(guild.id, player.uniqueId, withdrawAmount)
             if (transaction != null) {
-                changes.add(lang.legacy("bedrock.bank.success.withdraw", "amount" to withdrawAmount))
+                changes.add(lang.bedrock("bedrock.bank.success.withdraw", "amount" to withdrawAmount))
             } else {
                 allSuccessful = false
                 player.sendMessage(lang.msg("bedrock.bank.error.withdraw_failed"))
@@ -286,7 +288,7 @@ class BedrockGuildBankMenu(
         // Handle auto-deposit setting (placeholder)
         if (autoDepositEnabled) {
             // TODO: Implement auto-deposit setting
-            changes.add(lang.raw("bedrock.bank.success.auto_deposit_enabled"))
+            changes.add(lang.bedrock("bedrock.bank.success.auto_deposit_enabled"))
         }
 
         // Show results

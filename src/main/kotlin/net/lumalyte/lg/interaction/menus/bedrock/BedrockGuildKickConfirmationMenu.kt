@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -32,13 +34,13 @@ class BedrockGuildKickConfirmationMenu(
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
-        val targetName = Bukkit.getOfflinePlayer(memberToKick.playerId).name ?: lang.raw("menu.common.unknown_player")
+        val targetName = Bukkit.getOfflinePlayer(memberToKick.playerId).name ?: lang.bedrock("menu.common.unknown_player")
 
         return SimpleForm.builder()
-            .title(lang.raw("bedrock.kick_confirmation.title"))
-            .content(lang.legacy("bedrock.kick_confirmation.content", "player" to targetName, "guild" to guild.name, "joined" to memberToKick.joinedAt.toString()))
-            .button(lang.raw("bedrock.kick_confirmation.button.kick"))
-            .button(lang.raw("bedrock.kick_confirmation.button.cancel"))
+            .title(lang.bedrock("bedrock.kick_confirmation.title"))
+            .content(lang.bedrock("bedrock.kick_confirmation.content", "player" to targetName, "guild" to guild.name, "joined" to memberToKick.joinedAt.toString()))
+            .button(lang.bedrock("bedrock.kick_confirmation.button.kick"))
+            .button(lang.bedrock("bedrock.kick_confirmation.button.cancel"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> performKick()
@@ -55,7 +57,7 @@ class BedrockGuildKickConfirmationMenu(
 
     private fun performKick() {
         val targetPlayer = Bukkit.getPlayer(memberToKick.playerId)
-        val targetName = Bukkit.getOfflinePlayer(memberToKick.playerId).name ?: lang.raw("menu.common.unknown_player")
+        val targetName = Bukkit.getOfflinePlayer(memberToKick.playerId).name ?: lang.bedrock("menu.common.unknown_player")
 
         // Perform the kick
         val success = memberService.removeMember(memberToKick.playerId, guild.id, player.uniqueId)

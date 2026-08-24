@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -82,7 +84,7 @@ class GuildWarDeclarationMenu(
         val gui = ChestGui(6, MenuTitleBuilder.build(
             guild.guiTheme,
             6,
-            lang.legacy("menu.war_declaration.title", "guild" to guild.name),
+            lang.guiTitle("menu.war_declaration.title", "guild" to guild.name),
         ))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -110,10 +112,10 @@ class GuildWarDeclarationMenu(
     private fun addGuildSelectionSection(pane: StaticPane) {
         // Title
         val titleItem = ItemStack.of(Material.DIAMOND_SWORD)
-            .name(lang.legacy("menu.war_declaration.item.select_target.name"))
-            .lore(lang.legacy("menu.war_declaration.item.select_target.lore.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.select_target.lore.warning"))
+            .name(lang.gui("menu.war_declaration.item.select_target.name"))
+            .lore(lang.gui("menu.war_declaration.item.select_target.lore.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.select_target.lore.warning"))
         pane.addItem(GuiItem(titleItem), 4, 0)
 
         // Get all guilds except own guild
@@ -134,8 +136,8 @@ class GuildWarDeclarationMenu(
         // Show "More Guilds" if there are more than 7
         if (availableGuilds.size > 7) {
             val moreItem = ItemStack.of(Material.BOOK)
-                .name(lang.legacy("menu.war_declaration.item.more_guilds.name", "count" to availableGuilds.size - 7))
-                .lore(lang.legacy("menu.war_declaration.item.more_guilds.lore"))
+                .name(lang.gui("menu.war_declaration.item.more_guilds.name", "count" to availableGuilds.size - 7))
+                .lore(lang.gui("menu.war_declaration.item.more_guilds.lore"))
             val guiItem = GuiItem(moreItem) {
                 openGuildListMenu(availableGuilds)
             }
@@ -144,13 +146,13 @@ class GuildWarDeclarationMenu(
 
         // Info section
         val infoItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
-            .name(lang.legacy("menu.war_declaration.item.info.name"))
-            .lore(lang.legacy("menu.war_declaration.item.info.lore.duration"))
-            .lore(lang.legacy("menu.war_declaration.item.info.lore.objectives"))
-            .lore(lang.legacy("menu.war_declaration.item.info.lore.winners"))
-            .lore(lang.legacy("menu.war_declaration.item.info.lore.losers"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.info.lore.warning"))
+            .name(lang.gui("menu.war_declaration.item.info.name"))
+            .lore(lang.gui("menu.war_declaration.item.info.lore.duration"))
+            .lore(lang.gui("menu.war_declaration.item.info.lore.objectives"))
+            .lore(lang.gui("menu.war_declaration.item.info.lore.winners"))
+            .lore(lang.gui("menu.war_declaration.item.info.lore.losers"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.info.lore.warning"))
         pane.addItem(GuiItem(infoItem), 4, 4)
     }
 
@@ -176,25 +178,25 @@ class GuildWarDeclarationMenu(
         // Add guild mode indicator
         return bannerItem
             .name(if (targetGuild.mode == GuildMode.HOSTILE) {
-                lang.legacy("menu.war_declaration.item.guild.name.hostile", "guild" to targetGuild.name)
+                lang.gui("menu.war_declaration.item.guild.name.hostile", "guild" to targetGuild.name)
             } else {
-                lang.legacy("menu.war_declaration.item.guild.name.peaceful", "guild" to targetGuild.name)
+                lang.gui("menu.war_declaration.item.guild.name.peaceful", "guild" to targetGuild.name)
             })
-            .lore(lang.legacy("menu.war_declaration.item.guild.lore.members", "count" to memberCount))
-            .lore(lang.legacy("menu.war_declaration.item.guild.lore.ratio", "ratio" to String.format("%.2f", winLossRatio)))
-            .lore(lang.legacy("menu.war_declaration.item.guild.lore.recent", "count" to warHistory.size))
-            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.guild.lore.members", "count" to memberCount))
+            .lore(lang.gui("menu.war_declaration.item.guild.lore.ratio", "ratio" to String.format("%.2f", winLossRatio)))
+            .lore(lang.gui("menu.war_declaration.item.guild.lore.recent", "count" to warHistory.size))
+            .lore(lang.gui("menu.common.blank"))
             .lore(if (targetGuild.mode == GuildMode.HOSTILE) {
-                lang.legacy("menu.war_declaration.item.guild.lore.mode.hostile")
+                lang.gui("menu.war_declaration.item.guild.lore.mode.hostile")
             } else {
-                lang.legacy("menu.war_declaration.item.guild.lore.mode.peaceful")
+                lang.gui("menu.war_declaration.item.guild.lore.mode.peaceful")
             })
-            .lore(lang.legacy("menu.war_declaration.item.guild.lore.level", "level" to targetGuild.level))
-            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.guild.lore.level", "level" to targetGuild.level))
+            .lore(lang.gui("menu.common.blank"))
             .lore(if (targetGuild.mode == GuildMode.HOSTILE) {
-                lang.legacy("menu.war_declaration.item.guild.lore.declare")
+                lang.gui("menu.war_declaration.item.guild.lore.declare")
             } else {
-                lang.legacy("menu.war_declaration.item.guild.lore.send")
+                lang.gui("menu.war_declaration.item.guild.lore.send")
             })
     }
 
@@ -203,11 +205,11 @@ class GuildWarDeclarationMenu(
         
         // Target guild display
         val targetItem = ItemStack.of(Material.TARGET)
-            .name(lang.legacy("menu.war_declaration.item.target.name", "guild" to target.name))
-            .lore(lang.legacy("menu.war_declaration.item.target.lore.description"))
-            .lore(lang.legacy("menu.war_declaration.item.target.lore.members", "count" to memberService.getGuildMembers(target.id).size))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.target.lore.action"))
+            .name(lang.gui("menu.war_declaration.item.target.name", "guild" to target.name))
+            .lore(lang.gui("menu.war_declaration.item.target.lore.description"))
+            .lore(lang.gui("menu.war_declaration.item.target.lore.members", "count" to memberService.getGuildMembers(target.id).size))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.target.lore.action"))
         val targetGuiItem = GuiItem(targetItem) {
             targetGuild = null
             open() // Return to guild selection
@@ -232,15 +234,15 @@ class GuildWarDeclarationMenu(
 
     private fun addDurationSelection(pane: StaticPane) {
         val durationItem = ItemStack.of(Material.CLOCK)
-            .name(lang.legacy("menu.war_declaration.item.duration.name"))
-            .lore(lang.legacy("menu.war_declaration.item.duration.lore.current", "days" to selectedDuration.toDays()))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.duration.lore.available"))
-            .lore(lang.legacy("menu.war_declaration.item.duration.lore.quick"))
-            .lore(lang.legacy("menu.war_declaration.item.duration.lore.standard"))
-            .lore(lang.legacy("menu.war_declaration.item.duration.lore.extended"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.duration.lore.action"))
+            .name(lang.gui("menu.war_declaration.item.duration.name"))
+            .lore(lang.gui("menu.war_declaration.item.duration.lore.current", "days" to selectedDuration.toDays()))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.duration.lore.available"))
+            .lore(lang.gui("menu.war_declaration.item.duration.lore.quick"))
+            .lore(lang.gui("menu.war_declaration.item.duration.lore.standard"))
+            .lore(lang.gui("menu.war_declaration.item.duration.lore.extended"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.duration.lore.action"))
 
         val guiItem = GuiItem(durationItem) {
             cycleDuration()
@@ -255,21 +257,21 @@ class GuildWarDeclarationMenu(
 
         // Main wager display
         val wagerItem = ItemStack.of(Material.GOLD_INGOT)
-            .name(lang.legacy("menu.war_declaration.item.wager.name"))
-            .lore(lang.legacy("menu.war_declaration.item.wager.lore.current", "amount" to wagerAmount))
-            .lore(lang.legacy("menu.war_declaration.item.wager.lore.bank", "amount" to guildBalance))
-            .lore(lang.legacy("menu.war_declaration.item.wager.lore.maximum", "amount" to maxWager))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.wager.lore.match"))
-            .lore(lang.legacy("menu.war_declaration.item.wager.lore.winner"))
-            .lore(lang.legacy("menu.common.blank"))
+            .name(lang.gui("menu.war_declaration.item.wager.name"))
+            .lore(lang.gui("menu.war_declaration.item.wager.lore.current", "amount" to wagerAmount))
+            .lore(lang.gui("menu.war_declaration.item.wager.lore.bank", "amount" to guildBalance))
+            .lore(lang.gui("menu.war_declaration.item.wager.lore.maximum", "amount" to maxWager))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.wager.lore.match"))
+            .lore(lang.gui("menu.war_declaration.item.wager.lore.winner"))
+            .lore(lang.gui("menu.common.blank"))
             if (wagerAmount > 0) {
-                wagerItem.lore(lang.legacy("menu.war_declaration.item.wager.lore.pot", "amount" to wagerAmount * 2))
+                wagerItem.lore(lang.gui("menu.war_declaration.item.wager.lore.pot", "amount" to wagerAmount * 2))
             } else {
-                wagerItem.lore(lang.legacy("menu.war_declaration.item.wager.lore.none"))
+                wagerItem.lore(lang.gui("menu.war_declaration.item.wager.lore.none"))
             }
-            wagerItem.lore(lang.legacy("menu.common.blank"))
-            wagerItem.lore(lang.legacy("menu.war_declaration.item.wager.lore.action"))
+            wagerItem.lore(lang.gui("menu.common.blank"))
+            wagerItem.lore(lang.gui("menu.war_declaration.item.wager.lore.action"))
 
         val guiItem = GuiItem(wagerItem) {
             cycleWagerAmount(maxWager)
@@ -281,9 +283,9 @@ class GuildWarDeclarationMenu(
         if (guildBalance > 0) {
             // Add 10% button
             val add10Percent = ItemStack.of(Material.GREEN_CONCRETE)
-                .name(lang.legacy("menu.war_declaration.item.wager_add.ten.name"))
-                .lore(lang.legacy("menu.war_declaration.item.wager_add.ten.lore"))
-                .lore(lang.legacy("menu.war_declaration.item.wager_add.amount", "amount" to guildBalance / 10))
+                .name(lang.gui("menu.war_declaration.item.wager_add.ten.name"))
+                .lore(lang.gui("menu.war_declaration.item.wager_add.ten.lore"))
+                .lore(lang.gui("menu.war_declaration.item.wager_add.amount", "amount" to guildBalance / 10))
 
             val add10GuiItem = GuiItem(add10Percent) {
                 val amountToAdd = guildBalance / 10
@@ -301,9 +303,9 @@ class GuildWarDeclarationMenu(
 
             // Add 25% button
             val add25Percent = ItemStack.of(Material.BLUE_CONCRETE)
-                .name(lang.legacy("menu.war_declaration.item.wager_add.twenty_five.name"))
-                .lore(lang.legacy("menu.war_declaration.item.wager_add.twenty_five.lore"))
-                .lore(lang.legacy("menu.war_declaration.item.wager_add.amount", "amount" to guildBalance / 4))
+                .name(lang.gui("menu.war_declaration.item.wager_add.twenty_five.name"))
+                .lore(lang.gui("menu.war_declaration.item.wager_add.twenty_five.lore"))
+                .lore(lang.gui("menu.war_declaration.item.wager_add.amount", "amount" to guildBalance / 4))
 
             val add25GuiItem = GuiItem(add25Percent) {
                 val amountToAdd = guildBalance / 4
@@ -321,11 +323,11 @@ class GuildWarDeclarationMenu(
 
             // Wager All button
             val wagerAllItem = ItemStack.of(Material.RED_CONCRETE)
-                .name(lang.legacy("menu.war_declaration.item.wager_all.name"))
-                .lore(lang.legacy("menu.war_declaration.item.wager_all.lore.description"))
-                .lore(lang.legacy("menu.war_declaration.item.wager_add.amount", "amount" to guildBalance))
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.war_declaration.item.wager_all.lore.warning"))
+                .name(lang.gui("menu.war_declaration.item.wager_all.name"))
+                .lore(lang.gui("menu.war_declaration.item.wager_all.lore.description"))
+                .lore(lang.gui("menu.war_declaration.item.wager_add.amount", "amount" to guildBalance))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.war_declaration.item.wager_all.lore.warning"))
 
             val wagerAllGuiItem = GuiItem(wagerAllItem) {
                 if (guildBalance > 0) {
@@ -344,12 +346,12 @@ class GuildWarDeclarationMenu(
             val enemyBalance = targetGuild?.let { bankService.getBalance(it.id) } ?: 0
             if (enemyBalance > 0) {
                 val wagerEnemyItem = ItemStack.of(Material.PURPLE_CONCRETE)
-                    .name(lang.legacy("menu.war_declaration.item.match_enemy.name"))
-                    .lore(lang.legacy("menu.war_declaration.item.match_enemy.lore.description"))
-                    .lore(lang.legacy("menu.war_declaration.item.match_enemy.lore.bank", "amount" to enemyBalance))
-                    .lore(lang.legacy("menu.war_declaration.item.match_enemy.lore.wager", "amount" to enemyBalance))
-                    .lore(lang.legacy("menu.common.blank"))
-                    .lore(lang.legacy("menu.war_declaration.item.match_enemy.lore.warning"))
+                    .name(lang.gui("menu.war_declaration.item.match_enemy.name"))
+                    .lore(lang.gui("menu.war_declaration.item.match_enemy.lore.description"))
+                    .lore(lang.gui("menu.war_declaration.item.match_enemy.lore.bank", "amount" to enemyBalance))
+                    .lore(lang.gui("menu.war_declaration.item.match_enemy.lore.wager", "amount" to enemyBalance))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.war_declaration.item.match_enemy.lore.warning"))
 
                 val wagerEnemyGuiItem = GuiItem(wagerEnemyItem) {
                     if (enemyBalance > 0 && guildBalance >= enemyBalance) {
@@ -372,9 +374,9 @@ class GuildWarDeclarationMenu(
             // Remove wager button
             if (wagerAmount > 0) {
                 val removeWager = ItemStack.of(Material.GRAY_CONCRETE)
-                    .name(lang.legacy("menu.war_declaration.item.remove_wager.name"))
-                    .lore(lang.legacy("menu.war_declaration.item.remove_wager.lore.description"))
-                    .lore(lang.legacy("menu.war_declaration.item.remove_wager.lore.current", "amount" to wagerAmount))
+                    .name(lang.gui("menu.war_declaration.item.remove_wager.name"))
+                    .lore(lang.gui("menu.war_declaration.item.remove_wager.lore.description"))
+                    .lore(lang.gui("menu.war_declaration.item.remove_wager.lore.current", "amount" to wagerAmount))
 
                 val removeGuiItem = GuiItem(removeWager) {
                     val removedAmount = wagerAmount
@@ -399,8 +401,8 @@ class GuildWarDeclarationMenu(
         }
 
         val objectivesItem = ItemStack.of(Material.DIAMOND_SWORD)
-            .name(lang.legacy("menu.war_declaration.item.objectives.name", "count" to selectedObjectives.size))
-            .lore(lang.legacy("menu.common.blank"))
+            .name(lang.gui("menu.war_declaration.item.objectives.name", "count" to selectedObjectives.size))
+            .lore(lang.gui("menu.common.blank"))
 
         // List all selected objectives
         selectedObjectives.forEach { obj ->
@@ -411,19 +413,19 @@ class GuildWarDeclarationMenu(
                 else -> lang.raw("menu.war_declaration.objective.icon.other")
             }
             val typeName = when (obj.type) {
-                ObjectiveType.KILLS -> lang.raw("menu.war_declaration.objective.type.kills")
-                ObjectiveType.TIME_SURVIVAL -> lang.raw("menu.war_declaration.objective.type.time")
-                ObjectiveType.CLAIMS_CAPTURED -> lang.raw("menu.war_declaration.objective.type.claims")
-                else -> lang.raw("menu.war_declaration.objective.type.other")
+                ObjectiveType.KILLS -> lang.gui("menu.war_declaration.objective.type.kills")
+                ObjectiveType.TIME_SURVIVAL -> lang.gui("menu.war_declaration.objective.type.time")
+                ObjectiveType.CLAIMS_CAPTURED -> lang.gui("menu.war_declaration.objective.type.claims")
+                else -> lang.gui("menu.war_declaration.objective.type.other")
             }
-            objectivesItem.lore(lang.legacy("menu.war_declaration.item.objectives.lore.row", "icon" to icon, "type" to typeName, "target" to obj.targetValue))
+            objectivesItem.lore(lang.gui("menu.war_declaration.item.objectives.lore.row", "icon" to icon, "type" to typeName, "target" to obj.targetValue))
         }
 
         objectivesItem
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.objectives.lore.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.objectives.lore.action"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.objectives.lore.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.objectives.lore.action"))
 
         val guiItem = GuiItem(objectivesItem) {
             openObjectivesMenu()
@@ -433,17 +435,17 @@ class GuildWarDeclarationMenu(
 
     private fun addWarTermsSection(pane: StaticPane) {
         val termsItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.war_declaration.item.terms.name"))
+            .name(lang.gui("menu.war_declaration.item.terms.name"))
             .lore(if (warTerms != null) {
-                lang.legacy("menu.war_declaration.item.terms.lore.current", "terms" to warTerms)
+                lang.gui("menu.war_declaration.item.terms.lore.current", "terms" to warTerms)
             } else {
-                lang.legacy("menu.war_declaration.item.terms.lore.none")
+                lang.gui("menu.war_declaration.item.terms.lore.none")
             })
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.terms.lore.description"))
-            .lore(lang.legacy("menu.war_declaration.item.terms.lore.reason"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_declaration.item.terms.lore.action"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.terms.lore.description"))
+            .lore(lang.gui("menu.war_declaration.item.terms.lore.reason"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_declaration.item.terms.lore.action"))
 
         val guiItem = GuiItem(termsItem) {
             player.sendMessage(lang.msg("menu.war_declaration.feedback.terms_prompt"))
@@ -463,32 +465,32 @@ class GuildWarDeclarationMenu(
 
         val declareItem = if (canDeclare && !hasActiveWar) {
             ItemStack.of(Material.DIAMOND_SWORD)
-                .name(lang.legacy("menu.war_declaration.item.declare.name"))
-                .lore(lang.legacy("menu.war_declaration.item.declare.lore.target", "guild" to target.name))
-                .lore(lang.legacy("menu.war_declaration.item.declare.lore.duration", "days" to selectedDuration.toDays()))
-                .lore(lang.legacy("menu.war_declaration.item.declare.lore.objectives", "count" to selectedObjectives.size))
+                .name(lang.gui("menu.war_declaration.item.declare.name"))
+                .lore(lang.gui("menu.war_declaration.item.declare.lore.target", "guild" to target.name))
+                .lore(lang.gui("menu.war_declaration.item.declare.lore.duration", "days" to selectedDuration.toDays()))
+                .lore(lang.gui("menu.war_declaration.item.declare.lore.objectives", "count" to selectedObjectives.size))
                 .lore(if (wagerAmount > 0) {
-                    lang.legacy("menu.war_declaration.item.declare.lore.wager", "amount" to wagerAmount)
+                    lang.gui("menu.war_declaration.item.declare.lore.wager", "amount" to wagerAmount)
                 } else {
-                    lang.legacy("menu.war_declaration.item.declare.lore.no_wager")
+                    lang.gui("menu.war_declaration.item.declare.lore.no_wager")
                 })
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.war_declaration.item.declare.lore.notify_1"))
-                .lore(lang.legacy("menu.war_declaration.item.declare.lore.notify_2"))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.war_declaration.item.declare.lore.notify_1"))
+                .lore(lang.gui("menu.war_declaration.item.declare.lore.notify_2"))
                 .also { item ->
                     if (wagerAmount > 0) {
-                        item.lore(lang.legacy("menu.war_declaration.item.declare.lore.escrow"))
+                        item.lore(lang.gui("menu.war_declaration.item.declare.lore.escrow"))
                     }
                 }
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.war_declaration.item.declare.lore.action"))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.war_declaration.item.declare.lore.action"))
         } else {
             ItemStack.of(Material.BARRIER)
-                .name(lang.legacy("menu.war_declaration.item.cannot_declare.name"))
+                .name(lang.gui("menu.war_declaration.item.cannot_declare.name"))
                 .lore(when {
-                    !canDeclare -> lang.legacy("menu.war_declaration.item.cannot_declare.lore.guild_restricted")
-                    hasActiveWar -> lang.legacy("menu.war_declaration.item.cannot_declare.lore.active_war")
-                    else -> lang.legacy("menu.war_declaration.item.cannot_declare.lore.unknown")
+                    !canDeclare -> lang.gui("menu.war_declaration.item.cannot_declare.lore.guild_restricted")
+                    hasActiveWar -> lang.gui("menu.war_declaration.item.cannot_declare.lore.active_war")
+                    else -> lang.gui("menu.war_declaration.item.cannot_declare.lore.unknown")
                 })
         }
 
@@ -642,8 +644,8 @@ class GuildWarDeclarationMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.war_declaration.item.back.name"))
-            .lore(lang.legacy("menu.war_declaration.item.back.lore"))
+            .name(lang.gui("menu.war_declaration.item.back.name"))
+            .lore(lang.gui("menu.war_declaration.item.back.lore"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))

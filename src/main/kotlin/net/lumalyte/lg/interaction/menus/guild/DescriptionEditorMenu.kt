@@ -2,6 +2,9 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -24,7 +27,6 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 
 class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private val player: Player,
@@ -38,7 +40,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     // State for the description input
     private var currentDescription: String? = null
     private var inputDescription: String? = null
-    private var validationError: String? = null
+    private var validationError: Component? = null
 
     override fun open() {
         // Load current description (only if not already loaded)
@@ -54,7 +56,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         // Validate current input
         validationError = validateDescription(inputDescription)
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.legacy("menu.description_editor.title")))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.description_editor.title")))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -87,25 +89,25 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addCurrentDescriptionDisplay(pane: StaticPane, x: Int, y: Int) {
         val displayItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.description_editor.current.name"))
-            .lore(lang.legacy("menu.description_editor.current.value", "description" to (parseMiniMessageForDisplay(currentDescription) ?: lang.legacy("menu.description_editor.current.none"))))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.description_editor.current.description"))
-            .lore(lang.legacy("menu.description_editor.current.scope"))
+            .name(lang.gui("menu.description_editor.current.name"))
+            .lore(lang.gui("menu.description_editor.current.value", "description" to (parseMiniMessageForDisplay(currentDescription) ?: lang.gui("menu.description_editor.current.none"))))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.description_editor.current.description"))
+            .lore(lang.gui("menu.description_editor.current.scope"))
 
         pane.addItem(GuiItem(displayItem), x, y)
     }
 
     private fun addInputField(pane: StaticPane, x: Int, y: Int) {
         val inputItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.description_editor.input.name"))
-            .lore(lang.legacy("menu.description_editor.input.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.description_editor.input.current"))
-            .lore(lang.legacy("menu.description_editor.input.value", "description" to (inputDescription ?: lang.raw("menu.description_editor.input.none"))))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.description_editor.input.formatting"))
-            .lore(lang.legacy("menu.description_editor.input.limit"))
+            .name(lang.gui("menu.description_editor.input.name"))
+            .lore(lang.gui("menu.description_editor.input.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.description_editor.input.current"))
+            .lore(lang.gui("menu.description_editor.input.value", "description" to (inputDescription ?: lang.raw("menu.description_editor.input.none"))))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.description_editor.input.formatting"))
+            .lore(lang.gui("menu.description_editor.input.limit"))
 
         val guiItem = GuiItem(inputItem) {
             // Start chat input for description
@@ -117,12 +119,12 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     private fun addValidationStatus(pane: StaticPane, x: Int, y: Int) {
         val statusItem = if (validationError != null) {
             ItemStack.of(Material.RED_CONCRETE)
-                .name(lang.legacy("menu.description_editor.validation.error.name"))
-                .lore(lang.legacy("menu.description_editor.validation.error.description", "error" to validationError!!))
+                .name(lang.gui("menu.description_editor.validation.error.name"))
+                .lore(lang.gui("menu.description_editor.validation.error.description", "error" to validationError!!))
         } else {
             ItemStack.of(Material.GREEN_CONCRETE)
-                .name(lang.legacy("menu.description_editor.validation.valid.name"))
-                .lore(lang.legacy("menu.description_editor.validation.valid.description"))
+                .name(lang.gui("menu.description_editor.validation.valid.name"))
+                .lore(lang.gui("menu.description_editor.validation.valid.description"))
         }
 
         pane.addItem(GuiItem(statusItem), x, y)
@@ -130,18 +132,18 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addSaveButton(pane: StaticPane, x: Int, y: Int) {
         val saveItem = ItemStack.of(Material.EMERALD_BLOCK)
-            .name(lang.legacy("menu.description_editor.save.name"))
-            .lore(lang.legacy("menu.description_editor.save.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.description_editor.save.effect"))
-            .lore(lang.legacy("menu.description_editor.save.scope"))
+            .name(lang.gui("menu.description_editor.save.name"))
+            .lore(lang.gui("menu.description_editor.save.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.description_editor.save.effect"))
+            .lore(lang.gui("menu.description_editor.save.scope"))
 
         val canSave = validationError == null && inputDescription != currentDescription
         if (!canSave) {
-            saveItem.name(lang.legacy("menu.description_editor.save.disabled"))
-                .lore(lang.legacy("menu.description_editor.save.description"))
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.description_editor.save.invalid"))
+            saveItem.name(lang.gui("menu.description_editor.save.disabled"))
+                .lore(lang.gui("menu.description_editor.save.description"))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.description_editor.save.invalid"))
         }
 
         val guiItem = GuiItem(saveItem) {
@@ -156,8 +158,8 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack.of(Material.REDSTONE_BLOCK)
-            .name(lang.legacy("menu.description_editor.cancel.name"))
-            .lore(lang.legacy("menu.description_editor.cancel.description"))
+            .name(lang.gui("menu.description_editor.cancel.name"))
+            .lore(lang.gui("menu.description_editor.cancel.description"))
 
         val guiItem = GuiItem(cancelItem) {
             menuNavigator.goBack()
@@ -167,8 +169,8 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addPreview(pane: StaticPane, x: Int, y: Int) {
         val previewItem = ItemStack.of(Material.ITEM_FRAME)
-            .name(lang.legacy("menu.description_editor.preview.name"))
-            .lore(lang.legacy("menu.description_editor.preview.description"))
+            .name(lang.gui("menu.description_editor.preview.name"))
+            .lore(lang.gui("menu.description_editor.preview.description"))
 
         inputDescription?.let { desc ->
             if (validationError == null) {
@@ -177,17 +179,17 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
                     val component = miniMessage.deserialize(desc)
                     val plainText = PlainTextComponentSerializer.plainText().serialize(component)
 
-                    previewItem.lore(lang.legacy("menu.description_editor.preview.value", "description" to plainText))
+                    previewItem.lore(lang.gui("menu.description_editor.preview.value", "description" to plainText))
                 } catch (e: Exception) {
                 // Menu operation - catching all exceptions to prevent UI failure
             // Menu operation - catching all exceptions to prevent UI failure
-                    previewItem.lore(lang.legacy("menu.description_editor.preview.error"))
+                    previewItem.lore(lang.gui("menu.description_editor.preview.error"))
                 }
             } else {
-                previewItem.lore(lang.legacy("menu.description_editor.preview.empty"))
+                previewItem.lore(lang.gui("menu.description_editor.preview.empty"))
             }
         } ?: run {
-            previewItem.lore(lang.legacy("menu.description_editor.preview.empty"))
+            previewItem.lore(lang.gui("menu.description_editor.preview.empty"))
         }
 
         pane.addItem(GuiItem(previewItem), x, y)
@@ -233,11 +235,11 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         }
     }
 
-    private fun validateDescription(description: String?): String? {
+    private fun validateDescription(description: String?): Component? {
         if (description == null) return null
 
         if (description.length > 100) {
-            return lang.legacy("menu.description_editor.validation.too_long", "length" to description.length)
+            return lang.gui("menu.description_editor.validation.too_long", "length" to description.length)
         }
 
         // Try to parse with MiniMessage to check for errors
@@ -246,7 +248,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
             miniMessage.deserialize(description)
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            return lang.legacy("menu.description_editor.validation.invalid_format", "error" to (e.message ?: lang.raw("menu.description_editor.validation.unknown_error")))
+            return lang.gui("menu.description_editor.validation.invalid_format", "error" to (e.message ?: lang.raw("menu.description_editor.validation.unknown_error")))
         }
 
         return null
@@ -286,17 +288,15 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         validationError = validateDescription(description)
     }
 
-    private fun parseMiniMessageForDisplay(description: String?): String? {
+    private fun parseMiniMessageForDisplay(description: String?): Component? {
         if (description == null) return null
         return try {
             val miniMessage = MiniMessage.miniMessage()
             val component = miniMessage.deserialize(description)
-            // Convert to legacy formatting for menu display
-            val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
-            legacyText
+            component
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            description // Fallback to raw text if parsing fails
+            Component.text(description) // Fallback to raw text if parsing fails
         }
     }
 

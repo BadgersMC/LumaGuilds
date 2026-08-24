@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -59,7 +61,7 @@ class PeaceAgreementMenu(
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.peace_agreement.title", "guild" to guild.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.peace_agreement.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -86,9 +88,9 @@ class PeaceAgreementMenu(
 
         if (activeWars.isEmpty()) {
             val noWarsItem = ItemStack.of(Material.GRAY_DYE)
-                .name(lang.legacy("menu.peace_agreement.war.none.name"))
-                .lore(lang.legacy("menu.peace_agreement.war.none.description"))
-                .lore(lang.legacy("menu.peace_agreement.war.none.requirement"))
+                .name(lang.gui("menu.peace_agreement.war.none.name"))
+                .lore(lang.gui("menu.peace_agreement.war.none.description"))
+                .lore(lang.gui("menu.peace_agreement.war.none.requirement"))
 
             pane.addItem(GuiItem(noWarsItem), 4, 0)
             return
@@ -100,11 +102,11 @@ class PeaceAgreementMenu(
             val enemyGuild = guildService.getGuild(enemyId)
 
             val warItem = ItemStack.of(Material.RED_WOOL)
-                .name(lang.legacy("menu.peace_agreement.war.name", "guild" to (enemyGuild?.name ?: lang.raw("general.unknown"))))
-                .lore(lang.legacy("menu.peace_agreement.war.duration", "days" to war.duration.toDays()))
-                .lore(lang.legacy("menu.peace_agreement.war.status", "status" to war.status))
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.peace_agreement.war.propose"))
+                .name(lang.gui("menu.peace_agreement.war.name", "guild" to (enemyGuild?.name ?: lang.raw("general.unknown"))))
+                .lore(lang.gui("menu.peace_agreement.war.duration", "days" to war.duration.toDays()))
+                .lore(lang.gui("menu.peace_agreement.war.status", "status" to war.status))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.peace_agreement.war.propose"))
 
             val guiItem = GuiItem(warItem) {
                 showPeaceProposalMenu(war.id)
@@ -119,8 +121,8 @@ class PeaceAgreementMenu(
 
         if (pendingAgreements.isEmpty()) {
             val noAgreementsItem = ItemStack.of(Material.GRAY_DYE)
-                .name(lang.legacy("menu.peace_agreement.pending.none.name"))
-                .lore(lang.legacy("menu.peace_agreement.pending.none.description"))
+                .name(lang.gui("menu.peace_agreement.pending.none.name"))
+                .lore(lang.gui("menu.peace_agreement.pending.none.description"))
 
             pane.addItem(GuiItem(noAgreementsItem), 4, 1)
             return
@@ -132,12 +134,12 @@ class PeaceAgreementMenu(
             val war = warService.getWar(agreement.warId)
 
             val agreementItem = ItemStack.of(Material.PAPER)
-                .name(lang.legacy("menu.peace_agreement.pending.name", "guild" to (proposingGuild?.name ?: lang.raw("general.unknown"))))
-                .lore(lang.legacy("menu.peace_agreement.pending.terms", "terms" to agreement.peaceTerms))
-                .lore(lang.legacy("menu.peace_agreement.pending.war", "guild" to (war?.let { guildService.getGuild(if (it.declaringGuildId == guild.id) it.defendingGuildId else it.declaringGuildId)?.name } ?: lang.raw("general.unknown"))))
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.peace_agreement.pending.accept"))
-                .lore(lang.legacy("menu.peace_agreement.pending.reject"))
+                .name(lang.gui("menu.peace_agreement.pending.name", "guild" to (proposingGuild?.name ?: lang.raw("general.unknown"))))
+                .lore(lang.gui("menu.peace_agreement.pending.terms", "terms" to agreement.peaceTerms))
+                .lore(lang.gui("menu.peace_agreement.pending.war", "guild" to (war?.let { guildService.getGuild(if (it.declaringGuildId == guild.id) it.defendingGuildId else it.declaringGuildId)?.name } ?: lang.raw("general.unknown"))))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.peace_agreement.pending.accept"))
+                .lore(lang.gui("menu.peace_agreement.pending.reject"))
 
             val guiItem = GuiItem(agreementItem) { event ->
                 when (event.click) {
@@ -171,9 +173,9 @@ class PeaceAgreementMenu(
     private fun addPeaceActionsSection(pane: StaticPane) {
         // Propose Peace Button
         val proposeItem = ItemStack.of(Material.WHITE_WOOL)
-            .name(lang.legacy("menu.peace_agreement.action.propose.name"))
-            .lore(lang.legacy("menu.peace_agreement.action.propose.description"))
-            .lore(lang.legacy("menu.peace_agreement.action.propose.offerings"))
+            .name(lang.gui("menu.peace_agreement.action.propose.name"))
+            .lore(lang.gui("menu.peace_agreement.action.propose.description"))
+            .lore(lang.gui("menu.peace_agreement.action.propose.offerings"))
 
         val proposeGuiItem = GuiItem(proposeItem) {
             val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
@@ -194,9 +196,9 @@ class PeaceAgreementMenu(
 
         // View History Button
         val historyItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.peace_agreement.action.history.name"))
-            .lore(lang.legacy("menu.peace_agreement.action.history.description"))
-            .lore(lang.legacy("menu.peace_agreement.action.history.outcomes"))
+            .name(lang.gui("menu.peace_agreement.action.history.name"))
+            .lore(lang.gui("menu.peace_agreement.action.history.description"))
+            .lore(lang.gui("menu.peace_agreement.action.history.outcomes"))
 
         val historyGuiItem = GuiItem(historyItem) {
             showPeaceHistory()
@@ -206,8 +208,8 @@ class PeaceAgreementMenu(
 
         // Back Button
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.war_declaration.item.back.name"))
-            .lore(lang.legacy("menu.war_declaration.item.back.lore"))
+            .name(lang.gui("menu.war_declaration.item.back.name"))
+            .lore(lang.gui("menu.war_declaration.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.goBack()
@@ -225,7 +227,7 @@ class PeaceAgreementMenu(
             offeringExp = 0
         }
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.legacy("menu.peace_agreement.title", "guild" to guild.name)))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.peace_agreement.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -236,10 +238,10 @@ class PeaceAgreementMenu(
 
         // Peace Terms Input
         val termsItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.peace_agreement.proposal.terms.name"))
-            .lore(if (peaceTerms.isNotEmpty()) lang.legacy("menu.peace_agreement.proposal.current", "value" to peaceTerms) else lang.legacy("menu.peace_agreement.proposal.none"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.peace_agreement.proposal.terms.click"))
+            .name(lang.gui("menu.peace_agreement.proposal.terms.name"))
+            .lore(if (peaceTerms.isNotEmpty()) lang.gui("menu.peace_agreement.proposal.current", "value" to peaceTerms) else lang.gui("menu.peace_agreement.proposal.none"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.peace_agreement.proposal.terms.click"))
 
         val termsGuiItem = GuiItem(termsItem) {
             inputMode = "peace_terms"
@@ -252,10 +254,10 @@ class PeaceAgreementMenu(
 
         // Money Offering
         val moneyItem = ItemStack.of(Material.GOLD_INGOT)
-            .name(lang.legacy("menu.peace_agreement.proposal.money.name"))
-            .lore(lang.legacy("menu.peace_agreement.proposal.money.current", "amount" to offeringMoney))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.peace_agreement.proposal.money.click"))
+            .name(lang.gui("menu.peace_agreement.proposal.money.name"))
+            .lore(lang.gui("menu.peace_agreement.proposal.money.current", "amount" to offeringMoney))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.peace_agreement.proposal.money.click"))
 
         val moneyGuiItem = GuiItem(moneyItem) {
             inputMode = "offering_money"
@@ -268,10 +270,10 @@ class PeaceAgreementMenu(
 
         // EXP Offering
         val expItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-            .name(lang.legacy("menu.peace_agreement.proposal.exp.name"))
-            .lore(lang.legacy("menu.peace_agreement.proposal.exp.current", "amount" to offeringExp))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.peace_agreement.proposal.exp.click"))
+            .name(lang.gui("menu.peace_agreement.proposal.exp.name"))
+            .lore(lang.gui("menu.peace_agreement.proposal.exp.current", "amount" to offeringExp))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.peace_agreement.proposal.exp.click"))
 
         val expGuiItem = GuiItem(expItem) {
             inputMode = "offering_exp"
@@ -284,17 +286,17 @@ class PeaceAgreementMenu(
 
         // Send Agreement Button
         val sendItem = ItemStack.of(Material.EMERALD_BLOCK)
-            .name(lang.legacy("menu.peace_agreement.proposal.send.name"))
-            .lore(lang.legacy("menu.peace_agreement.proposal.send.description"))
-            .lore(lang.legacy("menu.peace_agreement.proposal.send.target"))
+            .name(lang.gui("menu.peace_agreement.proposal.send.name"))
+            .lore(lang.gui("menu.peace_agreement.proposal.send.description"))
+            .lore(lang.gui("menu.peace_agreement.proposal.send.target"))
 
         val canSend = peaceTerms.isNotEmpty()
         if (!canSend) {
-            sendItem.name(lang.legacy("menu.peace_agreement.proposal.send.disabled"))
-                .lore(lang.legacy("menu.peace_agreement.proposal.send.description"))
-                .lore(lang.legacy("menu.peace_agreement.proposal.send.target"))
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.peace_agreement.proposal.send.required"))
+            sendItem.name(lang.gui("menu.peace_agreement.proposal.send.disabled"))
+                .lore(lang.gui("menu.peace_agreement.proposal.send.description"))
+                .lore(lang.gui("menu.peace_agreement.proposal.send.target"))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.peace_agreement.proposal.send.required"))
         }
 
         val sendGuiItem = GuiItem(sendItem) {
@@ -309,8 +311,8 @@ class PeaceAgreementMenu(
 
         // Cancel Button
         val cancelItem = ItemStack.of(Material.REDSTONE_BLOCK)
-            .name(lang.legacy("menu.peace_agreement.proposal.cancel.name"))
-            .lore(lang.legacy("menu.peace_agreement.proposal.cancel.description"))
+            .name(lang.gui("menu.peace_agreement.proposal.cancel.name"))
+            .lore(lang.gui("menu.peace_agreement.proposal.cancel.description"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             open()

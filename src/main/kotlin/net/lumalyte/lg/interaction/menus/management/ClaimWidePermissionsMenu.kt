@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -41,7 +43,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
 
         // Create player permissions menu
         val playerId = player.uniqueId
-        val gui = ChestGui(6, lang.legacy("menu.claim_wide_permissions.title"))
+        val gui = ChestGui(6, lang.guiTitle("menu.claim_wide_permissions.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -60,7 +62,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
         }
 
         addSelector(playerId, controlsPane, ItemStack.of(Material.BELL)
-            .name(lang.legacy("menu.claim_wide_permissions.item.info.name")),
+            .name(lang.gui("menu.claim_wide_permissions.item.info.name")),
             deselectAction, selectAction)
 
         // Add horizontal divider
@@ -141,7 +143,7 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
 
         // Add go back item
         val exitItem = ItemStack.of(Material.NETHER_STAR)
-            .name(lang.legacy("menu.common.item.back.name"))
+            .name(lang.gui("menu.common.item.back.name"))
 
         val guiExitItem = GuiItem(exitItem) { backButtonAction() }
         controlsPane.addItem(guiExitItem, 0, 0)
@@ -156,13 +158,13 @@ class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private
 
         // Add deselect all button
         val deselectItem = ItemStack.of(Material.HONEY_BLOCK)
-            .name(lang.legacy("menu.common.item.deselect_all.name"))
+            .name(lang.gui("menu.common.item.deselect_all.name"))
         val guiDeselectItem = GuiItem(deselectItem) { deselectAction() }
         controlsPane.addItem(guiDeselectItem, 2, 0)
 
         // Add select all button
         val selectItem = ItemStack.of(Material.SLIME_BLOCK)
-            .name(lang.legacy("menu.common.item.select_all.name"))
+            .name(lang.gui("menu.common.item.select_all.name"))
         val guiSelectItem = GuiItem(selectItem) { selectAction() }
         controlsPane.addItem(guiSelectItem, 6, 0)
     }

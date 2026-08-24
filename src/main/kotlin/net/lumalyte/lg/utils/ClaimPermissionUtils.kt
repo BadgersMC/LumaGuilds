@@ -1,5 +1,7 @@
 package net.lumalyte.lg.utils
 
+import net.lumalyte.lg.infrastructure.i18n.gui
+
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import net.lumalyte.lg.domain.values.ClaimPermission
@@ -30,7 +32,7 @@ fun ClaimPermission.getIcon(lang: LangService, playerId: UUID): ItemStack {
     }
 
     // Get localized name and lore using the keys from the domain enum
-    item = item.name(lang.legacy(this.nameKey))
-    item = item.lore(lang.legacy(this.loreKey))
+    item = item.name(lang.gui(this.nameKey))
+    item = item.lore(lang.gui(this.loreKey))
     return item
 }

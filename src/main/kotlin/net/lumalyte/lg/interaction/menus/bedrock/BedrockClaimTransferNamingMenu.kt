@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
@@ -26,11 +27,11 @@ class BedrockClaimTransferNamingMenu(
         val config = getBedrockConfig()
 
         return CustomForm.builder()
-            .title(lang.raw("bedrock.claim_transfer_naming.title"))
-            .label(lang.raw("bedrock.claim_transfer_naming.instructions"))
+            .title(lang.bedrock("bedrock.claim_transfer_naming.title"))
+            .label(lang.bedrock("bedrock.claim_transfer_naming.instructions"))
             .input(
-                lang.raw("bedrock.claim_transfer_naming.name.label"),
-                lang.raw("bedrock.claim_transfer_naming.name.placeholder"),
+                lang.bedrock("bedrock.claim_transfer_naming.name.label"),
+                lang.bedrock("bedrock.claim_transfer_naming.name.placeholder"),
                 ""
             )
             .validResultHandler { response ->

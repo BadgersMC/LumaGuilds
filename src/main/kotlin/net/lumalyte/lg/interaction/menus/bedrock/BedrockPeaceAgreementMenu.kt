@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.WarService
@@ -36,32 +38,32 @@ class BedrockPeaceAgreementMenu(
         val warOpponents = activeWars.map { war ->
             val opponentId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
             val opponentGuild = guildRepository.getById(opponentId)
-            lang.legacy(
+            lang.bedrock(
                 "bedrock.peace_agreement.opponent",
-                "guild" to (opponentGuild?.name ?: lang.raw("bedrock.peace_agreement.unknown_guild"))
+                "guild" to (opponentGuild?.name ?: lang.bedrock("bedrock.peace_agreement.unknown_guild"))
             )
         }
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.peace_agreement.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.peace_agreement.title", "guild" to guild.name))
             .apply { peaceIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.peace_agreement.description"))
+            .label(lang.bedrock("bedrock.peace_agreement.description"))
             .apply {
                 if (warOpponents.isEmpty()) {
-                    label(lang.raw("bedrock.peace_agreement.no_wars"))
+                    label(lang.bedrock("bedrock.peace_agreement.no_wars"))
                 } else {
                     dropdown(
-                        lang.raw("bedrock.peace_agreement.select_war"),
+                        lang.bedrock("bedrock.peace_agreement.select_war"),
                         warOpponents
                     )
                     input(
-                        lang.raw("bedrock.peace_agreement.terms.label"),
-                        lang.raw("bedrock.peace_agreement.terms.placeholder"),
+                        lang.bedrock("bedrock.peace_agreement.terms.label"),
+                        lang.bedrock("bedrock.peace_agreement.terms.placeholder"),
                         ""
                     )
                     input(
-                        lang.raw("bedrock.peace_agreement.reparations.label"),
-                        lang.raw("bedrock.peace_agreement.reparations.placeholder"),
+                        lang.bedrock("bedrock.peace_agreement.reparations.label"),
+                        lang.bedrock("bedrock.peace_agreement.reparations.placeholder"),
                         "0"
                     )
                 }

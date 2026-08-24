@@ -1,5 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.infrastructure.i18n.gui
+
 import net.badgersmc.nexus.i18n.LangService
 
 import net.lumalyte.lg.application.errors.PlayerNotFoundException
@@ -21,9 +23,9 @@ class ToolItemServiceBukkit(private val lang: LangService,
     override fun giveClaimTool(playerId: UUID): Boolean {
         // Create the claim tool with special metadata
         val tool = ItemStack.of(Material.STICK)
-            .name(lang.legacy("item.claim_tool.name"))
-            .lore(lang.legacy("item.claim_tool.lore.main_hand"))
-            .lore(lang.legacy("item.claim_tool.lore.off_hand"))
+            .name(lang.gui("item.claim_tool.name"))
+            .lore(lang.gui("item.claim_tool.lore.main_hand"))
+            .lore(lang.gui("item.claim_tool.lore.off_hand"))
         val itemMeta = tool.itemMeta
         // Use modern CustomModelDataComponent instead of deprecated setCustomModelData
         if (itemMeta != null) {
@@ -44,8 +46,8 @@ class ToolItemServiceBukkit(private val lang: LangService,
     override fun giveMoveTool(playerId: UUID, claim: Claim): Boolean {
         // Create the claim tool with special metadata
         val tool = ItemStack.of(Material.BELL)
-            .name(lang.legacy("item.move_tool.name", "claim" to claim.name))
-            .lore(lang.legacy("item.move_tool.lore"))
+            .name(lang.gui("item.move_tool.name", "claim" to claim.name))
+            .lore(lang.gui("item.move_tool.lore"))
         val itemMeta = tool.itemMeta
         // Use modern CustomModelDataComponent instead of deprecated setCustomModelData
         if (itemMeta != null) {

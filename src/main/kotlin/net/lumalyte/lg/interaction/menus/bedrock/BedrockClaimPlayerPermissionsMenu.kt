@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -28,13 +30,13 @@ class BedrockClaimPlayerPermissionsMenu(
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
-        val targetPlayerName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.common.unknown_player")
-        val content = lang.legacy("bedrock.claim_player_permissions.content", "player" to targetPlayerName)
+        val targetPlayerName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.bedrock("menu.common.unknown_player")
+        val content = lang.bedrock("bedrock.claim_player_permissions.content", "player" to targetPlayerName)
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.claim_player_permissions.title", "player" to targetPlayerName))
+            .title(lang.bedrock("bedrock.claim_player_permissions.title", "player" to targetPlayerName))
             .content(content)
-            .button(lang.raw("bedrock.claim_player_permissions.button.back"))
+            .button(lang.bedrock("bedrock.claim_player_permissions.button.back"))
             .validResultHandler { _ ->
                 bedrockNavigator.goBack()
             }

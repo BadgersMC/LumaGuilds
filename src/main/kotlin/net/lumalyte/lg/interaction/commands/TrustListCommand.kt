@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.plain
 
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
@@ -52,20 +53,20 @@ class TrustListCommand : ClaimCommand(), KoinComponent {
         }.sortedBy { it.second }
 
         // Generate chat output header
-        val claimName = getClaimDetails.execute(partition.claimId)?.name ?: lang.legacy("general.name_error")
+        val claimName = getClaimDetails.execute(partition.claimId)?.name ?: lang.plain("general.name_error")
         val chatInfo = ChatInfoBuilder(
             lang,
             player.uniqueId,
-            lang.legacy("command.claim.trust_list.header", "claim" to claimName),
+            lang.msg("command.claim.trust_list.header", "claim" to claimName),
         )
 
         // Output 5 players at a time per page
         val entries = trustedPlayerInfo.withIndex().toList().subList(0 + ((page - 1) * 5),
             (4 + ((page - 1) * 5)).coerceAtMost(trustedPlayers.size))
-        val listSeparator = lang.legacy("general.list_separator")
+        val listSeparator = lang.plain("general.list_separator")
         entries.forEach { (_, entry) ->
             val permissions = getClaimPlayerPermissions.execute(partition.claimId, entry.first)
-            val row = lang.legacy(
+            val row = lang.msg(
                 "command.claim.trust_list.row",
                 "player" to entry.second,
                 "permissions" to permissions.joinToString(listSeparator),

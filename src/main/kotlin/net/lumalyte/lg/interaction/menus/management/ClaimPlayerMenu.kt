@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -37,7 +39,7 @@ class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val play
 
         // Create trust menu
         val playerId = player.uniqueId
-        val gui = ChestGui(6, lang.legacy("menu.all_players.title"))
+        val gui = ChestGui(6, lang.guiTitle("menu.all_players.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -49,8 +51,8 @@ class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val play
 
         // Add player search item
         val playerSearchItem = ItemStack.of(Material.NAME_TAG)
-            .name(lang.legacy("menu.all_players.item.search.name"))
-            .lore(lang.legacy("menu.all_players.item.search.lore"))
+            .name(lang.gui("menu.all_players.item.search.name"))
+            .lore(lang.gui("menu.all_players.item.search.lore"))
         val guiPlayerSearchItem = GuiItem(playerSearchItem) {
             menuNavigator.openMenu(ClaimPlayerSearchMenu(menuNavigator, claim, player)) }
         controlsPane.addItem(guiPlayerSearchItem, 3, 0)
@@ -99,7 +101,7 @@ class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val play
 
         // Add go back item
         val exitItem = ItemStack.of(Material.NETHER_STAR)
-            .name(lang.legacy("menu.common.item.back.name"))
+            .name(lang.gui("menu.common.item.back.name"))
 
         val guiExitItem = GuiItem(exitItem) { backButtonAction() }
         controlsPane.addItem(guiExitItem, 0, 0)
@@ -109,19 +111,19 @@ class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val play
     private fun addPaginator(playerId: UUID, controlsPane: StaticPane, currentPage: Int, totalPages: Int) {
         // Add prev item
         val prevItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.common.item.prev.name"))
+            .name(lang.gui("menu.common.item.prev.name"))
         val guiPrevItem = GuiItem(prevItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPrevItem, 6, 0)
 
         // Add page item
         val pageItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.common.item.page.name", "current_page" to currentPage, "total_pages" to totalPages))
+            .name(lang.gui("menu.common.item.page.name", "current_page" to currentPage, "total_pages" to totalPages))
         val guiPageItem = GuiItem(pageItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPageItem, 7, 0)
 
         // Add next item
         val nextItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.common.item.next.name"))
+            .name(lang.gui("menu.common.item.next.name"))
         val guiNextItem = GuiItem(nextItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiNextItem, 8, 0)
     }

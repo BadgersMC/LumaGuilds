@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
@@ -40,25 +42,25 @@ class BedrockGuildHomeMenu(
         val availableSlots = maxHomes - homes.size
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.home.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.home.title", "guild" to guild.name))
             .content(buildHomeContent(maxHomes, availableSlots))
             .apply {
                 // Add existing homes
                 if (homes.hasHomes()) {
                     homes.homeNames.forEach { homeName ->
-                        button(lang.legacy("bedrock.home.button.teleport", "home" to homeName))
+                        button(lang.bedrock("bedrock.home.button.teleport", "home" to homeName))
                     }
                 } else {
-                    button(lang.raw("bedrock.home.button.no_homes"))
+                    button(lang.bedrock("bedrock.home.button.no_homes"))
                 }
 
                 // Add management options if user has permission
                 if (canManageHomes()) {
                     if (availableSlots > 0) {
-                        button(lang.raw("bedrock.home.button.set_new"))
+                        button(lang.bedrock("bedrock.home.button.set_new"))
                     }
                     if (homes.hasHomes()) {
-                        button(lang.raw("bedrock.home.button.remove"))
+                        button(lang.bedrock("bedrock.home.button.remove"))
                     }
                 }
             }
@@ -77,9 +79,9 @@ class BedrockGuildHomeMenu(
 
     private fun buildHomeContent(maxHomes: Int, availableSlots: Int): String {
         return if (availableSlots > 0) {
-            lang.legacy("bedrock.home.content.available", "maximum" to maxHomes, "available" to availableSlots)
+            lang.bedrock("bedrock.home.content.available", "maximum" to maxHomes, "available" to availableSlots)
         } else {
-            lang.legacy("bedrock.home.content.full", "maximum" to maxHomes, "available" to availableSlots)
+            lang.bedrock("bedrock.home.content.full", "maximum" to maxHomes, "available" to availableSlots)
         }
     }
 
@@ -204,11 +206,11 @@ class BedrockGuildHomeMenu(
             return
         }
         val removeForm = SimpleForm.builder()
-            .title(lang.legacy("bedrock.home.remove.title", "guild" to guild.name))
-            .content(lang.raw("bedrock.home.remove.description"))
+            .title(lang.bedrock("bedrock.home.remove.title", "guild" to guild.name))
+            .content(lang.bedrock("bedrock.home.remove.description"))
             .apply {
                 homes.homeNames.forEach { homeName ->
-                    button(lang.legacy("bedrock.home.remove.button", "home" to homeName))
+                    button(lang.bedrock("bedrock.home.remove.button", "home" to homeName))
                 }
             }
             .validResultHandler { response ->

@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -28,15 +30,15 @@ class BedrockClaimTransferMenu(
         val config = getBedrockConfig()
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.claim_transfer.title", "claim" to claim.name))
-            .label(lang.raw("bedrock.claim_transfer.warning"))
+            .title(lang.bedrock("bedrock.claim_transfer.title", "claim" to claim.name))
+            .label(lang.bedrock("bedrock.claim_transfer.warning"))
             .input(
-                lang.raw("bedrock.claim_transfer.player.label"),
-                lang.raw("bedrock.claim_transfer.player.placeholder"),
+                lang.bedrock("bedrock.claim_transfer.player.label"),
+                lang.bedrock("bedrock.claim_transfer.player.placeholder"),
                 ""
             )
             .toggle(
-                lang.raw("bedrock.claim_transfer.confirm"),
+                lang.bedrock("bedrock.claim_transfer.confirm"),
                 false
             )
             .validResultHandler { response ->

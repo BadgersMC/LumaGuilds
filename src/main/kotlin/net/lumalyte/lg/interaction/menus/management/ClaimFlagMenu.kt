@@ -5,6 +5,8 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.application.actions.claim.flag.DisableAllClaimFlags
 import net.lumalyte.lg.application.actions.claim.flag.DisableClaimFlag
 import net.lumalyte.lg.application.actions.claim.flag.EnableAllClaimFlags
@@ -41,7 +43,7 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Create claim flags menu
         val playerId = player.uniqueId
-        val gui = ChestGui(6, lang.legacy("menu.flags.title"))
+        val gui = ChestGui(6, lang.guiTitle("menu.flags.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -52,13 +54,13 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Add go back item
         val exitItem = ItemStack.of(Material.NETHER_STAR)
-            .name(lang.legacy("menu.common.item.back.name"))
+            .name(lang.gui("menu.common.item.back.name"))
         val guiExitItem = GuiItem(exitItem) { menuNavigator.goBack() }
         controlsPane.addItem(guiExitItem, 0, 0)
 
         // Add deselect all button
         val deselectItem = ItemStack.of(Material.HONEY_BLOCK)
-            .name(lang.legacy("menu.common.item.deselect_all.name"))
+            .name(lang.gui("menu.common.item.deselect_all.name"))
         val guiDeselectItem = GuiItem(deselectItem) {
             disableAllClaimFlags.execute(claim.id)
             open()
@@ -67,7 +69,7 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Add select all button
         val selectItem = ItemStack.of(Material.SLIME_BLOCK)
-            .name(lang.legacy("menu.common.item.select_all.name"))
+            .name(lang.gui("menu.common.item.select_all.name"))
         val guiSelectItem = GuiItem(selectItem) {
             enableAllClaimFlags.execute(claim.id)
             open()

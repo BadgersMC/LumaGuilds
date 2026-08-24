@@ -458,16 +458,16 @@ bedrock:
     instructions: |-
       <gray>Create a short tag that appears beside your guild name.
 
-      <gold><bold>━━━ BEDROCK COLOR CODES ━━━
-      • <red>§c (red) <gray>- Use §c in your tag
-      • <green>§a (green) <gray>- Use §a in your tag
-      • <yellow>§e (yellow) <gray>- Use §e in your tag
-      • <aqua>§b (aqua) <gray>- Use §b in your tag
-      • <light_purple>§d (pink) <gray>- Use §d in your tag
-      • <bold>§l</bold><gray> (bold) - Use §l for bold
-      • <italic>§o</italic><gray> (italic) - Use §o for italic
+      <gold><bold>━━━ BEDROCK MINIMESSAGE COLORS ━━━
+      • <red>red <gray>- Use the red MiniMessage tag
+      • <green>green <gray>- Use the green MiniMessage tag
+      • <yellow>yellow <gray>- Use the yellow MiniMessage tag
+      • <aqua>aqua <gray>- Use the aqua MiniMessage tag
+      • <light_purple>light purple <gray>- Use the light-purple MiniMessage tag
+      • <bold>bold</bold><gray> - Use the bold MiniMessage tag
+      • <italic>italic</italic><gray> - Use the italic MiniMessage tag
 
-      <gray>Example: <red><bold>RED</bold></red><gray> = §c§lRED
+      <gray>Example: <red><bold>RED</bold></red><gray> uses red and bold tags
 
       <yellow><bold>━━━ ADVANCED TEXT GENERATOR ━━━
       <gray>Want gradients, hex colors, or fancy effects?
@@ -1531,6 +1531,11 @@ accept_transfer_condition:
   invalid_claim: The claim you are trying to accept can no longer be found.
   invalid_request: There is no longer an active transfer request.
   owner: You already own this claim.
+send_transfer_condition:
+  blocks: This player would exceed their claimed-block limit.
+  claims: This player would exceed their claim limit.
+  exist: This claim could not be found.
+  owner: This player already owns this claim.
 command:
   claim:
     add_flag:
@@ -2157,11 +2162,11 @@ command:
     quick_announce:
       announce:
         failed_to_send_announcement: '<red>❌ Failed to send announcement.'
-        provide_a_message_usage_ga_color_message: '<red>❌ Provide a message. Usage: /ga [&color] \<message>'
+        provide_a_message_usage_ga_color_message: '<red>❌ Provide a message. Usage: /ga [color] \<message>'
       default:
-        add_a_color_code_ga_4_message: '<gray>Add a color code: <white>/ga &4 \<message> <gray>for custom colors.'
-        colors_0_1_2_3_4_5: '<gray>Colors: <black>&0 <dark_blue>&1 <dark_green>&2 <dark_aqua>&3 <dark_red>&4 <dark_purple>&5 <gold>&6 <gray>&7 <dark_gray>&8 <blue>&9'
-        default_is_6_gold_cooldown_5_minutes: '<gray>Default is <gold>&6 <gray>(gold). Cooldown: 5 minutes.'
+        add_a_color_code_ga_4_message: '<gray>Add a color name: <white>/ga red \<message> <gray>for custom colors.'
+        colors_0_1_2_3_4_5: '<gray>Colors: <black>black <dark_blue>dark blue <dark_green>dark green <dark_aqua>dark aqua <dark_red>dark red <dark_purple>dark purple <gold>gold <gray>gray <dark_gray>dark gray <blue>blue'
+        default_is_6_gold_cooldown_5_minutes: '<gray>Default is <gold>gold<gray>. Cooldown: 5 minutes.'
         guild_announcements: '<gold>=== Guild Announcements ==='
         use_ga_message_to_announce_to_all: '<gray>Use <white>/ga \<message> <gray>to announce to all guild members.'
       resolveguildforannounce:
@@ -2989,6 +2994,7 @@ menu:
         name: Search
     title: All Players
   bank:
+    title: 'Guild Bank - <guild>'
     unavailable:
       title: '<red>⚠ Guild Bank Unavailable'
       economy: '<red>Vault economy system not found!'
@@ -3032,6 +3038,7 @@ menu:
       deposit_overlay: 'Deposit successful!'
       withdraw_overlay: 'Withdrawal successful!'
     history:
+      title: 'Bank Transaction History - <guild>'
       recent: '<count> recent transactions'
       open_action: 'Click to view full history'
       date_format: MM/dd/yyyy HH:mm
@@ -3164,6 +3171,7 @@ menu:
         low: Low Risk
         medium: Medium Risk
     stats:
+      title: Bank Statistics
       activity:
         deposited: deposited <amount>
         withdrew: withdrew <amount>
@@ -3250,6 +3258,7 @@ menu:
       time: 'Time: <time>'
       fee_amount: 'Fee: <fee>'
   claim_list:
+    page: 'Page <page> of <pages>'
     title: Claims
   claim_wide_permissions:
     item:
@@ -6094,8 +6103,8 @@ menu:
     chat:
       header: '<gold>=== TAG INPUT MODE ==='
       prompt: '<gray>Type your guild tag in chat.'
-      support: '<gray>Supports both legacy & and MiniMessage:'
-      legacy: '<gray>  Legacy: &c&lRed Bold'
+      support: '<gray>Supports MiniMessage formatting:'
+      legacy: '<gray>  Example: red bold text'
       colors: '<gray>  Colors: \<#FF0000>Text\</#FF0000>'
       gradients: '<gray>  Gradients: \<gradient:#FF0000:#00FF00>Text\</gradient>'
       formatting: '<gray>  Formatting: \<bold>, \<italic>, etc.'

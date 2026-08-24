@@ -3,37 +3,59 @@ package net.lumalyte.lg.infrastructure
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import java.util.UUID
 
 
 class ChatInfoBuilder(private val lang: LangService, private val playerId: UUID,
-                      private val title: String) {
+                      private val title: Component) {
+    constructor(lang: LangService, playerId: UUID, title: String) : this(lang, playerId, Component.text(title))
     private var elements = Component.text()
 
     init {
         elements.append(Component.text("-----", NamedTextColor.WHITE))
-        elements.append(Component.text(" $title ", NamedTextColor.DARK_AQUA))
+        elements.append(Component.space()).append(title.colorIfAbsent(NamedTextColor.DARK_AQUA)).append(Component.space())
         elements.append(Component.text("-----", NamedTextColor.WHITE))
     }
 
     fun addHeader(text: String) {
+        addHeader(Component.text(text))
+    }
+
+    fun addHeader(text: Component) {
         newLine()
-        elements.append(Component.text(text, NamedTextColor.BLUE))
+        elements.append(text.colorIfAbsent(NamedTextColor.BLUE))
     }
 
     fun addParagraph(text: String) {
+        addParagraph(Component.text(text))
+    }
+
+    fun addParagraph(text: Component) {
         newLine()
-        elements.append(Component.text(text, NamedTextColor.GRAY))
+        elements.append(text.colorIfAbsent(NamedTextColor.GRAY))
     }
 
     fun addRow(text: String) {
+        addRow(Component.text(text))
+    }
+
+    fun addRow(text: Component) {
         newLine()
-        elements.append(Component.text(text, NamedTextColor.WHITE))
+        elements.append(text.colorIfAbsent(NamedTextColor.WHITE))
     }
 
     fun addIndexed(index: Int, text: String) {
+        addIndexed(index, Component.text(text))
+    }
+
+    fun addIndexed(index: Int, text: Component) {
         newLine()
-        val indexedRow = lang.msg("command.info_box.index", "index" to index, "text" to text)
+        val indexedRow = lang.msg(
+            "command.info_box.index",
+            "index" to index,
+            "text" to PLAIN.serialize(text),
+        )
         elements.append(indexedRow)
     }
 
@@ -56,5 +78,9 @@ class ChatInfoBuilder(private val lang: LangService, private val playerId: UUID,
 
     private fun newLine() {
         elements.append(Component.text("\n"))
+    }
+
+    private companion object {
+        val PLAIN = PlainTextComponentSerializer.plainText()
     }
 }

@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -56,7 +58,7 @@ class GuildPromotionMenu(
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_promotion.title", "guild" to guild.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_promotion.title", "guild" to guild.name)))
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
             if (e.click == ClickType.SHIFT_LEFT || e.click == ClickType.SHIFT_RIGHT)
@@ -73,18 +75,18 @@ class GuildPromotionMenu(
             val isOnline = Bukkit.getPlayer(member.playerId)?.isOnline == true
 
             val item = ItemStack.of(if (isOnline) Material.PLAYER_HEAD else Material.SKELETON_SKULL)
-                .name(lang.legacy("menu.guild_promotion.member.name", "player" to playerName))
-                .lore(lang.legacy("menu.guild_promotion.member.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_promotion.fallback.unknown_rank"))))
+                .name(lang.gui("menu.guild_promotion.member.name", "player" to playerName))
+                .lore(lang.gui("menu.guild_promotion.member.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_promotion.fallback.unknown_rank"))))
                 .lore(
                     if (isOnline) {
-                        lang.legacy("menu.guild_promotion.member.status.online")
+                        lang.gui("menu.guild_promotion.member.status.online")
                     } else {
-                        lang.legacy("menu.guild_promotion.member.status.offline")
+                        lang.gui("menu.guild_promotion.member.status.offline")
                     }
                 )
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.guild_promotion.member.promote"))
-                .lore(lang.legacy("menu.guild_promotion.member.demote"))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.guild_promotion.member.promote"))
+                .lore(lang.gui("menu.guild_promotion.member.demote"))
 
             GuiItem(item) {
                 val rankIdx = ranks.indexOf(rank)
@@ -132,8 +134,8 @@ class GuildPromotionMenu(
         if (paginatedPane.pages > 1) {
             // Previous page
             val prevItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.guild_promotion.navigation.previous"))
-                .lore(lang.legacy("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
+                .name(lang.gui("menu.guild_promotion.navigation.previous"))
+                .lore(lang.gui("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
             staticPane.addItem(GuiItem(prevItem) {
                 if (paginatedPane.page > 0) {
                     paginatedPane.page--
@@ -143,8 +145,8 @@ class GuildPromotionMenu(
 
             // Next page
             val nextItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.guild_promotion.navigation.next"))
-                .lore(lang.legacy("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
+                .name(lang.gui("menu.guild_promotion.navigation.next"))
+                .lore(lang.gui("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
             staticPane.addItem(GuiItem(nextItem) {
                 if (paginatedPane.page < paginatedPane.pages - 1) {
                     paginatedPane.page++
@@ -155,14 +157,14 @@ class GuildPromotionMenu(
 
         // Member count display
         val infoItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name(lang.legacy("menu.guild_promotion.info.members", "count" to members.size))
-            .lore(lang.legacy("menu.guild_promotion.info.guild", "guild" to guild.name))
+            .name(lang.gui("menu.guild_promotion.info.members", "count" to members.size))
+            .lore(lang.gui("menu.guild_promotion.info.guild", "guild" to guild.name))
         staticPane.addItem(GuiItem(infoItem) { it.isCancelled = true }, 4, 0)
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.guild_promotion.navigation.back.name"))
-            .lore(lang.legacy("menu.guild_promotion.navigation.back.description"))
+            .name(lang.gui("menu.guild_promotion.navigation.back.name"))
+            .lore(lang.gui("menu.guild_promotion.navigation.back.description"))
         staticPane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 7, 0)
 
         gui.addPane(paginatedPane)

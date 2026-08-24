@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
@@ -34,19 +36,19 @@ class BedrockGuildMemberRankMenu(
         val config = getBedrockConfig()
         val rankIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
-        val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.common.unknown_player")
+        val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.bedrock("menu.common.unknown_player")
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
         val rankNames = ranks.map { it.name }
         val currentRank = rankService.getRank(member.rankId)
         val currentRankIndex = ranks.indexOfFirst { it.id == member.rankId }.coerceAtLeast(0)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.member_rank.title", "player" to memberName))
+            .title(lang.bedrock("bedrock.member_rank.title", "player" to memberName))
             .apply { rankIcon?.let { icon(it) } }
-            .label(lang.legacy("bedrock.member_rank.description", "player" to memberName))
-            .label(lang.legacy("bedrock.member_rank.current", "rank" to (currentRank?.name ?: lang.raw("bedrock.member_rank.unknown_rank"))))
+            .label(lang.bedrock("bedrock.member_rank.description", "player" to memberName))
+            .label(lang.bedrock("bedrock.member_rank.current", "rank" to (currentRank?.name ?: lang.bedrock("bedrock.member_rank.unknown_rank"))))
             .dropdown(
-                lang.raw("bedrock.member_rank.new_rank"),
+                lang.bedrock("bedrock.member_rank.new_rank"),
                 rankNames,
                 currentRankIndex
             )
@@ -76,7 +78,7 @@ class BedrockGuildMemberRankMenu(
         )
 
         if (success) {
-            val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.common.unknown_player")
+            val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.bedrock("menu.common.unknown_player")
             player.sendMessage(lang.msg("bedrock.member_rank.feedback.changed", "player" to memberName, "rank" to newRankName))
             bedrockNavigator.goBack()
         } else {

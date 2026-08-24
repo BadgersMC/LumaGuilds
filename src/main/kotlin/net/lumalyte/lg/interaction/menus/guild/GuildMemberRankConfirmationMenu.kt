@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -46,7 +48,7 @@ class GuildMemberRankConfirmationMenu(
         val gui = ChestGui(3, MenuTitleBuilder.build(
             guild.guiTheme,
             3,
-            lang.legacy("menu.guild_confirmation.rank_change.title"),
+            lang.guiTitle("menu.guild_confirmation.rank_change.title"),
         ))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -78,9 +80,9 @@ class GuildMemberRankConfirmationMenu(
         val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name
             ?: lang.raw("menu.guild_confirmation.common.unknown_player")
         val infoItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.guild_confirmation.rank_change.item.member.name"))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.member.lore.player", "player" to playerName))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.member.lore.guild", "guild" to guild.name))
+            .name(lang.gui("menu.guild_confirmation.rank_change.item.member.name"))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.member.lore.player", "player" to playerName))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.member.lore.guild", "guild" to guild.name))
 
         pane.addItem(GuiItem(infoItem), 1, 0)
     }
@@ -91,36 +93,36 @@ class GuildMemberRankConfirmationMenu(
         // Current rank
         val currentRankItem = if (currentRank != null) {
             ItemStack.of(Material.RED_CONCRETE)
-                .name(lang.legacy("menu.guild_confirmation.rank_change.item.current.name"))
-                .lore(lang.legacy("menu.guild_confirmation.rank_change.item.rank_lore.rank", "rank" to currentRank.name))
-                .lore(lang.legacy("menu.guild_confirmation.rank_change.item.rank_lore.priority", "priority" to currentRank.priority))
+                .name(lang.gui("menu.guild_confirmation.rank_change.item.current.name"))
+                .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.rank", "rank" to currentRank.name))
+                .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.priority", "priority" to currentRank.priority))
         } else {
             ItemStack.of(Material.BARRIER)
-                .name(lang.legacy("menu.guild_confirmation.rank_change.item.current.error"))
+                .name(lang.gui("menu.guild_confirmation.rank_change.item.current.error"))
         }
 
         // New rank
         val newRankItem = ItemStack.of(Material.GREEN_CONCRETE)
-            .name(lang.legacy("menu.guild_confirmation.rank_change.item.new.name"))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.rank_lore.rank", "rank" to newRank.name))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.rank_lore.priority", "priority" to newRank.priority))
+            .name(lang.gui("menu.guild_confirmation.rank_change.item.new.name"))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.rank", "rank" to newRank.name))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.priority", "priority" to newRank.priority))
 
         // Change direction indicator
         val isPromotion = newRank.priority < (currentRank?.priority ?: 0)
         val changeDirection = if (isPromotion) {
-            lang.legacy("menu.guild_confirmation.rank_change.direction.promotion")
+            lang.gui("menu.guild_confirmation.rank_change.direction.promotion")
         } else {
-            lang.legacy("menu.guild_confirmation.rank_change.direction.demotion")
+            lang.gui("menu.guild_confirmation.rank_change.direction.demotion")
         }
 
         val summaryItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.guild_confirmation.rank_change.item.summary.name"))
+            .name(lang.gui("menu.guild_confirmation.rank_change.item.summary.name"))
             .lore(changeDirection)
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.summary.lore.from", "rank" to (currentRank?.name ?: lang.raw("general.unknown"))))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.summary.lore.to", "rank" to newRank.name))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.summary.lore.priority_change", "change" to ((currentRank?.priority ?: 0) - newRank.priority)))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.from", "rank" to (currentRank?.name ?: lang.raw("general.unknown"))))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.to", "rank" to newRank.name))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.priority_change", "change" to ((currentRank?.priority ?: 0) - newRank.priority)))
             .lore("")
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.summary.lore.permissions", "permission_count" to newRank.permissions.size))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.permissions", "permission_count" to newRank.permissions.size))
 
         pane.addItem(GuiItem(currentRankItem), 3, 0)
         pane.addItem(GuiItem(summaryItem), 4, 0)
@@ -130,12 +132,12 @@ class GuildMemberRankConfirmationMenu(
     private fun addConfirmationButtons(pane: StaticPane) {
         // Confirm button
         val confirmItem = ItemStack.of(Material.GREEN_WOOL)
-            .name(lang.legacy("menu.guild_confirmation.rank_change.item.confirm.name"))
-            .lore(lang.legacy(
+            .name(lang.gui("menu.guild_confirmation.rank_change.item.confirm.name"))
+            .lore(lang.gui(
                 "menu.guild_confirmation.rank_change.item.confirm.lore.player",
                 "player" to (Bukkit.getOfflinePlayer(targetMember.playerId).name ?: lang.raw("general.unknown")),
             ))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.confirm.lore.rank", "rank" to newRank.name))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.confirm.lore.rank", "rank" to newRank.name))
 
         val confirmGuiItem = GuiItem(confirmItem) {
             performRankChange()
@@ -144,8 +146,8 @@ class GuildMemberRankConfirmationMenu(
 
         // Cancel button
         val cancelItem = ItemStack.of(Material.RED_WOOL)
-            .name(lang.legacy("menu.guild_confirmation.rank_change.item.cancel.name"))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.cancel.lore"))
+            .name(lang.gui("menu.guild_confirmation.rank_change.item.cancel.name"))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.cancel.lore"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             menuNavigator.goBack()
@@ -216,9 +218,9 @@ class GuildMemberRankConfirmationMenu(
 
         head.itemMeta = meta
 
-        return head.name(lang.legacy("menu.guild_confirmation.rank_change.item.head.name", "player" to playerName))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.head.lore.player", "player" to playerName))
-            .lore(lang.legacy("menu.guild_confirmation.rank_change.item.head.lore.confirming"))
+        return head.name(lang.gui("menu.guild_confirmation.rank_change.item.head.name", "player" to playerName))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.head.lore.player", "player" to playerName))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.head.lore.confirming"))
     }
 
     override fun passData(data: Any?) {

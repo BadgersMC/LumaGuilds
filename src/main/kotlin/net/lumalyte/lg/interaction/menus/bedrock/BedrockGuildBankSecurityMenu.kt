@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -28,12 +30,12 @@ class BedrockGuildBankSecurityMenu(
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
-        val content = lang.raw("bedrock.bank_security.content")
+        val content = lang.bedrock("bedrock.bank_security.content")
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.bank_security.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.bank_security.title", "guild" to guild.name))
             .content(content)
-            .button(lang.raw("bedrock.bank_security.button.back"))
+            .button(lang.bedrock("bedrock.bank_security.button.back"))
             .validResultHandler { _ ->
                 bedrockNavigator.goBack()
             }

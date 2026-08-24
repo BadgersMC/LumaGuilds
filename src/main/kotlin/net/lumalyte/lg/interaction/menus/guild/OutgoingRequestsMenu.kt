@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 
@@ -46,7 +48,7 @@ class OutgoingRequestsMenu(
     private val itemsPerPage = 28 // 4 rows x 7 columns
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.outgoing_requests.title")))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.outgoing_requests.title")))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -93,10 +95,10 @@ class OutgoingRequestsMenu(
         if (pageRequests.isEmpty()) {
             // No requests - show empty message
             val emptyItem = ItemStack.of(Material.BARRIER)
-                .name(lang.legacy("menu.outgoing_requests.empty.name"))
-                .lore(lang.legacy("menu.outgoing_requests.empty.description"))
-                .lore(lang.legacy("menu.outgoing_requests.empty.hint"))
-                .lore(lang.legacy("menu.outgoing_requests.empty.location"))
+                .name(lang.gui("menu.outgoing_requests.empty.name"))
+                .lore(lang.gui("menu.outgoing_requests.empty.description"))
+                .lore(lang.gui("menu.outgoing_requests.empty.hint"))
+                .lore(lang.gui("menu.outgoing_requests.empty.location"))
 
             val guiItem = GuiItem(emptyItem) { }
             newPage.addItem(guiItem, 3, 1)
@@ -127,10 +129,10 @@ class OutgoingRequestsMenu(
 
         // Determine icon and type text based on relation type
         val (material, typeName) = when (relation.type) {
-            RelationType.ALLY -> Material.GOLDEN_APPLE to lang.legacy("menu.outgoing_requests.type.alliance.display")
-            RelationType.TRUCE -> Material.WHITE_BANNER to lang.legacy("menu.outgoing_requests.type.truce.display")
-            RelationType.NEUTRAL -> Material.PAPER to lang.legacy("menu.outgoing_requests.type.peace.display")
-            else -> Material.PAPER to lang.legacy("menu.outgoing_requests.type.unknown.display")
+            RelationType.ALLY -> Material.GOLDEN_APPLE to lang.gui("menu.outgoing_requests.type.alliance.display")
+            RelationType.TRUCE -> Material.WHITE_BANNER to lang.gui("menu.outgoing_requests.type.truce.display")
+            RelationType.NEUTRAL -> Material.PAPER to lang.gui("menu.outgoing_requests.type.peace.display")
+            else -> Material.PAPER to lang.gui("menu.outgoing_requests.type.unknown.display")
         }
 
         // Calculate time ago
@@ -138,26 +140,26 @@ class OutgoingRequestsMenu(
 
         val item = ItemStack.of(material)
             .name(typeName)
-            .lore(lang.legacy("menu.outgoing_requests.request.to", "guild" to guildName))
-            .lore(lang.legacy("menu.outgoing_requests.request.members", "count" to memberCount))
-            .lore(lang.legacy("menu.outgoing_requests.request.sent", "time" to timeAgo))
+            .lore(lang.gui("menu.outgoing_requests.request.to", "guild" to guildName))
+            .lore(lang.gui("menu.outgoing_requests.request.members", "count" to memberCount))
+            .lore(lang.gui("menu.outgoing_requests.request.sent", "time" to timeAgo))
 
         // Add truce duration if applicable
         if (relation.type == RelationType.TRUCE && relation.expiresAt != null) {
             val durationDays = Duration.between(relation.createdAt, relation.expiresAt).toDays()
-            item.lore(lang.legacy("menu.outgoing_requests.request.duration", "days" to durationDays))
+            item.lore(lang.gui("menu.outgoing_requests.request.duration", "days" to durationDays))
         }
 
-        item.lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.outgoing_requests.request.awaiting"))
-            .lore(lang.legacy("menu.outgoing_requests.request.cancel"))
+        item.lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.outgoing_requests.request.awaiting"))
+            .lore(lang.gui("menu.outgoing_requests.request.cancel"))
 
         return item
     }
 
     private fun openCancelConfirmMenu(relation: Relation) {
         // Create a small menu with confirm cancel
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.outgoing_requests.cancel.title")))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.outgoing_requests.cancel.title")))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -172,11 +174,11 @@ class OutgoingRequestsMenu(
 
         // Confirm cancel button
         val cancelItem = ItemStack.of(Material.RED_CONCRETE)
-            .name(lang.legacy("menu.outgoing_requests.cancel.confirm.name"))
-            .lore(lang.legacy("menu.outgoing_requests.cancel.confirm.description"))
-            .lore(lang.legacy("menu.outgoing_requests.cancel.confirm.guild", "guild" to guildName))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.outgoing_requests.cancel.confirm.warning"))
+            .name(lang.gui("menu.outgoing_requests.cancel.confirm.name"))
+            .lore(lang.gui("menu.outgoing_requests.cancel.confirm.description"))
+            .lore(lang.gui("menu.outgoing_requests.cancel.confirm.guild", "guild" to guildName))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.outgoing_requests.cancel.confirm.warning"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             cancelRequest(relation, guildName)
@@ -185,8 +187,8 @@ class OutgoingRequestsMenu(
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.outgoing_requests.cancel.back.name"))
-            .lore(lang.legacy("menu.outgoing_requests.cancel.back.description"))
+            .name(lang.gui("menu.outgoing_requests.cancel.back.name"))
+            .lore(lang.gui("menu.outgoing_requests.cancel.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             open()
@@ -230,8 +232,8 @@ class OutgoingRequestsMenu(
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.outgoing_requests.navigation.previous.name"))
-                .lore(lang.legacy("menu.outgoing_requests.navigation.previous.description"))
+                .name(lang.gui("menu.outgoing_requests.navigation.previous.name"))
+                .lore(lang.gui("menu.outgoing_requests.navigation.previous.description"))
 
             val prevGuiItem = GuiItem(prevItem) {
                 currentPage--
@@ -242,8 +244,8 @@ class OutgoingRequestsMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.outgoing_requests.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
-            .lore(lang.legacy("menu.outgoing_requests.navigation.total", "count" to allRequests.size))
+            .name(lang.gui("menu.outgoing_requests.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
+            .lore(lang.gui("menu.outgoing_requests.navigation.total", "count" to allRequests.size))
 
         val pageGuiItem = GuiItem(pageItem) { }
         pane.addItem(pageGuiItem, 4, 4)
@@ -251,8 +253,8 @@ class OutgoingRequestsMenu(
         // Next page button
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.outgoing_requests.navigation.next.name"))
-                .lore(lang.legacy("menu.outgoing_requests.navigation.next.description"))
+                .name(lang.gui("menu.outgoing_requests.navigation.next.name"))
+                .lore(lang.gui("menu.outgoing_requests.navigation.next.description"))
 
             val nextGuiItem = GuiItem(nextItem) {
                 currentPage++
@@ -264,8 +266,8 @@ class OutgoingRequestsMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.outgoing_requests.navigation.back.name"))
-            .lore(lang.legacy("menu.outgoing_requests.navigation.back.description"))
+            .name(lang.gui("menu.outgoing_requests.navigation.back.name"))
+            .lore(lang.gui("menu.outgoing_requests.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
@@ -273,14 +275,14 @@ class OutgoingRequestsMenu(
         pane.addItem(guiItem, x, y)
     }
 
-    private fun formatTimeAgo(instant: Instant): String {
+    private fun formatTimeAgo(instant: Instant): Component {
         val duration = Duration.between(instant, Instant.now())
         return when {
-            duration.toMinutes() < 1 -> lang.raw("menu.outgoing_requests.time.just_now")
-            duration.toHours() < 1 -> lang.legacy("menu.outgoing_requests.time.minutes", "count" to duration.toMinutes())
-            duration.toDays() < 1 -> lang.legacy("menu.outgoing_requests.time.hours", "count" to duration.toHours())
-            duration.toDays() < 7 -> lang.legacy("menu.outgoing_requests.time.days", "count" to duration.toDays())
-            else -> lang.legacy("menu.outgoing_requests.time.weeks", "count" to duration.toDays() / 7)
+            duration.toMinutes() < 1 -> lang.gui("menu.outgoing_requests.time.just_now")
+            duration.toHours() < 1 -> lang.gui("menu.outgoing_requests.time.minutes", "count" to duration.toMinutes())
+            duration.toDays() < 1 -> lang.gui("menu.outgoing_requests.time.hours", "count" to duration.toHours())
+            duration.toDays() < 7 -> lang.gui("menu.outgoing_requests.time.days", "count" to duration.toDays())
+            else -> lang.gui("menu.outgoing_requests.time.weeks", "count" to duration.toDays() / 7)
         }
     }
 

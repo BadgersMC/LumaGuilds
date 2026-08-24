@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.ConfigService
@@ -41,8 +43,8 @@ class BedrockPartyCreationMenu(
         val mainConfig = configService.loadConfig()
         if (!mainConfig.partiesEnabled) {
             return CustomForm.builder()
-                .title(lang.raw("bedrock.party.creation.title"))
-                .label(lang.raw("bedrock.party.creation.disabled"))
+                .title(lang.bedrock("bedrock.party.creation.title"))
+                .label(lang.bedrock("bedrock.party.creation.disabled"))
                 .validResultHandler { _ ->
                     bedrockNavigator.goBack()
                 }
@@ -54,24 +56,24 @@ class BedrockPartyCreationMenu(
         val guildNames = allGuilds.map { it.name }
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.party.creation.guild_title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.party.creation.guild_title", "guild" to guild.name))
             .apply { partyIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.party.creation.description"))
+            .label(lang.bedrock("bedrock.party.creation.description"))
             .input(
-                lang.raw("bedrock.party.creation.name.label"),
-                lang.raw("bedrock.party.creation.name.placeholder"),
+                lang.bedrock("bedrock.party.creation.name.label"),
+                lang.bedrock("bedrock.party.creation.name.placeholder"),
                 ""
             )
             .toggle(
-                lang.raw("bedrock.party.creation.private"),
+                lang.bedrock("bedrock.party.creation.private"),
                 mainConfig.party.allowPrivateParties
             )
             .apply {
                 if (guildNames.isNotEmpty()) {
-                    label(lang.raw("bedrock.party.creation.invite_other"))
+                    label(lang.bedrock("bedrock.party.creation.invite_other"))
                     dropdown(
-                        lang.raw("bedrock.party.creation.select_guild"),
-                        listOf(lang.raw("bedrock.party.creation.none")) + guildNames
+                        lang.bedrock("bedrock.party.creation.select_guild"),
+                        listOf(lang.bedrock("bedrock.party.creation.none")) + guildNames
                     )
                 }
             }

@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.AnvilGui
@@ -36,7 +38,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
 
         // Create homes menu
         val playerId = player.uniqueId
-        val gui = AnvilGui(lang.legacy("menu.renaming.title"))
+        val gui = AnvilGui(lang.guiTitle("menu.renaming.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -64,7 +66,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
         // Add confirm menu item.
         val thirdPane = StaticPane(0, 0, 1, 1)
         val confirmItem = ItemStack.of(Material.NETHER_STAR)
-            .name(lang.legacy("menu.common.item.confirm.name"))
+            .name(lang.gui("menu.common.item.confirm.name"))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             // Go back to edit menu if the name hasn't changed
             if (name == claim.name || name.isBlank()) {
@@ -78,7 +80,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
                 is UpdateClaimNameResult.Success -> menuNavigator.goBackWithData(result.claim)
                 UpdateClaimNameResult.ClaimNotFound -> {
                     val paperItem = ItemStack.of(Material.PAPER)
-                        .name(lang.legacy("menu.renaming.item.unknown.name"))
+                        .name(lang.gui("menu.renaming.item.unknown.name"))
                     val guiPaperItem = GuiItem(paperItem)
                     secondPane.addItem(guiPaperItem, 0, 0)
                     lodestoneItem.name(name)
@@ -87,7 +89,7 @@ class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val pl
                 }
                 UpdateClaimNameResult.NameAlreadyExists -> {
                     val paperItem = ItemStack.of(Material.PAPER)
-                        .name(lang.legacy("menu.renaming.item.existing.name"))
+                        .name(lang.gui("menu.renaming.item.existing.name"))
                     val guiPaperItem = GuiItem(paperItem) {guiEvent ->
                         secondPane.removeItem(0, 0)
                         lodestoneItem.name(name)

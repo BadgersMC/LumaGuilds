@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -32,7 +34,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_relations.title", "guild" to guild.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_relations.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -70,10 +72,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Allies
         val alliesItem = ItemStack.of(if (allies > 0) Material.DIAMOND else Material.GRAY_DYE)
-            .name(lang.legacy("menu.guild_relations.overview.allies.name"))
-            .lore(lang.legacy("menu.guild_relations.overview.allies.description"))
-            .lore(lang.legacy("menu.guild_relations.count", "count" to allies))
-            .lore(lang.legacy("menu.guild_relations.overview.allies.support"))
+            .name(lang.gui("menu.guild_relations.overview.allies.name"))
+            .lore(lang.gui("menu.guild_relations.overview.allies.description"))
+            .lore(lang.gui("menu.guild_relations.count", "count" to allies))
+            .lore(lang.gui("menu.guild_relations.overview.allies.support"))
 
         val alliesGuiItem = GuiItem(alliesItem) {
             openAlliesListMenu()
@@ -82,10 +84,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Enemies
         val enemiesItem = ItemStack.of(if (enemies > 0) Material.REDSTONE else Material.GRAY_DYE)
-            .name(lang.legacy("menu.guild_relations.overview.enemies.name"))
-            .lore(lang.legacy("menu.guild_relations.overview.enemies.description"))
-            .lore(lang.legacy("menu.guild_relations.count", "count" to enemies))
-            .lore(lang.legacy("menu.guild_relations.overview.enemies.warfare"))
+            .name(lang.gui("menu.guild_relations.overview.enemies.name"))
+            .lore(lang.gui("menu.guild_relations.overview.enemies.description"))
+            .lore(lang.gui("menu.guild_relations.count", "count" to enemies))
+            .lore(lang.gui("menu.guild_relations.overview.enemies.warfare"))
 
         val enemiesGuiItem = GuiItem(enemiesItem) {
             openEnemiesListMenu()
@@ -94,10 +96,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Truces
         val trucesItem = ItemStack.of(if (truces > 0) Material.CLOCK else Material.GRAY_DYE)
-            .name(lang.legacy("menu.guild_relations.overview.truces.name"))
-            .lore(lang.legacy("menu.guild_relations.overview.truces.description"))
-            .lore(lang.legacy("menu.guild_relations.count", "count" to truces))
-            .lore(lang.legacy("menu.guild_relations.overview.truces.expiration"))
+            .name(lang.gui("menu.guild_relations.overview.truces.name"))
+            .lore(lang.gui("menu.guild_relations.overview.truces.description"))
+            .lore(lang.gui("menu.guild_relations.count", "count" to truces))
+            .lore(lang.gui("menu.guild_relations.overview.truces.expiration"))
 
         val trucesGuiItem = GuiItem(trucesItem) {
             openTrucesListMenu()
@@ -106,9 +108,9 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Diplomatic Status
         val statusItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.guild_relations.overview.status.name"))
-            .lore(lang.legacy("menu.guild_relations.overview.status.description"))
-            .lore(lang.legacy("menu.guild_relations.overview.status.summary", "allies" to allies, "enemies" to enemies, "truces" to truces))
+            .name(lang.gui("menu.guild_relations.overview.status.name"))
+            .lore(lang.gui("menu.guild_relations.overview.status.description"))
+            .lore(lang.gui("menu.guild_relations.overview.status.summary", "allies" to allies, "enemies" to enemies, "truces" to truces))
 
         val statusGuiItem = GuiItem(statusItem) {
             openDiplomaticStatusMenu()
@@ -122,10 +124,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Incoming requests
         val incomingItem = ItemStack.of(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
-            .name(lang.legacy("menu.guild_relations.requests.incoming.name"))
-            .lore(lang.legacy("menu.guild_relations.requests.incoming.description"))
-            .lore(lang.legacy("menu.guild_relations.count", "count" to incomingRequests.size))
-            .lore(lang.legacy("menu.guild_relations.requests.incoming.proposals"))
+            .name(lang.gui("menu.guild_relations.requests.incoming.name"))
+            .lore(lang.gui("menu.guild_relations.requests.incoming.description"))
+            .lore(lang.gui("menu.guild_relations.count", "count" to incomingRequests.size))
+            .lore(lang.gui("menu.guild_relations.requests.incoming.proposals"))
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingRequestsMenu()
@@ -134,10 +136,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Outgoing requests
         val outgoingItem = ItemStack.of(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.guild_relations.requests.outgoing.name"))
-            .lore(lang.legacy("menu.guild_relations.requests.outgoing.description"))
-            .lore(lang.legacy("menu.guild_relations.count", "count" to outgoingRequests.size))
-            .lore(lang.legacy("menu.guild_relations.requests.outgoing.awaiting"))
+            .name(lang.gui("menu.guild_relations.requests.outgoing.name"))
+            .lore(lang.gui("menu.guild_relations.requests.outgoing.description"))
+            .lore(lang.gui("menu.guild_relations.count", "count" to outgoingRequests.size))
+            .lore(lang.gui("menu.guild_relations.requests.outgoing.awaiting"))
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingRequestsMenu()
@@ -148,10 +150,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     private fun addDiplomaticActionsSection(pane: StaticPane) {
         // Request Alliance
         val allianceItem = ItemStack.of(Material.GOLDEN_APPLE)
-            .name(lang.legacy("menu.guild_relations.action.alliance.name"))
-            .lore(lang.legacy("menu.guild_relations.action.alliance.description"))
-            .lore(lang.legacy("menu.guild_relations.action.acceptance"))
-            .lore(lang.legacy("menu.guild_relations.action.alliance.support"))
+            .name(lang.gui("menu.guild_relations.action.alliance.name"))
+            .lore(lang.gui("menu.guild_relations.action.alliance.description"))
+            .lore(lang.gui("menu.guild_relations.action.acceptance"))
+            .lore(lang.gui("menu.guild_relations.action.alliance.support"))
 
         val allianceGuiItem = GuiItem(allianceItem) {
             if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RELATIONS)) {
@@ -164,10 +166,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Request Truce
         val truceItem = ItemStack.of(Material.WHITE_BANNER)
-            .name(lang.legacy("menu.guild_relations.action.truce.name"))
-            .lore(lang.legacy("menu.guild_relations.action.truce.description"))
-            .lore(lang.legacy("menu.guild_relations.action.truce.temporary"))
-            .lore(lang.legacy("menu.guild_relations.action.acceptance"))
+            .name(lang.gui("menu.guild_relations.action.truce.name"))
+            .lore(lang.gui("menu.guild_relations.action.truce.description"))
+            .lore(lang.gui("menu.guild_relations.action.truce.temporary"))
+            .lore(lang.gui("menu.guild_relations.action.acceptance"))
 
         val truceGuiItem = GuiItem(truceItem) {
             if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RELATIONS)) {
@@ -180,10 +182,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Declare Enemy
         val enemyItem = ItemStack.of(Material.IRON_SWORD)
-            .name(lang.legacy("menu.guild_relations.action.enemy.name"))
-            .lore(lang.legacy("menu.guild_relations.action.enemy.description"))
-            .lore(lang.legacy("menu.guild_relations.action.enemy.no_acceptance"))
-            .lore(lang.legacy("menu.guild_relations.action.enemy.hostile"))
+            .name(lang.gui("menu.guild_relations.action.enemy.name"))
+            .lore(lang.gui("menu.guild_relations.action.enemy.description"))
+            .lore(lang.gui("menu.guild_relations.action.enemy.no_acceptance"))
+            .lore(lang.gui("menu.guild_relations.action.enemy.hostile"))
 
         val enemyGuiItem = GuiItem(enemyItem) {
             if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.DECLARE_WAR)) {
@@ -198,10 +200,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     private fun addRelationDetailsSection(pane: StaticPane) {
         // Diplomatic History
         val historyItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
-            .name(lang.legacy("menu.guild_relations.details.history.name"))
-            .lore(lang.legacy("menu.guild_relations.details.history.description"))
-            .lore(lang.legacy("menu.guild_relations.details.history.track"))
-            .lore(lang.legacy("menu.guild_relations.details.history.learn"))
+            .name(lang.gui("menu.guild_relations.details.history.name"))
+            .lore(lang.gui("menu.guild_relations.details.history.description"))
+            .lore(lang.gui("menu.guild_relations.details.history.track"))
+            .lore(lang.gui("menu.guild_relations.details.history.learn"))
 
         val historyGuiItem = GuiItem(historyItem) {
             openDiplomaticHistoryMenu()
@@ -210,10 +212,10 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
         // Neutral Guilds
         val neutralItem = ItemStack.of(Material.BOOKSHELF)
-            .name(lang.legacy("menu.guild_relations.details.neutral.name"))
-            .lore(lang.legacy("menu.guild_relations.details.neutral.description"))
-            .lore(lang.legacy("menu.guild_relations.details.neutral.browse"))
-            .lore(lang.legacy("menu.guild_relations.details.neutral.partners"))
+            .name(lang.gui("menu.guild_relations.details.neutral.name"))
+            .lore(lang.gui("menu.guild_relations.details.neutral.description"))
+            .lore(lang.gui("menu.guild_relations.details.neutral.browse"))
+            .lore(lang.gui("menu.guild_relations.details.neutral.partners"))
 
         val neutralGuiItem = GuiItem(neutralItem) {
             openNeutralGuildsMenu()
@@ -223,8 +225,8 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.guild_home.back.name"))
-            .lore(lang.legacy("menu.guild_home.back.description"))
+            .name(lang.gui("menu.guild_home.back.name"))
+            .lore(lang.gui("menu.guild_home.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))

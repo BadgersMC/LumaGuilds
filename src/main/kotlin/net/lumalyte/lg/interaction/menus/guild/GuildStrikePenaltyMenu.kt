@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -16,6 +18,7 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.GuildResolver
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -42,7 +45,7 @@ class GuildStrikePenaltyMenu(
 
     override fun open() {
         val guildName = GuildResolver.displayName(guild)
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_strike_penalty.title", "guild" to guildName)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_strike_penalty.title", "guild" to guildName)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { event -> event.isCancelled = true }
         gui.setOnBottomClick { event ->
@@ -55,10 +58,10 @@ class GuildStrikePenaltyMenu(
 
         // Guild info header (row 0)
         val infoItem = ItemStack.of(Material.NAME_TAG)
-            .name(lang.legacy("menu.guild_strike_penalty.guild.name", "guild" to guildName))
-            .lore(lang.legacy("menu.guild_strike_penalty.guild.level", "level" to guild.level))
-            .lore(lang.legacy("menu.guild_strike_penalty.guild.strikes", "count" to strikeService.countByGuild(guild.id)))
-            .lore(lang.legacy("menu.guild_strike_penalty.guild.threshold", "threshold" to strikesConfig.threshold))
+            .name(lang.gui("menu.guild_strike_penalty.guild.name", "guild" to guildName))
+            .lore(lang.gui("menu.guild_strike_penalty.guild.level", "level" to guild.level))
+            .lore(lang.gui("menu.guild_strike_penalty.guild.strikes", "count" to strikeService.countByGuild(guild.id)))
+            .lore(lang.gui("menu.guild_strike_penalty.guild.threshold", "threshold" to strikesConfig.threshold))
         pane.addItem(GuiItem(infoItem), 0, 0)
 
         // Strike ledger (rows 0-2, slots 1-7). Newest strikes on the left.
@@ -73,46 +76,46 @@ class GuildStrikePenaltyMenu(
             val item = ItemStack.of(material)
                 .name(
                     if (strike.active) {
-                        lang.legacy("menu.guild_strike_penalty.strike.name.active", "type" to strike.punishmentType.uppercase())
+                        lang.gui("menu.guild_strike_penalty.strike.name.active", "type" to strike.punishmentType.uppercase())
                     } else {
-                        lang.legacy("menu.guild_strike_penalty.strike.name.lifted", "type" to strike.punishmentType.uppercase())
+                        lang.gui("menu.guild_strike_penalty.strike.name.lifted", "type" to strike.punishmentType.uppercase())
                     }
                 )
-                .lore(lang.legacy("menu.guild_strike_penalty.strike.player", "player" to (strike.playerName ?: strike.playerUuid.toString().take(8))))
-                .lore(lang.legacy("menu.guild_strike_penalty.strike.reason", "reason" to (strike.reason?.take(60) ?: lang.raw("menu.guild_strike_penalty.fallback.no_reason"))))
-                .lore(lang.legacy("menu.guild_strike_penalty.strike.executor", "executor" to (strike.executorName ?: lang.raw("menu.guild_strike_penalty.fallback.unknown_executor")), "date" to formatDate(strike.issuedAt)))
+                .lore(lang.gui("menu.guild_strike_penalty.strike.player", "player" to (strike.playerName ?: strike.playerUuid.toString().take(8))))
+                .lore(lang.gui("menu.guild_strike_penalty.strike.reason", "reason" to (strike.reason?.take(60) ?: lang.raw("menu.guild_strike_penalty.fallback.no_reason"))))
+                .lore(lang.gui("menu.guild_strike_penalty.strike.executor", "executor" to (strike.executorName ?: lang.raw("menu.guild_strike_penalty.fallback.unknown_executor")), "date" to formatDate(strike.issuedAt)))
             pane.addItem(GuiItem(item), 1 + index, 0)
         }
 
         // Penalty action buttons (rows 3-4)
-        addPenaltyButton(pane, 1, 3, Material.GOLD_INGOT, lang.legacy("menu.guild_strike_penalty.action.level.name"),
-            lang.legacy("menu.guild_strike_penalty.action.level.description", "levels" to strikesConfig.penalties.levelReductionLevels),
+        addPenaltyButton(pane, 1, 3, Material.GOLD_INGOT, lang.gui("menu.guild_strike_penalty.action.level.name"),
+            lang.gui("menu.guild_strike_penalty.action.level.description", "levels" to strikesConfig.penalties.levelReductionLevels),
             PenaltyType.LEVEL_REDUCTION)
-        addPenaltyButton(pane, 3, 3, Material.EXPERIENCE_BOTTLE, lang.legacy("menu.guild_strike_penalty.action.experience.name"),
-            lang.legacy("menu.guild_strike_penalty.action.experience.description", "amount" to strikesConfig.penalties.expReductionAmount),
+        addPenaltyButton(pane, 3, 3, Material.EXPERIENCE_BOTTLE, lang.gui("menu.guild_strike_penalty.action.experience.name"),
+            lang.gui("menu.guild_strike_penalty.action.experience.description", "amount" to strikesConfig.penalties.expReductionAmount),
             PenaltyType.EXP_REDUCTION)
-        addPenaltyButton(pane, 5, 3, Material.NAME_TAG, lang.legacy("menu.guild_strike_penalty.action.mute.name"),
-            lang.legacy("menu.guild_strike_penalty.action.mute.description", "hours" to formatHours(strikesConfig.penalties.guildMuteDurationMillis)),
+        addPenaltyButton(pane, 5, 3, Material.NAME_TAG, lang.gui("menu.guild_strike_penalty.action.mute.name"),
+            lang.gui("menu.guild_strike_penalty.action.mute.description", "hours" to formatHours(strikesConfig.penalties.guildMuteDurationMillis)),
             PenaltyType.GUILD_MUTE)
-        addPenaltyButton(pane, 7, 3, Material.TNT, lang.legacy("menu.guild_strike_penalty.action.disband.name"),
-            lang.legacy("menu.guild_strike_penalty.action.disband.description"),
+        addPenaltyButton(pane, 7, 3, Material.TNT, lang.gui("menu.guild_strike_penalty.action.disband.name"),
+            lang.gui("menu.guild_strike_penalty.action.disband.description"),
             PenaltyType.DISBAND)
 
         // Recent penalties (row 5)
         val recentPenalties = penaltyService.getByGuild(guild.id).take(3)
         if (recentPenalties.isNotEmpty()) {
             val penItem = ItemStack.of(Material.BOOK)
-                .name(lang.legacy("menu.guild_strike_penalty.recent.name"))
+                .name(lang.gui("menu.guild_strike_penalty.recent.name"))
             recentPenalties.forEach { p ->
-                penItem.lore(lang.legacy("menu.guild_strike_penalty.recent.entry", "type" to penaltyTypeName(p.type), "actor" to p.actorName, "date" to formatDate(p.createdAt)))
+                penItem.lore(lang.gui("menu.guild_strike_penalty.recent.entry", "type" to penaltyTypeName(p.type), "actor" to p.actorName, "date" to formatDate(p.createdAt)))
             }
             pane.addItem(GuiItem(penItem), 1, 5)
         }
 
         // Back / close
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.guild_strike_penalty.close.name"))
-            .lore(lang.legacy("menu.guild_strike_penalty.close.description"))
+            .name(lang.gui("menu.guild_strike_penalty.close.name"))
+            .lore(lang.gui("menu.guild_strike_penalty.close.description"))
         pane.addItem(GuiItem(backItem) { player.closeInventory() }, 7, 5)
 
         gui.addPane(pane)
@@ -126,15 +129,15 @@ class GuildStrikePenaltyMenu(
         x: Int,
         y: Int,
         material: Material,
-        title: String,
-        description: String,
+        title: Component,
+        description: Component,
         type: PenaltyType,
     ) {
         val item = ItemStack.of(material)
             .name(title)
             .lore(description)
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.guild_strike_penalty.action.confirm"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.guild_strike_penalty.action.confirm"))
         pane.addItem(GuiItem(item) {
             menuNavigator.openMenu(
                 GuildStrikePenaltyConfirmMenu(menuNavigator, player, guild, type, strikesConfig)
@@ -147,10 +150,10 @@ class GuildStrikePenaltyMenu(
             .format(instant.atZone(java.time.ZoneId.systemDefault()))
     }
 
-    private fun penaltyTypeName(type: PenaltyType): String = when (type) {
-        PenaltyType.LEVEL_REDUCTION -> lang.raw("menu.guild_strike_penalty.type.level_reduction")
-        PenaltyType.EXP_REDUCTION -> lang.raw("menu.guild_strike_penalty.type.exp_reduction")
-        PenaltyType.GUILD_MUTE -> lang.raw("menu.guild_strike_penalty.type.guild_mute")
-        PenaltyType.DISBAND -> lang.raw("menu.guild_strike_penalty.type.disband")
+    private fun penaltyTypeName(type: PenaltyType): Component = when (type) {
+        PenaltyType.LEVEL_REDUCTION -> lang.gui("menu.guild_strike_penalty.type.level_reduction")
+        PenaltyType.EXP_REDUCTION -> lang.gui("menu.guild_strike_penalty.type.exp_reduction")
+        PenaltyType.GUILD_MUTE -> lang.gui("menu.guild_strike_penalty.type.guild_mute")
+        PenaltyType.DISBAND -> lang.gui("menu.guild_strike_penalty.type.disband")
     }
 }

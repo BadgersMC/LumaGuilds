@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -32,7 +34,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
 
     override fun open() {
         val playerId = player.uniqueId
-        val gui = ChestGui(1, lang.legacy("menu.creation.title"))
+        val gui = ChestGui(1, lang.guiTitle("menu.creation.title"))
         val pane = StaticPane(0, 0, 9, 1)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
@@ -44,8 +46,8 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
         if (playerClaimCount >=
                 playerMetadataService.getPlayerClaimLimit(playerId)) {
             val iconEditorItem = ItemStack.of(Material.MAGMA_CREAM)
-                .name(lang.legacy("menu.creation.item.cannot_create.name"))
-                .lore(lang.legacy("creation_condition.claims"))
+                .name(lang.gui("menu.creation.item.cannot_create.name"))
+                .lore(lang.gui("creation_condition.claims"))
             val guiIconEditorItem = GuiItem(iconEditorItem) { guiEvent -> guiEvent.isCancelled = true }
             pane.addItem(guiIconEditorItem, 4, 0)
             gui.show(player)
@@ -56,9 +58,9 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
         when (isNewClaimLocationValid.execute(location.toPosition2D(), location.world.uid)) {
             IsNewClaimLocationValidResult.Valid -> {
                 val iconEditorItem = ItemStack.of(Material.BELL)
-                    .name(lang.legacy("menu.creation.item.create.name"))
-                    .lore(lang.legacy("menu.creation.item.create.lore.protected"))
-                    .lore(lang.legacy(
+                    .name(lang.gui("menu.creation.item.create.name"))
+                    .lore(lang.gui("menu.creation.item.create.lore.protected"))
+                    .lore(lang.gui(
                         "menu.creation.item.create.lore.remaining",
                         "remaining_claims" to playerMetadataService.getPlayerClaimLimit(playerId) - playerClaimCount,
                     ))
@@ -70,8 +72,8 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
             }
             IsNewClaimLocationValidResult.Overlap -> {
                 val iconEditorItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(lang.legacy("menu.creation.item.cannot_create.name"))
-                    .lore(lang.legacy("creation_condition.overlap"))
+                    .name(lang.gui("menu.creation.item.cannot_create.name"))
+                    .lore(lang.gui("creation_condition.overlap"))
                 val guiIconEditorItem = GuiItem(iconEditorItem) { guiEvent -> guiEvent.isCancelled = true }
                 pane.addItem(guiIconEditorItem, 4, 0)
                 gui.show(player)
@@ -79,8 +81,8 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
             }
             IsNewClaimLocationValidResult.TooCloseToWorldBorder -> {
                 val iconEditorItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(lang.legacy("menu.creation.item.cannot_create.name"))
-                    .lore(lang.legacy("creation_condition.world_border"))
+                    .name(lang.gui("menu.creation.item.cannot_create.name"))
+                    .lore(lang.gui("creation_condition.world_border"))
                 val guiIconEditorItem = GuiItem(iconEditorItem) { guiEvent -> guiEvent.isCancelled = true }
                 pane.addItem(guiIconEditorItem, 4, 0)
                 gui.show(player)

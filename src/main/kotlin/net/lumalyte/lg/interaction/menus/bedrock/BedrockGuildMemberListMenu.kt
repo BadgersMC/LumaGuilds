@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -39,7 +41,7 @@ class BedrockGuildMemberListMenu(
         val members = memberService.getGuildMembers(guild.id).toList()
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.member_list.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.member_list.title", "guild" to guild.name))
             .content(createMemberListContent(members))
             .addButtonWithImage(
                 config,
@@ -49,19 +51,19 @@ class BedrockGuildMemberListMenu(
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.member_list.button.invite"),
+                lang.bedrock("bedrock.member_list.button.invite"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.member_list.button.refresh"),
+                lang.bedrock("bedrock.member_list.button.refresh"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.member_list.button.back"),
+                lang.bedrock("bedrock.member_list.button.back"),
                 config.backIconUrl,
                 config.backIconPath
             )
@@ -86,7 +88,7 @@ class BedrockGuildMemberListMenu(
             }
         }
 
-        return lang.legacy(
+        return lang.bedrock(
             "bedrock.member_list.content",
             "member_count" to memberCount,
             "online_count" to onlineCount
@@ -95,18 +97,18 @@ class BedrockGuildMemberListMenu(
 
     private fun createMemberListText(members: List<Member>): String {
         if (members.isEmpty()) {
-            return lang.raw("bedrock.member_list.no_members")
+            return lang.bedrock("bedrock.member_list.no_members")
         }
 
         val memberTexts = members.take(10).map { m ->
             val playerName = getPlayerName(m)
             val onlineStatus = if (isPlayerOnline(m)) {
-                lang.raw("bedrock.member_list.status.online")
+                lang.bedrock("bedrock.member_list.status.online")
             } else {
-                lang.raw("bedrock.member_list.status.offline")
+                lang.bedrock("bedrock.member_list.status.offline")
             }
-            val rank = rankService.getRank(m.rankId)?.name ?: lang.raw("bedrock.member_list.unknown")
-            lang.legacy(
+            val rank = rankService.getRank(m.rankId)?.name ?: lang.bedrock("bedrock.member_list.unknown")
+            lang.bedrock(
                 "bedrock.member_list.member_row",
                 "status" to onlineStatus,
                 "player" to playerName,
@@ -116,7 +118,7 @@ class BedrockGuildMemberListMenu(
 
         val text = memberTexts.joinToString("\n")
         return if (members.size > 10) {
-            "$text\n${lang.legacy("bedrock.member_list.more", "count" to members.size - 10)}"
+            "$text\n${lang.bedrock("bedrock.member_list.more", "count" to members.size - 10)}"
         } else {
             text
         }
@@ -181,10 +183,10 @@ class BedrockGuildMemberListMenu(
 
     private fun getPlayerName(member: Member): String {
         return try {
-            player.server.getOfflinePlayer(member.playerId).name ?: lang.raw("bedrock.member_list.unknown")
+            player.server.getOfflinePlayer(member.playerId).name ?: lang.bedrock("bedrock.member_list.unknown")
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            lang.raw("bedrock.member_list.unknown")
+            lang.bedrock("bedrock.member_list.unknown")
         }
     }
 

@@ -1,6 +1,7 @@
 package net.lumalyte.lg.utils
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -133,7 +134,7 @@ class MenuTitleBuilderTest {
     @Test
     fun `title text appears after rewind shift`() {
         val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3, "⚔ My Guild")
-        val expectedEnd = "<shift:-161>§f⚔ My Guild"
+        val expectedEnd = "<shift:-161>⚔ My Guild"
         assertTrue(
             title.endsWith(expectedEnd),
             "Expected title '$title' to end with '$expectedEnd'"
@@ -141,11 +142,11 @@ class MenuTitleBuilderTest {
     }
 
     @Test
-    fun `title is prefixed with white color code`() {
+    fun `title is appended without unsupported standard MiniMessage tags`() {
         val title = MenuTitleBuilder.build(rows = 5, title = "Test Menu")
-        assertTrue(
-            title.contains("§fTest Menu"),
-            "Expected title '$title' to contain '§fTest Menu'"
+        assertFalse(
+            title.contains("<white>"),
+            "Expected title '$title' not to contain an unsupported white tag"
         )
     }
 
@@ -154,7 +155,7 @@ class MenuTitleBuilderTest {
         val title = MenuTitleBuilder.build(GuiTheme.MOSSBOUND, 4, "Info")
         val glyphIdx = title.indexOf("<glyph:guild_bg_mossbound_4_row>")
         val rewindIdx = title.indexOf("<shift:-161>")
-        val textIdx = title.indexOf("§fInfo")
+        val textIdx = title.indexOf("Info")
         assertTrue(glyphIdx >= 0, "Glyph must be present")
         assertTrue(rewindIdx > glyphIdx, "Rewind shift must come after glyph (got idx $rewindIdx vs $glyphIdx)")
         assertTrue(textIdx > rewindIdx, "Title text must come after rewind shift (got idx $textIdx vs $rewindIdx)")
@@ -166,7 +167,7 @@ class MenuTitleBuilderTest {
         val page = 1
         val total = 3
         val title = MenuTitleBuilder.build(GuiTheme.EMBERSTONE, 6, "§6Info - ${guildName} §8• Page ${page}/${total}")
-        assertTrue(title.contains("§f§6Info - Enthusia §8• Page 1/3"),
+        assertTrue(title.contains("§6Info - Enthusia §8• Page 1/3"),
             "Dynamic title not preserved, got: '$title'")
     }
 
@@ -179,7 +180,7 @@ class MenuTitleBuilderTest {
         val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3, "⚔ Dashboard")
         assertTrue(title.startsWith("<shift:-9>"), "3-row must start with shift:-9")
         assertTrue(title.contains("<glyph:guild_bg_neutral_3_row>"), "3-row must use 3_row glyph")
-        assertTrue(title.contains("§f⚔ Dashboard"), "Title text must be present")
+        assertTrue(title.contains("⚔ Dashboard"), "Title text must be present")
     }
 
     @Test
@@ -187,6 +188,6 @@ class MenuTitleBuilderTest {
         val title = MenuTitleBuilder.build(GuiTheme.CARVED_SLATE, 6, "Member Management")
         assertTrue(title.startsWith("<shift:-9>"), "6-row must start with shift:-9")
         assertTrue(title.contains("<glyph:guild_bg_carved_slate_6_row>"), "6-row must use 6_row glyph")
-        assertTrue(title.contains("§fMember Management"), "Title text must be present")
+        assertTrue(title.contains("Member Management"), "Title text must be present")
     }
 }

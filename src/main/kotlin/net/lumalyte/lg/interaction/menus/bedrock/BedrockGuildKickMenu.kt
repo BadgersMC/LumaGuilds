@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -31,11 +33,11 @@ class BedrockGuildKickMenu(
         val kickableMembers = getKickableMembers()
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.kick.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.kick.title", "guild" to guild.name))
             .content(buildKickContent())
             .apply {
                 if (kickableMembers.isEmpty()) {
-                    button(lang.raw("bedrock.kick.no_members"))
+                    button(lang.bedrock("bedrock.kick.no_members"))
                 } else {
                     kickableMembers.forEach { member ->
                         val buttonText = createMemberButtonText(member)
@@ -54,7 +56,7 @@ class BedrockGuildKickMenu(
     }
 
     private fun buildKickContent(): String {
-        return lang.raw("bedrock.kick.content")
+        return lang.bedrock("bedrock.kick.content")
     }
 
     private fun getKickableMembers(): List<Member> {
@@ -68,15 +70,15 @@ class BedrockGuildKickMenu(
         val formatter = DateTimeFormatter.ofPattern(lang.raw("bedrock.kick.date_format"))
         val joinedDate = formatter.format(member.joinedAt)
 
-        return lang.legacy("bedrock.kick.member", "player" to playerName, "joined" to joinedDate)
+        return lang.bedrock("bedrock.kick.member", "player" to playerName, "joined" to joinedDate)
     }
 
     private fun getPlayerName(member: Member): String {
         return try {
-            player.server.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.common.unknown_player")
+            player.server.getOfflinePlayer(member.playerId).name ?: lang.bedrock("menu.common.unknown_player")
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            lang.raw("menu.common.unknown_player")
+            lang.bedrock("menu.common.unknown_player")
         }
     }
 

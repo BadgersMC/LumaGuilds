@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.domain.entities.Claim
@@ -29,16 +31,16 @@ class BedrockClaimNamingMenu(
         val config = getBedrockConfig()
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.claim_naming.title", "claim" to claim.name))
-            .label(lang.raw("bedrock.claim_naming.instructions"))
+            .title(lang.bedrock("bedrock.claim_naming.title", "claim" to claim.name))
+            .label(lang.bedrock("bedrock.claim_naming.instructions"))
             .input(
-                lang.raw("bedrock.claim_naming.name.label"),
-                lang.raw("bedrock.claim_naming.name.placeholder"),
+                lang.bedrock("bedrock.claim_naming.name.label"),
+                lang.bedrock("bedrock.claim_naming.name.placeholder"),
                 claim.name
             )
             .input(
-                lang.raw("bedrock.claim_naming.description.label"),
-                lang.raw("bedrock.claim_naming.description.placeholder"),
+                lang.bedrock("bedrock.claim_naming.description.label"),
+                lang.bedrock("bedrock.claim_naming.description.placeholder"),
                 claim.description
             )
             .validResultHandler { response ->

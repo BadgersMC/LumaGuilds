@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -52,7 +54,7 @@ class GuildControlPanelMenu(
         val gui = ChestGui(6, MenuTitleBuilder.build(
             guild.guiTheme,
             6,
-            lang.legacy("menu.control_panel.title", "guild" to guild.name),
+            lang.guiTitle("menu.control_panel.title", "guild" to guild.name),
         ))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -99,9 +101,9 @@ class GuildControlPanelMenu(
 
     private fun addGuildSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val settingsItem = ItemStack.of(Material.COMMAND_BLOCK)
-            .name(lang.legacy("menu.control_panel.item.settings.name"))
-            .lore(lang.legacy("menu.control_panel.item.settings.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.settings.lore.details"))
+            .name(lang.gui("menu.control_panel.item.settings.name"))
+            .lore(lang.gui("menu.control_panel.item.settings.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.settings.lore.details"))
         val guiItem = GuiItem(settingsItem) {
             menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
         }
@@ -111,12 +113,12 @@ class GuildControlPanelMenu(
     private fun addEmojiSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val emoji = guildService.getEmoji(guild.id)
         val emojiItem = ItemStack.of(Material.NAME_TAG)
-            .name(lang.legacy("menu.control_panel.item.emoji.name"))
-            .lore(lang.legacy(
+            .name(lang.gui("menu.control_panel.item.emoji.name"))
+            .lore(lang.gui(
                 "menu.control_panel.item.emoji.lore.current",
-                "emoji" to (emoji ?: lang.raw("menu.control_panel.state.not_set")),
+                "emoji" to (emoji ?: lang.gui("menu.control_panel.state.not_set")),
             ))
-            .lore(lang.legacy("menu.control_panel.item.emoji.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.emoji.lore.description"))
         val guiItem = GuiItem(emojiItem) {
             menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
         }
@@ -129,23 +131,23 @@ class GuildControlPanelMenu(
             val deserializedBanner = bannerData.deserializeToItemStack()
             if (deserializedBanner != null) {
                 deserializedBanner.clone()
-                    .name(lang.legacy("menu.control_panel.item.banner.name"))
-                    .lore(lang.legacy(
+                    .name(lang.gui("menu.control_panel.item.banner.name"))
+                    .lore(lang.gui(
                         "menu.control_panel.item.banner.lore.current",
                         "banner" to deserializedBanner.type.name.lowercase().replace("_", " "),
                     ))
-                    .lore(lang.legacy("menu.control_panel.item.banner.lore.description"))
+                    .lore(lang.gui("menu.control_panel.item.banner.lore.description"))
             } else {
                 // Fallback if deserialization fails
                 ItemStack.of(Material.WHITE_BANNER)
-                    .name(lang.legacy("menu.control_panel.item.banner.name"))
-                    .lore(lang.legacy("menu.control_panel.item.banner.lore.error"))
-                    .lore(lang.legacy("menu.control_panel.item.banner.lore.description"))
+                    .name(lang.gui("menu.control_panel.item.banner.name"))
+                    .lore(lang.gui("menu.control_panel.item.banner.lore.error"))
+                    .lore(lang.gui("menu.control_panel.item.banner.lore.description"))
             }
         } ?: ItemStack.of(Material.WHITE_BANNER)
-            .name(lang.legacy("menu.control_panel.item.banner.name"))
-            .lore(lang.legacy("menu.control_panel.item.banner.lore.not_set"))
-            .lore(lang.legacy("menu.control_panel.item.banner.lore.description"))
+            .name(lang.gui("menu.control_panel.item.banner.name"))
+            .lore(lang.gui("menu.control_panel.item.banner.lore.not_set"))
+            .lore(lang.gui("menu.control_panel.item.banner.lore.description"))
 
         val guiItem = GuiItem(bannerItem) {
             menuNavigator.openMenu(menuFactory.createGuildBannerMenu(menuNavigator, player, guild))
@@ -158,17 +160,17 @@ class GuildControlPanelMenu(
             GuildMode.PEACEFUL -> ItemStack.of(Material.GREEN_WOOL)
             GuildMode.HOSTILE -> ItemStack.of(Material.RED_WOOL)
         }
-            .name(lang.legacy("menu.control_panel.item.mode.name"))
-            .lore(lang.legacy(
+            .name(lang.gui("menu.control_panel.item.mode.name"))
+            .lore(lang.gui(
                 "menu.control_panel.item.mode.lore.current",
                 "mode" to if (guild.mode == GuildMode.PEACEFUL) {
-                    lang.raw("menu.control_panel.state.peaceful")
+                    lang.gui("menu.control_panel.state.peaceful")
                 } else {
-                    lang.raw("menu.control_panel.state.hostile")
+                    lang.gui("menu.control_panel.state.hostile")
                 },
             ))
-            .lore(lang.legacy("menu.control_panel.item.mode.lore.peaceful"))
-            .lore(lang.legacy("menu.control_panel.item.mode.lore.hostile"))
+            .lore(lang.gui("menu.control_panel.item.mode.lore.peaceful"))
+            .lore(lang.gui("menu.control_panel.item.mode.lore.hostile"))
         val guiItem = GuiItem(modeItem) {
             menuNavigator.openMenu(menuFactory.createGuildModeMenu(menuNavigator, player, guild))
         }
@@ -178,13 +180,13 @@ class GuildControlPanelMenu(
     private fun addHomeSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val home = guildService.getHome(guild.id)
         val homeItem = ItemStack.of(Material.COMPASS)
-            .name(lang.legacy("menu.control_panel.item.home.name"))
+            .name(lang.gui("menu.control_panel.item.home.name"))
             .lore(if (home != null) {
-                lang.legacy("menu.control_panel.item.home.lore.set")
+                lang.gui("menu.control_panel.item.home.lore.set")
             } else {
-                lang.legacy("menu.control_panel.item.home.lore.not_set")
+                lang.gui("menu.control_panel.item.home.lore.not_set")
             })
-            .lore(lang.legacy("menu.control_panel.item.home.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.home.lore.description"))
         val guiItem = GuiItem(homeItem) {
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
         }
@@ -196,13 +198,13 @@ class GuildControlPanelMenu(
         val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
 
         val rankItem = ItemStack.of(Material.IRON_SWORD)
-            .name(lang.legacy("menu.control_panel.item.rank_management.name"))
-            .lore(lang.legacy("menu.control_panel.item.rank_management.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.rank_management.lore.count", "count" to rankCount))
+            .name(lang.gui("menu.control_panel.item.rank_management.name"))
+            .lore(lang.gui("menu.control_panel.item.rank_management.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.rank_management.lore.count", "count" to rankCount))
 
         if (!hasPermission) {
-            rankItem.lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.control_panel.item.rank_management.lore.locked"))
+            rankItem.lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.control_panel.item.rank_management.lore.locked"))
         }
 
         val guiItem = GuiItem(rankItem) {
@@ -219,9 +221,9 @@ class GuildControlPanelMenu(
     private fun addMemberManagementButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
         val memberItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name(lang.legacy("menu.control_panel.item.member_management.name"))
-            .lore(lang.legacy("menu.control_panel.item.member_management.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.member_management.lore.count", "count" to memberCount))
+            .name(lang.gui("menu.control_panel.item.member_management.name"))
+            .lore(lang.gui("menu.control_panel.item.member_management.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.member_management.lore.count", "count" to memberCount))
         val guiItem = GuiItem(memberItem) {
             menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
         }
@@ -230,9 +232,9 @@ class GuildControlPanelMenu(
 
     private fun addPartyManagementButton(pane: StaticPane, x: Int, y: Int) {
         val partyItem = ItemStack.of(Material.FIREWORK_ROCKET)
-            .name(lang.legacy("menu.control_panel.item.party.name"))
-            .lore(lang.legacy("menu.control_panel.item.party.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.party.lore.details"))
+            .name(lang.gui("menu.control_panel.item.party.name"))
+            .lore(lang.gui("menu.control_panel.item.party.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.party.lore.details"))
         val guiItem = GuiItem(partyItem) {
             menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
         }
@@ -241,9 +243,9 @@ class GuildControlPanelMenu(
 
     private fun addWarManagementButton(pane: StaticPane, x: Int, y: Int) {
         val warItem = ItemStack.of(Material.DIAMOND_SWORD)
-            .name(lang.legacy("menu.control_panel.item.war.name"))
-            .lore(lang.legacy("menu.control_panel.item.war.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.war.lore.details"))
+            .name(lang.gui("menu.control_panel.item.war.name"))
+            .lore(lang.gui("menu.control_panel.item.war.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.war.lore.details"))
         val guiItem = GuiItem(warItem) {
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         }
@@ -252,9 +254,9 @@ class GuildControlPanelMenu(
 
     private fun addRelationManagementButton(pane: StaticPane, x: Int, y: Int) {
         val relationItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.control_panel.item.relations.name"))
-            .lore(lang.legacy("menu.control_panel.item.relations.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.relations.lore.details"))
+            .name(lang.gui("menu.control_panel.item.relations.name"))
+            .lore(lang.gui("menu.control_panel.item.relations.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.relations.lore.details"))
         val guiItem = GuiItem(relationItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
         }
@@ -263,9 +265,9 @@ class GuildControlPanelMenu(
 
     private fun addBankManagementButton(pane: StaticPane, x: Int, y: Int) {
         val bankItem = ItemStack.of(Material.GOLD_BLOCK)
-            .name(lang.legacy("menu.control_panel.item.bank.name"))
-            .lore(lang.legacy("menu.control_panel.item.bank.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.bank.lore.details"))
+            .name(lang.gui("menu.control_panel.item.bank.name"))
+            .lore(lang.gui("menu.control_panel.item.bank.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.bank.lore.details"))
         val guiItem = GuiItem(bankItem) {
             menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
         }
@@ -276,30 +278,30 @@ class GuildControlPanelMenu(
         val vaultItem = when (guild.vaultStatus) {
             net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE -> {
                 ItemStack.of(Material.CHEST)
-                    .name(lang.legacy("menu.control_panel.item.vault.name"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.available"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.open"))
-                    .lore(lang.legacy("menu.common.blank"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.storage_line_1"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.storage_line_2"))
+                    .name(lang.gui("menu.control_panel.item.vault.name"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.available"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.open"))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.storage_line_1"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.storage_line_2"))
             }
             net.lumalyte.lg.domain.entities.VaultStatus.UNAVAILABLE -> {
                 ItemStack.of(Material.BARRIER)
-                    .name(lang.legacy("menu.control_panel.item.vault.name"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.not_placed"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.obtain"))
-                    .lore(lang.legacy("menu.common.blank"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.place_line_1"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.place_line_2"))
+                    .name(lang.gui("menu.control_panel.item.vault.name"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.not_placed"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.obtain"))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.place_line_1"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.place_line_2"))
             }
             net.lumalyte.lg.domain.entities.VaultStatus.NEVER_PLACED -> {
                 ItemStack.of(Material.BARRIER)
-                    .name(lang.legacy("menu.control_panel.item.vault.name"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.never_placed"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.obtain"))
-                    .lore(lang.legacy("menu.common.blank"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.place_line_1"))
-                    .lore(lang.legacy("menu.control_panel.item.vault.lore.place_line_2"))
+                    .name(lang.gui("menu.control_panel.item.vault.name"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.never_placed"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.obtain"))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.place_line_1"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.place_line_2"))
             }
         }
 
@@ -332,9 +334,9 @@ class GuildControlPanelMenu(
 
     private fun addStatisticsButton(pane: StaticPane, x: Int, y: Int) {
         val statsItem = ItemStack.of(Material.BOOKSHELF)
-            .name(lang.legacy("menu.control_panel.item.statistics.name"))
-            .lore(lang.legacy("menu.control_panel.item.statistics.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.statistics.lore.details"))
+            .name(lang.gui("menu.control_panel.item.statistics.name"))
+            .lore(lang.gui("menu.control_panel.item.statistics.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.statistics.lore.details"))
         val guiItem = GuiItem(statsItem) {
             menuNavigator.openMenu(menuFactory.createGuildStatisticsMenu(menuNavigator, player, guild))
         }
@@ -349,12 +351,12 @@ class GuildControlPanelMenu(
             // Menu operation - catching all exceptions to prevent UI failure
             // Fallback if progression system isn't available
             ItemStack.of(Material.EXPERIENCE_BOTTLE)
-                .name(lang.legacy("menu.control_panel.item.progression.name"))
-                .lore(lang.legacy("menu.control_panel.item.progression.lore.starting_level"))
-                .lore(lang.legacy("menu.control_panel.item.progression.lore.starting_progress"))
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.control_panel.item.progression.lore.loading"))
-                .lore(lang.legacy("menu.control_panel.item.progression.lore.retry"))
+                .name(lang.gui("menu.control_panel.item.progression.name"))
+                .lore(lang.gui("menu.control_panel.item.progression.lore.starting_level"))
+                .lore(lang.gui("menu.control_panel.item.progression.lore.starting_progress"))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.control_panel.item.progression.lore.loading"))
+                .lore(lang.gui("menu.control_panel.item.progression.lore.retry"))
         }
         
         val guiItem = GuiItem(progressionItem) {
@@ -366,8 +368,8 @@ class GuildControlPanelMenu(
 
     private fun addInvitePlayerButton(pane: StaticPane, x: Int, y: Int) {
         val inviteItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.control_panel.item.invite.name"))
-            .lore(lang.legacy("menu.control_panel.item.invite.lore"))
+            .name(lang.gui("menu.control_panel.item.invite.name"))
+            .lore(lang.gui("menu.control_panel.item.invite.lore"))
         val guiItem = GuiItem(inviteItem) {
             menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
         }
@@ -376,8 +378,8 @@ class GuildControlPanelMenu(
 
     private fun addKickPlayerButton(pane: StaticPane, x: Int, y: Int) {
         val kickItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.control_panel.item.kick.name"))
-            .lore(lang.legacy("menu.control_panel.item.kick.lore"))
+            .name(lang.gui("menu.control_panel.item.kick.name"))
+            .lore(lang.gui("menu.control_panel.item.kick.lore"))
         val guiItem = GuiItem(kickItem) {
             menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
         }
@@ -386,8 +388,8 @@ class GuildControlPanelMenu(
 
     private fun addPromotePlayerButton(pane: StaticPane, x: Int, y: Int) {
         val promoteItem = ItemStack.of(Material.ANVIL)
-            .name(lang.legacy("menu.control_panel.item.promote.name"))
-            .lore(lang.legacy("menu.control_panel.item.promote.lore"))
+            .name(lang.gui("menu.control_panel.item.promote.name"))
+            .lore(lang.gui("menu.control_panel.item.promote.lore"))
         val guiItem = GuiItem(promoteItem) {
             menuNavigator.openMenu(menuFactory.createGuildPromotionMenu(menuNavigator, player, guild))
         }
@@ -396,8 +398,8 @@ class GuildControlPanelMenu(
 
     private fun addGuildInfoButton(pane: StaticPane, x: Int, y: Int) {
         val infoItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
-            .name(lang.legacy("menu.control_panel.item.info.name"))
-            .lore(lang.legacy("menu.control_panel.item.info.lore"))
+            .name(lang.gui("menu.control_panel.item.info.name"))
+            .lore(lang.gui("menu.control_panel.item.info.lore"))
         val guiItem = GuiItem(infoItem) {
             menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
         }
@@ -407,9 +409,9 @@ class GuildControlPanelMenu(
     private fun addMemberListButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
         val listItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.control_panel.item.member_list.name"))
-            .lore(lang.legacy("menu.control_panel.item.member_list.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.member_list.lore.count", "count" to memberCount))
+            .name(lang.gui("menu.control_panel.item.member_list.name"))
+            .lore(lang.gui("menu.control_panel.item.member_list.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.member_list.lore.count", "count" to memberCount))
         val guiItem = GuiItem(listItem) {
             menuNavigator.openMenu(menuFactory.createGuildMemberListMenu(menuNavigator, player, guild))
         }
@@ -419,9 +421,9 @@ class GuildControlPanelMenu(
     private fun addRankListButton(pane: StaticPane, x: Int, y: Int) {
         val rankCount = rankService.listRanks(guild.id).size
         val listItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.control_panel.item.rank_list.name"))
-            .lore(lang.legacy("menu.control_panel.item.rank_list.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.rank_list.lore.count", "count" to rankCount))
+            .name(lang.gui("menu.control_panel.item.rank_list.name"))
+            .lore(lang.gui("menu.control_panel.item.rank_list.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.rank_list.lore.count", "count" to rankCount))
         val guiItem = GuiItem(listItem) {
             menuNavigator.openMenu(menuFactory.createGuildRankListMenu(menuNavigator, player, guild))
         }
@@ -430,10 +432,10 @@ class GuildControlPanelMenu(
 
     private fun addDisbandGuildButton(pane: StaticPane, x: Int, y: Int) {
         val disbandItem = ItemStack.of(Material.TNT)
-            .name(lang.legacy("menu.control_panel.item.disband.name"))
-            .lore(lang.legacy("menu.control_panel.item.disband.lore.warning"))
-            .lore(lang.legacy("menu.control_panel.item.disband.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.disband.lore.members"))
+            .name(lang.gui("menu.control_panel.item.disband.name"))
+            .lore(lang.gui("menu.control_panel.item.disband.lore.warning"))
+            .lore(lang.gui("menu.control_panel.item.disband.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.disband.lore.members"))
         val guiItem = GuiItem(disbandItem) {
             menuNavigator.openMenu(menuFactory.createGuildDisbandConfirmationMenu(menuNavigator, player, guild))
         }
@@ -442,9 +444,9 @@ class GuildControlPanelMenu(
 
     private fun addLeaveGuildButton(pane: StaticPane, x: Int, y: Int) {
         val leaveItem = ItemStack.of(Material.DARK_OAK_DOOR)
-            .name(lang.legacy("menu.control_panel.item.leave.name"))
-            .lore(lang.legacy("menu.control_panel.item.leave.lore.description"))
-            .lore(lang.legacy("menu.control_panel.item.leave.lore.rejoin"))
+            .name(lang.gui("menu.control_panel.item.leave.name"))
+            .lore(lang.gui("menu.control_panel.item.leave.lore.description"))
+            .lore(lang.gui("menu.control_panel.item.leave.lore.rejoin"))
         val guiItem = GuiItem(leaveItem) {
             menuNavigator.openMenu(menuFactory.createGuildLeaveConfirmationMenu(menuNavigator, player, guild))
         }
@@ -453,7 +455,7 @@ class GuildControlPanelMenu(
 
     private fun createProgressionInfoItem(): ItemStack {
         val levelingItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-            .name(lang.legacy("menu.control_panel.item.progression.name"))
+            .name(lang.gui("menu.control_panel.item.progression.name"))
 
         // Check if claims are enabled in config
         val claimsEnabled = configService.loadConfig().claimsEnabled
@@ -468,8 +470,8 @@ class GuildControlPanelMenu(
                     ((experienceThisLevel.toDouble() / experienceForNextLevel.toDouble()) * 100).toInt()
                 } else 100
                 
-                levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.level", "level" to progression.currentLevel))
-                levelingItem.lore(lang.legacy(
+                levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.level", "level" to progression.currentLevel))
+                levelingItem.lore(lang.gui(
                     "menu.control_panel.item.progression.lore.progress",
                     "current" to experienceThisLevel,
                     "required" to experienceForNextLevel,
@@ -478,7 +480,7 @@ class GuildControlPanelMenu(
                 
                 // Show unlocked perks count
                 val unlockedPerks = progressionService.getUnlockedPerks(guild.id)
-                levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.unlocked", "count" to unlockedPerks.size))
+                levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.unlocked", "count" to unlockedPerks.size))
             } else {
                 addStartingProgressionLore(levelingItem)
             }
@@ -486,67 +488,68 @@ class GuildControlPanelMenu(
             // Menu operation - catching all exceptions to prevent UI failure
             // Fallback if progression system has issues
             addStartingProgressionLore(levelingItem)
-            levelingItem.lore(lang.legacy("menu.common.blank"))
-            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.unavailable"))
+            levelingItem.lore(lang.gui("menu.common.blank"))
+            levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.unavailable"))
         }
         
-        levelingItem.lore(lang.legacy("menu.common.blank"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn_header"))
+        levelingItem.lore(lang.gui("menu.common.blank"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn_header"))
 
         // Guild activities
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.bank"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.members"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.wars"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.bank"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.members"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.wars"))
         
         // Player activities
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.kills"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.farming"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.mining"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.crafting"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.brewing"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.enchanting"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.kills"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.farming"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.mining"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.crafting"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.brewing"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.enchanting"))
 
         // Only show claim-related XP if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.earn.claims"))
+            levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.earn.claims"))
         }
-        levelingItem.lore(lang.legacy("menu.common.blank"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards_header"))
+        levelingItem.lore(lang.gui("menu.common.blank"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards_header"))
 
         // Bank rewards
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.balance"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.interest"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.fees"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards.balance"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards.interest"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards.fees"))
         
         // Home rewards
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.homes"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.teleport"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards.homes"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards.teleport"))
         
         // Audio/Visual rewards
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.particles"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.sounds"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards.particles"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards.sounds"))
 
         // Only show claim-related rewards if claims are enabled
         if (claimsEnabled) {
-            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.claim_blocks"))
-            levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.rewards.claim_regeneration"))
+            levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards.claim_blocks"))
+            levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.rewards.claim_regeneration"))
         }
-        levelingItem.lore(lang.legacy("menu.common.blank"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.better_perks"))
-        levelingItem.lore(lang.legacy("menu.common.blank"))
-        levelingItem.lore(lang.legacy("menu.control_panel.item.progression.lore.refresh"))
+        levelingItem.lore(lang.gui("menu.common.blank"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.better_perks"))
+        levelingItem.lore(lang.gui("menu.common.blank"))
+        levelingItem.lore(lang.gui("menu.control_panel.item.progression.lore.refresh"))
 
         return levelingItem
     }
 
     private fun addStartingProgressionLore(item: ItemStack) {
-        item.lore(lang.legacy("menu.control_panel.item.progression.lore.starting_level"))
-        item.lore(lang.legacy("menu.control_panel.item.progression.lore.starting_progress"))
-        item.lore(lang.legacy("menu.control_panel.item.progression.lore.starting_perks"))
+        item.lore(lang.gui("menu.control_panel.item.progression.lore.starting_level"))
+        item.lore(lang.gui("menu.control_panel.item.progression.lore.starting_progress"))
+        item.lore(lang.gui("menu.control_panel.item.progression.lore.starting_perks"))
     }
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
 }
+
 

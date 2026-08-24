@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -44,7 +46,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         val gui = ChestGui(6, MenuTitleBuilder.build(
             guild.guiTheme,
             6,
-            lang.legacy("menu.member_management.title", "guild" to guild.name),
+            lang.guiTitle("menu.member_management.title", "guild" to guild.name),
         ))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -122,11 +124,11 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         head.itemMeta = meta
 
-        return head.name(lang.legacy("menu.member_management.item.member.name", "player" to playerName))
-            .lore(lang.legacy("menu.member_management.item.member.lore.player", "player" to playerName))
-            .lore(lang.legacy("menu.member_management.item.member.lore.joined", "joined" to member.joinedAt))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.member_management.item.member.lore.action"))
+        return head.name(lang.gui("menu.member_management.item.member.name", "player" to playerName))
+            .lore(lang.gui("menu.member_management.item.member.lore.player", "player" to playerName))
+            .lore(lang.gui("menu.member_management.item.member.lore.joined", "joined" to member.joinedAt))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.member_management.item.member.lore.action"))
     }
 
     private fun addNavigationButtons(pane: StaticPane) {
@@ -135,8 +137,8 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Previous page button
         val prevItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.member_management.item.previous.name"))
-            .lore(lang.legacy("menu.member_management.item.previous.lore"))
+            .name(lang.gui("menu.member_management.item.previous.name"))
+            .lore(lang.gui("menu.member_management.item.previous.lore"))
 
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
@@ -148,8 +150,8 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Next page button
         val nextItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.member_management.item.next.name"))
-            .lore(lang.legacy("menu.member_management.item.next.lore"))
+            .name(lang.gui("menu.member_management.item.next.name"))
+            .lore(lang.gui("menu.member_management.item.next.lore"))
 
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {
@@ -161,21 +163,21 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy(
+            .name(lang.gui(
                 "menu.member_management.item.page.name",
                 "current" to currentPage + 1,
                 "total" to maxOf(1, totalPages),
             ))
-            .lore(lang.legacy("menu.member_management.item.page.lore"))
+            .lore(lang.gui("menu.member_management.item.page.lore"))
 
         pane.addItem(GuiItem(pageItem), 4, 5)
     }
 
     private fun addInviteButton(pane: StaticPane, x: Int, y: Int) {
         val inviteItem = ItemStack.of(Material.GREEN_WOOL)
-            .name(lang.legacy("menu.member_management.item.invite.name"))
-            .lore(lang.legacy("menu.member_management.item.invite.lore.description"))
-            .lore(lang.legacy("menu.member_management.item.invite.lore.requirement"))
+            .name(lang.gui("menu.member_management.item.invite.name"))
+            .lore(lang.gui("menu.member_management.item.invite.lore.description"))
+            .lore(lang.gui("menu.member_management.item.invite.lore.requirement"))
 
         val inviteGuiItem = GuiItem(inviteItem) {
             if (memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
@@ -189,9 +191,9 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addPromoteDemoteButton(pane: StaticPane, x: Int, y: Int) {
         val promoteItem = ItemStack.of(Material.GOLDEN_APPLE)
-            .name(lang.legacy("menu.member_management.item.rank_change.name"))
-            .lore(lang.legacy("menu.member_management.item.rank_change.lore.description"))
-            .lore(lang.legacy("menu.member_management.item.rank_change.lore.requirement"))
+            .name(lang.gui("menu.member_management.item.rank_change.name"))
+            .lore(lang.gui("menu.member_management.item.rank_change.lore.description"))
+            .lore(lang.gui("menu.member_management.item.rank_change.lore.requirement"))
 
         val promoteGuiItem = GuiItem(promoteItem) {
             if (memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
@@ -216,9 +218,9 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addKickButton(pane: StaticPane, x: Int, y: Int) {
         val kickItem = ItemStack.of(Material.RED_WOOL)
-            .name(lang.legacy("menu.member_management.item.kick.name"))
-            .lore(lang.legacy("menu.member_management.item.kick.lore.description"))
-            .lore(lang.legacy("menu.member_management.item.kick.lore.requirement"))
+            .name(lang.gui("menu.member_management.item.kick.name"))
+            .lore(lang.gui("menu.member_management.item.kick.lore.description"))
+            .lore(lang.gui("menu.member_management.item.kick.lore.requirement"))
 
         val kickGuiItem = GuiItem(kickItem) {
             if (memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MEMBERS)) {
@@ -232,8 +234,8 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.member_management.item.back.name"))
-            .lore(lang.legacy("menu.member_management.item.back.lore"))
+            .name(lang.gui("menu.member_management.item.back.name"))
+            .lore(lang.gui("menu.member_management.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))

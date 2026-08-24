@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.FurnaceGui
@@ -32,7 +34,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
         }
 
         val playerId = player.uniqueId
-        val gui = FurnaceGui(lang.legacy("menu.icon.title"))
+        val gui = FurnaceGui(lang.guiTitle("menu.icon.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -41,8 +43,8 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
 
         // Add info paper menu item
         val paperItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.icon.item.info.name"))
-            .lore(lang.legacy("menu.icon.item.info.lore"))
+            .name(lang.gui("menu.icon.item.info.name"))
+            .lore(lang.gui("menu.icon.item.info.lore"))
         val guiIconEditorItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
         fuelPane.addItem(guiIconEditorItem, 0, 0)
         gui.fuelComponent.addPane(fuelPane)
@@ -72,7 +74,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
         // Add confirm menu item
         val outputPane = StaticPane(0, 0, 1, 1)
         val confirmItem = ItemStack.of(Material.NETHER_STAR)
-            .name(lang.legacy("menu.common.item.confirm.name"))
+            .name(lang.gui("menu.common.item.confirm.name"))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             guiEvent.isCancelled = true
             val newIcon = gui.ingredientComponent.getItem(0, 0)

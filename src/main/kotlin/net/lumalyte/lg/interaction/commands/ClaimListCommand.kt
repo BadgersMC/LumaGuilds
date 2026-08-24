@@ -41,14 +41,14 @@ class ClaimListCommand : BaseCommand(), KoinComponent {
 
         // Create page listing claims with their coordinate and block count
         val chatInfo = ChatInfoBuilder(lang, player.uniqueId,
-            lang.legacy("command.claim_list.header"))
+            lang.msg("command.claim_list.header"))
         val totalClaims = playerClaims.size
         val startIndex = page * 10
         val endIndex = minOf(startIndex + 10, totalClaims)
         playerClaims.subList(startIndex, endIndex).forEachIndexed { index, claim ->
             val name = claim.name.ifEmpty { claim.id.toString().take(7) }
             val blockCount = getClaimBlockCount.execute(claim.id)
-            val rowString = lang.legacy(
+            val rowString = lang.msg(
                 "command.claim_list.row",
                 "claim" to name,
                 "x" to claim.position.x,

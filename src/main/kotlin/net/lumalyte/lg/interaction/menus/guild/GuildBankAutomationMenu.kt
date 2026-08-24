@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
@@ -61,7 +63,7 @@ class GuildBankAutomationMenu(
     private var inputMode: String? = null
 
     // Active automations
-    private var activeAutomations: MutableList<String> = mutableListOf()
+    private var activeAutomations: MutableList<Component> = mutableListOf()
 
     init {
         loadAutomationSettings()
@@ -111,16 +113,16 @@ class GuildBankAutomationMenu(
         activeAutomations.clear()
 
         if (scheduledDepositsEnabled) {
-            activeAutomations.add(lang.raw("menu.bank_automation.active.scheduled_deposits"))
+            activeAutomations.add(lang.gui("menu.bank_automation.active.scheduled_deposits"))
         }
         if (autoRewardsEnabled) {
-            activeAutomations.add(lang.raw("menu.bank_automation.active.auto_rewards"))
+            activeAutomations.add(lang.gui("menu.bank_automation.active.auto_rewards"))
         }
         if (recurringPaymentsEnabled) {
-            activeAutomations.add(lang.raw("menu.bank_automation.active.recurring_payments"))
+            activeAutomations.add(lang.gui("menu.bank_automation.active.recurring_payments"))
         }
         if (interestRate > 0) {
-            activeAutomations.add(lang.legacy("menu.bank_automation.active.interest", "rate" to String.format("%.1f", interestRate * 100)))
+            activeAutomations.add(lang.gui("menu.bank_automation.active.interest", "rate" to String.format("%.1f", interestRate * 100)))
         }
     }
 
@@ -128,7 +130,7 @@ class GuildBankAutomationMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.legacy("menu.bank_automation.title", "guild" to guild.name)))
+        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.guiTitle("menu.bank_automation.title", "guild" to guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane
@@ -155,8 +157,8 @@ class GuildBankAutomationMenu(
         // Back to bank button
         val backItem = createMenuItem(
             Material.ARROW,
-            lang.raw("menu.bank_automation.navigation.bank.name"),
-            listOf(lang.raw("menu.bank_automation.navigation.bank.description"))
+            lang.gui("menu.bank_automation.navigation.bank.name"),
+            listOf(lang.gui("menu.bank_automation.navigation.bank.description"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -167,8 +169,8 @@ class GuildBankAutomationMenu(
         // Back to statistics button
         val statsItem = createMenuItem(
             Material.BOOK,
-            lang.raw("menu.bank_automation.navigation.statistics.name"),
-            listOf(lang.raw("menu.bank_automation.navigation.statistics.description"))
+            lang.gui("menu.bank_automation.navigation.statistics.name"),
+            listOf(lang.gui("menu.bank_automation.navigation.statistics.description"))
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -179,8 +181,8 @@ class GuildBankAutomationMenu(
         // Save settings button
         val saveItem = createMenuItem(
             Material.WRITABLE_BOOK,
-            lang.raw("menu.bank_automation.navigation.save.name"),
-            listOf(lang.raw("menu.bank_automation.navigation.save.description"))
+            lang.gui("menu.bank_automation.navigation.save.name"),
+            listOf(lang.gui("menu.bank_automation.navigation.save.description"))
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
@@ -193,8 +195,8 @@ class GuildBankAutomationMenu(
         // Close button
         val closeItem = createMenuItem(
             Material.BARRIER,
-            lang.raw("menu.bank_automation.navigation.close.name"),
-            listOf(lang.raw("menu.bank_automation.navigation.close.description"))
+            lang.gui("menu.bank_automation.navigation.close.name"),
+            listOf(lang.gui("menu.bank_automation.navigation.close.description"))
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -210,11 +212,11 @@ class GuildBankAutomationMenu(
         // Scheduled deposits toggle
         val scheduledItem = createMenuItem(
             if (scheduledDepositsEnabled) Material.GREEN_WOOL else Material.RED_WOOL,
-            lang.raw("menu.bank_automation.scheduled.name"),
+            lang.gui("menu.bank_automation.scheduled.name"),
             listOf(
                 toggleStatus(scheduledDepositsEnabled),
-                lang.raw("menu.bank_automation.scheduled.description"),
-                lang.raw("menu.bank_automation.common.toggle")
+                lang.gui("menu.bank_automation.scheduled.description"),
+                lang.gui("menu.bank_automation.common.toggle")
             )
         )
         val scheduledGuiItem = GuiItem(scheduledItem) { event ->
@@ -234,11 +236,11 @@ class GuildBankAutomationMenu(
         // Auto-rewards toggle
         val rewardsItem = createMenuItem(
             if (autoRewardsEnabled) Material.GREEN_WOOL else Material.RED_WOOL,
-            lang.raw("menu.bank_automation.rewards.name"),
+            lang.gui("menu.bank_automation.rewards.name"),
             listOf(
                 toggleStatus(autoRewardsEnabled),
-                lang.raw("menu.bank_automation.rewards.description"),
-                lang.raw("menu.bank_automation.common.toggle")
+                lang.gui("menu.bank_automation.rewards.description"),
+                lang.gui("menu.bank_automation.common.toggle")
             )
         )
         val rewardsGuiItem = GuiItem(rewardsItem) { event ->
@@ -258,11 +260,11 @@ class GuildBankAutomationMenu(
         // Budget alerts — opens the dedicated Budget Management menu
         val alertsItem = createMenuItem(
             Material.BELL,
-            lang.raw("menu.bank_automation.alerts.name"),
+            lang.gui("menu.bank_automation.alerts.name"),
             listOf(
-                lang.raw("menu.bank_automation.alerts.description"),
-                lang.raw("menu.bank_automation.alerts.periods"),
-                lang.raw("menu.bank_automation.alerts.action")
+                lang.gui("menu.bank_automation.alerts.description"),
+                lang.gui("menu.bank_automation.alerts.periods"),
+                lang.gui("menu.bank_automation.alerts.action")
             )
         )
         val alertsGuiItem = GuiItem(alertsItem) { event ->
@@ -274,11 +276,11 @@ class GuildBankAutomationMenu(
         // Recurring payments toggle
         val recurringItem = createMenuItem(
             if (recurringPaymentsEnabled) Material.GREEN_WOOL else Material.RED_WOOL,
-            lang.raw("menu.bank_automation.recurring.name"),
+            lang.gui("menu.bank_automation.recurring.name"),
             listOf(
                 toggleStatus(recurringPaymentsEnabled),
-                lang.raw("menu.bank_automation.recurring.description"),
-                lang.raw("menu.bank_automation.common.toggle")
+                lang.gui("menu.bank_automation.recurring.description"),
+                lang.gui("menu.bank_automation.common.toggle")
             )
         )
         val recurringGuiItem = GuiItem(recurringItem) { event ->
@@ -298,11 +300,11 @@ class GuildBankAutomationMenu(
         // Interest rate setting
         val interestItem = createMenuItem(
             Material.GOLD_INGOT,
-            lang.raw("menu.bank_automation.interest.name"),
+            lang.gui("menu.bank_automation.interest.name"),
             listOf(
-                lang.legacy("menu.bank_automation.interest.current", "rate" to String.format("%.1f", interestRate * 100)),
-                lang.raw("menu.bank_automation.interest.description"),
-                lang.raw("menu.bank_automation.interest.action")
+                lang.gui("menu.bank_automation.interest.current", "rate" to String.format("%.1f", interestRate * 100)),
+                lang.gui("menu.bank_automation.interest.description"),
+                lang.gui("menu.bank_automation.interest.action")
             )
         )
         val interestGuiItem = GuiItem(interestItem) { event ->
@@ -324,11 +326,11 @@ class GuildBankAutomationMenu(
         // Reward distribution setup
         val rewardSetupItem = createMenuItem(
             Material.DIAMOND,
-            lang.raw("menu.bank_automation.setup.rewards.name"),
+            lang.gui("menu.bank_automation.setup.rewards.name"),
             listOf(
-                lang.raw("menu.bank_automation.setup.rewards.description"),
-                lang.raw("menu.bank_automation.setup.rewards.conditions"),
-                lang.raw("menu.bank_automation.setup.rewards.basis")
+                lang.gui("menu.bank_automation.setup.rewards.description"),
+                lang.gui("menu.bank_automation.setup.rewards.conditions"),
+                lang.gui("menu.bank_automation.setup.rewards.basis")
             )
         )
         val rewardSetupGuiItem = GuiItem(rewardSetupItem) { event ->
@@ -341,11 +343,11 @@ class GuildBankAutomationMenu(
         // Alert threshold configuration
         val alertConfigItem = createMenuItem(
             Material.BELL,
-            lang.raw("menu.bank_automation.setup.alerts.name"),
+            lang.gui("menu.bank_automation.setup.alerts.name"),
             listOf(
-                lang.raw("menu.bank_automation.setup.alerts.description"),
-                lang.raw("menu.bank_automation.setup.alerts.notifications"),
-                lang.raw("menu.bank_automation.setup.alerts.messages")
+                lang.gui("menu.bank_automation.setup.alerts.description"),
+                lang.gui("menu.bank_automation.setup.alerts.notifications"),
+                lang.gui("menu.bank_automation.setup.alerts.messages")
             )
         )
         val alertConfigGuiItem = GuiItem(alertConfigItem) { event ->
@@ -358,11 +360,11 @@ class GuildBankAutomationMenu(
         // Recurring payment setup
         val paymentSetupItem = createMenuItem(
             Material.CLOCK,
-            lang.raw("menu.bank_automation.setup.recurring.name"),
+            lang.gui("menu.bank_automation.setup.recurring.name"),
             listOf(
-                lang.raw("menu.bank_automation.setup.recurring.description"),
-                lang.raw("menu.bank_automation.setup.recurring.schedules"),
-                lang.raw("menu.bank_automation.setup.recurring.recipients")
+                lang.gui("menu.bank_automation.setup.recurring.description"),
+                lang.gui("menu.bank_automation.setup.recurring.schedules"),
+                lang.gui("menu.bank_automation.setup.recurring.recipients")
             )
         )
         val paymentSetupGuiItem = GuiItem(paymentSetupItem) { event ->
@@ -382,18 +384,18 @@ class GuildBankAutomationMenu(
     private fun updateActiveAutomations() {
         val statusItem = createMenuItem(
             Material.COMPARATOR,
-            lang.raw("menu.bank_automation.summary.active.name"),
-            activeAutomations.take(3).ifEmpty { listOf(lang.raw("menu.bank_automation.summary.active.empty")) }
+            lang.gui("menu.bank_automation.summary.active.name"),
+            activeAutomations.take(3).ifEmpty { listOf(lang.gui("menu.bank_automation.summary.active.empty")) }
         )
         automationPane.addItem(GuiItem(statusItem), 6, 0)
 
         // Automation count
         val countItem = createMenuItem(
             Material.PAPER,
-            lang.raw("menu.bank_automation.summary.name"),
+            lang.gui("menu.bank_automation.summary.name"),
             listOf(
-                lang.legacy("menu.bank_automation.summary.count", "count" to activeAutomations.size),
-                lang.raw("menu.bank_automation.summary.action")
+                lang.gui("menu.bank_automation.summary.count", "count" to activeAutomations.size),
+                lang.gui("menu.bank_automation.summary.action")
             )
         )
         val countGuiItem = GuiItem(countItem) { event ->
@@ -412,15 +414,15 @@ class GuildBankAutomationMenu(
         val nextRun = bankAutomationService.getNextInterestRun(guild.id)
         val nextRunText = nextRun?.let {
             it.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"))
-        } ?: lang.raw("menu.bank_automation.status.pending_first_accrual")
+        } ?: lang.gui("menu.bank_automation.status.pending_first_accrual")
 
         val nextRunItem = createMenuItem(
             Material.CLOCK,
-            lang.raw("menu.bank_automation.status.next.name"),
+            lang.gui("menu.bank_automation.status.next.name"),
             listOf(
                 nextRunText,
-                lang.legacy("menu.bank_automation.status.next.period", "hours" to interestPeriodHours()),
-                lang.raw("menu.bank_automation.status.next.description")
+                lang.gui("menu.bank_automation.status.next.period", "hours" to interestPeriodHours()),
+                lang.gui("menu.bank_automation.status.next.description")
             )
         )
         rewardsPane.addItem(GuiItem(nextRunItem), 4, 0)
@@ -429,30 +431,30 @@ class GuildBankAutomationMenu(
         val activeCount = activeAutomations.size
         val statusLore = if (activeCount > 0) {
             listOf(
-                lang.legacy("menu.bank_automation.status.health.configured", "count" to activeCount),
-                lang.legacy("menu.bank_automation.status.health.interest", "rate" to String.format("%.2f", interestRate * 100), "hours" to interestPeriodHours()),
-                lang.legacy("menu.bank_automation.status.health.toggles", "scheduled" to toggleWord(scheduledDepositsEnabled), "rewards" to toggleWord(autoRewardsEnabled))
+                lang.gui("menu.bank_automation.status.health.configured", "count" to activeCount),
+                lang.gui("menu.bank_automation.status.health.interest", "rate" to String.format("%.2f", interestRate * 100), "hours" to interestPeriodHours()),
+                lang.gui("menu.bank_automation.status.health.toggles", "scheduled" to toggleWord(scheduledDepositsEnabled), "rewards" to toggleWord(autoRewardsEnabled))
             )
         } else {
-            listOf(lang.raw("menu.bank_automation.status.health.empty"), lang.raw("menu.bank_automation.status.health.hint"))
+            listOf(lang.gui("menu.bank_automation.status.health.empty"), lang.gui("menu.bank_automation.status.health.hint"))
         }
         val healthItem = createMenuItem(
             if (activeCount > 0) Material.GREEN_WOOL else Material.GRAY_WOOL,
-            lang.raw("menu.bank_automation.status.health.name"),
+            lang.gui("menu.bank_automation.status.health.name"),
             statusLore
         )
         rewardsPane.addItem(GuiItem(healthItem), 5, 0)
 
         // Recent automation activity
         val recentActivity = listOf(
-            lang.legacy("menu.bank_automation.status.configuration.interest", "hours" to interestPeriodHours()),
-            lang.legacy("menu.bank_automation.status.configuration.audit", "days" to auditRetentionDays()),
-            lang.raw("menu.bank_automation.status.configuration.scheduler")
+            lang.gui("menu.bank_automation.status.configuration.interest", "hours" to interestPeriodHours()),
+            lang.gui("menu.bank_automation.status.configuration.audit", "days" to auditRetentionDays()),
+            lang.gui("menu.bank_automation.status.configuration.scheduler")
         )
 
         val activityItem = createMenuItem(
             Material.BOOK,
-            lang.raw("menu.bank_automation.status.configuration.name"),
+            lang.gui("menu.bank_automation.status.configuration.name"),
             recentActivity
         )
         rewardsPane.addItem(GuiItem(activityItem), 6, 1)
@@ -525,19 +527,18 @@ class GuildBankAutomationMenu(
     /**
      * Create a menu item with consistent formatting
      */
-    private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
+    private fun createMenuItem(material: Material, name: Component, lore: List<*>): ItemStack {
         val item = ItemStack.of(material)
         val meta = item.itemMeta
 
-        meta.displayName(Component.text(name)
-            .color(NamedTextColor.YELLOW)
-            .decoration(TextDecoration.ITALIC, false))
+        meta.displayName(name.decoration(TextDecoration.ITALIC, false))
 
         if (lore.isNotEmpty()) {
             val loreComponents = lore.map { line ->
-                Component.text(line)
-                    .color(NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false)
+                when (line) {
+                    is Component -> line
+                    else -> Component.text(line.toString()).color(NamedTextColor.GRAY)
+                }.decoration(TextDecoration.ITALIC, false)
             }
             meta.lore(loreComponents)
         }
@@ -546,15 +547,15 @@ class GuildBankAutomationMenu(
         return item
     }
 
-    private fun toggleStatus(enabled: Boolean): String = if (enabled) {
-        lang.raw("menu.bank_automation.common.status.enabled")
+    private fun toggleStatus(enabled: Boolean): Component = if (enabled) {
+        lang.gui("menu.bank_automation.common.status.enabled")
     } else {
-        lang.raw("menu.bank_automation.common.status.disabled")
+        lang.gui("menu.bank_automation.common.status.disabled")
     }
 
-    private fun toggleWord(enabled: Boolean): String = if (enabled) {
-        lang.raw("menu.bank_automation.common.enabled_word")
+    private fun toggleWord(enabled: Boolean): Component = if (enabled) {
+        lang.gui("menu.bank_automation.common.enabled_word")
     } else {
-        lang.raw("menu.bank_automation.common.disabled_word")
+        lang.gui("menu.bank_automation.common.disabled_word")
     }
 }
