@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.GuildService
@@ -41,47 +43,47 @@ class BedrockGuildWarManagementMenu(
         val canManageWars = warService.canPlayerManageWars(player.uniqueId, guild.id)
 
         return SimpleForm.builder()
-            .title("${lang.raw("bedrock.war_management.management_title")} - ${guild.name}")
+            .title("${lang.bedrock("bedrock.war_management.management_title")} - ${guild.name}")
             .content("""
-                |${lang.raw("bedrock.war_management.management_welcome")}
+                |${lang.bedrock("bedrock.war_management.management_welcome")}
                 |
-                |${lang.raw("bedrock.war_management.management_description")}
+                |${lang.bedrock("bedrock.war_management.management_description")}
                 |
-                |${lang.raw("bedrock.relations_management.notice")}
+                |${lang.bedrock("bedrock.relations_management.notice")}
             """.trimMargin())
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_active_wars"),
+                lang.bedrock("bedrock.war_management.management_active_wars"),
                 config.guildWarsIconUrl,
                 config.guildWarsIconPath
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_war_declarations"),
+                lang.bedrock("bedrock.war_management.management_war_declarations"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_declare_war"),
+                lang.bedrock("bedrock.war_management.management_declare_war"),
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_war_history"),
+                lang.bedrock("bedrock.war_management.management_war_history"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_war_statistics"),
+                lang.bedrock("bedrock.war_management.management_war_statistics"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                lang.raw("bedrock.relations_management.back"),
+                lang.bedrock("bedrock.relations_management.back"),
                 config.closeIconUrl,
                 config.closeIconPath
             )
@@ -110,26 +112,26 @@ class BedrockGuildWarManagementMenu(
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
         val form = SimpleForm.builder()
-            .title(lang.raw("bedrock.war_management.management_active_wars"))
+            .title(lang.bedrock("bedrock.war_management.management_active_wars"))
             .content(
                 if (activeWars.isEmpty()) {
-                    lang.raw("bedrock.war_management.management_no_active_wars")
+                    lang.bedrock("bedrock.war_management.management_no_active_wars")
                 } else {
-                    "${lang.raw("bedrock.war_management.management_select_war")}\n\n${lang.legacy("bedrock.war_management.management_active_wars_count", "count" to activeWars.size)}"
+                    "${lang.bedrock("bedrock.war_management.management_select_war")}\n\n${lang.bedrock("bedrock.war_management.management_active_wars_count", "count" to activeWars.size)}"
                 }
             )
 
         activeWars.forEach { war ->
             val opponentGuildId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
             val opponentGuild = guildService.getGuild(opponentGuildId)
-            val opponentName = opponentGuild?.name ?: lang.raw("bedrock.war_management.management_unknown_guild")
+            val opponentName = opponentGuild?.name ?: lang.bedrock("bedrock.war_management.management_unknown_guild")
 
             val startedDate = war.startedAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy")) ?: "Unknown"
             val remainingDays = war.remainingDuration?.toDays() ?: 0
 
             form.addButtonWithImage(
                 config,
-                    "⚔ vs $opponentName\n${lang.raw("bedrock.war_management.management_started")}: $startedDate\n${lang.legacy("bedrock.war_management.management_remaining_days", "days" to remainingDays)}",
+                    "⚔ vs $opponentName\n${lang.bedrock("bedrock.war_management.management_started")}: $startedDate\n${lang.bedrock("bedrock.war_management.management_remaining_days", "days" to remainingDays)}",
                 config.guildWarsIconUrl,
                 config.guildWarsIconPath
             )
@@ -137,7 +139,7 @@ class BedrockGuildWarManagementMenu(
 
         form.addButtonWithImage(
             config,
-            lang.raw("bedrock.relations_management.back"),
+            lang.bedrock("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -173,16 +175,16 @@ class BedrockGuildWarManagementMenu(
         val outgoingDeclarations = warService.getDeclarationsByGuild(guild.id).filter { it.isValid }
 
         val form = SimpleForm.builder()
-            .title(lang.raw("bedrock.war_management.management_war_declarations"))
+            .title(lang.bedrock("bedrock.war_management.management_war_declarations"))
             .content("""
-                |${lang.raw("bedrock.war_management.management_declarations_incoming")}: ${incomingDeclarations.size}
-                |${lang.raw("bedrock.war_management.management_declarations_outgoing")}: ${outgoingDeclarations.size}
+                |${lang.bedrock("bedrock.war_management.management_declarations_incoming")}: ${incomingDeclarations.size}
+                |${lang.bedrock("bedrock.war_management.management_declarations_outgoing")}: ${outgoingDeclarations.size}
             """.trimMargin())
 
         if (incomingDeclarations.isNotEmpty()) {
             form.addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_view_incoming_declarations"),
+                lang.bedrock("bedrock.war_management.management_view_incoming_declarations"),
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
@@ -191,19 +193,19 @@ class BedrockGuildWarManagementMenu(
         if (outgoingDeclarations.isNotEmpty()) {
             form.addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_view_outgoing_declarations"),
+                lang.bedrock("bedrock.war_management.management_view_outgoing_declarations"),
                 config.editIconUrl,
                 config.editIconPath
             )
         }
 
         if (incomingDeclarations.isEmpty() && outgoingDeclarations.isEmpty()) {
-            form.content(lang.raw("bedrock.war_management.management_no_declarations"))
+            form.content(lang.bedrock("bedrock.war_management.management_no_declarations"))
         }
 
         form.addButtonWithImage(
             config,
-            lang.raw("bedrock.relations_management.back"),
+            lang.bedrock("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -244,19 +246,19 @@ class BedrockGuildWarManagementMenu(
         val config = getBedrockConfig()
 
         val form = CustomForm.builder()
-            .title(lang.raw("bedrock.war_management.management_declare_war"))
-            .label(lang.raw("bedrock.war_management.management_declare_war_description"))
+            .title(lang.bedrock("bedrock.war_management.management_declare_war"))
+            .label(lang.bedrock("bedrock.war_management.management_declare_war_description"))
             .input(
-                lang.raw("bedrock.war_management.management_declare_war_target_label"),
-                lang.raw("bedrock.war_management.management_declare_war_target_placeholder")
+                lang.bedrock("bedrock.war_management.management_declare_war_target_label"),
+                lang.bedrock("bedrock.war_management.management_declare_war_target_placeholder")
             )
             .input(
-                lang.raw("bedrock.war_management.management_declare_war_duration_label"),
-                lang.raw("bedrock.war_management.management_declare_war_duration_placeholder")
+                lang.bedrock("bedrock.war_management.management_declare_war_duration_label"),
+                lang.bedrock("bedrock.war_management.management_declare_war_duration_placeholder")
             )
             .input(
-                lang.raw("bedrock.war_management.management_declare_war_reason_label"),
-                lang.raw("bedrock.war_management.management_declare_war_reason_placeholder")
+                lang.bedrock("bedrock.war_management.management_declare_war_reason_label"),
+                lang.bedrock("bedrock.war_management.management_declare_war_reason_placeholder")
             )
             .validResultHandler { response ->
                 handleDeclareWarResponse(response)
@@ -326,26 +328,26 @@ class BedrockGuildWarManagementMenu(
         val warHistory = warService.getWarHistory(guild.id, 10)
 
         val form = SimpleForm.builder()
-            .title(lang.raw("bedrock.war_management.management_war_history"))
+            .title(lang.bedrock("bedrock.war_management.management_war_history"))
             .content(
                 if (warHistory.isEmpty()) {
-                    lang.raw("bedrock.war_management.management_no_war_history")
+                    lang.bedrock("bedrock.war_management.management_no_war_history")
                 } else {
-                    "${lang.raw("bedrock.war_management.management_select_war")}\n\n${lang.legacy("bedrock.war_management.management_history_count", "count" to warHistory.size)}"
+                    "${lang.bedrock("bedrock.war_management.management_select_war")}\n\n${lang.bedrock("bedrock.war_management.management_history_count", "count" to warHistory.size)}"
                 }
             )
 
         warHistory.forEach { war ->
             val opponentGuildId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
             val opponentGuild = guildService.getGuild(opponentGuildId)
-            val opponentName = opponentGuild?.name ?: lang.raw("bedrock.war_management.management_unknown_guild")
-            val result = if (war.winner == guild.id) "✅ ${lang.raw("bedrock.war_management.management_won")}" else "❌ ${lang.raw("bedrock.war_management.management_lost")}"
+            val opponentName = opponentGuild?.name ?: lang.bedrock("bedrock.war_management.management_unknown_guild")
+            val result = if (war.winner == guild.id) "✅ ${lang.bedrock("bedrock.war_management.management_won")}" else "❌ ${lang.bedrock("bedrock.war_management.management_lost")}"
 
             val endedDate = war.endedAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy")) ?: "Ongoing"
 
             form.addButtonWithImage(
                 config,
-                "⚔ vs $opponentName - $result\n${lang.raw("bedrock.war_management.management_ended")}: $endedDate",
+                "⚔ vs $opponentName - $result\n${lang.bedrock("bedrock.war_management.management_ended")}: $endedDate",
                 config.editIconUrl,
                 config.editIconPath
             )
@@ -353,7 +355,7 @@ class BedrockGuildWarManagementMenu(
 
         form.addButtonWithImage(
             config,
-            lang.raw("bedrock.relations_management.back"),
+            lang.bedrock("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -390,16 +392,16 @@ class BedrockGuildWarManagementMenu(
         val losses = warHistory.size - wins
 
         val form = SimpleForm.builder()
-            .title(lang.raw("bedrock.war_management.management_war_statistics"))
+            .title(lang.bedrock("bedrock.war_management.management_war_statistics"))
             .content("""
-                |${lang.raw("bedrock.war_management.management_statistics_wars_won")}: $wins
-                |${lang.raw("bedrock.war_management.management_statistics_wars_lost")}: $losses
-                |${lang.raw("bedrock.war_management.management_statistics_win_rate")}: ${String.format("%.1f", winLossRatio * 100)}%
-                |${lang.raw("bedrock.war_management.management_statistics_total_wars")}: ${warHistory.size}
+                |${lang.bedrock("bedrock.war_management.management_statistics_wars_won")}: $wins
+                |${lang.bedrock("bedrock.war_management.management_statistics_wars_lost")}: $losses
+                |${lang.bedrock("bedrock.war_management.management_statistics_win_rate")}: ${String.format("%.1f", winLossRatio * 100)}%
+                |${lang.bedrock("bedrock.war_management.management_statistics_total_wars")}: ${warHistory.size}
             """.trimMargin())
             .addButtonWithImage(
                 getBedrockConfig(),
-                lang.raw("bedrock.relations_management.back"),
+                lang.bedrock("bedrock.relations_management.back"),
                 getBedrockConfig().closeIconUrl,
                 getBedrockConfig().closeIconPath
             )
@@ -422,27 +424,27 @@ class BedrockGuildWarManagementMenu(
     private fun openWarDetailsMenu(war: net.lumalyte.lg.domain.entities.War) {
         val opponentGuildId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
         val opponentGuild = guildService.getGuild(opponentGuildId)
-        val opponentName = opponentGuild?.name ?: lang.raw("bedrock.war_management.management_unknown_guild")
+        val opponentName = opponentGuild?.name ?: lang.bedrock("bedrock.war_management.management_unknown_guild")
         val isWinner = war.winner == guild.id
 
         val status = when {
-            war.winner != null -> if (isWinner) lang.raw("bedrock.war_management.management_won") else lang.raw("bedrock.war_management.management_lost")
-            war.endedAt != null -> lang.raw("bedrock.war_management.management_draw")
-            else -> lang.raw("bedrock.war_management.management_active")
+            war.winner != null -> if (isWinner) lang.bedrock("bedrock.war_management.management_won") else lang.bedrock("bedrock.war_management.management_lost")
+            war.endedAt != null -> lang.bedrock("bedrock.war_management.management_draw")
+            else -> lang.bedrock("bedrock.war_management.management_active")
         }
 
         val form = SimpleForm.builder()
-            .title("${lang.raw("bedrock.war_management.management_war_details")} - $opponentName")
+            .title("${lang.bedrock("bedrock.war_management.management_war_details")} - $opponentName")
             .content("""
-                |${lang.raw("bedrock.war_management.management_opponent")}: $opponentName
-                |${lang.raw("bedrock.war_management.management_started")}: ${war.startedAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")) ?: "Not Started"}
-                |${lang.raw("bedrock.war_management.management_ended")}: ${war.endedAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")) ?: lang.raw("bedrock.war_management.management_ongoing")}
-                |${lang.raw("bedrock.war_management.management_result")}: $status
-                |${lang.raw("bedrock.war_management.management_duration")}: ${war.duration.toDays()} days
+                |${lang.bedrock("bedrock.war_management.management_opponent")}: $opponentName
+                |${lang.bedrock("bedrock.war_management.management_started")}: ${war.startedAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")) ?: "Not Started"}
+                |${lang.bedrock("bedrock.war_management.management_ended")}: ${war.endedAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")) ?: lang.bedrock("bedrock.war_management.management_ongoing")}
+                |${lang.bedrock("bedrock.war_management.management_result")}: $status
+                |${lang.bedrock("bedrock.war_management.management_duration")}: ${war.duration.toDays()} days
             """.trimMargin())
             .addButtonWithImage(
                 getBedrockConfig(),
-                lang.raw("bedrock.relations_management.back"),
+                lang.bedrock("bedrock.relations_management.back"),
                 getBedrockConfig().closeIconUrl,
                 getBedrockConfig().closeIconPath
             )
@@ -467,16 +469,16 @@ class BedrockGuildWarManagementMenu(
         val incomingDeclarations = warService.getPendingDeclarationsForGuild(guild.id)
 
         val form = SimpleForm.builder()
-            .title(lang.raw("bedrock.war_management.management_incoming_declarations"))
-            .content(lang.raw("bedrock.war_management.management_select_declaration"))
+            .title(lang.bedrock("bedrock.war_management.management_incoming_declarations"))
+            .content(lang.bedrock("bedrock.war_management.management_select_declaration"))
 
         incomingDeclarations.forEach { declaration ->
             val declaringGuild = guildService.getGuild(declaration.declaringGuildId)
-            val declaringName = declaringGuild?.name ?: lang.raw("bedrock.war_management.management_unknown_guild")
+            val declaringName = declaringGuild?.name ?: lang.bedrock("bedrock.war_management.management_unknown_guild")
 
             form.addButtonWithImage(
                 config,
-                "${lang.raw("bedrock.war_management.management_from")}: $declaringName\n${lang.raw("bedrock.war_management.management_duration")}: ${declaration.proposedDuration.toDays()} days",
+                "${lang.bedrock("bedrock.war_management.management_from")}: $declaringName\n${lang.bedrock("bedrock.war_management.management_duration")}: ${declaration.proposedDuration.toDays()} days",
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
@@ -484,7 +486,7 @@ class BedrockGuildWarManagementMenu(
 
         form.addButtonWithImage(
             config,
-            lang.raw("bedrock.relations_management.back"),
+            lang.bedrock("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -519,16 +521,16 @@ class BedrockGuildWarManagementMenu(
         val outgoingDeclarations = warService.getDeclarationsByGuild(guild.id).filter { it.isValid }
 
         val form = SimpleForm.builder()
-            .title(lang.raw("bedrock.war_management.management_outgoing_declarations"))
-            .content(lang.raw("bedrock.war_management.management_select_declaration"))
+            .title(lang.bedrock("bedrock.war_management.management_outgoing_declarations"))
+            .content(lang.bedrock("bedrock.war_management.management_select_declaration"))
 
         outgoingDeclarations.forEach { declaration ->
             val targetGuild = guildService.getGuild(declaration.defendingGuildId)
-            val targetName = targetGuild?.name ?: lang.raw("bedrock.war_management.management_unknown_guild")
+            val targetName = targetGuild?.name ?: lang.bedrock("bedrock.war_management.management_unknown_guild")
 
             form.addButtonWithImage(
                 config,
-                "${lang.raw("bedrock.war_management.management_to")}: $targetName\n${lang.raw("bedrock.war_management.management_duration")}: ${declaration.proposedDuration.toDays()} days",
+                "${lang.bedrock("bedrock.war_management.management_to")}: $targetName\n${lang.bedrock("bedrock.war_management.management_duration")}: ${declaration.proposedDuration.toDays()} days",
                 config.editIconUrl,
                 config.editIconPath
             )
@@ -536,7 +538,7 @@ class BedrockGuildWarManagementMenu(
 
         form.addButtonWithImage(
             config,
-            lang.raw("bedrock.relations_management.back"),
+            lang.bedrock("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -571,48 +573,48 @@ class BedrockGuildWarManagementMenu(
         val warDeclaration = declaration as net.lumalyte.lg.domain.entities.WarDeclaration
 
         val contentBuilder = StringBuilder()
-        contentBuilder.append(lang.raw("bedrock.war_management.management_declaration_action_description"))
+        contentBuilder.append(lang.bedrock("bedrock.war_management.management_declaration_action_description"))
         contentBuilder.append("\n\n")
-        contentBuilder.append(lang.legacy("bedrock.war_management.declaration_duration", "days" to warDeclaration.proposedDuration.toDays()) + "\n")
-        contentBuilder.append(lang.legacy("bedrock.war_management.declaration_objectives", "count" to warDeclaration.objectives.size) + "\n")
+        contentBuilder.append(lang.bedrock("bedrock.war_management.declaration_duration", "days" to warDeclaration.proposedDuration.toDays()) + "\n")
+        contentBuilder.append(lang.bedrock("bedrock.war_management.declaration_objectives", "count" to warDeclaration.objectives.size) + "\n")
 
         if (warDeclaration.wagerAmount > 0) {
-            contentBuilder.append("\n${lang.raw("bedrock.war_management.wager_info_header")}\n")
-                contentBuilder.append(lang.legacy("bedrock.war_management.wager_info_amount", "amount" to warDeclaration.wagerAmount) + "\n")
+            contentBuilder.append("\n${lang.bedrock("bedrock.war_management.wager_info_header")}\n")
+                contentBuilder.append(lang.bedrock("bedrock.war_management.wager_info_amount", "amount" to warDeclaration.wagerAmount) + "\n")
             if (isIncoming) {
-                    contentBuilder.append(lang.legacy("bedrock.war_management.wager_info_must_match", "amount" to warDeclaration.wagerAmount) + "\n")
-                    contentBuilder.append(lang.legacy("bedrock.war_management.wager_info_total_pot", "amount" to warDeclaration.wagerAmount * 2) + "\n")
-                contentBuilder.append(lang.raw("bedrock.war_management.wager_info_winner_takes_all") + "\n")
+                    contentBuilder.append(lang.bedrock("bedrock.war_management.wager_info_must_match", "amount" to warDeclaration.wagerAmount) + "\n")
+                    contentBuilder.append(lang.bedrock("bedrock.war_management.wager_info_total_pot", "amount" to warDeclaration.wagerAmount * 2) + "\n")
+                contentBuilder.append(lang.bedrock("bedrock.war_management.wager_info_winner_takes_all") + "\n")
             } else {
-                contentBuilder.append(lang.raw("bedrock.war_management.wager_info_awaiting_match") + "\n")
+                contentBuilder.append(lang.bedrock("bedrock.war_management.wager_info_awaiting_match") + "\n")
             }
         }
 
         if (warDeclaration.terms != null) {
-            contentBuilder.append("\n" + lang.legacy("bedrock.war_management.declaration_terms", "terms" to warDeclaration.terms) + "\n")
+            contentBuilder.append("\n" + lang.bedrock("bedrock.war_management.declaration_terms", "terms" to warDeclaration.terms) + "\n")
         }
 
         val form = SimpleForm.builder()
-            .title(if (isIncoming) lang.raw("bedrock.war_management.management_declaration_action_incoming") else lang.raw("bedrock.war_management.management_declaration_action_outgoing"))
+            .title(if (isIncoming) lang.bedrock("bedrock.war_management.management_declaration_action_incoming") else lang.bedrock("bedrock.war_management.management_declaration_action_outgoing"))
             .content(contentBuilder.toString())
 
         if (isIncoming) {
             form.addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_declaration_accept"),
+                lang.bedrock("bedrock.war_management.management_declaration_accept"),
                 config.confirmIconUrl,
                 config.confirmIconPath
             )
             form.addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_declaration_reject"),
+                lang.bedrock("bedrock.war_management.management_declaration_reject"),
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
         } else {
             form.addButtonWithImage(
                 config,
-                lang.raw("bedrock.war_management.management_declaration_cancel"),
+                lang.bedrock("bedrock.war_management.management_declaration_cancel"),
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
@@ -620,7 +622,7 @@ class BedrockGuildWarManagementMenu(
 
         form.addButtonWithImage(
             config,
-            lang.raw("bedrock.relations_management.back"),
+            lang.bedrock("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -724,7 +726,7 @@ class BedrockGuildWarManagementMenu(
             openWarDeclarationsMenu()
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage(lang.msg("bedrock.war_management.error_accepting", "reason" to (e.message ?: lang.raw("bedrock.war_management.unknown_error"))))
+            player.sendMessage(lang.msg("bedrock.war_management.error_accepting", "reason" to (e.message ?: lang.bedrock("bedrock.war_management.unknown_error"))))
             openWarDeclarationsMenu()
         }
     }

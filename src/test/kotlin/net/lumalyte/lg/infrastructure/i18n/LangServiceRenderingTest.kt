@@ -61,6 +61,31 @@ class LangServiceRenderingTest {
         )
     }
 
+    @Test
+    fun `GUI message accepts a nested Component without legacy serialization`() {
+        val lang = langService()
+        val bar = lang.gui(
+            "menu.guild_progression.bar.red",
+            "filled" to "████",
+            "empty" to "████",
+        )
+
+        val rendered = lang.gui("menu.guild_progression.level.bar", "bar" to bar)
+
+        assertEquals("████████", plainText.serialize(rendered))
+        assertEquals(0xFF000000.toInt(), rendered.shadowColor()?.value())
+    }
+
+    @Test
+    fun `Bedrock GUI text uses small caps while preserving user placeholders`() {
+        val rendered = langService().bedrock(
+            "command.claim.remove.success",
+            "claim" to "North Farm",
+        )
+
+        assertEquals("ᴘᴀʀᴛɪᴛɪᴏɴ ʜᴀꜱ ʙᴇᴇɴ ʀᴇᴍᴏᴠᴇᴅ ꜰᴏʀ ᴄʟᴀɪᴍ North Farm.", rendered)
+    }
+
     private fun langService(): LangService = LangService(
         object : LangHost {
             override val dataFolder: File = this@LangServiceRenderingTest.dataFolder.toFile()

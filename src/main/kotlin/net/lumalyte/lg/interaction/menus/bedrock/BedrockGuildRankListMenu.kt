@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.RankService
@@ -50,11 +52,11 @@ class BedrockGuildRankListMenu(
         val rankCount = ranks.size
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.rank_list.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.rank_list.title", "guild" to guild.name))
             .content(buildRankListContent(rankCount))
             .apply {
                 if (ranks.isEmpty()) {
-                    button(lang.raw("bedrock.rank_list.no_ranks"))
+                    button(lang.bedrock("bedrock.rank_list.no_ranks"))
                 } else {
                     ranks.forEach { rank ->
                         val permissionCount = visiblePermissions(rank).size
@@ -74,11 +76,11 @@ class BedrockGuildRankListMenu(
     }
 
     private fun buildRankListContent(rankCount: Int): String {
-        return lang.legacy("bedrock.rank_list.content", "count" to rankCount)
+        return lang.bedrock("bedrock.rank_list.content", "count" to rankCount)
     }
 
     private fun buildRankButtonText(rank: Rank, permissionCount: Int): String {
-        return lang.legacy(
+        return lang.bedrock(
             "bedrock.rank_list.rank_button",
             "rank" to rank.name,
             "priority" to rank.priority,
@@ -98,9 +100,9 @@ class BedrockGuildRankListMenu(
 
     private fun showRankDetails(rank: Rank) {
         val detailForm = SimpleForm.builder()
-            .title(lang.legacy("bedrock.rank_list.details.title", "rank" to rank.name))
+            .title(lang.bedrock("bedrock.rank_list.details.title", "rank" to rank.name))
             .content(buildRankDetailsContent(rank))
-            .button(lang.raw("bedrock.rank_list.details.back"))
+            .button(lang.bedrock("bedrock.rank_list.details.back"))
             .validResultHandler { _ ->
                 // Re-show the rank list
                 bedrockNavigator.openMenu(BedrockGuildRankListMenu(menuNavigator, player, guild, logger))
@@ -119,14 +121,14 @@ class BedrockGuildRankListMenu(
     private fun buildRankDetailsContent(rank: Rank): String {
         val visible = visiblePermissions(rank)
         val permissions = if (visible.isEmpty()) {
-            lang.legacy("bedrock.rank_list.details.no_permissions")
+            lang.bedrock("bedrock.rank_list.details.no_permissions")
         } else {
             visible.joinToString("\n") { permission ->
-                lang.legacy("bedrock.rank_list.details.permission_row", "permission" to getLocalizedPermissionName(permission))
+                lang.bedrock("bedrock.rank_list.details.permission_row", "permission" to getLocalizedPermissionName(permission))
             }
         }
 
-        return lang.legacy(
+        return lang.bedrock(
             "bedrock.rank_list.details.content",
             "rank" to rank.name,
             "priority" to rank.priority,
@@ -136,7 +138,7 @@ class BedrockGuildRankListMenu(
 
     private fun getLocalizedPermissionName(permission: RankPermission): String {
         val key = "permission.${permission.name.lowercase().replace("_", ".")}"
-        return lang.raw(key)
+        return lang.bedrock(key)
     }
 
     private fun showRankDetailsInChat(rank: Rank) {

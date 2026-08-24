@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -48,7 +50,7 @@ class HomeAccessMenu(
             return
         }
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.legacy("menu.home_access.title", "home" to homeName)))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.home_access.title", "home" to homeName)))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick {
@@ -72,16 +74,16 @@ class HomeAccessMenu(
                     else -> Material.GRAY_DYE
                 }
             ).name(
-                if (on) lang.legacy("menu.home_access.rank.allowed", "rank" to r.name)
-                else lang.legacy("menu.home_access.rank.denied", "rank" to r.name)
+                if (on) lang.gui("menu.home_access.rank.allowed", "rank" to r.name)
+                else lang.gui("menu.home_access.rank.denied", "rank" to r.name)
             )
-                .lore(lang.legacy("menu.home_access.rank.priority", "priority" to r.priority))
-                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.gui("menu.home_access.rank.priority", "priority" to r.priority))
+                .lore(lang.gui("menu.common.blank"))
                 .lore(
                     when {
-                        isOwner -> lang.legacy("menu.home_access.rank.owner")
-                        on -> lang.legacy("menu.home_access.rank.revoke")
-                        else -> lang.legacy("menu.home_access.rank.grant")
+                        isOwner -> lang.gui("menu.home_access.rank.owner")
+                        on -> lang.gui("menu.home_access.rank.revoke")
+                        else -> lang.gui("menu.home_access.rank.grant")
                     }
                 )
             pane.addItem(GuiItem(item) {
@@ -92,7 +94,7 @@ class HomeAccessMenu(
             }, col, row)
         }
 
-        val backItem = ItemStack.of(Material.ARROW).name(lang.legacy("menu.home_access.back"))
+        val backItem = ItemStack.of(Material.ARROW).name(lang.gui("menu.home_access.back"))
         pane.addItem(GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
         }, 8, 3)

@@ -1,6 +1,10 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
@@ -20,7 +24,6 @@ import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
@@ -59,7 +62,7 @@ class GuildBankSecurityMenu(
     // Security settings (dual-auth threshold persisted per guild)
     private var dualAuthThreshold: Int = 1000
     private var emergencyFreeze: Boolean = false
-    private var securityAlerts: MutableList<String> = mutableListOf()
+    private var securityAlerts: MutableList<Component> = mutableListOf()
 
     // Active input mode for chat-based configuration
     private var inputMode: String? = null
@@ -121,7 +124,7 @@ class GuildBankSecurityMenu(
 
         // Emergency freeze status
         if (emergencyFreeze) {
-            securityAlerts.add(lang.raw("menu.bank_security.alert.freeze"))
+            securityAlerts.add(lang.gui("menu.bank_security.alert.freeze"))
         }
     }
 
@@ -136,7 +139,7 @@ class GuildBankSecurityMenu(
         val failedAuths = recentAudits.count { it.action == AuditAction.PERMISSION_DENIED }
 
         if (failedAuths >= 3) {
-            securityAlerts.add(lang.raw("menu.bank_security.alert.authentication_failures"))
+            securityAlerts.add(lang.gui("menu.bank_security.alert.authentication_failures"))
         }
 
         // Check for unusual transaction times
@@ -146,7 +149,7 @@ class GuildBankSecurityMenu(
         }
 
         if (unusualHours.size >= 2) {
-            securityAlerts.add(lang.raw("menu.bank_security.alert.unusual_timing"))
+            securityAlerts.add(lang.gui("menu.bank_security.alert.unusual_timing"))
         }
     }
 
@@ -160,7 +163,7 @@ class GuildBankSecurityMenu(
         }
 
         if (largeTransactions.isNotEmpty()) {
-            securityAlerts.add(lang.legacy("menu.bank_security.alert.large_withdrawal", "amount" to largeTransactions.last().amount))
+            securityAlerts.add(lang.gui("menu.bank_security.alert.large_withdrawal", "amount" to largeTransactions.last().amount))
         }
 
         // Check for rapid large transactions
@@ -170,7 +173,7 @@ class GuildBankSecurityMenu(
         }
 
         if (recentLarge.size >= 2) {
-            securityAlerts.add(lang.raw("menu.bank_security.alert.multiple_large"))
+            securityAlerts.add(lang.gui("menu.bank_security.alert.multiple_large"))
         }
     }
 
@@ -184,13 +187,13 @@ class GuildBankSecurityMenu(
         }
 
         if (recentWithdrawals.size >= 5) {
-            securityAlerts.add(lang.raw("menu.bank_security.alert.rapid_withdrawal"))
+            securityAlerts.add(lang.gui("menu.bank_security.alert.rapid_withdrawal"))
         }
 
         // Check for same amount withdrawals (potential fraud)
         val amounts = recentWithdrawals.map { it.amount }.toSet()
         if (amounts.size == 1 && recentWithdrawals.size >= 3) {
-            securityAlerts.add(lang.raw("menu.bank_security.alert.identical_withdrawals"))
+            securityAlerts.add(lang.gui("menu.bank_security.alert.identical_withdrawals"))
         }
     }
 
@@ -204,7 +207,7 @@ class GuildBankSecurityMenu(
         }
 
         if (recentFailures.size >= 5) {
-            securityAlerts.add(lang.raw("menu.bank_security.alert.high_authentication_failures"))
+            securityAlerts.add(lang.gui("menu.bank_security.alert.high_authentication_failures"))
         }
     }
 
@@ -212,7 +215,7 @@ class GuildBankSecurityMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.legacy("menu.bank_security.title", "guild" to guild.name)))
+        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.guiTitle("menu.bank_security.title", "guild" to guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane
@@ -240,7 +243,7 @@ class GuildBankSecurityMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf(lang.raw("menu.bank_security.navigation.bank"))
+            listOf(lang.gui("menu.bank_security.navigation.bank"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -251,8 +254,8 @@ class GuildBankSecurityMenu(
         // Audit log button
         val auditItem = createMenuItem(
             Material.WRITABLE_BOOK,
-            lang.raw("menu.bank_security.navigation.audit.name"),
-            listOf(lang.raw("menu.bank_security.navigation.audit.description"))
+            lang.gui("menu.bank_security.navigation.audit.name"),
+            listOf(lang.gui("menu.bank_security.navigation.audit.description"))
         )
         val auditGuiItem = GuiItem(auditItem) { event ->
             event.isCancelled = true
@@ -263,8 +266,8 @@ class GuildBankSecurityMenu(
         // Save settings button
         val saveItem = createMenuItem(
             Material.WRITABLE_BOOK,
-            lang.raw("menu.bank_security.navigation.save.name"),
-            listOf(lang.raw("menu.bank_security.navigation.save.description"))
+            lang.gui("menu.bank_security.navigation.save.name"),
+            listOf(lang.gui("menu.bank_security.navigation.save.description"))
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
@@ -278,7 +281,7 @@ class GuildBankSecurityMenu(
         val closeItem = createMenuItem(
             Material.BARRIER,
             getLocalizedString("menu.bank.close"),
-            listOf(lang.raw("menu.bank_security.navigation.close"))
+            listOf(lang.gui("menu.bank_security.navigation.close"))
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -294,11 +297,11 @@ class GuildBankSecurityMenu(
         // Dual authorization threshold
         val dualAuthItem = createMenuItem(
             Material.IRON_DOOR,
-            lang.raw("menu.bank_security.dual_auth.name"),
+            lang.gui("menu.bank_security.dual_auth.name"),
             listOf(
-                lang.legacy("menu.bank_security.dual_auth.current", "amount" to dualAuthThreshold),
-                lang.raw("menu.bank_security.dual_auth.description"),
-                lang.raw("menu.bank_security.dual_auth.requirement")
+                lang.gui("menu.bank_security.dual_auth.current", "amount" to dualAuthThreshold),
+                lang.gui("menu.bank_security.dual_auth.description"),
+                lang.gui("menu.bank_security.dual_auth.requirement")
             )
         )
         val dualAuthGuiItem = GuiItem(dualAuthItem) { event ->
@@ -312,11 +315,11 @@ class GuildBankSecurityMenu(
         // Emergency freeze toggle
         val freezeItem = createMenuItem(
             if (emergencyFreeze) Material.RED_WOOL else Material.GREEN_WOOL,
-            lang.raw("menu.bank_security.freeze.name"),
+            lang.gui("menu.bank_security.freeze.name"),
             listOf(
-                if (emergencyFreeze) lang.raw("menu.bank_security.freeze.status.active") else lang.raw("menu.bank_security.freeze.status.inactive"),
-                lang.raw("menu.bank_security.freeze.description"),
-                lang.raw("menu.bank_security.freeze.warning")
+                if (emergencyFreeze) lang.gui("menu.bank_security.freeze.status.active") else lang.gui("menu.bank_security.freeze.status.inactive"),
+                lang.gui("menu.bank_security.freeze.description"),
+                lang.gui("menu.bank_security.freeze.warning")
             )
         )
         val freezeGuiItem = GuiItem(freezeItem) { event ->
@@ -351,25 +354,26 @@ class GuildBankSecurityMenu(
         if (securityAlerts.isEmpty()) {
             val noAlertsItem = createMenuItem(
                 Material.GREEN_WOOL,
-                lang.raw("menu.bank_security.status.good.name"),
+                lang.gui("menu.bank_security.status.good.name"),
                 listOf(
-                    lang.raw("menu.bank_security.status.good.description"),
-                    lang.raw("menu.bank_security.status.good.systems"),
-                    lang.raw("menu.bank_security.status.good.monitoring")
+                    lang.gui("menu.bank_security.status.good.description"),
+                    lang.gui("menu.bank_security.status.good.systems"),
+                    lang.gui("menu.bank_security.status.good.monitoring")
                 )
             )
             auditPane.addItem(GuiItem(noAlertsItem), 0, 0)
         } else {
             // Display alerts
             securityAlerts.take(6).forEachIndexed { index, alert ->
+                val alertText = PlainTextComponentSerializer.plainText().serialize(alert)
                 val alertItem = createMenuItem(
                     when {
-                        alert.contains("🚨") -> Material.RED_WOOL
-                        alert.contains("⚠") -> Material.YELLOW_WOOL
+                        alertText.contains("🚨") -> Material.RED_WOOL
+                        alertText.contains("⚠") -> Material.YELLOW_WOOL
                         else -> Material.ORANGE_WOOL
                     },
-                    lang.raw("menu.bank_security.alert.name"),
-                    listOf(alert, lang.raw("menu.bank_security.alert.action"))
+                    lang.gui("menu.bank_security.alert.name"),
+                    listOf(alert, lang.gui("menu.bank_security.alert.action"))
                 )
                 auditPane.addItem(GuiItem(alertItem), index % 9, index / 9)
             }
@@ -389,11 +393,11 @@ class GuildBankSecurityMenu(
                 RiskLevel.HIGH -> Material.ORANGE_WOOL
                 RiskLevel.CRITICAL -> Material.RED_WOOL
             },
-            lang.raw("menu.bank_security.risk.name"),
+            lang.gui("menu.bank_security.risk.name"),
             listOf(
-                lang.legacy("menu.bank_security.risk.current", "level" to riskLevelName(riskLevel)),
-                lang.raw("menu.bank_security.risk.description"),
-                lang.raw("menu.bank_security.risk.monitoring")
+                lang.gui("menu.bank_security.risk.current", "level" to riskLevelName(riskLevel)),
+                lang.gui("menu.bank_security.risk.description"),
+                lang.gui("menu.bank_security.risk.monitoring")
             )
         )
         securityPane.addItem(GuiItem(statusItem), 4, 0)
@@ -403,13 +407,13 @@ class GuildBankSecurityMenu(
         val recentActivity = auditLog.take(3).map { audit ->
             val actorName = org.bukkit.Bukkit.getOfflinePlayer(audit.actorId).name ?: lang.raw("menu.bank_security.events.unknown_actor")
             val action = audit.action.name.lowercase().replace("_", " ")
-            lang.legacy("menu.bank_security.events.entry", "actor" to actorName, "action" to action)
+            lang.gui("menu.bank_security.events.entry", "actor" to actorName, "action" to action)
         }
 
         val activityItem = createMenuItem(
             Material.CLOCK,
-            lang.raw("menu.bank_security.events.name"),
-            recentActivity.ifEmpty { listOf(lang.raw("menu.bank_security.events.empty")) }
+            lang.gui("menu.bank_security.events.name"),
+            recentActivity.ifEmpty { listOf(lang.gui("menu.bank_security.events.empty")) }
         )
         securityPane.addItem(GuiItem(activityItem), 5, 1)
     }
@@ -420,19 +424,19 @@ class GuildBankSecurityMenu(
     private fun calculateRiskLevel(): RiskLevel {
         return when {
             emergencyFreeze -> RiskLevel.CRITICAL
-            securityAlerts.count { it.contains("🚨") } > 0 -> RiskLevel.CRITICAL
-            securityAlerts.count { it.contains("⚠") } >= 3 -> RiskLevel.HIGH
-            securityAlerts.count { it.contains("⚠") } >= 1 -> RiskLevel.MEDIUM
+            securityAlerts.count { PlainTextComponentSerializer.plainText().serialize(it).contains("🚨") } > 0 -> RiskLevel.CRITICAL
+            securityAlerts.count { PlainTextComponentSerializer.plainText().serialize(it).contains("⚠") } >= 3 -> RiskLevel.HIGH
+            securityAlerts.count { PlainTextComponentSerializer.plainText().serialize(it).contains("⚠") } >= 1 -> RiskLevel.MEDIUM
             securityAlerts.isEmpty() -> RiskLevel.LOW
             else -> RiskLevel.MEDIUM
         }
     }
 
-    private fun riskLevelName(level: RiskLevel): String = when (level) {
-        RiskLevel.LOW -> lang.raw("menu.bank_security.risk.level.low")
-        RiskLevel.MEDIUM -> lang.raw("menu.bank_security.risk.level.medium")
-        RiskLevel.HIGH -> lang.raw("menu.bank_security.risk.level.high")
-        RiskLevel.CRITICAL -> lang.raw("menu.bank_security.risk.level.critical")
+    private fun riskLevelName(level: RiskLevel): Component = when (level) {
+        RiskLevel.LOW -> lang.gui("menu.bank_security.risk.level.low")
+        RiskLevel.MEDIUM -> lang.gui("menu.bank_security.risk.level.medium")
+        RiskLevel.HIGH -> lang.gui("menu.bank_security.risk.level.high")
+        RiskLevel.CRITICAL -> lang.gui("menu.bank_security.risk.level.critical")
     }
 
     /**
@@ -493,19 +497,18 @@ class GuildBankSecurityMenu(
     /**
      * Create a menu item with consistent formatting
      */
-    private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
+    private fun createMenuItem(material: Material, name: Component, lore: List<*>): ItemStack {
         val item = ItemStack.of(material)
         val meta = item.itemMeta
 
-        meta.displayName(Component.text(name)
-            .color(NamedTextColor.YELLOW)
-            .decoration(TextDecoration.ITALIC, false))
+        meta.displayName(name.decoration(TextDecoration.ITALIC, false))
 
         if (lore.isNotEmpty()) {
             val loreComponents = lore.map { line ->
-                Component.text(line)
-                    .color(NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false)
+                when (line) {
+                    is Component -> line
+                    else -> Component.text(line.toString()).color(NamedTextColor.GRAY)
+                }.decoration(TextDecoration.ITALIC, false)
             }
             meta.lore(loreComponents)
         }
@@ -517,7 +520,7 @@ class GuildBankSecurityMenu(
     /**
      * Get localized string with optional parameters
      */
-    private fun getLocalizedString(key: String): String {
-        return lang.legacy(key)
+    private fun getLocalizedString(key: String): Component {
+        return lang.gui(key)
     }
 }

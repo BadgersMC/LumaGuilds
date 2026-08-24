@@ -3,6 +3,8 @@ package net.lumalyte.lg.interaction.menus.guild
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -48,7 +50,7 @@ class AlliesListMenu(
     private val itemsPerPage = 28 // 4 rows x 7 columns
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.allies_list.title")))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.allies_list.title")))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -96,10 +98,10 @@ class AlliesListMenu(
         if (pageAllies.isEmpty()) {
             // No allies - show empty message
             val emptyItem = ItemStack.of(Material.BARRIER)
-                .name(lang.legacy("menu.allies_list.empty.name"))
-                .lore(lang.legacy("menu.allies_list.empty.description"))
-                .lore(lang.legacy("menu.allies_list.empty.command"))
-                .lore(lang.legacy("menu.allies_list.empty.hint"))
+                .name(lang.gui("menu.allies_list.empty.name"))
+                .lore(lang.gui("menu.allies_list.empty.description"))
+                .lore(lang.gui("menu.allies_list.empty.command"))
+                .lore(lang.gui("menu.allies_list.empty.hint"))
 
             val guiItem = GuiItem(emptyItem) { }
             newPage.addItem(guiItem, 3, 1)
@@ -141,17 +143,17 @@ class AlliesListMenu(
         }
 
         val mode = if (otherGuild?.mode?.name == "PEACEFUL") {
-            lang.legacy("menu.allies_list.guild.mode.peaceful")
+            lang.gui("menu.allies_list.guild.mode.peaceful")
         } else {
-            lang.legacy("menu.allies_list.guild.mode.hostile")
+            lang.gui("menu.allies_list.guild.mode.hostile")
         }
-        item.name(lang.legacy("menu.allies_list.guild.name", "guild" to guildName))
-            .lore(lang.legacy("menu.allies_list.guild.members", "count" to memberCount))
-            .lore(lang.legacy("menu.allies_list.guild.duration", "duration" to durationText))
-            .lore(lang.legacy("menu.allies_list.guild.level", "level" to (otherGuild?.level ?: 1)))
-            .lore(lang.legacy("menu.allies_list.guild.mode.line", "mode" to mode))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.allies_list.guild.actions"))
+        item.name(lang.gui("menu.allies_list.guild.name", "guild" to guildName))
+            .lore(lang.gui("menu.allies_list.guild.members", "count" to memberCount))
+            .lore(lang.gui("menu.allies_list.guild.duration", "duration" to durationText))
+            .lore(lang.gui("menu.allies_list.guild.level", "level" to (otherGuild?.level ?: 1)))
+            .lore(lang.gui("menu.allies_list.guild.mode.line", "mode" to mode))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.allies_list.guild.actions"))
 
         return item
     }
@@ -162,7 +164,7 @@ class AlliesListMenu(
         val guildName = otherGuild?.name ?: lang.raw("menu.allies_list.fallback.unknown_guild")
 
         // Create actions menu
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.allies_list.actions_title", "guild" to guildName)))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.allies_list.actions_title", "guild" to guildName)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -173,9 +175,9 @@ class AlliesListMenu(
 
         // View info button
         val infoItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.allies_list.actions.info.name"))
-            .lore(lang.legacy("menu.allies_list.actions.info.description"))
-            .lore(lang.legacy("menu.allies_list.actions.info.guild", "guild" to guildName))
+            .name(lang.gui("menu.allies_list.actions.info.name"))
+            .lore(lang.gui("menu.allies_list.actions.info.description"))
+            .lore(lang.gui("menu.allies_list.actions.info.guild", "guild" to guildName))
 
         val infoGuiItem = GuiItem(infoItem) {
             if (otherGuild != null) {
@@ -188,11 +190,11 @@ class AlliesListMenu(
         val hasPermission = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
 
         val breakItem = ItemStack.of(if (hasPermission) Material.RED_CONCRETE else Material.BARRIER)
-            .name(if (hasPermission) lang.legacy("menu.allies_list.actions.break_alliance.name") else lang.legacy("menu.allies_list.actions.break_alliance.disabled"))
-            .lore(if (hasPermission) lang.legacy("menu.allies_list.actions.break_alliance.description") else lang.legacy("menu.allies_list.permission.manage_relations"))
-            .lore(if (hasPermission) lang.legacy("menu.allies_list.actions.break_alliance.guild", "guild" to guildName) else lang.legacy("menu.allies_list.actions.break_alliance.permission"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(if (hasPermission) lang.legacy("menu.allies_list.actions.break_alliance.warning") else lang.legacy("menu.allies_list.permission.required"))
+            .name(if (hasPermission) lang.gui("menu.allies_list.actions.break_alliance.name") else lang.gui("menu.allies_list.actions.break_alliance.disabled"))
+            .lore(if (hasPermission) lang.gui("menu.allies_list.actions.break_alliance.description") else lang.gui("menu.allies_list.permission.manage_relations"))
+            .lore(if (hasPermission) lang.gui("menu.allies_list.actions.break_alliance.guild", "guild" to guildName) else lang.gui("menu.allies_list.actions.break_alliance.permission"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(if (hasPermission) lang.gui("menu.allies_list.actions.break_alliance.warning") else lang.gui("menu.allies_list.permission.required"))
 
         val breakGuiItem = GuiItem(breakItem) {
             if (hasPermission) {
@@ -206,8 +208,8 @@ class AlliesListMenu(
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.allies_list.actions.back.name"))
-            .lore(lang.legacy("menu.allies_list.actions.back.description"))
+            .name(lang.gui("menu.allies_list.actions.back.name"))
+            .lore(lang.gui("menu.allies_list.actions.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             open()
@@ -220,7 +222,7 @@ class AlliesListMenu(
 
     private fun openBreakConfirmMenu(relation: Relation, guildName: String) {
         // Create confirmation menu
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.allies_list.confirm.title")))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.allies_list.confirm.title")))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -231,11 +233,11 @@ class AlliesListMenu(
 
         // Confirm button
         val confirmItem = ItemStack.of(Material.RED_CONCRETE)
-            .name(lang.legacy("menu.allies_list.confirm.name"))
-            .lore(lang.legacy("menu.allies_list.confirm.description"))
-            .lore(lang.legacy("menu.allies_list.confirm.guild", "guild" to guildName))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.allies_list.confirm.warning"))
+            .name(lang.gui("menu.allies_list.confirm.name"))
+            .lore(lang.gui("menu.allies_list.confirm.description"))
+            .lore(lang.gui("menu.allies_list.confirm.guild", "guild" to guildName))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.allies_list.confirm.warning"))
 
         val confirmGuiItem = GuiItem(confirmItem) {
             breakAlliance(relation, guildName)
@@ -244,8 +246,8 @@ class AlliesListMenu(
 
         // Cancel button
         val cancelItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.allies_list.confirm.cancel.name"))
-            .lore(lang.legacy("menu.allies_list.confirm.cancel.description"))
+            .name(lang.gui("menu.allies_list.confirm.cancel.name"))
+            .lore(lang.gui("menu.allies_list.confirm.cancel.description"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             openAllyActionsMenu(relation)
@@ -285,8 +287,8 @@ class AlliesListMenu(
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.allies_list.navigation.previous.name"))
-                .lore(lang.legacy("menu.allies_list.navigation.previous.description"))
+                .name(lang.gui("menu.allies_list.navigation.previous.name"))
+                .lore(lang.gui("menu.allies_list.navigation.previous.description"))
 
             val prevGuiItem = GuiItem(prevItem) {
                 currentPage--
@@ -297,8 +299,8 @@ class AlliesListMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.allies_list.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
-            .lore(lang.legacy("menu.allies_list.navigation.total", "count" to allAllies.size))
+            .name(lang.gui("menu.allies_list.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
+            .lore(lang.gui("menu.allies_list.navigation.total", "count" to allAllies.size))
 
         val pageGuiItem = GuiItem(pageItem) { }
         pane.addItem(pageGuiItem, 4, 4)
@@ -306,8 +308,8 @@ class AlliesListMenu(
         // Next page button
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.allies_list.navigation.next.name"))
-                .lore(lang.legacy("menu.allies_list.navigation.next.description"))
+                .name(lang.gui("menu.allies_list.navigation.next.name"))
+                .lore(lang.gui("menu.allies_list.navigation.next.description"))
 
             val nextGuiItem = GuiItem(nextItem) {
                 currentPage++
@@ -319,8 +321,8 @@ class AlliesListMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.allies_list.navigation.back.name"))
-            .lore(lang.legacy("menu.allies_list.navigation.back.description"))
+            .name(lang.gui("menu.allies_list.navigation.back.name"))
+            .lore(lang.gui("menu.allies_list.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
@@ -328,18 +330,18 @@ class AlliesListMenu(
         pane.addItem(guiItem, x, y)
     }
 
-    private fun formatDuration(duration: Duration): String {
+    private fun formatDuration(duration: Duration): Component {
         val days = duration.toDays()
         return when {
-            days < 1 -> lang.raw("menu.allies_list.duration.less_than_day")
-            days < 7 && days == 1L -> lang.legacy("menu.allies_list.duration.day", "count" to days)
-            days < 7 -> lang.legacy("menu.allies_list.duration.days", "count" to days)
-            days < 30 && days / 7 == 1L -> lang.legacy("menu.allies_list.duration.week", "count" to days / 7)
-            days < 30 -> lang.legacy("menu.allies_list.duration.weeks", "count" to days / 7)
-            days < 365 && days / 30 == 1L -> lang.legacy("menu.allies_list.duration.month", "count" to days / 30)
-            days < 365 -> lang.legacy("menu.allies_list.duration.months", "count" to days / 30)
-            days / 365 == 1L -> lang.legacy("menu.allies_list.duration.year", "count" to days / 365)
-            else -> lang.legacy("menu.allies_list.duration.years", "count" to days / 365)
+            days < 1 -> lang.gui("menu.allies_list.duration.less_than_day")
+            days < 7 && days == 1L -> lang.gui("menu.allies_list.duration.day", "count" to days)
+            days < 7 -> lang.gui("menu.allies_list.duration.days", "count" to days)
+            days < 30 && days / 7 == 1L -> lang.gui("menu.allies_list.duration.week", "count" to days / 7)
+            days < 30 -> lang.gui("menu.allies_list.duration.weeks", "count" to days / 7)
+            days < 365 && days / 30 == 1L -> lang.gui("menu.allies_list.duration.month", "count" to days / 30)
+            days < 365 -> lang.gui("menu.allies_list.duration.months", "count" to days / 30)
+            days / 365 == 1L -> lang.gui("menu.allies_list.duration.year", "count" to days / 365)
+            else -> lang.gui("menu.allies_list.duration.years", "count" to days / 365)
         }
     }
 

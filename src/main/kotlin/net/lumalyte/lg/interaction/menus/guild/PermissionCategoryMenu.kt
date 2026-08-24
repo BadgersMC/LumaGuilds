@@ -1,6 +1,10 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.kyori.adventure.text.Component
+import net.lumalyte.lg.infrastructure.i18n.GuiTextStyler
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -48,7 +52,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.permission_category.title", "category" to localizedCategoryName(), "rank" to rank.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.permission_category.title", "category" to localizedCategoryName(), "rank" to rank.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -83,28 +87,28 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         }
 
         val infoItem = ItemStack.of(categoryIcon)
-            .name(lang.legacy("menu.rank_edit.category.name", "category" to localizedCategoryName()))
-            .lore(lang.legacy("menu.permission_category.info.rank", "rank" to rank.name))
-            .lore(lang.legacy("menu.permission_category.info.category", "category" to localizedCategoryName()))
-            .lore(lang.legacy("menu.permission_category.info.total", "count" to categoryPermissions.size))
+            .name(lang.gui("menu.rank_edit.category.name", "category" to localizedCategoryName()))
+            .lore(lang.gui("menu.permission_category.info.rank", "rank" to rank.name))
+            .lore(lang.gui("menu.permission_category.info.category", "category" to localizedCategoryName()))
+            .lore(lang.gui("menu.permission_category.info.total", "count" to categoryPermissions.size))
             
         // Add protection warning if editing own rank
         if (isEditingOwnRank()) {
-            infoItem.lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.permission_category.info.protection"))
-                .lore(lang.legacy("menu.rank_edit.info.permission_changes_blocked"))
-                .lore(lang.legacy("menu.permission_category.info.prevent_lockout"))
+            infoItem.lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.permission_category.info.protection"))
+                .lore(lang.gui("menu.rank_edit.info.permission_changes_blocked"))
+                .lore(lang.gui("menu.permission_category.info.prevent_lockout"))
         }
 
         pane.addItem(GuiItem(infoItem), 1, 0)
 
         // Enable all button
         val enableAllItem = ItemStack.of(Material.LIME_CONCRETE)
-            .name(lang.legacy("menu.permission_category.enable_all.name"))
-            .lore(lang.legacy("menu.permission_category.enable_all.description", "category" to localizedCategoryName()))
-            .lore(lang.legacy("menu.permission_category.enable_all.rank"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.permission_category.enable_all.click"))
+            .name(lang.gui("menu.permission_category.enable_all.name"))
+            .lore(lang.gui("menu.permission_category.enable_all.description", "category" to localizedCategoryName()))
+            .lore(lang.gui("menu.permission_category.enable_all.rank"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.permission_category.enable_all.click"))
 
         val enableAllGuiItem = GuiItem(enableAllItem) {
             if (isEditingOwnRank()) {
@@ -122,11 +126,11 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         // Disable all button
         val disableAllItem = ItemStack.of(Material.RED_CONCRETE)
-            .name(lang.legacy("menu.permission_category.disable_all.name"))
-            .lore(lang.legacy("menu.permission_category.disable_all.description", "category" to localizedCategoryName()))
-            .lore(lang.legacy("menu.permission_category.disable_all.rank"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.permission_category.disable_all.click"))
+            .name(lang.gui("menu.permission_category.disable_all.name"))
+            .lore(lang.gui("menu.permission_category.disable_all.description", "category" to localizedCategoryName()))
+            .lore(lang.gui("menu.permission_category.disable_all.rank"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.permission_category.disable_all.click"))
 
         val disableAllGuiItem = GuiItem(disableAllItem) {
             if (isEditingOwnRank()) {
@@ -145,10 +149,10 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         // Permission count
         val enabledCount = categoryPermissions.count { modifiedPermissions.contains(it) }
         val countItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.permission_category.status.name"))
-            .lore(lang.legacy("menu.permission_category.status.count", "enabled" to enabledCount, "total" to categoryPermissions.size))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.permission_category.status.hint"))
+            .name(lang.gui("menu.permission_category.status.name"))
+            .lore(lang.gui("menu.permission_category.status.count", "enabled" to enabledCount, "total" to categoryPermissions.size))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.permission_category.status.hint"))
 
         pane.addItem(GuiItem(countItem), 7, 0)
     }
@@ -162,20 +166,21 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
             val hasPermission = modifiedPermissions.contains(permission)
             val permissionKey = "permission.${permission.name.lowercase().replace("_", ".")}"
-            val displayName = lang.raw(permissionKey)
+            val displayName = lang.gui(permissionKey)
+            val chatDisplayName = lang.raw(permissionKey)
 
             val permissionItem = ItemStack.of(
                 if (hasPermission) Material.LIME_CONCRETE_POWDER else Material.RED_CONCRETE_POWDER
             )
-                .name(if (hasPermission) lang.legacy("menu.rank_edit.category.permission_enabled", "permission" to displayName) else lang.legacy("menu.rank_edit.category.permission_disabled", "permission" to displayName))
-                .lore(lang.legacy("menu.permission_category.permission.identifier", "permission" to permission.name))
-                .lore(if (hasPermission) lang.legacy("menu.permission_category.permission.enabled") else lang.legacy("menu.permission_category.permission.disabled"))
-                .lore(lang.legacy("menu.common.blank"))
+                .name(if (hasPermission) lang.gui("menu.rank_edit.category.permission_enabled", "permission" to displayName) else lang.gui("menu.rank_edit.category.permission_disabled", "permission" to displayName))
+                .lore(lang.gui("menu.permission_category.permission.identifier", "permission" to permission.name))
+                .lore(if (hasPermission) lang.gui("menu.permission_category.permission.enabled") else lang.gui("menu.permission_category.permission.disabled"))
+                .lore(lang.gui("menu.common.blank"))
 
             // Add description based on permission
             permissionItem.lore(getPermissionDescription(permission))
-            permissionItem.lore(lang.legacy("menu.common.blank"))
-            permissionItem.lore(if (hasPermission) lang.legacy("menu.permission_category.permission.disable") else lang.legacy("menu.permission_category.permission.enable"))
+            permissionItem.lore(lang.gui("menu.common.blank"))
+            permissionItem.lore(if (hasPermission) lang.gui("menu.permission_category.permission.disable") else lang.gui("menu.permission_category.permission.enable"))
 
             val permissionGuiItem = GuiItem(permissionItem) {
                 if (isEditingOwnRank()) {
@@ -185,10 +190,10 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
                 }
                 if (hasPermission) {
                     modifiedPermissions.remove(permission)
-                    player.sendMessage(lang.msg("menu.permission_category.feedback.disabled", "permission" to displayName, "rank" to rank.name))
+                    player.sendMessage(lang.msg("menu.permission_category.feedback.disabled", "permission" to chatDisplayName, "rank" to rank.name))
                 } else {
                     modifiedPermissions.add(permission)
-                    player.sendMessage(lang.msg("menu.permission_category.feedback.enabled", "permission" to displayName, "rank" to rank.name))
+                    player.sendMessage(lang.msg("menu.permission_category.feedback.enabled", "permission" to chatDisplayName, "rank" to rank.name))
                 }
                 open() // Refresh the menu
             }
@@ -199,10 +204,10 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     private fun addActionButtons(pane: StaticPane) {
         // Save changes
         val saveItem = ItemStack.of(Material.EMERALD_BLOCK)
-            .name(lang.legacy("menu.rank_edit.action.save.name"))
-            .lore(lang.legacy("menu.permission_category.action.save.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.permission_category.action.save.click"))
+            .name(lang.gui("menu.rank_edit.action.save.name"))
+            .lore(lang.gui("menu.permission_category.action.save.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.permission_category.action.save.click"))
 
         val saveGuiItem = GuiItem(saveItem) {
             // Update the rank with modified permissions
@@ -227,11 +232,11 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         // Cancel changes
         val cancelItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.permission_category.action.cancel.name"))
-            .lore(lang.legacy("menu.permission_category.action.cancel.description"))
-            .lore(lang.legacy("menu.permission_category.action.return"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.permission_category.action.cancel.click"))
+            .name(lang.gui("menu.permission_category.action.cancel.name"))
+            .lore(lang.gui("menu.permission_category.action.cancel.description"))
+            .lore(lang.gui("menu.permission_category.action.return"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.permission_category.action.cancel.click"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             player.sendMessage(lang.msg("menu.permission_category.feedback.discarded"))
@@ -248,11 +253,11 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         // Reset to original
         val resetItem = ItemStack.of(Material.YELLOW_CONCRETE)
-            .name(lang.legacy("menu.permission_category.action.reset.name"))
-            .lore(lang.legacy("menu.permission_category.action.reset.description"))
-            .lore(lang.legacy("menu.permission_category.action.reset.category"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.permission_category.action.reset.click"))
+            .name(lang.gui("menu.permission_category.action.reset.name"))
+            .lore(lang.gui("menu.permission_category.action.reset.description"))
+            .lore(lang.gui("menu.permission_category.action.reset.category"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.permission_category.action.reset.click"))
 
         val resetGuiItem = GuiItem(resetItem) {
             // Reset modified permissions to original for this category
@@ -270,9 +275,9 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         // Back to rank edit
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.rank_edit.action.back.name"))
-            .lore(lang.legacy("menu.permission_category.action.return"))
-            .lore(lang.legacy("menu.permission_category.action.back.saved"))
+            .name(lang.gui("menu.rank_edit.action.back.name"))
+            .lore(lang.gui("menu.permission_category.action.return"))
+            .lore(lang.gui("menu.permission_category.action.back.saved"))
 
         val backGuiItem = GuiItem(backItem) {
             // Update the rank with modified permissions before going back
@@ -289,70 +294,70 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(backGuiItem, 7, 5)
     }
 
-    private fun getPermissionDescription(permission: RankPermission): String {
+    private fun getPermissionDescription(permission: RankPermission): Component {
         return when (permission) {
             // Guild Management
-            RankPermission.MANAGE_RANKS -> lang.legacy("menu.permission_category.description.manage_ranks")
-            RankPermission.MANAGE_MEMBERS -> lang.legacy("menu.permission_category.description.manage_members")
-            RankPermission.MANAGE_BANNER -> lang.legacy("menu.permission_category.description.manage_banner")
-            RankPermission.MANAGE_EMOJI -> lang.legacy("menu.permission_category.description.manage_emoji")
-            RankPermission.MANAGE_DESCRIPTION -> lang.legacy("menu.permission_category.description.manage_description")
-            RankPermission.MANAGE_HOME -> lang.legacy("menu.permission_category.description.manage_home")
-            RankPermission.MANAGE_MODE -> lang.legacy("menu.permission_category.description.manage_mode")
-            RankPermission.MANAGE_GUILD_SETTINGS -> lang.legacy("menu.permission_category.description.manage_guild_settings")
+            RankPermission.MANAGE_RANKS -> lang.gui("menu.permission_category.description.manage_ranks")
+            RankPermission.MANAGE_MEMBERS -> lang.gui("menu.permission_category.description.manage_members")
+            RankPermission.MANAGE_BANNER -> lang.gui("menu.permission_category.description.manage_banner")
+            RankPermission.MANAGE_EMOJI -> lang.gui("menu.permission_category.description.manage_emoji")
+            RankPermission.MANAGE_DESCRIPTION -> lang.gui("menu.permission_category.description.manage_description")
+            RankPermission.MANAGE_HOME -> lang.gui("menu.permission_category.description.manage_home")
+            RankPermission.MANAGE_MODE -> lang.gui("menu.permission_category.description.manage_mode")
+            RankPermission.MANAGE_GUILD_SETTINGS -> lang.gui("menu.permission_category.description.manage_guild_settings")
 
             // Banking
-            RankPermission.DEPOSIT_TO_BANK -> lang.legacy("menu.permission_category.description.deposit_to_bank")
-            RankPermission.WITHDRAW_FROM_BANK -> lang.legacy("menu.permission_category.description.withdraw_from_bank")
-            RankPermission.VIEW_BANK_TRANSACTIONS -> lang.legacy("menu.permission_category.description.view_bank_transactions")
-            RankPermission.MANAGE_BANK_SETTINGS -> lang.legacy("menu.permission_category.description.manage_bank_settings")
-            RankPermission.PLACE_VAULT -> lang.legacy("menu.permission_category.description.place_vault")
-            RankPermission.ACCESS_VAULT -> lang.legacy("menu.permission_category.description.access_vault")
-            RankPermission.DEPOSIT_TO_VAULT -> lang.legacy("menu.permission_category.description.deposit_to_vault")
-            RankPermission.WITHDRAW_FROM_VAULT -> lang.legacy("menu.permission_category.description.withdraw_from_vault")
-            RankPermission.MANAGE_VAULT -> lang.legacy("menu.permission_category.description.manage_vault")
-            RankPermission.BREAK_VAULT -> lang.legacy("menu.permission_category.description.break_vault")
-            RankPermission.ACCESS_SHOP_CHESTS -> lang.legacy("menu.permission_category.description.access_shop_chests")
-            RankPermission.EDIT_SHOP_STOCK -> lang.legacy("menu.permission_category.description.edit_shop_stock")
-            RankPermission.MODIFY_SHOP_PRICES -> lang.legacy("menu.permission_category.description.modify_shop_prices")
+            RankPermission.DEPOSIT_TO_BANK -> lang.gui("menu.permission_category.description.deposit_to_bank")
+            RankPermission.WITHDRAW_FROM_BANK -> lang.gui("menu.permission_category.description.withdraw_from_bank")
+            RankPermission.VIEW_BANK_TRANSACTIONS -> lang.gui("menu.permission_category.description.view_bank_transactions")
+            RankPermission.MANAGE_BANK_SETTINGS -> lang.gui("menu.permission_category.description.manage_bank_settings")
+            RankPermission.PLACE_VAULT -> lang.gui("menu.permission_category.description.place_vault")
+            RankPermission.ACCESS_VAULT -> lang.gui("menu.permission_category.description.access_vault")
+            RankPermission.DEPOSIT_TO_VAULT -> lang.gui("menu.permission_category.description.deposit_to_vault")
+            RankPermission.WITHDRAW_FROM_VAULT -> lang.gui("menu.permission_category.description.withdraw_from_vault")
+            RankPermission.MANAGE_VAULT -> lang.gui("menu.permission_category.description.manage_vault")
+            RankPermission.BREAK_VAULT -> lang.gui("menu.permission_category.description.break_vault")
+            RankPermission.ACCESS_SHOP_CHESTS -> lang.gui("menu.permission_category.description.access_shop_chests")
+            RankPermission.EDIT_SHOP_STOCK -> lang.gui("menu.permission_category.description.edit_shop_stock")
+            RankPermission.MODIFY_SHOP_PRICES -> lang.gui("menu.permission_category.description.modify_shop_prices")
 
             // Diplomacy
-            RankPermission.MANAGE_RELATIONS -> lang.legacy("menu.permission_category.description.manage_relations")
-            RankPermission.DECLARE_WAR -> lang.legacy("menu.permission_category.description.declare_war")
-            RankPermission.ACCEPT_ALLIANCES -> lang.legacy("menu.permission_category.description.accept_alliances")
-            RankPermission.MANAGE_PARTIES -> lang.legacy("menu.permission_category.description.manage_parties")
-            RankPermission.SEND_PARTY_REQUESTS -> lang.legacy("menu.permission_category.description.send_party_requests")
-            RankPermission.ACCEPT_PARTY_INVITES -> lang.legacy("menu.permission_category.description.accept_party_invites")
-            RankPermission.USE_ALLY_HOMES -> lang.legacy("menu.permission_category.description.use_ally_homes")
+            RankPermission.MANAGE_RELATIONS -> lang.gui("menu.permission_category.description.manage_relations")
+            RankPermission.DECLARE_WAR -> lang.gui("menu.permission_category.description.declare_war")
+            RankPermission.ACCEPT_ALLIANCES -> lang.gui("menu.permission_category.description.accept_alliances")
+            RankPermission.MANAGE_PARTIES -> lang.gui("menu.permission_category.description.manage_parties")
+            RankPermission.SEND_PARTY_REQUESTS -> lang.gui("menu.permission_category.description.send_party_requests")
+            RankPermission.ACCEPT_PARTY_INVITES -> lang.gui("menu.permission_category.description.accept_party_invites")
+            RankPermission.USE_ALLY_HOMES -> lang.gui("menu.permission_category.description.use_ally_homes")
 
             // Claims
-            RankPermission.MANAGE_CLAIMS -> lang.legacy("menu.permission_category.description.manage_claims")
-            RankPermission.MANAGE_FLAGS -> lang.legacy("menu.permission_category.description.manage_flags")
-            RankPermission.MANAGE_PERMISSIONS -> lang.legacy("menu.permission_category.description.manage_permissions")
-            RankPermission.CREATE_CLAIMS -> lang.legacy("menu.permission_category.description.create_claims")
-            RankPermission.DELETE_CLAIMS -> lang.legacy("menu.permission_category.description.delete_claims")
+            RankPermission.MANAGE_CLAIMS -> lang.gui("menu.permission_category.description.manage_claims")
+            RankPermission.MANAGE_FLAGS -> lang.gui("menu.permission_category.description.manage_flags")
+            RankPermission.MANAGE_PERMISSIONS -> lang.gui("menu.permission_category.description.manage_permissions")
+            RankPermission.CREATE_CLAIMS -> lang.gui("menu.permission_category.description.create_claims")
+            RankPermission.DELETE_CLAIMS -> lang.gui("menu.permission_category.description.delete_claims")
 
             // Communication
-            RankPermission.SEND_ANNOUNCEMENTS -> lang.legacy("menu.permission_category.description.send_announcements")
-            RankPermission.SEND_PINGS -> lang.legacy("menu.permission_category.description.send_pings")
-            RankPermission.MODERATE_CHAT -> lang.legacy("menu.permission_category.description.moderate_chat")
+            RankPermission.SEND_ANNOUNCEMENTS -> lang.gui("menu.permission_category.description.send_announcements")
+            RankPermission.SEND_PINGS -> lang.gui("menu.permission_category.description.send_pings")
+            RankPermission.MODERATE_CHAT -> lang.gui("menu.permission_category.description.moderate_chat")
 
             // Administrative
-            RankPermission.ACCESS_ADMIN_COMMANDS -> lang.legacy("menu.permission_category.description.access_admin_commands")
-            RankPermission.BYPASS_RESTRICTIONS -> lang.legacy("menu.permission_category.description.bypass_restrictions")
-            RankPermission.VIEW_AUDIT_LOGS -> lang.legacy("menu.permission_category.description.view_audit_logs")
-            RankPermission.MANAGE_INTEGRATIONS -> lang.legacy("menu.permission_category.description.manage_integrations")
+            RankPermission.ACCESS_ADMIN_COMMANDS -> lang.gui("menu.permission_category.description.access_admin_commands")
+            RankPermission.BYPASS_RESTRICTIONS -> lang.gui("menu.permission_category.description.bypass_restrictions")
+            RankPermission.VIEW_AUDIT_LOGS -> lang.gui("menu.permission_category.description.view_audit_logs")
+            RankPermission.MANAGE_INTEGRATIONS -> lang.gui("menu.permission_category.description.manage_integrations")
         }
     }
 
-    private fun localizedCategoryName(): String = when (categoryName) {
-        "Guild Management" -> lang.raw("menu.rank_edit.category.guild_management")
-        "Banking" -> lang.raw("menu.rank_edit.category.banking")
-        "Diplomacy" -> lang.raw("menu.rank_edit.category.diplomacy")
-        "Communication" -> lang.raw("menu.rank_edit.category.communication")
-        "Administrative" -> lang.raw("menu.rank_edit.category.administrative")
-        "Claims" -> lang.raw("menu.rank_edit.category.claims")
-        else -> categoryName
+    private fun localizedCategoryName(): Component = when (categoryName) {
+        "Guild Management" -> lang.gui("menu.rank_edit.category.guild_management")
+        "Banking" -> lang.gui("menu.rank_edit.category.banking")
+        "Diplomacy" -> lang.gui("menu.rank_edit.category.diplomacy")
+        "Communication" -> lang.gui("menu.rank_edit.category.communication")
+        "Administrative" -> lang.gui("menu.rank_edit.category.administrative")
+        "Claims" -> lang.gui("menu.rank_edit.category.claims")
+        else -> GuiTextStyler.style(Component.text(categoryName))
     }
 
     override fun passData(data: Any?) {

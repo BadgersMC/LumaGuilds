@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.services.NexoEmojiService
 import net.lumalyte.lg.domain.entities.Guild
@@ -31,12 +33,12 @@ class BedrockEmojiSelectionMenu(
         val emojiIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.emoji_selection.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.emoji_selection.title", "guild" to guild.name))
             .apply { emojiIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.emoji_selection.description"))
+            .label(lang.bedrock("bedrock.emoji_selection.description"))
             .input(
-                lang.raw("bedrock.emoji_selection.input.label"),
-                lang.raw("bedrock.emoji_selection.input.placeholder"),
+                lang.bedrock("bedrock.emoji_selection.input.label"),
+                lang.bedrock("bedrock.emoji_selection.input.placeholder"),
                 ""
             )
             .validResultHandler { response ->

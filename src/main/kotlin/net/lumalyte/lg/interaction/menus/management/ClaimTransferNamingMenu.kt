@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.AnvilGui
@@ -41,7 +43,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
 
         // Create transfer naming menu
         val playerId = player.uniqueId
-        val gui = AnvilGui(lang.legacy("menu.naming.title"))
+        val gui = AnvilGui(lang.guiTitle("menu.naming.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -61,43 +63,43 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
         when (previousResult) {
             AcceptTransferRequestResult.NoActiveTransferRequest -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(lang.legacy("accept_transfer_condition.invalid_request"))
+                    .name(lang.gui("accept_transfer_condition.invalid_request"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.ClaimNotFound -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(lang.legacy("accept_transfer_condition.invalid_claim"))
+                    .name(lang.gui("accept_transfer_condition.invalid_claim"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.BlockLimitExceeded -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(lang.legacy("creation_condition.blocks"))
+                    .name(lang.gui("creation_condition.blocks"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.ClaimLimitExceeded -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(lang.legacy("creation_condition.claims"))
+                    .name(lang.gui("creation_condition.claims"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.NameAlreadyExists -> {
                 val paperItem = ItemStack.of(Material.PAPER)
-                    .name(lang.legacy("creation_condition.existing"))
+                    .name(lang.gui("creation_condition.existing"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.PlayerOwnsClaim -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(lang.legacy("accept_transfer_condition.owner"))
+                    .name(lang.gui("accept_transfer_condition.owner"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.StorageError -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(lang.legacy("general.error"))
+                    .name(lang.gui("general.error"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
@@ -107,7 +109,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
         // Add confirm menu item.
         val thirdPane = StaticPane(0, 0, 1, 1)
         val confirmItem = ItemStack.of(Material.NETHER_STAR)
-            .name(lang.legacy("menu.common.item.confirm.name"))
+            .name(lang.gui("menu.common.item.confirm.name"))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             val previousOwnerId = claim.playerId
 
@@ -121,9 +123,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
                             if (claimMenuResult.isInClaimMenu) {
                                 val previousOwner = Bukkit.getPlayer(previousOwnerId)
                                 previousOwner?.closeInventory()
-                                previousOwner?.sendActionBar(
-                                    Component.text(lang.legacy("feedback.transfer.success"))
-                                        .color(TextColor.color(255, 85, 85)))
+                                previousOwner?.sendActionBar(lang.gui("feedback.transfer.success"))
                             }
                         }
                         is IsPlayerInClaimMenuResult.StorageError -> {}

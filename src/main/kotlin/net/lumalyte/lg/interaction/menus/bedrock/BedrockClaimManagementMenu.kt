@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.ConvertClaimToGuild
 import net.lumalyte.lg.application.results.claim.ConvertClaimToGuildResult
@@ -30,7 +32,7 @@ class BedrockClaimManagementMenu(
         val config = getBedrockConfig()
 
         val content = if (claim.description.isNotEmpty()) {
-            lang.legacy(
+            lang.bedrock(
                 "bedrock.claim_management.content.with_description",
                 "claim" to claim.name,
                 "x" to claim.position.x,
@@ -40,7 +42,7 @@ class BedrockClaimManagementMenu(
                 "description" to claim.description
             )
         } else {
-            lang.legacy(
+            lang.bedrock(
                 "bedrock.claim_management.content.without_description",
                 "claim" to claim.name,
                 "x" to claim.position.x,
@@ -51,19 +53,19 @@ class BedrockClaimManagementMenu(
         }
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.claim_management.title", "claim" to claim.name))
+            .title(lang.bedrock("bedrock.claim_management.title", "claim" to claim.name))
             .content(content)
-            .button(lang.raw("bedrock.claim_management.button.icon"))
-            .button(lang.raw("bedrock.claim_management.button.rename"))
-            .button(lang.raw("bedrock.claim_management.button.permissions"))
-            .button(lang.raw("bedrock.claim_management.button.flags"))
+            .button(lang.bedrock("bedrock.claim_management.button.icon"))
+            .button(lang.bedrock("bedrock.claim_management.button.rename"))
+            .button(lang.bedrock("bedrock.claim_management.button.permissions"))
+            .button(lang.bedrock("bedrock.claim_management.button.flags"))
             .apply {
                 if (claim.teamId == null) {
-                    button(lang.raw("bedrock.claim_management.button.convert"))
+                    button(lang.bedrock("bedrock.claim_management.button.convert"))
                 }
             }
-            .button(lang.raw("bedrock.claim_management.button.transfer"))
-            .button(lang.raw("bedrock.claim_management.button.back"))
+            .button(lang.bedrock("bedrock.claim_management.button.transfer"))
+            .button(lang.bedrock("bedrock.claim_management.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> menuNavigator.openMenu(menuFactory.createClaimIconMenu(player, menuNavigator, claim))

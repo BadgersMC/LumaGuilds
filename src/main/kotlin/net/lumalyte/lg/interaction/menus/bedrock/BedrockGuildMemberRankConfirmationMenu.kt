@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -36,21 +38,21 @@ class BedrockGuildMemberRankConfirmationMenu(
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
-        val targetName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: lang.raw("menu.common.unknown_player")
+        val targetName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: lang.bedrock("menu.common.unknown_player")
         val currentRank = rankService.getRank(targetMember.rankId)
 
         return SimpleForm.builder()
-            .title(lang.raw("bedrock.member_rank_confirmation.title"))
-            .content(lang.legacy(
+            .title(lang.bedrock("bedrock.member_rank_confirmation.title"))
+            .content(lang.bedrock(
                 "bedrock.member_rank_confirmation.content",
                 "guild" to guild.name,
                 "player" to targetName,
-                "current_rank" to (currentRank?.name ?: lang.raw("bedrock.member_rank_confirmation.unknown_rank")),
+                "current_rank" to (currentRank?.name ?: lang.bedrock("bedrock.member_rank_confirmation.unknown_rank")),
                 "new_rank" to newRank.name,
                 "change" to getRankChangeDescription(currentRank, newRank)
             ))
-            .button(lang.raw("bedrock.member_rank_confirmation.button.confirm"))
-            .button(lang.raw("bedrock.member_rank_confirmation.button.cancel"))
+            .button(lang.bedrock("bedrock.member_rank_confirmation.button.confirm"))
+            .button(lang.bedrock("bedrock.member_rank_confirmation.button.cancel"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> changeRank()
@@ -67,15 +69,15 @@ class BedrockGuildMemberRankConfirmationMenu(
 
     private fun getRankChangeDescription(currentRank: Rank?, newRank: Rank): String {
         return when {
-            currentRank == null -> lang.raw("bedrock.member_rank_confirmation.change.initial")
-            newRank.priority < (currentRank.priority) -> lang.raw("bedrock.member_rank_confirmation.change.promotion")
-            newRank.priority > (currentRank.priority) -> lang.raw("bedrock.member_rank_confirmation.change.demotion")
-            else -> lang.raw("bedrock.member_rank_confirmation.change.adjustment")
+            currentRank == null -> lang.bedrock("bedrock.member_rank_confirmation.change.initial")
+            newRank.priority < (currentRank.priority) -> lang.bedrock("bedrock.member_rank_confirmation.change.promotion")
+            newRank.priority > (currentRank.priority) -> lang.bedrock("bedrock.member_rank_confirmation.change.demotion")
+            else -> lang.bedrock("bedrock.member_rank_confirmation.change.adjustment")
         }
     }
 
     private fun changeRank() {
-        val targetName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: lang.raw("menu.common.unknown_player")
+        val targetName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: lang.bedrock("menu.common.unknown_player")
 
         // Update the member's rank
         val success = memberService.changeMemberRank(targetMember.playerId, guild.id, newRank.id, player.uniqueId)

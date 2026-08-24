@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.plain
 
 import co.aikar.commands.annotation.*
 import co.aikar.commands.bukkit.contexts.OnlinePlayer
@@ -60,13 +61,13 @@ class UntrustCommand : ClaimCommand(), KoinComponent {
      * Helper function to retrieve the claim name or a default error message if not found.
      */
     private fun getClaimName(playerId: UUID, claimId: UUID): String {
-        return getClaimDetails.execute(claimId)?.name ?: lang.legacy("general.name_error")
+        return getClaimDetails.execute(claimId)?.name ?: lang.plain("general.name_error")
     }
 
     /**
      * Helper function to retrieve the name of the permission.
      */
     private fun getPermissionName(playerId: UUID, permission: ClaimPermission): String {
-        return lang.legacy(permission.nameKey)
+        return lang.plain(permission.nameKey)
     }
 }

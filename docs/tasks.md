@@ -190,6 +190,18 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Files: `interaction/commands/*`, Java/Bedrock menus, notification adapters, `lang/en_US.yml`, locale contract tests
   - Note: large — decompose into per-command sub-tasks during spec if the briefing exceeds ~1500 tokens.
 
+- [x] **LG-702** Keep nested Guild Emoji fallback values in MiniMessage format until the outer locale template renders
+  - Tag: `TDD`
+  - References: REQ-016
+  - Evidence: `GuildEmojiMenu` uses `lang.raw` for nested `current.not_set` and `input.none` fallbacks so the outer `lang.legacy` call never receives section-sign output; `MenuLocalizationTest` passed (Aug 24).
+  - Files: `interaction/menus/guild/GuildEmojiMenu.kt`, menu localization regression tests
+
+- [x] **LG-703** Replace legacy localization rendering with strict MiniMessage Components and surface-aware typography
+  - Tag: `TDD`
+  - References: REQ-016
+  - Evidence: Zero production `lang.legacy()` calls (confirmed: 0 remaining). Final semantic audit of 162 `lang.raw()` calls: 0 bucket-D items found — all 162 are correct (118 proper-name fallbacks, 9 date/time patterns, 2 separators, 27 chat-only). `GuiTextRenderer` applies Unicode small caps + opaque black shadow. Java menu items use `lang.gui()` Components. Menu titles use `lang.guiTitle()`. Bedrock forms use `lang.bedrock()` with small caps, no shadow. Only 5 Bedrock `lang.raw()` calls remain — all `DateTimeFormatter` patterns. Chat/notifications use `lang.msg()` Components with normal typography. `clean test shadowJar` (21m 25s): BUILD SUCCESSFUL, exit 0, all 606+ tests passed. JAR at `build/libs/LumaGuilds-2.1.0.jar`.
+  - Files: `GuiTextRenderer.kt`, `ItemStackExtensions.kt`, locale contract tests, `interaction/menus/**/*.kt`, `interaction/commands/*`, notification adapters, Bedrock menus, `lang/en_US.yml`, `docs/tasks.md`
+
 ---
 
 ## PR-8a — Java UI completion

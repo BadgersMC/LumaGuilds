@@ -8,6 +8,7 @@ import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.guild.TagEditorMenu
 import net.lumalyte.lg.utils.GuildTagValidationMessages
+import net.kyori.adventure.text.Component
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -32,11 +33,11 @@ class TagValidationLocalizationTest {
         server = MockBukkit.mock()
         lang = mockk {
             every {
-                legacy("command.guild.tag.validation.interactive", "tag" to "click")
-            } returns "SENTINEL interactive click"
+                msg("command.guild.tag.validation.interactive", "tag" to "click")
+            } returns Component.text("SENTINEL interactive click")
             every {
-                legacy("command.guild.tag.validation.inappropriate")
-            } returns "SENTINEL inappropriate"
+                msg("command.guild.tag.validation.inappropriate")
+            } returns Component.text("SENTINEL inappropriate")
         }
         configService = mockk {
             every { loadConfig() } returns MainConfig()

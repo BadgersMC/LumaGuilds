@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import net.badgersmc.nexus.i18n.LangService
@@ -44,7 +46,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.party.management.title", "guild" to guild.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.party.management.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -81,18 +83,18 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         if (activeParties.isEmpty()) {
             val noPartiesItem = ItemStack.of(Material.BARRIER)
-                .name(lang.legacy("menu.party.management.empty.name"))
-                .lore(lang.legacy("menu.party.management.empty.lore"))
-                .lore(lang.legacy("menu.party.management.empty.hint"))
+                .name(lang.gui("menu.party.management.empty.name"))
+                .lore(lang.gui("menu.party.management.empty.lore"))
+                .lore(lang.gui("menu.party.management.empty.hint"))
             pane.addItem(GuiItem(noPartiesItem), 0, 0)
         } else {
             // Display first active party
             val party = activeParties.first()
             val partyItem = ItemStack.of(Material.FIREWORK_ROCKET)
-                .name(lang.legacy("menu.party.management.active.name", "party" to (party.name ?: lang.raw("menu.party.management.unnamed"))))
-                .lore(lang.legacy("menu.party.management.active.members", "count" to party.guildIds.size))
-                .lore(lang.legacy("menu.party.management.active.created", "date" to party.createdAt.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))))
-                .lore(lang.legacy("menu.party.management.active.expires", "date" to (party.expiresAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy")) ?: lang.raw("menu.party.management.never"))))
+                .name(lang.gui("menu.party.management.active.name", "party" to (party.name ?: lang.gui("menu.party.management.unnamed"))))
+                .lore(lang.gui("menu.party.management.active.members", "count" to party.guildIds.size))
+                .lore(lang.gui("menu.party.management.active.created", "date" to party.createdAt.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))))
+                .lore(lang.gui("menu.party.management.active.expires", "date" to (party.expiresAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy")) ?: lang.gui("menu.party.management.never"))))
 
             val guiItem = GuiItem(partyItem) {
                 // Open detailed party management
@@ -103,8 +105,8 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             // Show party member count if more than one party
             if (activeParties.size > 1) {
                 val morePartiesItem = ItemStack.of(Material.BOOK)
-                    .name(lang.legacy("menu.party.management.more.name", "count" to activeParties.size - 1))
-                    .lore(lang.legacy("menu.party.management.more.lore"))
+                    .name(lang.gui("menu.party.management.more.name", "count" to activeParties.size - 1))
+                    .lore(lang.gui("menu.party.management.more.lore"))
                 pane.addItem(GuiItem(morePartiesItem) {
                     openPartyListMenu()
                 }, 1, 0)
@@ -114,11 +116,11 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             val canModerate = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
             if (canModerate) {
                 val moderateItem = ItemStack.of(Material.ANVIL)
-                    .name(lang.legacy("menu.party.management.moderate.name"))
-                    .lore(lang.legacy("menu.party.management.moderate.lore"))
-                    .lore(lang.legacy("menu.party.management.moderate.channel", "channel" to (party.name ?: lang.raw("menu.party.management.this_channel"))))
-                    .lore(lang.raw("menu.common.blank"))
-                    .lore(lang.legacy("menu.party.management.moderate.click"))
+                    .name(lang.gui("menu.party.management.moderate.name"))
+                    .lore(lang.gui("menu.party.management.moderate.lore"))
+                    .lore(lang.gui("menu.party.management.moderate.channel", "channel" to (party.name ?: lang.gui("menu.party.management.this_channel"))))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.party.management.moderate.click"))
 
                 pane.addItem(GuiItem(moderateItem) {
                     openModerationMenu(party)
@@ -133,9 +135,9 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         // Incoming requests
         val incomingItem = ItemStack.of(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
-            .name(lang.legacy("menu.party.management.incoming.name"))
-            .lore(lang.legacy("menu.party.management.incoming.lore"))
-            .lore(lang.legacy("menu.party.management.request_count", "count" to incomingRequests.size))
+            .name(lang.gui("menu.party.management.incoming.name"))
+            .lore(lang.gui("menu.party.management.incoming.lore"))
+            .lore(lang.gui("menu.party.management.request_count", "count" to incomingRequests.size))
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingRequestsMenu()
@@ -144,9 +146,9 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         // Outgoing requests
         val outgoingItem = ItemStack.of(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.party.management.outgoing.name"))
-            .lore(lang.legacy("menu.party.management.outgoing.lore"))
-            .lore(lang.legacy("menu.party.management.request_count", "count" to outgoingRequests.size))
+            .name(lang.gui("menu.party.management.outgoing.name"))
+            .lore(lang.gui("menu.party.management.outgoing.lore"))
+            .lore(lang.gui("menu.party.management.request_count", "count" to outgoingRequests.size))
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingRequestsMenu()
@@ -158,15 +160,15 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val canManageParties = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_PARTIES)
 
         // Send party request (Admin+ only)
-        val sendRequestName = if (canManageParties) lang.legacy("menu.party.management.send.name") else lang.legacy("menu.party.management.send.locked_name")
+        val sendRequestName = if (canManageParties) lang.gui("menu.party.management.send.name") else lang.gui("menu.party.management.send.locked_name")
         val sendRequestLore = if (canManageParties) {
-            listOf(lang.legacy("menu.party.management.send.lore"), lang.legacy("menu.party.management.send.hint"))
+            listOf(lang.gui("menu.party.management.send.lore"), lang.gui("menu.party.management.send.hint"))
         } else {
-            listOf(lang.legacy("menu.party.management.permission.required"), lang.legacy("menu.party.management.send.locked_lore"))
+            listOf(lang.gui("menu.party.management.permission.required"), lang.gui("menu.party.management.send.locked_lore"))
         }
         val sendRequestItem = ItemStack.of(if (canManageParties) Material.FIREWORK_STAR else Material.BARRIER)
             .name(sendRequestName)
-            .lore(sendRequestLore)
+            .also { item -> sendRequestLore.forEach { item.lore(it) } }
 
         val sendRequestGuiItem = GuiItem(sendRequestItem) {
             if (canManageParties) {
@@ -178,15 +180,15 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         pane.addItem(sendRequestGuiItem, 0, 2)
 
         // Create new party (Admin+ only)
-        val createName = if (canManageParties) lang.legacy("menu.party.management.create.name") else lang.legacy("menu.party.management.create.locked_name")
+        val createName = if (canManageParties) lang.gui("menu.party.management.create.name") else lang.gui("menu.party.management.create.locked_name")
         val createLore = if (canManageParties) {
-            listOf(lang.legacy("menu.party.management.create.lore"), lang.legacy("menu.party.management.create.hint"))
+            listOf(lang.gui("menu.party.management.create.lore"), lang.gui("menu.party.management.create.hint"))
         } else {
-            listOf(lang.legacy("menu.party.management.permission.required"), lang.legacy("menu.party.management.create.locked_lore"))
+            listOf(lang.gui("menu.party.management.permission.required"), lang.gui("menu.party.management.create.locked_lore"))
         }
         val createPartyItem = ItemStack.of(if (canManageParties) Material.NETHER_STAR else Material.BARRIER)
             .name(createName)
-            .lore(createLore)
+            .also { item -> createLore.forEach { item.lore(it) } }
 
         val createPartyGuiItem = GuiItem(createPartyItem) {
             if (canManageParties) {
@@ -202,12 +204,12 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val canManageParties = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_PARTIES)
 
         // Party access settings (Admin+ only)
-        val accessName = if (canManageParties) lang.legacy("menu.party.management.access.name") else lang.legacy("menu.party.management.access.locked_name")
-        val accessAction = if (canManageParties) lang.legacy("menu.party.management.access.action") else lang.legacy("menu.party.management.permission.required")
+        val accessName = if (canManageParties) lang.gui("menu.party.management.access.name") else lang.gui("menu.party.management.access.locked_name")
+        val accessAction = if (canManageParties) lang.gui("menu.party.management.access.action") else lang.gui("menu.party.management.permission.required")
         val accessSettingsItem = ItemStack.of(if (canManageParties) Material.COMMAND_BLOCK else Material.BARRIER)
             .name(accessName)
-            .lore(lang.legacy("menu.party.management.access.lore"))
-            .lore(lang.legacy("menu.party.management.access.default"))
+            .lore(lang.gui("menu.party.management.access.lore"))
+            .lore(lang.gui("menu.party.management.access.default"))
             .lore(accessAction)
 
         val accessSettingsGuiItem = GuiItem(accessSettingsItem) {
@@ -221,30 +223,30 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         // Party permissions info
         val permissionsItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.party.management.permissions.name"))
-            .lore(lang.legacy("menu.party.management.permissions.view"))
-            .lore(lang.legacy("menu.party.management.permissions.accept"))
-            .lore(lang.legacy("menu.party.management.permissions.send"))
-            .lore(lang.legacy("menu.party.management.permissions.manage"))
-            .lore(lang.legacy("menu.party.management.permissions.join"))
+            .name(lang.gui("menu.party.management.permissions.name"))
+            .lore(lang.gui("menu.party.management.permissions.view"))
+            .lore(lang.gui("menu.party.management.permissions.accept"))
+            .lore(lang.gui("menu.party.management.permissions.send"))
+            .lore(lang.gui("menu.party.management.permissions.manage"))
+            .lore(lang.gui("menu.party.management.permissions.join"))
 
         pane.addItem(GuiItem(permissionsItem), 2, 3)
 
         // Quick info about invite-only system
         val infoItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
-            .name(lang.legacy("menu.party.management.info.name"))
-            .lore(lang.legacy("menu.party.management.info.invite_only"))
-            .lore(lang.legacy("menu.party.management.info.no_browser"))
-            .lore(lang.legacy("menu.party.management.info.events"))
-            .lore(lang.legacy("menu.party.management.info.restrictions"))
+            .name(lang.gui("menu.party.management.info.name"))
+            .lore(lang.gui("menu.party.management.info.invite_only"))
+            .lore(lang.gui("menu.party.management.info.no_browser"))
+            .lore(lang.gui("menu.party.management.info.events"))
+            .lore(lang.gui("menu.party.management.info.restrictions"))
 
         pane.addItem(GuiItem(infoItem), 4, 3)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.party.management.back.name"))
-            .lore(lang.legacy("menu.party.management.back.lore"))
+            .name(lang.gui("menu.party.management.back.name"))
+            .lore(lang.gui("menu.party.management.back.lore"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -275,7 +277,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         }
 
         // Create incoming requests menu
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.party.management.title", "guild" to guild.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.party.management.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -291,11 +293,11 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             val fromGuild = guildService.getGuild(request.fromGuildId)
             if (fromGuild != null) {
                 val requestItem = ItemStack.of(Material.PAPER)
-                    .name(lang.legacy("menu.party.management.incoming_request.name", "guild" to fromGuild.name))
-                    .lore(lang.legacy("menu.party.management.request_message", "message" to (request.message ?: lang.raw("menu.party.management.no_message"))))
-                    .lore(lang.raw("menu.common.blank"))
-                    .lore(lang.legacy("menu.party.management.incoming_request.accept"))
-                    .lore(lang.legacy("menu.party.management.incoming_request.decline"))
+                    .name(lang.gui("menu.party.management.incoming_request.name", "guild" to fromGuild.name))
+                    .lore(lang.gui("menu.party.management.request_message", "message" to (request.message ?: lang.gui("menu.party.management.no_message"))))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.party.management.incoming_request.accept"))
+                    .lore(lang.gui("menu.party.management.incoming_request.decline"))
 
                 val guiItem = GuiItem(requestItem) { event ->
                     when (event.click) {
@@ -337,8 +339,8 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.party.management.request_back.name"))
-            .lore(lang.legacy("menu.party.management.request_back.lore"))
+            .name(lang.gui("menu.party.management.request_back.name"))
+            .lore(lang.gui("menu.party.management.request_back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
             open() // Return to main party management menu
@@ -358,7 +360,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         }
 
         // Create outgoing requests menu
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.party.management.title", "guild" to guild.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.party.management.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -374,10 +376,10 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             val toGuild = guildService.getGuild(request.toGuildId)
             if (toGuild != null) {
                 val requestItem = ItemStack.of(Material.WRITABLE_BOOK)
-                    .name(lang.legacy("menu.party.management.outgoing_request.name", "guild" to toGuild.name))
-                    .lore(lang.legacy("menu.party.management.request_message", "message" to (request.message ?: lang.raw("menu.party.management.no_message"))))
-                    .lore(lang.raw("menu.common.blank"))
-                    .lore(lang.legacy("menu.party.management.outgoing_request.cancel"))
+                    .name(lang.gui("menu.party.management.outgoing_request.name", "guild" to toGuild.name))
+                    .lore(lang.gui("menu.party.management.request_message", "message" to (request.message ?: lang.gui("menu.party.management.no_message"))))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.party.management.outgoing_request.cancel"))
 
                 val guiItem = GuiItem(requestItem) { event ->
                     when (event.click) {
@@ -408,8 +410,8 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.party.management.request_back.name"))
-            .lore(lang.legacy("menu.party.management.request_back.lore"))
+            .name(lang.gui("menu.party.management.request_back.name"))
+            .lore(lang.gui("menu.party.management.request_back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
             open() // Return to main party management menu

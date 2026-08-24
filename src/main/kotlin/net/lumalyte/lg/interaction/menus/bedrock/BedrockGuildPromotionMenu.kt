@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -38,15 +40,15 @@ class BedrockGuildPromotionMenu(
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.promotion.title", "guild" to guild.name))
-            .label(lang.raw("bedrock.promotion.description"))
+            .title(lang.bedrock("bedrock.promotion.title", "guild" to guild.name))
+            .label(lang.bedrock("bedrock.promotion.description"))
             .dropdown(
-                lang.raw("bedrock.promotion.select_member"),
+                lang.bedrock("bedrock.promotion.select_member"),
                 createMemberOptions(members),
                 0
             )
             .dropdown(
-                lang.raw("bedrock.promotion.select_rank"),
+                lang.bedrock("bedrock.promotion.select_rank"),
                 createRankOptions(ranks),
                 0
             )
@@ -67,32 +69,32 @@ class BedrockGuildPromotionMenu(
 
     private fun createMemberOptions(members: List<Member>): List<String> {
         if (members.isEmpty()) {
-            return listOf(lang.raw("bedrock.promotion.no_members"))
+            return listOf(lang.bedrock("bedrock.promotion.no_members"))
         }
 
         return members.map { member ->
             val playerName = getPlayerName(member)
-            val currentRank = rankService.getRank(member.rankId)?.name ?: lang.raw("bedrock.promotion.unknown_rank")
-            lang.legacy("bedrock.promotion.member_option", "player" to playerName, "rank" to currentRank)
+            val currentRank = rankService.getRank(member.rankId)?.name ?: lang.bedrock("bedrock.promotion.unknown_rank")
+            lang.bedrock("bedrock.promotion.member_option", "player" to playerName, "rank" to currentRank)
         }
     }
 
     private fun createRankOptions(ranks: List<Rank>): List<String> {
         if (ranks.isEmpty()) {
-            return listOf(lang.raw("bedrock.promotion.no_ranks"))
+            return listOf(lang.bedrock("bedrock.promotion.no_ranks"))
         }
 
         return ranks.map { rank ->
-            lang.legacy("bedrock.promotion.rank_option", "rank" to rank.name, "priority" to rank.priority)
+            lang.bedrock("bedrock.promotion.rank_option", "rank" to rank.name, "priority" to rank.priority)
         }
     }
 
     private fun getPlayerName(member: Member): String {
         return try {
-            player.server.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.common.unknown_player")
+            player.server.getOfflinePlayer(member.playerId).name ?: lang.bedrock("menu.common.unknown_player")
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            lang.raw("menu.common.unknown_player")
+            lang.bedrock("menu.common.unknown_player")
         }
     }
 

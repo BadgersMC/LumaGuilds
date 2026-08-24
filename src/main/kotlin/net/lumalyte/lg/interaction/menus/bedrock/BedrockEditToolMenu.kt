@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
@@ -24,12 +25,12 @@ class BedrockEditToolMenu(
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
-        val content = lang.raw("bedrock.edit_tool.content")
+        val content = lang.bedrock("bedrock.edit_tool.content")
 
         return SimpleForm.builder()
-            .title(lang.raw("bedrock.edit_tool.title"))
+            .title(lang.bedrock("bedrock.edit_tool.title"))
             .content(content)
-            .button(lang.raw("bedrock.edit_tool.button.close"))
+            .button(lang.bedrock("bedrock.edit_tool.button.close"))
             .validResultHandler { _ ->
                 bedrockNavigator.goBack()
             }

@@ -4,6 +4,10 @@ import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.ConfigService
@@ -58,7 +62,7 @@ class PartyCreationMenu(
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.party.creation.title", "guild" to guild.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.party.creation.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -96,22 +100,22 @@ class PartyCreationMenu(
     private fun addPartyTypeSection(pane: StaticPane) {
         // Private party toggle
         val config = configService.loadConfig()
-        val typeName = if (isPrivateParty) lang.legacy("menu.party.creation.type.private_name") else lang.legacy("menu.party.creation.type.public_name")
-        val typeStatus = if (isPrivateParty) lang.raw("menu.party.creation.type.private_status") else lang.raw("menu.party.creation.type.public_status")
-        val typeAction = if (isPrivateParty) lang.legacy("menu.party.creation.type.make_public") else lang.legacy("menu.party.creation.type.make_private")
+        val typeName = if (isPrivateParty) lang.gui("menu.party.creation.type.private_name") else lang.gui("menu.party.creation.type.public_name")
+        val typeStatus = if (isPrivateParty) lang.gui("menu.party.creation.type.private_status") else lang.gui("menu.party.creation.type.public_status")
+        val typeAction = if (isPrivateParty) lang.gui("menu.party.creation.type.make_public") else lang.gui("menu.party.creation.type.make_private")
         val privateItem = ItemStack.of(if (isPrivateParty) Material.RED_CONCRETE else Material.GREEN_CONCRETE)
             .name(typeName)
-            .lore(lang.legacy("menu.party.creation.type.current", "type" to typeStatus))
-            .lore(lang.raw("menu.common.blank"))
-            .lore(lang.legacy("menu.party.creation.type.private_header"))
-            .lore(lang.legacy("menu.party.creation.type.private_members"))
-            .lore(lang.legacy("menu.party.creation.type.private_invites"))
-            .lore(lang.legacy("menu.party.creation.type.private_management"))
-            .lore(lang.raw("menu.common.blank"))
-            .lore(lang.legacy("menu.party.creation.type.public_header"))
-            .lore(lang.legacy("menu.party.creation.type.public_invites"))
-            .lore(lang.legacy("menu.party.creation.type.public_coordination"))
-            .lore(lang.raw("menu.common.blank"))
+            .lore(lang.gui("menu.party.creation.type.current", "type" to typeStatus))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.party.creation.type.private_header"))
+            .lore(lang.gui("menu.party.creation.type.private_members"))
+            .lore(lang.gui("menu.party.creation.type.private_invites"))
+            .lore(lang.gui("menu.party.creation.type.private_management"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.party.creation.type.public_header"))
+            .lore(lang.gui("menu.party.creation.type.public_invites"))
+            .lore(lang.gui("menu.party.creation.type.public_coordination"))
+            .lore(lang.gui("menu.common.blank"))
             .lore(typeAction)
 
         val privateGuiItem = GuiItem(privateItem) {
@@ -134,35 +138,35 @@ class PartyCreationMenu(
 
     private fun addPrivatePartyInfo(pane: StaticPane) {
         val infoItem = ItemStack.of(Material.SHIELD)
-            .name(lang.legacy("menu.party.creation.private_info.name"))
-            .lore(lang.legacy("menu.party.creation.private_info.first"))
-            .lore(lang.legacy("menu.party.creation.private_info.second"))
-            .lore(lang.raw("menu.common.blank"))
-            .lore(lang.legacy("menu.party.creation.private_info.no_invites"))
-            .lore(lang.legacy("menu.party.creation.private_info.management"))
-            .lore(lang.legacy("menu.party.creation.private_info.members"))
+            .name(lang.gui("menu.party.creation.private_info.name"))
+            .lore(lang.gui("menu.party.creation.private_info.first"))
+            .lore(lang.gui("menu.party.creation.private_info.second"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.party.creation.private_info.no_invites"))
+            .lore(lang.gui("menu.party.creation.private_info.management"))
+            .lore(lang.gui("menu.party.creation.private_info.members"))
 
         pane.addItem(GuiItem(infoItem), 1, 2)
     }
 
     private fun addPartyInfoSection(pane: StaticPane) {
         // Party name
-        val currentName = if (partyName.isNotEmpty()) lang.legacy("menu.party.creation.name.value", "party" to partyName) else lang.legacy("menu.party.creation.name.not_set")
+        val currentName = if (partyName.isNotEmpty()) lang.gui("menu.party.creation.name.value", "party" to partyName) else lang.gui("menu.party.creation.name.not_set")
         val nameItem = ItemStack.of(Material.NAME_TAG)
-            .name(lang.legacy("menu.party.creation.name.name"))
-            .lore(lang.legacy("menu.party.creation.name.current", "value" to currentName))
-            .lore(lang.raw("menu.common.blank"))
-            .lore(lang.legacy("menu.party.creation.name.requirements"))
-            .lore(lang.legacy("menu.party.creation.name.length"))
-            .lore(lang.legacy("menu.party.creation.name.optional"))
-            .lore(lang.raw("menu.common.blank"))
+            .name(lang.gui("menu.party.creation.name.name"))
+            .lore(lang.gui("menu.party.creation.name.current", "value" to currentName))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.party.creation.name.requirements"))
+            .lore(lang.gui("menu.party.creation.name.length"))
+            .lore(lang.gui("menu.party.creation.name.optional"))
+            .lore(lang.gui("menu.common.blank"))
 
         if (inputMode == "name") {
-            nameItem.name(lang.legacy("menu.party.creation.name.waiting"))
-                .lore(lang.legacy("menu.party.creation.name.input_hint"))
-                .lore(lang.legacy("menu.party.creation.name.cancel_hint"))
+            nameItem.name(lang.gui("menu.party.creation.name.waiting"))
+                .lore(lang.gui("menu.party.creation.name.input_hint"))
+                .lore(lang.gui("menu.party.creation.name.cancel_hint"))
         } else {
-            nameItem.lore(lang.legacy("menu.party.creation.name.click"))
+            nameItem.lore(lang.gui("menu.party.creation.name.click"))
         }
 
         val nameGuiItem = GuiItem(nameItem) {
@@ -177,14 +181,18 @@ class PartyCreationMenu(
         // Party summary
         val guilds = selectedGuilds.size
         val roles = restrictedRoles.size
-        val roleSummary = if (roles == 0) lang.raw("menu.party.creation.summary.none") else lang.legacy("menu.party.creation.summary.roles", "count" to roles)
+        val roleSummary = if (roles == 0) {
+            lang.gui("menu.party.creation.summary.none")
+        } else {
+            lang.gui("menu.party.creation.summary.roles", "count" to roles)
+        }
         val summaryItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.party.creation.summary.name"))
-            .lore(lang.legacy("menu.party.creation.summary.guilds", "count" to guilds))
-            .lore(lang.legacy("menu.party.creation.summary.restrictions", "roles" to roleSummary))
-            .lore(lang.raw("menu.common.blank"))
-            .lore(lang.legacy("menu.party.creation.summary.duration"))
-            .lore(lang.legacy("menu.party.creation.summary.leader", "player" to player.name))
+            .name(lang.gui("menu.party.creation.summary.name"))
+            .lore(lang.gui("menu.party.creation.summary.guilds", "count" to guilds))
+            .lore(lang.gui("menu.party.creation.summary.restrictions", "roles" to roleSummary))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.party.creation.summary.duration"))
+            .lore(lang.gui("menu.party.creation.summary.leader", "player" to player.name))
 
         pane.addItem(GuiItem(summaryItem), 7, 0)
     }
@@ -192,18 +200,18 @@ class PartyCreationMenu(
     private fun addGuildSelectionSection(pane: StaticPane) {
         // Display current guild
         val currentGuildItem = ItemStack.of(Material.GREEN_BANNER)
-            .name(lang.legacy("menu.party.creation.guild.current_name", "guild" to guild.name))
-            .lore(lang.legacy("menu.party.creation.guild.current_lore"))
-            .lore(lang.legacy("menu.party.creation.guild.included"))
+            .name(lang.gui("menu.party.creation.guild.current_name", "guild" to guild.name))
+            .lore(lang.gui("menu.party.creation.guild.current_lore"))
+            .lore(lang.gui("menu.party.creation.guild.included"))
         pane.addItem(GuiItem(currentGuildItem), 1, 1)
 
         // Guild invitation button
         val selectedCount = selectedGuilds.size - 1 // Subtract 1 for current guild
         val inviteItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.party.creation.guild.invite_name", "count" to selectedCount))
-            .lore(lang.legacy("menu.party.creation.guild.invite_lore"))
-            .lore(lang.legacy("menu.party.creation.guild.invited_first"))
-            .lore(lang.legacy("menu.party.creation.guild.invited_second"))
+            .name(lang.gui("menu.party.creation.guild.invite_name", "count" to selectedCount))
+            .lore(lang.gui("menu.party.creation.guild.invite_lore"))
+            .lore(lang.gui("menu.party.creation.guild.invited_first"))
+            .lore(lang.gui("menu.party.creation.guild.invited_second"))
 
         val inviteGuiItem = GuiItem(inviteItem) {
             menuNavigator.openMenu(menuFactory.createGuildSelectionMenu(menuNavigator, player, guild, selectedGuilds))
@@ -216,8 +224,8 @@ class PartyCreationMenu(
             val selectedGuild = guildService.getGuild(guildId)
             if (selectedGuild != null) {
                 val previewItem = ItemStack.of(Material.LIME_BANNER)
-                    .name(lang.legacy("menu.party.creation.guild.selected_name", "guild" to selectedGuild.name))
-                    .lore(lang.legacy("menu.party.creation.guild.selected_lore"))
+                    .name(lang.gui("menu.party.creation.guild.selected_name", "guild" to selectedGuild.name))
+                    .lore(lang.gui("menu.party.creation.guild.selected_lore"))
                 pane.addItem(GuiItem(previewItem), 5 + index, 1)
             }
         }
@@ -225,27 +233,27 @@ class PartyCreationMenu(
         // Show overflow indicator if more than 4 selected
         if (additionalGuilds.size > 4) {
             val overflowItem = ItemStack.of(Material.PAPER)
-                .name(lang.legacy("menu.party.creation.guild.more", "count" to additionalGuilds.size - 4))
-                .lore(lang.legacy("menu.party.creation.guild.more_lore"))
+                .name(lang.gui("menu.party.creation.guild.more", "count" to additionalGuilds.size - 4))
+                .lore(lang.gui("menu.party.creation.guild.more_lore"))
             pane.addItem(GuiItem(overflowItem), 8, 1)
         }
     }
 
     private fun addRoleRestrictionSection(pane: StaticPane) {
         val hasRestrictions = restrictedRoles.isNotEmpty()
-        val restrictionStatus = if (hasRestrictions) lang.raw("menu.party.creation.restriction.enabled") else lang.raw("menu.party.creation.restriction.disabled")
+        val restrictionStatus = if (hasRestrictions) lang.gui("menu.party.creation.restriction.enabled") else lang.gui("menu.party.creation.restriction.disabled")
         val restrictionItem = ItemStack.of(if (hasRestrictions) Material.REDSTONE_TORCH else Material.LEVER)
-            .name(lang.legacy("menu.party.creation.restriction.name"))
-            .lore(lang.legacy("menu.party.creation.restriction.status", "status" to restrictionStatus))
-            .lore(lang.raw("menu.common.blank"))
-            .lore(lang.legacy("menu.party.creation.restriction.first"))
-            .lore(lang.legacy("menu.party.creation.restriction.second"))
-            .lore(lang.raw("menu.common.blank"))
+            .name(lang.gui("menu.party.creation.restriction.name"))
+            .lore(lang.gui("menu.party.creation.restriction.status", "status" to restrictionStatus))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.party.creation.restriction.first"))
+            .lore(lang.gui("menu.party.creation.restriction.second"))
+            .lore(lang.gui("menu.common.blank"))
 
         if (hasRestrictions) {
-            restrictionItem.lore(lang.legacy("menu.party.creation.restriction.disable"))
+            restrictionItem.lore(lang.gui("menu.party.creation.restriction.disable"))
         } else {
-            restrictionItem.lore(lang.legacy("menu.party.creation.restriction.enable"))
+            restrictionItem.lore(lang.gui("menu.party.creation.restriction.enable"))
         }
 
         val restrictionGuiItem = GuiItem(restrictionItem) {
@@ -262,12 +270,12 @@ class PartyCreationMenu(
         pane.addItem(restrictionGuiItem, 1, 2)
 
         // Role selection button (always visible)
-        val roleAction = if (roleSelectionMode) lang.legacy("menu.party.creation.roles.action") else lang.legacy("menu.party.creation.roles.enable_first")
+        val roleAction = if (roleSelectionMode) lang.gui("menu.party.creation.roles.action") else lang.gui("menu.party.creation.roles.enable_first")
         val selectRolesItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.party.creation.roles.name"))
-            .lore(lang.legacy("menu.party.creation.roles.lore"))
-            .lore(lang.legacy("menu.party.creation.roles.requirement"))
-            .lore(lang.raw("menu.common.blank"))
+            .name(lang.gui("menu.party.creation.roles.name"))
+            .lore(lang.gui("menu.party.creation.roles.lore"))
+            .lore(lang.gui("menu.party.creation.roles.requirement"))
+            .lore(lang.gui("menu.common.blank"))
             .lore(roleAction)
 
         val selectRolesGuiItem = GuiItem(selectRolesItem) {
@@ -295,13 +303,13 @@ class PartyCreationMenu(
             val col = 1 + (index % 7)
 
             val isSelected = restrictedRoles.contains(rank.id)
-            val rankName = if (isSelected) lang.legacy("menu.party.creation.roles.selected_name", "rank" to rank.name) else lang.legacy("menu.party.creation.roles.available_name", "rank" to rank.name)
-            val rankAction = if (isSelected) lang.legacy("menu.party.creation.roles.remove") else lang.legacy("menu.party.creation.roles.add")
+            val rankName = if (isSelected) lang.gui("menu.party.creation.roles.selected_name", "rank" to rank.name) else lang.gui("menu.party.creation.roles.available_name", "rank" to rank.name)
+            val rankAction = if (isSelected) lang.gui("menu.party.creation.roles.remove") else lang.gui("menu.party.creation.roles.add")
             val rankItem = ItemStack.of(if (isSelected) Material.LIME_CONCRETE else Material.RED_CONCRETE)
                 .name(rankName)
-                .lore(lang.legacy("menu.party.creation.roles.priority", "priority" to rank.priority))
-                .lore(lang.legacy("menu.party.creation.roles.members", "count" to memberService.getMembersByRank(guild.id, rank.id).size))
-                .lore(lang.raw("menu.common.blank"))
+                .lore(lang.gui("menu.party.creation.roles.priority", "priority" to rank.priority))
+                .lore(lang.gui("menu.party.creation.roles.members", "count" to memberService.getMembersByRank(guild.id, rank.id).size))
+                .lore(lang.gui("menu.common.blank"))
                 .lore(rankAction)
 
             val rankGuiItem = GuiItem(rankItem) {
@@ -321,18 +329,18 @@ class PartyCreationMenu(
     private fun addActionButtons(pane: StaticPane) {
         // Create party - allow single guild for private parties, or 2+ guilds for public
         val canCreate = if (isPrivateParty) selectedGuilds.size >= 1 else selectedGuilds.size >= 2
-        val createName = if (canCreate) lang.legacy("menu.party.creation.action.create") else lang.legacy("menu.party.creation.action.cannot_create")
+        val createName = if (canCreate) lang.gui("menu.party.creation.action.create") else lang.gui("menu.party.creation.action.cannot_create")
         val createItem = ItemStack.of(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
             .name(createName)
-            .lore(lang.legacy("menu.party.creation.action.create_lore"))
+            .lore(lang.gui("menu.party.creation.action.create_lore"))
 
         if (canCreate) {
-            createItem.lore(lang.raw("menu.common.blank"))
-                .lore(lang.legacy("menu.party.creation.action.ready"))
-                .lore(lang.legacy("menu.party.creation.action.confirm"))
+            createItem.lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.party.creation.action.ready"))
+                .lore(lang.gui("menu.party.creation.action.confirm"))
         } else {
-            createItem.lore(lang.raw("menu.common.blank"))
-            createItem.lore(if (isPrivateParty) lang.legacy("menu.party.creation.action.need_one") else lang.legacy("menu.party.creation.action.need_two"))
+            createItem.lore(lang.gui("menu.common.blank"))
+            createItem.lore(if (isPrivateParty) lang.gui("menu.party.creation.action.need_one") else lang.gui("menu.party.creation.action.need_two"))
         }
 
         val createGuiItem = GuiItem(createItem) {
@@ -346,8 +354,8 @@ class PartyCreationMenu(
 
         // Clear all
         val clearItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.party.creation.action.clear"))
-            .lore(lang.legacy("menu.party.creation.action.clear_lore"))
+            .name(lang.gui("menu.party.creation.action.clear"))
+            .lore(lang.gui("menu.party.creation.action.clear_lore"))
 
         val clearGuiItem = GuiItem(clearItem) {
             partyName = ""
@@ -361,8 +369,8 @@ class PartyCreationMenu(
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.party.creation.action.back"))
-            .lore(lang.legacy("menu.party.creation.action.back_lore"))
+            .name(lang.gui("menu.party.creation.action.back"))
+            .lore(lang.gui("menu.party.creation.action.back_lore"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
@@ -527,7 +535,9 @@ class PartyCreationMenu(
 
     private fun validatePartyName(name: String): String? {
         if (name.length > 32) {
-            return lang.legacy("menu.party.creation.validation.name_length", "current" to name.length)
+            return PlainTextComponentSerializer.plainText().serialize(
+                lang.msg("menu.party.creation.validation.name_length", "current" to name.length),
+            )
         }
         return null
     }

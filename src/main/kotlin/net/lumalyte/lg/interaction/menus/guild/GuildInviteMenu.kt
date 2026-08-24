@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -38,7 +40,7 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.guild_invite.title", "guild" to guild.name)))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.guild_invite.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -65,11 +67,11 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
         val infoItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.guild_invite.info.name"))
-            .lore(lang.legacy("menu.guild_invite.info.description"))
-            .lore(lang.legacy("menu.guild_invite.info.instructions"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.guild_invite.info.warning"))
+            .name(lang.gui("menu.guild_invite.info.name"))
+            .lore(lang.gui("menu.guild_invite.info.description"))
+            .lore(lang.gui("menu.guild_invite.info.instructions"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.guild_invite.info.warning"))
 
         pane.addItem(GuiItem(infoItem), x, y)
     }
@@ -83,9 +85,9 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
         if (onlinePlayers.isEmpty()) {
             val noPlayersItem = ItemStack.of(Material.BARRIER)
-                .name(lang.legacy("menu.guild_invite.online.empty.name"))
-                .lore(lang.legacy("menu.guild_invite.online.empty.description"))
-                .lore(lang.legacy("menu.guild_invite.online.empty.alternative"))
+                .name(lang.gui("menu.guild_invite.online.empty.name"))
+                .lore(lang.gui("menu.guild_invite.online.empty.description"))
+                .lore(lang.gui("menu.guild_invite.online.empty.alternative"))
 
             pane.addItem(GuiItem(noPlayersItem), x, y)
             return
@@ -102,9 +104,9 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
                 playerHead.itemMeta = meta
             }
 
-            playerHead.name(lang.legacy("menu.guild_invite.online.player.name", "player" to onlinePlayer.name))
-                .lore(lang.legacy("menu.guild_invite.online.player.action"))
-                .lore(lang.legacy("menu.guild_invite.online.player.result"))
+            playerHead.name(lang.gui("menu.guild_invite.online.player.name", "player" to onlinePlayer.name))
+                .lore(lang.gui("menu.guild_invite.online.player.action"))
+                .lore(lang.gui("menu.guild_invite.online.player.result"))
 
             val playerGuiItem = GuiItem(playerHead) {
                 // menuFactory already injected
@@ -116,16 +118,16 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addManualInviteButton(pane: StaticPane, x: Int, y: Int) {
         val manualItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.guild_invite.manual.name"))
-            .lore(lang.legacy("menu.guild_invite.manual.description"))
-            .lore(lang.legacy("menu.guild_invite.manual.offline"))
+            .name(lang.gui("menu.guild_invite.manual.name"))
+            .lore(lang.gui("menu.guild_invite.manual.description"))
+            .lore(lang.gui("menu.guild_invite.manual.offline"))
 
         if (inputMode) {
-            manualItem.name(lang.legacy("menu.guild_invite.manual.waiting.name"))
-                .lore(lang.legacy("menu.guild_invite.manual.waiting.instructions"))
-                .lore(lang.legacy("menu.guild_invite.manual.waiting.cancel"))
+            manualItem.name(lang.gui("menu.guild_invite.manual.waiting.name"))
+                .lore(lang.gui("menu.guild_invite.manual.waiting.instructions"))
+                .lore(lang.gui("menu.guild_invite.manual.waiting.cancel"))
         } else {
-            manualItem.lore(lang.legacy("menu.guild_invite.manual.action"))
+            manualItem.lore(lang.gui("menu.guild_invite.manual.action"))
         }
 
         val manualGuiItem = GuiItem(manualItem) {
@@ -140,8 +142,8 @@ class GuildInviteMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.guild_invite.back.name"))
-            .lore(lang.legacy("menu.guild_invite.back.description"))
+            .name(lang.gui("menu.guild_invite.back.name"))
+            .lore(lang.gui("menu.guild_invite.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             if (inputMode) {

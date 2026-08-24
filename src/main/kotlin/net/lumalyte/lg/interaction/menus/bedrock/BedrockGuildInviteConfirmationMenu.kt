@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -34,10 +36,10 @@ class BedrockGuildInviteConfirmationMenu(
 
     override fun getForm(): Form {
         return SimpleForm.builder()
-            .title(lang.raw("bedrock.invite_confirmation.title"))
-            .content(lang.legacy("bedrock.invite_confirmation.content", "guild" to guild.name, "player" to targetPlayer.name))
-            .button(lang.raw("bedrock.invite_confirmation.button.send"))
-            .button(lang.raw("bedrock.invite_confirmation.button.cancel"))
+            .title(lang.bedrock("bedrock.invite_confirmation.title"))
+            .content(lang.bedrock("bedrock.invite_confirmation.content", "guild" to guild.name, "player" to targetPlayer.name))
+            .button(lang.bedrock("bedrock.invite_confirmation.button.send"))
+            .button(lang.bedrock("bedrock.invite_confirmation.button.cancel"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> sendInvite()

@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -37,27 +39,27 @@ class BedrockGuildBankTransactionHistoryMenu(
             .withZone(ZoneId.systemDefault())
 
         val content = if (transactions.isEmpty()) {
-            lang.legacy("bedrock.bank.history.empty")
+            lang.bedrock("bedrock.bank.history.empty")
         } else {
             val rows = transactions.joinToString("\n\n") { transaction ->
                 val playerName = Bukkit.getOfflinePlayer(transaction.actorId).name
-                    ?: lang.raw("bedrock.bank.history.unknown_player")
+                    ?: lang.bedrock("bedrock.bank.history.unknown_player")
                 when {
-                    transaction.amount > 0 -> lang.legacy(
+                    transaction.amount > 0 -> lang.bedrock(
                         "bedrock.bank.history.row.deposit",
                         "timestamp" to dateFormatter.format(transaction.timestamp),
                         "player" to playerName,
                         "amount" to transaction.amount,
                         "description" to transaction.description
                     )
-                    transaction.amount < 0 -> lang.legacy(
+                    transaction.amount < 0 -> lang.bedrock(
                         "bedrock.bank.history.row.withdrawal",
                         "timestamp" to dateFormatter.format(transaction.timestamp),
                         "player" to playerName,
                         "amount" to transaction.amount,
                         "description" to transaction.description
                     )
-                    else -> lang.legacy(
+                    else -> lang.bedrock(
                         "bedrock.bank.history.row.neutral",
                         "timestamp" to dateFormatter.format(transaction.timestamp),
                         "player" to playerName,
@@ -66,14 +68,14 @@ class BedrockGuildBankTransactionHistoryMenu(
                     )
                 }
             }
-            lang.legacy("bedrock.bank.history.content", "transactions" to rows)
+            lang.bedrock("bedrock.bank.history.content", "transactions" to rows)
         }
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.bank.history.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.bank.history.title", "guild" to guild.name))
             .content(content)
-            .button(lang.raw("bedrock.bank.history.button.refresh"))
-            .button(lang.raw("bedrock.bank.history.button.back"))
+            .button(lang.bedrock("bedrock.bank.history.button.refresh"))
+            .button(lang.bedrock("bedrock.bank.history.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> {

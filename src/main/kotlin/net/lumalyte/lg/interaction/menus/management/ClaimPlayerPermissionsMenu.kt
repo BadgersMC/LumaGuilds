@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -63,7 +65,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
 
         // Create player permissions menu
         val playerId = player.uniqueId
-        val gui = ChestGui(6, lang.legacy("menu.player_permissions.title", "player" to validTarget.name))
+        val gui = ChestGui(6, lang.guiTitle("menu.player_permissions.title", "player" to validTarget.name))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -81,8 +83,10 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
             open()
         }
 
-        addSelector(playerId, controlsPane, createHead(validTarget).name(validTarget.name ?:
-            lang.legacy("general.name_error")), deselectAction, selectAction)
+        val targetHead = createHead(validTarget).let { head ->
+            validTarget.name?.let(head::name) ?: head.name(lang.gui("general.name_error"))
+        }
+        addSelector(playerId, controlsPane, targetHead, deselectAction, selectAction)
 
         val transferRequestResult = doesPlayerHaveTransferRequest.execute(validClaim.id, validTarget.uniqueId)
 
@@ -90,14 +94,14 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         when (transferRequestResult) {
             is DoesPlayerHaveTransferRequestResult.ClaimNotFound -> {
                 val transferRequestItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name("menu.player_permissions.item.cannot_transfer.name")
-                    .lore("send_transfer_condition.exist")
+                    .name(lang.gui("menu.player_permissions.item.cannot_transfer.name"))
+                    .lore(lang.gui("send_transfer_condition.exist"))
                 guiTransferRequestItem = GuiItem(transferRequestItem)
             }
             is DoesPlayerHaveTransferRequestResult.StorageError -> {
                 val transferRequestItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(lang.legacy("menu.common.item.error.name"))
-                    .lore(lang.legacy("menu.common.item.error.lore"))
+                    .name(lang.gui("menu.common.item.error.name"))
+                    .lore(lang.gui("menu.common.item.error.lore"))
                 guiTransferRequestItem = GuiItem(transferRequestItem)
             }
             is DoesPlayerHaveTransferRequestResult.Success -> {
@@ -182,7 +186,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
 
         // Add go back item
         val exitItem = ItemStack.of(Material.NETHER_STAR)
-            .name(lang.legacy("menu.common.item.back.name"))
+            .name(lang.gui("menu.common.item.back.name"))
 
         val guiExitItem = GuiItem(exitItem) { backButtonAction() }
         controlsPane.addItem(guiExitItem, 0, 0)
@@ -197,13 +201,13 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
 
         // Add deselect all button
         val deselectItem = ItemStack.of(Material.HONEY_BLOCK)
-            .name(lang.legacy("menu.common.item.deselect_all.name"))
+            .name(lang.gui("menu.common.item.deselect_all.name"))
         val guiDeselectItem = GuiItem(deselectItem) { deselectAction() }
         controlsPane.addItem(guiDeselectItem, 2, 0)
 
         // Add select all button
         val selectItem = ItemStack.of(Material.SLIME_BLOCK)
-            .name(lang.legacy("menu.common.item.select_all.name"))
+            .name(lang.gui("menu.common.item.select_all.name"))
         val guiSelectItem = GuiItem(selectItem) { selectAction() }
         controlsPane.addItem(guiSelectItem, 6, 0)
     }
@@ -213,8 +217,8 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         if (hasRequest) {
             // Cancel the transfer request if it is pending
             val transferClaimItem = ItemStack.of(Material.BARRIER)
-                .name(lang.legacy("menu.player_permissions.item.cancel_transfer.name"))
-                .lore(lang.legacy("menu.player_permissions.item.cancel_transfer.lore"))
+                .name(lang.gui("menu.player_permissions.item.cancel_transfer.name"))
+                .lore(lang.gui("menu.player_permissions.item.cancel_transfer.lore"))
             guiTransferRequestItem = GuiItem(transferClaimItem) {
                 withdrawPlayerTransferRequest.execute(claim.id, targetPlayer.uniqueId)
                 open()
@@ -227,43 +231,43 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
                     open()
                 }
 
-                menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, lang.legacy("menu.transfer_send.title"), confirmAction))
+                menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, lang.guiTitle("menu.transfer_send.title"), confirmAction))
             }
             when (canPlayerReceiveTransferRequest.execute(claim.id, targetPlayer.uniqueId)) {
                 CanPlayerReceiveTransferRequestResult.Success -> {
                     val transferClaimItem = ItemStack.of(Material.BELL)
-                        .name(lang.legacy("menu.player_permissions.item.transfer.name"))
-                        .lore(lang.legacy("menu.player_permissions.item.transfer.lore", "player" to targetPlayer.name))
+                        .name(lang.gui("menu.player_permissions.item.transfer.name"))
+                        .lore(lang.gui("menu.player_permissions.item.transfer.lore", "player" to targetPlayer.name))
                     guiTransferRequestItem = GuiItem(transferClaimItem) { transferClaimAction() }
                 }
                 CanPlayerReceiveTransferRequestResult.ClaimLimitExceeded -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(lang.legacy("menu.player_permissions.item.cannot_transfer.name"))
-                        .lore("send_transfer_condition.claims")
+                        .name(lang.gui("menu.player_permissions.item.cannot_transfer.name"))
+                        .lore(lang.gui("send_transfer_condition.claims"))
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.BlockLimitExceeded -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(lang.legacy("menu.player_permissions.item.cannot_transfer.name"))
-                        .lore("send_transfer_condition.blocks")
+                        .name(lang.gui("menu.player_permissions.item.cannot_transfer.name"))
+                        .lore(lang.gui("send_transfer_condition.blocks"))
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.ClaimNotFound -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(lang.legacy("menu.player_permissions.item.cannot_transfer.name"))
-                        .lore("send_transfer_condition.exist")
+                        .name(lang.gui("menu.player_permissions.item.cannot_transfer.name"))
+                        .lore(lang.gui("send_transfer_condition.exist"))
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.PlayerOwnsClaim -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(lang.legacy("menu.player_permissions.item.cannot_transfer.name"))
-                        .lore("send_transfer_condition.owner")
+                        .name(lang.gui("menu.player_permissions.item.cannot_transfer.name"))
+                        .lore(lang.gui("send_transfer_condition.owner"))
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.StorageError -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(lang.legacy("menu.common.item.error.name"))
-                        .lore(lang.legacy("menu.common.item.error.lore"))
+                        .name(lang.gui("menu.common.item.error.name"))
+                        .lore(lang.gui("menu.common.item.error.lore"))
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
             }

@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
@@ -43,13 +45,13 @@ class BedrockJoinRequirementsMenu(
         val content = buildFormContent(requirement, canJoinResult)
 
         val builder = SimpleForm.builder()
-            .title(lang.legacy("bedrock.join_requirements.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.join_requirements.title", "guild" to guild.name))
             .content(content)
 
         if (canJoin) {
-            builder.button(lang.raw("bedrock.join_requirements.button.join"))
+            builder.button(lang.bedrock("bedrock.join_requirements.button.join"))
         }
-        builder.button(lang.raw("bedrock.join_requirements.button.cancel"))
+        builder.button(lang.bedrock("bedrock.join_requirements.button.cancel"))
 
         return builder
             .validResultHandler { response ->
@@ -79,14 +81,14 @@ class BedrockJoinRequirementsMenu(
         // Guild info section
         val isPeaceful = guild.mode == GuildMode.PEACEFUL
         val modeText = if (isPeaceful) {
-            lang.raw("bedrock.join_requirements.mode.peaceful")
+            lang.bedrock("bedrock.join_requirements.mode.peaceful")
         } else {
-            lang.raw("bedrock.join_requirements.mode.hostile")
+            lang.bedrock("bedrock.join_requirements.mode.hostile")
         }
 
-        sb.appendLine(lang.legacy("bedrock.join_requirements.guild.header", "guild" to guild.name))
-        sb.appendLine(lang.legacy("bedrock.join_requirements.guild.level", "level" to guild.level))
-        sb.appendLine(lang.legacy("bedrock.join_requirements.guild.mode", "mode" to modeText))
+        sb.appendLine(lang.bedrock("bedrock.join_requirements.guild.header", "guild" to guild.name))
+        sb.appendLine(lang.bedrock("bedrock.join_requirements.guild.level", "level" to guild.level))
+        sb.appendLine(lang.bedrock("bedrock.join_requirements.guild.mode", "mode" to modeText))
         sb.appendLine()
 
         // Join requirement section
@@ -100,41 +102,41 @@ class BedrockJoinRequirementsMenu(
             val hasEnough = playerBalance >= requirement.amount
             val currencyDisplayName = formatCurrencyName(requirement.currencyName)
 
-            sb.appendLine(lang.raw("bedrock.join_requirements.fee.header"))
-            sb.appendLine(lang.legacy("bedrock.join_requirements.fee.required", "amount" to requirement.amount, "currency" to currencyDisplayName))
-            sb.appendLine(lang.legacy("bedrock.join_requirements.fee.balance", "balance" to playerBalance, "currency" to currencyDisplayName))
+            sb.appendLine(lang.bedrock("bedrock.join_requirements.fee.header"))
+            sb.appendLine(lang.bedrock("bedrock.join_requirements.fee.required", "amount" to requirement.amount, "currency" to currencyDisplayName))
+            sb.appendLine(lang.bedrock("bedrock.join_requirements.fee.balance", "balance" to playerBalance, "currency" to currencyDisplayName))
             sb.appendLine()
 
             if (hasEnough) {
-                sb.appendLine(lang.raw("bedrock.join_requirements.fee.sufficient"))
+                sb.appendLine(lang.bedrock("bedrock.join_requirements.fee.sufficient"))
             } else {
-                sb.appendLine(lang.raw("bedrock.join_requirements.fee.insufficient"))
+                sb.appendLine(lang.bedrock("bedrock.join_requirements.fee.insufficient"))
             }
         } else {
-            sb.appendLine(lang.raw("bedrock.join_requirements.no_fee.title"))
-            sb.appendLine(lang.raw("bedrock.join_requirements.no_fee.description"))
+            sb.appendLine(lang.bedrock("bedrock.join_requirements.no_fee.title"))
+            sb.appendLine(lang.bedrock("bedrock.join_requirements.no_fee.description"))
         }
 
         // Status section
         sb.appendLine()
         when (canJoinResult) {
             is LfgJoinResult.Success -> {
-                sb.appendLine(lang.raw("bedrock.join_requirements.status.ready"))
+                sb.appendLine(lang.bedrock("bedrock.join_requirements.status.ready"))
             }
             is LfgJoinResult.InsufficientFunds -> {
-                sb.appendLine(lang.legacy("bedrock.join_requirements.status.insufficient", "required" to canJoinResult.required, "currency" to canJoinResult.currencyType))
+                sb.appendLine(lang.bedrock("bedrock.join_requirements.status.insufficient", "required" to canJoinResult.required, "currency" to canJoinResult.currencyType))
             }
             is LfgJoinResult.GuildFull -> {
-                sb.appendLine(lang.raw("bedrock.join_requirements.status.full"))
+                sb.appendLine(lang.bedrock("bedrock.join_requirements.status.full"))
             }
             is LfgJoinResult.AlreadyInGuild -> {
-                sb.appendLine(lang.raw("bedrock.join_requirements.status.already_in_guild"))
+                sb.appendLine(lang.bedrock("bedrock.join_requirements.status.already_in_guild"))
             }
             is LfgJoinResult.VaultUnavailable -> {
-                sb.appendLine(lang.raw("bedrock.join_requirements.status.vault_unavailable"))
+                sb.appendLine(lang.bedrock("bedrock.join_requirements.status.vault_unavailable"))
             }
             is LfgJoinResult.Error -> {
-                sb.appendLine(lang.legacy("bedrock.join_requirements.status.error", "error" to canJoinResult.message))
+                sb.appendLine(lang.bedrock("bedrock.join_requirements.status.error", "error" to canJoinResult.message))
             }
         }
 

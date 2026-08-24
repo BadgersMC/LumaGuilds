@@ -78,9 +78,9 @@ class PartyServiceBukkit(
 
                     if (guildNames.isNotEmpty()) {
                         val partyMessage = if (guildNames.size == 1) {
-                            lang.legacy("party.notification.created_single", "guild" to guildNames.first(), "leader" to leaderName)
+                            lang.msg("party.notification.created_single", "guild" to guildNames.first(), "leader" to leaderName)
                         } else {
-                            lang.legacy("party.notification.created_multiple", "guilds" to guildNames.joinToString(", "), "leader" to leaderName)
+                            lang.msg("party.notification.created_multiple", "guilds" to guildNames.joinToString(", "), "leader" to leaderName)
                         }
 
                         // Send to all online players using ChatUtils for emoji sanitization
@@ -132,7 +132,7 @@ class PartyServiceBukkit(
                 val fromGuild = guildService.getGuild(fromGuildId)
                 val toGuild = guildService.getGuild(toGuildId)
                 if (fromGuild != null && toGuild != null) {
-                    val inviteMessage = lang.legacy(
+                    val inviteMessage = lang.msg(
                         "party.notification.invitation_broadcast",
                         "from_guild" to fromGuild.name,
                         "to_guild" to toGuild.name,

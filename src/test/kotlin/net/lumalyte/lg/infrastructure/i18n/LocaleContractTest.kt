@@ -13,6 +13,7 @@ import org.yaml.snakeyaml.nodes.MappingNode
 import org.yaml.snakeyaml.nodes.Node
 import org.yaml.snakeyaml.nodes.ScalarNode
 import org.yaml.snakeyaml.nodes.Tag
+import net.kyori.adventure.text.minimessage.MiniMessage
 import java.io.InputStreamReader
 import java.io.StringReader
 import java.nio.file.Files
@@ -49,8 +50,61 @@ class LocaleContractTest {
         "menu.bank.stats.activity.very_high",
     )
     private val helpTopicDynamicKeys = HelpTopics.all.flatMap { listOf(it.menuKey, it.pageKey) }.toSet()
+    private val localizedHelperKeys = setOf(
+        "menu.guild_mode.cooldown.expired",
+        "menu.guild_mode.cooldown.hostile",
+        "menu.guild_mode.cooldown.lock_expired",
+        "menu.guild_mode.cooldown.no_changes",
+        "menu.guild_mode.cooldown.peaceful",
+        "menu.join_requirements.reason.already_member",
+        "menu.join_requirements.reason.error",
+        "menu.join_requirements.reason.guild_full",
+        "menu.join_requirements.reason.insufficient_funds",
+        "menu.join_requirements.reason.ready",
+        "menu.join_requirements.reason.vault_unavailable",
+        "menu.statistics.chart.label.weeks_ago",
+        "menu.statistics.chart.title.balance",
+        "menu.statistics.chart.title.contributions",
+        "menu.statistics.chart.title.kills",
+        "menu.tag_editor.validation.double_brackets",
+        "menu.tag_editor.validation.empty",
+        "menu.tag_editor.validation.format_error",
+        "menu.tag_editor.validation.invalid_syntax",
+        "menu.tag_editor.validation.too_long",
+        "menu.tag_editor.validation.unclosed",
+        "menu.tag_editor.validation.unknown_tag",
+    )
     private val declaredDynamicKeys =
-        claimPermissionDynamicKeys + flagDynamicKeys + rankPermissionDynamicKeys + finiteMenuStateKeys + helpTopicDynamicKeys
+        claimPermissionDynamicKeys + flagDynamicKeys + rankPermissionDynamicKeys + finiteMenuStateKeys +
+            helpTopicDynamicKeys + localizedHelperKeys
+
+    @Test
+    fun `locale values use exclusively MiniMessage without legacy formatting codes`() {
+        val legacyCode = Regex("(?i)(?:§[0-9A-FK-ORX]|&(?:[0-9A-FK-OR]|#[0-9A-F]{6}|x(?:&[0-9A-F]){6}))")
+        val miniMessage = MiniMessage.miniMessage()
+        val violations = localeValues().mapNotNull { (key, value) ->
+            when {
+                legacyCode.containsMatchIn(value) -> "$key: legacy formatting"
+                else -> runCatching { miniMessage.deserialize(value) }
+                    .exceptionOrNull()
+                    ?.let { "$key: ${it.message?.lineSequence()?.firstOrNull()}" }
+            }
+        }
+
+        assertEquals(emptyList<String>(), violations)
+    }
+
+    @Test
+    fun `production localization never serializes through lang legacy`() {
+        val inventory = LocaleSourceScanner.scan(projectRoot.resolve("src/main/kotlin"))
+        val legacyCalls = inventory.calls.filter { it.renderer == "legacy" }
+
+        assertEquals(
+            emptyList<LocalizationCall>(),
+            legacyCalls,
+            legacyCalls.joinToString { "${it.file}:${it.line} lang.${it.renderer}(\"${it.key}\")" },
+        )
+    }
 
     @Test
     fun `locale contains no positional placeholders`() {
@@ -137,7 +191,7 @@ class LocaleContractTest {
             .toSet()
 
         assertEquals(
-            permissionKeys + flagKeys + rankPermissionKeys + expectedMenuStateKeys + expectedHelpTopicKeys,
+            permissionKeys + flagKeys + rankPermissionKeys + expectedMenuStateKeys + expectedHelpTopicKeys + localizedHelperKeys,
             declaredDynamicKeys,
         )
     }
@@ -301,7 +355,7 @@ class LocaleContractTest {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
         const val BASELINE_UNUSED_KEYS = 0
-        const val BASELINE_DYNAMIC_CALLS = 30
+        const val BASELINE_DYNAMIC_CALLS = 37
         const val BASELINE_HARDCODED_PLAYER_TEXT = 0
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }

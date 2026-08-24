@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -31,10 +33,10 @@ class BedrockGuildLeaveConfirmationMenu(
 
     override fun getForm(): Form {
         return SimpleForm.builder()
-            .title(lang.raw("bedrock.leave_confirmation.title"))
-            .content(lang.legacy("bedrock.leave_confirmation.content", "guild" to guild.name, "player" to player.name))
-            .button(lang.raw("bedrock.leave_confirmation.button.leave"))
-            .button(lang.raw("bedrock.leave_confirmation.button.stay"))
+            .title(lang.bedrock("bedrock.leave_confirmation.title"))
+            .content(lang.bedrock("bedrock.leave_confirmation.content", "guild" to guild.name, "player" to player.name))
+            .button(lang.bedrock("bedrock.leave_confirmation.button.leave"))
+            .button(lang.bedrock("bedrock.leave_confirmation.button.stay"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> leaveGuild()

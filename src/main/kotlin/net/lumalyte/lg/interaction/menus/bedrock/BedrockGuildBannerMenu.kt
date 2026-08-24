@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
@@ -29,13 +31,13 @@ class BedrockGuildBannerMenu(
         val hasBanner = guild.banner != null
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.banner.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.banner.title", "guild" to guild.name))
             .content(buildBannerContent(hasBanner))
             .apply {
                 if (hasBanner) {
-                    button(lang.raw("bedrock.banner.button.clear"))
+                    button(lang.bedrock("bedrock.banner.button.clear"))
                 }
-                button(lang.raw("bedrock.banner.button.instructions"))
+                button(lang.bedrock("bedrock.banner.button.instructions"))
             }
             .validResultHandler { response ->
                 val buttonId = response.clickedButtonId()
@@ -49,9 +51,9 @@ class BedrockGuildBannerMenu(
 
     private fun buildBannerContent(hasBanner: Boolean): String {
         return if (hasBanner) {
-            lang.legacy("bedrock.banner.content.set")
+            lang.bedrock("bedrock.banner.content.set")
         } else {
-            lang.legacy("bedrock.banner.content.unset")
+            lang.bedrock("bedrock.banner.content.unset")
         }
     }
 

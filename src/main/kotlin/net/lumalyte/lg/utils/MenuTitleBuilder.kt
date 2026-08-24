@@ -13,7 +13,7 @@ package net.lumalyte.lg.utils
  *   <shift:-9>                    calibrated horizontal offset
  *   <glyph:guild_bg_<theme>_<R>>  background overlay (advances cursor ~256px)
  *   <shift:-161>                  rewind ~80px less — title lands at ~x=86
- *   §f<title>                     visible title text in the top bar
+ *   <title>                       visible title text in the top bar
  *
  * The rewind value of -161 advances the cursor ~80px into the title bar:
  *   D - 9 + 256 - 161 = D + 86
@@ -37,7 +37,7 @@ object MenuTitleBuilder {
      * background with an optional visible title in the top bar.
      *
      * Result:
-     *   <shift:-9><glyph:guild_bg_<theme>_<R>_row><shift:-161>§f<title>
+     *   <shift:-9><glyph:guild_bg_<theme>_<R>_row><shift:-161><title>
      *
      * @param theme  GUI background theme (default: NEUTRAL)
      * @param rows   Inventory row count (3-6)
@@ -49,7 +49,7 @@ object MenuTitleBuilder {
         val glyphName = "guild_bg_${themeKey}_${rows}_row"
         val prefix = "${HORIZONTAL_OFFSET}<glyph:${glyphName}>"
         return if (title.isNotEmpty()) {
-            "${prefix}${REWIND_TO_TITLE}§f${title}"
+            "${prefix}${REWIND_TO_TITLE}${title}"
         } else {
             prefix
         }

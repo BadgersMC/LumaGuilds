@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -31,23 +33,23 @@ class BedrockRankCreationMenu(
         val rankIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.rank_creation.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.rank_creation.title", "guild" to guild.name))
             .apply { rankIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.rank_creation.description"))
+            .label(lang.bedrock("bedrock.rank_creation.description"))
             .input(
-                lang.raw("bedrock.rank_creation.name.label"),
-                lang.raw("bedrock.rank_creation.name.placeholder"),
+                lang.bedrock("bedrock.rank_creation.name.label"),
+                lang.bedrock("bedrock.rank_creation.name.placeholder"),
                 ""
             )
-            .label(lang.raw("bedrock.rank_creation.permissions.header"))
-            .toggle(lang.raw("bedrock.rank_creation.permissions.invite"), false)
-            .toggle(lang.raw("bedrock.rank_creation.permissions.kick"), false)
-            .toggle(lang.raw("bedrock.rank_creation.permissions.promote"), false)
-            .toggle(lang.raw("bedrock.rank_creation.permissions.manage_ranks"), false)
-            .toggle(lang.raw("bedrock.rank_creation.permissions.manage_settings"), false)
-            .toggle(lang.raw("bedrock.rank_creation.permissions.declare_war"), false)
-            .toggle(lang.raw("bedrock.rank_creation.permissions.manage_bank"), false)
-            .toggle(lang.raw("bedrock.rank_creation.permissions.access_vault"), true) // Default true
+            .label(lang.bedrock("bedrock.rank_creation.permissions.header"))
+            .toggle(lang.bedrock("bedrock.rank_creation.permissions.invite"), false)
+            .toggle(lang.bedrock("bedrock.rank_creation.permissions.kick"), false)
+            .toggle(lang.bedrock("bedrock.rank_creation.permissions.promote"), false)
+            .toggle(lang.bedrock("bedrock.rank_creation.permissions.manage_ranks"), false)
+            .toggle(lang.bedrock("bedrock.rank_creation.permissions.manage_settings"), false)
+            .toggle(lang.bedrock("bedrock.rank_creation.permissions.declare_war"), false)
+            .toggle(lang.bedrock("bedrock.rank_creation.permissions.manage_bank"), false)
+            .toggle(lang.bedrock("bedrock.rank_creation.permissions.access_vault"), true) // Default true
             .validResultHandler { response ->
                 val rankName = response.asInput(1)?.trim() ?: ""
                 val canInvite = response.asToggle(3)

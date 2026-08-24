@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -43,7 +45,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_info.title", "guild" to guild.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_info.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -78,34 +80,34 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addGuildOverview(pane: StaticPane, x: Int, y: Int) {
         val overviewItem = ItemStack.of(Material.SHIELD)
-            .name(lang.legacy("menu.guild_info.overview.name"))
-            .lore(lang.legacy("menu.guild_info.overview.guild", "guild" to guild.name))
-            .lore(lang.legacy("menu.guild_info.overview.level", "level" to guild.level))
-            .lore(lang.legacy("menu.guild_info.overview.mode", "mode" to modeDisplayName()))
+            .name(lang.gui("menu.guild_info.overview.name"))
+            .lore(lang.gui("menu.guild_info.overview.guild", "guild" to guild.name))
+            .lore(lang.gui("menu.guild_info.overview.level", "level" to guild.level))
+            .lore(lang.gui("menu.guild_info.overview.mode", "mode" to modeDisplayName()))
 
         if (guild.emoji != null) {
-            overviewItem.lore(lang.legacy("menu.guild_info.overview.emoji", "emoji" to guild.emoji!!))
+            overviewItem.lore(lang.gui("menu.guild_info.overview.emoji", "emoji" to guild.emoji!!))
         }
 
         guild.tag?.let { tag ->
             val parsedTag = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(tag)
-            overviewItem.lore(lang.legacy("menu.guild_info.overview.tag", "tag" to parsedTag))
+            overviewItem.lore(lang.gui("menu.guild_info.overview.tag", "tag" to parsedTag))
         }
 
         val formatter = DateTimeFormatter.ofPattern(lang.raw("menu.guild_info.overview.date_format"))
-        overviewItem.lore(lang.legacy("menu.guild_info.overview.founded", "date" to guild.createdAt.atZone(java.time.ZoneId.systemDefault()).format(formatter)))
+        overviewItem.lore(lang.gui("menu.guild_info.overview.founded", "date" to guild.createdAt.atZone(java.time.ZoneId.systemDefault()).format(formatter)))
 
         pane.addItem(GuiItem(overviewItem), x, y)
     }
 
     private fun addDescriptionSection(pane: StaticPane, x: Int, y: Int) {
         val descriptionItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.guild_info.description.name"))
+            .name(lang.gui("menu.guild_info.description.name"))
 
         // Parse and display the description with MiniMessage formatting
         val formattedDescription = parseMiniMessageForDisplay(guild.description)
         if (formattedDescription != null) {
-            descriptionItem.lore(lang.legacy("menu.guild_info.description.value", "description" to formattedDescription))
+            descriptionItem.lore(lang.gui("menu.guild_info.description.value", "description" to formattedDescription))
         }
 
         pane.addItem(GuiItem(descriptionItem), x, y)
@@ -114,8 +116,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private fun addMembersSection(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
         val membersItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name(lang.legacy("menu.guild_info.members.name", "count" to memberCount))
-            .lore(lang.legacy("menu.guild_info.members.description"))
+            .name(lang.gui("menu.guild_info.members.name", "count" to memberCount))
+            .lore(lang.gui("menu.guild_info.members.description"))
 
         val membersGuiItem = GuiItem(membersItem) {
             menuNavigator.openMenu(menuFactory.createGuildMemberListMenu(menuNavigator, player, guild))
@@ -129,8 +131,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
                 val rank = rankService.getPlayerRank(member.playerId, guild.id)
                 val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.guild_info.fallback.unknown_player")
                 val memberItem = ItemStack.of(Material.PLAYER_HEAD)
-                    .name(lang.legacy("menu.guild_info.members.player", "player" to playerName))
-                    .lore(lang.legacy("menu.guild_info.members.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_info.fallback.member"))))
+                    .name(lang.gui("menu.guild_info.members.player", "player" to playerName))
+                    .lore(lang.gui("menu.guild_info.members.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_info.fallback.member"))))
 
                 memberItem.setData(
                     DataComponentTypes.PROFILE,
@@ -141,8 +143,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         if (members.size > 3) {
             val moreItem = ItemStack.of(Material.PAPER)
-                .name(lang.legacy("menu.guild_info.members.more", "count" to members.size - 3))
-                .lore(lang.legacy("menu.guild_info.members.more_hint"))
+                .name(lang.gui("menu.guild_info.members.more", "count" to members.size - 3))
+                .lore(lang.gui("menu.guild_info.members.more_hint"))
             pane.addItem(GuiItem(moreItem), x, y + 4)
         }
     }
@@ -156,18 +158,18 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             it.type == RelationType.ALLY && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
         }
         val alliesItem = ItemStack.of(Material.LIME_BANNER)
-            .name(lang.legacy("menu.guild_info.relations.allies.name", "count" to allies.size))
+            .name(lang.gui("menu.guild_info.relations.allies.name", "count" to allies.size))
 
         if (allies.isNotEmpty()) {
             allies.take(3).forEach { relation ->
                 val allyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
-                alliesItem.lore(lang.legacy("menu.guild_info.relations.entry", "guild" to allyGuild!!.name))
+                alliesItem.lore(lang.gui("menu.guild_info.relations.entry", "guild" to allyGuild!!.name))
             }
             if (allies.size > 3) {
-                alliesItem.lore(lang.legacy("menu.guild_info.relations.more", "count" to allies.size - 3))
+                alliesItem.lore(lang.gui("menu.guild_info.relations.more", "count" to allies.size - 3))
             }
         } else {
-            alliesItem.lore(lang.legacy("menu.guild_info.relations.allies.none"))
+            alliesItem.lore(lang.gui("menu.guild_info.relations.allies.none"))
         }
 
         pane.addItem(GuiItem(alliesItem), x, y)
@@ -177,18 +179,18 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             it.type == RelationType.TRUCE && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
         }
         val trucesItem = ItemStack.of(Material.WHITE_BANNER)
-            .name(lang.legacy("menu.guild_info.relations.truces.name", "count" to truces.size))
+            .name(lang.gui("menu.guild_info.relations.truces.name", "count" to truces.size))
 
         if (truces.isNotEmpty()) {
             truces.take(3).forEach { relation ->
                 val truceGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
-                trucesItem.lore(lang.legacy("menu.guild_info.relations.entry", "guild" to truceGuild!!.name))
+                trucesItem.lore(lang.gui("menu.guild_info.relations.entry", "guild" to truceGuild!!.name))
             }
             if (truces.size > 3) {
-                trucesItem.lore(lang.legacy("menu.guild_info.relations.more", "count" to truces.size - 3))
+                trucesItem.lore(lang.gui("menu.guild_info.relations.more", "count" to truces.size - 3))
             }
         } else {
-            trucesItem.lore(lang.legacy("menu.guild_info.relations.truces.none"))
+            trucesItem.lore(lang.gui("menu.guild_info.relations.truces.none"))
         }
 
         pane.addItem(GuiItem(trucesItem), x, y + 1)
@@ -198,18 +200,18 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             it.type == RelationType.ENEMY && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
         }
         val enemiesItem = ItemStack.of(Material.RED_BANNER)
-            .name(lang.legacy("menu.guild_info.relations.wars.name", "count" to enemies.size))
+            .name(lang.gui("menu.guild_info.relations.wars.name", "count" to enemies.size))
 
         if (enemies.isNotEmpty()) {
             enemies.take(3).forEach { relation ->
                 val enemyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
-                enemiesItem.lore(lang.legacy("menu.guild_info.relations.entry", "guild" to enemyGuild!!.name))
+                enemiesItem.lore(lang.gui("menu.guild_info.relations.entry", "guild" to enemyGuild!!.name))
             }
             if (enemies.size > 3) {
-                enemiesItem.lore(lang.legacy("menu.guild_info.relations.more", "count" to enemies.size - 3))
+                enemiesItem.lore(lang.gui("menu.guild_info.relations.more", "count" to enemies.size - 3))
             }
         } else {
-            enemiesItem.lore(lang.legacy("menu.guild_info.relations.wars.none"))
+            enemiesItem.lore(lang.gui("menu.guild_info.relations.wars.none"))
         }
 
         pane.addItem(GuiItem(enemiesItem), x, y + 2)
@@ -217,37 +219,37 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addStatisticsSection(pane: StaticPane, x: Int, y: Int) {
         val statsItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.guild_info.statistics.name"))
-            .lore(lang.legacy("menu.guild_info.statistics.balance", "balance" to bankService.getBalance(guild.id)))
-            .lore(lang.legacy("menu.guild_info.statistics.level", "level" to guild.level))
+            .name(lang.gui("menu.guild_info.statistics.name"))
+            .lore(lang.gui("menu.guild_info.statistics.balance", "balance" to bankService.getBalance(guild.id)))
+            .lore(lang.gui("menu.guild_info.statistics.level", "level" to guild.level))
 
         if (guild.home != null) {
-            statsItem.lore(lang.legacy("menu.guild_info.statistics.home.present"))
+            statsItem.lore(lang.gui("menu.guild_info.statistics.home.present"))
         } else {
-            statsItem.lore(lang.legacy("menu.guild_info.statistics.home.missing"))
+            statsItem.lore(lang.gui("menu.guild_info.statistics.home.missing"))
         }
 
         if (guild.banner != null) {
-            statsItem.lore(lang.legacy("menu.guild_info.statistics.banner.present"))
+            statsItem.lore(lang.gui("menu.guild_info.statistics.banner.present"))
         } else {
-            statsItem.lore(lang.legacy("menu.guild_info.statistics.banner.missing"))
+            statsItem.lore(lang.gui("menu.guild_info.statistics.banner.missing"))
         }
 
         pane.addItem(GuiItem(statsItem), x, y)
 
         // Progression info
         val progressionItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-            .name(lang.legacy("menu.guild_info.progression.name"))
-            .lore(lang.legacy("menu.guild_info.progression.level", "level" to guild.level))
-            .lore(lang.legacy("menu.guild_info.progression.next", "level" to guild.level + 1))
+            .name(lang.gui("menu.guild_info.progression.name"))
+            .lore(lang.gui("menu.guild_info.progression.level", "level" to guild.level))
+            .lore(lang.gui("menu.guild_info.progression.next", "level" to guild.level + 1))
 
         pane.addItem(GuiItem(progressionItem), x, y + 1)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.guild_info.back.name"))
-            .lore(lang.legacy("menu.guild_info.back.description"))
+            .name(lang.gui("menu.guild_info.back.name"))
+            .lore(lang.gui("menu.guild_info.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.goBack()
@@ -270,9 +272,9 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         }
     }
 
-    private fun modeDisplayName(): String = when (guild.mode.name) {
-        "PEACEFUL" -> lang.raw("menu.guild_info.overview.modes.peaceful")
-        else -> lang.raw("menu.guild_info.overview.modes.hostile")
+    private fun modeDisplayName(): net.kyori.adventure.text.Component = when (guild.mode.name) {
+        "PEACEFUL" -> lang.gui("menu.guild_info.overview.modes.peaceful")
+        else -> lang.gui("menu.guild_info.overview.modes.hostile")
     }
 
     override fun passData(data: Any?) {
