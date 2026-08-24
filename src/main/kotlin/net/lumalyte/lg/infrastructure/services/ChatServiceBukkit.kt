@@ -1,6 +1,8 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.plain
+import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.persistence.ChatSettingsRepository
 import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import net.lumalyte.lg.application.persistence.PartyRepository
@@ -48,10 +50,9 @@ class ChatServiceBukkit(
                 return false
             }
 
-            val formattedMessage = formatMessage(senderId, message, targetChannel)
-
             // Handle party chat priority to avoid conflicts with other chat plugins
             if (targetChannel == ChatChannel.PARTY) {
+                val formattedMessage = formatMessage(senderId, message, targetChannel)
                 val config = configService.loadConfig().party
                 val priority = config.partyChatPriority
 
@@ -61,7 +62,7 @@ class ChatServiceBukkit(
                 return deliveredCount > 0
             }
 
-            val deliveredCount = broadcastMessage(recipients, formattedMessage)
+            val deliveredCount = broadcastMessage(recipients, formatLocalizedMessage(senderId, message, targetChannel))
             logger.debug("Message from player $senderId delivered to $deliveredCount recipients in channel $targetChannel")
             return deliveredCount > 0
         } catch (e: Exception) {
@@ -89,20 +90,20 @@ class ChatServiceBukkit(
         }
     }
 
-    private fun formatAnnouncement(guild: Guild, name: String, message: String, colorDigit: Char): String {
+    private fun formatAnnouncement(guild: Guild, name: String, message: String, colorDigit: Char): Component {
         val headerColor = colorDigit.takeIf { it in '0'..'9' } ?: '6'
         val guildTag = GuildDisplayUtils.createGuildTag(guild)
         return when (headerColor) {
-            '0' -> lang.legacy("notification.chat.announcement.black", "guild" to guildTag, "player" to name, "message" to message)
-            '1' -> lang.legacy("notification.chat.announcement.dark_blue", "guild" to guildTag, "player" to name, "message" to message)
-            '2' -> lang.legacy("notification.chat.announcement.dark_green", "guild" to guildTag, "player" to name, "message" to message)
-            '3' -> lang.legacy("notification.chat.announcement.dark_aqua", "guild" to guildTag, "player" to name, "message" to message)
-            '4' -> lang.legacy("notification.chat.announcement.dark_red", "guild" to guildTag, "player" to name, "message" to message)
-            '5' -> lang.legacy("notification.chat.announcement.dark_purple", "guild" to guildTag, "player" to name, "message" to message)
-            '7' -> lang.legacy("notification.chat.announcement.gray", "guild" to guildTag, "player" to name, "message" to message)
-            '8' -> lang.legacy("notification.chat.announcement.dark_gray", "guild" to guildTag, "player" to name, "message" to message)
-            '9' -> lang.legacy("notification.chat.announcement.blue", "guild" to guildTag, "player" to name, "message" to message)
-            else -> lang.legacy("notification.chat.announcement.gold", "guild" to guildTag, "player" to name, "message" to message)
+            '0' -> lang.msg("notification.chat.announcement.black", "guild" to guildTag, "player" to name, "message" to message)
+            '1' -> lang.msg("notification.chat.announcement.dark_blue", "guild" to guildTag, "player" to name, "message" to message)
+            '2' -> lang.msg("notification.chat.announcement.dark_green", "guild" to guildTag, "player" to name, "message" to message)
+            '3' -> lang.msg("notification.chat.announcement.dark_aqua", "guild" to guildTag, "player" to name, "message" to message)
+            '4' -> lang.msg("notification.chat.announcement.dark_red", "guild" to guildTag, "player" to name, "message" to message)
+            '5' -> lang.msg("notification.chat.announcement.dark_purple", "guild" to guildTag, "player" to name, "message" to message)
+            '7' -> lang.msg("notification.chat.announcement.gray", "guild" to guildTag, "player" to name, "message" to message)
+            '8' -> lang.msg("notification.chat.announcement.dark_gray", "guild" to guildTag, "player" to name, "message" to message)
+            '9' -> lang.msg("notification.chat.announcement.blue", "guild" to guildTag, "player" to name, "message" to message)
+            else -> lang.msg("notification.chat.announcement.gold", "guild" to guildTag, "player" to name, "message" to message)
         }
     }
 
@@ -145,9 +146,9 @@ class ChatServiceBukkit(
             val guildDisplayName = GuildDisplayUtils.createGuildTag(guild)
             
             val formattedMessage = if (message != null) {
-                lang.legacy("notification.chat.ping.message", "guild" to guildDisplayName, "player" to pingerName, "message" to message)
+                lang.msg("notification.chat.ping.message", "guild" to guildDisplayName, "player" to pingerName, "message" to message)
             } else {
-                lang.legacy("notification.chat.ping.alert", "guild" to guildDisplayName, "player" to pingerName)
+                lang.msg("notification.chat.ping.alert", "guild" to guildDisplayName, "player" to pingerName)
             }
             
             val recipients = getOnlineGuildMembers(guildId)
@@ -266,16 +267,16 @@ class ChatServiceBukkit(
         return when (channel) {
             ChatChannel.GUILD -> {
                 if (guildTag.isNotEmpty()) {
-                    lang.legacy("notification.chat.guild.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
+                    lang.plain("notification.chat.guild.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
                 } else {
-                    lang.legacy("notification.chat.guild.without_tag", "player" to senderName, "message" to processedMessage)
+                    lang.plain("notification.chat.guild.without_tag", "player" to senderName, "message" to processedMessage)
                 }
             }
             ChatChannel.ALLY -> {
                 if (guildTag.isNotEmpty()) {
-                    lang.legacy("notification.chat.ally.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
+                    lang.plain("notification.chat.ally.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
                 } else {
-                    lang.legacy("notification.chat.ally.without_tag", "player" to senderName, "message" to processedMessage)
+                    lang.plain("notification.chat.ally.without_tag", "player" to senderName, "message" to processedMessage)
                 }
             }
             ChatChannel.PARTY -> {
@@ -283,11 +284,41 @@ class ChatServiceBukkit(
             }
             ChatChannel.PUBLIC -> {
                 if (guildTag.isNotEmpty()) {
-                    lang.legacy("notification.chat.public.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
+                    lang.plain("notification.chat.public.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
                 } else {
-                    lang.legacy("notification.chat.public.without_tag", "player" to senderName, "message" to processedMessage)
+                    lang.plain("notification.chat.public.without_tag", "player" to senderName, "message" to processedMessage)
                 }
             }
+        }
+    }
+
+    /** Native Adventure rendering used by live localized chat delivery. */
+    private fun formatLocalizedMessage(senderId: UUID, message: String, channel: ChatChannel): Component {
+        val senderName = Bukkit.getPlayer(senderId)?.name ?: UNKNOWN_PLAYER
+        val processedMessage = processEmojis(senderId, message)
+            .let { value ->
+                if (configService.loadConfig().chat.coloredChatEnabled) value else stripLegacyColors(value)
+            }
+        val primaryGuild = memberService.getPlayerGuilds(senderId).firstOrNull()?.let(guildService::getGuild)
+        val guildTag = primaryGuild?.let { GuildDisplayUtils.createGuildTag(it, brackets = false) }.orEmpty()
+
+        return when (channel) {
+            ChatChannel.GUILD -> if (guildTag.isNotEmpty()) {
+                lang.msg("notification.chat.guild.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
+            } else {
+                lang.msg("notification.chat.guild.without_tag", "player" to senderName, "message" to processedMessage)
+            }
+            ChatChannel.ALLY -> if (guildTag.isNotEmpty()) {
+                lang.msg("notification.chat.ally.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
+            } else {
+                lang.msg("notification.chat.ally.without_tag", "player" to senderName, "message" to processedMessage)
+            }
+            ChatChannel.PUBLIC -> if (guildTag.isNotEmpty()) {
+                lang.msg("notification.chat.public.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
+            } else {
+                lang.msg("notification.chat.public.without_tag", "player" to senderName, "message" to processedMessage)
+            }
+            ChatChannel.PARTY -> Component.text(formatPartyMessage(senderId, senderName, processedMessage, guildTag))
         }
     }
 
@@ -298,9 +329,9 @@ class ChatServiceBukkit(
             if (!config.partyChatEnabled) {
                 // Fallback to basic formatting if disabled
                 return if (guildTag.isNotEmpty()) {
-                    lang.legacy("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
+                    lang.plain("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
                 } else {
-                    lang.legacy("notification.chat.party.without_tag", "player" to senderName, "message" to message)
+                    lang.plain("notification.chat.party.without_tag", "player" to senderName, "message" to message)
                 }
             }
 
@@ -312,7 +343,7 @@ class ChatServiceBukkit(
             val player = Bukkit.getPlayer(senderId)
             if (player == null) {
                 logger.warn("Player $senderId not found for party message formatting")
-                return lang.legacy("notification.chat.party.without_tag", "player" to senderName, "message" to message)
+                return lang.plain("notification.chat.party.without_tag", "player" to senderName, "message" to message)
             }
 
             // Determine if this is a guild-internal party (single guild only)
@@ -353,9 +384,9 @@ class ChatServiceBukkit(
             logger.error("Error formatting party message", e)
             // Fallback to basic formatting
             return if (guildTag.isNotEmpty()) {
-                lang.legacy("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
+                lang.plain("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
             } else {
-                lang.legacy("notification.chat.party.without_tag", "player" to senderName, "message" to message)
+                lang.plain("notification.chat.party.without_tag", "player" to senderName, "message" to message)
             }
         }
     }
@@ -471,6 +502,18 @@ class ChatServiceBukkit(
         return deliveredCount
     }
 
+    private fun broadcastMessage(recipients: Set<UUID>, message: Component): Int {
+        var deliveredCount = 0
+        for (playerId in recipients) {
+            val player = Bukkit.getPlayer(playerId)
+            if (player != null && player.isOnline) {
+                player.sendMessage(message)
+                deliveredCount++
+            }
+        }
+        return deliveredCount
+    }
+
     private fun broadcastMessageWithPriority(recipients: Set<UUID>, message: String, priority: Int): Int {
         var deliveredCount = 0
 
@@ -511,6 +554,21 @@ class ChatServiceBukkit(
             }
         }
         
+        return deliveredCount
+    }
+
+    private fun broadcastMessageWithSound(recipients: Set<UUID>, message: Component, soundNotification: Boolean): Int {
+        var deliveredCount = 0
+        for (playerId in recipients) {
+            val player = Bukkit.getPlayer(playerId)
+            if (player != null && player.isOnline) {
+                player.sendMessage(message)
+                if (soundNotification) {
+                    player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BELL, 0.5f, 1.0f)
+                }
+                deliveredCount++
+            }
+        }
         return deliveredCount
     }
     

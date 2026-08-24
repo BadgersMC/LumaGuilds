@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermissionInClaim
 import net.lumalyte.lg.domain.entities.Claim
@@ -31,18 +33,18 @@ class BedrockClaimTrustMenu(
         val trustedPlayers = getPlayersWithPermissionInClaim.execute(claim.id)
 
         val content = if (trustedPlayers.isEmpty()) {
-            lang.legacy("bedrock.claim_trust.content.empty")
+            lang.bedrock("bedrock.claim_trust.content.empty")
         } else {
             val rows = trustedPlayers.take(10).joinToString("\n") { playerId ->
-                val playerName = Bukkit.getOfflinePlayer(playerId).name ?: lang.raw("menu.common.unknown_player")
-                lang.legacy("bedrock.claim_trust.player_row", "player" to playerName)
+                val playerName = Bukkit.getOfflinePlayer(playerId).name ?: lang.bedrock("menu.common.unknown_player")
+                lang.bedrock("bedrock.claim_trust.player_row", "player" to playerName)
             }
             val overflow = if (trustedPlayers.size > 10) {
-                lang.legacy("bedrock.claim_trust.more", "count" to trustedPlayers.size - 10)
+                lang.bedrock("bedrock.claim_trust.more", "count" to trustedPlayers.size - 10)
             } else {
-                lang.raw("menu.common.blank")
+                lang.bedrock("menu.common.blank")
             }
-            lang.legacy(
+            lang.bedrock(
                 "bedrock.claim_trust.content.list",
                 "count" to trustedPlayers.size,
                 "players" to rows,
@@ -51,12 +53,12 @@ class BedrockClaimTrustMenu(
         }
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.claim_trust.title", "claim" to claim.name))
+            .title(lang.bedrock("bedrock.claim_trust.title", "claim" to claim.name))
             .content(content)
-            .button(lang.raw("bedrock.claim_trust.button.add"))
-            .button(lang.raw("bedrock.claim_trust.button.remove"))
-            .button(lang.raw("bedrock.claim_trust.button.wide_permissions"))
-            .button(lang.raw("bedrock.claim_trust.button.back"))
+            .button(lang.bedrock("bedrock.claim_trust.button.add"))
+            .button(lang.bedrock("bedrock.claim_trust.button.remove"))
+            .button(lang.bedrock("bedrock.claim_trust.button.wide_permissions"))
+            .button(lang.bedrock("bedrock.claim_trust.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> {

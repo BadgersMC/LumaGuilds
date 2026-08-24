@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
@@ -30,16 +32,16 @@ class BedrockGuildEmojiMenu(
         val emojiIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.emoji.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.emoji.title", "guild" to guild.name))
             .apply { emojiIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.emoji.description"))
+            .label(lang.bedrock("bedrock.emoji.description"))
             .label(createCurrentEmojiSection())
             .input(
-                lang.raw("bedrock.emoji.input.label"),
-                lang.raw("bedrock.emoji.input.placeholder"),
+                lang.bedrock("bedrock.emoji.input.label"),
+                lang.bedrock("bedrock.emoji.input.placeholder"),
                 getCurrentEmojiName() ?: ""
             )
-            .label(lang.raw("bedrock.emoji.format_info"))
+            .label(lang.bedrock("bedrock.emoji.format_info"))
             .label(createPreviewSection())
             .validResultHandler { response ->
                 handleFormResponse(response)
@@ -52,13 +54,13 @@ class BedrockGuildEmojiMenu(
 
     private fun createCurrentEmojiSection(): String {
         val currentEmoji = guildService.getEmoji(guild.id)
-        val displayEmoji = currentEmoji ?: lang.raw("bedrock.emoji.not_set")
-        return lang.legacy("bedrock.emoji.current", "emoji" to displayEmoji)
+        val displayEmoji = currentEmoji ?: lang.bedrock("bedrock.emoji.not_set")
+        return lang.bedrock("bedrock.emoji.current", "emoji" to displayEmoji)
     }
 
     private fun createPreviewSection(): String {
-        val previewEmoji = getCurrentEmojiName()?.let { ":$it:" } ?: lang.raw("bedrock.emoji.not_set")
-        return lang.legacy("bedrock.emoji.preview", "player" to player.name, "emoji" to previewEmoji)
+        val previewEmoji = getCurrentEmojiName()?.let { ":$it:" } ?: lang.bedrock("bedrock.emoji.not_set")
+        return lang.bedrock("bedrock.emoji.preview", "player" to player.name, "emoji" to previewEmoji)
     }
 
     private fun getCurrentEmojiName(): String? {

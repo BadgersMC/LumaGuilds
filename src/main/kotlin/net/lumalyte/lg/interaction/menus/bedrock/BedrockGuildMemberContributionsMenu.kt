@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -35,18 +37,18 @@ class BedrockGuildMemberContributionsMenu(
             .take(10) // Show top 10 contributors
 
         val content = if (contributions.isEmpty()) {
-            lang.legacy("bedrock.bank.contributions.empty")
+            lang.bedrock("bedrock.bank.contributions.empty")
         } else {
             val rows = contributions.mapIndexed { index, contribution ->
                 val memberName = Bukkit.getOfflinePlayer(contribution.playerId).name
-                    ?: lang.raw("bedrock.bank.contributions.unknown_player")
+                    ?: lang.bedrock("bedrock.bank.contributions.unknown_player")
                 val key = when {
                     contribution.netContribution > 0 -> "bedrock.bank.contributions.row.positive"
                     contribution.netContribution < 0 -> "bedrock.bank.contributions.row.negative"
                     else -> "bedrock.bank.contributions.row.neutral"
                 }
                 when (key) {
-                    "bedrock.bank.contributions.row.positive" -> lang.legacy(
+                    "bedrock.bank.contributions.row.positive" -> lang.bedrock(
                         "bedrock.bank.contributions.row.positive",
                         "position" to index + 1,
                         "player" to memberName,
@@ -54,7 +56,7 @@ class BedrockGuildMemberContributionsMenu(
                         "deposits" to contribution.totalDeposits,
                         "withdrawals" to contribution.totalWithdrawals
                     )
-                    "bedrock.bank.contributions.row.negative" -> lang.legacy(
+                    "bedrock.bank.contributions.row.negative" -> lang.bedrock(
                         "bedrock.bank.contributions.row.negative",
                         "position" to index + 1,
                         "player" to memberName,
@@ -62,7 +64,7 @@ class BedrockGuildMemberContributionsMenu(
                         "deposits" to contribution.totalDeposits,
                         "withdrawals" to contribution.totalWithdrawals
                     )
-                    else -> lang.legacy(
+                    else -> lang.bedrock(
                         "bedrock.bank.contributions.row.neutral",
                         "position" to index + 1,
                         "player" to memberName,
@@ -72,14 +74,14 @@ class BedrockGuildMemberContributionsMenu(
                     )
                 }
             }.joinToString("\n")
-            lang.legacy("bedrock.bank.contributions.content", "contributors" to rows)
+            lang.bedrock("bedrock.bank.contributions.content", "contributors" to rows)
         }
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.bank.contributions.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.bank.contributions.title", "guild" to guild.name))
             .content(content)
-            .button(lang.raw("bedrock.bank.contributions.button.refresh"))
-            .button(lang.raw("bedrock.bank.contributions.button.back"))
+            .button(lang.bedrock("bedrock.bank.contributions.button.refresh"))
+            .button(lang.bedrock("bedrock.bank.contributions.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> {

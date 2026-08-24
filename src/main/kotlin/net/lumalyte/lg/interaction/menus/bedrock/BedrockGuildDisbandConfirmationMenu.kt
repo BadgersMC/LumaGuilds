@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
@@ -27,10 +29,10 @@ class BedrockGuildDisbandConfirmationMenu(
 
     override fun getForm(): Form {
         return SimpleForm.builder()
-            .title(lang.raw("bedrock.disband_confirmation.title"))
-            .content(lang.legacy("bedrock.disband_confirmation.content", "guild" to guild.name, "player" to player.name))
-            .button(lang.raw("bedrock.disband_confirmation.button.disband"))
-            .button(lang.raw("bedrock.disband_confirmation.button.keep"))
+            .title(lang.bedrock("bedrock.disband_confirmation.title"))
+            .content(lang.bedrock("bedrock.disband_confirmation.content", "guild" to guild.name, "player" to player.name))
+            .button(lang.bedrock("bedrock.disband_confirmation.button.disband"))
+            .button(lang.bedrock("bedrock.disband_confirmation.button.keep"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> disbandGuild()

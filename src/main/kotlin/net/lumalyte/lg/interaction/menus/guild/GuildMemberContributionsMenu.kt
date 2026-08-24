@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
@@ -71,7 +73,7 @@ class GuildMemberContributionsMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.bank.contributions.title", "guild" to guild.name)))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.bank.contributions.title", "guild" to guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main pane for navigation
@@ -98,8 +100,8 @@ class GuildMemberContributionsMenu(
         // Back to transaction history button
         val backItem = createMenuItem(
             Material.ARROW,
-            lang.raw("menu.bank.contributions.navigation.back_name"),
-            listOf(lang.raw("menu.bank.contributions.navigation.back_description"))
+            lang.gui("menu.bank.contributions.navigation.back_name"),
+            listOf(lang.gui("menu.bank.contributions.navigation.back_description"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -111,7 +113,7 @@ class GuildMemberContributionsMenu(
         val closeItem = createMenuItem(
             Material.BARRIER,
             getLocalizedString("menu.bank.close"),
-            listOf(lang.raw("menu.common.close_description"))
+            listOf(lang.gui("menu.common.close_description"))
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -127,10 +129,10 @@ class GuildMemberContributionsMenu(
         // Sort by Net Contribution (default)
         val netContributionItem = createMenuItem(
             Material.GOLD_INGOT,
-            lang.raw("menu.bank.contributions.filter.net.name"),
+            lang.gui("menu.bank.contributions.filter.net.name"),
             listOf(
-                lang.raw("menu.bank.contributions.filter.net.description"),
-                lang.raw("menu.bank.contributions.filter.net.toggle")
+                lang.gui("menu.bank.contributions.filter.net.description"),
+                lang.gui("menu.bank.contributions.filter.net.toggle")
             )
         )
         val netContributionGuiItem = GuiItem(netContributionItem) { event ->
@@ -142,8 +144,8 @@ class GuildMemberContributionsMenu(
         // Sort by Total Deposits
         val depositsItem = createMenuItem(
             Material.EMERALD,
-            lang.raw("menu.bank.contributions.filter.deposits.name"),
-            listOf(lang.raw("menu.bank.contributions.filter.deposits.description"))
+            lang.gui("menu.bank.contributions.filter.deposits.name"),
+            listOf(lang.gui("menu.bank.contributions.filter.deposits.description"))
         )
         val depositsGuiItem = GuiItem(depositsItem) { event ->
             event.isCancelled = true
@@ -154,8 +156,8 @@ class GuildMemberContributionsMenu(
         // Sort by Total Withdrawals
         val withdrawalsItem = createMenuItem(
             Material.REDSTONE,
-            lang.raw("menu.bank.contributions.filter.withdrawals.name"),
-            listOf(lang.raw("menu.bank.contributions.filter.withdrawals.description"))
+            lang.gui("menu.bank.contributions.filter.withdrawals.name"),
+            listOf(lang.gui("menu.bank.contributions.filter.withdrawals.description"))
         )
         val withdrawalsGuiItem = GuiItem(withdrawalsItem) { event ->
             event.isCancelled = true
@@ -166,8 +168,8 @@ class GuildMemberContributionsMenu(
         // Show only freeloaders
         val freeloadersItem = createMenuItem(
             Material.RED_WOOL,
-            lang.raw("menu.bank.contributions.filter.freeloaders.name"),
-            listOf(lang.raw("menu.bank.contributions.filter.freeloaders.description"))
+            lang.gui("menu.bank.contributions.filter.freeloaders.name"),
+            listOf(lang.gui("menu.bank.contributions.filter.freeloaders.description"))
         )
         val freeloadersGuiItem = GuiItem(freeloadersItem) { event ->
             event.isCancelled = true
@@ -178,8 +180,8 @@ class GuildMemberContributionsMenu(
         // Show all members
         val allMembersItem = createMenuItem(
             Material.GREEN_WOOL,
-            lang.raw("menu.bank.contributions.filter.all.name"),
-            listOf(lang.raw("menu.bank.contributions.filter.all.description"))
+            lang.gui("menu.bank.contributions.filter.all.name"),
+            listOf(lang.gui("menu.bank.contributions.filter.all.description"))
         )
         val allMembersGuiItem = GuiItem(allMembersItem) { event ->
             event.isCancelled = true
@@ -199,8 +201,8 @@ class GuildMemberContributionsMenu(
         if (currentItems.isEmpty()) {
             val noContributionsItem = createMenuItem(
                 Material.BARRIER,
-                lang.raw("menu.bank.contributions.empty.name"),
-                listOf(lang.raw("menu.bank.contributions.empty.description"))
+                lang.gui("menu.bank.contributions.empty.name"),
+                listOf(lang.gui("menu.bank.contributions.empty.description"))
             )
             contributionsPane.addItem(GuiItem(noContributionsItem), 4, 1)
         } else {
@@ -222,39 +224,40 @@ class GuildMemberContributionsMenu(
      * Create a contribution item for display
      */
     private fun createContributionItem(contribution: MemberContribution): ItemStack {
-        val playerName = contribution.playerName ?: lang.raw("menu.common.unknown_player")
+        val playerName = contribution.playerName?.let(Component::text)
+            ?: lang.gui("menu.common.unknown_player")
         val netContribution = contribution.netContribution
 
         val statusText = when (contribution.contributionStatus) {
-            MemberContribution.ContributionStatus.CONTRIBUTOR -> lang.raw("menu.bank.contributions.status.contributor")
-            MemberContribution.ContributionStatus.FREELOADER -> lang.raw("menu.bank.contributions.status.freeloader")
-            MemberContribution.ContributionStatus.BREAK_EVEN_CONTRIBUTOR -> lang.raw("menu.bank.contributions.status.break_even")
-            MemberContribution.ContributionStatus.NEUTRAL -> lang.raw("menu.bank.contributions.status.neutral")
+            MemberContribution.ContributionStatus.CONTRIBUTOR -> lang.gui("menu.bank.contributions.status.contributor")
+            MemberContribution.ContributionStatus.FREELOADER -> lang.gui("menu.bank.contributions.status.freeloader")
+            MemberContribution.ContributionStatus.BREAK_EVEN_CONTRIBUTOR -> lang.gui("menu.bank.contributions.status.break_even")
+            MemberContribution.ContributionStatus.NEUTRAL -> lang.gui("menu.bank.contributions.status.neutral")
         }
 
-        val lore = mutableListOf<String>()
-        lore.add(lang.legacy("menu.bank.contributions.item.deposits", "amount" to contribution.totalDeposits))
-        lore.add(lang.legacy("menu.bank.contributions.item.withdrawals", "amount" to contribution.totalWithdrawals))
+        val lore = mutableListOf<Component>()
+        lore.add(lang.gui("menu.bank.contributions.item.deposits", "amount" to contribution.totalDeposits))
+        lore.add(lang.gui("menu.bank.contributions.item.withdrawals", "amount" to contribution.totalWithdrawals))
         lore.add(if (netContribution >= 0) {
-            lang.legacy("menu.bank.contributions.item.net_positive", "amount" to netContribution)
+            lang.gui("menu.bank.contributions.item.net_positive", "amount" to netContribution)
         } else {
-            lang.legacy("menu.bank.contributions.item.net_negative", "amount" to netContribution)
+            lang.gui("menu.bank.contributions.item.net_negative", "amount" to netContribution)
         })
-        lore.add(lang.legacy("menu.bank.contributions.item.transactions", "count" to contribution.transactionCount))
+        lore.add(lang.gui("menu.bank.contributions.item.transactions", "count" to contribution.transactionCount))
 
         if (contribution.lastTransaction != null) {
             val lastTransactionTime = LocalDateTime.ofInstant(contribution.lastTransaction, ZoneId.systemDefault())
             val formatter = DateTimeFormatter.ofPattern(lang.raw("menu.bank.contributions.date_format"))
-            lore.add(lang.legacy("menu.bank.contributions.item.last_transaction", "time" to lastTransactionTime.format(formatter)))
+            lore.add(lang.gui("menu.bank.contributions.item.last_transaction", "time" to lastTransactionTime.format(formatter)))
         } else {
-            lore.add(lang.raw("menu.bank.contributions.item.last_transaction_never"))
+            lore.add(lang.gui("menu.bank.contributions.item.last_transaction_never"))
         }
 
         lore.add(when (contribution.contributionStatus) {
-            MemberContribution.ContributionStatus.CONTRIBUTOR -> lang.legacy("menu.bank.contributions.item.status_contributor", "status" to statusText)
-            MemberContribution.ContributionStatus.FREELOADER -> lang.legacy("menu.bank.contributions.item.status_freeloader", "status" to statusText)
-            MemberContribution.ContributionStatus.BREAK_EVEN_CONTRIBUTOR -> lang.legacy("menu.bank.contributions.item.status_break_even", "status" to statusText)
-            MemberContribution.ContributionStatus.NEUTRAL -> lang.legacy("menu.bank.contributions.item.status_neutral", "status" to statusText)
+            MemberContribution.ContributionStatus.CONTRIBUTOR -> lang.gui("menu.bank.contributions.item.status_contributor", "status" to statusText)
+            MemberContribution.ContributionStatus.FREELOADER -> lang.gui("menu.bank.contributions.item.status_freeloader", "status" to statusText)
+            MemberContribution.ContributionStatus.BREAK_EVEN_CONTRIBUTOR -> lang.gui("menu.bank.contributions.item.status_break_even", "status" to statusText)
+            MemberContribution.ContributionStatus.NEUTRAL -> lang.gui("menu.bank.contributions.item.status_neutral", "status" to statusText)
         })
 
         return createMenuItem(
@@ -357,8 +360,8 @@ class GuildMemberContributionsMenu(
             if (currentPage > 0) {
                 val prevItem = createMenuItem(
                     Material.ARROW,
-                    lang.raw("menu.bank.history.page.previous"),
-                    listOf(lang.legacy("menu.common.page.go_to", "page" to currentPage))
+                    lang.gui("menu.bank.history.page.previous"),
+                    listOf(lang.gui("menu.common.page.go_to", "page" to currentPage))
                 )
                 val prevGuiItem = GuiItem(prevItem) { event ->
                     event.isCancelled = true
@@ -372,8 +375,8 @@ class GuildMemberContributionsMenu(
             if (currentPage < totalPages - 1) {
                 val nextItem = createMenuItem(
                     Material.ARROW,
-                    lang.raw("menu.bank.history.page.next"),
-                    listOf(lang.legacy("menu.common.page.go_to", "page" to currentPage + 2))
+                    lang.gui("menu.bank.history.page.next"),
+                    listOf(lang.gui("menu.common.page.go_to", "page" to currentPage + 2))
                 )
                 val nextGuiItem = GuiItem(nextItem) { event ->
                     event.isCancelled = true
@@ -386,8 +389,8 @@ class GuildMemberContributionsMenu(
             // Page indicator
             val pageItem = createMenuItem(
                 Material.PAPER,
-                lang.legacy("menu.common.page.indicator", "current" to currentPage + 1, "total" to totalPages),
-                listOf(lang.legacy("menu.bank.contributions.page.members_shown", "count" to filteredContributions.size))
+                lang.gui("menu.common.page.indicator", "current" to currentPage + 1, "total" to totalPages),
+                listOf(lang.gui("menu.bank.contributions.page.members_shown", "count" to filteredContributions.size))
             )
             filterPane.addItem(GuiItem(pageItem), 6, 0)
         }
@@ -396,19 +399,19 @@ class GuildMemberContributionsMenu(
     /**
      * Get localized string
      */
-    private fun getLocalizedString(key: String): String {
-        return lang.legacy(key)
+    private fun getLocalizedString(key: String): Component {
+        return lang.gui(key)
     }
 
     /**
      * Create menu item helper
      */
-    private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
+    private fun createMenuItem(material: Material, name: Component, lore: List<*>): ItemStack {
         val item = ItemStack.of(material)
         val meta = item.itemMeta ?: return item
 
-        meta.displayName(Component.text(name))
-        meta.lore(lore.map { Component.text(it) })
+        meta.displayName(name)
+        meta.lore(lore.map { if (it is Component) it else Component.text(it.toString()) })
 
         item.itemMeta = meta
         return item

@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
@@ -234,7 +236,7 @@ class GuildBankMenu(
         val customDepositItem = createMenuItem(
             Material.GREEN_WOOL,
             getLocalizedString("menu.bank.custom.deposit"),
-            listOf(lang.raw("menu.bank.custom.deposit_description"))
+            listOf(lang.gui("menu.bank.custom.deposit_description"))
         )
         val depositGuiItem = GuiItem(customDepositItem) { event ->
             event.isCancelled = true
@@ -246,7 +248,7 @@ class GuildBankMenu(
         val customWithdrawItem = createMenuItem(
             Material.RED_WOOL,
             getLocalizedString("menu.bank.custom.withdraw"),
-            listOf(lang.raw("menu.bank.custom.withdraw_description"))
+            listOf(lang.gui("menu.bank.custom.withdraw_description"))
         )
         val withdrawGuiItem = GuiItem(customWithdrawItem) { event ->
             event.isCancelled = true
@@ -273,8 +275,8 @@ class GuildBankMenu(
                 Material.BOOK,
                 getLocalizedString("menu.bank.history.title", "guild" to guild.name),
                 listOf(
-                    lang.legacy("menu.bank.history.recent", "count" to transactions.size),
-                    lang.raw("menu.bank.history.open_action")
+                    lang.gui("menu.bank.history.recent", "count" to transactions.size),
+                    lang.gui("menu.bank.history.open_action")
                 )
             )
         }
@@ -303,7 +305,7 @@ class GuildBankMenu(
         val statsItem = createMenuItem(
             Material.BOOK,
             getLocalizedString("menu.bank.stats.title"),
-            listOf(lang.raw("menu.bank.navigation.statistics_description"))
+            listOf(lang.gui("menu.bank.navigation.statistics_description"))
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -314,8 +316,8 @@ class GuildBankMenu(
         // Automation & Rewards button
         val automationItem = createMenuItem(
             Material.COMPARATOR,
-            lang.raw("menu.bank.navigation.automation_name"),
-            listOf(lang.raw("menu.bank.navigation.automation_description"), lang.raw("menu.bank.navigation.automation_features"))
+            lang.gui("menu.bank.navigation.automation_name"),
+            listOf(lang.gui("menu.bank.navigation.automation_description"), lang.gui("menu.bank.navigation.automation_features"))
         )
         val automationGuiItem = GuiItem(automationItem) { event ->
             event.isCancelled = true
@@ -326,8 +328,8 @@ class GuildBankMenu(
         // Member Contributions button
         val contributionsItem = createMenuItem(
             Material.PLAYER_HEAD,
-            lang.raw("menu.bank.navigation.contributions_name"),
-            listOf(lang.raw("menu.bank.navigation.contributions_description"), lang.raw("menu.bank.navigation.contributions_detail"))
+            lang.gui("menu.bank.navigation.contributions_name"),
+            listOf(lang.gui("menu.bank.navigation.contributions_description"), lang.gui("menu.bank.navigation.contributions_detail"))
         )
         val contributionsGuiItem = GuiItem(contributionsItem) { event ->
             event.isCancelled = true
@@ -339,7 +341,7 @@ class GuildBankMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf(lang.raw("menu.bank.navigation.back_description"))
+            listOf(lang.gui("menu.bank.navigation.back_description"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -355,13 +357,13 @@ class GuildBankMenu(
         val displayName = getLocalizedString(localizationKey)
         val lore = if (amount == -1) {
             listOf(
-                if (isDeposit) lang.raw("menu.bank.quick.description.deposit_all")
-                else lang.raw("menu.bank.quick.description.withdraw_all")
+                if (isDeposit) lang.gui("menu.bank.quick.description.deposit_all")
+                else lang.gui("menu.bank.quick.description.withdraw_all")
             )
         } else {
             listOf(
-                if (isDeposit) lang.legacy("menu.bank.quick.description.deposit", "amount" to amount)
-                else lang.legacy("menu.bank.quick.description.withdraw", "amount" to amount)
+                if (isDeposit) lang.gui("menu.bank.quick.description.deposit", "amount" to amount)
+                else lang.gui("menu.bank.quick.description.withdraw", "amount" to amount)
             )
         }
 
@@ -378,7 +380,7 @@ class GuildBankMenu(
     private fun handleQuickAction(amount: Int, isDeposit: Boolean) {
         // Check if Vault economy is available
         if (!isEconomyAvailable()) {
-            showErrorFeedback(lang.raw("menu.bank.feedback.vault_unavailable"))
+            showErrorFeedback(lang.gui("menu.bank.feedback.vault_unavailable"))
             return
         }
 
@@ -407,8 +409,8 @@ class GuildBankMenu(
 
         // Show loading state
         showLoadingState(
-            if (isDeposit) lang.raw("menu.bank.processing.depositing")
-            else lang.raw("menu.bank.processing.withdrawing")
+            if (isDeposit) lang.gui("menu.bank.processing.depositing")
+            else lang.gui("menu.bank.processing.withdrawing")
         )
 
         // Use async task for transaction processing
@@ -452,7 +454,7 @@ class GuildBankMenu(
     private fun handleDeposit(amount: Int): Boolean {
         // Check DEPOSIT_TO_BANK permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DEPOSIT_TO_BANK)) {
-            val message = lang.raw("menu.bank.feedback.deposit_permission_denied")
+            val message = lang.gui("menu.bank.feedback.deposit_permission_denied")
             player.sendMessage(lang.msg("menu.bank.feedback.deposit_permission_denied"))
             showErrorFeedback(message)
             return false
@@ -473,7 +475,7 @@ class GuildBankMenu(
             }
 
             if (totalNuggets < amount) {
-                val message = lang.legacy("menu.bank.feedback.insufficient_gold", "balance" to totalNuggets, "amount" to amount)
+                val message = lang.gui("menu.bank.feedback.insufficient_gold", "balance" to totalNuggets, "amount" to amount)
                 player.sendMessage(lang.msg("menu.bank.feedback.insufficient_gold", "balance" to totalNuggets, "amount" to amount))
                 showErrorFeedback(message)
                 return false
@@ -520,11 +522,11 @@ class GuildBankMenu(
                 "amount" to amount,
             ).color(NamedTextColor.GREEN)
             player.sendMessage(message)
-            showSuccessFeedback(lang.raw("menu.bank.feedback.deposit_overlay"), amount.toLong())
+            showSuccessFeedback(lang.gui("menu.bank.feedback.deposit_overlay"), amount.toLong())
             true
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            val errorMessage = lang.legacy("menu.bank.feedback.deposit_error", "reason" to e.message)
+            val errorMessage = lang.gui("menu.bank.feedback.deposit_error", "reason" to e.message)
             player.sendMessage(lang.msg("menu.bank.feedback.deposit_error", "reason" to e.message))
             showErrorFeedback(errorMessage)
             false
@@ -537,7 +539,7 @@ class GuildBankMenu(
     private fun handleWithdrawal(amount: Int): Boolean {
         // Check WITHDRAW_FROM_BANK permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.WITHDRAW_FROM_BANK)) {
-            val message = lang.raw("menu.bank.feedback.withdraw_permission_denied")
+            val message = lang.gui("menu.bank.feedback.withdraw_permission_denied")
             player.sendMessage(lang.msg("menu.bank.feedback.withdraw_permission_denied"))
             showErrorFeedback(message)
             return false
@@ -550,7 +552,7 @@ class GuildBankMenu(
             // Check if guild has sufficient gold
             val currentVaultBalance = vaultInventoryManager.getGoldBalance(guild.id)
             if (currentVaultBalance < amount) {
-                val message = lang.legacy("menu.bank.feedback.insufficient_vault_gold", "balance" to currentVaultBalance, "amount" to amount)
+                val message = lang.gui("menu.bank.feedback.insufficient_vault_gold", "balance" to currentVaultBalance, "amount" to amount)
                 player.sendMessage(lang.msg("menu.bank.feedback.insufficient_vault_gold", "balance" to currentVaultBalance, "amount" to amount))
                 showErrorFeedback(message)
                 return false
@@ -559,7 +561,7 @@ class GuildBankMenu(
             // Withdraw from guild vault (deducts from virtual gold balance)
             val newBalance = vaultInventoryManager.withdrawGold(guild.id, player.uniqueId, amount.toLong())
             if (newBalance == -1L) {
-                val message = lang.raw("menu.bank.feedback.vault_withdraw_failed")
+                val message = lang.gui("menu.bank.feedback.vault_withdraw_failed")
                 player.sendMessage(lang.msg("menu.bank.feedback.vault_withdraw_failed"))
                 showErrorFeedback(message)
                 return false
@@ -592,11 +594,11 @@ class GuildBankMenu(
                 "amount" to amount,
             ).color(NamedTextColor.GREEN)
             player.sendMessage(message)
-            showSuccessFeedback(lang.raw("menu.bank.feedback.withdraw_overlay"), -amount.toLong())
+            showSuccessFeedback(lang.gui("menu.bank.feedback.withdraw_overlay"), -amount.toLong())
             true
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            val errorMessage = lang.legacy("menu.bank.feedback.withdraw_error", "reason" to e.message)
+            val errorMessage = lang.gui("menu.bank.feedback.withdraw_error", "reason" to e.message)
             player.sendMessage(lang.msg("menu.bank.feedback.withdraw_error", "reason" to e.message))
             showErrorFeedback(errorMessage)
             false
@@ -614,7 +616,7 @@ class GuildBankMenu(
             TransactionType.DEDUCTION -> getLocalizedString("menu.bank.transaction.deduction")
         }
 
-        val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: lang.raw("menu.bank.transaction.unknown_actor")
+        val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: lang.gui("menu.bank.transaction.unknown_actor")
         val timestamp = transaction.timestamp.toString().substring(0, 16) // Simple date formatting
 
         val material = when (transaction.type) {
@@ -626,33 +628,28 @@ class GuildBankMenu(
 
         return createMenuItem(
             material,
-            lang.legacy("menu.bank.transaction.name", "type" to transactionType, "amount" to transaction.amount),
-            listOf(
-                lang.legacy("menu.bank.transaction.actor", "actor" to actorName),
-                lang.legacy("menu.bank.transaction.time", "time" to timestamp),
-                if (transaction.fee > 0) lang.legacy("menu.bank.transaction.fee_amount", "fee" to transaction.fee) else ""
-            ).filter { it.isNotEmpty() }
+            lang.gui("menu.bank.transaction.name", "type" to transactionType, "amount" to transaction.amount),
+            buildList {
+                add(lang.gui("menu.bank.transaction.actor", "actor" to actorName))
+                add(lang.gui("menu.bank.transaction.time", "time" to timestamp))
+                if (transaction.fee > 0) {
+                    add(lang.gui("menu.bank.transaction.fee_amount", "fee" to transaction.fee))
+                }
+            }
         )
     }
 
     /**
      * Create a menu item with consistent formatting
      */
-    private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
+    private fun createMenuItem(material: Material, name: Component, lore: List<Component>): ItemStack {
         val item = ItemStack.of(material)
         val meta = item.itemMeta
 
-        meta.displayName(Component.text(name)
-            .color(NamedTextColor.YELLOW)
-            .decoration(TextDecoration.ITALIC, false))
+        meta.displayName(name.decoration(TextDecoration.ITALIC, false))
 
         if (lore.isNotEmpty()) {
-            val loreComponents = lore.map { line ->
-                Component.text(line)
-                    .color(NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false)
-            }
-            meta.lore(loreComponents)
+            meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
         }
 
         item.itemMeta = meta
@@ -662,15 +659,15 @@ class GuildBankMenu(
     /**
      * Get localized string with optional parameters
      */
-    private fun getLocalizedString(key: String, vararg placeholders: Pair<String, Any?>): String {
-        return lang.legacy(key, *placeholders)
+    private fun getLocalizedString(key: String, vararg placeholders: Pair<String, Any?>): Component {
+        return lang.gui(key, *placeholders)
     }
 
     /**
      * Get localized title for the GUI
      */
     private fun getLocalizedTitle(): String {
-        return getLocalizedString("menu.bank.title", "guild" to guild.name)
+        return lang.guiTitle("menu.bank.title", "guild" to guild.name)
     }
 
     /**
@@ -692,7 +689,7 @@ class GuildBankMenu(
     /**
      * Show loading state on buttons during transaction processing
      */
-    private fun showLoadingState(message: String) {
+    private fun showLoadingState(message: Component) {
         isLoading = true
 
         // Replace action buttons with loading indicators
@@ -704,8 +701,8 @@ class GuildBankMenu(
         loadingSlots.forEach { (x, y) ->
             val loadingItem = createMenuItem(
                 Material.YELLOW_WOOL,
-                lang.raw("menu.bank.processing.name"),
-                listOf(message, lang.raw("menu.bank.processing.wait"))
+                lang.gui("menu.bank.processing.name"),
+                listOf(message, lang.gui("menu.bank.processing.wait"))
             )
             mainPane.addItem(GuiItem(loadingItem), x, y)
         }
@@ -749,8 +746,8 @@ class GuildBankMenu(
                 slots.forEach { (x, y) ->
                     val loadingItem = createMenuItem(
                         Material.YELLOW_WOOL,
-                        lang.legacy("menu.bank.processing.animated", "frame" to currentFrame),
-                        listOf(lang.raw("menu.bank.processing.description"), lang.raw("menu.bank.processing.wait"))
+                        lang.gui("menu.bank.processing.animated", "frame" to currentFrame),
+                        listOf(lang.gui("menu.bank.processing.description"), lang.gui("menu.bank.processing.wait"))
                     )
                     mainPane.addItem(GuiItem(loadingItem), x, y)
                 }
@@ -814,7 +811,7 @@ class GuildBankMenu(
      */
     private fun createAnimatedBalanceItem(balance: Long, color: NamedTextColor, isIncrease: Boolean): ItemStack {
         val arrow = if (isIncrease) "⬆" else "⬇"
-        val displayName = Component.text(lang.legacy("menu.bank.balance.animated", "balance" to balance, "arrow" to arrow))
+        val displayName = lang.gui("menu.bank.balance.animated", "balance" to balance, "arrow" to arrow)
             .color(color)
             .decoration(TextDecoration.ITALIC, false)
 
@@ -823,9 +820,7 @@ class GuildBankMenu(
 
         meta.displayName(displayName)
         meta.lore(listOf(
-            Component.text(lang.raw("menu.bank.balance.title"))
-                .color(NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false)
+            lang.gui("menu.bank.balance.title").decoration(TextDecoration.ITALIC, false)
         ))
 
         item.itemMeta = meta
@@ -837,9 +832,9 @@ class GuildBankMenu(
      */
     private fun updateBalanceDisplayEnhanced() {
         val trend = when {
-            currentBalance > previousBalance -> lang.raw("menu.bank.balance.trend.increasing")
-            currentBalance < previousBalance -> lang.raw("menu.bank.balance.trend.decreasing")
-            else -> lang.raw("menu.bank.balance.trend.stable")
+            currentBalance > previousBalance -> lang.gui("menu.bank.balance.trend.increasing")
+            currentBalance < previousBalance -> lang.gui("menu.bank.balance.trend.decreasing")
+            else -> lang.gui("menu.bank.balance.trend.stable")
         }
 
         val balanceItem = createMenuItem(
@@ -862,8 +857,8 @@ class GuildBankMenu(
         val playerBalance = bankService.getPlayerBalance(player.uniqueId)
         val playerBalanceItem = createMenuItem(
             Material.GOLD_NUGGET,
-            lang.legacy("menu.bank.balance.player", "balance" to playerBalance),
-            listOf(lang.raw("menu.bank.balance.player_description"))
+            lang.gui("menu.bank.balance.player", "balance" to playerBalance),
+            listOf(lang.gui("menu.bank.balance.player_description"))
         )
         mainPane.addItem(GuiItem(playerBalanceItem), 0, 0)
     }
@@ -871,7 +866,7 @@ class GuildBankMenu(
     /**
      * Enhanced button click feedback with sound and visual effects
      */
-    private fun createEnhancedButton(material: Material, name: String, lore: List<String>,
+    private fun createEnhancedButton(material: Material, name: Component, lore: List<Component>,
                                    clickSound: Sound = BUTTON_CLICK_SOUND,
                                    clickAction: () -> Unit): GuiItem {
         val item = createMenuItem(material, name, lore)
@@ -885,8 +880,8 @@ class GuildBankMenu(
             // Visual feedback - briefly change item appearance
             val feedbackItem = createMenuItem(
                 Material.LIGHT_BLUE_WOOL,
-                lang.legacy("menu.bank.processing.button", "name" to name),
-                listOf(lang.raw("menu.bank.processing.short"))
+                lang.gui("menu.bank.processing.button", "name" to name),
+                listOf(lang.gui("menu.bank.processing.short"))
             )
 
             // Store original item for restoration
@@ -909,14 +904,14 @@ class GuildBankMenu(
     /**
      * Enhanced error handling with visual feedback
      */
-    private fun showErrorFeedback(message: String, sound: Sound = ERROR_SOUND) {
+    private fun showErrorFeedback(message: Component, sound: Sound = ERROR_SOUND) {
         player.playSound(player.location, sound, 1.0f, 0.8f)
 
         // Flash red overlay on the balance display
         val errorItem = createMenuItem(
             Material.RED_WOOL,
-            lang.raw("menu.bank.overlay.error.name"),
-            listOf(message, lang.raw("menu.bank.overlay.error.retry"))
+            lang.gui("menu.bank.overlay.error.name"),
+            listOf(message, lang.gui("menu.bank.overlay.error.retry"))
         )
 
         mainPane.addItem(GuiItem(errorItem), 1, 0)
@@ -933,7 +928,7 @@ class GuildBankMenu(
     /**
      * Enhanced success feedback with celebration effects
      */
-    private fun showSuccessFeedback(message: String, amount: Long) {
+    private fun showSuccessFeedback(message: Component, amount: Long) {
         player.playSound(player.location, SUCCESS_SOUND, 1.0f, 1.5f)
 
         // Create celebration particles (visual effect)
@@ -943,8 +938,8 @@ class GuildBankMenu(
         // Show success message with animation
         val successItem = createMenuItem(
             Material.LIME_WOOL,
-            lang.raw("menu.bank.overlay.success.name"),
-            listOf(message, lang.legacy("menu.bank.overlay.success.amount", "amount" to amount))
+            lang.gui("menu.bank.overlay.success.name"),
+            listOf(message, lang.gui("menu.bank.overlay.success.amount", "amount" to amount))
         )
 
         mainPane.addItem(GuiItem(successItem), 1, 0)

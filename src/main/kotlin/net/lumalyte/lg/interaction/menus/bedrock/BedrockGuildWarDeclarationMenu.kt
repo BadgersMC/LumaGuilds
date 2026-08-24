@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.BankService
@@ -47,55 +49,55 @@ class BedrockGuildWarDeclarationMenu(
             .sortedBy { it.name }
 
         val guildNames = allGuilds.map { it.name }
-        val guildOptions = if (guildNames.isEmpty()) listOf(lang.raw("bedrock.war_declaration.no_target_option")) else guildNames
+        val guildOptions = if (guildNames.isEmpty()) listOf(lang.bedrock("bedrock.war_declaration.no_target_option")) else guildNames
         val durationOptions = listOf(
-            lang.raw("bedrock.war_declaration.duration.one_day"),
-            lang.raw("bedrock.war_declaration.duration.three_days"),
-            lang.raw("bedrock.war_declaration.duration.seven_days"),
-            lang.raw("bedrock.war_declaration.duration.fourteen_days"),
-            lang.raw("bedrock.war_declaration.duration.thirty_days")
+            lang.bedrock("bedrock.war_declaration.duration.one_day"),
+            lang.bedrock("bedrock.war_declaration.duration.three_days"),
+            lang.bedrock("bedrock.war_declaration.duration.seven_days"),
+            lang.bedrock("bedrock.war_declaration.duration.fourteen_days"),
+            lang.bedrock("bedrock.war_declaration.duration.thirty_days")
         )
         val guildBalance = bankService.getBalance(guild.id)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.war_declaration.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.war_declaration.title", "guild" to guild.name))
             .apply { warIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.war_declaration.description"))
+            .label(lang.bedrock("bedrock.war_declaration.description"))
             .dropdown(
-                lang.raw("bedrock.war_declaration.target"),
+                lang.bedrock("bedrock.war_declaration.target"),
                 guildOptions
             )
             .dropdown(
-                lang.raw("bedrock.war_declaration.duration.label"),
+                lang.bedrock("bedrock.war_declaration.duration.label"),
                 durationOptions,
                 2 // Default to 7 days
             )
             .input(
-                lang.raw("bedrock.war_declaration.terms.label"),
-                lang.raw("bedrock.war_declaration.terms.placeholder"),
+                lang.bedrock("bedrock.war_declaration.terms.label"),
+                lang.bedrock("bedrock.war_declaration.terms.placeholder"),
                 ""
             )
             .toggle(
-                lang.raw("bedrock.war_declaration.objective.territory"),
+                lang.bedrock("bedrock.war_declaration.objective.territory"),
                 false
             )
             .toggle(
-                lang.raw("bedrock.war_declaration.objective.kills"),
+                lang.bedrock("bedrock.war_declaration.objective.kills"),
                 true // Default enabled
             )
             .label(
-                lang.legacy("bedrock.war_declaration.wager.info", "balance" to guildBalance)
+                lang.bedrock("bedrock.war_declaration.wager.info", "balance" to guildBalance)
             )
             .slider(
-                lang.raw("bedrock.war_declaration.wager.amount"),
+                lang.bedrock("bedrock.war_declaration.wager.amount"),
                 0f,
                 guildBalance.toFloat().coerceAtMost(100000f),
                 100f,
                 0f
             )
             .input(
-                lang.raw("bedrock.war_declaration.wager.custom_label"),
-                lang.raw("bedrock.war_declaration.wager.custom_placeholder"),
+                lang.bedrock("bedrock.war_declaration.wager.custom_label"),
+                lang.bedrock("bedrock.war_declaration.wager.custom_placeholder"),
                 ""
             )
             .validResultHandler { response ->
@@ -135,14 +137,14 @@ class BedrockGuildWarDeclarationMenu(
                     objectives.add(WarObjective(
                         type = ObjectiveType.CLAIMS_CAPTURED,
                         targetValue = 5,
-                        description = lang.raw("bedrock.war_declaration.objective.territory_description")
+                        description = lang.bedrock("bedrock.war_declaration.objective.territory_description")
                     ))
                 }
                 if (killsObjective) {
                     objectives.add(WarObjective(
                         type = ObjectiveType.KILLS,
                         targetValue = 100,
-                        description = lang.raw("bedrock.war_declaration.objective.kills_description")
+                        description = lang.bedrock("bedrock.war_declaration.objective.kills_description")
                     ))
                 }
 

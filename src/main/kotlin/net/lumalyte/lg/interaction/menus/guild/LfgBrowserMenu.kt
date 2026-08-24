@@ -3,6 +3,8 @@ package net.lumalyte.lg.interaction.menus.guild
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.GuiTheme
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -39,7 +41,7 @@ class LfgBrowserMenu(
     private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6, lang.legacy("menu.lfg_browser.title")))
+        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6, lang.guiTitle("menu.lfg_browser.title")))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == org.bukkit.event.inventory.ClickType.SHIFT_LEFT ||
@@ -95,40 +97,40 @@ class LfgBrowserMenu(
         val joinRequirement = lfgService.getJoinRequirement(guild)
 
         val item = ItemStack.of(Material.WHITE_BANNER)
-            .name(lang.legacy("menu.lfg_browser.guild.name", "guild" to guild.name))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.lfg_browser.guild.level", "level" to guild.level))
-            .lore(lang.legacy("menu.lfg_browser.guild.members", "count" to memberCount, "maximum" to maxMembers))
+            .name(lang.gui("menu.lfg_browser.guild.name", "guild" to guild.name))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.lfg_browser.guild.level", "level" to guild.level))
+            .lore(lang.gui("menu.lfg_browser.guild.members", "count" to memberCount, "maximum" to maxMembers))
             .lore(
                 if (isPeaceful) {
-                    lang.legacy("menu.lfg_browser.guild.mode.peaceful")
+                    lang.gui("menu.lfg_browser.guild.mode.peaceful")
                 } else {
-                    lang.legacy("menu.lfg_browser.guild.mode.hostile")
+                    lang.gui("menu.lfg_browser.guild.mode.hostile")
                 }
             )
 
         if (joinRequirement != null) {
-            item.lore(lang.legacy("menu.common.blank"))
-            item.lore(lang.legacy("menu.lfg_browser.guild.fee.required", "amount" to joinRequirement.amount, "currency" to formatCurrencyName(joinRequirement.currencyName)))
+            item.lore(lang.gui("menu.common.blank"))
+            item.lore(lang.gui("menu.lfg_browser.guild.fee.required", "amount" to joinRequirement.amount, "currency" to formatCurrencyName(joinRequirement.currencyName)))
         } else {
-            item.lore(lang.legacy("menu.common.blank"))
-            item.lore(lang.legacy("menu.lfg_browser.guild.fee.none"))
+            item.lore(lang.gui("menu.common.blank"))
+            item.lore(lang.gui("menu.lfg_browser.guild.fee.none"))
         }
 
-        item.lore(lang.legacy("menu.common.blank"))
-        item.lore(lang.legacy("menu.lfg_browser.guild.action"))
+        item.lore(lang.gui("menu.common.blank"))
+        item.lore(lang.gui("menu.lfg_browser.guild.action"))
 
         return item
     }
 
     private fun addNoGuildsMessage(pane: StaticPane) {
         val noGuildsItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.lfg_browser.empty.name"))
-            .lore(lang.legacy("menu.lfg_browser.empty.description"))
-            .lore(lang.legacy("menu.lfg_browser.empty.detail"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.lfg_browser.empty.hint"))
-            .lore(lang.legacy("menu.lfg_browser.empty.action"))
+            .name(lang.gui("menu.lfg_browser.empty.name"))
+            .lore(lang.gui("menu.lfg_browser.empty.description"))
+            .lore(lang.gui("menu.lfg_browser.empty.detail"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.lfg_browser.empty.hint"))
+            .lore(lang.gui("menu.lfg_browser.empty.action"))
 
         pane.addItem(GuiItem(noGuildsItem), 4, 2)
     }
@@ -136,8 +138,8 @@ class LfgBrowserMenu(
     private fun addNavigationButtons(pane: StaticPane, paginatedPane: PaginatedPane) {
         // Previous page button
         val prevItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.lfg_browser.navigation.previous.name"))
-            .lore(lang.legacy("menu.lfg_browser.navigation.previous.description"))
+            .name(lang.gui("menu.lfg_browser.navigation.previous.name"))
+            .lore(lang.gui("menu.lfg_browser.navigation.previous.description"))
 
         val prevGuiItem = GuiItem(prevItem) {
             if (paginatedPane.page > 0) {
@@ -150,8 +152,8 @@ class LfgBrowserMenu(
 
         // Close button
         val closeItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.lfg_browser.navigation.close.name"))
-            .lore(lang.legacy("menu.lfg_browser.navigation.close.description"))
+            .name(lang.gui("menu.lfg_browser.navigation.close.name"))
+            .lore(lang.gui("menu.lfg_browser.navigation.close.description"))
 
         val closeGuiItem = GuiItem(closeItem) {
             player.closeInventory()
@@ -161,8 +163,8 @@ class LfgBrowserMenu(
 
         // Next page button
         val nextItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.lfg_browser.navigation.next.name"))
-            .lore(lang.legacy("menu.lfg_browser.navigation.next.description"))
+            .name(lang.gui("menu.lfg_browser.navigation.next.name"))
+            .lore(lang.gui("menu.lfg_browser.navigation.next.description"))
 
         val nextGuiItem = GuiItem(nextItem) {
             if (paginatedPane.page < paginatedPane.pages - 1) {

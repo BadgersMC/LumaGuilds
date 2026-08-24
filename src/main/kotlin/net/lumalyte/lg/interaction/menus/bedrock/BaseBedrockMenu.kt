@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BedrockLocalizationService
 import net.lumalyte.lg.config.BedrockConfig
@@ -265,9 +267,9 @@ abstract class BaseBedrockMenu(
     protected fun showFormValidationErrors(errors: List<String>) {
         formValidationService.showValidationErrors(player, errors, { reopen() }) { key ->
             when (key) {
-                "form.validation.errors.title" -> lang.legacy("form.validation.errors.title")
-                "form.button.retry" -> lang.legacy("form.button.retry")
-                "form.button.cancel" -> lang.legacy("form.button.cancel")
+                "form.validation.errors.title" -> lang.bedrock("form.validation.errors.title")
+                "form.button.retry" -> lang.bedrock("form.button.retry")
+                "form.button.cancel" -> lang.bedrock("form.button.cancel")
                 else -> key
             }
         }

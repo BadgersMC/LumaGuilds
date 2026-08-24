@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -40,7 +42,7 @@ class GuildRankListMenu(
 
         val rows = (ranks.size + 8) / 9 + 1 // 1 row for header nav
         val height = rows.coerceIn(3, 6)
-        val gui = ChestGui(height, lang.legacy("menu.rank_list.title", "guild" to guild.name))
+        val gui = ChestGui(height, lang.guiTitle("menu.rank_list.title", "guild" to guild.name))
         val pane = StaticPane(0, 0, 9, height)
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
@@ -58,9 +60,9 @@ class GuildRankListMenu(
                 // Overflow: show overflow notice instead of remaining ranks
                 val omitted = ranks.size - displayed
                 val overflowItem = ItemStack.of(Material.PAPER).name(if (omitted == 1) {
-                    lang.legacy("menu.rank_list.item.overflow.single")
+                    lang.gui("menu.rank_list.item.overflow.single")
                 } else {
-                    lang.legacy("menu.rank_list.item.overflow.multiple", "count" to omitted)
+                    lang.gui("menu.rank_list.item.overflow.multiple", "count" to omitted)
                 })
                 pane.addItem(GuiItem(overflowItem), 4, height - 2)
                 break
@@ -71,9 +73,9 @@ class GuildRankListMenu(
                 // Overflow after slot skip too
                 val omitted = ranks.size - displayed
                 val overflowItem = ItemStack.of(Material.PAPER).name(if (omitted == 1) {
-                    lang.legacy("menu.rank_list.item.overflow.single")
+                    lang.gui("menu.rank_list.item.overflow.single")
                 } else {
-                    lang.legacy("menu.rank_list.item.overflow.multiple", "count" to omitted)
+                    lang.gui("menu.rank_list.item.overflow.multiple", "count" to omitted)
                 })
                 pane.addItem(GuiItem(overflowItem), 4, height - 2)
                 break
@@ -87,19 +89,19 @@ class GuildRankListMenu(
 
             val permCount = rank.permissions.size
             val item = ItemStack.of(displayIcon)
-                .name(lang.legacy("menu.rank_list.item.rank.name", "rank" to rank.name))
-                .lore(lang.legacy("menu.rank_list.item.rank.lore.priority", "priority" to rank.priority))
-                .lore(lang.legacy("menu.rank_list.item.rank.lore.permission_count", "permission_count" to permCount))
+                .name(lang.gui("menu.rank_list.item.rank.name", "rank" to rank.name))
+                .lore(lang.gui("menu.rank_list.item.rank.lore.priority", "priority" to rank.priority))
+                .lore(lang.gui("menu.rank_list.item.rank.lore.permission_count", "permission_count" to permCount))
                 .lore("")
             if (permCount > 0) {
                 val perms = rank.permissions.take(8)
-                    .joinToString(lang.legacy("menu.rank_list.permission_separator")) { it.name }
-                item.lore(lang.legacy("menu.rank_list.item.rank.lore.includes", "permissions" to perms))
+                    .joinToString(lang.raw("menu.rank_list.permission_separator")) { it.name }
+                item.lore(lang.gui("menu.rank_list.item.rank.lore.includes", "permissions" to perms))
                 if (rank.permissions.size > 8) {
-                    item.lore(lang.legacy("menu.rank_list.item.rank.lore.more", "count" to (rank.permissions.size - 8)))
+                    item.lore(lang.gui("menu.rank_list.item.rank.lore.more", "count" to (rank.permissions.size - 8)))
                 }
             } else {
-                item.lore(lang.legacy("menu.rank_list.item.rank.lore.none"))
+                item.lore(lang.gui("menu.rank_list.item.rank.lore.none"))
             }
             pane.addItem(GuiItem(item), slot % 9, slot / 9)
             displayed++
@@ -108,8 +110,8 @@ class GuildRankListMenu(
 
         // Back button in bottom-right
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.rank_list.item.back.name"))
-            .lore(lang.legacy("menu.rank_list.item.back.lore"))
+            .name(lang.gui("menu.rank_list.item.back.name"))
+            .lore(lang.gui("menu.rank_list.item.back.lore"))
         pane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 8, height - 1)
 
         gui.show(player)

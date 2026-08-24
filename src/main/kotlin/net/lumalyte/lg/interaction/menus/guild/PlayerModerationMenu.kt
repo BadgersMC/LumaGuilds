@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -52,8 +54,8 @@ class PlayerModerationMenu(
             return
         }
 
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.player_moderation.fallback.unknown_player")
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.player_moderation.title", "player" to targetName)))
+        val targetName: Any = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.gui("menu.player_moderation.fallback.unknown_player")
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.player_moderation.title", "player" to targetName)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -83,29 +85,29 @@ class PlayerModerationMenu(
         )
 
         val meta = head.itemMeta as SkullMeta
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.player_moderation.fallback.unknown_player")
+        val targetName: Any = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.gui("menu.player_moderation.fallback.unknown_player")
         head.itemMeta = meta
 
         val isMuted = party.isPlayerMuted(targetPlayerId)
         val isBanned = party.isPlayerBanned(targetPlayerId)
 
-        val playerItem = head.name(lang.legacy("menu.player_moderation.player.name", "player" to targetName))
-            .lore(lang.legacy("menu.player_moderation.player.description"))
-            .lore(lang.legacy("menu.common.blank"))
+        val playerItem = head.name(lang.gui("menu.player_moderation.player.name", "player" to targetName))
+            .lore(lang.gui("menu.player_moderation.player.description"))
+            .lore(lang.gui("menu.common.blank"))
             .apply {
                 if (isBanned) {
-                    lore(lang.legacy("menu.player_moderation.player.status.banned"))
+                    lore(lang.gui("menu.player_moderation.player.status.banned"))
                 } else if (isMuted) {
                     val expiration = party.mutedPlayers[targetPlayerId]
                     if (expiration != null) {
                         val remaining = Duration.between(Instant.now(), expiration)
-                        lore(lang.legacy("menu.player_moderation.player.status.muted"))
-                        lore(lang.legacy("menu.player_moderation.player.expires", "hours" to remaining.toHours(), "minutes" to remaining.toMinutes() % 60))
+                        lore(lang.gui("menu.player_moderation.player.status.muted"))
+                        lore(lang.gui("menu.player_moderation.player.expires", "hours" to remaining.toHours(), "minutes" to remaining.toMinutes() % 60))
                     } else {
-                        lore(lang.legacy("menu.player_moderation.player.status.permanently_muted"))
+                        lore(lang.gui("menu.player_moderation.player.status.permanently_muted"))
                     }
                 } else {
-                    lore(lang.legacy("menu.player_moderation.player.status.normal"))
+                    lore(lang.gui("menu.player_moderation.player.status.normal"))
                 }
             }
 
@@ -119,37 +121,37 @@ class PlayerModerationMenu(
         if (!isMuted && !isBanned) {
             // 1 Hour mute
             val mute1hItem = ItemStack.of(Material.CLOCK)
-                .name(lang.legacy("menu.player_moderation.actions.mute_hour.name"))
-                .lore(lang.legacy("menu.player_moderation.actions.mute_hour.description"))
-                .lore(lang.legacy("menu.player_moderation.actions.mute.restriction"))
+                .name(lang.gui("menu.player_moderation.actions.mute_hour.name"))
+                .lore(lang.gui("menu.player_moderation.actions.mute_hour.description"))
+                .lore(lang.gui("menu.player_moderation.actions.mute.restriction"))
             pane.addItem(GuiItem(mute1hItem) {
                 performMute(Duration.ofHours(1), lang.raw("menu.player_moderation.duration.hour"))
             }, 0, 1)
 
             // 1 Day mute
             val mute1dItem = ItemStack.of(Material.CLOCK)
-                .name(lang.legacy("menu.player_moderation.actions.mute_day.name"))
-                .lore(lang.legacy("menu.player_moderation.actions.mute_day.description"))
-                .lore(lang.legacy("menu.player_moderation.actions.mute.restriction"))
+                .name(lang.gui("menu.player_moderation.actions.mute_day.name"))
+                .lore(lang.gui("menu.player_moderation.actions.mute_day.description"))
+                .lore(lang.gui("menu.player_moderation.actions.mute.restriction"))
             pane.addItem(GuiItem(mute1dItem) {
                 performMute(Duration.ofDays(1), lang.raw("menu.player_moderation.duration.day"))
             }, 1, 1)
 
             // 1 Week mute
             val mute1wItem = ItemStack.of(Material.CLOCK)
-                .name(lang.legacy("menu.player_moderation.actions.mute_week.name"))
-                .lore(lang.legacy("menu.player_moderation.actions.mute_week.description"))
-                .lore(lang.legacy("menu.player_moderation.actions.mute.restriction"))
+                .name(lang.gui("menu.player_moderation.actions.mute_week.name"))
+                .lore(lang.gui("menu.player_moderation.actions.mute_week.description"))
+                .lore(lang.gui("menu.player_moderation.actions.mute.restriction"))
             pane.addItem(GuiItem(mute1wItem) {
                 performMute(Duration.ofDays(7), lang.raw("menu.player_moderation.duration.week"))
             }, 2, 1)
 
             // Permanent mute
             val mutePermItem = ItemStack.of(Material.BELL)
-                .name(lang.legacy("menu.player_moderation.actions.mute_permanent.name"))
-                .lore(lang.legacy("menu.player_moderation.actions.mute_permanent.description"))
-                .lore(lang.legacy("menu.player_moderation.actions.mute.restriction"))
-                .lore(lang.legacy("menu.player_moderation.actions.mute_permanent.warning"))
+                .name(lang.gui("menu.player_moderation.actions.mute_permanent.name"))
+                .lore(lang.gui("menu.player_moderation.actions.mute_permanent.description"))
+                .lore(lang.gui("menu.player_moderation.actions.mute.restriction"))
+                .lore(lang.gui("menu.player_moderation.actions.mute_permanent.warning"))
             pane.addItem(GuiItem(mutePermItem) {
                 performMute(null, lang.raw("menu.player_moderation.duration.permanent"))
             }, 3, 1)
@@ -158,9 +160,9 @@ class PlayerModerationMenu(
         // Unmute button (only if muted)
         if (isMuted && !isBanned) {
             val unmuteItem = ItemStack.of(Material.LIME_DYE)
-                .name(lang.legacy("menu.player_moderation.actions.unmute.name"))
-                .lore(lang.legacy("menu.player_moderation.actions.unmute.description"))
-                .lore(lang.legacy("menu.player_moderation.actions.unmute.result"))
+                .name(lang.gui("menu.player_moderation.actions.unmute.name"))
+                .lore(lang.gui("menu.player_moderation.actions.unmute.description"))
+                .lore(lang.gui("menu.player_moderation.actions.unmute.result"))
             pane.addItem(GuiItem(unmuteItem) {
                 performUnmute()
             }, 1, 1)
@@ -169,10 +171,10 @@ class PlayerModerationMenu(
         // Ban button (only if not banned)
         if (!isBanned) {
             val banItem = ItemStack.of(Material.BARRIER)
-                .name(lang.legacy("menu.player_moderation.actions.ban.name"))
-                .lore(lang.legacy("menu.player_moderation.actions.ban.description"))
-                .lore(lang.legacy("menu.player_moderation.actions.ban.restriction"))
-                .lore(lang.legacy("menu.player_moderation.actions.ban.warning"))
+                .name(lang.gui("menu.player_moderation.actions.ban.name"))
+                .lore(lang.gui("menu.player_moderation.actions.ban.description"))
+                .lore(lang.gui("menu.player_moderation.actions.ban.restriction"))
+                .lore(lang.gui("menu.player_moderation.actions.ban.warning"))
             pane.addItem(GuiItem(banItem) {
                 performBan()
             }, 5, 1)
@@ -181,9 +183,9 @@ class PlayerModerationMenu(
         // Unban button (only if banned)
         if (isBanned) {
             val unbanItem = ItemStack.of(Material.LIME_DYE)
-                .name(lang.legacy("menu.player_moderation.actions.unban.name"))
-                .lore(lang.legacy("menu.player_moderation.actions.unban.description"))
-                .lore(lang.legacy("menu.player_moderation.actions.unban.result"))
+                .name(lang.gui("menu.player_moderation.actions.unban.name"))
+                .lore(lang.gui("menu.player_moderation.actions.unban.description"))
+                .lore(lang.gui("menu.player_moderation.actions.unban.result"))
             pane.addItem(GuiItem(unbanItem) {
                 performUnban()
             }, 5, 1)
@@ -192,10 +194,10 @@ class PlayerModerationMenu(
         // Kick button (only if not banned)
         if (!isBanned) {
             val kickItem = ItemStack.of(Material.IRON_BOOTS)
-                .name(lang.legacy("menu.player_moderation.actions.kick.name"))
-                .lore(lang.legacy("menu.player_moderation.actions.kick.description"))
-                .lore(lang.legacy("menu.player_moderation.actions.kick.result"))
-                .lore(lang.legacy("menu.player_moderation.actions.kick.warning"))
+                .name(lang.gui("menu.player_moderation.actions.kick.name"))
+                .lore(lang.gui("menu.player_moderation.actions.kick.description"))
+                .lore(lang.gui("menu.player_moderation.actions.kick.result"))
+                .lore(lang.gui("menu.player_moderation.actions.kick.warning"))
             pane.addItem(GuiItem(kickItem) {
                 performKick()
             }, 7, 1)
@@ -307,8 +309,8 @@ class PlayerModerationMenu(
 
     private fun addBackButton(pane: StaticPane) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.player_moderation.back.name"))
-            .lore(lang.legacy("menu.player_moderation.back.description"))
+            .name(lang.gui("menu.player_moderation.back.name"))
+            .lore(lang.gui("menu.player_moderation.back.description"))
 
         pane.addItem(GuiItem(backItem) {
             menuNavigator.openMenu(PartyModerationMenu(menuNavigator, player, guild, party))

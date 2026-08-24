@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
@@ -35,24 +37,24 @@ class BedrockGuildSettingsMenu(
         val settingsIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.settings.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.settings.title", "guild" to guild.name))
             .apply { settingsIcon?.let { icon(it) } }
             .label(createInfoSection())
             .input(
-                lang.raw("bedrock.settings.name.label"),
-                lang.raw("bedrock.settings.name.placeholder"),
+                lang.bedrock("bedrock.settings.name.label"),
+                lang.bedrock("bedrock.settings.name.placeholder"),
                 guild.name
             )
             .input(
-                lang.raw("bedrock.settings.description.label"),
-                lang.raw("bedrock.settings.description.placeholder"),
+                lang.bedrock("bedrock.settings.description.label"),
+                lang.bedrock("bedrock.settings.description.placeholder"),
                 guild.description ?: ""
             )
             .dropdown(
-                lang.raw("bedrock.settings.mode.label"),
+                lang.bedrock("bedrock.settings.mode.label"),
                 listOf(
-                    lang.raw("bedrock.settings.mode.peaceful"),
-                    lang.raw("bedrock.settings.mode.hostile")
+                    lang.bedrock("bedrock.settings.mode.peaceful"),
+                    lang.bedrock("bedrock.settings.mode.hostile")
                 ),
                 if (guild.mode == GuildMode.PEACEFUL) 0 else 1
             )
@@ -69,18 +71,18 @@ class BedrockGuildSettingsMenu(
 
     private fun createInfoSection(): String {
         val mode = when (guild.mode) {
-            GuildMode.PEACEFUL -> lang.raw("bedrock.settings.mode.peaceful")
-            GuildMode.HOSTILE -> lang.raw("bedrock.settings.mode.hostile")
+            GuildMode.PEACEFUL -> lang.bedrock("bedrock.settings.mode.peaceful")
+            GuildMode.HOSTILE -> lang.bedrock("bedrock.settings.mode.hostile")
         }
         return if (guild.mode == GuildMode.PEACEFUL) {
-            lang.legacy("bedrock.settings.info.peaceful", "created" to guild.createdAt.toString(), "mode" to mode)
+            lang.bedrock("bedrock.settings.info.peaceful", "created" to guild.createdAt.toString(), "mode" to mode)
         } else {
-            lang.legacy("bedrock.settings.info.hostile", "created" to guild.createdAt.toString(), "mode" to mode)
+            lang.bedrock("bedrock.settings.info.hostile", "created" to guild.createdAt.toString(), "mode" to mode)
         }
     }
 
     private fun createValidationSection(): String {
-        return lang.legacy("bedrock.settings.validation.section")
+        return lang.bedrock("bedrock.settings.validation.section")
     }
 
     private fun handleFormResponse(response: org.geysermc.cumulus.response.CustomFormResponse) {
@@ -102,14 +104,14 @@ class BedrockGuildSettingsMenu(
             if (newName != guild.name && hasGuildSettingsPermission) {
                 validateGuildName(newName)?.let { validationErrors.add(it) }
             } else if (newName != guild.name && !hasGuildSettingsPermission) {
-                validationErrors.add(lang.raw("bedrock.settings.error.no_settings_permission"))
+                validationErrors.add(lang.bedrock("bedrock.settings.error.no_settings_permission"))
             }
 
             // Validate description if changed and user has permission
             if (newDescription != (guild.description ?: "") && hasDescriptionPermission) {
                 validateGuildDescription(newDescription)?.let { validationErrors.add(it) }
             } else if (newDescription != (guild.description ?: "") && !hasDescriptionPermission) {
-                validationErrors.add(lang.raw("bedrock.settings.error.no_description_permission"))
+                validationErrors.add(lang.bedrock("bedrock.settings.error.no_description_permission"))
             }
 
             // Check mode change permissions and cooldowns
@@ -117,7 +119,7 @@ class BedrockGuildSettingsMenu(
             if (newMode != guild.mode && hasModePermission) {
                 validateModeChange(newMode)?.let { validationErrors.add(it) }
             } else if (newMode != guild.mode && !hasModePermission) {
-                validationErrors.add(lang.raw("bedrock.settings.error.no_mode_permission"))
+                validationErrors.add(lang.bedrock("bedrock.settings.error.no_mode_permission"))
             }
 
             // If there are validation errors, show them and reopen form
@@ -139,20 +141,20 @@ class BedrockGuildSettingsMenu(
 
     private fun validateGuildName(name: String): String? {
         if (name.length < 3) {
-            return lang.legacy("bedrock.settings.validation.name_too_short", "minimum" to 3)
+            return lang.bedrock("bedrock.settings.validation.name_too_short", "minimum" to 3)
         }
         if (name.length > 32) {
-            return lang.legacy("bedrock.settings.validation.name_too_long", "maximum" to 32)
+            return lang.bedrock("bedrock.settings.validation.name_too_long", "maximum" to 32)
         }
         if (name.contains("\n")) {
-            return lang.raw("bedrock.settings.validation.name_no_newlines")
+            return lang.bedrock("bedrock.settings.validation.name_no_newlines")
         }
         return null
     }
 
     private fun validateGuildDescription(description: String): String? {
         if (description.length > 256) {
-            return lang.legacy("bedrock.settings.validation.description_too_long", "maximum" to 256)
+            return lang.bedrock("bedrock.settings.validation.description_too_long", "maximum" to 256)
         }
         return null
     }
@@ -161,7 +163,7 @@ class BedrockGuildSettingsMenu(
         val config = configService.loadConfig()
 
         if (!config.guild.peacefulModeEnabled) {
-            return lang.raw("bedrock.settings.error.mode_disabled")
+            return lang.bedrock("bedrock.settings.error.mode_disabled")
         }
 
         val modeChangedAt = guild.modeChangedAt
@@ -176,7 +178,7 @@ class BedrockGuildSettingsMenu(
                 val remaining = java.time.Duration.between(java.time.Instant.now(), cooldownEnd)
                 val days = remaining.toDays()
                 val hours = remaining.toHours() % 24
-                return lang.legacy("bedrock.settings.error.mode_cooldown", "days" to days, "hours" to hours)
+                return lang.bedrock("bedrock.settings.error.mode_cooldown", "days" to days, "hours" to hours)
             }
         }
 
@@ -184,7 +186,7 @@ class BedrockGuildSettingsMenu(
     }
 
     private fun showValidationErrors(errors: List<String>) {
-        val errorMessage = errors.joinToString("\n") { lang.legacy("bedrock.settings.validation.row", "error" to it) }
+        val errorMessage = errors.joinToString("\n") { lang.bedrock("bedrock.settings.validation.row", "error" to it) }
 
         // Send error message and reopen form
         player.sendMessage(lang.msg("bedrock.settings.validation.title"))
@@ -211,7 +213,7 @@ class BedrockGuildSettingsMenu(
         if (newName != guild.name && hasGuildSettingsPermission) {
             val success = guildService.renameGuild(guild.id, newName, player.uniqueId)
             if (success) {
-                changes.add(lang.legacy("bedrock.settings.change.name", "name" to newName))
+                changes.add(lang.bedrock("bedrock.settings.change.name", "name" to newName))
             } else {
                 allSuccessful = false
                 player.sendMessage(lang.msg("bedrock.settings.error.name_save_failed"))
@@ -222,7 +224,7 @@ class BedrockGuildSettingsMenu(
         if (newDescription.isNotBlank() && newDescription != (guild.description ?: "") && hasDescriptionPermission) {
             val success = guildService.setDescription(guild.id, newDescription, player.uniqueId)
             if (success) {
-                changes.add(lang.raw("bedrock.settings.change.description"))
+                changes.add(lang.bedrock("bedrock.settings.change.description"))
             } else {
                 allSuccessful = false
                 player.sendMessage(lang.msg("bedrock.settings.error.description_save_failed"))
@@ -234,11 +236,11 @@ class BedrockGuildSettingsMenu(
             val success = guildService.setMode(guild.id, newMode, player.uniqueId)
             if (success) {
                 val mode = if (newMode == GuildMode.PEACEFUL) {
-                    lang.raw("bedrock.settings.mode.peaceful")
+                    lang.bedrock("bedrock.settings.mode.peaceful")
                 } else {
-                    lang.raw("bedrock.settings.mode.hostile")
+                    lang.bedrock("bedrock.settings.mode.hostile")
                 }
-                changes.add(lang.legacy("bedrock.settings.change.mode", "mode" to mode))
+                changes.add(lang.bedrock("bedrock.settings.change.mode", "mode" to mode))
             } else {
                 allSuccessful = false
                 player.sendMessage(lang.msg("bedrock.settings.error.mode_save_failed"))
