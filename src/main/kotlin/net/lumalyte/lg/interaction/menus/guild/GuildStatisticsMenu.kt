@@ -734,8 +734,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val item = ItemStack.of(Material.REPEATER)
             .name(lang.gui("menu.statistics.item.kill_trends.name"))
             .lore(lang.gui("menu.statistics.item.kill_trends.lore.description"))
-            .lore(lang.gui("menu.statistics.item.kill_trends.lore.patterns"))
-            .lore(lang.gui("menu.statistics.item.kill_trends.lore.chart"))
+            .lore(lang.gui("menu.common.blank"))
 
         val guiItem = GuiItem(item) {
             openTrendAnalysis()
@@ -745,10 +744,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addComparisonButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.COMPARATOR)
-            .name(lang.gui("menu.statistics.item.contribution_chart.name"))
-            .lore(lang.gui("menu.statistics.item.contribution_chart.lore.description"))
-            .lore(lang.gui("menu.statistics.item.contribution_chart.lore.chart"))
-            .lore(lang.gui("menu.statistics.item.contribution_chart.lore.details"))
+            .name(lang.gui("menu.statistics.item.kill_trends.name"))
+            .lore(lang.gui("menu.statistics.item.kill_trends.lore.description"))
+            .lore(lang.gui("menu.common.blank"))
 
         val guiItem = GuiItem(item) {
             openGuildComparison()
