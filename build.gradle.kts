@@ -123,7 +123,7 @@ dependencies {
 
     //combatlogX api
     compileOnly("com.github.sirblobman.api:core:2.9-SNAPSHOT")
-    compileOnly("com.github.sirblobman.combatlogx:api:11.6-SNAPSHOT")
+    compileOnly(files("libs/CombatLogX-api.jar"))
 
     // Lunar Client Apollo API
     compileOnly("com.lunarclient:apollo-api:1.2.3")
