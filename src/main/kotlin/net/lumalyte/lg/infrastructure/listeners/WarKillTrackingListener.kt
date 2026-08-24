@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.listeners
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.ObjectiveType
@@ -24,6 +25,7 @@ class WarKillTrackingListener : Listener, KoinComponent {
 
     private val warService: WarService by inject()
     private val memberService: MemberService by inject()
+    private val lang: LangService by inject()
 
     private val logger = LoggerFactory.getLogger(WarKillTrackingListener::class.java)
 
@@ -101,8 +103,8 @@ class WarKillTrackingListener : Listener, KoinComponent {
                             }
 
                             // Notify both players
-                            killer.sendMessage("§6⚔ WAR KILL! §7You killed §c${victim.name}§7!")
-                            victim.sendMessage("§c☠ You were killed by §6${killer.name}§c in the war!")
+                            killer.sendMessage(lang.msg("notification.war.kill.killer", "victim" to victim.name))
+                            victim.sendMessage(lang.msg("notification.war.kill.victim", "killer" to killer.name))
 
                             // Check if any kill objectives are met
                             checkAndCompleteKillObjectives(war.id, updatedStats)

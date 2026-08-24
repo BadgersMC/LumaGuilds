@@ -1,5 +1,9 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangHost
+import net.badgersmc.nexus.i18n.LangService
+import net.badgersmc.nexus.i18n.Locale
+import net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang
 import org.mockbukkit.mockbukkit.MockBukkit
 import org.mockbukkit.mockbukkit.ServerMock
 import org.mockbukkit.mockbukkit.entity.PlayerMock
@@ -12,12 +16,18 @@ import org.bukkit.command.Command
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.api.Assertions.*
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
+import java.io.File
+import java.nio.file.Path
 
 class LumaGuildsCommandTest {
+
+    @TempDir
+    lateinit var dataFolder: Path
 
     private lateinit var server: ServerMock
     private lateinit var player: PlayerMock
@@ -44,6 +54,16 @@ class LumaGuildsCommandTest {
         stopKoin() // Stop any existing Koin instance
         startKoin {
             modules(module {
+                single<LangService> {
+                    LangService(
+                        object : LangHost {
+                            override val dataFolder: File = this@LumaGuildsCommandTest.dataFolder.toFile()
+                            override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
+                        },
+                        Locale("en_US"),
+                        LumaGuildsLang::class.java,
+                    )
+                }
                 single { adminOverrideService }
                 single { permissionResolver }
                 single { mockk<net.lumalyte.lg.application.services.GuildService>(relaxed = true) }

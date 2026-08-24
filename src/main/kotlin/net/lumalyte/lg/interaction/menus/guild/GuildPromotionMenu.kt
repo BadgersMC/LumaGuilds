@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -33,13 +34,14 @@ class GuildPromotionMenu(
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
     private val plugin: Plugin by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         // Check permission first
         val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
         if (!hasPermission) {
-            player.sendMessage("§c❌ You don't have permission to manage ranks!")
-            player.sendMessage("§7Required permission: §fMANAGE_RANKS")
+            player.sendMessage(lang.msg("menu.guild_promotion.permission.denied"))
+            player.sendMessage(lang.msg("menu.guild_promotion.permission.required"))
             menuNavigator.goBack()
             return
         }
@@ -49,12 +51,12 @@ class GuildPromotionMenu(
         val members = memberService.getGuildMembers(guild.id).sortedBy { rankById[it.rankId]?.priority ?: Int.MAX_VALUE }
 
         if (members.isEmpty()) {
-            player.sendMessage("§cNo members in this guild.")
+            player.sendMessage(lang.msg("menu.guild_promotion.feedback.no_members"))
             menuNavigator.goBack()
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Members — ${guild.name}"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_promotion.title", "guild" to guild.name)))
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
             if (e.click == ClickType.SHIFT_LEFT || e.click == ClickType.SHIFT_RIGHT)
@@ -71,12 +73,18 @@ class GuildPromotionMenu(
             val isOnline = Bukkit.getPlayer(member.playerId)?.isOnline == true
 
             val item = ItemStack.of(if (isOnline) Material.PLAYER_HEAD else Material.SKELETON_SKULL)
-                .name("§e${playerName}")
-                .lore("§7Rank: §f${rank?.name ?: "Unknown"}")
-                .lore("§7Status: ${if (isOnline) "§aOnline" else "§7Offline"}")
-                .lore("")
-                .lore("§7Left-click to promote")
-                .lore("§7Right-click to demote")
+                .name(lang.legacy("menu.guild_promotion.member.name", "player" to playerName))
+                .lore(lang.legacy("menu.guild_promotion.member.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_promotion.fallback.unknown_rank"))))
+                .lore(
+                    if (isOnline) {
+                        lang.legacy("menu.guild_promotion.member.status.online")
+                    } else {
+                        lang.legacy("menu.guild_promotion.member.status.offline")
+                    }
+                )
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.guild_promotion.member.promote"))
+                .lore(lang.legacy("menu.guild_promotion.member.demote"))
 
             GuiItem(item) {
                 val rankIdx = ranks.indexOf(rank)
@@ -88,14 +96,14 @@ class GuildPromotionMenu(
                             // Fetch the exact rank the service assigned
                             val updatedMember = memberService.getMember(member.playerId, guild.id)
                             val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx - 1].name
-                            player.sendMessage("§a§f$playerName §apromoted to §f$newRankName§a.")
+                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.promoted", "player" to playerName, "rank" to newRankName))
                             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
                             reloadSafely()
                         } else {
-                            player.sendMessage("§cFailed to promote $playerName.")
+                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.promote_failed", "player" to playerName))
                         }
                     } else {
-                        player.sendMessage("§c$playerName is already at the highest rank.")
+                        player.sendMessage(lang.msg("menu.guild_promotion.feedback.highest_rank", "player" to playerName))
                     }
                 } else if (it.click == ClickType.RIGHT) {
                     // Demote
@@ -105,14 +113,14 @@ class GuildPromotionMenu(
                             // Fetch the exact rank the service assigned
                             val updatedMember = memberService.getMember(member.playerId, guild.id)
                             val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx + 1].name
-                            player.sendMessage("§e§f$playerName §edemoted to §f$newRankName§e.")
+                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.demoted", "player" to playerName, "rank" to newRankName))
                             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f)
                             reloadSafely()
                         } else {
-                            player.sendMessage("§cFailed to demote $playerName.")
+                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.demote_failed", "player" to playerName))
                         }
                     } else {
-                        player.sendMessage("§c$playerName is already at the lowest rank.")
+                        player.sendMessage(lang.msg("menu.guild_promotion.feedback.lowest_rank", "player" to playerName))
                     }
                 }
             }
@@ -124,8 +132,8 @@ class GuildPromotionMenu(
         if (paginatedPane.pages > 1) {
             // Previous page
             val prevItem = ItemStack.of(Material.ARROW)
-                .name("§e⬅ Previous Page")
-                .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
+                .name(lang.legacy("menu.guild_promotion.navigation.previous"))
+                .lore(lang.legacy("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
             staticPane.addItem(GuiItem(prevItem) {
                 if (paginatedPane.page > 0) {
                     paginatedPane.page--
@@ -135,8 +143,8 @@ class GuildPromotionMenu(
 
             // Next page
             val nextItem = ItemStack.of(Material.ARROW)
-                .name("§eNext Page ➡")
-                .lore("§7Page ${paginatedPane.page + 1} of ${paginatedPane.pages}")
+                .name(lang.legacy("menu.guild_promotion.navigation.next"))
+                .lore(lang.legacy("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
             staticPane.addItem(GuiItem(nextItem) {
                 if (paginatedPane.page < paginatedPane.pages - 1) {
                     paginatedPane.page++
@@ -147,14 +155,14 @@ class GuildPromotionMenu(
 
         // Member count display
         val infoItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name("§6Total Members: §f${members.size}")
-            .lore("§7Guild: §f${guild.name}")
+            .name(lang.legacy("menu.guild_promotion.info.members", "count" to members.size))
+            .lore(lang.legacy("menu.guild_promotion.info.guild", "guild" to guild.name))
         staticPane.addItem(GuiItem(infoItem) { it.isCancelled = true }, 4, 0)
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§e⬅ BACK")
-            .lore("§7Return to guild settings")
+            .name(lang.legacy("menu.guild_promotion.navigation.back.name"))
+            .lore(lang.legacy("menu.guild_promotion.navigation.back.description"))
         staticPane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 7, 0)
 
         gui.addPane(paginatedPane)

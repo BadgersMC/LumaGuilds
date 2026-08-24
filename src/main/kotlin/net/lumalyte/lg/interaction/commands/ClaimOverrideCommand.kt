@@ -1,12 +1,13 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
+
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.actions.player.ToggleClaimOverride
 import net.lumalyte.lg.application.results.player.ToggleClaimOverrideResult
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -14,7 +15,7 @@ import kotlin.getValue
 
 @CommandAlias("claimoverride")
 class ClaimOverrideCommand: BaseCommand(), KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val toggleClaimOverride: ToggleClaimOverride by inject()
 
     @Default
@@ -25,12 +26,12 @@ class ClaimOverrideCommand: BaseCommand(), KoinComponent {
         // Execute claim override action and output result to player
         val messageKey = when (result) {
             is ToggleClaimOverrideResult.Success -> {
-                if (result.isOverrideEnabled) LocalizationKeys.COMMAND_CLAIM_OVERRIDE_ENABLED
-                else LocalizationKeys.COMMAND_CLAIM_OVERRIDE_DISABLED
+                if (result.isOverrideEnabled) "command.claim_override.enabled"
+                else "command.claim_override.disabled"
             }
             is ToggleClaimOverrideResult.PlayerNotFound,
-            is ToggleClaimOverrideResult.StorageError -> LocalizationKeys.GENERAL_ERROR
+            is ToggleClaimOverrideResult.StorageError -> "general.error"
         }
-        player.sendMessage(localizationProvider.get(player.uniqueId, messageKey))
+        player.sendMessage(lang.msg(messageKey))
     }
 }

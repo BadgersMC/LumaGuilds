@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
+
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Subcommand
@@ -8,14 +10,13 @@ import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.results.claim.flags.EnableClaimFlagResult
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.values.Flag
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.UUID
 
 @CommandAlias("claim")
 class AddFlagCommand : ClaimCommand(), KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val enableClaimFlag: EnableClaimFlag by inject()
     private val getClaimDetails: GetClaimDetails by inject()
 
@@ -31,42 +32,36 @@ class AddFlagCommand : ClaimCommand(), KoinComponent {
         val playerId = player.uniqueId
 
         // Add flag to the claim and notify player of result
-        val (messageKey, messageArgs) = when (enableClaimFlag.execute(flag, partition.claimId)) {
-            EnableClaimFlagResult.Success -> Pair(
-                LocalizationKeys.COMMAND_CLAIM_ADD_FLAG_SUCCESS,
-                arrayOf(getFlagName(playerId, flag), getClaimName(playerId, claimId))
+        val message = when (enableClaimFlag.execute(flag, partition.claimId)) {
+            EnableClaimFlagResult.Success -> lang.msg(
+                "command.claim.add_flag.success",
+                "flag" to getFlagName(playerId, flag),
+                "claim" to getClaimName(playerId, claimId),
             )
-            EnableClaimFlagResult.AlreadyExists -> Pair(
-                LocalizationKeys.COMMAND_CLAIM_ADD_FLAG_ALREADY_EXISTS,
-                arrayOf(getClaimName(playerId, claimId), getFlagName(playerId, flag))
+            EnableClaimFlagResult.AlreadyExists -> lang.msg(
+                "command.claim.add_flag.already_exists",
+                "claim" to getClaimName(playerId, claimId),
+                "flag" to getFlagName(playerId, flag),
             )
-            EnableClaimFlagResult.ClaimNotFound -> Pair(
-                LocalizationKeys.COMMAND_COMMON_UNKNOWN_CLAIM,
-                emptyArray<String>()
-            )
-            EnableClaimFlagResult.StorageError -> Pair(
-                LocalizationKeys.GENERAL_ERROR,
-                emptyArray<String>()
-            )
+            EnableClaimFlagResult.ClaimNotFound -> lang.msg("command.common.unknown_claim")
+            EnableClaimFlagResult.StorageError -> lang.msg("general.error")
         }
 
         // Output to player chat
-        player.sendMessage(localizationProvider.get(player.uniqueId, messageKey, *messageArgs))
+        player.sendMessage(message)
     }
 
     /**
      * Helper function to retrieve the claim name or a default error message if not found.
      */
     private fun getClaimName(playerId: UUID, claimId: UUID): String {
-        return getClaimDetails.execute(claimId)?.name ?: localizationProvider.get(
-            playerId, LocalizationKeys.GENERAL_NAME_ERROR
-        )
+        return getClaimDetails.execute(claimId)?.name ?: lang.legacy("general.name_error")
     }
 
     /**
      * Helper function to retrieve the name of the permission.
      */
     private fun getFlagName(playerId: UUID, flag: Flag): String {
-        return localizationProvider.get(playerId, flag.nameKey)
+        return lang.legacy(flag.nameKey)
     }
 }

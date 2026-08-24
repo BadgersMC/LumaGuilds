@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -37,9 +38,10 @@ class GuildStrikePenaltyConfirmMenu(
     private val penaltyService: PenaltyService by inject()
     private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§4§lConfirm - ${penaltyType.name.replace('_', ' ')}"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.guild_strike_penalty_confirm.title", "type" to penaltyTypeName())))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { event -> event.isCancelled = true }
         gui.setOnBottomClick { event ->
@@ -51,22 +53,22 @@ class GuildStrikePenaltyConfirmMenu(
         }
 
         val warning = ItemStack.of(Material.BARRIER)
-            .name("§c⚠ CONFIRMATION")
-            .lore("§cThis action cannot be undone!")
-            .lore("§7")
-            .lore("§7Guild: §f${GuildResolver.displayName(guild)}")
-            .lore("§7Penalty: §f${describePenalty()}")
+            .name(lang.legacy("menu.guild_strike_penalty_confirm.warning.name"))
+            .lore(lang.legacy("menu.guild_strike_penalty_confirm.warning.description"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_strike_penalty_confirm.warning.guild", "guild" to GuildResolver.displayName(guild)))
+            .lore(lang.legacy("menu.guild_strike_penalty_confirm.warning.penalty", "penalty" to describePenalty()))
         pane.addItem(GuiItem(warning), 0, 0)
 
         val confirmItem = ItemStack.of(Material.RED_WOOL)
-            .name("§c✅ CONFIRM ${penaltyType.name.replace('_', ' ').uppercase()}")
-            .lore("§7Click to apply the penalty")
+            .name(lang.legacy("menu.guild_strike_penalty_confirm.confirm.name", "type" to penaltyTypeName().uppercase()))
+            .lore(lang.legacy("menu.guild_strike_penalty_confirm.confirm.description"))
         pane.addItem(GuiItem(confirmItem) { applyPenalty() }, 4, 1)
 
         val cancelItem = ItemStack.of(Material.GREEN_WOOL)
-            .name("§a❌ CANCEL")
-            .lore("§7Return to penalty menu")
-            .lore("§7No changes will be made")
+            .name(lang.legacy("menu.guild_strike_penalty_confirm.cancel.name"))
+            .lore(lang.legacy("menu.guild_strike_penalty_confirm.cancel.description"))
+            .lore(lang.legacy("menu.guild_strike_penalty_confirm.cancel.safe"))
         pane.addItem(GuiItem(cancelItem) {
             menuNavigator.openMenu(GuildStrikePenaltyMenu(menuNavigator, player, guild, strikesConfig))
         }, 6, 1)
@@ -78,10 +80,10 @@ class GuildStrikePenaltyConfirmMenu(
     private fun describePenalty(): String {
         val p = strikesConfig.penalties
         return when (penaltyType) {
-            PenaltyType.LEVEL_REDUCTION -> "Remove ${p.levelReductionLevels} level(s)"
-            PenaltyType.EXP_REDUCTION -> "Remove ${p.expReductionAmount} XP"
-            PenaltyType.GUILD_MUTE -> "Mute guild chat for ${"%.1f".format(p.guildMuteDurationMillis / 3_600_000.0)} hour(s)"
-            PenaltyType.DISBAND -> "FULLY DISBAND the guild"
+            PenaltyType.LEVEL_REDUCTION -> lang.legacy("menu.guild_strike_penalty_confirm.description.level", "levels" to p.levelReductionLevels)
+            PenaltyType.EXP_REDUCTION -> lang.legacy("menu.guild_strike_penalty_confirm.description.experience", "amount" to p.expReductionAmount)
+            PenaltyType.GUILD_MUTE -> lang.legacy("menu.guild_strike_penalty_confirm.description.mute", "hours" to "%.1f".format(p.guildMuteDurationMillis / 3_600_000.0))
+            PenaltyType.DISBAND -> lang.raw("menu.guild_strike_penalty_confirm.description.disband")
         }
     }
 
@@ -97,7 +99,7 @@ class GuildStrikePenaltyConfirmMenu(
 
         when (result) {
             is PenaltyService.PenaltyResult.Success -> {
-                player.sendMessage("§8[§bLumaGuilds§8] ${result.message}")
+                player.sendMessage(renderPenaltyFeedback(result))
                 // Notify online members of their guild being penalized.
                 if (penaltyType != PenaltyType.DISBAND) {
                     // One member lookup for the whole guild, then filter online —
@@ -106,14 +108,40 @@ class GuildStrikePenaltyConfirmMenu(
                     Bukkit.getOnlinePlayers()
                         .filter { online -> online.uniqueId in memberUuids }
                         .forEach { member ->
-                            member.sendMessage("§8[§bLumaGuilds§8] §c⚠ Your guild has received a penalty: ${penaltyType.name.replace('_', ' ')}")
+                            member.sendMessage(lang.msg("menu.guild_strike_penalty_confirm.feedback.member_notification", "type" to penaltyTypeName()))
                         }
                 }
             }
             is PenaltyService.PenaltyResult.Failure -> {
-                player.sendMessage("§8[§bLumaGuilds§8] ${result.message}")
+                player.sendMessage(renderPenaltyFeedback(result))
                 menuNavigator.openMenu(GuildStrikePenaltyMenu(menuNavigator, player, guild, strikesConfig))
             }
         }
+    }
+
+    private fun renderPenaltyFeedback(result: PenaltyService.PenaltyResult) = when (result.feedback) {
+        PenaltyService.PenaltyFeedback.LEVEL_DISABLED ->
+            lang.msg("menu.guild_strike_penalty_confirm.feedback.level_disabled")
+        PenaltyService.PenaltyFeedback.LEVEL_REDUCED ->
+            lang.msg("menu.guild_strike_penalty_confirm.feedback.level_reduced", "level" to result.parameters["level"], "guild" to result.parameters["guild"])
+        PenaltyService.PenaltyFeedback.EXP_DISABLED ->
+            lang.msg("menu.guild_strike_penalty_confirm.feedback.exp_disabled")
+        PenaltyService.PenaltyFeedback.EXP_REDUCED ->
+            lang.msg("menu.guild_strike_penalty_confirm.feedback.exp_reduced", "amount" to result.parameters["amount"], "guild" to result.parameters["guild"])
+        PenaltyService.PenaltyFeedback.MUTE_DISABLED ->
+            lang.msg("menu.guild_strike_penalty_confirm.feedback.mute_disabled")
+        PenaltyService.PenaltyFeedback.MUTED ->
+            lang.msg("menu.guild_strike_penalty_confirm.feedback.muted", "guild" to result.parameters["guild"], "hours" to result.parameters["hours"])
+        PenaltyService.PenaltyFeedback.DISBAND_FAILED ->
+            lang.msg("menu.guild_strike_penalty_confirm.feedback.disband_failed", "guild" to result.parameters["guild"])
+        PenaltyService.PenaltyFeedback.DISBANDED ->
+            lang.msg("menu.guild_strike_penalty_confirm.feedback.disbanded", "guild" to result.parameters["guild"])
+    }
+
+    private fun penaltyTypeName(): String = when (penaltyType) {
+        PenaltyType.LEVEL_REDUCTION -> lang.raw("menu.guild_strike_penalty_confirm.type.level_reduction")
+        PenaltyType.EXP_REDUCTION -> lang.raw("menu.guild_strike_penalty_confirm.type.exp_reduction")
+        PenaltyType.GUILD_MUTE -> lang.raw("menu.guild_strike_penalty_confirm.type.guild_mute")
+        PenaltyType.DISBAND -> lang.raw("menu.guild_strike_penalty_confirm.type.disband")
     }
 }

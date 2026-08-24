@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockConfirmationMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankMenu
@@ -37,7 +38,8 @@ import java.util.logging.Logger
 class MenuFactory(
     private val platformDetectionService: PlatformDetectionService,
     private val configService: net.lumalyte.lg.application.services.ConfigService,
-    private val logger: Logger
+    private val logger: Logger,
+    private val lang: LangService,
 ) {
 
     /**
@@ -312,7 +314,7 @@ class MenuFactory(
             val rankService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.RankService>()
             val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
             val chatInputListener = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.interaction.listeners.ChatInputListener>()
-            PartyCreationMenu(menuNavigator, player, guild, guildService, partyService, rankService, memberService, chatInputListener, configService, this)
+            PartyCreationMenu(menuNavigator, player, guild, guildService, partyService, rankService, memberService, chatInputListener, configService, this, lang)
         }
     }
 
@@ -465,7 +467,7 @@ class MenuFactory(
         homeName: String
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            BedrockAccessUnavailableMenu(player, "home access (per-rank whitelist)")
+            BedrockAccessUnavailableMenu(player, "home access (per-rank whitelist)", lang)
         } else {
             net.lumalyte.lg.interaction.menus.guild.HomeAccessMenu(menuNavigator, player, guild, homeName)
         }
@@ -483,7 +485,7 @@ class MenuFactory(
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            BedrockAccessUnavailableMenu(player, "ally-home access (inbound whitelist)")
+            BedrockAccessUnavailableMenu(player, "ally-home access (inbound whitelist)", lang)
         } else {
             net.lumalyte.lg.interaction.menus.guild.AllyHomeAccessMenu(menuNavigator, player, guild)
         }
@@ -491,11 +493,12 @@ class MenuFactory(
 
     private class BedrockAccessUnavailableMenu(
         private val player: Player,
-        private val featureLabel: String
+        private val featureLabel: String,
+        private val lang: LangService,
     ) : Menu {
         override fun open() {
-            player.sendMessage("§eUse the Java client to configure $featureLabel.")
-            player.sendMessage("§7Bedrock support is on the roadmap.")
+            player.sendMessage(lang.msg("bedrock.common.java_required", "feature" to featureLabel))
+            player.sendMessage(lang.msg("bedrock.common.support_roadmap"))
         }
     }
 

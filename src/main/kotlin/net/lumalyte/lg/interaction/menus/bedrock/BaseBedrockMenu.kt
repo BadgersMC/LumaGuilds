@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BedrockLocalizationService
 import net.lumalyte.lg.config.BedrockConfig
 import net.lumalyte.lg.interaction.menus.Menu
@@ -53,6 +54,7 @@ abstract class BaseBedrockMenu(
 
     protected val menuFactory: MenuFactory by inject()
     protected val bedrockLocalization: BedrockLocalizationService by inject()
+    private val lang: LangService by inject()
     protected val formCacheService: net.lumalyte.lg.application.services.FormCacheService by inject()
     protected val formValidationService: net.lumalyte.lg.application.services.FormValidationService by inject()
 
@@ -112,7 +114,7 @@ abstract class BaseBedrockMenu(
         } catch (e: IllegalArgumentException) {
             // Handle invalid player UUID or form data
             logger.warning("Invalid arguments for Bedrock menu ${this::class.simpleName}: ${e.message}")
-            player.sendMessage("§cUnable to open menu due to invalid data. Please contact an administrator.")
+            player.sendMessage(lang.msg("bedrock.common.error.invalid_data"))
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
@@ -158,6 +160,11 @@ abstract class BaseBedrockMenu(
      * Public getter for logger (used by FormTimeoutTask)
      */
     fun getLoggerInstance(): Logger = logger
+
+    fun sendTimeoutMessages(timeoutSeconds: Int) {
+        player.sendMessage(lang.msg("bedrock.common.timeout.expired", "seconds" to timeoutSeconds))
+        player.sendMessage(lang.msg("bedrock.common.timeout.reopen"))
+    }
 
     /**
      * Public getter for menuNavigator (used by FormTimeoutTask)
@@ -256,7 +263,14 @@ abstract class BaseBedrockMenu(
      * @param errors List of validation error messages
      */
     protected fun showFormValidationErrors(errors: List<String>) {
-        formValidationService.showValidationErrors(player, errors, { reopen() }, { localize(it) })
+        formValidationService.showValidationErrors(player, errors, { reopen() }) { key ->
+            when (key) {
+                "form.validation.errors.title" -> lang.legacy("form.validation.errors.title")
+                "form.button.retry" -> lang.legacy("form.button.retry")
+                "form.button.cancel" -> lang.legacy("form.button.cancel")
+                else -> key
+            }
+        }
     }
 
     /**
@@ -305,7 +319,7 @@ abstract class BaseBedrockMenu(
     protected fun cancelWorkflow() {
         clearWorkflow()
         clearMenuStack()
-        player.sendMessage("§eWorkflow cancelled. All progress cleared.")
+        player.sendMessage(lang.msg("bedrock.common.workflow.cancelled"))
     }
 
     /**
@@ -316,13 +330,6 @@ abstract class BaseBedrockMenu(
         return emptyMap()
     }
 
-
-    /**
-     * Gets a localized string for the current player
-     */
-    protected fun localize(key: String, vararg args: Any?): String {
-        return bedrockLocalization.getBedrockString(player, key, *args)
-    }
 
     /**
      * Determines if this form should be cached
@@ -391,7 +398,7 @@ abstract class BaseBedrockMenu(
         } catch (e: IllegalArgumentException) {
             // Handle invalid player UUID or form data
             logger.warning("Invalid arguments for Bedrock menu ${this::class.simpleName}: ${e.message}")
-            player.sendMessage("§cUnable to open menu due to invalid data. Please contact an administrator.")
+            player.sendMessage(lang.msg("bedrock.common.error.invalid_data"))
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
@@ -428,7 +435,7 @@ abstract class BaseBedrockMenu(
      */
     private fun openAsync() {
         // Show loading message
-        player.sendMessage("§eLoading menu...")
+        player.sendMessage(lang.msg("bedrock.common.loading.started"))
 
         // Build form asynchronously
         val cacheKey = if (shouldCacheForm()) createCacheKey() else null
@@ -457,26 +464,19 @@ abstract class BaseBedrockMenu(
                 registerFormTimeout(player.uniqueId.toString(), config.formTimeoutSeconds)
 
                 // Clear loading message and show success
-                player.sendMessage("§aMenu loaded successfully!")
+                player.sendMessage(lang.msg("bedrock.common.loading.complete"))
                 logger.fine("Opened Bedrock form asynchronously ${this::class.simpleName} for player ${player.name}")
 
             } catch (e: Exception) {
                 // Menu operation - catching all exceptions to prevent UI failure
                 logger.warning("Error sending async form ${this::class.simpleName} to player ${player.name}: ${e.message}")
-                player.sendMessage("§cFailed to load menu. Please try again.")
+                player.sendMessage(lang.msg("bedrock.common.error.load_failed"))
             }
         }.exceptionally { throwable ->
             logger.warning("Async form building failed for ${this::class.simpleName}: ${throwable.message}")
-            player.sendMessage("§cFailed to load menu. Please try again.")
+            player.sendMessage(lang.msg("bedrock.common.error.load_failed"))
             null
         }
-    }
-
-    /**
-     * Gets a localized string for a specific locale
-     */
-    protected fun localize(locale: java.util.Locale, key: String, vararg args: Any?): String {
-        return bedrockLocalization.getBedrockString(locale, key, *args)
     }
 
     /**
@@ -540,20 +540,20 @@ abstract class BaseBedrockMenu(
                 // Try to create equivalent Java menu
                 val javaMenu = createFallbackJavaMenu()
                 if (javaMenu != null) {
-                    player.sendMessage("§eBedrock menu unavailable. Opening Java version...")
+                    player.sendMessage(lang.msg("bedrock.common.fallback.opening_java"))
                     openMenu(javaMenu)
                     return
                 }
             }
 
             // If no fallback available or disabled, show error message
-            player.sendMessage("§cBedrock menus are currently unavailable. Please try again later or contact an administrator.")
+            player.sendMessage(lang.msg("bedrock.common.error.unavailable"))
             logger.warning("Bedrock menu ${this::class.simpleName} failed for player ${player.name} - no fallback available")
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error during Bedrock fallback handling: ${e.message}")
-            player.sendMessage("§cAn error occurred. Please contact an administrator.")
+            player.sendMessage(lang.msg("bedrock.common.error.general"))
         }
     }
 
@@ -599,8 +599,7 @@ class FormTimeoutTask(
             }
 
             // Send timeout message
-            player.sendMessage("§eMenu timed out after $timeoutSeconds seconds.")
-            player.sendMessage("§7You can continue where you left off by reopening the menu.")
+            menu.sendTimeoutMessages(timeoutSeconds)
 
             menu.getLoggerInstance().info("Form timeout for player ${player.name} after $timeoutSeconds seconds")
 

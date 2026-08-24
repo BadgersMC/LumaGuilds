@@ -4,6 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.PartyRepository
 import net.lumalyte.lg.application.persistence.PartyRequestRepository
 import net.lumalyte.lg.application.services.GuildService
@@ -31,6 +32,7 @@ internal class PartyServiceSystemRemovalTest {
         partyRequestRepository = mockk<PartyRequestRepository>(relaxed = true),
         memberService = memberService,
         guildService = mockk<GuildService>(relaxed = true),
+        lang = mockk<LangService>(relaxed = true),
     )
 
     private fun party(vararg guildIds: UUID, status: PartyStatus = PartyStatus.ACTIVE) =

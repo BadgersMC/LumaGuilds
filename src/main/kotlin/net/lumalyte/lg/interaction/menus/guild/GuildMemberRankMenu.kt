@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -39,12 +40,13 @@ class GuildMemberRankMenu(
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private var currentPage = 0
     private val ranksPerPage = 9 // 3 columns × 3 rows (rows 1-3)
 
     override fun open() {
-        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6Rank Management"))
+        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.legacy("menu.guild_member_rank.title")))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -83,13 +85,13 @@ class GuildMemberRankMenu(
         pane.addItem(GuiItem(headItem), 0, 0)
 
         // Member info
-        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: lang.raw("menu.guild_member_rank.fallback.unknown_player")
         val infoItem = ItemStack.of(Material.PAPER)
-            .name("§f👤 Member Info")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Joined: §f${targetMember.joinedAt}")
-            .lore("§7")
-            .lore("§7Click on a rank below to change")
+            .name(lang.legacy("menu.guild_member_rank.member.name"))
+            .lore(lang.legacy("menu.guild_member_rank.member.player", "player" to playerName))
+            .lore(lang.legacy("menu.guild_member_rank.member.joined", "date" to targetMember.joinedAt))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_member_rank.member.instructions"))
 
         pane.addItem(GuiItem(infoItem), 1, 0)
     }
@@ -99,14 +101,14 @@ class GuildMemberRankMenu(
 
         val rankItem = if (currentRank != null) {
             ItemStack.of(Material.DIAMOND_CHESTPLATE)
-                .name("§6🏆 Current Rank")
-                .lore("§7Rank: §f${currentRank.name}")
-                .lore("§7Priority: §f${currentRank.priority}")
-                .lore("§7Permissions: §f${currentRank.permissions.size}")
+                .name(lang.legacy("menu.guild_member_rank.current.name"))
+                .lore(lang.legacy("menu.guild_member_rank.current.rank", "rank" to currentRank.name))
+                .lore(lang.legacy("menu.guild_member_rank.current.priority", "priority" to currentRank.priority))
+                .lore(lang.legacy("menu.guild_member_rank.current.permissions", "count" to currentRank.permissions.size))
         } else {
             ItemStack.of(Material.BARRIER)
-                .name("§c❌ Rank Error")
-                .lore("§7Could not load current rank")
+                .name(lang.legacy("menu.guild_member_rank.current.error.name"))
+                .lore(lang.legacy("menu.guild_member_rank.current.error.description"))
         }
 
         pane.addItem(GuiItem(rankItem), 3, 0)
@@ -126,16 +128,28 @@ class GuildMemberRankMenu(
         displayRanks.forEachIndexed { index, rank ->
             val isCurrentRank = rank.id == targetMember.rankId
             val rankItem = ItemStack.of(if (isCurrentRank) Material.LIME_CONCRETE else Material.GRAY_CONCRETE)
-                .name("${if (isCurrentRank) "§a✓" else "§f"} ${rank.name}")
-                .lore("§7Priority: §f${rank.priority}")
-                .lore("§7Members: §f${memberService.getMembersByRank(guild.id, rank.id).size}")
-                .lore("§7Permissions: §f${rank.permissions.size}")
-                .lore("§7")
-                .lore(if (isCurrentRank) "§aCurrent rank" else "§eClick to select")
+                .name(
+                    if (isCurrentRank) {
+                        lang.legacy("menu.guild_member_rank.selection.name.current", "rank" to rank.name)
+                    } else {
+                        lang.legacy("menu.guild_member_rank.selection.name.available", "rank" to rank.name)
+                    }
+                )
+                .lore(lang.legacy("menu.guild_member_rank.selection.priority", "priority" to rank.priority))
+                .lore(lang.legacy("menu.guild_member_rank.selection.members", "count" to memberService.getMembersByRank(guild.id, rank.id).size))
+                .lore(lang.legacy("menu.guild_member_rank.selection.permissions", "count" to rank.permissions.size))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(
+                    if (isCurrentRank) {
+                        lang.legacy("menu.guild_member_rank.selection.status.current")
+                    } else {
+                        lang.legacy("menu.guild_member_rank.selection.status.available")
+                    }
+                )
 
             val rankGuiItem = GuiItem(rankItem) {
                 if (isCurrentRank) {
-                    player.sendMessage("§7This is already their current rank!")
+                    player.sendMessage(lang.msg("menu.guild_member_rank.feedback.already_current"))
                 } else {
                     // Open confirmation menu
                     menuNavigator.openMenu(menuFactory.createGuildMemberRankConfirmationMenu(
@@ -154,8 +168,8 @@ class GuildMemberRankMenu(
     private fun addNavigationButtons(pane: StaticPane, availableRanks: List<Rank>, totalPages: Int) {
         // Previous page button
         val prevItem = ItemStack.of(Material.ARROW)
-            .name("§f⬅ PREVIOUS PAGE")
-            .lore("§7Page ${currentPage + 1} of $totalPages")
+            .name(lang.legacy("menu.guild_member_rank.navigation.previous.name"))
+            .lore(lang.legacy("menu.guild_member_rank.navigation.position", "page" to currentPage + 1, "pages" to totalPages))
 
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
@@ -167,15 +181,15 @@ class GuildMemberRankMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§f📄 PAGE ${currentPage + 1}/$totalPages")
-            .lore("§7${availableRanks.size} ranks total")
+            .name(lang.legacy("menu.guild_member_rank.navigation.page", "page" to currentPage + 1, "pages" to totalPages))
+            .lore(lang.legacy("menu.guild_member_rank.navigation.total", "count" to availableRanks.size))
 
         pane.addItem(GuiItem(pageItem), 4, 4)
 
         // Next page button
         val nextItem = ItemStack.of(Material.ARROW)
-            .name("§fNEXT PAGE ➡")
-            .lore("§7Page ${currentPage + 1} of $totalPages")
+            .name(lang.legacy("menu.guild_member_rank.navigation.next.name"))
+            .lore(lang.legacy("menu.guild_member_rank.navigation.position", "page" to currentPage + 1, "pages" to totalPages))
 
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {
@@ -195,19 +209,19 @@ class GuildMemberRankMenu(
 
         val meta = head.itemMeta as SkullMeta
 
-        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: "Unknown Player"
+        val playerName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: lang.raw("menu.guild_member_rank.fallback.unknown_player")
 
         head.itemMeta = meta
 
-        return head.name("§f👤 $playerName")
-            .lore("§7Player: §f$playerName")
-            .lore("§7Rank Management")
+        return head.name(lang.legacy("menu.guild_member_rank.head.name", "player" to playerName))
+            .lore(lang.legacy("menu.guild_member_rank.head.player", "player" to playerName))
+            .lore(lang.legacy("menu.guild_member_rank.head.description"))
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c⬅ BACK")
-            .lore("§7Return to guild control panel")
+            .name(lang.legacy("menu.guild_member_rank.navigation.back.name"))
+            .lore(lang.legacy("menu.guild_member_rank.navigation.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))

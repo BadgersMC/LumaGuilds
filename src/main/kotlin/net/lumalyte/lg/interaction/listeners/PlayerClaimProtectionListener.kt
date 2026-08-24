@@ -1,16 +1,16 @@
 package net.lumalyte.lg.interaction.listeners
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent
 import com.destroystokyo.paper.event.player.PlayerSetSpawnEvent
 import net.lumalyte.lg.application.actions.claim.IsPlayerActionAllowed
 import net.lumalyte.lg.application.results.claim.IsPlayerActionAllowedResult.Denied
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.domain.values.PlayerActionType
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition2D
 import io.papermc.paper.event.block.PlayerShearBlockEvent
 import io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent
 import io.papermc.paper.event.player.PlayerOpenSignEvent
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -38,7 +38,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 class PlayerClaimProtectionListener: Listener, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val isPlayerActionAllowed: IsPlayerActionAllowed by inject()
 
     @EventHandler
@@ -588,9 +588,10 @@ class PlayerClaimProtectionListener: Listener, KoinComponent {
             is Denied -> {
                 event.isCancelled = true
                 val playerName = Bukkit.getOfflinePlayer(result.claim.playerId).name ?: "(Name not found)"
-                val outputMessage = localizationProvider.get(
-                    player.uniqueId, LocalizationKeys.FEEDBACK_CLAIM_DENIED, playerName)
-                player.sendActionBar(Component.text(outputMessage).color(TextColor.color(255, 85, 85)))
+                player.sendActionBar(
+                    lang.msg("feedback.claim.denied", "owner" to playerName)
+                        .color(TextColor.color(255, 85, 85))
+                )
             }
             else -> return
         }

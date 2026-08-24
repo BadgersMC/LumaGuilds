@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -37,6 +39,7 @@ class TruceRequestMenu(
     private val memberService: MemberService by inject()
     private val relationService: RelationService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private lateinit var guildsPane: PaginatedPane
     private var currentPage = 0
@@ -45,11 +48,11 @@ class TruceRequestMenu(
     override fun open() {
         // Check permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)) {
-            player.sendMessage("§cYou don't have permission to manage relations.")
+            player.sendMessage(lang.msg("menu.truce_request.feedback.no_permission"))
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§eRequest Truce"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.truce_request.title")))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -102,9 +105,9 @@ class TruceRequestMenu(
         if (pageGuilds.isEmpty()) {
             // No enemy guilds
             val emptyItem = ItemStack.of(Material.WHITE_BANNER)
-                .name("§7No Enemy Guilds")
-                .lore("§7You are not at war with any guilds.")
-                .lore("§7Truces can only be requested with enemies.")
+                .name(lang.legacy("menu.truce_request.empty.name"))
+                .lore(lang.legacy("menu.truce_request.empty.description"))
+                .lore(lang.legacy("menu.truce_request.empty.hint"))
 
             val guiItem = GuiItem(emptyItem) { }
             newPage.addItem(guiItem, 3, 1)
@@ -136,18 +139,18 @@ class TruceRequestMenu(
             ItemStack.of(Material.WHITE_BANNER)
         }
 
-        item.name("§c${targetGuild.name}")
-            .lore("§7Members: §f$memberCount")
-            .lore("§7Level: §f${targetGuild.level}")
-            .lore("§7Status: §cEnemy")
-            .lore("§7")
-            .lore("§eClick to select duration")
+        item.name(lang.legacy("menu.truce_request.guild.name", "guild" to targetGuild.name))
+            .lore(lang.legacy("menu.truce_request.guild.members", "count" to memberCount))
+            .lore(lang.legacy("menu.truce_request.guild.level", "level" to targetGuild.level))
+            .lore(lang.legacy("menu.truce_request.guild.status"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.truce_request.guild.select"))
 
         return item
     }
 
     private fun openDurationSelection(targetGuild: Guild) {
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§eSelect Truce Duration"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.truce_request.duration.title")))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -158,9 +161,9 @@ class TruceRequestMenu(
 
         // 7 days option
         val sevenDaysItem = ItemStack.of(Material.CLOCK)
-            .name("§e7 Days")
-            .lore("§7Request a 7-day truce")
-            .lore("§7with §f${targetGuild.name}")
+            .name(lang.legacy("menu.truce_request.duration.seven.name"))
+            .lore(lang.legacy("menu.truce_request.duration.seven.description"))
+            .lore(lang.legacy("menu.truce_request.duration.guild", "guild" to targetGuild.name))
 
         val sevenDaysGuiItem = GuiItem(sevenDaysItem) {
             requestTruce(targetGuild, 7)
@@ -169,9 +172,9 @@ class TruceRequestMenu(
 
         // 14 days option (default)
         val fourteenDaysItem = ItemStack.of(Material.CLOCK)
-            .name("§e14 Days §7(Recommended)")
-            .lore("§7Request a 14-day truce")
-            .lore("§7with §f${targetGuild.name}")
+            .name(lang.legacy("menu.truce_request.duration.fourteen.name"))
+            .lore(lang.legacy("menu.truce_request.duration.fourteen.description"))
+            .lore(lang.legacy("menu.truce_request.duration.guild", "guild" to targetGuild.name))
 
         val fourteenDaysGuiItem = GuiItem(fourteenDaysItem) {
             requestTruce(targetGuild, 14)
@@ -180,9 +183,9 @@ class TruceRequestMenu(
 
         // 30 days option
         val thirtyDaysItem = ItemStack.of(Material.CLOCK)
-            .name("§e30 Days")
-            .lore("§7Request a 30-day truce")
-            .lore("§7with §f${targetGuild.name}")
+            .name(lang.legacy("menu.truce_request.duration.thirty.name"))
+            .lore(lang.legacy("menu.truce_request.duration.thirty.description"))
+            .lore(lang.legacy("menu.truce_request.duration.guild", "guild" to targetGuild.name))
 
         val thirtyDaysGuiItem = GuiItem(thirtyDaysItem) {
             requestTruce(targetGuild, 30)
@@ -191,22 +194,22 @@ class TruceRequestMenu(
 
         // Custom duration option
         val customItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§eCustom Duration")
-            .lore("§7Enter a custom duration")
-            .lore("§7in chat (1-90 days)")
+            .name(lang.legacy("menu.truce_request.duration.custom.name"))
+            .lore(lang.legacy("menu.truce_request.duration.custom.description"))
+            .lore(lang.legacy("menu.truce_request.duration.custom.range"))
 
         val customGuiItem = GuiItem(customItem) {
             player.closeInventory()
-            player.sendMessage("§eTo request a custom truce duration, use:")
-            player.sendMessage("§6/guild truce ${targetGuild.name} <days>")
-            player.sendMessage("§7Example: §6/guild truce ${targetGuild.name} 21")
+            player.sendMessage(lang.msg("menu.truce_request.feedback.custom_intro"))
+            player.sendMessage(lang.msg("menu.truce_request.feedback.custom_command", "guild" to targetGuild.name))
+            player.sendMessage(lang.msg("menu.truce_request.feedback.custom_example", "guild" to targetGuild.name))
         }
         pane.addItem(customGuiItem, 7, 1)
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§eBack")
-            .lore("§7Return to enemy selection")
+            .name(lang.legacy("menu.truce_request.duration.back.name"))
+            .lore(lang.legacy("menu.truce_request.duration.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             open()
@@ -223,15 +226,15 @@ class TruceRequestMenu(
 
         if (relation != null) {
             player.closeInventory()
-            player.sendMessage("§e✓ Truce request sent to ${targetGuild.name} for $durationDays days!")
-            player.sendMessage("§7They must accept your request for the truce to become active.")
+            player.sendMessage(lang.msg("menu.truce_request.feedback.sent", "guild" to targetGuild.name, "days" to durationDays))
+            player.sendMessage(lang.msg("menu.truce_request.feedback.acceptance_required"))
             player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.2f)
 
             // Notify target guild members
-            notifyGuildMembers(targetGuild.id, "§e${guild.name} §7has requested a §e$durationDays-day truce§7 with your guild! Use §6/guild menu §7→ Relations to respond.")
+            notifyGuildMembers(targetGuild.id, lang.msg("menu.truce_request.notification.received", "guild" to guild.name, "days" to durationDays))
         } else {
-            player.sendMessage("§c✗ Failed to send truce request.")
-            player.sendMessage("§7There may already be a pending request.")
+            player.sendMessage(lang.msg("menu.truce_request.feedback.failed"))
+            player.sendMessage(lang.msg("menu.truce_request.feedback.pending"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -244,8 +247,8 @@ class TruceRequestMenu(
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack.of(Material.ARROW)
-                .name("§f⬅ PREVIOUS PAGE")
-                .lore("§7Go to previous page")
+                .name(lang.legacy("menu.truce_request.navigation.previous.name"))
+                .lore(lang.legacy("menu.truce_request.navigation.previous.description"))
 
             val prevGuiItem = GuiItem(prevItem) {
                 currentPage--
@@ -256,8 +259,8 @@ class TruceRequestMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§ePage ${currentPage + 1} / ${if (totalPages > 0) totalPages else 1}")
-            .lore("§7Enemy guilds: §c${allEnemies.size}")
+            .name(lang.legacy("menu.truce_request.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
+            .lore(lang.legacy("menu.truce_request.navigation.total", "count" to allEnemies.size))
 
         val pageGuiItem = GuiItem(pageItem) { }
         pane.addItem(pageGuiItem, 4, 4)
@@ -265,8 +268,8 @@ class TruceRequestMenu(
         // Next page button
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack.of(Material.ARROW)
-                .name("§fNEXT PAGE ➡")
-                .lore("§7Go to next page")
+                .name(lang.legacy("menu.truce_request.navigation.next.name"))
+                .lore(lang.legacy("menu.truce_request.navigation.next.description"))
 
             val nextGuiItem = GuiItem(nextItem) {
                 currentPage++
@@ -278,8 +281,8 @@ class TruceRequestMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§eBack to Relations")
-            .lore("§7Return to relations menu")
+            .name(lang.legacy("menu.truce_request.navigation.back.name"))
+            .lore(lang.legacy("menu.truce_request.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
@@ -287,7 +290,7 @@ class TruceRequestMenu(
         pane.addItem(guiItem, x, y)
     }
 
-    private fun notifyGuildMembers(guildId: UUID, message: String) {
+    private fun notifyGuildMembers(guildId: UUID, message: Component) {
         val members = memberService.getGuildMembers(guildId)
         members.forEach { member ->
             val onlinePlayer = Bukkit.getPlayer(member.playerId)

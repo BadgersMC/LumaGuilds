@@ -17,6 +17,11 @@ import net.lumalyte.lg.config.NameFilterConfig
  */
 object GuildTagValidator {
 
+    sealed interface Failure {
+        data class InteractiveTag(val tagName: String) : Failure
+        data object InappropriateContent : Failure
+    }
+
     /**
      * MiniMessage tags that attach an interactive event/action. Matched case-insensitively
      * against both opening (<click:...>) and closing (</click>) forms.
@@ -28,17 +33,18 @@ object GuildTagValidator {
         RegexOption.IGNORE_CASE,
     )
 
-    /**
-     * Returns a user-facing rejection reason if the tag contains a disallowed interactive
-     * MiniMessage tag OR inappropriate visible text content, or null if the tag is acceptable.
-     */
-    fun rejectionReason(tag: String, nameFilterConfig: NameFilterConfig): String? {
+    /** Returns a typed failure so each interaction adapter can localize its own feedback. */
+    fun validationFailure(tag: String, nameFilterConfig: NameFilterConfig): Failure? {
         val match = disallowedPattern.find(tag)
         if (match != null) {
             val tagName = match.groupValues[1].lowercase()
-            return "Guild tags cannot contain interactive '$tagName' tags. Use colors and formatting only."
+            return Failure.InteractiveTag(tagName)
         }
-        return GuildNameFilter.checkTag(tag, nameFilterConfig)
+        return if (GuildNameFilter.checkTag(tag, nameFilterConfig) == null) {
+            null
+        } else {
+            Failure.InappropriateContent
+        }
     }
 
     /**
@@ -46,5 +52,5 @@ object GuildTagValidator {
      * AND inappropriate content.
      */
     fun isAllowed(tag: String, nameFilterConfig: NameFilterConfig): Boolean =
-        rejectionReason(tag, nameFilterConfig) == null
+        validationFailure(tag, nameFilterConfig) == null
 }

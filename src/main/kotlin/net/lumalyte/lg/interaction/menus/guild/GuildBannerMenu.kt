@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -36,6 +37,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     private val physicalCurrencyService: PhysicalCurrencyService by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     companion object {
         // Maps player UUID -> the specific Inventory instance of their currently-open
@@ -50,7 +52,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         activeMenus.remove(player.uniqueId)
 
         // Create a 3x9 GUI for banner selection
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Guild Banner - ${guild.name}"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.guild_banner.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent ->
             // Allow clicks on the banner placement slot (slot 11)
@@ -100,29 +102,29 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
             val bannerItem = bannerData.deserializeToItemStack()
             if (bannerItem != null) {
                 bannerItem.clone()
-                    .name("§f🏴 CURRENT BANNER")
-                    .lore("§7This banner represents your guild")
+                    .name(lang.legacy("menu.guild_banner.current.name"))
+                    .lore(lang.legacy("menu.guild_banner.current.description"))
             } else {
                 // Fallback to white banner if deserialization fails
                 ItemStack.of(Material.WHITE_BANNER)
-                    .name("§c⚠ BANNER ERROR")
-                    .lore("§cFailed to load banner data")
-                    .lore("§7Contact an administrator")
+                    .name(lang.legacy("menu.guild_banner.current.error"))
+                    .lore(lang.legacy("menu.guild_banner.current.load_failed"))
+                    .lore(lang.legacy("menu.guild_banner.current.contact"))
             }
         } ?: ItemStack.of(Material.WHITE_BANNER)
-            .name("§c❌ NO BANNER SET")
-            .lore("§cNo custom banner configured")
+            .name(lang.legacy("menu.guild_banner.current.none"))
+            .lore(lang.legacy("menu.guild_banner.current.not_configured"))
 
         pane.addItem(GuiItem(currentItem), x, y)
     }
 
     private fun addVisualBorder(pane: StaticPane) {
         val borderItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE)
-            .name("§8")
-            .lore("§7Place any banner in the empty slot")
-            .lore("§7to set it as your guild banner")
-            .lore("§7")
-            .lore("§eSupported: All banner types")
+            .name(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_banner.slot.place"))
+            .lore(lang.legacy("menu.guild_banner.slot.set"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_banner.slot.supported"))
 
         // Create a tight border around just the banner placement slot (2,1)
         val borderPositions = listOf(
@@ -140,8 +142,8 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         // Use a placeholder item that allows banner placement
         // The BannerSelectionListener will handle the actual placement logic
         val placeholderItem = ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE)
-            .name("§7📍 BANNER SLOT")
-            .lore("§7Place any banner here")
+            .name(lang.legacy("menu.guild_banner.slot.name"))
+            .lore(lang.legacy("menu.guild_banner.slot.description"))
 
         val guiItem = GuiItem(placeholderItem)
 
@@ -151,30 +153,30 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     private fun addClearBannerButton(pane: StaticPane, x: Int, y: Int) {
         val hasBanner = guild.banner != null
         val clearItem = ItemStack.of(if (hasBanner) Material.BARRIER else Material.GRAY_DYE)
-            .name(if (hasBanner) "§c🗑 CLEAR BANNER" else "§7🗑 CLEAR BANNER")
+            .name(if (hasBanner) lang.legacy("menu.guild_banner.clear.name") else lang.legacy("menu.guild_banner.clear.disabled"))
             .lore(if (hasBanner) {
                 listOf(
-                    "§7Remove the current banner",
-                    "§7Will use default white banner",
-                    "§7This action cannot be undone"
+                    lang.legacy("menu.guild_banner.clear.description"),
+                    lang.legacy("menu.guild_banner.clear.fallback"),
+                    lang.legacy("menu.guild_banner.clear.warning")
                 )
             } else {
-                listOf("§7No banner to clear")
+                listOf(lang.legacy("menu.guild_banner.clear.none"))
             })
 
         val guiItem = GuiItem(clearItem) {
             if (hasBanner) {
                 val success = guildService.setBanner(guild.id, null, player.uniqueId)
                 if (success) {
-                    player.sendMessage("§a✅ Guild banner cleared! Using default white banner.")
+                    player.sendMessage(lang.msg("menu.guild_banner.feedback.cleared"))
                     // Refresh guild data and reopen menu
                     guild = guildService.getGuild(guild.id) ?: guild
                     open()
                 } else {
-                    player.sendMessage("§c❌ Failed to clear banner. Check permissions.")
+                    player.sendMessage(lang.msg("menu.guild_banner.feedback.clear_failed"))
                 }
             } else {
-                player.sendMessage("§c❌ No banner to clear.")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.no_banner_clear"))
             }
         }
 
@@ -183,9 +185,9 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addApplyChangesButton(pane: StaticPane, x: Int, y: Int) {
         val applyItem = ItemStack.of(Material.LIME_CONCRETE)
-            .name("§a⏳ APPLY CHANGES")
-            .lore("§7Place a banner in the slot,")
-            .lore("§7then click here to save it")
+            .name(lang.legacy("menu.guild_banner.apply.name"))
+            .lore(lang.legacy("menu.guild_banner.apply.place"))
+            .lore(lang.legacy("menu.guild_banner.apply.click"))
 
         val guiItem = GuiItem(applyItem) { event ->
             // Check the actual inventory contents when clicked (slot 11 = pane position 2,1)
@@ -202,24 +204,24 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 val success = guildService.setBanner(guild.id, bannerToSave, player.uniqueId)
 
                 if (success) {
-                    player.sendMessage("§a✅ Guild banner set to ${bannerToSave.type.name.lowercase().replace("_", " ")}!")
+                    player.sendMessage(lang.msg("menu.guild_banner.feedback.set", "banner" to bannerToSave.type.name.lowercase().replace("_", " ")))
 
                     // Return the banner to player's inventory
                     val remaining = player.inventory.addItem(bannerToSave)
                     if (remaining.isNotEmpty()) {
                         // Inventory full, drop at feet
                         player.world.dropItem(player.location, bannerToSave)
-                        player.sendMessage("§e📦 Banner dropped at your feet (inventory full)")
+                        player.sendMessage(lang.msg("menu.guild_banner.feedback.dropped"))
                     }
 
                     // Clear the slot and close menu
                     inventory.setItem(bannerSlot, ItemStack.of(Material.AIR))
                     player.closeInventory()
                 } else {
-                    player.sendMessage("§c❌ Failed to set banner. Check permissions.")
+                    player.sendMessage(lang.msg("menu.guild_banner.feedback.set_failed"))
                 }
             } else {
-                player.sendMessage("§c❌ Place a banner in the slot first!")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.place_first"))
             }
         }
 
@@ -228,8 +230,8 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§c⬅ BACK")
-            .lore("§7Return to main menu")
+            .name(lang.legacy("menu.guild_banner.back.name"))
+            .lore(lang.legacy("menu.guild_banner.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -253,19 +255,19 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         val itemCustomModelData = config.bannerCopyItemCustomModelData
 
         val copyItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§e📋 GET BANNER COPY")
-            .lore("§7Get a copy of your guild banner")
+            .name(lang.legacy("menu.guild_banner.copy.name"))
+            .lore(lang.legacy("menu.guild_banner.copy.description"))
 
         if (bannerCopyFree) {
-            copyItem.lore("§7Cost: §aFREE")
+            copyItem.lore(lang.legacy("menu.guild_banner.copy.free"))
         } else if (useItemCost) {
             // Item-based cost
             try {
                 val material = Material.valueOf(itemMaterial.uppercase())
-                copyItem.lore("§7Cost: §6$itemAmount x ${material.name.lowercase().replace("_", " ")}")
-                copyItem.lore("§7Taken from your inventory")
+                copyItem.lore(lang.legacy("menu.guild_banner.copy.item_cost", "amount" to itemAmount, "material" to material.name.lowercase().replace("_", " ")))
+                copyItem.lore(lang.legacy("menu.guild_banner.copy.inventory"))
             } catch (e: IllegalArgumentException) {
-                copyItem.lore("§c❌ Invalid item material configured")
+                copyItem.lore(lang.legacy("menu.guild_banner.copy.invalid_material"))
             }
         } else {
             // Coin-based cost or physical currency
@@ -273,19 +275,19 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 // Physical currency cost
                 val physicalCost = config.bannerCopyPhysicalCost
                 val materialName = physicalCurrencyService.getCurrencyMaterialName()
-                copyItem.lore("§7Cost: §6$physicalCost x ${materialName.lowercase().replace("_", " ")}")
-                copyItem.lore("§7Charged from: §6Guild Vault (Physical Currency)")
+                copyItem.lore(lang.legacy("menu.guild_banner.copy.item_cost", "amount" to physicalCost, "material" to materialName.lowercase().replace("_", " ")))
+                copyItem.lore(lang.legacy("menu.guild_banner.copy.guild_vault"))
             } else {
                 // Virtual economy cost
-                copyItem.lore("§7Cost: §6$bannerCopyCost coins")
-                copyItem.lore("§7Charged from: §6${if (chargeGuildBank) "Guild Bank" else "Personal Balance"}")
+                copyItem.lore(lang.legacy("menu.guild_banner.copy.coin_cost", "amount" to bannerCopyCost))
+                copyItem.lore(if (chargeGuildBank) lang.legacy("menu.guild_banner.copy.guild_bank") else lang.legacy("menu.guild_banner.copy.personal"))
 
                 // Add fee information to lore if charging guild bank
                 if (chargeGuildBank) {
                     val fee = bankService.calculateWithdrawalFee(guild.id, bannerCopyCost)
                         if (fee > 0) {
                             val totalCostForDisplay = bannerCopyCost + fee
-                            copyItem.lore("§7Total: §6$totalCostForDisplay coins §7(§6$fee§7 fee)")
+                            copyItem.lore(lang.legacy("menu.guild_banner.copy.total", "total" to totalCostForDisplay, "fee" to fee))
                         }
                 }
             }
@@ -295,20 +297,20 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
             // Check if guild has a banner and deserialize it
             val bannerData = guild.banner
             if (bannerData == null) {
-                player.sendMessage("§c❌ Your guild doesn't have a banner set!")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.no_banner"))
                 return@GuiItem
             }
 
             // Try to deserialize the banner
             val bannerItem = bannerData.deserializeToItemStack()
             if (bannerItem == null) {
-                player.sendMessage("§c❌ Failed to load guild banner data!")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.load_failed"))
                 return@GuiItem
             }
 
             // Check if player has permission
             if (!guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_BANNER)) {
-                player.sendMessage("§c❌ You don't have permission to get banner copies!")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.no_copy_permission"))
                 return@GuiItem
             }
 
@@ -336,17 +338,17 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                     val hasEnough = playerInventory.containsAtLeast(requiredItem, itemAmount)
 
                     if (!hasEnough) {
-                        player.sendMessage("§c❌ You don't have enough items! (Need: §6$itemAmount x ${material.name.lowercase().replace("_", " ")}§c)")
+                        player.sendMessage(lang.msg("menu.guild_banner.feedback.insufficient_items", "amount" to itemAmount, "material" to material.name.lowercase().replace("_", " ")))
                         return@GuiItem
                     }
 
                     // Remove items from player inventory
                     playerInventory.removeItem(requiredItem)
-                    player.sendMessage("§a✅ Paid §6$itemAmount x ${material.name.lowercase().replace("_", " ")} §afor banner copy!")
+                    player.sendMessage(lang.msg("menu.guild_banner.feedback.paid_items", "amount" to itemAmount, "material" to material.name.lowercase().replace("_", " ")))
 
                     true
                 } catch (e: IllegalArgumentException) {
-                    player.sendMessage("§c❌ Invalid item material configured for banner cost!")
+                    player.sendMessage(lang.msg("menu.guild_banner.feedback.invalid_material"))
                     false
                 }
             } else if (chargeGuildBank) {
@@ -357,13 +359,13 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                     val currentBalance = physicalCurrencyService.calculateVaultCurrencyValue(guild)
 
                     if (currentBalance < physicalCost) {
-                        player.sendMessage("§c❌ Guild vault has insufficient physical currency! (Need: §6$physicalCost§c, Have: §6$currentBalance§c)")
+                        player.sendMessage(lang.msg("menu.guild_banner.feedback.insufficient_vault", "need" to physicalCost, "have" to currentBalance))
                         return@GuiItem
                     }
 
                     val deductSuccess = physicalCurrencyService.deductCurrency(guild, physicalCost, "Banner copy purchase")
                     if (!deductSuccess) {
-                        player.sendMessage("§c❌ Failed to deduct physical currency from guild vault!")
+                        player.sendMessage(lang.msg("menu.guild_banner.feedback.vault_deduct_failed"))
                         return@GuiItem
                     }
 
@@ -376,7 +378,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                     val totalCost = cost + fee
 
                     if (guildBalance < totalCost) {
-                        player.sendMessage("§c❌ Guild bank has insufficient funds! (Need: §6$totalCost§c, Have: §6$guildBalance§c)")
+                        player.sendMessage(lang.msg("menu.guild_banner.feedback.insufficient_bank", "need" to totalCost, "have" to guildBalance))
                         return@GuiItem
                     }
 
@@ -387,14 +389,14 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 val cost = bannerCopyCost
                 val playerBalance = bankService.getPlayerBalance(player.uniqueId)
                 if (playerBalance < cost.toInt()) {
-                    player.sendMessage("§c❌ You don't have enough coins! (Need: §6$cost§c, Have: §6$playerBalance§c)")
+                    player.sendMessage(lang.msg("menu.guild_banner.feedback.insufficient_coins", "need" to cost, "have" to playerBalance))
                     return@GuiItem
                 }
                 bankService.withdrawPlayer(player.uniqueId, cost, "Banner copy purchase")
             }
 
             if (!success) {
-                player.sendMessage("§c❌ Failed to process payment!")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.payment_failed"))
                 return@GuiItem
             }
 
@@ -417,19 +419,19 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
             if (remaining.isNotEmpty()) {
                 // Inventory full, drop at feet
                 player.world.dropItem(player.location, bannerCopy)
-                player.sendMessage("§e📦 Banner dropped at your feet (inventory full)")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.dropped"))
             }
 
             if (bannerCopyFree) {
-                player.sendMessage("§a✅ Free banner copy received!")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.free_copy"))
             } else if (useItemCost) {
                 // Item cost message already sent above
-                player.sendMessage("§a✅ Banner copy received!")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.copy_received"))
             } else {
                 val cost = bannerCopyCost
-                player.sendMessage("§a✅ Banner copy purchased for §6$cost §acoins!")
+                player.sendMessage(lang.msg("menu.guild_banner.feedback.copy_purchased", "amount" to cost))
             }
-            player.sendMessage("§7💡 The banner has been added to your inventory")
+            player.sendMessage(lang.msg("menu.guild_banner.feedback.added"))
         }
 
         pane.addItem(guiItem, x, y)

@@ -183,11 +183,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-7 — Localization migration (cross-cutting)
 
-- [ ] **LG-701** Migrate guild/bank/war/admin command messages off hardcoded `§`-strings onto `lang/defaults/*.properties`; zero unreferenced lang keys remain
+- [x] **LG-701** Migrate all player-facing messages off hardcoded `§` strings and legacy properties onto Nexus `LangService` with `lang/en_US.yml`; zero unreferenced lang keys remain
   - Tag: `TDD`
   - References: REQ-016
-  - Evidence:
-  - Files: `interaction/commands/*`, `lang/defaults/*.properties`, `LocalizationProviderProperties`
+  - Evidence: Locale contract passes with 0 positional placeholders, 0 missing keys, 0 unreferenced keys, 0 placeholder mismatches, and 0 unclassified player literals. `clean test --tests net.lumalyte.lg.infrastructure.i18n.*` passed (23 tests). `clean test shadowJar` passed (574 tests); shaded JAR produced at `build/libs/LumaGuilds-2.1.0.jar`.
+  - Files: `interaction/commands/*`, Java/Bedrock menus, notification adapters, `lang/en_US.yml`, locale contract tests
   - Note: large — decompose into per-command sub-tasks during spec if the briefing exceeds ~1500 tokens.
 
 ---

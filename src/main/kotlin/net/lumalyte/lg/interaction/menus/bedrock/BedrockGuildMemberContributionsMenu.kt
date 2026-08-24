@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -23,6 +24,7 @@ class BedrockGuildMemberContributionsMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -32,34 +34,52 @@ class BedrockGuildMemberContributionsMenu(
             .sortedByDescending { it.netContribution }
             .take(10) // Show top 10 contributors
 
-        val content = buildString {
-            appendLine(bedrockLocalization.getBedrockString(player, "bank.contributions.title"))
-            appendLine()
-
-            if (contributions.isEmpty()) {
-                appendLine(bedrockLocalization.getBedrockString(player, "bank.contributions.none"))
-            } else {
-                appendLine("§7=== ${bedrockLocalization.getBedrockString(player, "bank.contributions.top10")} ===")
-                appendLine()
-                contributions.forEachIndexed { index, contribution ->
-                    val memberName = Bukkit.getOfflinePlayer(contribution.playerId).name ?: "Unknown"
-                    val netAmount = contribution.netContribution
-                    val color = when {
-                        netAmount > 0 -> "§a"
-                        netAmount < 0 -> "§c"
-                        else -> "§7"
-                    }
-                    appendLine("§7${index + 1}. §f$memberName: $color$netAmount")
-                    appendLine("§7   Deposits: §a+${contribution.totalDeposits} §7Withdrawals: §c-${contribution.totalWithdrawals}")
+        val content = if (contributions.isEmpty()) {
+            lang.legacy("bedrock.bank.contributions.empty")
+        } else {
+            val rows = contributions.mapIndexed { index, contribution ->
+                val memberName = Bukkit.getOfflinePlayer(contribution.playerId).name
+                    ?: lang.raw("bedrock.bank.contributions.unknown_player")
+                val key = when {
+                    contribution.netContribution > 0 -> "bedrock.bank.contributions.row.positive"
+                    contribution.netContribution < 0 -> "bedrock.bank.contributions.row.negative"
+                    else -> "bedrock.bank.contributions.row.neutral"
                 }
-            }
+                when (key) {
+                    "bedrock.bank.contributions.row.positive" -> lang.legacy(
+                        "bedrock.bank.contributions.row.positive",
+                        "position" to index + 1,
+                        "player" to memberName,
+                        "net" to contribution.netContribution,
+                        "deposits" to contribution.totalDeposits,
+                        "withdrawals" to contribution.totalWithdrawals
+                    )
+                    "bedrock.bank.contributions.row.negative" -> lang.legacy(
+                        "bedrock.bank.contributions.row.negative",
+                        "position" to index + 1,
+                        "player" to memberName,
+                        "net" to contribution.netContribution,
+                        "deposits" to contribution.totalDeposits,
+                        "withdrawals" to contribution.totalWithdrawals
+                    )
+                    else -> lang.legacy(
+                        "bedrock.bank.contributions.row.neutral",
+                        "position" to index + 1,
+                        "player" to memberName,
+                        "net" to contribution.netContribution,
+                        "deposits" to contribution.totalDeposits,
+                        "withdrawals" to contribution.totalWithdrawals
+                    )
+                }
+            }.joinToString("\n")
+            lang.legacy("bedrock.bank.contributions.content", "contributors" to rows)
         }
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "bank.contributions.menu.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.bank.contributions.title", "guild" to guild.name))
             .content(content)
-            .button(bedrockLocalization.getBedrockString(player, "bank.contributions.refresh"))
-            .button(bedrockLocalization.getBedrockString(player, "common.back"))
+            .button(lang.raw("bedrock.bank.contributions.button.refresh"))
+            .button(lang.raw("bedrock.bank.contributions.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> {

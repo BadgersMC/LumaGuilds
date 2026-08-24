@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.ListPlayerClaims
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
@@ -20,35 +21,32 @@ class BedrockClaimListMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val listPlayerClaims: ListPlayerClaims by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val claims = listPlayerClaims.execute(player.uniqueId)
 
-        val content = buildString {
-            appendLine(bedrockLocalization.getBedrockString(player, "claim.list.title"))
-            appendLine()
-            if (claims.isEmpty()) {
-                appendLine(bedrockLocalization.getBedrockString(player, "claim.list.none"))
-            } else {
-                appendLine("§7${bedrockLocalization.getBedrockString(player, "claim.list.total", claims.size)}")
-            }
+        val content = if (claims.isEmpty()) {
+            lang.raw("bedrock.claim_list.content.empty")
+        } else {
+            lang.legacy("bedrock.claim_list.content.list", "count" to claims.size)
         }
 
         return SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "claim.list.menu.title"))
+            .title(lang.raw("bedrock.claim_list.title"))
             .content(content)
             .apply {
                 if (claims.isNotEmpty()) {
                     claims.take(8).forEach { claim ->
                         val location = "${claim.position.x}, ${claim.position.y}, ${claim.position.z}"
-                        button("§6${claim.name}§r\n§7$location")
+                        button(lang.legacy("bedrock.claim_list.claim_button", "claim" to claim.name, "location" to location))
                     }
                     if (claims.size > 8) {
-                        button(bedrockLocalization.getBedrockString(player, "claim.list.more", claims.size - 8))
+                        button(lang.legacy("bedrock.claim_list.more", "count" to claims.size - 8))
                     }
                 }
-                button(bedrockLocalization.getBedrockString(player, "common.close"))
+                button(lang.raw("bedrock.claim_list.button.close"))
             }
             .validResultHandler { response ->
                 val buttonId = response.clickedButtonId()

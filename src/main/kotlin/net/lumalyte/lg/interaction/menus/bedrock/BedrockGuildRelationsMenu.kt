@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.RelationService
 import net.lumalyte.lg.domain.entities.Guild
@@ -27,6 +28,7 @@ class BedrockGuildRelationsMenu(
 
     private val relationService: RelationService by inject()
     private val guildService: GuildService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -39,64 +41,64 @@ class BedrockGuildRelationsMenu(
         val truces = relations.count { it.type == RelationType.TRUCE && it.isActive() }
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.relations.management.title")} - ${guild.name}")
+            .title("${lang.raw("bedrock.relations_management.title")} - ${guild.name}")
             .content("""
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.welcome")}
+                |${lang.raw("bedrock.relations_management.welcome")}
                 |
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.description")}
+                |${lang.raw("bedrock.relations_management.description")}
                 |
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.overview")}
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.allies")}: $allies
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.enemies")}: $enemies
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.truces")}: $truces
+                |${lang.raw("bedrock.relations_management.overview")}
+                |${lang.raw("bedrock.relations_management.allies")}: $allies
+                |${lang.raw("bedrock.relations_management.enemies")}: $enemies
+                |${lang.raw("bedrock.relations_management.truces")}: $truces
                 |
-                |${bedrockLocalization.getBedrockString(player, "menu.notice")}
+                |${lang.raw("bedrock.relations_management.notice")}
             """.trimMargin())
             .addButtonWithImage(
                 config,
-                "${bedrockLocalization.getBedrockString(player, "guild.relations.management.allies")} ($allies)",
+                "${lang.raw("bedrock.relations_management.allies")} ($allies)",
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
             .addButtonWithImage(
                 config,
-                "${bedrockLocalization.getBedrockString(player, "guild.relations.management.enemies")} ($enemies)",
+                "${lang.raw("bedrock.relations_management.enemies")} ($enemies)",
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
             .addButtonWithImage(
                 config,
-                "${bedrockLocalization.getBedrockString(player, "guild.relations.management.truces")} ($truces)",
+                "${lang.raw("bedrock.relations_management.truces")} ($truces)",
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.relations.management.requests"),
+                lang.raw("bedrock.relations_management.requests"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.relations.management.declare.war"),
+                lang.raw("bedrock.relations_management.declare_war.title"),
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.relations.management.request.alliance"),
+                lang.raw("bedrock.relations_management.request_alliance.title"),
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.relations.management.request.truce"),
+                lang.raw("bedrock.relations_management.request_truce.title"),
                 config.editIconUrl,
                 config.editIconPath
             )
             .addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "menu.back"),
+                lang.raw("bedrock.relations_management.back"),
                 config.closeIconUrl,
                 config.closeIconPath
             )
@@ -127,23 +129,23 @@ class BedrockGuildRelationsMenu(
         val allies = relationService.getGuildRelationsByType(guild.id, RelationType.ALLY).filter { it.isActive() }
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.relations.management.allies"))
+            .title(lang.raw("bedrock.relations_management.allies"))
             .content(
                 if (allies.isEmpty()) {
-                    bedrockLocalization.getBedrockString(player, "guild.relations.management.no.allies")
+                    lang.raw("bedrock.relations_management.empty.allies")
                 } else {
-                    "${bedrockLocalization.getBedrockString(player, "guild.relations.management.select.ally")}\n\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.allies.count", allies.size)}"
+            "${lang.raw("bedrock.relations_management.select.ally")}\n\n${lang.legacy("bedrock.relations_management.allies_count", "count" to allies.size)}"
                 }
             )
 
         allies.forEach { relation ->
             val otherGuildId = relation.getOtherGuild(guild.id)
             val otherGuild = guildService.getGuild(otherGuildId)
-            val otherName = otherGuild?.name ?: bedrockLocalization.getBedrockString(player, "guild.relations.management.unknown.guild")
+            val otherName = otherGuild?.name ?: lang.raw("bedrock.relations_management.unknown_guild")
 
             form.addButtonWithImage(
                 config,
-                "🤝 $otherName\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.formed")}: ${relation.createdAt.toString().substring(0, 10)}",
+                "🤝 $otherName\n${lang.raw("bedrock.relations_management.formed")}: ${relation.createdAt.toString().substring(0, 10)}",
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
@@ -151,7 +153,7 @@ class BedrockGuildRelationsMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -186,23 +188,23 @@ class BedrockGuildRelationsMenu(
         val enemies = relationService.getGuildRelationsByType(guild.id, RelationType.ENEMY).filter { it.isActive() }
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.relations.management.enemies"))
+            .title(lang.raw("bedrock.relations_management.enemies"))
             .content(
                 if (enemies.isEmpty()) {
-                    bedrockLocalization.getBedrockString(player, "guild.relations.management.no.enemies")
+                    lang.raw("bedrock.relations_management.empty.enemies")
                 } else {
-                    "${bedrockLocalization.getBedrockString(player, "guild.relations.management.select.enemy")}\n\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.enemies.count", enemies.size)}"
+            "${lang.raw("bedrock.relations_management.select.enemy")}\n\n${lang.legacy("bedrock.relations_management.enemies_count", "count" to enemies.size)}"
                 }
             )
 
         enemies.forEach { relation ->
             val otherGuildId = relation.getOtherGuild(guild.id)
             val otherGuild = guildService.getGuild(otherGuildId)
-            val otherName = otherGuild?.name ?: bedrockLocalization.getBedrockString(player, "guild.relations.management.unknown.guild")
+            val otherName = otherGuild?.name ?: lang.raw("bedrock.relations_management.unknown_guild")
 
             form.addButtonWithImage(
                 config,
-                "⚔ $otherName\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.declared")}: ${relation.createdAt.toString().substring(0, 10)}",
+                "⚔ $otherName\n${lang.raw("bedrock.relations_management.declared")}: ${relation.createdAt.toString().substring(0, 10)}",
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
@@ -210,7 +212,7 @@ class BedrockGuildRelationsMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -245,24 +247,24 @@ class BedrockGuildRelationsMenu(
         val truces = relationService.getGuildRelationsByType(guild.id, RelationType.TRUCE).filter { it.isActive() }
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.relations.management.truces"))
+            .title(lang.raw("bedrock.relations_management.truces"))
             .content(
                 if (truces.isEmpty()) {
-                    bedrockLocalization.getBedrockString(player, "guild.relations.management.no.truces")
+                    lang.raw("bedrock.relations_management.empty.truces")
                 } else {
-                    "${bedrockLocalization.getBedrockString(player, "guild.relations.management.select.truce")}\n\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.truces.count", truces.size)}"
+            "${lang.raw("bedrock.relations_management.select.truce")}\n\n${lang.legacy("bedrock.relations_management.truces_count", "count" to truces.size)}"
                 }
             )
 
         truces.forEach { relation ->
             val otherGuildId = relation.getOtherGuild(guild.id)
             val otherGuild = guildService.getGuild(otherGuildId)
-            val otherName = otherGuild?.name ?: bedrockLocalization.getBedrockString(player, "guild.relations.management.unknown.guild")
-            val expiresAt = relation.expiresAt?.toString()?.substring(0, 10) ?: bedrockLocalization.getBedrockString(player, "guild.relations.management.never")
+            val otherName = otherGuild?.name ?: lang.raw("bedrock.relations_management.unknown_guild")
+            val expiresAt = relation.expiresAt?.toString()?.substring(0, 10) ?: lang.raw("bedrock.relations_management.never")
 
             form.addButtonWithImage(
                 config,
-                "🕊 $otherName\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.expires")}: $expiresAt",
+                "🕊 $otherName\n${lang.raw("bedrock.relations_management.expires")}: $expiresAt",
                 config.editIconUrl,
                 config.editIconPath
             )
@@ -270,7 +272,7 @@ class BedrockGuildRelationsMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -306,16 +308,16 @@ class BedrockGuildRelationsMenu(
         val outgoingRequests = relationService.getOutgoingRequests(guild.id)
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.relations.management.requests"))
+            .title(lang.raw("bedrock.relations_management.requests"))
             .content("""
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.requests.incoming")}: ${incomingRequests.size}
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.requests.outgoing")}: ${outgoingRequests.size}
+                |${lang.raw("bedrock.relations_management.requests_summary.incoming")}: ${incomingRequests.size}
+                |${lang.raw("bedrock.relations_management.requests_summary.outgoing")}: ${outgoingRequests.size}
             """.trimMargin())
 
         if (incomingRequests.isNotEmpty()) {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.relations.management.view.incoming.requests"),
+                lang.raw("bedrock.relations_management.view.incoming"),
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
@@ -324,19 +326,19 @@ class BedrockGuildRelationsMenu(
         if (outgoingRequests.isNotEmpty()) {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.relations.management.view.outgoing.requests"),
+                lang.raw("bedrock.relations_management.view.outgoing"),
                 config.editIconUrl,
                 config.editIconPath
             )
         }
 
         if (incomingRequests.isEmpty() && outgoingRequests.isEmpty()) {
-            form.content(bedrockLocalization.getBedrockString(player, "guild.relations.management.no.requests"))
+            form.content(lang.raw("bedrock.relations_management.empty.requests"))
         }
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -377,12 +379,11 @@ class BedrockGuildRelationsMenu(
         val config = getBedrockConfig()
 
         val form = CustomForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.relations.management.declare.war"))
-            .label(bedrockLocalization.getBedrockString(player, "guild.relations.management.declare.war.description"))
-            .addLocalizedInput(
-                player, bedrockLocalization,
-                "guild.relations.management.declare.war.target.label",
-                "guild.relations.management.declare.war.target.placeholder"
+            .title(lang.raw("bedrock.relations_management.declare_war.title"))
+            .label(lang.raw("bedrock.relations_management.declare_war.description"))
+            .input(
+                lang.raw("bedrock.relations_management.declare_war.target.label"),
+                lang.raw("bedrock.relations_management.declare_war.target.placeholder")
             )
             .validResultHandler { response ->
                 handleDeclareWarResponse(response)
@@ -407,26 +408,26 @@ class BedrockGuildRelationsMenu(
         val targetGuildName = response.asInput(0)
 
         if (targetGuildName.isNullOrBlank()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.declare.war.target.required"))
+            player.sendMessage(lang.msg("bedrock.relations_management.declare_war.target.required"))
             return
         }
 
         val targetGuild = guildService.getGuildByName(targetGuildName)
         if (targetGuild == null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.declare.war.guild.not.found"))
+            player.sendMessage(lang.msg("bedrock.relations_management.declare_war.feedback.not_found"))
             return
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.declare.war.self"))
+            player.sendMessage(lang.msg("bedrock.relations_management.declare_war.feedback.self"))
             return
         }
 
         val success = relationService.declareWar(guild.id, targetGuild.id, player.uniqueId)
         if (success != null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.declare.war.declared", targetGuild.name))
+            player.sendMessage(lang.msg("bedrock.relations_management.declare_war.feedback.declared", "guild" to targetGuild.name))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.declare.war.failed"))
+            player.sendMessage(lang.msg("bedrock.relations_management.declare_war.feedback.failed"))
         }
 
         getForm() // Refresh main menu
@@ -436,12 +437,11 @@ class BedrockGuildRelationsMenu(
         val config = getBedrockConfig()
 
         val form = CustomForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.alliance"))
-            .label(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.alliance.description"))
-            .addLocalizedInput(
-                player, bedrockLocalization,
-                "guild.relations.management.request.alliance.target.label",
-                "guild.relations.management.request.alliance.target.placeholder"
+            .title(lang.raw("bedrock.relations_management.request_alliance.title"))
+            .label(lang.raw("bedrock.relations_management.request_alliance.description"))
+            .input(
+                lang.raw("bedrock.relations_management.request_alliance.target.label"),
+                lang.raw("bedrock.relations_management.request_alliance.target.placeholder")
             )
             .validResultHandler { response ->
                 handleRequestAllianceResponse(response)
@@ -466,26 +466,26 @@ class BedrockGuildRelationsMenu(
         val targetGuildName = response.asInput(0)
 
         if (targetGuildName.isNullOrBlank()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.alliance.target.required"))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_alliance.target.required"))
             return
         }
 
         val targetGuild = guildService.getGuildByName(targetGuildName)
         if (targetGuild == null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.alliance.guild.not.found"))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_alliance.feedback.not_found"))
             return
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.alliance.self"))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_alliance.feedback.self"))
             return
         }
 
         val success = relationService.requestAlliance(guild.id, targetGuild.id, player.uniqueId)
         if (success != null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.alliance.sent", targetGuild.name))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_alliance.feedback.sent", "guild" to targetGuild.name))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.alliance.failed"))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_alliance.feedback.failed"))
         }
 
         getForm() // Refresh main menu
@@ -495,17 +495,15 @@ class BedrockGuildRelationsMenu(
         val config = getBedrockConfig()
 
         val form = CustomForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.truce"))
-            .label(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.truce.description"))
-            .addLocalizedInput(
-                player, bedrockLocalization,
-                "guild.relations.management.request.truce.target.label",
-                "guild.relations.management.request.truce.target.placeholder"
+            .title(lang.raw("bedrock.relations_management.request_truce.title"))
+            .label(lang.raw("bedrock.relations_management.request_truce.description"))
+            .input(
+                lang.raw("bedrock.relations_management.request_truce.target.label"),
+                lang.raw("bedrock.relations_management.request_truce.target.placeholder")
             )
-            .addLocalizedInput(
-                player, bedrockLocalization,
-                "guild.relations.management.request.truce.duration.label",
-                "guild.relations.management.request.truce.duration.placeholder"
+            .input(
+                lang.raw("bedrock.relations_management.request_truce.duration.label"),
+                lang.raw("bedrock.relations_management.request_truce.duration.placeholder")
             )
             .validResultHandler { response ->
                 handleRequestTruceResponse(response)
@@ -531,18 +529,18 @@ class BedrockGuildRelationsMenu(
         val durationStr = response.asInput(1) ?: "7"
 
         if (targetGuildName.isNullOrBlank()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.truce.target.required"))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_truce.target.required"))
             return
         }
 
         val targetGuild = guildService.getGuildByName(targetGuildName)
         if (targetGuild == null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.truce.guild.not.found"))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_truce.feedback.not_found"))
             return
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.truce.self"))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_truce.feedback.self"))
             return
         }
 
@@ -555,9 +553,9 @@ class BedrockGuildRelationsMenu(
 
         val success = relationService.requestTruce(guild.id, targetGuild.id, player.uniqueId, duration)
         if (success != null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.truce.sent", targetGuild.name))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_truce.feedback.sent", "guild" to targetGuild.name))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.truce.failed"))
+            player.sendMessage(lang.msg("bedrock.relations_management.request_truce.feedback.failed"))
         }
 
         getForm() // Refresh main menu
@@ -566,33 +564,33 @@ class BedrockGuildRelationsMenu(
     private fun openRelationDetailsMenu(relation: net.lumalyte.lg.domain.entities.Relation) {
         val otherGuildId = relation.getOtherGuild(guild.id)
         val otherGuild = guildService.getGuild(otherGuildId)
-        val otherName = otherGuild?.name ?: bedrockLocalization.getBedrockString(player, "guild.relations.management.unknown.guild")
+        val otherName = otherGuild?.name ?: lang.raw("bedrock.relations_management.unknown_guild")
 
         val relationType = when (relation.type) {
-            RelationType.ALLY -> bedrockLocalization.getBedrockString(player, "guild.relations.management.ally")
-            RelationType.ENEMY -> bedrockLocalization.getBedrockString(player, "guild.relations.management.enemy")
-            RelationType.TRUCE -> bedrockLocalization.getBedrockString(player, "guild.relations.management.truce")
-            RelationType.NEUTRAL -> bedrockLocalization.getBedrockString(player, "guild.relations.management.neutral")
+            RelationType.ALLY -> lang.raw("bedrock.relations_management.relation_type.ally")
+            RelationType.ENEMY -> lang.raw("bedrock.relations_management.relation_type.enemy")
+            RelationType.TRUCE -> lang.raw("bedrock.relations_management.relation_type.truce")
+            RelationType.NEUTRAL -> lang.raw("bedrock.relations_management.relation_type.neutral")
         }
 
         val status = if (relation.isActive()) {
-            bedrockLocalization.getBedrockString(player, "guild.relations.management.active")
+            lang.raw("bedrock.relations_management.status.active")
         } else {
-            bedrockLocalization.getBedrockString(player, "guild.relations.management.inactive")
+            lang.raw("bedrock.relations_management.status.inactive")
         }
 
         val form = SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.relations.management.relation.details")} - $otherName")
+            .title("${lang.raw("bedrock.relations_management.relation_details")} - $otherName")
             .content("""
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.other.guild")}: $otherName
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.type")}: $relationType
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.status")}: $status
-                |${bedrockLocalization.getBedrockString(player, "guild.relations.management.formed")}: ${relation.createdAt.toString().substring(0, 10)}
-                |${if (relation.expiresAt != null) "${bedrockLocalization.getBedrockString(player, "guild.relations.management.expires")}: ${relation.expiresAt.toString().substring(0, 10)}" else ""}
+                |${lang.raw("bedrock.relations_management.other_guild")}: $otherName
+                |${lang.raw("bedrock.relations_management.type")}: $relationType
+                |${lang.raw("bedrock.relations_management.status.label")}: $status
+                |${lang.raw("bedrock.relations_management.formed")}: ${relation.createdAt.toString().substring(0, 10)}
+                |${if (relation.expiresAt != null) "${lang.raw("bedrock.relations_management.expires")}: ${relation.expiresAt.toString().substring(0, 10)}" else ""}
             """.trimMargin())
             .addButtonWithImage(
                 getBedrockConfig(),
-                bedrockLocalization.getBedrockString(player, "menu.back"),
+                lang.raw("bedrock.relations_management.back"),
                 getBedrockConfig().closeIconUrl,
                 getBedrockConfig().closeIconPath
             )
@@ -617,23 +615,23 @@ class BedrockGuildRelationsMenu(
         val incomingRequests = relationService.getIncomingRequests(guild.id)
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.relations.management.incoming.requests"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.relations.management.select.request"))
+            .title(lang.raw("bedrock.relations_management.incoming_requests"))
+            .content(lang.raw("bedrock.relations_management.select.request"))
 
         incomingRequests.forEach { request ->
             val requestingGuild = guildService.getGuild(request.getOtherGuild(guild.id))
-            val requestingName = requestingGuild?.name ?: bedrockLocalization.getBedrockString(player, "guild.relations.management.unknown.guild")
+            val requestingName = requestingGuild?.name ?: lang.raw("bedrock.relations_management.unknown_guild")
 
             val requestType = when (request.type) {
-                RelationType.ALLY -> bedrockLocalization.getBedrockString(player, "guild.relations.management.alliance.request")
-                RelationType.TRUCE -> bedrockLocalization.getBedrockString(player, "guild.relations.management.truce.request")
-                RelationType.NEUTRAL -> bedrockLocalization.getBedrockString(player, "guild.relations.management.peace.request")
+                RelationType.ALLY -> lang.raw("bedrock.relations_management.request_type.alliance")
+                RelationType.TRUCE -> lang.raw("bedrock.relations_management.request_type.truce")
+                RelationType.NEUTRAL -> lang.raw("bedrock.relations_management.request_type.peace")
                 else -> request.type.name
             }
 
             form.addButtonWithImage(
                 config,
-                "${bedrockLocalization.getBedrockString(player, "guild.relations.management.from")}: $requestingName\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.type")}: $requestType",
+                "${lang.raw("bedrock.relations_management.from")}: $requestingName\n${lang.raw("bedrock.relations_management.type")}: $requestType",
                 config.guildMembersIconUrl,
                 config.guildMembersIconPath
             )
@@ -641,7 +639,7 @@ class BedrockGuildRelationsMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -676,23 +674,23 @@ class BedrockGuildRelationsMenu(
         val outgoingRequests = relationService.getOutgoingRequests(guild.id)
 
         val form = SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.relations.management.outgoing.requests"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.relations.management.select.request"))
+            .title(lang.raw("bedrock.relations_management.outgoing_requests"))
+            .content(lang.raw("bedrock.relations_management.select.request"))
 
         outgoingRequests.forEach { request ->
             val targetGuild = guildService.getGuild(request.getOtherGuild(guild.id))
-            val targetName = targetGuild?.name ?: bedrockLocalization.getBedrockString(player, "guild.relations.management.unknown.guild")
+            val targetName = targetGuild?.name ?: lang.raw("bedrock.relations_management.unknown_guild")
 
             val requestType = when (request.type) {
-                RelationType.ALLY -> bedrockLocalization.getBedrockString(player, "guild.relations.management.alliance.request")
-                RelationType.TRUCE -> bedrockLocalization.getBedrockString(player, "guild.relations.management.truce.request")
-                RelationType.NEUTRAL -> bedrockLocalization.getBedrockString(player, "guild.relations.management.peace.request")
+                RelationType.ALLY -> lang.raw("bedrock.relations_management.request_type.alliance")
+                RelationType.TRUCE -> lang.raw("bedrock.relations_management.request_type.truce")
+                RelationType.NEUTRAL -> lang.raw("bedrock.relations_management.request_type.peace")
                 else -> request.type.name
             }
 
             form.addButtonWithImage(
                 config,
-                "${bedrockLocalization.getBedrockString(player, "guild.relations.management.to")}: $targetName\n${bedrockLocalization.getBedrockString(player, "guild.relations.management.type")}: $requestType",
+                "${lang.raw("bedrock.relations_management.to")}: $targetName\n${lang.raw("bedrock.relations_management.type")}: $requestType",
                 config.editIconUrl,
                 config.editIconPath
             )
@@ -700,7 +698,7 @@ class BedrockGuildRelationsMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -734,26 +732,26 @@ class BedrockGuildRelationsMenu(
         val config = getBedrockConfig()
 
         val form = SimpleForm.builder()
-            .title(if (isIncoming) bedrockLocalization.getBedrockString(player, "guild.relations.management.request.action.incoming") else bedrockLocalization.getBedrockString(player, "guild.relations.management.request.action.outgoing"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.action.description"))
+            .title(if (isIncoming) lang.raw("bedrock.relations_management.request_action.incoming") else lang.raw("bedrock.relations_management.request_action.outgoing"))
+            .content(lang.raw("bedrock.relations_management.request_action.description"))
 
         if (isIncoming) {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.relations.management.request.accept"),
+                lang.raw("bedrock.relations_management.request_action.accept"),
                 config.confirmIconUrl,
                 config.confirmIconPath
             )
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.relations.management.request.reject"),
+                lang.raw("bedrock.relations_management.request_action.reject"),
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
         } else {
             form.addButtonWithImage(
                 config,
-                bedrockLocalization.getBedrockString(player, "guild.relations.management.request.cancel"),
+                lang.raw("bedrock.relations_management.request_action.cancel"),
                 config.cancelIconUrl,
                 config.cancelIconPath
             )
@@ -761,7 +759,7 @@ class BedrockGuildRelationsMenu(
 
         form.addButtonWithImage(
             config,
-            bedrockLocalization.getBedrockString(player, "menu.back"),
+            lang.raw("bedrock.relations_management.back"),
             config.closeIconUrl,
             config.closeIconPath
         )
@@ -776,28 +774,28 @@ class BedrockGuildRelationsMenu(
                             RelationType.ALLY -> {
                                 val success = relationService.acceptAlliance(request.id, guild.id, player.uniqueId)
                                 if (success != null) {
-                                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.alliance.accepted"))
+                                    player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.alliance_accepted"))
                                 } else {
-                                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.failed"))
+                                    player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.failed"))
                                 }
                             }
                             RelationType.TRUCE -> {
                                 val success = relationService.acceptTruce(request.id, guild.id, player.uniqueId)
                                 if (success != null) {
-                                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.truce.accepted"))
+                                    player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.truce_accepted"))
                                 } else {
-                                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.failed"))
+                                    player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.failed"))
                                 }
                             }
                             RelationType.NEUTRAL -> {
                                 val success = relationService.acceptUnenemy(request.id, guild.id, player.uniqueId)
                                 if (success != null) {
-                                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.peace.accepted"))
+                                    player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.peace_accepted"))
                                 } else {
-                                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.failed"))
+                                    player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.failed"))
                                 }
                             }
-                            else -> player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.failed"))
+                            else -> player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.failed"))
                         }
                         openRequestsMenu()
                     }
@@ -805,9 +803,9 @@ class BedrockGuildRelationsMenu(
                         // Reject request
                         val success = relationService.rejectRequest(request.id, guild.id, player.uniqueId)
                         if (success) {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.rejected"))
+                            player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.rejected"))
                         } else {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.failed"))
+                            player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.failed"))
                         }
                         openRequestsMenu()
                     }
@@ -815,9 +813,9 @@ class BedrockGuildRelationsMenu(
                         // Cancel request
                         val success = relationService.cancelRequest(request.id, guild.id, player.uniqueId)
                         if (success) {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.cancelled"))
+                            player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.cancelled"))
                         } else {
-                            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.relations.management.request.failed"))
+                            player.sendMessage(lang.msg("bedrock.relations_management.request_action.feedback.failed"))
                         }
                         openRequestsMenu()
                     }

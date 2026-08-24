@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
@@ -24,16 +25,17 @@ class BedrockGuildKickMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val memberService: MemberService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val kickableMembers = getKickableMembers()
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.kick.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.kick.title", "guild" to guild.name))
             .content(buildKickContent())
             .apply {
                 if (kickableMembers.isEmpty()) {
-                    button(bedrockLocalization.getBedrockString(player, "guild.kick.no.members"))
+                    button(lang.raw("bedrock.kick.no_members"))
                 } else {
                     kickableMembers.forEach { member ->
                         val buttonText = createMemberButtonText(member)
@@ -52,13 +54,7 @@ class BedrockGuildKickMenu(
     }
 
     private fun buildKickContent(): String {
-        val memberCount = getKickableMembers().size
-        return """
-            |${bedrockLocalization.getBedrockString(player, "guild.kick.description")}
-            |
-            |${bedrockLocalization.getBedrockString(player, "guild.kick.select.member")}
-            |${bedrockLocalization.getBedrockString(player, "guild.kick.confirmation.needed")}
-        """.trimMargin()
+        return lang.raw("bedrock.kick.content")
     }
 
     private fun getKickableMembers(): List<Member> {
@@ -69,18 +65,18 @@ class BedrockGuildKickMenu(
 
     private fun createMemberButtonText(member: Member): String {
         val playerName = getPlayerName(member)
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val formatter = DateTimeFormatter.ofPattern(lang.raw("bedrock.kick.date_format"))
         val joinedDate = formatter.format(member.joinedAt)
 
-        return bedrockLocalization.getBedrockString(player, "guild.kick.member.info", playerName, joinedDate)
+        return lang.legacy("bedrock.kick.member", "player" to playerName, "joined" to joinedDate)
     }
 
     private fun getPlayerName(member: Member): String {
         return try {
-            player.server.getPlayer(member.playerId)?.name ?: "Unknown Player"
+            player.server.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.common.unknown_player")
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            "Unknown Player"
+            lang.raw("menu.common.unknown_player")
         }
     }
 

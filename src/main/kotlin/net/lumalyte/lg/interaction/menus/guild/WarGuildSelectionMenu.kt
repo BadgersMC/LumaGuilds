@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.GuiTheme
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -29,6 +30,7 @@ class WarGuildSelectionMenu(
 ) : Menu, KoinComponent {
 
     private val memberService: MemberService by inject()
+    private val lang: LangService by inject()
 
     companion object {
         private const val GUILDS_PER_PAGE = 28 // 4 rows
@@ -38,7 +40,7 @@ class WarGuildSelectionMenu(
         val totalPages = (availableGuilds.size + GUILDS_PER_PAGE - 1) / GUILDS_PER_PAGE
         val actualPage = currentPage.coerceIn(0, (totalPages - 1).coerceAtLeast(0))
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6, "§4⚔ Select War Target (${actualPage + 1}/$totalPages)"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6, lang.legacy("menu.war_guild_selection.title", "page" to actualPage + 1, "pages" to totalPages)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click == ClickType.SHIFT_LEFT || it.click == ClickType.SHIFT_RIGHT) it.isCancelled = true }
@@ -81,34 +83,33 @@ class WarGuildSelectionMenu(
             GuildMode.PEACEFUL -> Material.IRON_SWORD
         }
 
-        // Choose color based on guild mode
-        val modeColor = when (guild.mode) {
-            GuildMode.HOSTILE -> "§c"
-            GuildMode.PEACEFUL -> "§a"
-        }
-
         val item = ItemStack.of(icon)
-            .name("§6${guild.name}")
-            .lore("§7Mode: $modeColor${guild.mode.name}")
-            .lore("§7Members: §f$memberCount")
-            .lore("§7Level: §e${guild.level}")
-            .lore("")
+            .name(lang.legacy("menu.war_guild_selection.guild.name", "guild" to guild.name))
+            .lore(
+                when (guild.mode) {
+                    GuildMode.HOSTILE -> lang.legacy("menu.war_guild_selection.guild.mode.hostile")
+                    GuildMode.PEACEFUL -> lang.legacy("menu.war_guild_selection.guild.mode.peaceful")
+                }
+            )
+            .lore(lang.legacy("menu.war_guild_selection.guild.members", "count" to memberCount))
+            .lore(lang.legacy("menu.war_guild_selection.guild.level", "level" to guild.level))
+            .lore(lang.legacy("menu.common.blank"))
 
         // Add warning for peaceful guilds
         if (guild.mode == GuildMode.PEACEFUL) {
-            item.lore("§a✓ Peaceful guild")
-            item.lore("§7They must accept your declaration")
+            item.lore(lang.legacy("menu.war_guild_selection.guild.peaceful.name"))
+            item.lore(lang.legacy("menu.war_guild_selection.guild.peaceful.description"))
         } else {
-            item.lore("§c⚔ Hostile guild")
-            item.lore("§7War will start immediately!")
+            item.lore(lang.legacy("menu.war_guild_selection.guild.hostile.name"))
+            item.lore(lang.legacy("menu.war_guild_selection.guild.hostile.description"))
         }
 
-        item.lore("")
-            .lore("§eClick to select as war target")
+        item.lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_guild_selection.guild.action"))
 
         val guiItem = GuiItem(item) {
             callback(guild)
-            player.sendMessage("§a✓ Selected §6${guild.name}§a as war target!")
+            player.sendMessage(lang.msg("menu.war_guild_selection.feedback.selected", "guild" to guild.name))
             menuNavigator.goBack()
         }
 
@@ -117,20 +118,20 @@ class WarGuildSelectionMenu(
 
     private fun addInfoItem(pane: StaticPane, totalGuilds: Int, x: Int, y: Int) {
         val item = ItemStack.of(Material.BOOK)
-            .name("§e📖 Guild Info")
-            .lore("§7Total Available: §f$totalGuilds guilds")
-            .lore("")
-            .lore("§7Select a guild to declare war against.")
-            .lore("§7Hostile guilds auto-accept immediately.")
-            .lore("§7Peaceful guilds must accept your declaration.")
+            .name(lang.legacy("menu.war_guild_selection.info.name"))
+            .lore(lang.legacy("menu.war_guild_selection.info.total", "count" to totalGuilds))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_guild_selection.info.instructions"))
+            .lore(lang.legacy("menu.war_guild_selection.info.hostile"))
+            .lore(lang.legacy("menu.war_guild_selection.info.peaceful"))
 
         pane.addItem(GuiItem(item) {}, x, y)
     }
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {
         val prevItem = ItemStack.of(Material.ARROW)
-            .name("§e← Previous Page")
-            .lore("§7Go to page ${currentPage}")
+            .name(lang.legacy("menu.war_guild_selection.navigation.previous.name"))
+            .lore(lang.legacy("menu.war_guild_selection.navigation.page", "page" to currentPage))
 
         val guiItem = GuiItem(prevItem) {
             currentPage--
@@ -141,8 +142,8 @@ class WarGuildSelectionMenu(
 
     private fun addNextPageButton(pane: StaticPane, x: Int, y: Int) {
         val nextItem = ItemStack.of(Material.ARROW)
-            .name("§eNext Page →")
-            .lore("§7Go to page ${currentPage + 2}")
+            .name(lang.legacy("menu.war_guild_selection.navigation.next.name"))
+            .lore(lang.legacy("menu.war_guild_selection.navigation.page", "page" to currentPage + 2))
 
         val guiItem = GuiItem(nextItem) {
             currentPage++
@@ -153,8 +154,8 @@ class WarGuildSelectionMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c← Back")
-            .lore("§7Return to war declaration")
+            .name(lang.legacy("menu.war_guild_selection.navigation.back.name"))
+            .lore(lang.legacy("menu.war_guild_selection.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.goBack()

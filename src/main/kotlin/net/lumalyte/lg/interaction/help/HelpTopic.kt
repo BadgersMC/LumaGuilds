@@ -7,14 +7,13 @@ package net.lumalyte.lg.interaction.help
  */
 data class HelpTopic(
     val slug: String,
-    val displayName: String,
-    val summary: String,
     val commands: List<HelpCommandEntry>,
 ) {
+    val menuKey: String = "command.guild.help.topics.$slug.menu"
+    val pageKey: String = "command.guild.help.topics.$slug.page"
+
     init {
         require(SLUG_REGEX.matches(slug)) { "Invalid slug: $slug (must be lowercase-hyphenated)" }
-        require(displayName.isNotBlank()) { "displayName must not be blank" }
-        require(summary.isNotBlank()) { "summary must not be blank" }
     }
 
     companion object {

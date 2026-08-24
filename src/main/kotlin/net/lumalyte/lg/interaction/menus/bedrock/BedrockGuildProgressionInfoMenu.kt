@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.domain.entities.Guild
@@ -26,24 +27,25 @@ class BedrockGuildProgressionInfoMenu(
 
     private val progressionService: ProgressionService by inject()
     private val progressionRepository: ProgressionRepository by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val progressionIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.progression.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.progression.title", "guild" to guild.name))
             .apply { progressionIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.progression.description"))
-            .label(createSectionHeader(bedrockLocalization.getBedrockString(player, "guild.progression.current.level")))
+            .label(lang.raw("bedrock.progression.description"))
+            .label(createSectionHeader(lang.raw("bedrock.progression.header.level")))
             .label(createLevelAndExperienceSection())
-            .label(createSectionHeader(bedrockLocalization.getBedrockString(player, "guild.progression.perks.unlocked")))
+            .label(createSectionHeader(lang.raw("bedrock.progression.header.unlocked")))
             .label(createUnlockedPerksSection())
-            .label(createSectionHeader(bedrockLocalization.getBedrockString(player, "guild.progression.perks.available")))
+            .label(createSectionHeader(lang.raw("bedrock.progression.header.available")))
             .label(createAvailablePerksSection())
-            .label(createSectionHeader(bedrockLocalization.getBedrockString(player, "guild.progression.benefits.header")))
+            .label(createSectionHeader(lang.raw("bedrock.progression.header.benefits")))
             .label(createBenefitsSection())
-            .label(createSectionHeader(bedrockLocalization.getBedrockString(player, "guild.progression.activity.header")))
+            .label(createSectionHeader(lang.raw("bedrock.progression.header.activity")))
             .label(createActivitySection())
             .validResultHandler { response ->
                 // Read-only menu, just close
@@ -56,7 +58,7 @@ class BedrockGuildProgressionInfoMenu(
     }
 
     private fun createSectionHeader(title: String): String {
-        return "§6§l━━━ $title §r§6━━━"
+        return lang.legacy("bedrock.progression.header.format", "title" to title)
     }
 
     private fun createLevelAndExperienceSection(): String {
@@ -72,30 +74,52 @@ class BedrockGuildProgressionInfoMenu(
             100
         }
 
-        val progressBarColor = when {
-            progressPercent >= 75 -> "§a"
-            progressPercent >= 50 -> "§e"
-            progressPercent >= 25 -> "§6"
-            else -> "§c"
+        return when {
+            progressPercent >= 75 -> lang.legacy(
+                "bedrock.progression.level.green",
+                "level" to currentLevel,
+                "total_experience" to totalExperience,
+                "level_experience" to experienceThisLevel,
+                "next_experience" to experienceForNextLevel,
+                "progress" to progressPercent
+            )
+            progressPercent >= 50 -> lang.legacy(
+                "bedrock.progression.level.yellow",
+                "level" to currentLevel,
+                "total_experience" to totalExperience,
+                "level_experience" to experienceThisLevel,
+                "next_experience" to experienceForNextLevel,
+                "progress" to progressPercent
+            )
+            progressPercent >= 25 -> lang.legacy(
+                "bedrock.progression.level.gold",
+                "level" to currentLevel,
+                "total_experience" to totalExperience,
+                "level_experience" to experienceThisLevel,
+                "next_experience" to experienceForNextLevel,
+                "progress" to progressPercent
+            )
+            else -> lang.legacy(
+                "bedrock.progression.level.red",
+                "level" to currentLevel,
+                "total_experience" to totalExperience,
+                "level_experience" to experienceThisLevel,
+                "next_experience" to experienceForNextLevel,
+                "progress" to progressPercent
+            )
         }
-
-        return """
-            |§d${bedrockLocalization.getBedrockString(player, "guild.progression.current.level")}§7: §f$currentLevel
-            |§b${bedrockLocalization.getBedrockString(player, "guild.progression.total.experience")}§7: §f$totalExperience §7XP
-            |§3${bedrockLocalization.getBedrockString(player, "guild.progression.experience.this.level")}§7: §f$experienceThisLevel §7XP
-            |§e${bedrockLocalization.getBedrockString(player, "guild.progression.experience.to.next")}§7: §f$experienceForNextLevel §7XP
-            |§6${bedrockLocalization.getBedrockString(player, "guild.progression.progress")}§7: $progressBarColor$progressPercent%
-        """.trimMargin()
     }
 
     private fun createUnlockedPerksSection(): String {
         val unlockedPerks = progressionService.getUnlockedPerks(guild.id)
 
         if (unlockedPerks.isEmpty()) {
-            return "§7${bedrockLocalization.getBedrockString(player, "guild.progression.perks.none")}"
+            return lang.legacy("bedrock.progression.perks.none")
         }
 
-        val perkList = unlockedPerks.joinToString("\n") { "§a✓ §f${getLocalizedPerkName(it)}" }
+        val perkList = unlockedPerks.joinToString("\n") {
+            lang.legacy("bedrock.progression.perks.unlocked_row", "perk" to getLocalizedPerkName(it))
+        }
         return perkList
     }
 
@@ -104,11 +128,13 @@ class BedrockGuildProgressionInfoMenu(
         val nextLevelPerks = progressionService.getPerksForLevel(nextLevel)
 
         if (nextLevelPerks.isEmpty()) {
-            return "§7${bedrockLocalization.getBedrockString(player, "guild.progression.perks.more")}"
+            return lang.legacy("bedrock.progression.perks.more")
         }
 
-        val perkList = nextLevelPerks.joinToString("\n") { "§e• §f${getLocalizedPerkName(it)}" }
-        return "§6Level $nextLevel§7:\n$perkList"
+        val perkList = nextLevelPerks.joinToString("\n") {
+            lang.legacy("bedrock.progression.perks.available_row", "perk" to getLocalizedPerkName(it))
+        }
+        return lang.legacy("bedrock.progression.perks.next_level", "level" to nextLevel, "perks" to perkList)
     }
 
     private fun createBenefitsSection(): String {
@@ -116,11 +142,17 @@ class BedrockGuildProgressionInfoMenu(
         val maxHomes = progressionService.getMaxHomes(guild.id)
         val bankInterestRate = progressionService.getBankInterestRate(guild.id)
 
-        return """
-            |§b${bedrockLocalization.getBedrockString(player, "guild.progression.benefits.max.claims")}§7: §f${if (maxClaimBlocks >= Int.MAX_VALUE) bedrockLocalization.getBedrockString(player, "guild.progression.benefits.unlimited") else maxClaimBlocks.toString()}
-            |§d${bedrockLocalization.getBedrockString(player, "guild.progression.benefits.max.homes")}§7: §f$maxHomes
-            |§6${bedrockLocalization.getBedrockString(player, "guild.progression.benefits.bank.interest")}§7: §a${(bankInterestRate * 100).toInt()}%
-        """.trimMargin()
+        val claims = if (maxClaimBlocks >= Int.MAX_VALUE) {
+            lang.raw("bedrock.progression.benefits.unlimited")
+        } else {
+            maxClaimBlocks.toString()
+        }
+        return lang.legacy(
+            "bedrock.progression.benefits.summary",
+            "claims" to claims,
+            "homes" to maxHomes,
+            "interest" to (bankInterestRate * 100).toInt()
+        )
     }
 
     private fun createActivitySection(): String {
@@ -131,37 +163,38 @@ class BedrockGuildProgressionInfoMenu(
         val activityScore = progressionService.calculateWeeklyActivityScore(guild.id, weekStart, weekEnd)
         val percentile = progressionService.getActivityPercentile(guild.id, net.lumalyte.lg.application.services.ActivityPeriod.WEEKLY)
 
-        return """
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.activity.score")}: $activityScore
-            |${bedrockLocalization.getBedrockString(player, "guild.progression.activity.percentile")}: ${percentile.toInt()}%
-        """.trimMargin()
+        return lang.legacy(
+            "bedrock.progression.activity.summary",
+            "activity_score" to activityScore,
+            "percentile" to percentile.toInt()
+        )
     }
 
     private fun getLocalizedPerkName(perk: net.lumalyte.lg.domain.values.PerkType): String {
         return when (perk) {
             // Claim perks
-            net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_BLOCKS -> "Increased Claim Blocks"
-            net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_COUNT -> "Increased Claim Count"
-            net.lumalyte.lg.domain.values.PerkType.FASTER_CLAIM_REGEN -> "Faster Claim Regeneration"
+            net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_BLOCKS -> lang.raw("bedrock.progression.perk.increased_claim_blocks")
+            net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_COUNT -> lang.raw("bedrock.progression.perk.increased_claim_count")
+            net.lumalyte.lg.domain.values.PerkType.FASTER_CLAIM_REGEN -> lang.raw("bedrock.progression.perk.faster_claim_regen")
 
             // Bank perks
-            net.lumalyte.lg.domain.values.PerkType.HIGHER_BANK_BALANCE -> "Higher Bank Balance"
-            net.lumalyte.lg.domain.values.PerkType.BANK_INTEREST -> "Bank Interest"
-            net.lumalyte.lg.domain.values.PerkType.INCREASED_BANK_LIMIT -> "Increased Bank Limit"
-            net.lumalyte.lg.domain.values.PerkType.REDUCED_WITHDRAWAL_FEES -> "Reduced Withdrawal Fees"
+            net.lumalyte.lg.domain.values.PerkType.HIGHER_BANK_BALANCE -> lang.raw("bedrock.progression.perk.higher_bank_balance")
+            net.lumalyte.lg.domain.values.PerkType.BANK_INTEREST -> lang.raw("bedrock.progression.perk.bank_interest")
+            net.lumalyte.lg.domain.values.PerkType.INCREASED_BANK_LIMIT -> lang.raw("bedrock.progression.perk.increased_bank_limit")
+            net.lumalyte.lg.domain.values.PerkType.REDUCED_WITHDRAWAL_FEES -> lang.raw("bedrock.progression.perk.reduced_withdrawal_fees")
 
             // Home perks
-            net.lumalyte.lg.domain.values.PerkType.ADDITIONAL_HOMES -> "Additional Homes"
-            net.lumalyte.lg.domain.values.PerkType.TELEPORT_COOLDOWN_REDUCTION -> "Teleport Cooldown Reduction"
-            net.lumalyte.lg.domain.values.PerkType.HOME_TELEPORT_SOUND_EFFECTS -> "Home Teleport Sound Effects"
+            net.lumalyte.lg.domain.values.PerkType.ADDITIONAL_HOMES -> lang.raw("bedrock.progression.perk.additional_homes")
+            net.lumalyte.lg.domain.values.PerkType.TELEPORT_COOLDOWN_REDUCTION -> lang.raw("bedrock.progression.perk.teleport_cooldown_reduction")
+            net.lumalyte.lg.domain.values.PerkType.HOME_TELEPORT_SOUND_EFFECTS -> lang.raw("bedrock.progression.perk.home_teleport_sound_effects")
 
             // Audio/Visual perks
-            net.lumalyte.lg.domain.values.PerkType.CUSTOM_BANNER_COLORS -> "Custom Banner Colors"
-            net.lumalyte.lg.domain.values.PerkType.ANIMATED_EMOJIS -> "Animated Emojis"
-            net.lumalyte.lg.domain.values.PerkType.SPECIAL_PARTICLES -> "Special Particles"
-            net.lumalyte.lg.domain.values.PerkType.ANNOUNCEMENT_SOUND_EFFECTS -> "Announcement Sound Effects"
-            net.lumalyte.lg.domain.values.PerkType.WAR_DECLARATION_SOUND_EFFECTS -> "War Declaration Sound Effects"
-            net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS -> "Ally Home Teleportation"
+            net.lumalyte.lg.domain.values.PerkType.CUSTOM_BANNER_COLORS -> lang.raw("bedrock.progression.perk.custom_banner_colors")
+            net.lumalyte.lg.domain.values.PerkType.ANIMATED_EMOJIS -> lang.raw("bedrock.progression.perk.animated_emojis")
+            net.lumalyte.lg.domain.values.PerkType.SPECIAL_PARTICLES -> lang.raw("bedrock.progression.perk.special_particles")
+            net.lumalyte.lg.domain.values.PerkType.ANNOUNCEMENT_SOUND_EFFECTS -> lang.raw("bedrock.progression.perk.announcement_sound_effects")
+            net.lumalyte.lg.domain.values.PerkType.WAR_DECLARATION_SOUND_EFFECTS -> lang.raw("bedrock.progression.perk.war_declaration_sound_effects")
+            net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS -> lang.raw("bedrock.progression.perk.ally_home_access")
         }
     }
 

@@ -16,6 +16,7 @@ jobs:
     env:
       ROSECHAT_PREHOOK_REF: 3fe078a   # last RoseChat commit before the LumaGuilds hook
       PLAYTIME_API_REF: 2a5b57d       # wsg138/PlayTimePlugin commit the API jar is built from
+      COMBATLOGX_API_REF: 4812e85af1264ebb27da481b9d9cbf8de0956e53 # last complete 11.6 API source tree
 
     permissions:
       contents: read
@@ -84,6 +85,27 @@ jobs:
           src/main/java/org/enthusia/playtime/data/model/PlaytimeSnapshot.java \
           src/main/java/org/enthusia/playtime/data/model/RangeTotals.java
         jar cf "$GITHUB_WORKSPACE/libs/EnthusiaPlaytime-api.jar" -C /tmp/playtime-classes .
+
+    - name: Cache CombatLogX API jar
+      id: combatlogx-cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: libs/CombatLogX-api.jar
+        key: combatlogx-api-${{ env.COMBATLOGX_API_REF }}
+
+    - name: Build CombatLogX API jar
+      if: steps.combatlogx-cache.outputs.cache-hit != 'true'
+      run: |
+        git clone https://github.com/SirBlobman/CombatLogX.git /tmp/combatlogx
+        cd /tmp/combatlogx
+        git checkout "$COMBATLOGX_API_REF"
+        chmod +x gradlew
+        ./gradlew :api:jar --no-daemon
+        mkdir -p "$GITHUB_WORKSPACE/libs"
+        COMBATLOGX_JAR=$(find api/build/libs -maxdepth 1 -name '*.jar' \
+          ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+        test -n "$COMBATLOGX_JAR"
+        cp "$COMBATLOGX_JAR" "$GITHUB_WORKSPACE/libs/CombatLogX-api.jar"
 
     - name: Test with Gradle
       env:

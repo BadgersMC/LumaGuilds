@@ -1,10 +1,12 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
@@ -17,20 +19,22 @@ class BedrockClaimCreationMenu(
     logger: Logger
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
+    private val lang: LangService by inject()
+
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
         return CustomForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "claim.creation.title"))
-            .label(bedrockLocalization.getBedrockString(player, "claim.creation.instructions"))
+            .title(lang.raw("bedrock.claim_creation.title"))
+            .label(lang.raw("bedrock.claim_creation.instructions"))
             .input(
-                bedrockLocalization.getBedrockString(player, "claim.creation.name"),
-                bedrockLocalization.getBedrockString(player, "claim.creation.placeholder"),
+                lang.raw("bedrock.claim_creation.name.label"),
+                lang.raw("bedrock.claim_creation.name.placeholder"),
                 ""
             )
             .input(
-                bedrockLocalization.getBedrockString(player, "claim.creation.description"),
-                bedrockLocalization.getBedrockString(player, "claim.creation.description.placeholder"),
+                lang.raw("bedrock.claim_creation.description.label"),
+                lang.raw("bedrock.claim_creation.description.placeholder"),
                 ""
             )
             .validResultHandler { response ->
@@ -38,18 +42,18 @@ class BedrockClaimCreationMenu(
                 val claimDescription = response.asInput(3)?.trim() ?: ""
 
                 if (claimName.length !in 1..50) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.creation.name.invalid"))
+                    player.sendMessage(lang.msg("bedrock.claim_creation.feedback.invalid_name"))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }
 
                 if (claimDescription.length > 300) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.creation.description.too.long"))
+                    player.sendMessage(lang.msg("bedrock.claim_creation.feedback.description_too_long"))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }
 
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.creation.info", claimName))
+                player.sendMessage(lang.msg("bedrock.claim_creation.feedback.info", "claim" to claimName))
                 bedrockNavigator.goBack()
             }
             .closedOrInvalidResultHandler { _, _ ->

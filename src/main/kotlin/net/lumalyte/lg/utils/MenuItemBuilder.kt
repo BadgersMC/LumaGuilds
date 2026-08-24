@@ -1,6 +1,7 @@
 package net.lumalyte.lg.utils
 
 import net.lumalyte.lg.application.services.ConfigService
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.config.MenuItemConfig
 import org.bukkit.Material
@@ -15,7 +16,7 @@ import java.util.UUID
  */
 class MenuItemBuilder(
     private val configService: ConfigService,
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider
+    private val lang: LangService
 ) {
 
     private val config: MainConfig
@@ -28,7 +29,7 @@ class MenuItemBuilder(
      * @param itemConfig The configuration for the menu item
      * @param localizationKey Optional localization key to override the default name
      * @param loreKeys List of localization keys for lore lines
-     * @param loreArgs Arguments for lore formatting
+     * @param lorePlaceholders Named placeholders for lore formatting
      * @return The configured ItemStack
      */
     fun createMenuItem(
@@ -36,7 +37,7 @@ class MenuItemBuilder(
         itemConfig: MenuItemConfig,
         localizationKey: String? = null,
         loreKeys: List<String> = emptyList(),
-        vararg loreArgs: Any
+        vararg lorePlaceholders: Pair<String, Any?>
     ): ItemStack {
         // Create base item
         val material = try {
@@ -50,7 +51,7 @@ class MenuItemBuilder(
         
         // Set display name using extension function (extension function now handles italic removal)
         val displayName = if (localizationKey != null) {
-            localizationProvider.get(playerId, localizationKey)
+            lang.legacy(localizationKey)
         } else {
             itemConfig.name
         }
@@ -59,7 +60,7 @@ class MenuItemBuilder(
         // Set lore from localization keys using extension functions
         if (loreKeys.isNotEmpty()) {
             val loreLines = loreKeys.map { key ->
-                "§7${localizationProvider.get(playerId, key, *loreArgs)}"
+                lang.legacy(key, *lorePlaceholders)
             }
             // Extension function will handle italic removal, but preserve existing color codes
             item = item.lore(loreLines)
@@ -115,7 +116,7 @@ class MenuItemBuilder(
     /**
      * Creates a guild menu item using the configured guild menu item settings.
      */
-    fun createGuildMenuItem(playerId: UUID, vararg loreArgs: Any): ItemStack {
+    fun createGuildMenuItem(playerId: UUID, vararg lorePlaceholders: Pair<String, Any?>): ItemStack {
         return createMenuItem(
             playerId = playerId,
             itemConfig = config.ui.guildMenuItem,
@@ -127,7 +128,7 @@ class MenuItemBuilder(
                 "menu.guild.item.info.lore.balance",
                 "menu.guild.item.info.lore.mode"
             ),
-            loreArgs = loreArgs
+            lorePlaceholders = lorePlaceholders
         )
     }
     
@@ -140,7 +141,7 @@ class MenuItemBuilder(
             itemConfig = config.ui.bankMenuItem,
             localizationKey = "menu.guild.item.bank.name",
             loreKeys = listOf("menu.guild.item.bank.lore", "menu.bank.item.balance.lore"),
-            loreArgs = arrayOf(balance)
+            lorePlaceholders = arrayOf("balance" to balance)
         )
     }
     
@@ -259,12 +260,12 @@ class MenuItemBuilder(
             playerId = playerId,
             itemConfig = itemConfig,
             loreKeys = listOf("menu.members.item.member.lore.rank"),
-            loreArgs = arrayOf(rankName)
+            lorePlaceholders = arrayOf("rank" to rankName)
         ).also { item ->
             // Set player name as display name for member icons (need to modify the returned item)
         }.let { item ->
             if (itemConfig == config.ui.memberIcon) {
-                item.name("§r$playerName")
+                item.name(playerName)
             } else {
                 item
             }
@@ -292,7 +293,6 @@ class MenuItemBuilder(
             itemConfig = config.ui.warMenuItem,
             localizationKey = "menu.guild.item.wars.name",
             loreKeys = listOf("menu.guild.item.wars.lore"),
-            loreArgs = arrayOf(activeWars)
         )
     }
     

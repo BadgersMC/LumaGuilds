@@ -3,6 +3,7 @@ package net.lumalyte.lg.utils
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import net.lumalyte.lg.domain.values.Flag
+import net.badgersmc.nexus.i18n.LangService
 import java.util.UUID
 
 /**
@@ -10,7 +11,7 @@ import java.util.UUID
  *
  * @return ItemStack of the associated item for the given flag enum.
  */
-fun Flag.getIcon(localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider, playerId: UUID): ItemStack {
+fun Flag.getIcon(lang: LangService, playerId: UUID): ItemStack {
     var item = when (this) {
         Flag.EXPLOSION -> ItemStack.of(Material.TNT)
         Flag.FIRE -> ItemStack.of(Material.FLINT_AND_STEEL)
@@ -27,7 +28,7 @@ fun Flag.getIcon(localizationProvider: net.lumalyte.lg.application.utilities.Loc
     }
 
     // Get localized name and lore using the keys from the domain enum
-    item = item.name(localizationProvider.get(playerId, this.nameKey))
-    item = item.lore(localizationProvider.get(playerId, this.loreKey))
+    item = item.name(lang.legacy(this.nameKey))
+    item = item.lore(lang.legacy(this.loreKey))
     return item
 }

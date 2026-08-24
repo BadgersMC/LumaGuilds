@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.ConvertClaimToGuild
 import net.lumalyte.lg.application.results.claim.ConvertClaimToGuildResult
 import net.lumalyte.lg.domain.entities.Claim
@@ -23,35 +24,46 @@ class BedrockClaimManagementMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val convertClaimToGuild: ConvertClaimToGuild by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
-        val content = buildString {
-            appendLine("§6${claim.name}")
-            appendLine()
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "claim.location")}: ${claim.position.x}, ${claim.position.y}, ${claim.position.z}")
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "claim.icon")}: ${claim.icon}")
-            if (claim.description.isNotEmpty()) {
-                appendLine()
-                appendLine("§7${claim.description}")
-            }
+        val content = if (claim.description.isNotEmpty()) {
+            lang.legacy(
+                "bedrock.claim_management.content.with_description",
+                "claim" to claim.name,
+                "x" to claim.position.x,
+                "y" to claim.position.y,
+                "z" to claim.position.z,
+                "icon" to claim.icon,
+                "description" to claim.description
+            )
+        } else {
+            lang.legacy(
+                "bedrock.claim_management.content.without_description",
+                "claim" to claim.name,
+                "x" to claim.position.x,
+                "y" to claim.position.y,
+                "z" to claim.position.z,
+                "icon" to claim.icon
+            )
         }
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "claim.management.title")} - ${claim.name}")
+            .title(lang.legacy("bedrock.claim_management.title", "claim" to claim.name))
             .content(content)
-            .button(bedrockLocalization.getBedrockString(player, "claim.management.icon"))
-            .button(bedrockLocalization.getBedrockString(player, "claim.management.rename"))
-            .button(bedrockLocalization.getBedrockString(player, "claim.management.permissions"))
-            .button(bedrockLocalization.getBedrockString(player, "claim.management.flags"))
+            .button(lang.raw("bedrock.claim_management.button.icon"))
+            .button(lang.raw("bedrock.claim_management.button.rename"))
+            .button(lang.raw("bedrock.claim_management.button.permissions"))
+            .button(lang.raw("bedrock.claim_management.button.flags"))
             .apply {
                 if (claim.teamId == null) {
-                    button(bedrockLocalization.getBedrockString(player, "claim.management.convert"))
+                    button(lang.raw("bedrock.claim_management.button.convert"))
                 }
             }
-            .button(bedrockLocalization.getBedrockString(player, "claim.management.transfer"))
-            .button(bedrockLocalization.getBedrockString(player, "common.back"))
+            .button(lang.raw("bedrock.claim_management.button.transfer"))
+            .button(lang.raw("bedrock.claim_management.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> menuNavigator.openMenu(menuFactory.createClaimIconMenu(player, menuNavigator, claim))
@@ -85,23 +97,23 @@ class BedrockClaimManagementMenu(
         val result = convertClaimToGuild.execute(claim.id, player.uniqueId)
         when (result) {
             is ConvertClaimToGuildResult.Success -> {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.convert.success"))
+                player.sendMessage(lang.msg("bedrock.claim_management.feedback.converted"))
                 bedrockNavigator.goBack()
             }
             is ConvertClaimToGuildResult.AlreadyGuildOwned -> {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.convert.already.guild.owned"))
+                player.sendMessage(lang.msg("bedrock.claim_management.feedback.already_guild_owned"))
             }
             is ConvertClaimToGuildResult.ClaimNotFound -> {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.convert.not.found"))
+                player.sendMessage(lang.msg("bedrock.claim_management.feedback.not_found"))
             }
             is ConvertClaimToGuildResult.NotClaimOwner -> {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.convert.not.owner"))
+                player.sendMessage(lang.msg("bedrock.claim_management.feedback.not_owner"))
             }
             is ConvertClaimToGuildResult.PlayerNotInGuild -> {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.convert.not.in.guild"))
+                player.sendMessage(lang.msg("bedrock.claim_management.feedback.not_in_guild"))
             }
             is ConvertClaimToGuildResult.StorageError -> {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.convert.error"))
+                player.sendMessage(lang.msg("bedrock.claim_management.feedback.storage_error"))
             }
         }
     }

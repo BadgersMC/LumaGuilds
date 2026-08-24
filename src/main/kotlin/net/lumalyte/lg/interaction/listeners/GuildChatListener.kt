@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.listeners
 
 import dev.rosewood.rosechat.chat.channel.Channel
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PenaltyService
@@ -32,6 +33,7 @@ class GuildChatListener : Listener, KoinComponent {
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val penaltyService: PenaltyService by inject()
+    private val lang: LangService by inject()
 
     private val logger = LoggerFactory.getLogger(GuildChatListener::class.java)
 
@@ -51,10 +53,7 @@ class GuildChatListener : Listener, KoinComponent {
     fun toggleGuildChat(player: Player): Boolean {
         val guildChannel = adapter.getChannel(ChatChannelIds.GUILD)
         if (guildChannel == null) {
-            player.sendMessage(
-                "§c❌ Guild channel '${ChatChannelIds.GUILD}' is not configured" +
-                    " in RoseChat. Ask staff to enable it in channels.yml.",
-            )
+            player.sendMessage(lang.msg("notification.guild_chat.guild_channel_missing", "channel" to ChatChannelIds.GUILD))
             return false
         }
 
@@ -68,14 +67,14 @@ class GuildChatListener : Listener, KoinComponent {
 
         // Toggle ON — must be in a guild.
         if (guildService.getPlayerGuilds(player.uniqueId).isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
+            player.sendMessage(lang.msg("notification.guild_chat.not_in_guild"))
             return false
         }
 
         // Guild mute blocks joining guild chat (and /gc is blocked separately).
         val guildId = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()?.id
         if (guildId != null && penaltyService.isGuildMuted(guildId)) {
-            player.sendMessage("§c❌ Your guild is muted — guild chat is disabled until the mute expires.")
+            player.sendMessage(lang.msg("notification.guild_chat.guild_muted"))
             return false
         }
 
@@ -90,10 +89,7 @@ class GuildChatListener : Listener, KoinComponent {
     fun toggleAllyChat(player: Player): Boolean {
         val allyChannel = adapter.getChannel(ChatChannelIds.ALLY)
         if (allyChannel == null) {
-            player.sendMessage(
-                "§c❌ Ally channel '${ChatChannelIds.ALLY}' is not configured" +
-                    " in RoseChat.",
-            )
+            player.sendMessage(lang.msg("notification.guild_chat.ally_channel_missing", "channel" to ChatChannelIds.ALLY))
             return false
         }
 
@@ -105,7 +101,7 @@ class GuildChatListener : Listener, KoinComponent {
         }
 
         if (guildService.getPlayerGuilds(player.uniqueId).isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
+            player.sendMessage(lang.msg("notification.guild_chat.not_in_guild"))
             return false
         }
 
@@ -152,11 +148,11 @@ class GuildChatListener : Listener, KoinComponent {
     ): Boolean? {
         val guilds = guildService.getPlayerGuilds(player.uniqueId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
+            player.sendMessage(lang.msg("notification.guild_chat.not_in_guild"))
             return null
         }
         if (!hasModeratePermission(player, guilds)) {
-            player.sendMessage("§c❌ Only guild moderators can use mod chat!")
+            player.sendMessage(lang.msg("notification.guild_chat.mod_permission"))
             return null
         }
 
@@ -181,7 +177,7 @@ class GuildChatListener : Listener, KoinComponent {
     private fun resolveModChatChannel(player: Player): Channel? {
         val ch = adapter.getChannel(ChatChannelIds.MODCHAT)
         if (ch == null) {
-            player.sendMessage("§c❌ Mod chat channel not configured.")
+            player.sendMessage(lang.msg("notification.guild_chat.mod_channel_missing"))
         }
         return ch
     }

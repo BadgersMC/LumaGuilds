@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.MemberService
@@ -33,6 +34,7 @@ class BedrockGuildWarDeclarationMenu(
     private val guildRepository: GuildRepository by inject()
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -45,55 +47,60 @@ class BedrockGuildWarDeclarationMenu(
             .sortedBy { it.name }
 
         val guildNames = allGuilds.map { it.name }
-        val durationOptions = listOf("1 day", "3 days", "7 days", "14 days", "30 days")
+        val guildOptions = if (guildNames.isEmpty()) listOf(lang.raw("bedrock.war_declaration.no_target_option")) else guildNames
+        val durationOptions = listOf(
+            lang.raw("bedrock.war_declaration.duration.one_day"),
+            lang.raw("bedrock.war_declaration.duration.three_days"),
+            lang.raw("bedrock.war_declaration.duration.seven_days"),
+            lang.raw("bedrock.war_declaration.duration.fourteen_days"),
+            lang.raw("bedrock.war_declaration.duration.thirty_days")
+        )
         val guildBalance = bankService.getBalance(guild.id)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.war.declare.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.war_declaration.title", "guild" to guild.name))
             .apply { warIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.war.declare.description"))
+            .label(lang.raw("bedrock.war_declaration.description"))
             .dropdown(
-                bedrockLocalization.getBedrockString(player, "guild.war.target"),
-                guildNames
+                lang.raw("bedrock.war_declaration.target"),
+                guildOptions
             )
             .dropdown(
-                bedrockLocalization.getBedrockString(player, "guild.war.duration"),
+                lang.raw("bedrock.war_declaration.duration.label"),
                 durationOptions,
                 2 // Default to 7 days
             )
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.war.terms"),
-                bedrockLocalization.getBedrockString(player, "guild.war.terms.placeholder"),
+                lang.raw("bedrock.war_declaration.terms.label"),
+                lang.raw("bedrock.war_declaration.terms.placeholder"),
                 ""
             )
             .toggle(
-                bedrockLocalization.getBedrockString(player, "guild.war.objective.territory"),
+                lang.raw("bedrock.war_declaration.objective.territory"),
                 false
             )
             .toggle(
-                bedrockLocalization.getBedrockString(player, "guild.war.objective.kills"),
+                lang.raw("bedrock.war_declaration.objective.kills"),
                 true // Default enabled
             )
             .label(
-                bedrockLocalization.getBedrockString(player, "guild.war.wager.label") + "\n" +
-                bedrockLocalization.getBedrockString(player, "guild.war.wager.balance", guildBalance) + "\n" +
-                bedrockLocalization.getBedrockString(player, "guild.war.wager.defender.match")
+                lang.legacy("bedrock.war_declaration.wager.info", "balance" to guildBalance)
             )
             .slider(
-                bedrockLocalization.getBedrockString(player, "guild.war.wager.amount.label"),
+                lang.raw("bedrock.war_declaration.wager.amount"),
                 0f,
                 guildBalance.toFloat().coerceAtMost(100000f),
                 100f,
                 0f
             )
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.war.wager.custom.label"),
-                bedrockLocalization.getBedrockString(player, "guild.war.wager.custom.placeholder"),
+                lang.raw("bedrock.war_declaration.wager.custom_label"),
+                lang.raw("bedrock.war_declaration.wager.custom_placeholder"),
                 ""
             )
             .validResultHandler { response ->
                 if (guildNames.isEmpty()) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.no.targets"))
+                    player.sendMessage(lang.msg("bedrock.war_declaration.feedback.no_targets"))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }
@@ -109,7 +116,7 @@ class BedrockGuildWarDeclarationMenu(
 
                 val targetGuild = allGuilds.getOrNull(targetIndex)
                 if (targetGuild == null) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.invalid.target"))
+                    player.sendMessage(lang.msg("bedrock.war_declaration.feedback.invalid_target"))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }
@@ -128,14 +135,14 @@ class BedrockGuildWarDeclarationMenu(
                     objectives.add(WarObjective(
                         type = ObjectiveType.CLAIMS_CAPTURED,
                         targetValue = 5,
-                        description = "Capture 5 enemy claims"
+                        description = lang.raw("bedrock.war_declaration.objective.territory_description")
                     ))
                 }
                 if (killsObjective) {
                     objectives.add(WarObjective(
                         type = ObjectiveType.KILLS,
                         targetValue = 100,
-                        description = "Kill 100 enemy players"
+                        description = lang.raw("bedrock.war_declaration.objective.kills_description")
                     ))
                 }
 
@@ -163,7 +170,7 @@ class BedrockGuildWarDeclarationMenu(
     ) {
         // Validate guild can declare war
         if (guild.mode != GuildMode.HOSTILE) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.peaceful.mode"))
+            player.sendMessage(lang.msg("bedrock.war_declaration.feedback.peaceful"))
             bedrockNavigator.goBack()
             return
         }
@@ -173,7 +180,7 @@ class BedrockGuildWarDeclarationMenu(
             .any { (it.declaringGuildId == targetGuild.id || it.defendingGuildId == targetGuild.id) && it.isActive }
 
         if (existingWar) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.already.at.war"))
+            player.sendMessage(lang.msg("bedrock.war_declaration.feedback.already_at_war"))
             bedrockNavigator.goBack()
             return
         }
@@ -192,18 +199,18 @@ class BedrockGuildWarDeclarationMenu(
         )
 
         if (declaration != null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.sent", targetGuild.name))
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.duration", duration.toDays()))
+            player.sendMessage(lang.msg("bedrock.war_declaration.feedback.sent", "guild" to targetGuild.name))
+            player.sendMessage(lang.msg("bedrock.war_declaration.feedback.duration", "days" to duration.toDays()))
             if (objectives.isNotEmpty()) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.objectives.set", objectives.size))
+                player.sendMessage(lang.msg("bedrock.war_declaration.feedback.objectives", "count" to objectives.size))
             }
             if (wagerAmount > 0) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.wager.display", wagerAmount))
+                player.sendMessage(lang.msg("bedrock.war_declaration.feedback.wager", "amount" to wagerAmount))
             }
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declaration.await.accept"))
+            player.sendMessage(lang.msg("bedrock.war_declaration.feedback.awaiting"))
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.war.declared.failed"))
+            player.sendMessage(lang.msg("bedrock.war_declaration.feedback.failed"))
             bedrockNavigator.goBack()
         }
     }

@@ -1,8 +1,10 @@
 package net.lumalyte.lg.interaction.menus.management
 
+import com.github.stefvanschie.inventoryframework.adventuresupport.ComponentHolder
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.flag.DisableAllClaimFlags
 import net.lumalyte.lg.application.actions.claim.flag.DisableClaimFlag
 import net.lumalyte.lg.application.actions.claim.flag.EnableAllClaimFlags
@@ -10,7 +12,6 @@ import net.lumalyte.lg.application.actions.claim.flag.EnableClaimFlag
 import net.lumalyte.lg.application.actions.claim.flag.GetClaimFlags
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.domain.values.Flag
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.getIcon
@@ -24,7 +25,7 @@ import org.koin.core.component.inject
 
 class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                     private val claim: Claim?): Menu, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val getClaimFlags: GetClaimFlags by inject()
     private val enableClaimFlag: EnableClaimFlag by inject()
     private val disableClaimFlag: DisableClaimFlag by inject()
@@ -34,13 +35,13 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
 
     override fun open() {
         if (claim == null) {
-            player.sendMessage("§cError: No claim available")
+            player.sendMessage(lang.msg("menu.common.feedback.no_claim"))
             return
         }
 
         // Create claim flags menu
         val playerId = player.uniqueId
-        val gui = ChestGui(6, localizationProvider.get(playerId, LocalizationKeys.MENU_FLAGS_TITLE))
+        val gui = ChestGui(6, lang.legacy("menu.flags.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -51,13 +52,13 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Add go back item
         val exitItem = ItemStack.of(Material.NETHER_STAR)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_BACK_NAME))
+            .name(lang.legacy("menu.common.item.back.name"))
         val guiExitItem = GuiItem(exitItem) { menuNavigator.goBack() }
         controlsPane.addItem(guiExitItem, 0, 0)
 
         // Add deselect all button
         val deselectItem = ItemStack.of(Material.HONEY_BLOCK)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_DESELECT_ALL_NAME))
+            .name(lang.legacy("menu.common.item.deselect_all.name"))
         val guiDeselectItem = GuiItem(deselectItem) {
             disableAllClaimFlags.execute(claim.id)
             open()
@@ -66,7 +67,7 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Add select all button
         val selectItem = ItemStack.of(Material.SLIME_BLOCK)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_SELECT_ALL_NAME))
+            .name(lang.legacy("menu.common.item.select_all.name"))
         val guiSelectItem = GuiItem(selectItem) {
             enableAllClaimFlags.execute(claim.id)
             open()
@@ -98,7 +99,7 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
         var xSlot = 0
         var ySlot = 0
         for (flag in disabledFlags) {
-            val permissionItem = flag.getIcon(localizationProvider, playerId)
+            val permissionItem = flag.getIcon(lang, playerId)
 
             val guiPermissionItem = GuiItem(permissionItem) {
                 enableClaimFlag.execute(flag, claim.id)
@@ -120,7 +121,7 @@ class ClaimFlagMenu(private val menuNavigator: MenuNavigator, private val player
         xSlot = 0
         ySlot = 0
         for (flag in enabledFlags) {
-            val permissionItem = flag.getIcon(localizationProvider, playerId)
+            val permissionItem = flag.getIcon(lang, playerId)
 
             val guiPermissionItem = GuiItem(permissionItem) {
                 disableClaimFlag.execute(flag, claim.id)

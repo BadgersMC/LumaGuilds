@@ -76,7 +76,6 @@ import net.lumalyte.lg.application.persistence.PlayerAccessRepository
 import net.lumalyte.lg.application.persistence.PlayerStateRepository
 import net.lumalyte.lg.application.services.ConfigService
 
-import net.lumalyte.lg.application.services.PlayerLocaleService
 import net.lumalyte.lg.application.services.BedrockLocalizationService
 import net.lumalyte.lg.application.services.FormCacheService
 import net.lumalyte.lg.application.services.PlayerMetadataService
@@ -177,14 +176,15 @@ import co.aikar.idb.Database
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
 
-import net.lumalyte.lg.infrastructure.services.PlayerLocaleServicePaper
 import net.lumalyte.lg.infrastructure.services.PlayerMetadataServiceVault
 import net.lumalyte.lg.infrastructure.services.ToolItemServiceBukkit
 import net.lumalyte.lg.infrastructure.services.VisualisationServiceBukkit
 import net.lumalyte.lg.infrastructure.services.VisualisationPerformanceServiceBukkit
 import net.lumalyte.lg.infrastructure.services.WorldManipulationServiceBukkit
 import net.lumalyte.lg.infrastructure.services.scheduling.SchedulerServiceBukkit
-import net.lumalyte.lg.infrastructure.utilities.LocalizationProviderProperties
+import net.badgersmc.nexus.i18n.LangService
+import net.badgersmc.nexus.i18n.LangHost
+import net.badgersmc.nexus.i18n.Locale
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -250,13 +250,14 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     // Core services
     single<ConfigService> { ConfigServiceBukkit(get()) }
     single { get<ConfigService>().loadConfig() }
-    single<PlayerLocaleService> { PlayerLocaleServicePaper() }
     single<PlayerMetadataService> { PlayerMetadataServiceVault(get(), get()) }
 
     // Utilities
-    single<net.lumalyte.lg.application.utilities.LocalizationProvider> { LocalizationProviderProperties(get(), get(), get()) }
+    single<LangService> {
+        LangService(LangHost.of(plugin), Locale("en_US"), net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang::class.java)
+    }
     single<PlatformDetectionService> { FloodgatePlatformDetectionService(get<LumaGuilds>().logger) }
-    single<BedrockLocalizationService> { BedrockLocalizationServiceFloodgate(get<LumaGuilds>().dataFolder, get(), get()) }
+    single<BedrockLocalizationService> { BedrockLocalizationServiceFloodgate(get()) }
     single<FormCacheService> {
         val config = get<ConfigService>().loadConfig()
         FormCacheServiceGuava(
@@ -272,7 +273,7 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
 
     // Menu factory
     single<net.lumalyte.lg.interaction.menus.MenuFactory> {
-        net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get())
+        net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get(), get())
     }
 }
 
@@ -490,8 +491,8 @@ fun socialModule() = module {
     }
 
     // Services
-    single<PartyService> { PartyServiceBukkit(get(), get(), get(), get()) }
-    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<PartyService> { PartyServiceBukkit(get(), get(), get(), get(), get()) }
+    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Listeners
     single<ChatInputListener> { ChatInputListener() }
@@ -502,7 +503,7 @@ fun socialModule() = module {
         net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener(get(), get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener> {
-        net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get(), get())
+        net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService> {
         net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService(get(), get(), get(), get())
@@ -511,10 +512,10 @@ fun socialModule() = module {
         net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener(get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
-        net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get())
+        net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener> {
-        net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener(get(), get())
+        net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener(get(), get(), get())
     }
 }
 
@@ -530,7 +531,7 @@ fun progressionModule() = module {
     // Services
     single<KillService> { KillServiceBukkit(get()) }
     single<CombatService> { CombatServiceBukkit(get(), get(), get(), get()) }
-    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>()) }
+    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get()) }
     single<PlaytimeActivityService> { PlaytimeActivityServiceBukkit() }
     single<WarService> { WarServiceBukkit(get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
@@ -612,6 +613,7 @@ fun vaultModule() = module {
             get(),
             get(),
             get(),
+            get(),
             get()
         )
     }
@@ -632,7 +634,7 @@ fun vaultModule() = module {
         )
     }
     single<net.lumalyte.lg.infrastructure.services.VaultHologramService> {
-        net.lumalyte.lg.infrastructure.services.VaultHologramService(get(), get())
+        net.lumalyte.lg.infrastructure.services.VaultHologramService(get(), get(), get())
     }
 
     // Listeners
@@ -661,7 +663,7 @@ fun utilitiesModule() = module {
 
     // Other utilities
     single<net.lumalyte.lg.infrastructure.services.TeleportationService> {
-        net.lumalyte.lg.infrastructure.services.TeleportationService(get())
+        net.lumalyte.lg.infrastructure.services.TeleportationService(get(), get())
     }
     single<MapRendererService> { MapRendererServiceBukkit() }
 }

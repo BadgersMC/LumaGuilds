@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -29,10 +30,15 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Confirm Invite - ${guild.name}"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(
+            guild.guiTheme,
+            3,
+            lang.legacy("menu.guild_confirmation.invite.title", "guild" to guild.name),
+        ))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -57,15 +63,15 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
     private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
         val infoItem = ItemStack.of(Material.BOOK)
-            .name("§a📨 SEND INVITATION")
-            .lore("§7Send an invitation to join")
-            .lore("§7the guild.")
-            .lore("§7")
-            .lore("§eThe player will receive a message")
-            .lore("§ewith instructions to accept.")
-            .lore("§7")
-            .lore("§7They can use:")
-            .lore("§7/guild join ${guild.name}")
+            .name(lang.legacy("menu.guild_confirmation.invite.item.info.name"))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.line_1"))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.line_2"))
+            .lore("")
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.instructions_line_1"))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.instructions_line_2"))
+            .lore("")
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.command_label"))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.command", "guild" to guild.name))
 
         pane.addItem(GuiItem(infoItem), x, y)
     }
@@ -78,20 +84,20 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         meta.owningPlayer = targetPlayer
         head.itemMeta = meta
 
-        val playerItem = head.name("§a👤 ${targetPlayer.name}")
-            .lore("§7Player: §f${targetPlayer.name}")
-            .lore("§7Status: §aOnline")
-            .lore("§7")
-            .lore("§eWill receive invitation")
+        val playerItem = head.name(lang.legacy("menu.guild_confirmation.invite.item.player.name", "player" to targetPlayer.name))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.player.lore.player", "player" to targetPlayer.name))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.player.lore.status"))
+            .lore("")
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.player.lore.result"))
 
         pane.addItem(GuiItem(playerItem), x, y)
     }
 
     private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
         val confirmItem = ItemStack.of(Material.GREEN_WOOL)
-            .name("§a✅ SEND INVITE")
-            .lore("§7Send invitation to player")
-            .lore("§7Click to proceed")
+            .name(lang.legacy("menu.guild_confirmation.invite.item.confirm.name"))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.confirm.lore.line_1"))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.confirm.lore.line_2"))
 
         val confirmGuiItem = GuiItem(confirmItem) {
             sendInvite()
@@ -101,9 +107,9 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack.of(Material.RED_WOOL)
-            .name("§c❌ CANCEL")
-            .lore("§7Return to invite menu")
-            .lore("§7No invitation will be sent")
+            .name(lang.legacy("menu.guild_confirmation.invite.item.cancel.name"))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.cancel.lore.line_1"))
+            .lore(lang.legacy("menu.guild_confirmation.invite.item.cancel.lore.line_2"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             menuNavigator.goBack()
@@ -114,7 +120,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
     private fun sendInvite() {
         // Check if player is already in a guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
-            player.sendMessage("§c❌ ${targetPlayer.name} is already in your guild!")
+            player.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.already_member", "player" to targetPlayer.name))
             menuNavigator.goBack()
             return
         }
@@ -129,15 +135,15 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         )
 
         // Send invitation message
-        player.sendMessage("§a✅ Invitation sent to ${targetPlayer.name}!")
+        player.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.sent", "player" to targetPlayer.name))
         player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f)
 
         targetPlayer.sendMessage("")
-        targetPlayer.sendMessage("§6§l📨 GUILD INVITATION")
-        targetPlayer.sendMessage("§7${player.name} invited you to join §6${guild.name}§7!")
+        targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.received_header"))
+        targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.received", "player" to player.name, "guild" to guild.name))
         targetPlayer.sendMessage("")
-        targetPlayer.sendMessage("§7To accept: §a/guild join ${guild.name}")
-        targetPlayer.sendMessage("§7To decline: §c/guild decline ${guild.name}")
+        targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.accept", "guild" to guild.name))
+        targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.decline", "guild" to guild.name))
         targetPlayer.sendMessage("")
         targetPlayer.playSound(targetPlayer.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
 

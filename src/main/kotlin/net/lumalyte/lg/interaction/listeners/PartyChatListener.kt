@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.listeners
 
 import io.papermc.paper.event.player.AsyncChatEvent
+import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import net.lumalyte.lg.application.persistence.PartyRepository
@@ -47,6 +48,7 @@ class PartyChatListener : Listener, KoinComponent {
     private val configService: ConfigService by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val plugin: Plugin by inject()
+    private val lang: LangService by inject()
 
     private val chatClaimMeta = "lumaguilds:chat_claimed"
 
@@ -96,15 +98,15 @@ class PartyChatListener : Listener, KoinComponent {
 
         // Check role restrictions
         if (playerRankId != null && !party.canPlayerJoin(playerRankId)) {
-            player.sendMessage("§c❌ You don't have permission to chat in this party!")
-            player.sendMessage("§7Use §f/pc switch GLOBAL §7to return to global chat")
+            player.sendMessage(lang.msg("party.chat.no_permission"))
+            player.sendMessage(lang.msg("party.chat.return_global"))
             return // Event already cancelled at line 71
         }
 
         // Check if player is banned
         if (party.isPlayerBanned(playerId)) {
-            player.sendMessage("§c❌ You are banned from this channel!")
-            player.sendMessage("§7Use §f/pc switch GLOBAL §7to return to global chat")
+            player.sendMessage(lang.msg("party.chat.banned"))
+            player.sendMessage(lang.msg("party.chat.return_global"))
             return // Event already cancelled at line 71
         }
 
@@ -116,13 +118,13 @@ class PartyChatListener : Listener, KoinComponent {
                 val remaining = Duration.between(Instant.now(), muteExpiration)
                 val hours = remaining.toHours()
                 val minutes = remaining.toMinutes() % 60
-                player.sendMessage("§c❌ You are muted in this channel!")
-                player.sendMessage("§7Time remaining: §f${hours}h ${minutes}m")
+                player.sendMessage(lang.msg("party.chat.muted_temporary"))
+                player.sendMessage(lang.msg("party.chat.time_remaining", "hours" to hours, "minutes" to minutes))
             } else {
                 // Permanent mute
-                player.sendMessage("§c❌ You are permanently muted in this channel!")
+                player.sendMessage(lang.msg("party.chat.muted_permanent"))
             }
-            player.sendMessage("§7Use §f/pc switch GLOBAL §7to return to global chat")
+            player.sendMessage(lang.msg("party.chat.return_global"))
             return // Event already cancelled at line 71
         }
 
@@ -134,7 +136,7 @@ class PartyChatListener : Listener, KoinComponent {
         val success = chatService.routeMessage(playerId, message, ChatChannel.PARTY)
 
         if (!success) {
-            player.sendMessage("§c❌ Failed to send party message!")
+            player.sendMessage(lang.msg("party.chat.send_failed"))
         }
     }
 }

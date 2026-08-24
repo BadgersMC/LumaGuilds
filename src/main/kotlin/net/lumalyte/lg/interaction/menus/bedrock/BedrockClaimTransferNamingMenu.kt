@@ -1,10 +1,12 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
@@ -18,27 +20,29 @@ class BedrockClaimTransferNamingMenu(
     logger: Logger
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
+    private val lang: LangService by inject()
+
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
         return CustomForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "claim.transfer.naming.title"))
-            .label(bedrockLocalization.getBedrockString(player, "claim.transfer.naming.instructions"))
+            .title(lang.raw("bedrock.claim_transfer_naming.title"))
+            .label(lang.raw("bedrock.claim_transfer_naming.instructions"))
             .input(
-                bedrockLocalization.getBedrockString(player, "claim.transfer.naming.name"),
-                bedrockLocalization.getBedrockString(player, "claim.transfer.naming.placeholder"),
+                lang.raw("bedrock.claim_transfer_naming.name.label"),
+                lang.raw("bedrock.claim_transfer_naming.name.placeholder"),
                 ""
             )
             .validResultHandler { response ->
                 val newName = response.asInput(2)?.trim() ?: ""
 
                 if (newName.length !in 1..50) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.transfer.naming.invalid"))
+                    player.sendMessage(lang.msg("bedrock.claim_transfer_naming.feedback.invalid"))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }
 
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.transfer.naming.success", newName))
+                player.sendMessage(lang.msg("bedrock.claim_transfer_naming.feedback.success", "claim" to newName))
                 bedrockNavigator.goBack()
             }
             .closedOrInvalidResultHandler { _, _ ->

@@ -1,10 +1,11 @@
 package net.lumalyte.lg.interaction.menus.misc
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.actions.claim.ListPlayerClaims
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
@@ -18,14 +19,14 @@ import org.koin.core.component.inject
 import kotlin.math.ceil
 
 class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player: Player): Menu, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val listPlayerClaims: ListPlayerClaims by inject()
 
     var page = 1
 
     override fun open() {
         val claims = listPlayerClaims.execute(player.uniqueId)
-        val gui = ChestGui(6, localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_CLAIM_LIST_TITLE))
+        val gui = ChestGui(6, lang.legacy("menu.claim_list.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -36,13 +37,13 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Add go back/exit item
         val exitItem = ItemStack.of(Material.NETHER_STAR)
-            .name(localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_COMMON_ITEM_CLOSE_NAME))
+            .name(lang.legacy("menu.common.item.close.name"))
         val guiExitItem = GuiItem(exitItem) { menuNavigator.goBack() }
         controlsPane.addItem(guiExitItem, 0, 0)
 
         // Add prev item
         val prevItem = ItemStack.of(Material.ARROW)
-            .name(localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_COMMON_ITEM_PREV_NAME))
+            .name(lang.legacy("menu.common.item.prev.name"))
         val guiPrevItem = GuiItem(prevItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPrevItem, 6, 0)
 
@@ -54,7 +55,7 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Add next item
         val nextItem = ItemStack.of(Material.ARROW)
-            .name(localizationProvider.get(player.uniqueId, LocalizationKeys.MENU_COMMON_ITEM_NEXT_NAME))
+            .name(lang.legacy("menu.common.item.next.name"))
         val guiNextItem = GuiItem(nextItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiNextItem, 8, 0)
 
@@ -76,8 +77,7 @@ class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player
             val coordinates = listOf(claim.position.x, claim.position.y, claim.position.z)
             val claimItem = ItemStack.of(Material.matchMaterial(claim.icon) ?: Material.GRASS_BLOCK)
                 .name(claim.name)
-                .lore(coordinates.joinToString(localizationProvider.get(
-                    player.uniqueId, LocalizationKeys.GENERAL_LIST_SEPARATOR)))
+                .lore(coordinates.joinToString(lang.legacy("general.list_separator")))
             val guiWarpItem = GuiItem(claimItem) { guiEvent -> guiEvent.isCancelled = true }
             warpsPane.addItem(guiWarpItem, xSlot, ySlot)
 

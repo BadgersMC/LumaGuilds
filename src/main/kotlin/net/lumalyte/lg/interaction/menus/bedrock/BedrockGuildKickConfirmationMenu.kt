@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -28,49 +29,49 @@ class BedrockGuildKickConfirmationMenu(
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
-        val targetPlayer = Bukkit.getPlayer(memberToKick.playerId)
-        val targetName = targetPlayer?.name ?: "Unknown Player"
+        val targetName = Bukkit.getOfflinePlayer(memberToKick.playerId).name ?: lang.raw("menu.common.unknown_player")
 
         return SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.kick.confirm.title"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.kick.confirm.message", targetName, guild.name, memberToKick.joinedAt.toString()))
-            .button(bedrockLocalization.getBedrockString(player, "guild.kick.confirm.button.kick"))
-            .button(bedrockLocalization.getBedrockString(player, "guild.kick.confirm.button.cancel"))
+            .title(lang.raw("bedrock.kick_confirmation.title"))
+            .content(lang.legacy("bedrock.kick_confirmation.content", "player" to targetName, "guild" to guild.name, "joined" to memberToKick.joinedAt.toString()))
+            .button(lang.raw("bedrock.kick_confirmation.button.kick"))
+            .button(lang.raw("bedrock.kick_confirmation.button.cancel"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> performKick()
                     1 -> bedrockNavigator.createBackHandler {
-                        player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.kick.confirm.cancelled"))
+                        player.sendMessage(lang.msg("bedrock.kick_confirmation.feedback.cancelled"))
                     }.run()
                 }
             }
             .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.kick.confirm.cancelled"))
+                player.sendMessage(lang.msg("bedrock.kick_confirmation.feedback.cancelled"))
             })
             .build()
     }
 
     private fun performKick() {
         val targetPlayer = Bukkit.getPlayer(memberToKick.playerId)
-        val targetName = targetPlayer?.name ?: "Unknown Player"
+        val targetName = Bukkit.getOfflinePlayer(memberToKick.playerId).name ?: lang.raw("menu.common.unknown_player")
 
         // Perform the kick
         val success = memberService.removeMember(memberToKick.playerId, guild.id, player.uniqueId)
 
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.kick.success", targetName))
+            player.sendMessage(lang.msg("bedrock.kick_confirmation.feedback.kicked", "player" to targetName))
 
             // Notify the kicked player if they're online
             if (targetPlayer != null) {
-                targetPlayer.sendMessage(bedrockLocalization.getBedrockString(targetPlayer, "guild.kick.notify.player", guild.name, player.name))
+                targetPlayer.sendMessage(lang.msg("bedrock.kick_confirmation.feedback.target_kicked", "guild" to guild.name, "player" to player.name))
             }
 
             // Return to member management menu
             bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.kick.failed"))
+            player.sendMessage(lang.msg("bedrock.kick_confirmation.feedback.failed"))
             bedrockNavigator.openMenu(GuildKickMenu(menuNavigator, player, guild))
         }
     }

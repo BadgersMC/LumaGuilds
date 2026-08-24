@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.listeners
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.GuildVaultService
@@ -44,6 +45,7 @@ class VaultProtectionListener : Listener, KoinComponent {
     private val memberService: MemberService by inject()
     private val configService: ConfigService by inject()
     private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService by inject()
+    private val lang: LangService by inject()
 
     private val logger = LoggerFactory.getLogger(VaultProtectionListener::class.java)
 
@@ -99,8 +101,8 @@ class VaultProtectionListener : Listener, KoinComponent {
                 val guild = vaultService.getGuildForVaultChest(attachedBlock.location)
                 if (guild != null) {
                     event.isCancelled = true
-                    player.sendMessage("§c§lBLOCKED§r §7» §fYou cannot place signs on guild vault chests!")
-                    player.sendMessage("§7This would create an ItemShop from the guild vault.")
+                    player.sendMessage(lang.msg("notification.vault.placement.sign_blocked"))
+                    player.sendMessage(lang.msg("notification.vault.placement.sign_exploit"))
                     logger.warn("Blocked ${player.name} from placing sign on vault chest for guild ${guild.name}")
                     return
                 }
@@ -117,8 +119,8 @@ class VaultProtectionListener : Listener, KoinComponent {
             // Not a vault chest - check if trying to place next to an existing vault chest (double chest exploit)
             if (isAdjacentToVaultChest(block.location)) {
                 event.isCancelled = true
-                player.sendMessage("§c§lBLOCKED§r §7» §fYou cannot place a chest next to a guild vault!")
-                player.sendMessage("§7This would create a double chest and bypass vault security.")
+                player.sendMessage(lang.msg("notification.vault.placement.adjacent_blocked"))
+                player.sendMessage(lang.msg("notification.vault.placement.adjacent_exploit"))
                 logger.info("Blocked ${player.name} from placing chest next to vault chest (double chest exploit prevention)")
             }
             return
@@ -128,7 +130,7 @@ class VaultProtectionListener : Listener, KoinComponent {
         val guildIdString = meta.persistentDataContainer.get(net.lumalyte.lg.common.PluginKeys.GUILD_VAULT_ID, org.bukkit.persistence.PersistentDataType.STRING)
         if (guildIdString == null) {
             event.isCancelled = true
-            player.sendMessage("§cInvalid guild vault chest! Guild ID not found.")
+            player.sendMessage(lang.msg("notification.vault.placement.missing_guild_id"))
             return
         }
 
@@ -137,7 +139,7 @@ class VaultProtectionListener : Listener, KoinComponent {
         } catch (e: IllegalArgumentException) {
             // Invalid UUID format in PDC - corrupted data
             event.isCancelled = true
-            player.sendMessage("§cInvalid guild vault chest! Corrupted guild ID.")
+            player.sendMessage(lang.msg("notification.vault.placement.corrupt_guild_id"))
             logger.error("Failed to parse guild ID from vault chest: $guildIdString", e)
             return
         }
@@ -146,7 +148,7 @@ class VaultProtectionListener : Listener, KoinComponent {
         val guild = guildService.getGuild(guildId)
         if (guild == null) {
             event.isCancelled = true
-            player.sendMessage("§cInvalid guild vault chest! Guild no longer exists.")
+            player.sendMessage(lang.msg("notification.vault.placement.guild_missing"))
             return
         }
 
@@ -154,7 +156,7 @@ class VaultProtectionListener : Listener, KoinComponent {
         val member = memberService.getMember(player.uniqueId, guild.id)
         if (member == null) {
             event.isCancelled = true
-            player.sendMessage("§cYou cannot place this vault chest as you're not in ${guild.name}!")
+            player.sendMessage(lang.msg("notification.vault.placement.not_member", "guild" to guild.name))
             return
         }
 
@@ -163,9 +165,15 @@ class VaultProtectionListener : Listener, KoinComponent {
             val existingLocation = vaultService.getVaultLocation(guild)
             if (existingLocation != null) {
                 event.isCancelled = true
-                player.sendMessage("§cYour guild already has a vault chest placed!")
-                player.sendMessage("§7Location: §f${existingLocation.world?.name} (${existingLocation.blockX}, ${existingLocation.blockY}, ${existingLocation.blockZ})")
-                player.sendMessage("§7Break the existing vault first.")
+            player.sendMessage(lang.msg("notification.vault.placement.already_placed"))
+            player.sendMessage(lang.msg(
+                "notification.vault.location",
+                "world" to (existingLocation.world?.name ?: lang.raw("notification.vault.unknown_world")),
+                "x" to existingLocation.blockX,
+                "y" to existingLocation.blockY,
+                "z" to existingLocation.blockZ
+            ))
+            player.sendMessage(lang.msg("notification.vault.placement.break_existing"))
                 return
             }
         }
@@ -177,12 +185,18 @@ class VaultProtectionListener : Listener, KoinComponent {
                 // Update guild in database
                 guildRepository.update(placeResult.data)
 
-                player.sendMessage("§a§l✓ VAULT PLACED§r")
-                player.sendMessage("§aYour guild's physical vault has been set up!")
-                player.sendMessage("§7Location: §f${block.location.world?.name} (${block.location.blockX}, ${block.location.blockY}, ${block.location.blockZ})")
-                player.sendMessage("§7")
-                player.sendMessage("§6Access: §fOpen the guild bank menu §7(/guild menu → Bank)")
-                player.sendMessage("§6Capacity: §f${vaultService.getCapacityForLevel(guild.level)} slots")
+            player.sendMessage(lang.msg("notification.vault.placement.success_header"))
+            player.sendMessage(lang.msg("notification.vault.placement.success"))
+            player.sendMessage(lang.msg(
+                "notification.vault.location",
+                "world" to (block.location.world?.name ?: lang.raw("notification.vault.unknown_world")),
+                "x" to block.location.blockX,
+                "y" to block.location.blockY,
+                "z" to block.location.blockZ
+            ))
+            player.sendMessage(lang.msg("notification.vault.blank"))
+            player.sendMessage(lang.msg("notification.vault.placement.access"))
+            player.sendMessage(lang.msg("notification.vault.placement.capacity", "slots" to vaultService.getCapacityForLevel(guild.level)))
 
                 // Play success sound
                 player.playSound(player.location, org.bukkit.Sound.BLOCK_ENDER_CHEST_OPEN, 1.0f, 1.2f)
@@ -195,8 +209,8 @@ class VaultProtectionListener : Listener, KoinComponent {
             }
             is net.lumalyte.lg.application.services.VaultResult.Failure -> {
                 event.isCancelled = true
-                player.sendMessage("§c§lFAILED§r")
-                player.sendMessage("§cCouldn't place vault: ${placeResult.message}")
+            player.sendMessage(lang.msg("notification.vault.failed_header"))
+            player.sendMessage(lang.msg("notification.vault.placement.failed", "reason" to placeResult.message))
                 player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
                 logger.error("Failed to place vault for ${guild.name}: ${placeResult.message}")
             }
@@ -231,14 +245,14 @@ class VaultProtectionListener : Listener, KoinComponent {
             val result = vaultService.openVaultInventory(player, guild)
             when (result) {
                 is net.lumalyte.lg.application.services.VaultResult.Success -> {
-                    player.sendMessage("§a§lVAULT OPENED§r")
-                    player.sendMessage("§aAccessing §6${guild.name}§a's vault...")
+                    player.sendMessage(lang.msg("notification.vault.open.success_header"))
+                    player.sendMessage(lang.msg("notification.vault.open.success", "guild" to guild.name))
                     player.playSound(player.location, org.bukkit.Sound.BLOCK_ENDER_CHEST_OPEN, 1.0f, 1.0f)
                     logger.debug("Opened custom vault inventory for ${player.name} (guild: ${guild.name}, capacity: ${vaultService.getCapacityForLevel(guild.level)} slots)")
                 }
                 is net.lumalyte.lg.application.services.VaultResult.Failure -> {
-                    player.sendMessage("§c§lFAILED§r")
-                    player.sendMessage("§c${result.message}")
+                    player.sendMessage(lang.msg("notification.vault.failed_header"))
+                    player.sendMessage(lang.msg("notification.vault.open.failed", "reason" to result.message))
                     player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
                     logger.warn("Failed to open vault for ${player.name}: ${result.message}")
                 }
@@ -247,8 +261,8 @@ class VaultProtectionListener : Listener, KoinComponent {
             // Not a vault chest - check if it's adjacent to a vault chest (double chest exploit)
             if (isAdjacentToVaultChest(block.location)) {
                 event.isCancelled = true
-                player.sendMessage("§c§lBLOCKED§r §7» §fThis chest is part of a guild vault!")
-                player.sendMessage("§7You cannot access it directly - use the vault interface instead.")
+                player.sendMessage(lang.msg("notification.vault.open.direct_blocked"))
+                player.sendMessage(lang.msg("notification.vault.open.use_interface"))
                 logger.info("Blocked ${player.name} from opening chest adjacent to vault chest (double chest exploit prevention)")
             }
         }
@@ -275,7 +289,7 @@ class VaultProtectionListener : Listener, KoinComponent {
         if (rank == null) {
             // Non-member trying to break vault
             event.isCancelled = true
-            player.sendMessage("§c§lVAULT PROTECTED§r §7» §fOnly guild members can interact with the vault.")
+            player.sendMessage(lang.msg("notification.vault.break.members_only"))
             logger.info("Blocked non-member ${player.name} from breaking vault chest")
             return
         }
@@ -283,7 +297,7 @@ class VaultProtectionListener : Listener, KoinComponent {
         val hasBreakPermission = rank.permissions.contains(RankPermission.BREAK_VAULT)
         if (!hasBreakPermission) {
             event.isCancelled = true
-            player.sendMessage("§c§lPERMISSION DENIED§r §7» §fYou don't have permission to break the vault chest.")
+            player.sendMessage(lang.msg("notification.vault.break.no_permission"))
             logger.info("Blocked ${player.name} from breaking vault chest (no BREAK_VAULT permission)")
             return
         }
@@ -299,9 +313,9 @@ class VaultProtectionListener : Listener, KoinComponent {
             // First warning or warning expired
             event.isCancelled = true
             playerWarnings[locationKey] = currentTime
-            player.sendMessage("§e§lWARNING§r §7» §fBreaking the vault will drop ALL items and currency on the ground!")
-            player.sendMessage("§e§lWARNING§r §7» §fThey will be permanently lost if not picked up!")
-            player.sendMessage("§e§lWARNING§r §7» §fBreak again within §e${getConfig().breakWarningTimeoutSeconds} seconds §fto confirm.")
+            player.sendMessage(lang.msg("notification.vault.break.warning_drop"))
+            player.sendMessage(lang.msg("notification.vault.break.warning_loss"))
+            player.sendMessage(lang.msg("notification.vault.break.warning_confirm", "seconds" to getConfig().breakWarningTimeoutSeconds))
             logger.info("Warned ${player.name} about breaking vault chest (first warning)")
         } else {
             // Second break attempt within timeout - allow break
@@ -313,12 +327,12 @@ class VaultProtectionListener : Listener, KoinComponent {
             when (removeResult) {
                 is net.lumalyte.lg.application.services.VaultResult.Success -> {
                     if (dropItems) {
-                        player.sendMessage("§c§lVAULT BROKEN§r §7» §fAll items and currency have been dropped on the ground!")
-                        player.sendMessage("§c§lVAULT BROKEN§r §7» §fPick them up quickly before they despawn!")
+                player.sendMessage(lang.msg("notification.vault.break.broken_drop"))
+                player.sendMessage(lang.msg("notification.vault.break.broken_hurry"))
                         logger.info("${player.name} broke vault chest, items dropped and cleared from database")
                     } else {
-                        player.sendMessage("§c§lVAULT REMOVED§r §7» §fThe vault chest has been removed.")
-                        player.sendMessage("§e§lITEMS PRESERVED§r §7» §fPlace a new vault chest to restore your items!")
+                player.sendMessage(lang.msg("notification.vault.break.removed"))
+                player.sendMessage(lang.msg("notification.vault.items_preserved"))
                         logger.info("${player.name} broke vault chest, items preserved in database")
                     }
 
@@ -333,7 +347,7 @@ class VaultProtectionListener : Listener, KoinComponent {
                 }
                 is net.lumalyte.lg.application.services.VaultResult.Failure -> {
                     event.isCancelled = true
-                    player.sendMessage("§c§lERROR§r §7» §f${removeResult.message}")
+            player.sendMessage(lang.msg("notification.vault.break.failed", "reason" to removeResult.message))
                     logger.error("Failed to remove vault: ${removeResult.message}")
                 }
             }
@@ -385,12 +399,12 @@ class VaultProtectionListener : Listener, KoinComponent {
                 for (member in memberService.getGuildMembers(guild.id)) {
                     val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                     if (onlinePlayer != null && onlinePlayer.isOnline) {
-                        onlinePlayer.sendMessage("§c§lVAULT DESTROYED§r §7» §fYour guild's vault chest was destroyed by an explosion!")
+                    onlinePlayer.sendMessage(lang.msg("notification.vault.explosion.destroyed"))
                         if (dropItems) {
-                            onlinePlayer.sendMessage("§c§lALL ITEMS DROPPED§r §7» §fAll items and currency scattered at the vault location!")
-                            onlinePlayer.sendMessage("§c§lACT FAST§r §7» §fItems will despawn if not picked up!")
+                        onlinePlayer.sendMessage(lang.msg("notification.vault.explosion.items_dropped"))
+                        onlinePlayer.sendMessage(lang.msg("notification.vault.explosion.hurry"))
                         } else {
-                            onlinePlayer.sendMessage("§e§lITEMS PRESERVED§r §7» §fPlace a new vault chest to restore your items!")
+                        onlinePlayer.sendMessage(lang.msg("notification.vault.items_preserved"))
                         }
                     }
                 }

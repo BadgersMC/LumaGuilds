@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.management
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.AnvilGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -8,7 +10,6 @@ import net.lumalyte.lg.application.actions.player.IsPlayerInClaimMenu
 import net.lumalyte.lg.application.results.claim.transfer.AcceptTransferRequestResult
 import net.lumalyte.lg.application.results.player.IsPlayerInClaimMenuResult
 import net.lumalyte.lg.domain.entities.Claim
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
@@ -25,7 +26,7 @@ import org.koin.core.component.inject
 
 class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private val claim: Claim?,
                               private val player: Player): Menu, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val acceptTransferRequest: AcceptTransferRequest by inject()
     private val isPlayerInClaimMenu: IsPlayerInClaimMenu by inject()
 
@@ -34,13 +35,13 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
 
     override fun open() {
         if (claim == null) {
-            player.sendMessage("§cError: No claim available")
+            player.sendMessage(lang.msg("menu.common.feedback.no_claim"))
             return
         }
 
         // Create transfer naming menu
         val playerId = player.uniqueId
-        val gui = AnvilGui(localizationProvider.get(playerId, LocalizationKeys.MENU_NAMING_TITLE))
+        val gui = AnvilGui(lang.legacy("menu.naming.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -60,44 +61,43 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
         when (previousResult) {
             AcceptTransferRequestResult.NoActiveTransferRequest -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(localizationProvider.get(playerId,
-                        LocalizationKeys.ACCEPT_TRANSFER_CONDITION_INVALID_REQUEST))
+                    .name(lang.legacy("accept_transfer_condition.invalid_request"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.ClaimNotFound -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.ACCEPT_TRANSFER_CONDITION_INVALID_CLAIM))
+                    .name(lang.legacy("accept_transfer_condition.invalid_claim"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.BlockLimitExceeded -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_BLOCKS))
+                    .name(lang.legacy("creation_condition.blocks"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.ClaimLimitExceeded -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_CLAIMS))
+                    .name(lang.legacy("creation_condition.claims"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.NameAlreadyExists -> {
                 val paperItem = ItemStack.of(Material.PAPER)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.CREATION_CONDITION_EXISTING))
+                    .name(lang.legacy("creation_condition.existing"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.PlayerOwnsClaim -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.ACCEPT_TRANSFER_CONDITION_OWNER))
+                    .name(lang.legacy("accept_transfer_condition.owner"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
             AcceptTransferRequestResult.StorageError -> {
                 val paperItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.GENERAL_ERROR))
+                    .name(lang.legacy("general.error"))
                 val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
                 secondPane.addItem(guiPaperItem, 0, 0)
             }
@@ -107,7 +107,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
         // Add confirm menu item.
         val thirdPane = StaticPane(0, 0, 1, 1)
         val confirmItem = ItemStack.of(Material.NETHER_STAR)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_CONFIRM_NAME))
+            .name(lang.legacy("menu.common.item.confirm.name"))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             val previousOwnerId = claim.playerId
 
@@ -122,8 +122,7 @@ class ClaimTransferNamingMenu(private val menuNavigator: MenuNavigator, private 
                                 val previousOwner = Bukkit.getPlayer(previousOwnerId)
                                 previousOwner?.closeInventory()
                                 previousOwner?.sendActionBar(
-                                    Component.text(localizationProvider.get(
-                                        playerId, LocalizationKeys.FEEDBACK_TRANSFER_SUCCESS))
+                                    Component.text(lang.legacy("feedback.transfer.success"))
                                         .color(TextColor.color(255, 85, 85)))
                             }
                         }

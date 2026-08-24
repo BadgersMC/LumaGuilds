@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
+
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Subcommand
@@ -7,7 +9,6 @@ import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.metadata.UpdateClaimName
 import net.lumalyte.lg.application.results.common.TextValidationErrorResult
 import net.lumalyte.lg.application.results.claim.metadata.UpdateClaimNameResult
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -16,7 +17,7 @@ import kotlin.getValue
 
 @CommandAlias("claim")
 class RenameCommand : ClaimCommand(), KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val updateClaimName: UpdateClaimName by inject()
     private val getClaimDetails: GetClaimDetails by inject()
 
@@ -33,60 +34,48 @@ class RenameCommand : ClaimCommand(), KoinComponent {
 
         // Update name and notify player of result
         val result = updateClaimName.execute(partition.claimId, name)
-        val (messageKey, messageArgs) = when (result) {
-            is UpdateClaimNameResult.Success -> Pair(
-                LocalizationKeys.COMMAND_CLAIM_RENAME_SUCCESS,
-                arrayOf(getClaimName(playerId, claimId), name)
+        val message = when (result) {
+            is UpdateClaimNameResult.Success -> lang.msg(
+                "command.claim.rename.success",
+                "claim" to getClaimName(playerId, claimId),
+                "name" to name,
             )
-            is UpdateClaimNameResult.NameAlreadyExists -> Pair(
-                LocalizationKeys.COMMAND_CLAIM_RENAME_ALREADY_EXISTS,
-                arrayOf(name)
+            is UpdateClaimNameResult.NameAlreadyExists -> lang.msg(
+                "command.claim.rename.already_exists",
+                "name" to name,
             )
-            is UpdateClaimNameResult.ClaimNotFound -> Pair(
-                LocalizationKeys.COMMAND_COMMON_UNKNOWN_CLAIM,
-                emptyArray<String>()
-            )
+            is UpdateClaimNameResult.ClaimNotFound -> lang.msg("command.common.unknown_claim")
             is UpdateClaimNameResult.InputTextInvalid -> {
                 val firstError = result.errors.firstOrNull()
                 when (firstError) {
-                    is TextValidationErrorResult.ExceededCharacterLimit -> Pair(
-                        LocalizationKeys.COMMAND_CLAIM_RENAME_EXCEED_LIMIT,
-                        arrayOf(name.count().toString(), firstError.maxCharacters)
+                    is TextValidationErrorResult.ExceededCharacterLimit -> lang.msg(
+                        "command.claim.rename.exceed_limit",
+                        "length" to name.count(),
+                        "limit" to firstError.maxCharacters,
                     )
-                    is TextValidationErrorResult.InvalidCharacters -> Pair(
-                        LocalizationKeys.COMMAND_CLAIM_RENAME_INVALID_CHARACTER,
-                        arrayOf(firstError.invalidCharacters)
+                    is TextValidationErrorResult.InvalidCharacters -> lang.msg(
+                        "command.claim.rename.invalid_character",
+                        "characters" to firstError.invalidCharacters,
                     )
-                    is TextValidationErrorResult.ContainsBlacklistedWord -> Pair(
-                        LocalizationKeys.COMMAND_CLAIM_RENAME_BLACKLISTED_WORD,
-                        arrayOf(firstError.blacklistedWord)
+                    is TextValidationErrorResult.ContainsBlacklistedWord -> lang.msg(
+                        "command.claim.rename.blacklisted_word",
+                        "word" to firstError.blacklistedWord,
                     )
-                    is TextValidationErrorResult.NoCharactersProvided -> Pair(
-                        LocalizationKeys.COMMAND_CLAIM_RENAME_BLANK,
-                        emptyArray<String>()
-                    )
-                    null -> Pair(
-                        LocalizationKeys.GENERAL_ERROR,
-                        emptyArray<String>()
-                    )
+                    is TextValidationErrorResult.NoCharactersProvided -> lang.msg("command.claim.rename.blank")
+                    null -> lang.msg("general.error")
                 }
             }
-            is UpdateClaimNameResult.StorageError -> Pair(
-                LocalizationKeys.GENERAL_ERROR,
-                emptyArray<String>()
-            )
+            is UpdateClaimNameResult.StorageError -> lang.msg("general.error")
         }
 
         // Output to player chat
-        player.sendMessage(localizationProvider.get(player.uniqueId, messageKey, *messageArgs))
+        player.sendMessage(message)
     }
 
     /**
      * Helper function to retrieve the claim name or a default error message if not found.
      */
     private fun getClaimName(playerId: UUID, claimId: UUID): String {
-        return getClaimDetails.execute(claimId)?.name ?: localizationProvider.get(
-            playerId, LocalizationKeys.GENERAL_NAME_ERROR
-        )
+        return getClaimDetails.execute(claimId)?.name ?: lang.legacy("general.name_error")
     }
 }

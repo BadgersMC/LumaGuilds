@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -30,6 +31,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     private val nexoEmojiService: NexoEmojiService by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     init {
         // Run validation test on initialization (for development/testing)
@@ -70,14 +72,14 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             null // Empty is valid (clears emoji)
         } else if (!nexoEmojiService.doesEmojiExist(currentInput)) {
             println("[LumaGuilds] GuildEmojiMenu: Emoji validation FAILED - not found in registry")
-            "Emoji not found in Nexo registry"
+            lang.legacy("menu.guild_emoji.validation.not_found")
         } else {
             println("[LumaGuilds] GuildEmojiMenu: Emoji validation PASSED")
             null // Valid
         }
         println("[LumaGuilds] GuildEmojiMenu: Final validation result: ${validationError ?: "VALID"}")
 
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Guild Emoji - ${guild.name}"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.guild_emoji.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
@@ -103,12 +105,12 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     }
 
     private fun addCurrentEmojiDisplay(pane: StaticPane, x: Int, y: Int) {
-        val currentEmojiText = currentEmoji ?: "§cNot set"
+        val currentEmojiText = currentEmoji ?: lang.legacy("menu.guild_emoji.current.not_set")
         val displayItem = ItemStack.of(Material.NAME_TAG)
-            .name("§e🎨 CURRENT EMOJI")
-            .lore("§7$currentEmojiText")
-            .lore("§7")
-            .lore("§7This emoji appears in guild chat")
+            .name(lang.legacy("menu.guild_emoji.current.name"))
+            .lore(lang.legacy("menu.guild_emoji.current.value", "emoji" to currentEmojiText))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_emoji.current.description"))
 
         val guiItem = GuiItem(displayItem) {
             // Display only - no click action needed
@@ -122,22 +124,22 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
         val statusItem = if (isNexoAvailable) {
             ItemStack.of(Material.LIME_WOOL)
-                .name("§a✅ NEXO: Available")
-                .lore("§7Nexo plugin detected")
-                .lore("§7Full emoji validation active")
-                .lore("§7Emojis must be configured in Nexo")
+                .name(lang.legacy("menu.guild_emoji.nexo.available.name"))
+                .lore(lang.legacy("menu.guild_emoji.nexo.available.detected"))
+                .lore(lang.legacy("menu.guild_emoji.nexo.available.validation"))
+                .lore(lang.legacy("menu.guild_emoji.nexo.available.configured"))
         } else {
             ItemStack.of(Material.RED_WOOL)
-                .name("§c❌ NEXO: Unavailable")
-                .lore("§7Nexo plugin not found")
-                .lore("§7Format-only validation active")
-                .lore("§7Contact admin to install Nexo")
-                .lore("§7for full emoji functionality")
+                .name(lang.legacy("menu.guild_emoji.nexo.unavailable.name"))
+                .lore(lang.legacy("menu.guild_emoji.nexo.unavailable.missing"))
+                .lore(lang.legacy("menu.guild_emoji.nexo.unavailable.validation"))
+                .lore(lang.legacy("menu.guild_emoji.nexo.unavailable.contact"))
+                .lore(lang.legacy("menu.guild_emoji.nexo.unavailable.functionality"))
         }
 
         val guiItem = GuiItem(statusItem) {
             // Status display only
-            player.sendMessage("§7$statusText")
+            player.sendMessage(lang.msg("menu.guild_emoji.nexo.status", "status" to statusText))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -145,29 +147,29 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     private fun addEmojiInputField(pane: StaticPane, x: Int, y: Int) {
         println("[LumaGuilds] GuildEmojiMenu: Adding emoji input field with current input: '$inputEmoji'")
         val inputItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§f✏ SET NEW EMOJI")
-            .lore("§7Format: :emoji_name:")
-            .lore("§7Example: :cat:")
-            .lore("§7Current input: ${inputEmoji ?: "§c(none)"}")
+            .name(lang.legacy("menu.guild_emoji.input.name"))
+            .lore(lang.legacy("menu.guild_emoji.input.format"))
+            .lore(lang.legacy("menu.guild_emoji.input.example"))
+            .lore(lang.legacy("menu.guild_emoji.input.current", "emoji" to (inputEmoji ?: lang.legacy("menu.guild_emoji.input.none"))))
 
         // Add validation status
         if (validationError != null) {
-            inputItem.lore("§c❌ $validationError")
+            inputItem.lore(lang.legacy("menu.guild_emoji.input.invalid", "error" to validationError!!))
         } else if (inputEmoji != null) {
-            inputItem.lore("§a✅ Format valid")
+            inputItem.lore(lang.legacy("menu.guild_emoji.input.valid"))
         }
 
-        inputItem.lore("§7Click to input emoji")
+        inputItem.lore(lang.legacy("menu.guild_emoji.input.click"))
 
         val guiItem = GuiItem(inputItem) {
             println("[LumaGuilds] GuildEmojiMenu: Emoji input field clicked - starting chat input")
             // Start chat input mode for emoji
-            chatInputListener.startInputMode(player, EmojiInputHandler(menuNavigator, player, guild, this))
+            chatInputListener.startInputMode(player, EmojiInputHandler(player, this, lang))
             player.closeInventory()
 
-            player.sendMessage("§e✏ Enter your guild emoji:")
-            player.sendMessage("§7Format: §f:emoji_name: §7(e.g., §f:cat:§7)")
-            player.sendMessage("§7Type §c'cancel' §7to cancel")
+            player.sendMessage(lang.msg("menu.guild_emoji.chat.prompt"))
+            player.sendMessage(lang.msg("menu.guild_emoji.chat.format"))
+            player.sendMessage(lang.msg("menu.guild_emoji.chat.cancel"))
         }
         pane.addItem(guiItem, x, y)
     }
@@ -176,16 +178,16 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
         val unlockedCount = nexoEmojiService.getPlayerUnlockedEmojis(player).size
         println("[LumaGuilds] GuildEmojiMenu: Player ${player.name} has $unlockedCount unlocked emojis")
         val selectorItem = ItemStack.of(Material.ENDER_CHEST)
-            .name("§d🎨 SELECT FROM UNLOCKED")
-            .lore("§7Browse emojis you have access to")
-            .lore("§7Unlocked emojis: §f$unlockedCount")
-            .lore("§7Click to open emoji selector")
+            .name(lang.legacy("menu.guild_emoji.selector.name"))
+            .lore(lang.legacy("menu.guild_emoji.selector.description"))
+            .lore(lang.legacy("menu.guild_emoji.selector.count", "count" to unlockedCount))
+            .lore(lang.legacy("menu.guild_emoji.selector.click"))
 
         val guiItem = GuiItem(selectorItem) {
             println("[LumaGuilds] GuildEmojiMenu: Emoji selector button clicked")
             if (unlockedCount == 0) {
-                player.sendMessage("§cYou don't have any unlocked emojis!")
-                player.sendMessage("§7Contact an admin to get emoji permissions.")
+                player.sendMessage(lang.msg("menu.guild_emoji.feedback.none_unlocked"))
+                player.sendMessage(lang.msg("menu.guild_emoji.feedback.contact_admin"))
             } else {
                 println("[LumaGuilds] GuildEmojiMenu: Opening emoji selection menu")
                 // Open emoji selection menu
@@ -198,19 +200,19 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     private fun addPreviewSection(pane: StaticPane, x: Int, y: Int) {
         val previewEmoji = inputEmoji ?: ":cat:" // Default preview
         val previewItem = ItemStack.of(Material.PAPER)
-            .name("§a🔍 PREVIEW")
-            .lore("§7Guild Chat:")
+            .name(lang.legacy("menu.guild_emoji.preview.name"))
+            .lore(lang.legacy("menu.guild_emoji.preview.description"))
 
         if (validationError != null) {
-            previewItem.lore("§7[${player.name}] §c$previewEmoji §7Hello!")
-                .lore("§c⚠ Preview shows validation error")
+            previewItem.lore(lang.legacy("menu.guild_emoji.preview.invalid_message", "player" to player.name, "emoji" to previewEmoji))
+                .lore(lang.legacy("menu.guild_emoji.preview.invalid"))
         } else {
-            previewItem.lore("§7[${player.name}] $previewEmoji §7Hello!")
-                .lore("§a✅ Preview shows valid format")
+            previewItem.lore(lang.legacy("menu.guild_emoji.preview.message", "player" to player.name, "emoji" to previewEmoji))
+                .lore(lang.legacy("menu.guild_emoji.preview.valid"))
         }
 
-        previewItem.lore("§7")
-            .lore("§7How it will appear in chat")
+        previewItem.lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_emoji.preview.hint"))
 
         val guiItem = GuiItem(previewItem) {
             // Preview only - no click action needed
@@ -220,18 +222,18 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addSaveButton(pane: StaticPane, x: Int, y: Int) {
         val saveItem = ItemStack.of(Material.LIME_WOOL)
-            .name("§a✅ SAVE CHANGES")
-            .lore("§7Apply the new emoji")
+            .name(lang.legacy("menu.guild_emoji.action.save.name"))
+            .lore(lang.legacy("menu.guild_emoji.action.save.description"))
 
         // Disable save if there are validation errors or no changes
         if (validationError != null) {
-            saveItem.name("§c❌ CANNOT SAVE")
-                .lore("§cFix validation errors first")
+            saveItem.name(lang.legacy("menu.guild_emoji.action.save.cannot"))
+                .lore(lang.legacy("menu.guild_emoji.action.save.fix"))
         } else if (inputEmoji == currentEmoji) {
-            saveItem.name("§7📝 NO CHANGES")
-                .lore("§7Emoji unchanged")
+            saveItem.name(lang.legacy("menu.guild_emoji.action.save.no_changes"))
+                .lore(lang.legacy("menu.guild_emoji.action.save.unchanged"))
         } else {
-            saveItem.lore("§7Click to save changes")
+            saveItem.lore(lang.legacy("menu.guild_emoji.action.save.click"))
         }
 
         val guiItem = GuiItem(saveItem) {
@@ -240,13 +242,13 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             println("[LumaGuilds] GuildEmojiMenu: validationError: ${validationError ?: "NONE"}")
 
             if (validationError != null) {
-                player.sendMessage("§c❌ Cannot save: $validationError")
+                player.sendMessage(lang.msg("menu.guild_emoji.feedback.cannot_save", "error" to validationError!!))
                 return@GuiItem
             }
 
             if (inputEmoji == currentEmoji) {
                 println("[LumaGuilds] GuildEmojiMenu: No changes detected - inputEmoji equals currentEmoji")
-                player.sendMessage("§7No changes to save.")
+                player.sendMessage(lang.msg("menu.guild_emoji.feedback.no_changes"))
                 return@GuiItem
             }
 
@@ -258,13 +260,13 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
                 // Update local guild object
                 currentEmoji = inputEmoji
 
-                player.sendMessage("§a✅ Guild emoji updated successfully!")
-                player.sendMessage("§7New emoji: ${inputEmoji ?: "§c(cleared)"}")
+                player.sendMessage(lang.msg("menu.guild_emoji.feedback.updated"))
+                player.sendMessage(lang.msg("menu.guild_emoji.feedback.new_emoji", "emoji" to (inputEmoji ?: lang.legacy("menu.guild_emoji.feedback.cleared_value"))))
 
                 // Refresh the menu to show updated state
                 open()
             } else {
-                player.sendMessage("§c❌ Failed to save emoji. Check permissions.")
+                player.sendMessage(lang.msg("menu.guild_emoji.feedback.save_failed"))
             }
         }
         pane.addItem(guiItem, x, y)
@@ -272,9 +274,9 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addClearButton(pane: StaticPane, x: Int, y: Int) {
         val clearItem = ItemStack.of(Material.ORANGE_WOOL)
-            .name("§6🗑 CLEAR EMOJI")
-            .lore("§7Remove guild emoji")
-            .lore("§7Will use no emoji in chat")
+            .name(lang.legacy("menu.guild_emoji.action.clear.name"))
+            .lore(lang.legacy("menu.guild_emoji.action.clear.description"))
+            .lore(lang.legacy("menu.guild_emoji.action.clear.fallback"))
 
         val guiItem = GuiItem(clearItem) {
             println("[LumaGuilds] GuildEmojiMenu: Clear button clicked")
@@ -283,7 +285,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             inputEmoji = null
             validationError = null
 
-            player.sendMessage("§7Emoji cleared. Will use no emoji in chat.")
+            player.sendMessage(lang.msg("menu.guild_emoji.feedback.cleared"))
 
             // Refresh the menu to show updated state
             open()
@@ -293,8 +295,8 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack.of(Material.RED_WOOL)
-            .name("§c❌ CANCEL")
-            .lore("§7Discard changes")
+            .name(lang.legacy("menu.tag_editor.action.cancel.name"))
+            .lore(lang.legacy("menu.tag_editor.action.cancel.description"))
 
         val guiItem = GuiItem(cancelItem) {
             // Close menu without saving
@@ -305,8 +307,8 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§e⬅ BACK")
-            .lore("§7Return to guild settings")
+            .name(lang.legacy("menu.guild_emoji.action.back.name"))
+            .lore(lang.legacy("menu.guild_emoji.action.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -321,7 +323,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
         // Check format: must start and end with colon
         if (!emoji.startsWith(":") || !emoji.endsWith(":")) {
-            return ValidationResult.Invalid("Must be in format :emoji_name:")
+            return ValidationResult.Invalid(lang.legacy("menu.guild_emoji.validation.format"))
         }
 
         // Extract emoji name (remove colons)
@@ -329,18 +331,18 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
         // Check if emoji name is empty
         if (emojiName.isBlank()) {
-            return ValidationResult.Invalid("Emoji name cannot be empty")
+            return ValidationResult.Invalid(lang.legacy("menu.guild_emoji.validation.empty"))
         }
 
         // Check length (including colons)
         if (emoji.length > 50) {
-            return ValidationResult.Invalid("Emoji too long (max 50 characters)")
+            return ValidationResult.Invalid(lang.legacy("menu.guild_emoji.validation.too_long"))
         }
 
         // Basic sanitization - check for potentially problematic characters
         val problematicChars = setOf('<', '>', '"', '\'', '\\', '\n', '\r', '\t')
         if (emojiName.any { it in problematicChars }) {
-            return ValidationResult.Invalid("Emoji contains invalid characters")
+            return ValidationResult.Invalid(lang.legacy("menu.guild_emoji.validation.characters"))
         }
 
         return ValidationResult.Valid
@@ -352,7 +354,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
         validationError = if (emoji == null || emoji.isBlank()) {
             null // Empty is valid (clears emoji)
         } else if (!nexoEmojiService.doesEmojiExist(emoji)) {
-            "Emoji not found in Nexo registry"
+            lang.legacy("menu.guild_emoji.validation.not_found")
         } else {
             null // Valid
         }
@@ -390,10 +392,9 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
  * Handler for emoji chat input, similar to TagEditorMenu's approach
  */
 private class EmojiInputHandler(
-    private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val guild: Guild,
-    private val emojiMenu: GuildEmojiMenu
+    private val emojiMenu: GuildEmojiMenu,
+    private val lang: LangService,
 ) : ChatInputHandler {
 
     /**
@@ -404,8 +405,8 @@ private class EmojiInputHandler(
 
         // Validate the input format
         if (!input.startsWith(":") || !input.endsWith(":")) {
-            player.sendMessage("§c❌ Invalid format! Emoji must be in format :emoji_name:")
-            player.sendMessage("§7Example: §f:cat:")
+            player.sendMessage(lang.msg("menu.guild_emoji.feedback.invalid_format"))
+            player.sendMessage(lang.msg("menu.guild_emoji.input.example"))
             return
         }
 
@@ -418,8 +419,8 @@ private class EmojiInputHandler(
             emojiMenu.open()
         })
 
-        player.sendMessage("§a✅ Emoji set to: $input")
-        player.sendMessage("§7Click save to apply the changes.")
+        player.sendMessage(lang.msg("menu.guild_emoji.feedback.set", "emoji" to input))
+        player.sendMessage(lang.msg("menu.guild_emoji.feedback.save_hint"))
     }
 
     /**
@@ -427,7 +428,7 @@ private class EmojiInputHandler(
      */
     override fun onCancel(player: Player) {
         println("[LumaGuilds] EmojiInputHandler: Player cancelled emoji input")
-        player.sendMessage("§7Emoji input cancelled.")
+        player.sendMessage(lang.msg("menu.guild_emoji.feedback.input_cancelled"))
 
         // Reopen the menu without changes (reuse existing instance)
         val plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds") ?: return // Plugin not found, cannot schedule task
@@ -457,6 +458,7 @@ class EmojiSelectionMenu(
     private val nexoEmojiService: NexoEmojiService by inject()
     private val menuItemBuilder: MenuItemBuilder by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     // Pagination state
     private var currentPage = 0
@@ -468,7 +470,7 @@ class EmojiSelectionMenu(
         unlockedEmojis = nexoEmojiService.getPlayerUnlockedEmojis(player)
 
         if (unlockedEmojis.isEmpty()) {
-            player.sendMessage("§cYou don't have any unlocked emojis!")
+            player.sendMessage(lang.msg("menu.guild_emoji.feedback.none_unlocked"))
             menuNavigator.openMenu(parentMenu)
             return
         }
@@ -477,7 +479,7 @@ class EmojiSelectionMenu(
         val totalPages = (unlockedEmojis.size + itemsPerPage - 1) / itemsPerPage
 
         // Create double chest GUI (6 rows x 9 columns = 54 slots)
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Select Emoji - Page ${currentPage + 1}/$totalPages"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_emoji.selection.title", "page" to currentPage + 1, "total" to totalPages)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -517,9 +519,9 @@ class EmojiSelectionMenu(
         val emojiPlaceholder = ":$emojiName:"
         println("[LumaGuilds] GuildEmojiMenu: Adding emoji item: $emojiPlaceholder")
         val emojiItem = ItemStack.of(Material.PAPER)
-            .name("§e$emojiPlaceholder")
-            .lore("§7Click to select this emoji")
-            .lore("§7This will become your guild emoji")
+            .name(lang.legacy("menu.guild_emoji.selection.emoji", "emoji" to emojiPlaceholder))
+            .lore(lang.legacy("menu.guild_emoji.selection.select"))
+            .lore(lang.legacy("menu.guild_emoji.selection.description"))
 
         val guiItem = GuiItem(emojiItem) {
             println("[LumaGuilds] GuildEmojiMenu: Emoji item clicked: $emojiPlaceholder")
@@ -527,15 +529,15 @@ class EmojiSelectionMenu(
             parentMenu.setEmojiInput(emojiPlaceholder)
             println("[LumaGuilds] GuildEmojiMenu: Set emoji input to: $emojiPlaceholder")
             menuNavigator.openMenu(parentMenu)
-            player.sendMessage("§aSelected emoji: $emojiPlaceholder")
+            player.sendMessage(lang.msg("menu.guild_emoji.feedback.selected", "emoji" to emojiPlaceholder))
         }
         pane.addItem(guiItem, x, y)
     }
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {
         val prevItem = ItemStack.of(Material.ARROW)
-            .name("§e⬅ Previous Page")
-            .lore("§7Go to previous page")
+            .name(lang.legacy("menu.guild_emoji.selection.previous.name"))
+            .lore(lang.legacy("menu.guild_emoji.selection.previous.description"))
 
         val guiItem = GuiItem(prevItem) {
             currentPage--
@@ -546,8 +548,8 @@ class EmojiSelectionMenu(
 
     private fun addNextPageButton(pane: StaticPane, x: Int, y: Int) {
         val nextItem = ItemStack.of(Material.ARROW)
-            .name("§eNext Page ➡")
-            .lore("§7Go to next page")
+            .name(lang.legacy("menu.guild_emoji.selection.next.name"))
+            .lore(lang.legacy("menu.guild_emoji.selection.next.description"))
 
         val guiItem = GuiItem(nextItem) {
             currentPage++
@@ -558,8 +560,8 @@ class EmojiSelectionMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c⬅ Back to Emoji Menu")
-            .lore("§7Return to emoji settings")
+            .name(lang.legacy("menu.guild_emoji.selection.back.name"))
+            .lore(lang.legacy("menu.guild_emoji.selection.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(parentMenu)

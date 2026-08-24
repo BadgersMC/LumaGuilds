@@ -1,13 +1,13 @@
 package net.lumalyte.lg.interaction.listeners
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.application.actions.claim.anchor.MoveClaimAnchor
 import net.lumalyte.lg.application.actions.player.tool.GetClaimIdFromMoveTool
 import net.lumalyte.lg.application.results.claim.anchor.MoveClaimAnchorResult
 import net.lumalyte.lg.application.results.player.tool.GetClaimIdFromMoveToolResult
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toCustomItemData
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -18,7 +18,7 @@ import org.koin.core.component.inject
 import java.util.UUID
 
 class MoveToolListener: Listener, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val moveClaimAnchor: MoveClaimAnchor by inject()
     private val getClaimIdFromMoveTool: GetClaimIdFromMoveTool by inject()
 
@@ -39,29 +39,25 @@ class MoveToolListener: Listener, KoinComponent {
             event.blockPlaced.world.uid, event.blockPlaced.location.toPosition3D())) {
             is MoveClaimAnchorResult.Success -> {
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(
-                        event.player.uniqueId, LocalizationKeys.FEEDBACK_MOVE_TOOL_SUCCESS))
+                    lang.msg("feedback.move_tool.success")
                         .color(TextColor.color(85, 255, 85)))
             }
             is MoveClaimAnchorResult.InvalidPosition -> {
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(
-                        playerId, LocalizationKeys.FEEDBACK_MOVE_TOOL_OUTSIDE_BORDER))
+                    lang.msg("feedback.move_tool.outside_border")
                         .color(TextColor.color(255, 85, 85)))
                 event.isCancelled = true
             }
             is MoveClaimAnchorResult.NoPermission -> {
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(playerId,
-                        LocalizationKeys.FEEDBACK_MOVE_TOOL_NO_PERMISSION))
+                    lang.msg("feedback.move_tool.no_permission")
                         .color(TextColor.color(255, 85, 85)))
                 event.player.inventory.setItemInMainHand(ItemStack.empty())
                 event.isCancelled = true
             }
             is MoveClaimAnchorResult.StorageError -> {
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(playerId,
-                        LocalizationKeys.GENERAL_ERROR))
+                    lang.msg("general.error")
                         .color(TextColor.color(255, 85, 85)))
                 event.player.inventory.setItemInMainHand(ItemStack.empty())
                 event.isCancelled = true

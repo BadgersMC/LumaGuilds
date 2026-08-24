@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -30,6 +31,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
     private val configService: ConfigService by inject()
     private val warService: WarService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         val mainConfig = configService.loadConfig()
@@ -42,7 +44,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
             return
         }
 
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Change Guild Mode"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.guild_mode.title")))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -62,7 +64,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun showDisabledModeMenu() {
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Change Guild Mode"))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.guild_mode.title")))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -75,13 +77,13 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         val currentModeItem = ItemStack.of(
             if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
         )
-            .name("§f📊 CURRENT MODE")
-            .lore("§7Mode: §f${guild.mode.name}")
-            .lore("§7")
-            .lore("§7Changed: §f${guild.modeChangedAt?.let { formatTimeAgo(it) } ?: "Never"}")
-            .lore("§7")
-            .lore("§c❌ Mode switching is disabled by server configuration")
-            .lore("§7Guilds cannot change between Peaceful and Hostile modes")
+            .name(lang.legacy("menu.guild_mode.current.name"))
+            .lore(lang.legacy("menu.guild_mode.current.mode", "mode" to modeDisplayName(guild.mode)))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_mode.current.changed", "time" to (guild.modeChangedAt?.let { formatTimeAgo(it) } ?: lang.raw("menu.guild_mode.time.never"))))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_mode.disabled.message"))
+            .lore(lang.legacy("menu.guild_mode.disabled.description"))
 
         pane.addItem(GuiItem(currentModeItem), 4, 1)
 
@@ -100,33 +102,33 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         // Peaceful Mode Option
         if (guild.mode != GuildMode.PEACEFUL) {
             val peacefulItem = ItemStack.of(Material.GREEN_WOOL)
-                .name("§a☮ SWITCH TO PEACEFUL")
-                .lore("§7Peaceful mode benefits:")
+                .name(lang.legacy("menu.guild_mode.peaceful.name"))
+                .lore(lang.legacy("menu.guild_mode.peaceful.benefits"))
 
             // Only show claim-related PvP benefit if claims are enabled
             if (claimsEnabled) {
-                peacefulItem.lore("§7• No PvP in guild claims")
+                peacefulItem.lore(lang.legacy("menu.guild_mode.peaceful.no_pvp"))
             }
-            peacefulItem.lore("§7• Safe trading environment")
-                .lore("§7• Prevents war declarations")
-                .lore("§7")
-                .lore("§c⚠ Cooldown: ${config.modeSwitchCooldownDays} days")
+            peacefulItem.lore(lang.legacy("menu.guild_mode.peaceful.safe_trading"))
+                .lore(lang.legacy("menu.guild_mode.peaceful.no_wars"))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.guild_mode.peaceful.cooldown", "days" to config.modeSwitchCooldownDays))
 
             val canSwitch = canSwitchToPeaceful(guild, config.modeSwitchCooldownDays)
             val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
             val canSwitchConsideringWar = canSwitch && !hasActiveWar
 
             if (!canSwitchConsideringWar) {
-                peacefulItem.lore("§7")
-                        .lore("§c❌ Cannot switch yet")
+                peacefulItem.lore(lang.legacy("menu.common.blank"))
+                        .lore(lang.legacy("menu.guild_mode.switch.unavailable"))
                 if (hasActiveWar) {
-                    peacefulItem.lore("§c⚔ Active war in progress")
+                    peacefulItem.lore(lang.legacy("menu.guild_mode.peaceful.active_war"))
                 } else {
-                    peacefulItem.lore("§c${getCooldownMessage(guild, config.modeSwitchCooldownDays)}")
+                    peacefulItem.lore(lang.legacy("menu.guild_mode.switch.reason", "reason" to getCooldownMessage(guild, config.modeSwitchCooldownDays)))
                 }
             } else {
-                peacefulItem.lore("§7")
-                        .lore("§e✅ Click to switch to Peaceful")
+                peacefulItem.lore(lang.legacy("menu.common.blank"))
+                        .lore(lang.legacy("menu.guild_mode.peaceful.click"))
             }
 
             val peacefulGuiItem = GuiItem(peacefulItem) {
@@ -134,18 +136,18 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                 if (canSwitchConsideringWar) {
                     val success = guildService.setMode(guild.id, GuildMode.PEACEFUL, player.uniqueId)
                     if (success) {
-                        player.sendMessage("§a✅ Guild mode switched to PEACEFUL!")
+                        player.sendMessage(lang.msg("menu.guild_mode.feedback.peaceful_success"))
                         // Refresh guild data and return to settings
                         guild = guildService.getGuild(guild.id) ?: guild
                         menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
                     } else {
-                        player.sendMessage("§c❌ Failed to change guild mode. Check permissions.")
+                        player.sendMessage(lang.msg("menu.guild_mode.feedback.failed"))
                     }
                 } else {
                     if (hasActiveWar) {
-                        player.sendMessage("§c❌ Cannot switch to peaceful mode during active war!")
+                        player.sendMessage(lang.msg("menu.guild_mode.feedback.active_war"))
                     } else {
-                        player.sendMessage("§c❌ ${getCooldownMessage(guild, config.modeSwitchCooldownDays)}")
+                        player.sendMessage(lang.msg("menu.guild_mode.feedback.blocked", "reason" to getCooldownMessage(guild, config.modeSwitchCooldownDays)))
                     }
                 }
             }
@@ -155,41 +157,41 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         // Hostile Mode Option
         if (guild.mode != GuildMode.HOSTILE) {
             val hostileItem = ItemStack.of(Material.RED_WOOL)
-                .name("§c⚔ SWITCH TO HOSTILE")
-                .lore("§7Hostile mode benefits:")
+                .name(lang.legacy("menu.guild_mode.hostile.name"))
+                .lore(lang.legacy("menu.guild_mode.hostile.benefits"))
 
             // Only show claim-related PvP benefit if claims are enabled
             if (claimsEnabled) {
-                hostileItem.lore("§7• PvP enabled in claims")
+                hostileItem.lore(lang.legacy("menu.guild_mode.hostile.pvp"))
             }
-            hostileItem.lore("§7• Can declare wars")
-                .lore("§7• Competitive gameplay")
-                .lore("§7")
-                .lore("§c⚠ Lock: ${config.hostileModeMinimumDays} days")
+            hostileItem.lore(lang.legacy("menu.guild_mode.hostile.wars"))
+                .lore(lang.legacy("menu.guild_mode.hostile.competitive"))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.guild_mode.hostile.lock", "days" to config.hostileModeMinimumDays))
 
             val canSwitch = canSwitchToHostile(guild, config.hostileModeMinimumDays)
             if (!canSwitch) {
-                hostileItem.lore("§7")
-                        .lore("§c❌ Cannot switch yet")
-                        .lore("§c${getHostileLockMessage(guild, config.hostileModeMinimumDays)}")
+                hostileItem.lore(lang.legacy("menu.common.blank"))
+                        .lore(lang.legacy("menu.guild_mode.switch.unavailable"))
+                        .lore(lang.legacy("menu.guild_mode.switch.reason", "reason" to getHostileLockMessage(guild, config.hostileModeMinimumDays)))
             } else {
-                hostileItem.lore("§7")
-                        .lore("§e✅ Click to switch to Hostile")
+                hostileItem.lore(lang.legacy("menu.common.blank"))
+                        .lore(lang.legacy("menu.guild_mode.hostile.click"))
             }
 
             val hostileGuiItem = GuiItem(hostileItem) {
                 if (canSwitch) {
                     val success = guildService.setMode(guild.id, GuildMode.HOSTILE, player.uniqueId)
                     if (success) {
-                        player.sendMessage("§a✅ Guild mode switched to HOSTILE!")
+                        player.sendMessage(lang.msg("menu.guild_mode.feedback.hostile_success"))
                         // Refresh guild data and return to settings
                         guild = guildService.getGuild(guild.id) ?: guild
                         menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
                     } else {
-                        player.sendMessage("§c❌ Failed to change guild mode. Check permissions.")
+                        player.sendMessage(lang.msg("menu.guild_mode.feedback.failed"))
                     }
                 } else {
-                    player.sendMessage("§c❌ ${getHostileLockMessage(guild, config.hostileModeMinimumDays)}")
+                    player.sendMessage(lang.msg("menu.guild_mode.feedback.blocked", "reason" to getHostileLockMessage(guild, config.hostileModeMinimumDays)))
                 }
             }
             pane.addItem(hostileGuiItem, 6, 1)
@@ -199,18 +201,18 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         val currentModeItem = ItemStack.of(
             if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
         )
-            .name("§f📊 CURRENT MODE")
-            .lore("§7Mode: §f${guild.mode.name}")
-            .lore("§7")
-            .lore("§7Changed: §f${guild.modeChangedAt?.let { formatTimeAgo(it) } ?: "Never"}")
+            .name(lang.legacy("menu.guild_mode.current.name"))
+            .lore(lang.legacy("menu.guild_mode.current.mode", "mode" to modeDisplayName(guild.mode)))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.guild_mode.current.changed", "time" to (guild.modeChangedAt?.let { formatTimeAgo(it) } ?: lang.raw("menu.guild_mode.time.never"))))
 
         pane.addItem(GuiItem(currentModeItem), 4, 1)
     }
 
     private fun addBackButton(pane: StaticPane) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c⬅ BACK")
-            .lore("§7Return to settings")
+            .name(lang.legacy("menu.guild_mode.back.name"))
+            .lore(lang.legacy("menu.guild_mode.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
@@ -234,31 +236,31 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun getCooldownMessage(guild: Guild, cooldownDays: Int): String {
-        if (guild.modeChangedAt == null) return "No previous changes"
+        if (guild.modeChangedAt == null) return lang.raw("menu.guild_mode.cooldown.no_changes")
 
         val cooldownEnd = guild.modeChangedAt.plus(Duration.ofDays(cooldownDays.toLong()))
         val remaining = Duration.between(Instant.now(), cooldownEnd)
 
-        if (remaining.isNegative) return "Cooldown expired"
+        if (remaining.isNegative) return lang.raw("menu.guild_mode.cooldown.expired")
 
         val days = remaining.toDays()
         val hours = remaining.toHours() % 24
 
-        return "${days}d ${hours}h until you can switch to Peaceful"
+        return lang.legacy("menu.guild_mode.cooldown.peaceful", "days" to days, "hours" to hours)
     }
 
     private fun getHostileLockMessage(guild: Guild, minimumDays: Int): String {
-        if (guild.modeChangedAt == null) return "No previous changes"
+        if (guild.modeChangedAt == null) return lang.raw("menu.guild_mode.cooldown.no_changes")
 
         val lockEnd = guild.modeChangedAt.plus(Duration.ofDays(minimumDays.toLong()))
         val remaining = Duration.between(Instant.now(), lockEnd)
 
-        if (remaining.isNegative) return "Lock expired"
+        if (remaining.isNegative) return lang.raw("menu.guild_mode.cooldown.lock_expired")
 
         val days = remaining.toDays()
         val hours = remaining.toHours() % 24
 
-        return "${days}d ${hours}h until you can switch to Hostile"
+        return lang.legacy("menu.guild_mode.cooldown.hostile", "days" to days, "hours" to hours)
     }
 
     private fun formatTimeAgo(instant: Instant): String {
@@ -267,10 +269,15 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         val hours = duration.toHours() % 24
 
         return when {
-            days > 0 -> "${days}d ${hours}h ago"
-            hours > 0 -> "${hours}h ago"
-            else -> "Recently"
+            days > 0 -> lang.legacy("menu.guild_mode.time.days_ago", "days" to days, "hours" to hours)
+            hours > 0 -> lang.legacy("menu.guild_mode.time.hours_ago", "hours" to hours)
+            else -> lang.raw("menu.guild_mode.time.recently")
         }
+    }
+
+    private fun modeDisplayName(mode: GuildMode): String = when (mode) {
+        GuildMode.PEACEFUL -> lang.raw("menu.guild_mode.mode.peaceful")
+        GuildMode.HOSTILE -> lang.raw("menu.guild_mode.mode.hostile")
     }
 
     override fun passData(data: Any?) {

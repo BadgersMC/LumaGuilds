@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.management
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -16,7 +18,6 @@ import net.lumalyte.lg.application.results.claim.transfer.CanPlayerReceiveTransf
 import net.lumalyte.lg.application.results.claim.transfer.DoesPlayerHaveTransferRequestResult
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.domain.values.ClaimPermission
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -37,7 +38,7 @@ import java.util.UUID
 class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                                  private val claim: Claim?, private val targetPlayer: OfflinePlayer?
 ): Menu, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val getPlayerClaimPermissions: GetClaimPlayerPermissions by inject()
     private val grantAllPlayerClaimPermissions: GrantAllPlayerClaimPermissions by inject()
     private val grantPlayerClaimPermission: GrantPlayerClaimPermission by inject()
@@ -52,18 +53,17 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
     override fun open() {
         // Validate that claim and targetPlayer are provided
         val validClaim = claim ?: run {
-            player.sendMessage("§cError: No claim available")
+            player.sendMessage(lang.msg("menu.common.feedback.no_claim"))
             return
         }
         val validTarget = targetPlayer ?: run {
-            player.sendMessage("§cError: No target player available")
+            player.sendMessage(lang.msg("menu.common.feedback.no_target_player"))
             return
         }
 
         // Create player permissions menu
         val playerId = player.uniqueId
-        val gui = ChestGui(6, localizationProvider.get(playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_TITLE,
-            validTarget.name))
+        val gui = ChestGui(6, lang.legacy("menu.player_permissions.title", "player" to validTarget.name))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -82,7 +82,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         }
 
         addSelector(playerId, controlsPane, createHead(validTarget).name(validTarget.name ?:
-            localizationProvider.get(playerId, LocalizationKeys.GENERAL_NAME_ERROR)), deselectAction, selectAction)
+            lang.legacy("general.name_error")), deselectAction, selectAction)
 
         val transferRequestResult = doesPlayerHaveTransferRequest.execute(validClaim.id, validTarget.uniqueId)
 
@@ -90,14 +90,14 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         when (transferRequestResult) {
             is DoesPlayerHaveTransferRequestResult.ClaimNotFound -> {
                 val transferRequestItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME)
-                    .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_EXIST)
+                    .name("menu.player_permissions.item.cannot_transfer.name")
+                    .lore("send_transfer_condition.exist")
                 guiTransferRequestItem = GuiItem(transferRequestItem)
             }
             is DoesPlayerHaveTransferRequestResult.StorageError -> {
                 val transferRequestItem = ItemStack.of(Material.MAGMA_CREAM)
-                    .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_ERROR_NAME))
-                    .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_ERROR_LORE))
+                    .name(lang.legacy("menu.common.item.error.name"))
+                    .lore(lang.legacy("menu.common.item.error.lore"))
                 guiTransferRequestItem = GuiItem(transferRequestItem)
             }
             is DoesPlayerHaveTransferRequestResult.Success -> {
@@ -124,7 +124,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         var xSlot = 0
         var ySlot = 0
         for (permission in disabledPermissions) {
-            val permissionItem = permission.getIcon(localizationProvider, playerId)
+            val permissionItem = permission.getIcon(lang, playerId)
 
             val guiPermissionItem = GuiItem(permissionItem) {
                 grantPlayerClaimPermission.execute(validClaim.id, validTarget.uniqueId, permission)
@@ -146,7 +146,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         xSlot = 0
         ySlot = 0
         for (permission in enabledPermissions) {
-            val permissionItem = permission.getIcon(localizationProvider, playerId)
+            val permissionItem = permission.getIcon(lang, playerId)
 
             val guiPermissionItem = GuiItem(permissionItem) {
                 revokePlayerClaimPermission.execute(validClaim.id, validTarget.uniqueId, permission)
@@ -182,7 +182,7 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
 
         // Add go back item
         val exitItem = ItemStack.of(Material.NETHER_STAR)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_BACK_NAME))
+            .name(lang.legacy("menu.common.item.back.name"))
 
         val guiExitItem = GuiItem(exitItem) { backButtonAction() }
         controlsPane.addItem(guiExitItem, 0, 0)
@@ -197,13 +197,13 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
 
         // Add deselect all button
         val deselectItem = ItemStack.of(Material.HONEY_BLOCK)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_DESELECT_ALL_NAME))
+            .name(lang.legacy("menu.common.item.deselect_all.name"))
         val guiDeselectItem = GuiItem(deselectItem) { deselectAction() }
         controlsPane.addItem(guiDeselectItem, 2, 0)
 
         // Add select all button
         val selectItem = ItemStack.of(Material.SLIME_BLOCK)
-            .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_SELECT_ALL_NAME))
+            .name(lang.legacy("menu.common.item.select_all.name"))
         val guiSelectItem = GuiItem(selectItem) { selectAction() }
         controlsPane.addItem(guiSelectItem, 6, 0)
     }
@@ -213,10 +213,8 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
         if (hasRequest) {
             // Cancel the transfer request if it is pending
             val transferClaimItem = ItemStack.of(Material.BARRIER)
-                .name(localizationProvider.get(playerId,
-                    LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANCEL_TRANSFER_NAME))
-                .lore(localizationProvider.get(playerId,
-                    LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANCEL_TRANSFER_LORE))
+                .name(lang.legacy("menu.player_permissions.item.cancel_transfer.name"))
+                .lore(lang.legacy("menu.player_permissions.item.cancel_transfer.lore"))
             guiTransferRequestItem = GuiItem(transferClaimItem) {
                 withdrawPlayerTransferRequest.execute(claim.id, targetPlayer.uniqueId)
                 open()
@@ -229,51 +227,43 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
                     open()
                 }
 
-                menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, localizationProvider.get(
-                    player.uniqueId, LocalizationKeys.MENU_TRANSFER_SEND_TITLE), confirmAction))
+                menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player, lang.legacy("menu.transfer_send.title"), confirmAction))
             }
             when (canPlayerReceiveTransferRequest.execute(claim.id, targetPlayer.uniqueId)) {
                 CanPlayerReceiveTransferRequestResult.Success -> {
                     val transferClaimItem = ItemStack.of(Material.BELL)
-                        .name(localizationProvider.get(
-                            playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_TRANSFER_NAME))
-                        .lore(localizationProvider.get(
-                            playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_TRANSFER_LORE,
-                            targetPlayer.name))
+                        .name(lang.legacy("menu.player_permissions.item.transfer.name"))
+                        .lore(lang.legacy("menu.player_permissions.item.transfer.lore", "player" to targetPlayer.name))
                     guiTransferRequestItem = GuiItem(transferClaimItem) { transferClaimAction() }
                 }
                 CanPlayerReceiveTransferRequestResult.ClaimLimitExceeded -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(localizationProvider.get(
-                            playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME))
-                        .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_CLAIMS)
+                        .name(lang.legacy("menu.player_permissions.item.cannot_transfer.name"))
+                        .lore("send_transfer_condition.claims")
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.BlockLimitExceeded -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(localizationProvider.get(
-                            playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME))
-                        .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_BLOCKS)
+                        .name(lang.legacy("menu.player_permissions.item.cannot_transfer.name"))
+                        .lore("send_transfer_condition.blocks")
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.ClaimNotFound -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(localizationProvider.get(
-                            playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME))
-                        .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_EXIST)
+                        .name(lang.legacy("menu.player_permissions.item.cannot_transfer.name"))
+                        .lore("send_transfer_condition.exist")
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.PlayerOwnsClaim -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(localizationProvider.get(
-                            playerId, LocalizationKeys.MENU_PLAYER_PERMISSIONS_ITEM_CANNOT_TRANSFER_NAME))
-                        .lore(LocalizationKeys.SEND_TRANSFER_CONDITION_OWNER)
+                        .name(lang.legacy("menu.player_permissions.item.cannot_transfer.name"))
+                        .lore("send_transfer_condition.owner")
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
                 CanPlayerReceiveTransferRequestResult.StorageError -> {
                     val transferClaimItem = ItemStack.of(Material.MAGMA_CREAM)
-                        .name(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_ERROR_NAME))
-                        .lore(localizationProvider.get(playerId, LocalizationKeys.MENU_COMMON_ITEM_ERROR_LORE))
+                        .name(lang.legacy("menu.common.item.error.name"))
+                        .lore(lang.legacy("menu.common.item.error.lore"))
                     guiTransferRequestItem = GuiItem(transferClaimItem)
                 }
             }

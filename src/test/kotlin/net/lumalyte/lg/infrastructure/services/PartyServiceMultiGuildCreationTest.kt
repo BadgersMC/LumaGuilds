@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.services
 
 import io.mockk.every
 import io.mockk.mockk
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.PartyRepository
 import net.lumalyte.lg.application.persistence.PartyRequestRepository
 import net.lumalyte.lg.application.services.GuildService
@@ -30,6 +31,7 @@ internal class PartyServiceMultiGuildCreationTest {
         partyRequestRepository = mockk<PartyRequestRepository>(relaxed = true),
         memberService = memberService,
         guildService = mockk<GuildService>(relaxed = true),
+        lang = mockk<LangService>(relaxed = true),
     )
 
     private val guildA = UUID.randomUUID()

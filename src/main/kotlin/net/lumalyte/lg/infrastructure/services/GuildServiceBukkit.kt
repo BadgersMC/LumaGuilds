@@ -284,8 +284,8 @@ class GuildServiceBukkit(
         // If tag is provided, validate MiniMessage format
         tag?.let { tagValue ->
             // Reject interactive MiniMessage event tags (click/hover/insertion) — defense in depth
-            net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tagValue, configService.loadConfig().guild.nameFilter)?.let { reason ->
-                logger.warn("Rejected guild tag with interactive MiniMessage tag for guild $guildId: $reason")
+            net.lumalyte.lg.utils.GuildTagValidator.validationFailure(tagValue, configService.loadConfig().guild.nameFilter)?.let { failure ->
+                logger.warn("Rejected guild tag for guild $guildId: $failure")
                 return false
             }
             // Validate tag format using MiniMessage

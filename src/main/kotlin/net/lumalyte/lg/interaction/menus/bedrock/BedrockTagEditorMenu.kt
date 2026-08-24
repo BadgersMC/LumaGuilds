@@ -1,11 +1,13 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.ValidationResult
 import net.lumalyte.lg.application.services.ValidatorType
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuildTagValidationMessages
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
@@ -29,6 +31,7 @@ class BedrockTagEditorMenu(
 
     private val guildService: GuildService by inject()
     private val configService: ConfigService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val currentTag = guildService.getTag(guild.id)
@@ -36,41 +39,17 @@ class BedrockTagEditorMenu(
         val tagIcon = BedrockFormUtils.createFormImage(config, config.guildTagIconUrl, config.guildTagIconPath)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "form.title.tag.editor")} - ${guild.name}")
+            .title(lang.legacy("bedrock.tag_editor.title", "guild" to guild.name))
             .apply { tagIcon?.let { icon(it) } }
-            .label("""
-                |§7${bedrockLocalization.getBedrockString(player, "guild.tag.editor.description")}
-                |
-                |§6§l━━━ BEDROCK COLOR CODES ━━━
-                |§7Use § followed by a code for colors:
-                |§7• §c§c (red) §7- Use §c in your tag
-                |§7• §a§a (green) §7- Use §a in your tag
-                |§7• §e§e (yellow) §7- Use §e in your tag
-                |§7• §b§b (aqua) §7- Use §b in your tag
-                |§7• §d§d (pink) §7- Use §d in your tag
-                |§7• §l§l§r§7 (bold) §7- Use §l for bold
-                |§7• §o§o§r§7 (italic) §7- Use §o for italic
-                |
-                |§7Example: §c§lRED§r§7 = §c§lRED
-                |
-                |§e§l━━━ ADVANCED TEXT GENERATOR ━━━
-                |§7Want gradients, hex colors, or fancy effects?
-                |§7Use the toggle below to get a QR code map!
-                |§7Scan it with your phone to access Birdflop!
-            """.trimMargin())
-            .addLocalizedInput(
-                player, bedrockLocalization,
-                "guild.tag.input.label",
-                "guild.tag.input.placeholder",
+            .label(lang.legacy("bedrock.tag_editor.instructions"))
+            .input(
+                lang.raw("bedrock.tag_editor.input.label"),
+                lang.raw("bedrock.tag_editor.input.placeholder"),
                 currentTag ?: ""
             )
-            .label(bedrockLocalization.getBedrockString(player, "guild.tag.validation.too.long", 32))
-            .toggle("§e📱 Get QR Code Map for Birdflop Text Generator", false)
-            .addLocalizedToggle(
-                player, bedrockLocalization,
-                "guild.tag.clear.toggle",
-                false
-            )
+            .label(lang.legacy("bedrock.tag_editor.validation.limit", "maximum" to 32))
+            .toggle(lang.legacy("bedrock.tag_editor.qr.toggle"), false)
+            .toggle(lang.raw("bedrock.tag_editor.clear.toggle"), false)
             .validResultHandler { response ->
                 try {
                     val tagInput = response.next() as? String ?: ""
@@ -80,12 +59,12 @@ class BedrockTagEditorMenu(
                     // Handle QR code map request
                     if (getQRCodeMap) {
                         giveQRCodeMap("https://birdflop.com/resources/rgb/")
-                        player.sendMessage("§a✓ QR Code map added to your inventory!")
-                        player.sendMessage("§7Scan it with your phone to open Birdflop!")
-                        player.sendMessage("§e━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                        player.sendMessage("§6Birdflop Text Generator:")
-                        player.sendMessage("§bhttps://birdflop.com/resources/rgb/")
-                        player.sendMessage("§e━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                        player.sendMessage(lang.msg("bedrock.tag_editor.qr.received"))
+                        player.sendMessage(lang.msg("bedrock.tag_editor.qr.scan"))
+                        player.sendMessage(lang.msg("bedrock.tag_editor.qr.divider"))
+                        player.sendMessage(lang.msg("bedrock.tag_editor.qr.generator"))
+                        player.sendMessage(lang.msg("bedrock.tag_editor.qr.url"))
+                        player.sendMessage(lang.msg("bedrock.tag_editor.qr.divider"))
                         // Reopen the menu so they can continue editing
                         bedrockNavigator.openMenu(BedrockTagEditorMenu(menuNavigator, player, guild, logger))
                         return@validResultHandler
@@ -94,8 +73,8 @@ class BedrockTagEditorMenu(
                     // Handle clear tag toggle - requires confirmation
                     if (clearTag) {
                         showConfirmationDialog(
-                            localize("guild.tag.confirm.clear.title"),
-                            localize("guild.tag.confirm.clear.message"),
+                            lang.raw("guild.tag.confirm.clear.title"),
+                            lang.raw("guild.tag.confirm.clear.message"),
                             { confirmClearTag() }
                         )
                         return@validResultHandler
@@ -110,27 +89,27 @@ class BedrockTagEditorMenu(
 
                     // Check if there are actual changes
                     if (tagInput == currentTag) {
-                        player.sendMessage("§7${localize("guild.tag.no.changes")}")
+                        player.sendMessage(lang.msg("bedrock.tag_editor.feedback.no_changes"))
                         bedrockNavigator.goBack()
                         return@validResultHandler
                     }
 
                     // Show confirmation dialog before saving
                     showConfirmationDialog(
-                        localize("guild.tag.confirm.change.title"),
-                        localize("guild.tag.confirm.change.message", renderFormattedTag(tagInput)),
+                        lang.raw("guild.tag.confirm.change.title"),
+                        lang.legacy("guild.tag.confirm.change.message", "tag" to renderFormattedTag(tagInput)),
                         { saveTagChange(tagInput) }
                     )
 
                 } catch (e: Exception) {
                     // Menu operation - catching all exceptions to prevent UI failure
                     logger.warning("Error processing tag editor form: ${e.message}")
-                    player.sendMessage("§c[ERROR] ${localize("form.error.processing")}")
+                    player.sendMessage(lang.msg("bedrock.tag_editor.feedback.processing_error"))
                     bedrockNavigator.goBack()
                 }
             }
             .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
-                player.sendMessage("§7Tag editing cancelled.")
+                player.sendMessage(lang.msg("bedrock.tag_editor.feedback.cancelled"))
             })
             .build()
     }
@@ -149,12 +128,12 @@ class BedrockTagEditorMenu(
 
                         val visibleChars = countVisibleCharacters(value)
                         if (visibleChars > 32) {
-                            return@getValidator ValidationResult.invalid(localize("guild.tag.validation.too.long", visibleChars, 32))
+                            return@getValidator ValidationResult.invalid(lang.legacy("bedrock.tag_editor.validation.too_long", "count" to visibleChars, "maximum" to 32))
                         }
 
                         // Reject interactive MiniMessage event tags (click/hover/insertion)
-                        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(value, configService.loadConfig().guild.nameFilter)?.let {
-                            return@getValidator ValidationResult.invalid(it)
+                        net.lumalyte.lg.utils.GuildTagValidator.validationFailure(value, configService.loadConfig().guild.nameFilter)?.let {
+                            return@getValidator GuildTagValidationMessages.invalid(lang, it)
                         }
 
                         // Allow both § codes (Bedrock) and MiniMessage format
@@ -169,7 +148,7 @@ class BedrockTagEditorMenu(
                                 ValidationResult.valid()
                             } catch (e: Exception) {
                                 // Menu operation - catching all exceptions to prevent UI failure
-                                ValidationResult.invalid(localize("guild.tag.validation.invalid.format", e.message ?: "Unknown error"))
+                                ValidationResult.invalid(lang.legacy("bedrock.tag_editor.validation.invalid_format", "error" to (e.message ?: lang.raw("bedrock.tag_editor.value.unknown_error"))))
                             }
                         }
                     } as (String, Any?) -> ValidationResult
@@ -195,9 +174,9 @@ class BedrockTagEditorMenu(
     private fun confirmClearTag() {
         val success = guildService.setTag(guild.id, "", player.uniqueId)
         if (success) {
-            player.sendMessage("§a[SUCCESS] ${localize("guild.tag.cleared")}")
+            player.sendMessage(lang.msg("bedrock.tag_editor.feedback.cleared"))
         } else {
-            player.sendMessage("§c[ERROR] ${localize("guild.tag.save.failed")}")
+            player.sendMessage(lang.msg("bedrock.tag_editor.feedback.save_failed"))
         }
         bedrockNavigator.goBack()
     }
@@ -205,15 +184,15 @@ class BedrockTagEditorMenu(
     private fun saveTagChange(tagInput: String) {
         val success = guildService.setTag(guild.id, tagInput, player.uniqueId)
         if (success) {
-            player.sendMessage("§a[SUCCESS] ${localize("guild.tag.updated.success")}")
+            player.sendMessage(lang.msg("bedrock.tag_editor.feedback.updated"))
             if (tagInput.isNotEmpty()) {
                 val formattedTag = renderFormattedTag(tagInput)
-                player.sendMessage("§7${localize("guild.tag.new.preview", formattedTag)}")
-                player.sendMessage("§7${localize("guild.tag.chat.preview", player.name, formattedTag)}")
+                player.sendMessage(lang.msg("bedrock.tag_editor.feedback.new_preview", "tag" to formattedTag))
+                player.sendMessage(lang.msg("bedrock.tag_editor.feedback.chat_preview", "player" to player.name, "tag" to formattedTag))
             }
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage("§c[ERROR] ${localize("guild.tag.save.failed")}")
+            player.sendMessage(lang.msg("bedrock.tag_editor.feedback.save_failed"))
             bedrockNavigator.goBack()
         }
     }
@@ -287,13 +266,11 @@ class BedrockTagEditorMenu(
             val mapItem = org.bukkit.inventory.ItemStack.of(org.bukkit.Material.FILLED_MAP)
             val mapMeta = mapItem.itemMeta as? org.bukkit.inventory.meta.MapMeta
             mapMeta?.mapView = mapView
-            mapMeta?.displayName(net.kyori.adventure.text.Component.text("Birdflop Text Generator")
-                .color(net.kyori.adventure.text.format.NamedTextColor.GOLD)
-                .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD, true))
+            mapMeta?.displayName(lang.msg("bedrock.tag_editor.qr.map_name"))
             mapMeta?.lore(listOf(
-                net.kyori.adventure.text.Component.text("Scan this QR code to open:").color(net.kyori.adventure.text.format.NamedTextColor.GRAY),
-                net.kyori.adventure.text.Component.text(url).color(net.kyori.adventure.text.format.NamedTextColor.AQUA),
-                net.kyori.adventure.text.Component.text("Use your phone's camera!").color(net.kyori.adventure.text.format.NamedTextColor.GRAY)
+                lang.msg("bedrock.tag_editor.qr.map_scan"),
+                lang.msg("bedrock.tag_editor.qr.map_url", "url" to url),
+                lang.msg("bedrock.tag_editor.qr.map_camera")
             ))
             mapItem.itemMeta = mapMeta
 

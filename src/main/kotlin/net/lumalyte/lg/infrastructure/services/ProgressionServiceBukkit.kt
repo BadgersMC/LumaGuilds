@@ -1,8 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
+import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.title.Title
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
@@ -25,7 +23,8 @@ class ProgressionServiceBukkit(
     private val memberRepository: net.lumalyte.lg.application.persistence.MemberRepository,
     private val configService: ConfigService,
     private val progressionConfigService: ProgressionConfigService,
-    private val plugin: org.bukkit.plugin.Plugin
+    private val plugin: org.bukkit.plugin.Plugin,
+    private val lang: LangService,
 ) : ProgressionService {
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
@@ -505,12 +504,8 @@ class ProgressionServiceBukkit(
             for (player in onlineMembers) {
                 // Send title and subtitle using Adventure API
                 val title = Title.title(
-                    Component.text("⭐ GUILD LEVEL UP! ⭐", NamedTextColor.GOLD),
-                    Component.text()
-                        .append(Component.text(guild.name, NamedTextColor.YELLOW))
-                        .append(Component.text(" reached level ", NamedTextColor.GRAY))
-                        .append(Component.text(newLevel.toString(), NamedTextColor.YELLOW))
-                        .build(),
+                    lang.msg("notification.progression.level_up.title"),
+                    lang.msg("notification.progression.level_up.subtitle", "guild" to guild.name, "level" to newLevel),
                     Title.Times.times(
                         Duration.ofMillis(500),  // fadeIn (10 ticks = 500ms)
                         Duration.ofSeconds(3),   // stay (60 ticks = 3s)
@@ -520,20 +515,20 @@ class ProgressionServiceBukkit(
                 player.showTitle(title)
                 
                 // Send chat message
-                player.sendMessage("§8▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
-                player.sendMessage("§6⭐ §lGUILD LEVEL UP! §6⭐")
-                player.sendMessage("")
-                player.sendMessage("§7Guild: §e${guild.name}")
-                player.sendMessage("§7New Level: §e$newLevel")
+                player.sendMessage(lang.msg("notification.progression.level_up.divider"))
+                player.sendMessage(lang.msg("notification.progression.level_up.header"))
+                player.sendMessage(lang.msg("notification.progression.level_up.blank"))
+                player.sendMessage(lang.msg("notification.progression.level_up.guild", "guild" to guild.name))
+                player.sendMessage(lang.msg("notification.progression.level_up.level", "level" to newLevel))
                 
                 if (newPerks.isNotEmpty()) {
-                    player.sendMessage("§7New Perks:")
+                    player.sendMessage(lang.msg("notification.progression.level_up.perks"))
                     for (perk in newPerks) {
-                        player.sendMessage("§7  • §a${perk.getDisplayName()}")
+                        player.sendMessage(lang.msg("notification.progression.level_up.perk", "perk" to perk.getDisplayName()))
                     }
                 }
                 
-                player.sendMessage("§8▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+                player.sendMessage(lang.msg("notification.progression.level_up.divider"))
                 
                 // Play sound effects based on perks
                 if (hasAnnouncementSoundEffects(guildId)) {

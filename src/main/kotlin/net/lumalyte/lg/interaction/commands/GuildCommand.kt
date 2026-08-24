@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.commands
 
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -16,7 +17,6 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.interaction.help.HelpTopics
 import net.lumalyte.lg.interaction.help.HelpTopicsRenderer
@@ -38,6 +38,7 @@ import org.koin.core.component.inject
 @CommandAlias("guild|g")
 class GuildCommand : BaseCommand(), KoinComponent {
 
+    private val lang: LangService by inject()
     private val guildService: GuildService by inject()
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by inject()
     private val rankService: RankService by inject()
@@ -58,7 +59,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
-    private fun notifyGuildMembers(guildId: java.util.UUID, message: String) {
+    private fun notifyGuildMembers(guildId: java.util.UUID, message: Component) {
         val members = memberService.getGuildMembers(guildId)
         members.forEach { member ->
             val onlinePlayer = Bukkit.getPlayer(member.playerId)
@@ -66,6 +67,31 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 onlinePlayer.sendMessage(message)
             }
         }
+    }
+
+    internal fun checkHomeSafety(player: Player, target: Location, confirmCommand: String): Boolean {
+        val result = GuildHomeSafety.checkAndRemember(player, target)
+        if (result.safe) return true
+
+        val reason = when (requireNotNull(result.issue)) {
+            GuildHomeSafety.Issue.INVALID_WORLD -> lang.raw("command.guild.home.safety.reason.invalid_world")
+            GuildHomeSafety.Issue.HEIGHT_OUT_OF_RANGE -> lang.raw("command.guild.home.safety.reason.height_out_of_range")
+            GuildHomeSafety.Issue.DAMAGING_BLOCK_AT_FEET -> lang.raw("command.guild.home.safety.reason.damaging_block_at_feet")
+            GuildHomeSafety.Issue.DAMAGING_BLOCK_BELOW -> lang.raw("command.guild.home.safety.reason.damaging_block_below")
+        }
+        player.sendMessage(
+            lang.msg(
+                "command.guild.home.safety.warning",
+                "reason" to reason,
+            ),
+        )
+        player.sendMessage(
+            lang.msg(
+                "command.guild.home.safety.confirm",
+                "confirm_command" to confirmCommand,
+            ),
+        )
+        return false
     }
 
     @Subcommand("create")
@@ -76,7 +102,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Check if player is already in a guild
         val existingGuilds = guildService.getPlayerGuilds(playerId)
         if (existingGuilds.isNotEmpty()) {
-            player.sendMessage("§cYou are already in a guild: ${existingGuilds.first().name}")
+            player.sendMessage(lang.msg("command.migrated.guild.create.you_are_already_in_a_guild", "first" to existingGuilds.first().name))
             return
         }
 
@@ -84,70 +110,70 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check for MiniMessage/HTML-like formatting tags
         if (name.contains("<") && name.contains(">")) {
-            player.sendMessage("§c❌ Invalid guild name!")
-            player.sendMessage("§7Guild names cannot contain formatting tags like §f<bold>§7, §f<gradient>§7, etc.")
-            player.sendMessage("§7")
-            player.sendMessage("§e💡 TIP: Use §6/guild tag §eto set a fancy formatted tag instead!")
-            player.sendMessage("§7Example: §6/guild tag <gradient:#FF0000:#00FF00>MyGuild</gradient>")
-            player.sendMessage("§7")
-            player.sendMessage("§7Guild name = Plain text only")
-            player.sendMessage("§7Guild tag = Fancy formatting with colors")
+            player.sendMessage(lang.msg("command.migrated.guild.create.invalid_guild_name"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_names_cannot_contain_formatting_tags_like"))
+            player.sendMessage(lang.msg("command.common.blank_line"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.tip_use_guild_tag_to_set_a"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.example_guild_tag_gradient_ff0000_00ff00_myguild"))
+            player.sendMessage(lang.msg("command.common.blank_line"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_name_plain_text_only"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_tag_fancy_formatting_with_colors"))
             return
         }
 
         // Check for blank name
         if (name.isBlank()) {
-            player.sendMessage("§c❌ Guild name cannot be blank!")
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_name_cannot_be_blank"))
             return
         }
 
         // Check for length
         if (name.length > 32) {
-            player.sendMessage("§c❌ Guild name is too long!")
-            player.sendMessage("§7Maximum length: §f32 characters")
-            player.sendMessage("§7Your name: §f${name.length} characters")
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_name_is_too_long"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.maximum_length_32_characters"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.your_name_characters", "length" to name.length))
             return
         }
 
         // Check for invalid characters (only allow letters, numbers, spaces, and basic punctuation)
         if (!name.matches(Regex("^[a-zA-Z0-9 '&-]+$"))) {
-            player.sendMessage("§c❌ Invalid guild name!")
-            player.sendMessage("§7Guild names can only contain:")
-            player.sendMessage("§7 • Letters (a-z, A-Z)")
-            player.sendMessage("§7 • Numbers (0-9)")
-            player.sendMessage("§7 • Spaces")
-            player.sendMessage("§7 • Basic punctuation: ' & -")
-            player.sendMessage("§7")
-            player.sendMessage("§e💡 TIP: Use §6/guild tag §eto add colors and formatting!")
+            player.sendMessage(lang.msg("command.migrated.guild.create.invalid_guild_name"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_names_can_only_contain"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.letters_a_z_a_z"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.numbers_0_9"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.spaces"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.basic_punctuation"))
+            player.sendMessage(lang.msg("command.common.blank_line"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.tip_use_guild_tag_to_add_colors"))
             return
         }
 
         // Check name filter (profanity/inappropriate content)
         val nameFilterConfig = configService.loadConfig().guild.nameFilter
         GuildNameFilter.checkName(name, nameFilterConfig)?.let { reason ->
-            player.sendMessage("§c❌ $reason")
+            player.sendMessage(lang.msg("command.migrated.guild.create.blank_line", "reason" to reason))
             return
         }
 
         val guild = guildService.createGuild(name, playerId, banner)
         if (guild != null) {
-            player.sendMessage("§a✅ Guild '$name' created successfully!")
-            player.sendMessage("§7You are now the Owner of the guild.")
-            player.sendMessage("§7")
-            player.sendMessage("§e💡 Customize your guild:")
-            player.sendMessage("§7 • Set fancy tag: §6/guild tag")
-            player.sendMessage("§7 • Open menu: §6/guild menu")
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_created_successfully", "name" to name))
+            player.sendMessage(lang.msg("command.migrated.guild.create.you_are_now_the_owner_of_the"))
+            player.sendMessage(lang.msg("command.common.blank_line"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.customize_your_guild"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.set_fancy_tag_guild_tag"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.open_menu_guild_menu"))
 
             // Broadcast guild creation to all online players
-            val creationMessage = "§6⌂ §eA new guild has been founded: §6$name §eby §6${player.name}§e!"
+            val creationMessage = lang.msg("command.migrated.guild.create.a_new_guild_has_been_founded_by", "name" to name, "player" to player.name)
             net.lumalyte.lg.utils.ChatUtils.broadcastMessage(creationMessage, player)
 
             // Log the guild creation
             player.server.logger.info("Guild '${name}' created by ${player.name} (${player.uniqueId})")
         } else {
-            player.sendMessage("§c❌ Failed to create guild!")
-            player.sendMessage("§7The name §f'$name' §7is already taken by another guild.")
-            player.sendMessage("§7Please choose a different name.")
+            player.sendMessage(lang.msg("command.migrated.guild.create.failed_to_create_guild"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", "name" to name))
+            player.sendMessage(lang.msg("command.migrated.guild.create.please_choose_a_different_name"))
         }
     }
     
@@ -159,7 +185,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -167,8 +193,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if player has permission to rename guild
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)) {
-            player.sendMessage("§c❌ You don't have permission to rename the guild!")
-            player.sendMessage("§7You need the §fMANAGE_GUILD_SETTINGS §7permission to rename the guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_don_t_have_permission_to_rename"))
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_need_the_manage_guild_settings_permission"))
             return
         }
 
@@ -176,57 +202,57 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check for MiniMessage/HTML-like formatting tags
         if (newName.contains("<") && newName.contains(">")) {
-            player.sendMessage("§c❌ Invalid guild name!")
-            player.sendMessage("§7Guild names cannot contain formatting tags like §f<bold>§7, §f<gradient>§7, etc.")
-            player.sendMessage("§7")
-            player.sendMessage("§e💡 TIP: Use §6/guild tag §eto set a fancy formatted tag instead!")
-            player.sendMessage("§7Guild name = Plain text only")
-            player.sendMessage("§7Guild tag = Fancy formatting with colors")
+            player.sendMessage(lang.msg("command.migrated.guild.create.invalid_guild_name"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_names_cannot_contain_formatting_tags_like"))
+            player.sendMessage(lang.msg("command.common.blank_line"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.tip_use_guild_tag_to_set_a"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_name_plain_text_only"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_tag_fancy_formatting_with_colors"))
             return
         }
 
         // Check for blank name
         if (newName.isBlank()) {
-            player.sendMessage("§c❌ Guild name cannot be blank!")
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_name_cannot_be_blank"))
             return
         }
 
         // Check for length
         if (newName.length > 32) {
-            player.sendMessage("§c❌ Guild name is too long!")
-            player.sendMessage("§7Maximum length: §f32 characters")
-            player.sendMessage("§7Your name: §f${newName.length} characters")
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_name_is_too_long"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.maximum_length_32_characters"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.your_name_characters", "length" to newName.length))
             return
         }
 
         // Check for invalid characters
         if (!newName.matches(Regex("^[a-zA-Z0-9 '&-]+$"))) {
-            player.sendMessage("§c❌ Invalid guild name!")
-            player.sendMessage("§7Guild names can only contain:")
-            player.sendMessage("§7 • Letters (a-z, A-Z)")
-            player.sendMessage("§7 • Numbers (0-9)")
-            player.sendMessage("§7 • Spaces")
-            player.sendMessage("§7 • Basic punctuation: ' & -")
-            player.sendMessage("§7")
-            player.sendMessage("§e💡 TIP: Use §6/guild tag §eto add colors and formatting!")
+            player.sendMessage(lang.msg("command.migrated.guild.create.invalid_guild_name"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.guild_names_can_only_contain"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.letters_a_z_a_z"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.numbers_0_9"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.spaces"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.basic_punctuation"))
+            player.sendMessage(lang.msg("command.common.blank_line"))
+            player.sendMessage(lang.msg("command.migrated.guild.create.tip_use_guild_tag_to_add_colors"))
             return
         }
 
         // Check name filter (profanity/inappropriate content)
         val nameFilterConfig = configService.loadConfig().guild.nameFilter
         GuildNameFilter.checkName(newName, nameFilterConfig)?.let { reason ->
-            player.sendMessage("§c❌ $reason")
+            player.sendMessage(lang.msg("command.migrated.guild.create.blank_line", "reason" to reason))
             return
         }
 
         val success = guildService.renameGuild(guild.id, newName, playerId)
 
         if (success) {
-            player.sendMessage("§a✅ Guild renamed to §f'$newName'§a successfully!")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.guild_renamed_to_successfully", "new_name" to newName))
         } else {
-            player.sendMessage("§c❌ Failed to rename guild!")
-            player.sendMessage("§7The name §f'$newName' §7may already be taken by another guild.")
-            player.sendMessage("§7Please choose a different name.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.failed_to_rename_guild"))
+            player.sendMessage(lang.msg("command.migrated.guild.rename.the_name_may_already_be_taken_by", "new_name" to newName))
+            player.sendMessage(lang.msg("command.migrated.guild.create.please_choose_a_different_name"))
         }
     }
     
@@ -238,16 +264,18 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
         val guild = guilds.first()
         val location = player.location
 
-        // Handle the case where user types "/guild sethome confirm" - treat "confirm" as confirmation, not home name
-        val adjustedHomeName = if (homeName?.lowercase() == "confirm") null else homeName
-        val adjustedConfirm = if (homeName?.lowercase() == "confirm") "confirm" else confirm
+        // A one-argument confirmation targets the main home; two arguments preserve a named home.
+        val firstArgument = homeName?.lowercase()
+        val isMainHomeConfirmation = firstArgument == "confirm" || firstArgument == "unsafe"
+        val adjustedHomeName = if (isMainHomeConfirmation) null else homeName
+        val adjustedConfirm = if (isMainHomeConfirmation) firstArgument else confirm
 
         val targetHomeName = adjustedHomeName ?: "main"
 
@@ -258,7 +286,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 setGuildHomeCommand(player, guild, pendingLocation, targetHomeName)
                 return
             } else {
-                player.sendMessage("§cNo pending unsafe location to confirm, or confirmation expired.")
+                player.sendMessage(lang.msg("command.migrated.guild.sethome.no_pending_unsafe_location_to_confirm_or"))
                 return
             }
         }
@@ -274,25 +302,25 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
                     // Check if the claim is guild-owned
                     if (claim.teamId == null) {
-                        player.sendMessage("§cYou can only set guild home in a guild-owned claim.")
-                        player.sendMessage("§7Use the bell menu to convert this personal claim to a guild claim first.")
+                        player.sendMessage(lang.msg("command.migrated.guild.sethome.you_can_only_set_guild_home_in"))
+                        player.sendMessage(lang.msg("command.migrated.guild.sethome.use_the_bell_menu_to_convert_this"))
                         return
                     }
 
                     // Check if the claim belongs to the player's guild
                     if (claim.teamId != guild.id) {
-                        player.sendMessage("§cYou can only set guild home in your own guild's claims.")
-                        player.sendMessage("§7This claim belongs to a different guild.")
+                        player.sendMessage(lang.msg("command.migrated.guild.sethome.you_can_only_set_guild_home_in_2"))
+                        player.sendMessage(lang.msg("command.migrated.guild.sethome.this_claim_belongs_to_a_different_guild"))
                         return
                     }
                 }
                 is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.NoClaimFound -> {
-                    player.sendMessage("§cYou must be standing in a guild-owned claim to set guild home.")
-                    player.sendMessage("§7Place a bell and convert it to a guild claim first.")
+                    player.sendMessage(lang.msg("command.migrated.guild.sethome.you_must_be_standing_in_a_guild"))
+                    player.sendMessage(lang.msg("command.migrated.guild.sethome.place_a_bell_and_convert_it_to"))
                     return
                 }
                 is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.StorageError -> {
-                    player.sendMessage("§cAn error occurred while checking your location.")
+                    player.sendMessage(lang.msg("command.migrated.guild.sethome.an_error_occurred_while_checking_your_location"))
                     return
                 }
             }
@@ -306,15 +334,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (currentHome != null && adjustedConfirm?.lowercase() != "confirm" && adjustedConfirm?.lowercase() != "unsafe") {
             val confirmCommand = if (adjustedHomeName != null) "/guild sethome $adjustedHomeName confirm" else "/guild sethome confirm"
             val homeLabel = if (targetHomeName == "main") "main home" else "home '$targetHomeName'"
-            player.sendMessage("§c⚠️ Your guild already has a $homeLabel set!")
-            player.sendMessage("§7Use §6$confirmCommand §7to replace it")
-            player.sendMessage("§7Or use the guild menu for a confirmation dialog.")
+            player.sendMessage(lang.msg("command.migrated.guild.sethome.your_guild_already_has_a_set", "home_label" to homeLabel))
+            player.sendMessage(lang.msg("command.migrated.guild.sethome.use_to_replace_it", "confirm_command" to confirmCommand))
+            player.sendMessage(lang.msg("command.migrated.guild.sethome.or_use_the_guild_menu_for_a"))
             return
         }
 
         // Check safety and handle confirmation system
         if (config.guild.homeTeleportSafetyCheck) {
-            if (!GuildHomeSafety.checkOrAskConfirm(player, location, "/guild sethome unsafe")) {
+            val unsafeConfirmCommand = if (adjustedHomeName == null) {
+                "/guild sethome unsafe"
+            } else {
+                "/guild sethome $adjustedHomeName unsafe"
+            }
+            if (!checkHomeSafety(player, location, unsafeConfirmCommand)) {
                 return
             }
         }
@@ -337,7 +370,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 }
                 return
             } else {
-                player.sendMessage("§cNo pending unsafe teleport to confirm, or confirmation expired.")
+                player.sendMessage(lang.msg("command.migrated.guild.home.no_pending_unsafe_teleport_to_confirm_or"))
                 return
             }
         }
@@ -347,7 +380,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -357,13 +390,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         if (home != null) {
             if (!guildService.canUseHome(playerId, guild.id, targetHomeName)) {
-                player.sendMessage("§c❌ You don't have permission to use the home '$targetHomeName'.")
-                player.sendMessage("§7Ask a guild manager to grant your rank access.")
+                player.sendMessage(lang.msg("command.migrated.guild.home.you_don_t_have_permission_to_use", "target_home_name" to targetHomeName))
+                player.sendMessage(lang.msg("command.migrated.guild.home.ask_a_guild_manager_to_grant_your"))
                 return
             }
             // Check if player already has an active teleport
             if (teleportationService.hasActiveTeleport(playerId)) {
-                player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")
+                player.sendMessage(lang.msg("command.migrated.guild.home.you_already_have_a_teleport_in_progress"))
                 return
             }
 
@@ -378,7 +411,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 val elapsedSeconds = (System.currentTimeMillis() - lastTeleport) / 1000
                 if (elapsedSeconds < cooldownSeconds) {
                     val remainingSeconds = cooldownSeconds - elapsedSeconds
-                    player.sendMessage("§c◷ Please wait ${remainingSeconds}s before teleporting again.")
+                    player.sendMessage(lang.msg("command.migrated.guild.home.please_wait_s_before_teleporting_again", "remaining_seconds" to remainingSeconds))
                     return
                 }
             }
@@ -386,7 +419,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Get target location
             val world = player.server.getWorld(home.worldId)
             if (world == null) {
-                player.sendMessage("§cGuild home world is not available.")
+                player.sendMessage(lang.msg("command.migrated.guild.home.guild_home_world_is_not_available"))
                 return
             }
 
@@ -401,7 +434,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
             // Check if target location is safe (if safety check is enabled)
             if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
-                if (!GuildHomeSafety.checkOrAskConfirm(player, targetLocation, "/guild home confirm")) {
+                if (!checkHomeSafety(player, targetLocation, "/guild home confirm")) {
                     return
                 }
             }
@@ -414,12 +447,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Check if the guild has any homes at all
             val allHomes = guildService.getHomes(guild.id)
             if (allHomes.hasHomes()) {
-                player.sendMessage("§cHome '$targetHomeName' has not been set.")
-                player.sendMessage("§7Available homes: §f${allHomes.homeNames.joinToString(", ")}")
-                player.sendMessage("§7Use §6/guild home <name> §7to teleport to a specific home.")
+                player.sendMessage(lang.msg("command.migrated.guild.home.home_has_not_been_set", "target_home_name" to targetHomeName))
+                player.sendMessage(lang.msg("command.migrated.guild.home.available_homes", "join_to_string" to allHomes.homeNames.joinToString(", ")))
+                player.sendMessage(lang.msg("command.migrated.guild.home.use_guild_home_name_to_teleport_to"))
             } else {
-                player.sendMessage("§cNo guild homes have been set.")
-                player.sendMessage("§7Use §6/guild sethome §7to set your first home.")
+                player.sendMessage(lang.msg("command.migrated.guild.home.no_guild_homes_have_been_set"))
+                player.sendMessage(lang.msg("command.migrated.guild.home.use_guild_sethome_to_set_your_first"))
             }
         }
     }
@@ -432,7 +465,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -440,26 +473,30 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val allHomes = guildService.getHomes(guild.id)
         val availableSlots = guildService.getAvailableHomeSlots(guild.id)
 
-        player.sendMessage("§6=== Guild Homes ===")
+        player.sendMessage(lang.msg("command.migrated.guild.homes.guild_homes"))
         if (allHomes.hasHomes()) {
-            player.sendMessage("§7Your guild has §f${allHomes.size}§7/${availableSlots}§7 home slots:")
+            player.sendMessage(lang.msg("command.migrated.guild.homes.your_guild_has_home_slots", "size" to allHomes.size, "available_slots" to availableSlots))
             allHomes.homes.forEach { entry ->
                 val name = entry.key
                 val home = entry.value
-                val marker = if (name == "main") "§e[MAIN]" else ""
                 val worldName = Bukkit.getWorld(home.worldId)?.name ?: "Unknown"
-                player.sendMessage("§7• §f$name $marker §7- §f$worldName")
+                val row = if (name == "main") {
+                    lang.msg("command.migrated.guild.homes.home_row_main", "name" to name, "world_name" to worldName)
+                } else {
+                    lang.msg("command.migrated.guild.homes.home_row", "name" to name, "world_name" to worldName)
+                }
+                player.sendMessage(row)
             }
-            player.sendMessage("§7Use §6/guild home <name> §7to teleport to a home.")
+            player.sendMessage(lang.msg("command.migrated.guild.homes.use_guild_home_name_to_teleport_to"))
         } else {
-            player.sendMessage("§7No homes have been set yet.")
+            player.sendMessage(lang.msg("command.migrated.guild.homes.no_homes_have_been_set_yet"))
         }
 
         if (allHomes.size < availableSlots) {
-            player.sendMessage("§7Available slots: §f${availableSlots - allHomes.size}")
-            player.sendMessage("§7Use §6/guild sethome <name> §7to set additional homes.")
+            player.sendMessage(lang.msg("command.migrated.guild.homes.available_slots", "size" to availableSlots - allHomes.size))
+            player.sendMessage(lang.msg("command.migrated.guild.homes.use_guild_sethome_name_to_set_additional"))
         }
-        player.sendMessage("§6==================")
+        player.sendMessage(lang.msg("command.migrated.guild.homes.blank_line_2"))
     }
 
     @Subcommand("removehome")
@@ -469,25 +506,25 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val playerId = player.uniqueId
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
         val guild = guilds.first()
         if (guildService.getHome(guild.id, homeName) == null) {
-            player.sendMessage("§c❌ Home '$homeName' does not exist.")
+            player.sendMessage(lang.msg("command.migrated.guild.removehome.home_does_not_exist", "home_name" to homeName))
             return
         }
 
         val menuNavigator = MenuNavigator(player)
         menuNavigator.openMenu(net.lumalyte.lg.interaction.menus.common.ConfirmationMenu(
-            menuNavigator, player, "§cRemove home '$homeName'?"
+            menuNavigator, player, lang.legacy("command.migrated.guild.removehome.remove_home", "home_name" to homeName)
         ) {
             val success = guildService.removeHome(guild.id, homeName, playerId)
             if (success) {
-                player.sendMessage("§a✅ Home '$homeName' removed.")
+                player.sendMessage(lang.msg("command.migrated.guild.removehome.home_removed", "home_name" to homeName))
             } else {
-                player.sendMessage("§c❌ Failed to remove home '$homeName'.")
+                player.sendMessage(lang.msg("command.migrated.guild.removehome.failed_to_remove_home", "home_name" to homeName))
             }
         })
     }
@@ -498,7 +535,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val playerId = player.uniqueId
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -512,10 +549,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val success = guildService.setAllyHome(guild.id, home, playerId)
         if (success) {
-            player.sendMessage("§a✅ Ally home set to your current location!")
-            player.sendMessage("§7Allied guilds with the ally home perk can now teleport here.")
+            player.sendMessage(lang.msg("command.migrated.guild.setallyhome.ally_home_set_to_your_current_location"))
+            player.sendMessage(lang.msg("command.migrated.guild.setallyhome.allied_guilds_with_the_ally_home_perk"))
         } else {
-            player.sendMessage("§c❌ Failed to set ally home. You may not have permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.setallyhome.failed_to_set_ally_home_you_may"))
         }
     }
 
@@ -525,16 +562,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val playerId = player.uniqueId
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
         val guild = guilds.first()
         val success = guildService.removeAllyHome(guild.id, playerId)
         if (success) {
-            player.sendMessage("§a✅ Ally home removed.")
+            player.sendMessage(lang.msg("command.migrated.guild.removeallyhome.ally_home_removed"))
         } else {
-            player.sendMessage("§c❌ Failed to remove ally home. It may not be set or you lack permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.removeallyhome.failed_to_remove_ally_home_it_may"))
         }
     }
 
@@ -550,7 +587,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val ownGuild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
         if (ownGuild == null) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -560,20 +597,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val config = configService.loadConfig()
         if (config.guild.homeTeleportSafetyCheck &&
-            !GuildHomeSafety.checkOrAskConfirm(player, targetLocation, "/guild allyhome ${targetGuild.id} confirm")) {
+            !checkHomeSafety(player, targetLocation, "/guild allyhome ${targetGuild.id} confirm")) {
             return
         }
 
         teleportationService.startTeleport(player, targetLocation) {
             lastHomeTeleport[player.uniqueId] = System.currentTimeMillis()
-            player.sendMessage("§a✅ Teleported to §6${targetGuild.name}§a's ally home.")
+            player.sendMessage(lang.msg("command.migrated.guild.allyhome.teleported_to_s_ally_home", "guild" to targetGuild.name))
         }
     }
 
     private fun handleAllyHomeConfirm(player: Player) {
         val pendingLocation = GuildHomeSafety.consumePending(player)
         if (pendingLocation == null) {
-            player.sendMessage("§cNo pending unsafe teleport to confirm, or confirmation expired.")
+            player.sendMessage(lang.msg("command.migrated.guild.home.no_pending_unsafe_teleport_to_confirm_or"))
             return
         }
         teleportationService.startTeleport(player, pendingLocation) {
@@ -588,7 +625,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     ): net.lumalyte.lg.domain.entities.Guild? {
         val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
         if (targetGuild == null) {
-            player.sendMessage("§cNo guild named '$guildName' found.")
+            player.sendMessage(lang.msg("command.migrated.guild.resolveallytarget.no_guild_named_found", "guild" to guildName))
             return null
         }
         // Own guild's ally-home is a valid target: members with USE_ALLY_HOMES (or the owner)
@@ -599,7 +636,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val relationService: net.lumalyte.lg.application.services.RelationService by inject()
         if (relationService.getRelationType(ownGuild.id, targetGuild.id)
             != net.lumalyte.lg.domain.entities.RelationType.ALLY) {
-            player.sendMessage("§c${targetGuild.name} is not an ally of your guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.resolveallytarget.is_not_an_ally_of_your_guild", "guild" to targetGuild.name))
             return null
         }
         return targetGuild
@@ -612,7 +649,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     ): Location? {
         val allyHome = guildService.getAllyHome(targetGuild.id)
         if (allyHome == null) {
-            player.sendMessage("§c${targetGuild.name} has no ally home set.")
+            player.sendMessage(lang.msg("command.migrated.guild.resolveallyhomelocation.has_no_ally_home_set", "guild" to targetGuild.name))
             return null
         }
         val isOwnGuild = targetGuild.id == ownGuild.id
@@ -623,21 +660,21 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
         if (!allowed) {
             if (isOwnGuild) {
-                player.sendMessage("§c❌ You don't have permission to use your guild's ally home.")
-                player.sendMessage("§7Your rank needs the USE_ALLY_HOMES permission.")
+                player.sendMessage(lang.msg("command.migrated.guild.resolveallyhomelocation.you_don_t_have_permission_to_use"))
+                player.sendMessage(lang.msg("command.migrated.guild.resolveallyhomelocation.your_rank_needs_the_use_ally_homes"))
             } else {
-                player.sendMessage("§c❌ You don't have permission to use ${targetGuild.name}'s ally home.")
-                player.sendMessage("§7Your rank may lack USE_ALLY_HOMES, or that guild has not granted access.")
+                player.sendMessage(lang.msg("command.migrated.guild.resolveallyhomelocation.you_don_t_have_permission_to_use_2", "guild" to targetGuild.name))
+                player.sendMessage(lang.msg("command.migrated.guild.resolveallyhomelocation.your_rank_may_lack_use_ally_homes"))
             }
             return null
         }
         if (teleportationService.hasActiveTeleport(player.uniqueId)) {
-            player.sendMessage("§cYou already have a teleport in progress. Please wait for it to complete.")
+            player.sendMessage(lang.msg("command.migrated.guild.home.you_already_have_a_teleport_in_progress"))
             return null
         }
         val world = player.server.getWorld(allyHome.worldId)
         if (world == null) {
-            player.sendMessage("§cAlly guild home world is not available.")
+            player.sendMessage(lang.msg("command.migrated.guild.resolveallyhomelocation.ally_guild_home_world_is_not_available"))
             return null
         }
         return Location(
@@ -658,7 +695,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val lastTeleport = lastHomeTeleport[player.uniqueId] ?: return true
         val elapsedSeconds = (System.currentTimeMillis() - lastTeleport) / 1000
         if (elapsedSeconds < cooldownSeconds) {
-            player.sendMessage("§c◷ Please wait ${cooldownSeconds - elapsedSeconds}s before teleporting again.")
+            player.sendMessage(lang.msg("command.migrated.guild.checkallyhomecooldown.please_wait_s_before_teleporting_again", "elapsed_seconds" to cooldownSeconds - elapsedSeconds))
             return false
         }
         return true
@@ -672,16 +709,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
         
         val guild = guilds.first()
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
         
-        player.sendMessage("§6=== Guild Ranks ===")
-        player.sendMessage("§7Guild: §f${guild.name}")
-        player.sendMessage("")
+        player.sendMessage(lang.msg("command.migrated.guild.ranks.guild_ranks"))
+        player.sendMessage(lang.msg("command.migrated.guild.ranks.guild", "guild" to guild.name))
+        player.sendMessage(lang.msg("command.common.blank_line"))
         
         for (rank in ranks) {
             val memberCount = memberService.getMembersByRank(guild.id, rank.id).size
@@ -689,10 +726,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 rank.permissions.joinToString(", ") { it.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() } }
             } else "None"
             
-            player.sendMessage("§e${rank.name} §7(Priority: ${rank.priority})")
-            player.sendMessage("§7  Members: §f$memberCount")
-            player.sendMessage("§7  Permissions: §f$permissions")
-            player.sendMessage("")
+            player.sendMessage(lang.msg("command.migrated.guild.ranks.priority", "rank" to rank.name, "priority" to rank.priority))
+            player.sendMessage(lang.msg("command.migrated.guild.ranks.members", "member_count" to memberCount))
+            player.sendMessage(lang.msg("command.migrated.guild.ranks.permissions", "permissions" to permissions))
+            player.sendMessage(lang.msg("command.common.blank_line"))
         }
     }
     
@@ -705,7 +742,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -726,7 +763,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val isOwner = playerRank?.id == highestRank?.id
 
         if (!hasEmojiPermission && !isOwner) {
-            player.sendMessage("§cYou don't have permission to change the guild emoji.")
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.you_don_t_have_permission_to_change"))
             return
         }
 
@@ -742,10 +779,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (emoji.lowercase() in clearKeywords) {
             val success = guildService.setEmoji(guild.id, null, playerId)
             if (success) {
-                player.sendMessage("§a✅ Guild emoji cleared successfully!")
+                player.sendMessage(lang.msg("command.migrated.guild.emoji.guild_emoji_cleared_successfully"))
                 player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
             } else {
-                player.sendMessage("§c❌ Failed to clear emoji. Please try again.")
+                player.sendMessage(lang.msg("command.migrated.guild.emoji.failed_to_clear_emoji_please_try_again"))
             }
             return
         }
@@ -755,34 +792,34 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Validate emoji format
         if (!nexoEmojiService.isValidEmojiFormat(emoji)) {
-            player.sendMessage("§c❌ Invalid emoji format!")
-            player.sendMessage("§7Format must be: §f:emoji_name: §7(e.g., §f:cat:§7)")
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.invalid_emoji_format"))
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.format_must_be_emoji_name_e_g"))
             return
         }
 
         // Check if emoji exists in Nexo
         if (!nexoEmojiService.doesEmojiExist(emoji)) {
-            player.sendMessage("§c❌ Emoji not found in Nexo registry!")
-            player.sendMessage("§7Make sure the emoji is configured in Nexo.")
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.emoji_not_found_in_nexo_registry"))
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.make_sure_the_emoji_is_configured_in"))
             return
         }
 
         // Check if player has permission for this specific emoji
         if (!nexoEmojiService.hasEmojiPermission(player, emoji)) {
             val permission = nexoEmojiService.getEmojiPermission(emoji) ?: "unknown"
-            player.sendMessage("§c❌ You don't have permission to use this emoji!")
-            player.sendMessage("§7Required permission: §f$permission")
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.you_don_t_have_permission_to_use"))
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.required_permission", "permission" to permission))
             return
         }
 
         // Set the emoji
         val success = guildService.setEmoji(guild.id, emoji, playerId)
         if (success) {
-            player.sendMessage("§a✅ Guild emoji updated successfully!")
-            player.sendMessage("§7New emoji: $emoji")
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.guild_emoji_updated_successfully"))
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.new_emoji", "emoji" to emoji))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
         } else {
-            player.sendMessage("§c❌ Failed to save emoji. Please try again.")
+            player.sendMessage(lang.msg("command.migrated.guild.emoji.failed_to_save_emoji_please_try_again"))
         }
     }
 
@@ -795,7 +832,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -804,21 +841,21 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Check if mode switching is enabled in config
         val mainConfig = configService.loadConfig()
         if (!mainConfig.guild.modeSwitchingEnabled) {
-            player.sendMessage("§c❌ Guild mode switching is disabled by server configuration.")
-            player.sendMessage("§7Guilds cannot change between Peaceful and Hostile modes.")
+            player.sendMessage(lang.msg("command.migrated.guild.mode.guild_mode_switching_is_disabled_by_server"))
+            player.sendMessage(lang.msg("command.migrated.guild.mode.guilds_cannot_change_between_peaceful_and_hostile"))
             return
         }
 
         val guildMode = try {
             GuildMode.valueOf(mode.uppercase())
         } catch (e: IllegalArgumentException) {
-            player.sendMessage("§cInvalid mode. Use 'peaceful' or 'hostile'.")
+            player.sendMessage(lang.msg("command.migrated.guild.mode.invalid_mode_use_peaceful_or_hostile"))
             return
         }
 
         // Check if already in that mode
         if (guild.mode == guildMode) {
-            player.sendMessage("§c❌ Guild is already in ${guildMode.name.lowercase().replaceFirstChar { it.uppercase() }} mode!")
+            player.sendMessage(lang.msg("command.migrated.guild.mode.guild_is_already_in_mode", "uppercase" to guildMode.name.lowercase().replaceFirstChar { it.uppercase() }))
             return
         }
 
@@ -829,13 +866,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
             val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
 
             if (hasActiveWar) {
-                player.sendMessage("§c❌ Cannot switch to peaceful mode during active war!")
+                player.sendMessage(lang.msg("command.migrated.guild.mode.cannot_switch_to_peaceful_mode_during_active"))
                 return
             }
 
             if (!canSwitch) {
                 val cooldownMsg = getCooldownMessage(guild, mainConfig.guild.modeSwitchCooldownDays)
-                player.sendMessage("§c❌ $cooldownMsg")
+                player.sendMessage(lang.msg("command.migrated.guild.mode.cooldown_prefix").append(cooldownMsg))
                 return
             }
         } else if (guildMode == GuildMode.HOSTILE) {
@@ -844,7 +881,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
             if (!canSwitch) {
                 val lockMsg = getHostileLockMessage(guild, mainConfig.guild.hostileModeMinimumDays)
-                player.sendMessage("§c❌ $lockMsg")
+                player.sendMessage(lang.msg("command.migrated.guild.mode.lock_prefix").append(lockMsg))
                 return
             }
         }
@@ -852,9 +889,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val success = guildService.setMode(guild.id, guildMode, playerId)
 
         if (success) {
-            player.sendMessage("§a✅ Guild mode changed to ${guildMode.name.lowercase().replaceFirstChar { it.uppercase() }}!")
+            player.sendMessage(lang.msg("command.migrated.guild.mode.guild_mode_changed_to", "uppercase" to guildMode.name.lowercase().replaceFirstChar { it.uppercase() }))
         } else {
-            player.sendMessage("§c❌ Failed to change guild mode. You may not have permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.mode.failed_to_change_guild_mode_you_may"))
         }
     }
 
@@ -874,32 +911,32 @@ class GuildCommand : BaseCommand(), KoinComponent {
         return java.time.Instant.now().isAfter(lockEnd)
     }
 
-    private fun getCooldownMessage(guild: Guild, cooldownDays: Int): String {
-        val modeChanged = guild.modeChangedAt ?: return "No previous changes"
+    private fun getCooldownMessage(guild: Guild, cooldownDays: Int): Component {
+        val modeChanged = guild.modeChangedAt ?: return lang.msg("command.migrated.guild.mode.no_previous_changes")
 
         val cooldownEnd = modeChanged.plus(java.time.Duration.ofDays(cooldownDays.toLong()))
         val remaining = java.time.Duration.between(java.time.Instant.now(), cooldownEnd)
 
-        if (remaining.isNegative) return "Cooldown expired"
+        if (remaining.isNegative) return lang.msg("command.migrated.guild.mode.cooldown_expired")
 
         val days = remaining.toDays()
         val hours = remaining.toHours() % 24
 
-        return "${days}d ${hours}h until you can switch to Peaceful"
+        return lang.msg("command.migrated.guild.mode.switch_to_peaceful", "days" to days, "hours" to hours)
     }
 
-    private fun getHostileLockMessage(guild: Guild, minimumDays: Int): String {
-        val modeChanged = guild.modeChangedAt ?: return "No previous changes"
+    private fun getHostileLockMessage(guild: Guild, minimumDays: Int): Component {
+        val modeChanged = guild.modeChangedAt ?: return lang.msg("command.migrated.guild.mode.no_previous_changes")
 
         val lockEnd = modeChanged.plus(java.time.Duration.ofDays(minimumDays.toLong()))
         val remaining = java.time.Duration.between(java.time.Instant.now(), lockEnd)
 
-        if (remaining.isNegative) return "Lock expired"
+        if (remaining.isNegative) return lang.msg("command.migrated.guild.mode.lock_expired")
 
         val days = remaining.toDays()
         val hours = remaining.toHours() % 24
 
-        return "${days}d ${hours}h until you can switch to Hostile"
+        return lang.msg("command.migrated.guild.mode.switch_to_hostile", "days" to days, "hours" to hours)
     }
     
     @Subcommand("history")
@@ -917,7 +954,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             @Suppress("DEPRECATION")
             val offlineTarget = Bukkit.getOfflinePlayer(targetPlayerName)
             if (!offlineTarget.hasPlayedBefore()) {
-                player.sendMessage("§cPlayer '§6$targetPlayerName§c' has never played on this server.")
+                player.sendMessage(lang.msg("command.migrated.guild.history.player_has_never_played_on_this_server", "target_player_name" to targetPlayerName))
                 return
             }
             targetId = offlineTarget.uniqueId
@@ -927,34 +964,45 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val history = historyRepository.getByPlayer(targetId)
 
         if (history.isEmpty()) {
-            player.sendMessage("§7$displayName has no guild history.")
+            player.sendMessage(lang.msg("command.migrated.guild.history.has_no_guild_history", "display_name" to displayName))
             return
         }
 
         val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
             .withZone(java.time.ZoneId.systemDefault())
 
-        player.sendMessage("§6§l╔══ Guild History: $displayName ══╗")
-        player.sendMessage("§7Total guilds joined: §e${history.size}")
-        player.sendMessage("")
+        player.sendMessage(lang.msg("command.migrated.guild.history.guild_history", "display_name" to displayName))
+        player.sendMessage(lang.msg("command.migrated.guild.history.total_guilds_joined", "size" to history.size))
+        player.sendMessage(lang.msg("command.common.blank_line"))
 
         history.forEachIndexed { index, entry ->
             val guildName = guildService.getGuild(entry.guildId)?.name
-            val guildDisplay = if (guildName != null) "§a$guildName" else "§8[UNKNOWN]"
             val joinDate = formatter.format(entry.joinedAt)
 
-            val suffix = when {
-                entry.isOpen -> "§a(current)"
-                entry.departureReason == DepartureReason.LEFT -> "§7Left"
-                entry.departureReason == DepartureReason.KICKED -> "§cKicked"
-                entry.departureReason == DepartureReason.DISBANDED -> "§8Guild Disbanded"
-                else -> ""
+            val suffix: Component? = when {
+                entry.isOpen -> lang.msg("command.migrated.guild.history.current")
+                entry.departureReason == DepartureReason.LEFT -> lang.msg("command.migrated.guild.history.left")
+                entry.departureReason == DepartureReason.KICKED -> lang.msg("command.migrated.guild.history.kicked")
+                entry.departureReason == DepartureReason.DISBANDED -> lang.msg("command.migrated.guild.history.guild_disbanded")
+                else -> null
             }
 
-            player.sendMessage("§f${index + 1}. $guildDisplay §7• Joined §e$joinDate §7• $suffix")
+            var row = lang.msg("command.migrated.guild.history.joined_prefix", "index" to index + 1)
+                .append(
+                    if (guildName != null) {
+                        lang.msg("command.migrated.guild.history.guild", "guild" to guildName)
+                    } else {
+                        lang.msg("command.migrated.guild.history.unknown")
+                    },
+                )
+                .append(lang.msg("command.migrated.guild.history.joined_date", "join_date" to joinDate))
+            if (suffix != null) {
+                row = row.append(lang.msg("command.migrated.guild.history.status_separator")).append(suffix)
+            }
+            player.sendMessage(row)
         }
 
-        player.sendMessage("§6§l╚${"═".repeat(20 + displayName.length)}╝")
+        player.sendMessage(lang.msg("command.migrated.guild.history.blank_line_2", "length" to "═".repeat(20 + displayName.length)))
     }
 
     @Subcommand("chat")
@@ -964,16 +1012,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
+            player.sendMessage(lang.msg("command.migrated.guild.guildchat.you_are_not_in_a_guild"))
             return
         }
 
         val nowEnabled = guildChatListener.toggleGuildChat(player)
         if (nowEnabled) {
-            player.sendMessage("§a✅ §2Guild chat §aenabled§a! Your messages go only to guild members.")
-            player.sendMessage("§7Run §f/g chat §7again to return to normal chat.")
+            player.sendMessage(lang.msg("command.migrated.guild.guildchat.guild_chat_enabled_your_messages_go_only"))
+            player.sendMessage(lang.msg("command.migrated.guild.guildchat.run_g_chat_again_to_return_to"))
         } else {
-            player.sendMessage("§7Guild chat §cdisabled§7. Your messages go to main chat.")
+            player.sendMessage(lang.msg("command.migrated.guild.guildchat.guild_chat_disabled_your_messages_go_to"))
         }
     }
 
@@ -984,16 +1032,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§c❌ You are not in a guild!")
+            player.sendMessage(lang.msg("command.migrated.guild.guildchat.you_are_not_in_a_guild"))
             return
         }
 
         val nowEnabled = guildChatListener.toggleAllyChat(player)
         if (nowEnabled) {
-            player.sendMessage("§d✅ §5Ally chat §denabled§d! Your messages go to guild + allied guild members.")
-            player.sendMessage("§7Run §f/g allychat §7again to return to normal chat.")
+            player.sendMessage(lang.msg("command.migrated.guild.allychat.ally_chat_enabled_your_messages_go_to"))
+            player.sendMessage(lang.msg("command.migrated.guild.allychat.run_g_allychat_again_to_return_to"))
         } else {
-            player.sendMessage("§7Ally chat §cdisabled§7. Your messages go to main chat.")
+            player.sendMessage(lang.msg("command.migrated.guild.allychat.ally_chat_disabled_your_messages_go_to"))
         }
     }
 
@@ -1004,10 +1052,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         when (result) {
             null -> {} // error already sent by resolveModChatChannel
             true -> player.sendMessage(
-                "§9✅ §1Mod chat §9enabled§9! Run /g modchat again to disable.",
+                lang.msg("command.migrated.guild.modchat.mod_chat_enabled_run_g_modchat_again"),
             )
             false -> player.sendMessage(
-                "§7Mod chat §cdisabled§7. Your messages go to main chat.",
+                lang.msg("command.migrated.guild.modchat.mod_chat_disabled_your_messages_go_to"),
             )
         }
     }
@@ -1022,7 +1070,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             val targetGuildObj = net.lumalyte.lg.utils.GuildResolver.resolve(targetGuild, guildService)
 
             if (targetGuildObj == null) {
-                player.sendMessage("§cNo guild or player named '$targetGuild' found.")
+                player.sendMessage(lang.msg("command.migrated.guild.info.no_guild_or_player_named_found", "target_guild" to targetGuild))
                 return
             }
 
@@ -1032,7 +1080,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Show player's own guild info
             val guilds = guildService.getPlayerGuilds(player.uniqueId)
             if (guilds.isEmpty()) {
-                player.sendMessage("§cYou are not in a guild.")
+                player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
                 return
             }
 
@@ -1052,7 +1100,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     fun onStrikes(player: Player, @Optional target: String?) {
         val strikesConfig = configService.loadConfig().strikes
         if (!strikesConfig.enabled) {
-            player.sendMessage("§cGuild strikes are currently disabled.")
+            player.sendMessage(lang.msg("command.migrated.guild.strikes.guild_strikes_are_currently_disabled"))
             return
         }
 
@@ -1062,7 +1110,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (target != null) {
             val guild = GuildResolver.resolve(target, guildServiceRef)
             if (guild == null) {
-                player.sendMessage("§cNo guild or player named '$target' found.")
+                player.sendMessage(lang.msg("command.migrated.guild.strikes.no_guild_or_player_named_found", "target" to target))
                 return
             }
             showGuildStrikeDetails(player, guild, threshold)
@@ -1072,14 +1120,14 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Global public view: every guild that has at least one strike.
         val counts = strikeService.getAllCounts()
         if (counts.isEmpty()) {
-            player.sendMessage("§8[§bLumaGuilds§8] §7No guild has any strikes yet.")
+            player.sendMessage(lang.msg("command.migrated.guild.strikes.lumaguilds_no_guild_has_any_strikes_yet"))
             return
         }
 
         val total = strikeService.countAll()
-        player.sendMessage("§8[§bLumaGuilds§8] §fGuild Strikes §8(§7$total total§8)")
+        player.sendMessage(lang.msg("command.migrated.guild.strikes.lumaguilds_guild_strikes_total", "total" to total))
         if (threshold > 0) {
-            player.sendMessage("§8» §7Guilds at §c$threshold§7+ §7active strikes are up for a penalty")
+            player.sendMessage(lang.msg("command.migrated.guild.strikes.guilds_at_active_strikes_are_up_for", "threshold" to threshold))
         }
 
         // Penalty eligibility is based on ACTIVE strikes only (lifted punishments
@@ -1090,10 +1138,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
         for ((guildId, count) in counts.entries.sortedByDescending { it.value }) {
             val guild = nameById[guildId]
             val label = guild?.let { GuildResolver.displayName(it) } ?: guildId.toString().take(8)
-            val flag = if (threshold > 0 && (activeCounts[guildId] ?: 0) >= threshold) " §c⚠ UP FOR PENALTY" else ""
-            player.sendMessage("§7${++index}. §f$label §8— §e$count §7strike(s)$flag")
+            var row = lang.msg("command.migrated.guild.strikes.strike_s", "index" to ++index, "label" to label, "count" to count)
+            if (threshold > 0 && (activeCounts[guildId] ?: 0) >= threshold) {
+                row = row.append(lang.msg("command.migrated.guild.strikes.up_for_penalty"))
+            }
+            player.sendMessage(row)
         }
-        player.sendMessage("§8» §7Run §f/g strikes <guild>§7 for the punishments behind a guild's strikes")
+        player.sendMessage(lang.msg("command.migrated.guild.strikes.run_g_strikes_guild_for_the_punishments"))
     }
 
     /**
@@ -1106,13 +1157,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
     fun onStrikesPunish(player: Player, target: String) {
         val strikesConfig = configService.loadConfig().strikes
         if (!strikesConfig.enabled) {
-            player.sendMessage("§cGuild strikes are currently disabled.")
+            player.sendMessage(lang.msg("command.migrated.guild.strikes.guild_strikes_are_currently_disabled"))
             return
         }
 
         val guild = GuildResolver.resolve(target, guildService)
         if (guild == null) {
-            player.sendMessage("§cNo guild or player named '$target' found.")
+            player.sendMessage(lang.msg("command.migrated.guild.strikes.no_guild_or_player_named_found", "target" to target))
             return
         }
 
@@ -1129,42 +1180,52 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val name = GuildResolver.displayName(guild)
 
         if (strikes.isEmpty()) {
-            player.sendMessage("§8[§bLumaGuilds§8] §f$name §7has no strikes.")
+            player.sendMessage(lang.msg("command.migrated.guild.showguildstrikedetails.lumaguilds_has_no_strikes", "name" to name))
             return
         }
 
         val activeCount = strikes.count { it.active }
-        val status = if (threshold > 0 && activeCount >= threshold) {
-            " §c⚠ UP FOR PENALTY"
-        } else {
-            ""
+        var header = lang.msg("command.migrated.guild.showguildstrikedetails.lumaguilds_strike_s", "name" to name, "size" to strikes.size)
+        if (threshold > 0 && activeCount >= threshold) {
+            header = header.append(lang.msg("command.migrated.guild.strikes.up_for_penalty"))
         }
-        player.sendMessage("§8[§bLumaGuilds§8] §f$name §7— §e${strikes.size} §7strike(s)$status")
+        player.sendMessage(header)
         if (threshold > 0) {
-            player.sendMessage("§8» §7Penalty threshold: §f$threshold§7 (active strikes)")
+            player.sendMessage(lang.msg("command.migrated.guild.showguildstrikedetails.penalty_threshold_active_strikes", "threshold" to threshold))
         }
 
         // Cap the per-guild detail list — a guild with hundreds of punishments
         // would otherwise flood the player's chat.
         val maxShown = 15
         strikes.take(maxShown).forEach { strike ->
-            val typeColor = when (strike.punishmentType.uppercase()) {
-                "BAN" -> "§c"
-                "MUTE" -> "§6"
-                "KICK" -> "§e"
-                else -> "§7"
+            val type = strike.punishmentType.uppercase()
+            val playerName = strike.playerName ?: strike.playerUuid.toString().take(8)
+            var row = when (type) {
+                "BAN" -> lang.msg("command.migrated.guild.showguildstrikedetails.row_ban", "type" to type, "player" to playerName)
+                "MUTE" -> lang.msg("command.migrated.guild.showguildstrikedetails.row_mute", "type" to type, "player" to playerName)
+                "KICK" -> lang.msg("command.migrated.guild.showguildstrikedetails.row_kick", "type" to type, "player" to playerName)
+                else -> lang.msg("command.migrated.guild.showguildstrikedetails.row_other", "type" to type, "player" to playerName)
             }
-            val lifted = if (strike.active) "" else " §8(lifted)"
-            val reason = strike.reason?.takeIf { it.isNotBlank() }?.let { " §7— §f${it.take(80)}" } ?: ""
-            val by = strike.executorName?.let { " §8by $it" } ?: ""
-            player.sendMessage(
-                "$typeColor${strike.punishmentType.uppercase()}§8 §f${strike.playerName ?: strike.playerUuid.toString().take(8)}" +
-                    "$reason$by §8${formatStrikeDate(strike.issuedAt)}$lifted"
+            strike.reason?.takeIf { it.isNotBlank() }?.let {
+                row = row.append(lang.msg("command.migrated.guild.showguildstrikedetails.reason", "reason" to it.take(80)))
+            }
+            strike.executorName?.let {
+                row = row.append(lang.msg("command.migrated.guild.showguildstrikedetails.by", "executor" to it))
+            }
+            row = row.append(
+                lang.msg(
+                    "command.migrated.guild.showguildstrikedetails.issued_at",
+                    "issued_at" to formatStrikeDate(strike.issuedAt),
+                ),
             )
+            if (!strike.active) {
+                row = row.append(lang.msg("command.migrated.guild.showguildstrikedetails.lifted"))
+            }
+            player.sendMessage(row)
         }
         val hidden = strikes.size - maxShown
         if (hidden > 0) {
-            player.sendMessage("§8… §7and §f$hidden§7 more (showing newest $maxShown)")
+            player.sendMessage(lang.msg("command.migrated.guild.showguildstrikedetails.and_more_showing_newest", "hidden" to hidden, "max_shown" to maxShown))
         }
     }
 
@@ -1181,7 +1242,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
         
@@ -1192,16 +1253,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val highestRank = rankService.getHighestRank(guild.id)
         
         if (playerRank?.id != highestRank?.id) {
-            player.sendMessage("§cOnly the guild owner can disband the guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.disband.only_the_guild_owner_can_disband_the"))
             return
         }
         
         val success = guildService.disbandGuild(guild.id, playerId)
         
         if (success) {
-            player.sendMessage("§aGuild '${guild.name}' has been disbanded.")
+            player.sendMessage(lang.msg("command.migrated.guild.disband.guild_has_been_disbanded", "guild" to guild.name))
         } else {
-            player.sendMessage("§cFailed to disband guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.disband.failed_to_disband_guild"))
         }
     }
 
@@ -1213,7 +1274,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -1235,8 +1296,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
             } ?: false
 
             if (!hasManagementPerms) {
-                player.sendMessage("§cYou don't have permission to access the guild control panel.")
-                player.sendMessage("§7Only guild owners and members with management permissions can access this menu.")
+                player.sendMessage(lang.msg("command.migrated.guild.menu.you_don_t_have_permission_to_access"))
+                player.sendMessage(lang.msg("command.migrated.guild.menu.only_guild_owners_and_members_with_management"))
                 return
             }
         }
@@ -1257,7 +1318,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
         player.server.logger.info("bugrock guild : ${guilds}")
@@ -1266,7 +1327,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if player has member management permission
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_MEMBERS)) {
-            player.sendMessage("§cYou don't have permission to invite players.")
+            player.sendMessage(lang.msg("command.migrated.guild.invite.you_don_t_have_permission_to_invite"))
             return
         }
 
@@ -1274,18 +1335,18 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val targetPlayer = findPlayerByName(targetPlayerName)
         player.server.logger.info("target player : ${targetPlayer}")
         if (targetPlayer == null) {
-            player.sendMessage("§cPlayer '$targetPlayerName' is not online.")
+            player.sendMessage(lang.msg("command.migrated.guild.invite.player_is_not_online", "target_player_name" to targetPlayerName))
             return
         }
 
         if (targetPlayer == player) {
-            player.sendMessage("§cYou cannot invite yourself.")
+            player.sendMessage(lang.msg("command.migrated.guild.invite.you_cannot_invite_yourself"))
             return
         }
 
         // Check if target is already in a guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
-            player.sendMessage("§c${targetPlayer.name} is already in your guild!")
+            player.sendMessage(lang.msg("command.migrated.guild.invite.is_already_in_your_guild", "player" to targetPlayer.name))
             return
         }
 
@@ -1304,8 +1365,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Check if player is already in a guild
         val currentGuilds = guildService.getPlayerGuilds(playerId)
         if (currentGuilds.isNotEmpty()) {
-            player.sendMessage("§cYou are already in a guild!")
-            player.sendMessage("§7Use §e/guild leave§7 to leave your current guild first.")
+            player.sendMessage(lang.msg("command.migrated.guild.join.you_are_already_in_a_guild"))
+            player.sendMessage(lang.msg("command.migrated.guild.join.use_guild_leave_to_leave_your_current"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
@@ -1314,15 +1375,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // intentionally NOT used here — joining via a player's name is ambiguous.
         val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
         if (guild == null) {
-            player.sendMessage("§cGuild §6$guildName§c doesn't exist!")
-            player.sendMessage("§7Check §e/guild list§7 to see available guilds.")
+            player.sendMessage(lang.msg("command.migrated.guild.join.guild_doesn_t_exist", "guild" to guildName))
+            player.sendMessage(lang.msg("command.migrated.guild.join.check_guild_list_to_see_available_guilds"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
 
         // Admin override bypasses invitation requirements
         if (adminOverrideService.hasOverride(playerId)) {
-            player.sendMessage("§7[Override] Bypassing invitation check.")
+            player.sendMessage(lang.msg("command.migrated.guild.join.override_bypassing_invitation_check"))
             joinGuildDirectly(player, guild, isOpenGuild = guild.isOpen)
             return
         }
@@ -1337,9 +1398,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Closed guild - check for pending invite (use canonical guild name, not raw user input)
         val invite = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInviteByGuildName(playerId, guild.name)
         if (invite == null) {
-            player.sendMessage("§cYou don't have an invitation to join §6$guildName§c!")
-            player.sendMessage("§7This guild is invite-only. Ask a member to invite you.")
-            player.sendMessage("§7Check §e/guild invites§7 to see your pending invitations.")
+            player.sendMessage(lang.msg("command.migrated.guild.join.you_don_t_have_an_invitation_to", "guild" to guildName))
+            player.sendMessage(lang.msg("command.migrated.guild.join.this_guild_is_invite_only_ask_a"))
+            player.sendMessage(lang.msg("command.migrated.guild.join.check_guild_invites_to_see_your_pending"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
@@ -1348,7 +1409,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Verify the guild still exists
         if (guild.id != guildId) {
-            player.sendMessage("§cThat guild no longer exists!")
+            player.sendMessage(lang.msg("command.migrated.guild.join.that_guild_no_longer_exists"))
             net.lumalyte.lg.infrastructure.services.GuildInvitationManager.removeInvite(playerId, guildId)
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
@@ -1370,7 +1431,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val lowestRank = ranks.firstOrNull()
 
         if (lowestRank == null) {
-            player.sendMessage("§cGuild has no ranks configured. Please contact the guild owner.")
+            player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.guild_has_no_ranks_configured_please_contact"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
@@ -1382,15 +1443,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Remove the invitation (if they had one)
             net.lumalyte.lg.infrastructure.services.GuildInvitationManager.removeInvite(playerId, guildId)
 
-            player.sendMessage("")
-            player.sendMessage("§a§l✅ JOINED GUILD!")
-            player.sendMessage("§7You are now a member of §6${guild.name}§7!")
+            player.sendMessage(lang.msg("command.common.blank_line"))
+            player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.joined_guild"))
+            player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.you_are_now_a_member_of", "guild" to guild.name))
             if (isOpenGuild) {
-                player.sendMessage("§7Guild Type: §aOPEN §7(public)")
+                player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.guild_type_open_public"))
             }
-            player.sendMessage("§7Rank: §f${lowestRank.name}")
-            player.sendMessage("§7Use §e/guild menu§7 to get started.")
-            player.sendMessage("")
+            player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.rank", "lowest_rank" to lowestRank.name))
+            player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.use_guild_menu_to_get_started"))
+            player.sendMessage(lang.msg("command.common.blank_line"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
 
             // Notify guild members
@@ -1399,13 +1460,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 if (member.playerId != playerId) {
                     val memberPlayer = player.server.getPlayer(member.playerId)
                     if (memberPlayer != null && memberPlayer.isOnline) {
-                        memberPlayer.sendMessage("§a${player.name}§7 has joined the guild!")
+                        memberPlayer.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.has_joined_the_guild", "player" to player.name))
                         memberPlayer.playSound(memberPlayer.location, org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 1.2f)
                     }
                 }
             }
         } else {
-            player.sendMessage("§cFailed to join guild. Please contact an administrator.")
+            player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.failed_to_join_guild_please_contact_an"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -1417,34 +1478,34 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val openGuilds = allGuilds.filter { it.isOpen }
 
         if (openGuilds.isEmpty()) {
-            player.sendMessage("")
-            player.sendMessage("§6§l🏛 PUBLIC GUILDS")
-            player.sendMessage("")
-            player.sendMessage("§7No open guilds available at the moment.")
-            player.sendMessage("§7Open guilds allow anyone to join without an invitation!")
-            player.sendMessage("")
+            player.sendMessage(lang.msg("command.common.blank_line"))
+            player.sendMessage(lang.msg("command.migrated.guild.list.public_guilds"))
+            player.sendMessage(lang.msg("command.common.blank_line"))
+            player.sendMessage(lang.msg("command.migrated.guild.list.no_open_guilds_available_at_the_moment"))
+            player.sendMessage(lang.msg("command.migrated.guild.list.open_guilds_allow_anyone_to_join_without"))
+            player.sendMessage(lang.msg("command.common.blank_line"))
             player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
             return
         }
 
-        player.sendMessage("")
-        player.sendMessage("§6§l🏛 PUBLIC GUILDS (${openGuilds.size})")
-        player.sendMessage("§7Anyone can join these guilds!")
-        player.sendMessage("")
+        player.sendMessage(lang.msg("command.common.blank_line"))
+        player.sendMessage(lang.msg("command.migrated.guild.list.public_guilds_2", "size" to openGuilds.size))
+        player.sendMessage(lang.msg("command.migrated.guild.list.anyone_can_join_these_guilds"))
+        player.sendMessage(lang.msg("command.common.blank_line"))
 
         openGuilds.sortedByDescending { memberService.getMemberCount(it.id) }.take(10).forEach { guild ->
             val memberCount = memberService.getMemberCount(guild.id)
             val emoji = guild.emoji ?: ""
             val tag = guild.tag ?: guild.name
 
-            player.sendMessage("§a▸ §6$emoji $tag §7[${memberCount} members]")
-            player.sendMessage("  §7Join: §e/guild join ${guild.name}")
-            player.sendMessage("")
+            player.sendMessage(lang.msg("command.migrated.guild.list.members", "emoji" to emoji, "tag" to tag, "member_count" to memberCount))
+            player.sendMessage(lang.msg("command.migrated.guild.list.join_guild_join", "guild" to guild.name))
+            player.sendMessage(lang.msg("command.common.blank_line"))
         }
 
         if (openGuilds.size > 10) {
-            player.sendMessage("§7... and ${openGuilds.size - 10} more open guilds")
-            player.sendMessage("")
+            player.sendMessage(lang.msg("command.migrated.guild.list.and_more_open_guilds", "size" to openGuilds.size - 10))
+            player.sendMessage(lang.msg("command.common.blank_line"))
         }
 
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
@@ -1473,8 +1534,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val invite = invites.firstOrNull { it.second.equals(guildName, ignoreCase = true) }
             ?: invites.firstOrNull { net.lumalyte.lg.utils.GuildResolver.normalize(it.second) == needle }
         if (invite == null) {
-            player.sendMessage("§cYou don't have an invitation to join §6$guildName§c!")
-            player.sendMessage("§7Check §e/guild invites§7 to see your pending invitations.")
+            player.sendMessage(lang.msg("command.migrated.guild.join.you_don_t_have_an_invitation_to", "guild" to guildName))
+            player.sendMessage(lang.msg("command.migrated.guild.join.check_guild_invites_to_see_your_pending"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
@@ -1484,7 +1545,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Remove the invitation
         net.lumalyte.lg.infrastructure.services.GuildInvitationManager.removeInvite(playerId, guildId)
 
-        player.sendMessage("§7You declined the invitation to join §6$actualGuildName§7.")
+        player.sendMessage(lang.msg("command.migrated.guild.decline.you_declined_the_invitation_to_join", "actual_guild_name" to actualGuildName))
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 0.8f)
     }
 
@@ -1495,19 +1556,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val invites = net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInvites(playerId)
 
         if (invites.isEmpty()) {
-            player.sendMessage("§7You have no pending guild invitations.")
+            player.sendMessage(lang.msg("command.migrated.guild.invites.you_have_no_pending_guild_invitations"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
 
-        player.sendMessage("")
-        player.sendMessage("§6§l📨 PENDING GUILD INVITATIONS (${invites.size})")
-        player.sendMessage("")
+        player.sendMessage(lang.msg("command.common.blank_line"))
+        player.sendMessage(lang.msg("command.migrated.guild.invites.pending_guild_invitations", "size" to invites.size))
+        player.sendMessage(lang.msg("command.common.blank_line"))
         invites.forEach { (_, guildName) ->
-            player.sendMessage("§7• §6$guildName")
-            player.sendMessage("  §7Accept: §a/guild join $guildName")
-            player.sendMessage("  §7Decline: §c/guild decline $guildName")
-            player.sendMessage("")
+            player.sendMessage(lang.msg("command.migrated.guild.invites.blank_line", "guild" to guildName))
+            player.sendMessage(lang.msg("command.migrated.guild.invites.accept_guild_join", "guild" to guildName))
+            player.sendMessage(lang.msg("command.migrated.guild.invites.decline_guild_decline", "guild" to guildName))
+            player.sendMessage(lang.msg("command.common.blank_line"))
         }
         player.playSound(player.location, org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f)
     }
@@ -1521,7 +1582,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -1529,7 +1590,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if player has member management permission
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_MEMBERS)) {
-            player.sendMessage("§cYou don't have permission to kick players.")
+            player.sendMessage(lang.msg("command.migrated.guild.kick.you_don_t_have_permission_to_kick"))
             return
         }
 
@@ -1538,13 +1599,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         if (targetPlayer != null) {
             if (targetPlayer == player) {
-                player.sendMessage("§cYou cannot kick yourself.")
+                player.sendMessage(lang.msg("command.migrated.guild.kick.you_cannot_kick_yourself"))
                 return
             }
 
             val targetMember = memberService.getMember(targetPlayer.uniqueId, guild.id)
             if (targetMember == null) {
-                player.sendMessage("§c${targetPlayer.name} is not in your guild!")
+                player.sendMessage(lang.msg("command.migrated.guild.kick.is_not_in_your_guild", "player" to targetPlayer.name))
                 return
             }
 
@@ -1554,28 +1615,28 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Player is offline — resolve from guild member list
             val targetMember = findGuildMemberByName(guild.id, targetPlayerName)
             if (targetMember == null) {
-                player.sendMessage("§cNo guild member named '$targetPlayerName' found.")
+                player.sendMessage(lang.msg("command.migrated.guild.kick.no_guild_member_named_found", "target_player_name" to targetPlayerName))
                 return
             }
 
             if (targetMember.playerId == playerId) {
-                player.sendMessage("§cYou cannot kick yourself.")
+                player.sendMessage(lang.msg("command.migrated.guild.kick.you_cannot_kick_yourself"))
                 return
             }
 
             val kickerRank = rankService.getPlayerRank(playerId, guild.id)
             val targetRank = rankService.getPlayerRank(targetMember.playerId, guild.id)
             if (kickerRank == null || targetRank == null || targetRank.priority <= kickerRank.priority) {
-                player.sendMessage("§c❌ You cannot kick a member of equal or higher rank.")
+                player.sendMessage(lang.msg("command.migrated.guild.kick.you_cannot_kick_a_member_of_equal"))
                 return
             }
 
             val success = memberService.removeMember(targetMember.playerId, guild.id, playerId)
             if (success) {
                 val resolvedName = Bukkit.getOfflinePlayer(targetMember.playerId).name ?: targetPlayerName
-                player.sendMessage("§a✅ $resolvedName has been kicked from the guild.")
+                player.sendMessage(lang.msg("command.migrated.guild.kick.has_been_kicked_from_the_guild", "resolved_name" to resolvedName))
             } else {
-                player.sendMessage("§c❌ Failed to kick '$targetPlayerName'.")
+                player.sendMessage(lang.msg("command.migrated.guild.kick.failed_to_kick", "target_player_name" to targetPlayerName))
             }
         }
     }
@@ -1588,7 +1649,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
@@ -1604,8 +1665,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
             if (otherMembers.isEmpty()) {
                 // No other members - owner must disband
-                player.sendMessage("§cYou are the only member of this guild.")
-                player.sendMessage("§7Use §e/guild disband§7 to delete the guild.")
+                player.sendMessage(lang.msg("command.migrated.guild.leave.you_are_the_only_member_of_this"))
+                player.sendMessage(lang.msg("command.migrated.guild.leave.use_guild_disband_to_delete_the_guild"))
                 player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                 return
             }
@@ -1617,7 +1678,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }.minByOrNull { (_, rank) -> rank.priority }
 
             if (nextOwner == null) {
-                player.sendMessage("§cFailed to find a successor. Please contact an administrator.")
+                player.sendMessage(lang.msg("command.migrated.guild.leave.failed_to_find_a_successor_please_contact"))
                 return
             }
 
@@ -1626,26 +1687,26 @@ class GuildCommand : BaseCommand(), KoinComponent {
             // Transfer ownership automatically
             val transferSuccess = memberService.transferOwnership(guild.id, playerId, successorMember.playerId)
             if (!transferSuccess) {
-                player.sendMessage("§cFailed to transfer ownership automatically. Use §e/guild transfer <player>§c instead.")
+                player.sendMessage(lang.msg("command.migrated.guild.leave.failed_to_transfer_ownership_automatically_use_guild"))
                 return
             }
 
             // Notify about succession
             val successorPlayer = player.server.getPlayer(successorMember.playerId)
             if (successorPlayer != null) {
-                successorPlayer.sendMessage("§6§l✦ OWNERSHIP TRANSFERRED ✦")
-                successorPlayer.sendMessage("§a${player.name} has left the guild and you are now the owner!")
-                successorPlayer.sendMessage("§7Use §e/guild menu§7 to manage your guild.")
+                successorPlayer.sendMessage(lang.msg("command.migrated.guild.leave.ownership_transferred"))
+                successorPlayer.sendMessage(lang.msg("command.migrated.guild.leave.has_left_the_guild_and_you_are", "player" to player.name))
+                successorPlayer.sendMessage(lang.msg("command.migrated.guild.leave.use_guild_menu_to_manage_your_guild"))
             }
 
-            player.sendMessage("§7Ownership automatically transferred to §e${successorPlayer?.name ?: "the next highest rank"}§7.")
+            player.sendMessage(lang.msg("command.migrated.guild.leave.ownership_automatically_transferred_to", "rank" to (successorPlayer?.name ?: lang.raw("command.migrated.guild.leave.next_highest_rank"))))
         }
 
         // Remove player from guild
         val success = memberService.removeMember(playerId, guild.id, playerId)
 
         if (success) {
-            player.sendMessage("§aYou have left §6${guild.name}§a.")
+            player.sendMessage(lang.msg("command.migrated.guild.leave.you_have_left", "guild" to guild.name))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.0f)
 
             // Notify guild members
@@ -1653,12 +1714,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
             guildMembers.forEach { member ->
                 val memberPlayer = player.server.getPlayer(member.playerId)
                 if (memberPlayer != null && memberPlayer.isOnline) {
-                    memberPlayer.sendMessage("§e${player.name}§7 has left the guild.")
+                    memberPlayer.sendMessage(lang.msg("command.migrated.guild.leave.has_left_the_guild", "player" to player.name))
                     memberPlayer.playSound(memberPlayer.location, org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 0.8f)
                 }
             }
         } else {
-            player.sendMessage("§cFailed to leave guild. Please contact an administrator.")
+            player.sendMessage(lang.msg("command.migrated.guild.leave.failed_to_leave_guild_please_contact_an"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -1672,7 +1733,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -1681,19 +1742,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Check if player is the owner (priority 0 rank)
         val playerRank = rankService.getPlayerRank(playerId, guild.id)
         if (playerRank?.priority != 0) {
-            player.sendMessage("§cOnly the guild owner can transfer ownership.")
+            player.sendMessage(lang.msg("command.migrated.guild.transfer.only_the_guild_owner_can_transfer_ownership"))
             return
         }
 
         // Find target among guild members (supports offline players via OfflinePlayer)
         val targetMember = findGuildMemberByName(guild.id, targetPlayerName)
         if (targetMember == null) {
-            player.sendMessage("§cPlayer '$targetPlayerName' is not in your guild!")
+            player.sendMessage(lang.msg("command.migrated.guild.transfer.player_is_not_in_your_guild", "target_player_name" to targetPlayerName))
             return
         }
 
         if (targetMember.playerId == playerId) {
-            player.sendMessage("§cYou cannot transfer ownership to yourself.")
+            player.sendMessage(lang.msg("command.migrated.guild.transfer.you_cannot_transfer_ownership_to_yourself"))
             return
         }
 
@@ -1704,15 +1765,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val success = memberService.transferOwnership(guild.id, playerId, targetMember.playerId)
 
         if (success) {
-            player.sendMessage("§aOwnership of §6${guild.name}§a has been transferred to §e${targetName}§a.")
-            player.sendMessage("§7You are now a §eCo-Owner§7.")
+            player.sendMessage(lang.msg("command.migrated.guild.transfer.ownership_of_has_been_transferred_to", "guild" to guild.name, "target_name" to targetName))
+            player.sendMessage(lang.msg("command.migrated.guild.transfer.you_are_now_a_co_owner"))
 
             // Only notify the new owner if they are online
             val targetOnline = targetOffline.player
             if (targetOnline != null) {
-                targetOnline.sendMessage("§6§l✦ PROMOTION ✦")
-                targetOnline.sendMessage("§aYou are now the owner of §6${guild.name}§a!")
-                targetOnline.sendMessage("§7Use §e/guild menu§7 to manage your guild.")
+                targetOnline.sendMessage(lang.msg("command.migrated.guild.transfer.promotion"))
+                targetOnline.sendMessage(lang.msg("command.migrated.guild.transfer.you_are_now_the_owner_of", "guild" to guild.name))
+                targetOnline.sendMessage(lang.msg("command.migrated.guild.leave.use_guild_menu_to_manage_your_guild"))
             }
 
             // Notify all other guild members
@@ -1720,11 +1781,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
             guildMembers.forEach { member ->
                 if (member.playerId != playerId && member.playerId != targetMember.playerId) {
                     val memberPlayer = player.server.getPlayer(member.playerId)
-                    memberPlayer?.sendMessage("§e${player.name}§7 has transferred ownership of the guild to §e${targetName}§7.")
+                    memberPlayer?.sendMessage(lang.msg("command.migrated.guild.transfer.has_transferred_ownership_of_the_guild_to", "player" to player.name, "target_name" to targetName))
                 }
             }
         } else {
-            player.sendMessage("§cFailed to transfer ownership. Please contact an administrator.")
+            player.sendMessage(lang.msg("command.migrated.guild.transfer.failed_to_transfer_ownership_please_contact_an"))
         }
     }
 
@@ -1736,7 +1797,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -1744,8 +1805,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if player has permission to manage guild settings
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_BANNER)) {
-            player.sendMessage("§cYou don't have permission to manage guild tag.")
-            player.sendMessage("§7You need the MANAGE_BANNER permission to change the guild tag.")
+            player.sendMessage(lang.msg("command.migrated.guild.tag.you_don_t_have_permission_to_manage"))
+            player.sendMessage(lang.msg("command.migrated.guild.tag.you_need_the_manage_banner_permission_to"))
             return
         }
 
@@ -1758,18 +1819,23 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Validate tag — mirrors TagEditorMenu.validateTag for consistency
         if (tag.trim().isEmpty()) {
-            player.sendMessage("§cGuild tag cannot be empty.")
+            player.sendMessage(lang.msg("command.migrated.guild.tag.guild_tag_cannot_be_empty"))
             return
         }
 
         if (tag.contains("<<") || tag.contains(">>")) {
-            player.sendMessage("§cInvalid tag syntax: double brackets.")
+            player.sendMessage(lang.msg("command.migrated.guild.tag.invalid_tag_syntax_double_brackets"))
             return
         }
 
         val nameFilterConfig2 = configService.loadConfig().guild.nameFilter
-        net.lumalyte.lg.utils.GuildTagValidator.rejectionReason(tag, nameFilterConfig2)?.let { reason ->
-            player.sendMessage("§c❌ $reason")
+        net.lumalyte.lg.utils.GuildTagValidator.validationFailure(tag, nameFilterConfig2)?.let { failure ->
+            when (failure) {
+                is net.lumalyte.lg.utils.GuildTagValidator.Failure.InteractiveTag ->
+                    player.sendMessage(lang.msg("command.guild.tag.validation.interactive", "tag" to failure.tagName))
+                net.lumalyte.lg.utils.GuildTagValidator.Failure.InappropriateContent ->
+                    player.sendMessage(lang.msg("command.guild.tag.validation.inappropriate"))
+            }
             return
         }
 
@@ -1786,12 +1852,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 errorMsg.contains("invalid", ignoreCase = true) -> "Invalid MiniMessage syntax"
                 else -> "Format error: ${errorMsg.take(50)}"
             }
-            player.sendMessage("§c❌ Invalid tag: $msg")
+            player.sendMessage(lang.msg("command.migrated.guild.tag.invalid_tag", "msg" to msg))
             return
         }
 
         if (visibleChars > 32) {
-            player.sendMessage("§cGuild tag too long ($visibleChars/32 visible characters).")
+            player.sendMessage(lang.msg("command.migrated.guild.tag.guild_tag_too_long_32_visible_characters", "visible_chars" to visibleChars))
             return
         }
 
@@ -1800,10 +1866,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         if (success) {
             val rendered = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(tag)
-            player.sendMessage("§a✅ Guild tag set to: §r[$rendered§r]")
-            player.sendMessage("§7This will be displayed next to guild member names.")
+            player.sendMessage(lang.msg("command.migrated.guild.tag.guild_tag_set_to", "rendered" to rendered))
+            player.sendMessage(lang.msg("command.migrated.guild.tag.this_will_be_displayed_next_to_guild"))
         } else {
-            player.sendMessage("§c❌ Failed to set guild tag. The tag may already be taken.")
+            player.sendMessage(lang.msg("command.migrated.guild.tag.failed_to_set_guild_tag_the_tag"))
         }
     }
 
@@ -1814,14 +1880,14 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
         val guild = guilds.first()
 
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_BANNER)) {
-            player.sendMessage("§cYou don't have permission to toggle the bannerman.")
-            player.sendMessage("§7You need the MANAGE_BANNER permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.bannerman.you_don_t_have_permission_to_toggle"))
+            player.sendMessage(lang.msg("command.migrated.guild.bannerman.you_need_the_manage_banner_permission"))
             return
         }
 
@@ -1829,7 +1895,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val newState = !current
         val success = guildService.setBannermanEnabled(guild.id, newState, playerId)
         if (!success) {
-            player.sendMessage("§c❌ Failed to toggle bannerman.")
+            player.sendMessage(lang.msg("command.migrated.guild.bannerman.failed_to_toggle_bannerman"))
             return
         }
 
@@ -1847,13 +1913,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
             org.bukkit.Bukkit.getLogger().warning(
                 "Bannerman render callback failed for guild $guildId (newState=$newState): ${e.message}"
             )
-            player.sendMessage("§eBannerman state was saved, but live refresh failed. Try relogging.")
+            player.sendMessage(lang.msg("command.migrated.guild.refreshbannermandisplay.bannerman_state_was_saved_but_live_refresh"))
             return
         }
         if (newState) {
-            player.sendMessage("§a✅ Bannerman enabled — guild members will wear the banner on their backs.")
+            player.sendMessage(lang.msg("command.migrated.guild.refreshbannermandisplay.bannerman_enabled_guild_members_will_wear_the"))
         } else {
-            player.sendMessage("§7Bannerman disabled.")
+            player.sendMessage(lang.msg("command.migrated.guild.refreshbannermandisplay.bannerman_disabled"))
         }
     }
 
@@ -1865,7 +1931,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -1873,8 +1939,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if player has permission to manage guild settings
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_DESCRIPTION)) {
-            player.sendMessage("§cYou don't have permission to manage guild description.")
-            player.sendMessage("§7You need the MANAGE_DESCRIPTION permission to change the guild description.")
+            player.sendMessage(lang.msg("command.migrated.guild.description.you_don_t_have_permission_to_manage"))
+            player.sendMessage(lang.msg("command.migrated.guild.description.you_need_the_manage_description_permission_to"))
             return
         }
 
@@ -1887,8 +1953,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Validate description length
         if (description.length > 100) {
-            player.sendMessage("§cGuild description must be 100 characters or less.")
-            player.sendMessage("§7Your description is ${description.length} characters long.")
+            player.sendMessage(lang.msg("command.migrated.guild.description.guild_description_must_be_100_characters_or"))
+            player.sendMessage(lang.msg("command.migrated.guild.description.your_description_is_characters_long", "length" to description.length))
             return
         }
 
@@ -1896,10 +1962,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val success = guildService.setDescription(guild.id, description, playerId)
 
         if (success) {
-            player.sendMessage("§a✅ Guild description set!")
-            player.sendMessage("§7New description: §f\"$description\"")
+            player.sendMessage(lang.msg("command.migrated.guild.description.guild_description_set"))
+            player.sendMessage(lang.msg("command.migrated.guild.description.new_description", "description" to description))
         } else {
-            player.sendMessage("§c❌ Failed to set guild description.")
+            player.sendMessage(lang.msg("command.migrated.guild.description.failed_to_set_guild_description"))
         }
     }
 
@@ -1911,7 +1977,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -1919,15 +1985,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if player has permission to manage wars (DECLARE_WAR permission)
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.DECLARE_WAR)) {
-            player.sendMessage("§cYou don't have permission to manage wars for your guild.")
-            player.sendMessage("§7You need the DECLARE_WAR permission to access war management.")
+            player.sendMessage(lang.msg("command.guild.war.no_permission"))
+            player.sendMessage(lang.msg("command.migrated.guild.war.you_need_the_declare_war_permission_to"))
             return
         }
 
         // Open the war management menu
         val menuNavigator = MenuNavigator(player)
         menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
-        player.sendMessage("§6⚔ Opening war management menu...")
+        player.sendMessage(lang.msg("command.migrated.guild.war.opening_war_management_menu"))
     }
 
     private fun setGuildHomeCommand(player: Player, guild: net.lumalyte.lg.domain.entities.Guild, location: org.bukkit.Location, homeName: String = "main") {
@@ -1938,32 +2004,18 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val config = configService.loadConfig()
 
-        // Check if location is safe (if safety check is enabled)
-        if (config.guild.homeTeleportSafetyCheck) {
-            val safetyResult = GuildHomeSafety.evaluateSafety(location)
-            if (!safetyResult.safe) {
-                player.sendMessage("§e[Warning] §7That home looks unsafe: §c${safetyResult.reason}")
-                player.sendMessage("§7Use §6/guild sethome confirm §7within 10s to set anyway.")
-                return
-            }
-        }
-
         val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
 
         if (success) {
             val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
-            player.sendMessage("§a✅ Guild $homeLabel set successfully!")
+            player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.guild_set_successfully", "home_label" to homeLabel))
             if (config.claimsEnabled) {
-                player.sendMessage("§7This location is within your guild's claim area.")
+                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.this_location_is_within_your_guild_s"))
             }
-            player.sendMessage("§7Members can now use §6/guild home §7to teleport here.")
+            player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.members_can_now_use_guild_home_to"))
         } else {
-            player.sendMessage("§c❌ Failed to set guild home. You may not have permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.failed_to_set_guild_home_you_may"))
         }
-    }
-
-    private fun isLocationSafe(location: org.bukkit.Location): Boolean {
-        return GuildHomeSafety.evaluateSafety(location).safe
     }
 
     /**
@@ -2015,15 +2067,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val vaultConfig = configService.loadConfig().vault
         val bankMode = vaultConfig.bankMode.uppercase()
         if (bankMode != "PHYSICAL" && bankMode != "BOTH") {
-            player.sendMessage("§cPhysical vault system is not enabled on this server.")
-            player.sendMessage("§7Contact a server administrator if you think this is incorrect.")
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.physical_vault_system_is_not_enabled_on"))
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.contact_a_server_administrator_if_you_think"))
             return
         }
 
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -2031,9 +2083,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if player has PLACE_VAULT permission
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.PLACE_VAULT)) {
-            player.sendMessage("§c§lPERMISSION DENIED§r")
-            player.sendMessage("§cYou don't have permission to get a guild vault chest.")
-            player.sendMessage("§7You need the PLACE_VAULT permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.permission_denied"))
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.you_don_t_have_permission_to_get"))
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.you_need_the_place_vault_permission"))
             return
         }
 
@@ -2041,18 +2093,18 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (guild.vaultStatus == net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE) {
             val vaultLocation = vaultService.getVaultLocation(guild)
             if (vaultLocation != null) {
-                player.sendMessage("§e§lVAULT EXISTS§r")
-                player.sendMessage("§eYour guild already has a vault chest placed!")
-                player.sendMessage("§7Location: §f${vaultLocation.world?.name} (${vaultLocation.blockX}, ${vaultLocation.blockY}, ${vaultLocation.blockZ})")
-                player.sendMessage("§7Break the existing vault first if you want to move it.")
+                player.sendMessage(lang.msg("command.migrated.guild.vaultget.vault_exists"))
+                player.sendMessage(lang.msg("command.migrated.guild.vaultget.your_guild_already_has_a_vault_chest"))
+                player.sendMessage(lang.msg("command.migrated.guild.vaultget.location", "world" to vaultLocation.world?.name, "block_x" to vaultLocation.blockX, "block_y" to vaultLocation.blockY, "block_z" to vaultLocation.blockZ))
+                player.sendMessage(lang.msg("command.migrated.guild.vaultget.break_the_existing_vault_first_if_you"))
                 return
             }
         }
 
         // Check if player has space in inventory
         if (player.inventory.firstEmpty() == -1) {
-            player.sendMessage("§c§lINVENTORY FULL§r")
-            player.sendMessage("§cYour inventory is full! Make space to receive the Guild Vault.")
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.inventory_full"))
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.your_inventory_is_full_make_space_to"))
             return
         }
 
@@ -2077,22 +2129,22 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Build the full display name: "⚑ GUILD VAULT (GuildTag)"
-        val displayName = net.kyori.adventure.text.Component.text("§6§l⚑ GUILD VAULT §r§7(")
+        val displayName = lang.msg("command.migrated.guild.vaultget.guild_vault")
             .append(guildDisplay)
-            .append(net.kyori.adventure.text.Component.text("§7)"))
+            .append(lang.msg("command.migrated.guild.vaultget.blank_line"))
             .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
 
         meta.displayName(displayName)
 
         meta.lore(listOf(
-            net.kyori.adventure.text.Component.text("§7Place this chest to create your guild's"),
-            net.kyori.adventure.text.Component.text("§7physical vault storage."),
+            lang.msg("command.migrated.guild.vaultget.place_this_chest_to_create_your_guild"),
+            lang.msg("command.migrated.guild.vaultget.physical_vault_storage"),
             net.kyori.adventure.text.Component.text(""),
-            net.kyori.adventure.text.Component.text("§eCapacity: §f${vaultService.getCapacityForLevel(guild.level)} slots §7(Level ${guild.level})"),
-            net.kyori.adventure.text.Component.text("§eGuild: §f${guild.name}"),
+            lang.msg("command.migrated.guild.vaultget.capacity_slots_level", "level" to vaultService.getCapacityForLevel(guild.level), "level_2" to guild.level),
+            lang.msg("command.migrated.guild.vaultget.guild", "guild" to guild.name),
             net.kyori.adventure.text.Component.text(""),
-            net.kyori.adventure.text.Component.text("§6⚠ §7Only one vault can exist per guild!"),
-            net.kyori.adventure.text.Component.text("§6⚠ §7Protected - Only guild members can break it")
+            lang.msg("command.migrated.guild.vaultget.only_one_vault_can_exist_per_guild"),
+            lang.msg("command.migrated.guild.vaultget.protected_only_guild_members_can_break_it")
         ).map { it.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
 
         // Add persistent data to identify this as a guild vault chest
@@ -2103,16 +2155,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Give the item to the player
         player.inventory.addItem(vaultChest)
 
-        player.sendMessage("§a§l✓ VAULT CHEST RECEIVED§r")
-        player.sendMessage("§aYou've received a Guild Vault chest!")
-        player.sendMessage("§7")
-        player.sendMessage("§6How to use:")
-        player.sendMessage("§7 1. §fFind a safe location in your guild territory")
-        player.sendMessage("§7 2. §fPlace the chest on the ground")
-        player.sendMessage("§7 3. §fAccess it through §6/guild menu §7→ Bank")
-        player.sendMessage("§7")
-        player.sendMessage("§eCapacity: §f${vaultService.getCapacityForLevel(guild.level)} slots")
-        player.sendMessage("§eUpgrades as your guild levels up!")
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.vault_chest_received"))
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.you_ve_received_a_guild_vault_chest"))
+        player.sendMessage(lang.msg("command.common.blank_line"))
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.how_to_use"))
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.1_find_a_safe_location_in_your"))
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.2_place_the_chest_on_the_ground"))
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.3_access_it_through_guild_menu_bank"))
+        player.sendMessage(lang.msg("command.common.blank_line"))
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.capacity_slots", "level" to vaultService.getCapacityForLevel(guild.level)))
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.upgrades_as_your_guild_levels_up"))
 
         // Play success sound
         player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.2f)
@@ -2128,15 +2180,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val vaultConfig = configService.loadConfig().vault
         val bankMode = vaultConfig.bankMode.uppercase()
         if (bankMode != "PHYSICAL" && bankMode != "BOTH") {
-            player.sendMessage("§cPhysical vault system is not enabled on this server.")
-            player.sendMessage("§7Contact a server administrator if you think this is incorrect.")
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.physical_vault_system_is_not_enabled_on"))
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.contact_a_server_administrator_if_you_think"))
             return
         }
 
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -2144,18 +2196,18 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if vault is available
         if (guild.vaultStatus != net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE) {
-            player.sendMessage("§c§lVAULT UNAVAILABLE§r")
+            player.sendMessage(lang.msg("command.migrated.guild.vault.vault_unavailable"))
             when (guild.vaultStatus) {
                 net.lumalyte.lg.domain.entities.VaultStatus.NEVER_PLACED -> {
-                    player.sendMessage("§cYour guild hasn't placed a vault yet!")
-                    player.sendMessage("§7Use §6/guild getvault §7to get a vault chest.")
+                    player.sendMessage(lang.msg("command.migrated.guild.vault.your_guild_hasn_t_placed_a_vault"))
+                    player.sendMessage(lang.msg("command.migrated.guild.vault.use_guild_getvault_to_get_a_vault"))
                 }
                 net.lumalyte.lg.domain.entities.VaultStatus.UNAVAILABLE -> {
-                    player.sendMessage("§cYour guild's vault chest has been destroyed!")
-                    player.sendMessage("§7Use §6/guild getvault §7to get a new vault chest.")
+                    player.sendMessage(lang.msg("command.migrated.guild.vault.your_guild_s_vault_chest_has_been"))
+                    player.sendMessage(lang.msg("command.migrated.guild.vault.use_guild_getvault_to_get_a_new"))
                 }
                 else -> {
-                    player.sendMessage("§cVault is not available.")
+                    player.sendMessage(lang.msg("command.migrated.guild.vault.vault_is_not_available"))
                 }
             }
             return
@@ -2163,9 +2215,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if player has ACCESS_VAULT permission
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.ACCESS_VAULT)) {
-            player.sendMessage("§c§lPERMISSION DENIED§r")
-            player.sendMessage("§cYou don't have permission to access the guild vault.")
-            player.sendMessage("§7You need the ACCESS_VAULT permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.vaultget.permission_denied"))
+            player.sendMessage(lang.msg("command.migrated.guild.vault.you_don_t_have_permission_to_access"))
+            player.sendMessage(lang.msg("command.migrated.guild.vault.you_need_the_access_vault_permission"))
             return
         }
 
@@ -2173,13 +2225,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val result = vaultService.openVaultInventory(player, guild)
         when (result) {
             is net.lumalyte.lg.application.services.VaultResult.Success -> {
-                player.sendMessage("§a§lVAULT OPENED§r")
-                player.sendMessage("§aAccessing §6${guild.name}§a's vault...")
+                player.sendMessage(lang.msg("command.migrated.guild.vault.vault_opened"))
+                player.sendMessage(lang.msg("command.migrated.guild.vault.accessing_s_vault", "guild" to guild.name))
                 player.playSound(player.location, org.bukkit.Sound.BLOCK_ENDER_CHEST_OPEN, 1.0f, 1.0f)
             }
             is net.lumalyte.lg.application.services.VaultResult.Failure -> {
-                player.sendMessage("§c§lFAILED§r")
-                player.sendMessage("§cCouldn't open vault: ${result.message}")
+                player.sendMessage(lang.msg("command.migrated.guild.vault.failed"))
+                player.sendMessage(lang.msg("command.migrated.guild.vault.couldn_t_open_vault", "reason" to result.message))
                 player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
             }
         }
@@ -2190,26 +2242,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
     fun onHelp(player: Player, @Optional topic: String?) {
         val renderer = HelpTopicsRenderer
         if (topic.isNullOrBlank()) {
-            player.sendMessage(renderer.renderTopicMenu())
+            player.sendMessage(renderer.renderTopicMenu(lang))
             return
         }
         val found = HelpTopics.bySlug(topic)
         if (found == null) {
             player.sendMessage(
-                Component.text()
-                    .append(Component.text("Unknown help topic '", NamedTextColor.RED))
+                lang.msg("command.guild.help.unknown_topic_prefix")
                     .append(Component.text(topic, NamedTextColor.YELLOW))
-                    .append(Component.text("'. Type ", NamedTextColor.RED))
-                    .append(
-                        Component.text("/g help", NamedTextColor.YELLOW)
-                            .clickEvent(ClickEvent.runCommand("/g help")),
-                    )
-                    .append(Component.text(" to see all topics.", NamedTextColor.RED))
-                    .build(),
+                    .append(lang.msg("command.guild.help.unknown_topic_suffix")),
             )
             return
         }
-        player.sendMessage(renderer.renderTopicPage(found))
+        player.sendMessage(renderer.renderTopicPage(found, lang))
     }
 
     @Subcommand("ally")
@@ -2221,7 +2266,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -2229,20 +2274,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check MANAGE_RELATIONS permission
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_RELATIONS)) {
-            player.sendMessage("§cYou don't have permission to manage guild relations.")
-            player.sendMessage("§7You need the MANAGE_RELATIONS permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_don_t_have_permission_to_manage"))
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_need_the_manage_relations_permission"))
             return
         }
 
         // Resolve target guild (by name or by player name)
         val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
         if (targetGuild == null) {
-            player.sendMessage("§cNo guild or player named '$guildName' found.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.no_guild_or_player_named_found", "guild" to guildName))
             return
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage("§cYou cannot ally with your own guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_cannot_ally_with_your_own_guild"))
             return
         }
 
@@ -2252,35 +2297,35 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Check current relation
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
         if (currentRelation == net.lumalyte.lg.domain.entities.RelationType.ALLY) {
-            player.sendMessage("§cYou are already allied with ${targetGuild.name}!")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_are_already_allied_with", "guild" to targetGuild.name))
             return
         }
 
         if (currentRelation == net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
-            player.sendMessage("§cYou are at war with ${targetGuild.name}!")
-            player.sendMessage("§7Request a truce first: §6/guild truce ${targetGuild.name}")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_are_at_war_with", "guild" to targetGuild.name))
+            player.sendMessage(lang.msg("command.migrated.guild.ally.request_a_truce_first_guild_truce", "guild" to targetGuild.name))
             return
         }
 
         // Check for pending requests
         val pendingRequests = relationService.getPendingRequests(guild.id)
         if (pendingRequests.any { it.getOtherGuild(guild.id) == targetGuild.id }) {
-            player.sendMessage("§cYou already have a pending request with ${targetGuild.name}.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_already_have_a_pending_request_with", "guild" to targetGuild.name))
             return
         }
 
         // Request alliance
         val relation = relationService.requestAlliance(guild.id, targetGuild.id, playerId)
         if (relation != null) {
-            player.sendMessage("§a✓ Alliance request sent to ${targetGuild.name}!")
-            player.sendMessage("§7They must accept your request for the alliance to become active.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.alliance_request_sent_to", "guild" to targetGuild.name))
+            player.sendMessage(lang.msg("command.migrated.guild.ally.they_must_accept_your_request_for_the"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
 
             // Notify target guild members
-            notifyGuildMembers(targetGuild.id, "§6${guild.name} §7has requested an alliance with your guild! Use §6/guild menu §7→ Relations to respond.")
+            notifyGuildMembers(targetGuild.id, lang.msg("command.migrated.guild.ally.has_requested_an_alliance_with_your_guild", "guild" to guild.name))
         } else {
-            player.sendMessage("§c✗ Failed to send alliance request.")
-            player.sendMessage("§7There may already be a pending request.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.failed_to_send_alliance_request"))
+            player.sendMessage(lang.msg("command.migrated.guild.ally.there_may_already_be_a_pending_request"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -2294,7 +2339,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -2302,20 +2347,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check DECLARE_WAR permission (specific permission for war)
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.DECLARE_WAR)) {
-            player.sendMessage("§cYou don't have permission to declare war.")
-            player.sendMessage("§7You need the DECLARE_WAR permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.enemy.you_don_t_have_permission_to_declare"))
+            player.sendMessage(lang.msg("command.migrated.guild.enemy.you_need_the_declare_war_permission"))
             return
         }
 
         // Resolve target guild (by name or by player name)
         val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
         if (targetGuild == null) {
-            player.sendMessage("§cNo guild or player named '$guildName' found.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.no_guild_or_player_named_found", "guild" to guildName))
             return
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage("§cYou cannot declare war on your own guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.enemy.you_cannot_declare_war_on_your_own"))
             return
         }
 
@@ -2325,30 +2370,30 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Check current relation
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
         if (currentRelation == net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
-            player.sendMessage("§cYou are already at war with ${targetGuild.name}!")
+            player.sendMessage(lang.msg("command.migrated.guild.enemy.you_are_already_at_war_with", "guild" to targetGuild.name))
             return
         }
 
         if (currentRelation == net.lumalyte.lg.domain.entities.RelationType.ALLY) {
-            player.sendMessage("§cYou are allied with ${targetGuild.name}!")
-            player.sendMessage("§7You must break the alliance first through the relations menu.")
+            player.sendMessage(lang.msg("command.migrated.guild.enemy.you_are_allied_with", "guild" to targetGuild.name))
+            player.sendMessage(lang.msg("command.migrated.guild.enemy.you_must_break_the_alliance_first_through"))
             return
         }
 
         // Declare war (immediate effect)
         val relation = relationService.declareWar(guild.id, targetGuild.id, playerId)
         if (relation != null) {
-            player.sendMessage("§c⚔ War declared against ${targetGuild.name}!")
-            player.sendMessage("§7Your guilds are now enemies.")
+            player.sendMessage(lang.msg("command.migrated.guild.enemy.war_declared_against", "guild" to targetGuild.name))
+            player.sendMessage(lang.msg("command.migrated.guild.enemy.your_guilds_are_now_enemies"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
 
             // Notify target guild members
-            notifyGuildMembers(targetGuild.id, "§c⚔ ${guild.name} §chas declared war on your guild!")
+            notifyGuildMembers(targetGuild.id, lang.msg("command.migrated.guild.enemy.has_declared_war_on_your_guild", "guild" to guild.name))
 
             // Broadcast to all online players
-            net.lumalyte.lg.utils.ChatUtils.broadcastMessage("§c⚔ §6${guild.name} §chas declared war on §6${targetGuild.name}§c!", player)
+            net.lumalyte.lg.utils.ChatUtils.broadcastMessage(lang.msg("command.migrated.guild.enemy.has_declared_war_on", "guild" to guild.name, "guild_2" to targetGuild.name), player)
         } else {
-            player.sendMessage("§c✗ Failed to declare war.")
+            player.sendMessage(lang.msg("command.migrated.guild.enemy.failed_to_declare_war"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -2362,7 +2407,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -2370,20 +2415,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check MANAGE_RELATIONS permission
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_RELATIONS)) {
-            player.sendMessage("§cYou don't have permission to manage guild relations.")
-            player.sendMessage("§7You need the MANAGE_RELATIONS permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_don_t_have_permission_to_manage"))
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_need_the_manage_relations_permission"))
             return
         }
 
         // Resolve target guild (by name or by player name)
         val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
         if (targetGuild == null) {
-            player.sendMessage("§cNo guild or player named '$guildName' found.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.no_guild_or_player_named_found", "guild" to guildName))
             return
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage("§cYou cannot request a truce with your own guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.truce.you_cannot_request_a_truce_with_your"))
             return
         }
 
@@ -2393,30 +2438,30 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Check current relation
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
         if (currentRelation != net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
-            player.sendMessage("§cYou can only request a truce with enemy guilds!")
-            player.sendMessage("§7Current relation with ${targetGuild.name}: ${currentRelation.name.lowercase()}")
+            player.sendMessage(lang.msg("command.migrated.guild.truce.you_can_only_request_a_truce_with"))
+            player.sendMessage(lang.msg("command.migrated.guild.truce.current_relation_with", "guild" to targetGuild.name, "name" to currentRelation.name.lowercase()))
             return
         }
 
         // Validate duration (1-90 days, default 14)
         val duration = durationDays ?: 14
         if (duration < 1 || duration > 90) {
-            player.sendMessage("§cTruce duration must be between 1 and 90 days.")
+            player.sendMessage(lang.msg("command.migrated.guild.truce.truce_duration_must_be_between_1_and"))
             return
         }
 
         // Request truce
         val relation = relationService.requestTruce(guild.id, targetGuild.id, playerId, java.time.Duration.ofDays(duration.toLong()))
         if (relation != null) {
-            player.sendMessage("§e✓ Truce request sent to ${targetGuild.name} for $duration days!")
-            player.sendMessage("§7They must accept your request for the truce to become active.")
+            player.sendMessage(lang.msg("command.migrated.guild.truce.truce_request_sent_to_for_days", "guild" to targetGuild.name, "duration" to duration))
+            player.sendMessage(lang.msg("command.migrated.guild.truce.they_must_accept_your_request_for_the"))
             player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.2f)
 
             // Notify target guild members
-            notifyGuildMembers(targetGuild.id, "§e${guild.name} §7has requested a §e$duration-day truce§7 with your guild! Use §6/guild menu §7→ Relations to respond.")
+            notifyGuildMembers(targetGuild.id, lang.msg("command.migrated.guild.truce.has_requested_a_day_truce_with_your", "guild" to guild.name, "duration" to duration))
         } else {
-            player.sendMessage("§c✗ Failed to send truce request.")
-            player.sendMessage("§7There may already be a pending request.")
+            player.sendMessage(lang.msg("command.migrated.guild.truce.failed_to_send_truce_request"))
+            player.sendMessage(lang.msg("command.migrated.guild.ally.there_may_already_be_a_pending_request"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -2430,7 +2475,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage("§cYou are not in a guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
             return
         }
 
@@ -2438,20 +2483,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check MANAGE_RELATIONS permission
         if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_RELATIONS)) {
-            player.sendMessage("§cYou don't have permission to manage guild relations.")
-            player.sendMessage("§7You need the MANAGE_RELATIONS permission.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_don_t_have_permission_to_manage"))
+            player.sendMessage(lang.msg("command.migrated.guild.ally.you_need_the_manage_relations_permission"))
             return
         }
 
         // Resolve target guild (by name or by player name)
         val targetGuild = net.lumalyte.lg.utils.GuildResolver.resolve(guildName, guildService)
         if (targetGuild == null) {
-            player.sendMessage("§cNo guild or player named '$guildName' found.")
+            player.sendMessage(lang.msg("command.migrated.guild.ally.no_guild_or_player_named_found", "guild" to guildName))
             return
         }
 
         if (targetGuild.id == guild.id) {
-            player.sendMessage("§cYou cannot request peace with your own guild.")
+            player.sendMessage(lang.msg("command.migrated.guild.neutral.you_cannot_request_peace_with_your_own"))
             return
         }
 
@@ -2461,23 +2506,23 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Check current relation
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
         if (currentRelation != net.lumalyte.lg.domain.entities.RelationType.ENEMY) {
-            player.sendMessage("§cYou can only request peace with enemy guilds!")
-            player.sendMessage("§7Current relation with ${targetGuild.name}: ${currentRelation.name.lowercase()}")
+            player.sendMessage(lang.msg("command.migrated.guild.neutral.you_can_only_request_peace_with_enemy"))
+            player.sendMessage(lang.msg("command.migrated.guild.truce.current_relation_with", "guild" to targetGuild.name, "name" to currentRelation.name.lowercase()))
             return
         }
 
         // Request unenemy (peace)
         val relation = relationService.requestUnenemy(guild.id, targetGuild.id, playerId)
         if (relation != null) {
-            player.sendMessage("§f✓ Peace request sent to ${targetGuild.name}!")
-            player.sendMessage("§7If accepted, hostilities will end permanently.")
+            player.sendMessage(lang.msg("command.migrated.guild.neutral.peace_request_sent_to", "guild" to targetGuild.name))
+            player.sendMessage(lang.msg("command.migrated.guild.neutral.if_accepted_hostilities_will_end_permanently"))
             player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.5f)
 
             // Notify target guild members
-            notifyGuildMembers(targetGuild.id, "§f${guild.name} §7has requested to end hostilities with your guild! Use §6/guild menu §7→ Relations to respond.")
+            notifyGuildMembers(targetGuild.id, lang.msg("command.migrated.guild.neutral.has_requested_to_end_hostilities_with_your", "guild" to guild.name))
         } else {
-            player.sendMessage("§c✗ Failed to send peace request.")
-            player.sendMessage("§7There may already be a pending request.")
+            player.sendMessage(lang.msg("command.migrated.guild.neutral.failed_to_send_peace_request"))
+            player.sendMessage(lang.msg("command.migrated.guild.ally.there_may_already_be_a_pending_request"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -2494,20 +2539,20 @@ class GuildCommand : BaseCommand(), KoinComponent {
         } else {
             val guilds = guildService.getPlayerGuilds(playerId)
             if (guilds.isEmpty()) {
-                player.sendMessage("§cYou are not in a guild.")
+                player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
                 return
             }
             guilds.first()
         }
 
         if (guild == null) {
-            player.sendMessage("§cNo guild named '$guildName' found.")
+            player.sendMessage(lang.msg("command.migrated.guild.resolveallytarget.no_guild_named_found", "guild" to guildName))
             return
         }
 
         val balance = bankService.getBalance(guild.id)
         val formatted = java.text.NumberFormat.getIntegerInstance().format(balance.toLong())
-        player.sendMessage("§8[§6LumaGuilds§8] §e${guild.name}§7's balance: §6$$formatted")
+        player.sendMessage(lang.msg("command.guild.balance.success", "guild" to guild.name, "balance" to formatted))
     }
 
     @Subcommand("baltop")
@@ -2515,19 +2560,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
     fun onBaltop(player: Player) {
         val top = bankService.getTopBalances(15)
         if (top.isEmpty()) {
-            player.sendMessage("§cNo guild balance data available.")
+            player.sendMessage(lang.msg("command.migrated.guild.baltop.no_guild_balance_data_available"))
             return
         }
 
         val nameById = guildService.getAllGuilds().associateBy { it.id }
-        player.sendMessage("§8[§6LumaGuilds§8] §fTop Guilds by Balance")
-        player.sendMessage("§7━━━━━━━━━━━━━━━━━━━━")
+        player.sendMessage(lang.msg("command.migrated.guild.baltop.lumaguilds_top_guilds_by_balance"))
+        player.sendMessage(lang.msg("command.migrated.guild.baltop.blank_line"))
         var index = 0
         for ((guildId, balance) in top) {
             val guild = nameById[guildId]
             val label = guild?.name ?: guildId.toString().take(8)
             val formatted = java.text.NumberFormat.getIntegerInstance().format(balance.toLong())
-            player.sendMessage("§7${++index}. §e$label §8— §6$$formatted")
+            player.sendMessage(lang.msg("command.migrated.guild.baltop.blank_line_2", "index" to ++index, "label" to label, "balance" to formatted))
         }
     }
 
