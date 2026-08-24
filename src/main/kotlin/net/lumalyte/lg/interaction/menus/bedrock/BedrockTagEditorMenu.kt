@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.ConfigService
@@ -39,17 +41,17 @@ class BedrockTagEditorMenu(
         val tagIcon = BedrockFormUtils.createFormImage(config, config.guildTagIconUrl, config.guildTagIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.tag_editor.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.tag_editor.title", "guild" to guild.name))
             .apply { tagIcon?.let { icon(it) } }
-            .label(lang.legacy("bedrock.tag_editor.instructions"))
+            .label(lang.bedrock("bedrock.tag_editor.instructions"))
             .input(
-                lang.raw("bedrock.tag_editor.input.label"),
-                lang.raw("bedrock.tag_editor.input.placeholder"),
+                lang.bedrock("bedrock.tag_editor.input.label"),
+                lang.bedrock("bedrock.tag_editor.input.placeholder"),
                 currentTag ?: ""
             )
-            .label(lang.legacy("bedrock.tag_editor.validation.limit", "maximum" to 32))
-            .toggle(lang.legacy("bedrock.tag_editor.qr.toggle"), false)
-            .toggle(lang.raw("bedrock.tag_editor.clear.toggle"), false)
+            .label(lang.bedrock("bedrock.tag_editor.validation.limit", "maximum" to 32))
+            .toggle(lang.bedrock("bedrock.tag_editor.qr.toggle"), false)
+            .toggle(lang.bedrock("bedrock.tag_editor.clear.toggle"), false)
             .validResultHandler { response ->
                 try {
                     val tagInput = response.next() as? String ?: ""
@@ -73,8 +75,8 @@ class BedrockTagEditorMenu(
                     // Handle clear tag toggle - requires confirmation
                     if (clearTag) {
                         showConfirmationDialog(
-                            lang.raw("guild.tag.confirm.clear.title"),
-                            lang.raw("guild.tag.confirm.clear.message"),
+                            lang.bedrock("guild.tag.confirm.clear.title"),
+                            lang.bedrock("guild.tag.confirm.clear.message"),
                             { confirmClearTag() }
                         )
                         return@validResultHandler
@@ -96,8 +98,8 @@ class BedrockTagEditorMenu(
 
                     // Show confirmation dialog before saving
                     showConfirmationDialog(
-                        lang.raw("guild.tag.confirm.change.title"),
-                        lang.legacy("guild.tag.confirm.change.message", "tag" to renderFormattedTag(tagInput)),
+                        lang.bedrock("guild.tag.confirm.change.title"),
+                        lang.bedrock("guild.tag.confirm.change.message", "tag" to renderFormattedTag(tagInput)),
                         { saveTagChange(tagInput) }
                     )
 
@@ -128,7 +130,7 @@ class BedrockTagEditorMenu(
 
                         val visibleChars = countVisibleCharacters(value)
                         if (visibleChars > 32) {
-                            return@getValidator ValidationResult.invalid(lang.legacy("bedrock.tag_editor.validation.too_long", "count" to visibleChars, "maximum" to 32))
+                            return@getValidator ValidationResult.invalid(lang.bedrock("bedrock.tag_editor.validation.too_long", "count" to visibleChars, "maximum" to 32))
                         }
 
                         // Reject interactive MiniMessage event tags (click/hover/insertion)
@@ -148,7 +150,7 @@ class BedrockTagEditorMenu(
                                 ValidationResult.valid()
                             } catch (e: Exception) {
                                 // Menu operation - catching all exceptions to prevent UI failure
-                                ValidationResult.invalid(lang.legacy("bedrock.tag_editor.validation.invalid_format", "error" to (e.message ?: lang.raw("bedrock.tag_editor.value.unknown_error"))))
+                                ValidationResult.invalid(lang.bedrock("bedrock.tag_editor.validation.invalid_format", "error" to (e.message ?: lang.bedrock("bedrock.tag_editor.value.unknown_error"))))
                             }
                         }
                     } as (String, Any?) -> ValidationResult

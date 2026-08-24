@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -34,14 +36,14 @@ class BedrockGuildInfoMenu(
         val infoIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.info.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.info.title", "guild" to guild.name))
             .apply { infoIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.info.description"))
-            .label(createSectionHeader(lang.raw("bedrock.info.header.overview")))
+            .label(lang.bedrock("bedrock.info.description"))
+            .label(createSectionHeader(lang.bedrock("bedrock.info.header.overview")))
             .label(createOverviewSection())
-            .label(createSectionHeader(lang.raw("bedrock.info.header.members")))
+            .label(createSectionHeader(lang.bedrock("bedrock.info.header.members")))
             .label(createMembersSection())
-            .label(createSectionHeader(lang.raw("bedrock.info.header.relations")))
+            .label(createSectionHeader(lang.bedrock("bedrock.info.header.relations")))
             .label(createRelationsSection())
             .validResultHandler { response ->
                 // Read-only menu, just close
@@ -54,19 +56,19 @@ class BedrockGuildInfoMenu(
     }
 
     private fun createSectionHeader(title: String): String {
-        return lang.legacy("bedrock.info.header.format", "title" to title)
+        return lang.bedrock("bedrock.info.header.format", "title" to title)
     }
 
     private fun createOverviewSection(): String {
         val formatter = DateTimeFormatter.ofPattern(lang.raw("bedrock.info.date_format"))
         val foundedDate = formatter.format(guild.createdAt.atZone(java.time.ZoneId.systemDefault()))
 
-        val description = guild.description ?: lang.raw("bedrock.info.value.no_description")
-        val tag = guildService.getTag(guild.id) ?: lang.raw("bedrock.info.value.no_tag")
-        val emoji = guildService.getEmoji(guild.id) ?: lang.raw("bedrock.info.value.no_emoji")
+        val description = guild.description ?: lang.bedrock("bedrock.info.value.no_description")
+        val tag = guildService.getTag(guild.id) ?: lang.bedrock("bedrock.info.value.no_tag")
+        val emoji = guildService.getEmoji(guild.id) ?: lang.bedrock("bedrock.info.value.no_emoji")
 
         return when (guild.mode) {
-            GuildMode.PEACEFUL -> lang.legacy(
+            GuildMode.PEACEFUL -> lang.bedrock(
                 "bedrock.info.overview.peaceful",
                 "guild" to guild.name,
                 "level" to guild.level,
@@ -75,7 +77,7 @@ class BedrockGuildInfoMenu(
                 "tag" to tag,
                 "founded" to foundedDate
             )
-            GuildMode.HOSTILE -> lang.legacy(
+            GuildMode.HOSTILE -> lang.bedrock(
                 "bedrock.info.overview.hostile",
                 "guild" to guild.name,
                 "level" to guild.level,
@@ -100,13 +102,13 @@ class BedrockGuildInfoMenu(
             }
         }
 
-        return lang.legacy("bedrock.info.members", "total" to totalMembers, "online" to onlineMembers)
+        return lang.bedrock("bedrock.info.members", "total" to totalMembers, "online" to onlineMembers)
     }
 
     private fun createRelationsSection(): String {
         // Placeholder for relations - would need RelationService integration
-        val none = lang.raw("bedrock.info.value.no_relations")
-        return lang.legacy("bedrock.info.relations", "allies" to none, "enemies" to none)
+        val none = lang.bedrock("bedrock.info.value.no_relations")
+        return lang.bedrock("bedrock.info.relations", "allies" to none, "enemies" to none)
     }
 
     override fun handleResponse(player: Player, response: Any?) {

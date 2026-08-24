@@ -2,6 +2,9 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -47,7 +50,7 @@ class EnemiesListMenu(
     private val itemsPerPage = 28 // 4 rows x 7 columns
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.enemies_list.title")))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.enemies_list.title")))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -95,10 +98,10 @@ class EnemiesListMenu(
         if (pageEnemies.isEmpty()) {
             // No enemies - show empty message
             val emptyItem = ItemStack.of(Material.WHITE_BANNER)
-                .name(lang.legacy("menu.enemies_list.empty.name"))
-                .lore(lang.legacy("menu.enemies_list.empty.description"))
-                .lore(lang.legacy("menu.enemies_list.empty.command"))
-                .lore(lang.legacy("menu.enemies_list.empty.hint"))
+                .name(lang.gui("menu.enemies_list.empty.name"))
+                .lore(lang.gui("menu.enemies_list.empty.description"))
+                .lore(lang.gui("menu.enemies_list.empty.command"))
+                .lore(lang.gui("menu.enemies_list.empty.hint"))
 
             val guiItem = GuiItem(emptyItem) { }
             newPage.addItem(guiItem, 3, 1)
@@ -140,17 +143,17 @@ class EnemiesListMenu(
         }
 
         val mode = if (otherGuild?.mode?.name == "PEACEFUL") {
-            lang.legacy("menu.enemies_list.guild.mode.peaceful")
+            lang.gui("menu.enemies_list.guild.mode.peaceful")
         } else {
-            lang.legacy("menu.enemies_list.guild.mode.hostile")
+            lang.gui("menu.enemies_list.guild.mode.hostile")
         }
-        item.name(lang.legacy("menu.enemies_list.guild.name", "guild" to guildName))
-            .lore(lang.legacy("menu.enemies_list.guild.members", "count" to memberCount))
-            .lore(lang.legacy("menu.enemies_list.guild.duration", "duration" to durationText))
-            .lore(lang.legacy("menu.enemies_list.guild.level", "level" to (otherGuild?.level ?: 1)))
-            .lore(lang.legacy("menu.enemies_list.guild.mode.line", "mode" to mode))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.enemies_list.guild.actions"))
+        item.name(lang.gui("menu.enemies_list.guild.name", "guild" to guildName))
+            .lore(lang.gui("menu.enemies_list.guild.members", "count" to memberCount))
+            .lore(lang.gui("menu.enemies_list.guild.duration", "duration" to durationText))
+            .lore(lang.gui("menu.enemies_list.guild.level", "level" to (otherGuild?.level ?: 1)))
+            .lore(lang.gui("menu.enemies_list.guild.mode.line", "mode" to mode))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.enemies_list.guild.actions"))
 
         return item
     }
@@ -161,7 +164,7 @@ class EnemiesListMenu(
         val guildName = otherGuild?.name ?: lang.raw("menu.enemies_list.fallback.unknown_guild")
 
         // Create actions menu
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.enemies_list.title")))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.enemies_list.title")))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -172,9 +175,9 @@ class EnemiesListMenu(
 
         // View info button
         val infoItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.enemies_list.actions.info.name"))
-            .lore(lang.legacy("menu.enemies_list.actions.info.description"))
-            .lore(lang.legacy("menu.enemies_list.actions.info.guild", "guild" to guildName))
+            .name(lang.gui("menu.enemies_list.actions.info.name"))
+            .lore(lang.gui("menu.enemies_list.actions.info.description"))
+            .lore(lang.gui("menu.enemies_list.actions.info.guild", "guild" to guildName))
 
         val infoGuiItem = GuiItem(infoItem) {
             if (otherGuild != null) {
@@ -187,11 +190,11 @@ class EnemiesListMenu(
         val hasManagePermission = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
 
         val truceItem = ItemStack.of(if (hasManagePermission) Material.WHITE_BANNER else Material.BARRIER)
-            .name(if (hasManagePermission) lang.legacy("menu.enemies_list.actions.truce.name") else lang.legacy("menu.enemies_list.actions.truce.disabled"))
-            .lore(if (hasManagePermission) lang.legacy("menu.enemies_list.actions.truce.description") else lang.legacy("menu.enemies_list.permission.required_relation"))
-            .lore(if (hasManagePermission) lang.legacy("menu.enemies_list.actions.truce.guild", "guild" to guildName) else lang.legacy("menu.enemies_list.actions.truce.permission"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(if (hasManagePermission) lang.legacy("menu.enemies_list.actions.truce.command", "guild" to guildName) else lang.legacy("menu.enemies_list.permission.required"))
+            .name(if (hasManagePermission) lang.gui("menu.enemies_list.actions.truce.name") else lang.gui("menu.enemies_list.actions.truce.disabled"))
+            .lore(if (hasManagePermission) lang.gui("menu.enemies_list.actions.truce.description") else lang.gui("menu.enemies_list.permission.required_relation"))
+            .lore(if (hasManagePermission) lang.gui("menu.enemies_list.actions.truce.guild", "guild" to guildName) else lang.gui("menu.enemies_list.actions.truce.permission"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(if (hasManagePermission) lang.gui("menu.enemies_list.actions.truce.command", "guild" to guildName) else lang.gui("menu.enemies_list.permission.required"))
 
         val truceGuiItem = GuiItem(truceItem) {
             if (hasManagePermission) {
@@ -208,11 +211,11 @@ class EnemiesListMenu(
 
         // Request peace button (requires MANAGE_RELATIONS permission)
         val peaceItem = ItemStack.of(if (hasManagePermission) Material.PAPER else Material.BARRIER)
-            .name(if (hasManagePermission) lang.legacy("menu.enemies_list.actions.peace.name") else lang.legacy("menu.enemies_list.actions.peace.disabled"))
-            .lore(if (hasManagePermission) lang.legacy("menu.enemies_list.actions.peace.description") else lang.legacy("menu.enemies_list.permission.required_relation"))
-            .lore(if (hasManagePermission) lang.legacy("menu.enemies_list.actions.peace.guild", "guild" to guildName) else lang.legacy("menu.enemies_list.actions.peace.permission"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(if (hasManagePermission) lang.legacy("menu.enemies_list.actions.peace.command", "guild" to guildName) else lang.legacy("menu.enemies_list.permission.required"))
+            .name(if (hasManagePermission) lang.gui("menu.enemies_list.actions.peace.name") else lang.gui("menu.enemies_list.actions.peace.disabled"))
+            .lore(if (hasManagePermission) lang.gui("menu.enemies_list.actions.peace.description") else lang.gui("menu.enemies_list.permission.required_relation"))
+            .lore(if (hasManagePermission) lang.gui("menu.enemies_list.actions.peace.guild", "guild" to guildName) else lang.gui("menu.enemies_list.actions.peace.permission"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(if (hasManagePermission) lang.gui("menu.enemies_list.actions.peace.command", "guild" to guildName) else lang.gui("menu.enemies_list.permission.required"))
 
         val peaceGuiItem = GuiItem(peaceItem) {
             if (hasManagePermission) {
@@ -229,10 +232,10 @@ class EnemiesListMenu(
 
         // War details button
         val warDetailsItem = ItemStack.of(Material.IRON_SWORD)
-            .name(lang.legacy("menu.enemies_list.actions.details.name"))
-            .lore(lang.legacy("menu.enemies_list.actions.details.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.enemies_list.actions.details.started", "duration" to formatDuration(Duration.between(relation.createdAt, Instant.now()))))
+            .name(lang.gui("menu.enemies_list.actions.details.name"))
+            .lore(lang.gui("menu.enemies_list.actions.details.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.enemies_list.actions.details.started", "duration" to formatDuration(Duration.between(relation.createdAt, Instant.now()))))
 
         val warDetailsGuiItem = GuiItem(warDetailsItem) {
             player.sendMessage(lang.msg("menu.enemies_list.feedback.details_header", "guild" to guildName))
@@ -246,8 +249,8 @@ class EnemiesListMenu(
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.enemies_list.actions.back.name"))
-            .lore(lang.legacy("menu.enemies_list.actions.back.description"))
+            .name(lang.gui("menu.enemies_list.actions.back.name"))
+            .lore(lang.gui("menu.enemies_list.actions.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             open()
@@ -266,8 +269,8 @@ class EnemiesListMenu(
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.enemies_list.navigation.previous.name"))
-                .lore(lang.legacy("menu.enemies_list.navigation.previous.description"))
+                .name(lang.gui("menu.enemies_list.navigation.previous.name"))
+                .lore(lang.gui("menu.enemies_list.navigation.previous.description"))
 
             val prevGuiItem = GuiItem(prevItem) {
                 currentPage--
@@ -278,8 +281,8 @@ class EnemiesListMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.enemies_list.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
-            .lore(lang.legacy("menu.enemies_list.navigation.total", "count" to allEnemies.size))
+            .name(lang.gui("menu.enemies_list.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
+            .lore(lang.gui("menu.enemies_list.navigation.total", "count" to allEnemies.size))
 
         val pageGuiItem = GuiItem(pageItem) { }
         pane.addItem(pageGuiItem, 4, 4)
@@ -287,8 +290,8 @@ class EnemiesListMenu(
         // Next page button
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.enemies_list.navigation.next.name"))
-                .lore(lang.legacy("menu.enemies_list.navigation.next.description"))
+                .name(lang.gui("menu.enemies_list.navigation.next.name"))
+                .lore(lang.gui("menu.enemies_list.navigation.next.description"))
 
             val nextGuiItem = GuiItem(nextItem) {
                 currentPage++
@@ -300,8 +303,8 @@ class EnemiesListMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.enemies_list.navigation.back.name"))
-            .lore(lang.legacy("menu.enemies_list.navigation.back.description"))
+            .name(lang.gui("menu.enemies_list.navigation.back.name"))
+            .lore(lang.gui("menu.enemies_list.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
@@ -309,18 +312,18 @@ class EnemiesListMenu(
         pane.addItem(guiItem, x, y)
     }
 
-    private fun formatDuration(duration: Duration): String {
+    private fun formatDuration(duration: Duration): Component {
         val days = duration.toDays()
         return when {
-            days < 1 -> lang.raw("menu.enemies_list.duration.less_than_day")
-            days < 7 && days == 1L -> lang.legacy("menu.enemies_list.duration.day", "count" to days)
-            days < 7 -> lang.legacy("menu.enemies_list.duration.days", "count" to days)
-            days < 30 && days / 7 == 1L -> lang.legacy("menu.enemies_list.duration.week", "count" to days / 7)
-            days < 30 -> lang.legacy("menu.enemies_list.duration.weeks", "count" to days / 7)
-            days < 365 && days / 30 == 1L -> lang.legacy("menu.enemies_list.duration.month", "count" to days / 30)
-            days < 365 -> lang.legacy("menu.enemies_list.duration.months", "count" to days / 30)
-            days / 365 == 1L -> lang.legacy("menu.enemies_list.duration.year", "count" to days / 365)
-            else -> lang.legacy("menu.enemies_list.duration.years", "count" to days / 365)
+            days < 1 -> lang.gui("menu.enemies_list.duration.less_than_day")
+            days < 7 && days == 1L -> lang.gui("menu.enemies_list.duration.day", "count" to days)
+            days < 7 -> lang.gui("menu.enemies_list.duration.days", "count" to days)
+            days < 30 && days / 7 == 1L -> lang.gui("menu.enemies_list.duration.week", "count" to days / 7)
+            days < 30 -> lang.gui("menu.enemies_list.duration.weeks", "count" to days / 7)
+            days < 365 && days / 30 == 1L -> lang.gui("menu.enemies_list.duration.month", "count" to days / 30)
+            days < 365 -> lang.gui("menu.enemies_list.duration.months", "count" to days / 30)
+            days / 365 == 1L -> lang.gui("menu.enemies_list.duration.year", "count" to days / 365)
+            else -> lang.gui("menu.enemies_list.duration.years", "count" to days / 365)
         }
     }
 

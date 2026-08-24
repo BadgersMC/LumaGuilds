@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.ListPlayerClaims
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -28,25 +30,25 @@ class BedrockClaimListMenu(
         val claims = listPlayerClaims.execute(player.uniqueId)
 
         val content = if (claims.isEmpty()) {
-            lang.raw("bedrock.claim_list.content.empty")
+            lang.bedrock("bedrock.claim_list.content.empty")
         } else {
-            lang.legacy("bedrock.claim_list.content.list", "count" to claims.size)
+            lang.bedrock("bedrock.claim_list.content.list", "count" to claims.size)
         }
 
         return SimpleForm.builder()
-            .title(lang.raw("bedrock.claim_list.title"))
+            .title(lang.bedrock("bedrock.claim_list.title"))
             .content(content)
             .apply {
                 if (claims.isNotEmpty()) {
                     claims.take(8).forEach { claim ->
                         val location = "${claim.position.x}, ${claim.position.y}, ${claim.position.z}"
-                        button(lang.legacy("bedrock.claim_list.claim_button", "claim" to claim.name, "location" to location))
+                        button(lang.bedrock("bedrock.claim_list.claim_button", "claim" to claim.name, "location" to location))
                     }
                     if (claims.size > 8) {
-                        button(lang.legacy("bedrock.claim_list.more", "count" to claims.size - 8))
+                        button(lang.bedrock("bedrock.claim_list.more", "count" to claims.size - 8))
                     }
                 }
-                button(lang.raw("bedrock.claim_list.button.close"))
+                button(lang.bedrock("bedrock.claim_list.button.close"))
             }
             .validResultHandler { response ->
                 val buttonId = response.clickedButtonId()

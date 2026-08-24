@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -26,12 +28,12 @@ class BedrockClaimWidePermissionsMenu(
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
-        val content = lang.raw("bedrock.claim_wide_permissions.content")
+        val content = lang.bedrock("bedrock.claim_wide_permissions.content")
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.claim_wide_permissions.title", "claim" to claim.name))
+            .title(lang.bedrock("bedrock.claim_wide_permissions.title", "claim" to claim.name))
             .content(content)
-            .button(lang.raw("bedrock.claim_wide_permissions.button.back"))
+            .button(lang.bedrock("bedrock.claim_wide_permissions.button.back"))
             .validResultHandler { _ ->
                 bedrockNavigator.goBack()
             }

@@ -5,6 +5,8 @@ import net.lumalyte.lg.utils.GuiTheme
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
@@ -41,7 +43,7 @@ class GuildSelectionMenu(
     private val itemsPerPage = 45 // 9x5 grid
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6, lang.legacy("menu.party.guild_selection.title")))
+        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6, lang.guiTitle("menu.party.guild_selection.title")))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -122,25 +124,25 @@ class GuildSelectionMenu(
         }
 
         val displayName = if (isSelected) {
-            lang.legacy("menu.party.guild_selection.guild.selected_name", "guild" to guild.name)
+            lang.gui("menu.party.guild_selection.guild.selected_name", "guild" to guild.name)
         } else {
-            lang.legacy("menu.party.guild_selection.guild.available_name", "guild" to guild.name)
+            lang.gui("menu.party.guild_selection.guild.available_name", "guild" to guild.name)
         }
         val status = if (isSelected) {
-            lang.legacy("menu.party.guild_selection.guild.selected_status")
+            lang.gui("menu.party.guild_selection.guild.selected_status")
         } else {
-            lang.legacy("menu.party.guild_selection.guild.available_status")
+            lang.gui("menu.party.guild_selection.guild.available_status")
         }
         val action = if (isSelected) {
-            lang.legacy("menu.party.guild_selection.guild.remove")
+            lang.gui("menu.party.guild_selection.guild.remove")
         } else {
-            lang.legacy("menu.party.guild_selection.guild.invite")
+            lang.gui("menu.party.guild_selection.guild.invite")
         }
         return bannerItem
             .name(displayName)
-            .lore(lang.legacy("menu.party.guild_selection.guild.members", "count" to memberService.getGuildMembers(guild.id).size))
+            .lore(lang.gui("menu.party.guild_selection.guild.members", "count" to memberService.getGuildMembers(guild.id).size))
             .lore(status)
-            .lore(lang.raw("menu.common.blank"))
+            .lore(lang.gui("menu.common.blank"))
             .lore(action)
     }
 
@@ -166,8 +168,8 @@ class GuildSelectionMenu(
 
         // Previous page button
         val prevItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.party.guild_selection.previous.name"))
-            .lore(lang.legacy("menu.party.guild_selection.previous.lore"))
+            .name(lang.gui("menu.party.guild_selection.previous.name"))
+            .lore(lang.gui("menu.party.guild_selection.previous.lore"))
 
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
@@ -179,8 +181,8 @@ class GuildSelectionMenu(
 
         // Next page button
         val nextItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.party.guild_selection.next.name"))
-            .lore(lang.legacy("menu.party.guild_selection.next.lore"))
+            .name(lang.gui("menu.party.guild_selection.next.name"))
+            .lore(lang.gui("menu.party.guild_selection.next.lore"))
 
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {
@@ -192,8 +194,8 @@ class GuildSelectionMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.party.guild_selection.page.name", "page" to currentPage + 1, "total_pages" to maxOf(1, totalPages)))
-            .lore(lang.legacy("menu.party.guild_selection.page.lore"))
+            .name(lang.gui("menu.party.guild_selection.page.name", "page" to currentPage + 1, "total_pages" to maxOf(1, totalPages)))
+            .lore(lang.gui("menu.party.guild_selection.page.lore"))
 
         pane.addItem(GuiItem(pageItem), 2, 5)
     }
@@ -201,17 +203,17 @@ class GuildSelectionMenu(
     private fun addSelectedSummary(pane: StaticPane, x: Int, y: Int) {
         val selectedCount = selectedGuilds.size
         val summaryItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.party.guild_selection.summary.name", "count" to selectedCount))
-            .lore(lang.legacy("menu.party.guild_selection.summary.lore_first"))
-            .lore(lang.legacy("menu.party.guild_selection.summary.lore_second"))
+            .name(lang.gui("menu.party.guild_selection.summary.name", "count" to selectedCount))
+            .lore(lang.gui("menu.party.guild_selection.summary.lore_first"))
+            .lore(lang.gui("menu.party.guild_selection.summary.lore_second"))
 
         pane.addItem(GuiItem(summaryItem), x, y)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.party.guild_selection.back.name"))
-            .lore(lang.legacy("menu.party.guild_selection.back.lore"))
+            .name(lang.gui("menu.party.guild_selection.back.name"))
+            .lore(lang.gui("menu.party.guild_selection.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
             // Pass back the selected guilds to the party creation menu

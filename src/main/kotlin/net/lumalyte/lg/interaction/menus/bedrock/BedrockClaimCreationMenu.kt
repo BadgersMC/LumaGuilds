@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
@@ -25,16 +26,16 @@ class BedrockClaimCreationMenu(
         val config = getBedrockConfig()
 
         return CustomForm.builder()
-            .title(lang.raw("bedrock.claim_creation.title"))
-            .label(lang.raw("bedrock.claim_creation.instructions"))
+            .title(lang.bedrock("bedrock.claim_creation.title"))
+            .label(lang.bedrock("bedrock.claim_creation.instructions"))
             .input(
-                lang.raw("bedrock.claim_creation.name.label"),
-                lang.raw("bedrock.claim_creation.name.placeholder"),
+                lang.bedrock("bedrock.claim_creation.name.label"),
+                lang.bedrock("bedrock.claim_creation.name.placeholder"),
                 ""
             )
             .input(
-                lang.raw("bedrock.claim_creation.description.label"),
-                lang.raw("bedrock.claim_creation.description.placeholder"),
+                lang.bedrock("bedrock.claim_creation.description.label"),
+                lang.bedrock("bedrock.claim_creation.description.placeholder"),
                 ""
             )
             .validResultHandler { response ->

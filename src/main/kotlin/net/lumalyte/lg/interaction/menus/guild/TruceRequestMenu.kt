@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 
@@ -52,7 +54,7 @@ class TruceRequestMenu(
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.truce_request.title")))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.truce_request.title")))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -105,9 +107,9 @@ class TruceRequestMenu(
         if (pageGuilds.isEmpty()) {
             // No enemy guilds
             val emptyItem = ItemStack.of(Material.WHITE_BANNER)
-                .name(lang.legacy("menu.truce_request.empty.name"))
-                .lore(lang.legacy("menu.truce_request.empty.description"))
-                .lore(lang.legacy("menu.truce_request.empty.hint"))
+                .name(lang.gui("menu.truce_request.empty.name"))
+                .lore(lang.gui("menu.truce_request.empty.description"))
+                .lore(lang.gui("menu.truce_request.empty.hint"))
 
             val guiItem = GuiItem(emptyItem) { }
             newPage.addItem(guiItem, 3, 1)
@@ -139,18 +141,18 @@ class TruceRequestMenu(
             ItemStack.of(Material.WHITE_BANNER)
         }
 
-        item.name(lang.legacy("menu.truce_request.guild.name", "guild" to targetGuild.name))
-            .lore(lang.legacy("menu.truce_request.guild.members", "count" to memberCount))
-            .lore(lang.legacy("menu.truce_request.guild.level", "level" to targetGuild.level))
-            .lore(lang.legacy("menu.truce_request.guild.status"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.truce_request.guild.select"))
+        item.name(lang.gui("menu.truce_request.guild.name", "guild" to targetGuild.name))
+            .lore(lang.gui("menu.truce_request.guild.members", "count" to memberCount))
+            .lore(lang.gui("menu.truce_request.guild.level", "level" to targetGuild.level))
+            .lore(lang.gui("menu.truce_request.guild.status"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.truce_request.guild.select"))
 
         return item
     }
 
     private fun openDurationSelection(targetGuild: Guild) {
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.truce_request.duration.title")))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.truce_request.duration.title")))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -161,9 +163,9 @@ class TruceRequestMenu(
 
         // 7 days option
         val sevenDaysItem = ItemStack.of(Material.CLOCK)
-            .name(lang.legacy("menu.truce_request.duration.seven.name"))
-            .lore(lang.legacy("menu.truce_request.duration.seven.description"))
-            .lore(lang.legacy("menu.truce_request.duration.guild", "guild" to targetGuild.name))
+            .name(lang.gui("menu.truce_request.duration.seven.name"))
+            .lore(lang.gui("menu.truce_request.duration.seven.description"))
+            .lore(lang.gui("menu.truce_request.duration.guild", "guild" to targetGuild.name))
 
         val sevenDaysGuiItem = GuiItem(sevenDaysItem) {
             requestTruce(targetGuild, 7)
@@ -172,9 +174,9 @@ class TruceRequestMenu(
 
         // 14 days option (default)
         val fourteenDaysItem = ItemStack.of(Material.CLOCK)
-            .name(lang.legacy("menu.truce_request.duration.fourteen.name"))
-            .lore(lang.legacy("menu.truce_request.duration.fourteen.description"))
-            .lore(lang.legacy("menu.truce_request.duration.guild", "guild" to targetGuild.name))
+            .name(lang.gui("menu.truce_request.duration.fourteen.name"))
+            .lore(lang.gui("menu.truce_request.duration.fourteen.description"))
+            .lore(lang.gui("menu.truce_request.duration.guild", "guild" to targetGuild.name))
 
         val fourteenDaysGuiItem = GuiItem(fourteenDaysItem) {
             requestTruce(targetGuild, 14)
@@ -183,9 +185,9 @@ class TruceRequestMenu(
 
         // 30 days option
         val thirtyDaysItem = ItemStack.of(Material.CLOCK)
-            .name(lang.legacy("menu.truce_request.duration.thirty.name"))
-            .lore(lang.legacy("menu.truce_request.duration.thirty.description"))
-            .lore(lang.legacy("menu.truce_request.duration.guild", "guild" to targetGuild.name))
+            .name(lang.gui("menu.truce_request.duration.thirty.name"))
+            .lore(lang.gui("menu.truce_request.duration.thirty.description"))
+            .lore(lang.gui("menu.truce_request.duration.guild", "guild" to targetGuild.name))
 
         val thirtyDaysGuiItem = GuiItem(thirtyDaysItem) {
             requestTruce(targetGuild, 30)
@@ -194,9 +196,9 @@ class TruceRequestMenu(
 
         // Custom duration option
         val customItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.truce_request.duration.custom.name"))
-            .lore(lang.legacy("menu.truce_request.duration.custom.description"))
-            .lore(lang.legacy("menu.truce_request.duration.custom.range"))
+            .name(lang.gui("menu.truce_request.duration.custom.name"))
+            .lore(lang.gui("menu.truce_request.duration.custom.description"))
+            .lore(lang.gui("menu.truce_request.duration.custom.range"))
 
         val customGuiItem = GuiItem(customItem) {
             player.closeInventory()
@@ -208,8 +210,8 @@ class TruceRequestMenu(
 
         // Back button
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.truce_request.duration.back.name"))
-            .lore(lang.legacy("menu.truce_request.duration.back.description"))
+            .name(lang.gui("menu.truce_request.duration.back.name"))
+            .lore(lang.gui("menu.truce_request.duration.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             open()
@@ -247,8 +249,8 @@ class TruceRequestMenu(
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.truce_request.navigation.previous.name"))
-                .lore(lang.legacy("menu.truce_request.navigation.previous.description"))
+                .name(lang.gui("menu.truce_request.navigation.previous.name"))
+                .lore(lang.gui("menu.truce_request.navigation.previous.description"))
 
             val prevGuiItem = GuiItem(prevItem) {
                 currentPage--
@@ -259,8 +261,8 @@ class TruceRequestMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.truce_request.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
-            .lore(lang.legacy("menu.truce_request.navigation.total", "count" to allEnemies.size))
+            .name(lang.gui("menu.truce_request.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
+            .lore(lang.gui("menu.truce_request.navigation.total", "count" to allEnemies.size))
 
         val pageGuiItem = GuiItem(pageItem) { }
         pane.addItem(pageGuiItem, 4, 4)
@@ -268,8 +270,8 @@ class TruceRequestMenu(
         // Next page button
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.truce_request.navigation.next.name"))
-                .lore(lang.legacy("menu.truce_request.navigation.next.description"))
+                .name(lang.gui("menu.truce_request.navigation.next.name"))
+                .lore(lang.gui("menu.truce_request.navigation.next.description"))
 
             val nextGuiItem = GuiItem(nextItem) {
                 currentPage++
@@ -281,8 +283,8 @@ class TruceRequestMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.truce_request.navigation.back.name"))
-            .lore(lang.legacy("menu.truce_request.navigation.back.description"))
+            .name(lang.gui("menu.truce_request.navigation.back.name"))
+            .lore(lang.gui("menu.truce_request.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))

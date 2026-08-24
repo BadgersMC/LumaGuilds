@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -40,7 +42,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
 
         // Create trust menu
         val playerId = player.uniqueId
-        val gui = ChestGui(6, lang.legacy("menu.trusted_players.title"))
+        val gui = ChestGui(6, lang.guiTitle("menu.trusted_players.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -52,16 +54,16 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
 
         // Add default permissions button
         val defaultPermsItem = ItemStack.of(Material.LECTERN)
-            .name(lang.legacy("menu.trusted_players.item.default_permissions.name"))
-            .lore(lang.legacy("menu.trusted_players.item.default_permissions.lore"))
+            .name(lang.gui("menu.trusted_players.item.default_permissions.name"))
+            .lore(lang.gui("menu.trusted_players.item.default_permissions.lore"))
         val guiDefaultPermsItem = GuiItem(defaultPermsItem) {
             menuNavigator.openMenu(menuFactory.createClaimWidePermissionsMenu(menuNavigator, player, claim)) }
         controlsPane.addItem(guiDefaultPermsItem, 2, 0)
 
         // Add all players menu
         val allPlayersItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name(lang.legacy("menu.trusted_players.item.all_players.name"))
-            .lore(lang.legacy("menu.trusted_players.item.all_players.lore"))
+            .name(lang.gui("menu.trusted_players.item.all_players.name"))
+            .lore(lang.gui("menu.trusted_players.item.all_players.lore"))
         val guiAllPlayersItem = GuiItem(allPlayersItem) {
             menuNavigator.openMenu(menuFactory.createClaimPlayerMenu(menuNavigator, player, claim)) }
         controlsPane.addItem(guiAllPlayersItem, 4, 0)
@@ -76,7 +78,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
             val playerPermissions = getClaimPlayerPermissions.execute(claim.id, trustedPlayer)
             val warpItem = createHead(targetPlayer)
                 .name("${targetPlayer.name}")
-                .lore(lang.legacy("menu.trusted_players.item.has_permission.lore", "permission_count" to playerPermissions.count()))
+                .lore(lang.gui("menu.trusted_players.item.has_permission.lore", "permission_count" to playerPermissions.count()))
             val guiWarpItem = GuiItem(warpItem) {
                 menuNavigator.openMenu(menuFactory.createClaimPlayerPermissionsMenu(menuNavigator, player, claim, targetPlayer)) }
             warpsPane.addItem(guiWarpItem, xSlot, ySlot)
@@ -108,7 +110,7 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
 
         // Add go back item
         val exitItem = ItemStack.of(Material.NETHER_STAR)
-            .name(lang.legacy("menu.common.item.back.name"))
+            .name(lang.gui("menu.common.item.back.name"))
 
         val guiExitItem = GuiItem(exitItem) { backButtonAction() }
         controlsPane.addItem(guiExitItem, 0, 0)
@@ -118,19 +120,19 @@ class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val playe
     private fun addPaginator(playerId: UUID, controlsPane: StaticPane, currentPage: Int, totalPages: Int) {
         // Add prev item
         val prevItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.common.item.prev.name"))
+            .name(lang.gui("menu.common.item.prev.name"))
         val guiPrevItem = GuiItem(prevItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPrevItem, 6, 0)
 
         // Add page item
         val pageItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy("menu.common.item.page.name", "current_page" to currentPage, "total_pages" to totalPages))
+            .name(lang.gui("menu.common.item.page.name", "current_page" to currentPage, "total_pages" to totalPages))
         val guiPageItem = GuiItem(pageItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiPageItem, 7, 0)
 
         // Add next item
         val nextItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.common.item.next.name"))
+            .name(lang.gui("menu.common.item.next.name"))
         val guiNextItem = GuiItem(nextItem) { guiEvent -> guiEvent.isCancelled = true }
         controlsPane.addItem(guiNextItem, 8, 0)
     }

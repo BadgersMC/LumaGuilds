@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
@@ -17,6 +19,7 @@ import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
@@ -52,7 +55,7 @@ class GuildBankBudgetMenu(
     private var monthlyBudget: Int = 0
     private var weeklyBudget: Int = 0
     private var dailyBudget: Int = 0
-    private var budgetAlerts: MutableList<String> = mutableListOf()
+    private var budgetAlerts: MutableList<Component> = mutableListOf()
 
     // Active input mode for chat-based configuration
     private var inputMode: String? = null
@@ -127,20 +130,20 @@ class GuildBankBudgetMenu(
         val weeklyPercent = if (weeklyBudget > 0) (weeklySpending.toDouble() / weeklyBudget) * 100 else 0.0
         val dailyPercent = if (dailyBudget > 0) (dailySpending.toDouble() / dailyBudget) * 100 else 0.0
 
-        if (monthlyPercent >= 90) budgetAlerts.add(lang.legacy("menu.bank_budget.alert.monthly", "percent" to String.format("%.1f", monthlyPercent)))
-        if (weeklyPercent >= 80) budgetAlerts.add(lang.legacy("menu.bank_budget.alert.weekly", "percent" to String.format("%.1f", weeklyPercent)))
-        if (dailyPercent >= 75) budgetAlerts.add(lang.legacy("menu.bank_budget.alert.daily", "percent" to String.format("%.1f", dailyPercent)))
+        if (monthlyPercent >= 90) budgetAlerts.add(lang.gui("menu.bank_budget.alert.monthly", "percent" to String.format("%.1f", monthlyPercent)))
+        if (weeklyPercent >= 80) budgetAlerts.add(lang.gui("menu.bank_budget.alert.weekly", "percent" to String.format("%.1f", weeklyPercent)))
+        if (dailyPercent >= 75) budgetAlerts.add(lang.gui("menu.bank_budget.alert.daily", "percent" to String.format("%.1f", dailyPercent)))
 
-        if (monthlyPercent >= 100) budgetAlerts.add(lang.raw("menu.bank_budget.alert.monthly_exceeded"))
-        if (weeklyPercent >= 100) budgetAlerts.add(lang.raw("menu.bank_budget.alert.weekly_exceeded"))
-        if (dailyPercent >= 100) budgetAlerts.add(lang.raw("menu.bank_budget.alert.daily_exceeded"))
+        if (monthlyPercent >= 100) budgetAlerts.add(lang.gui("menu.bank_budget.alert.monthly_exceeded"))
+        if (weeklyPercent >= 100) budgetAlerts.add(lang.gui("menu.bank_budget.alert.weekly_exceeded"))
+        if (dailyPercent >= 100) budgetAlerts.add(lang.gui("menu.bank_budget.alert.daily_exceeded"))
     }
 
     /**
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.legacy("menu.bank_budget.title", "guild" to guild.name)))
+        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.guiTitle("menu.bank_budget.title", "guild" to guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane
@@ -168,7 +171,7 @@ class GuildBankBudgetMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf(lang.raw("menu.bank_budget.navigation.bank"))
+            listOf(lang.gui("menu.bank_budget.navigation.bank"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -180,7 +183,7 @@ class GuildBankBudgetMenu(
         val statsItem = createMenuItem(
             Material.BOOK,
             getLocalizedString("menu.bank.stats.title"),
-            listOf(lang.raw("menu.bank_budget.navigation.statistics"))
+            listOf(lang.gui("menu.bank_budget.navigation.statistics"))
         )
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
@@ -191,8 +194,8 @@ class GuildBankBudgetMenu(
         // Save button
         val saveItem = createMenuItem(
             Material.WRITABLE_BOOK,
-            lang.raw("menu.bank_budget.navigation.save.name"),
-            listOf(lang.raw("menu.bank_budget.navigation.save.description"))
+            lang.gui("menu.bank_budget.navigation.save.name"),
+            listOf(lang.gui("menu.bank_budget.navigation.save.description"))
         )
         val saveGuiItem = GuiItem(saveItem) { event ->
             event.isCancelled = true
@@ -206,7 +209,7 @@ class GuildBankBudgetMenu(
         val closeItem = createMenuItem(
             Material.BARRIER,
             getLocalizedString("menu.bank.close"),
-            listOf(lang.raw("menu.bank_budget.navigation.close"))
+            listOf(lang.gui("menu.bank_budget.navigation.close"))
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -222,11 +225,11 @@ class GuildBankBudgetMenu(
         // Monthly budget
         val monthlyItem = createMenuItem(
             Material.CHEST,
-            lang.raw("menu.bank_budget.period.monthly.name"),
+            lang.gui("menu.bank_budget.period.monthly.name"),
             listOf(
-                lang.legacy("menu.bank_budget.period.current", "amount" to monthlyBudget),
-                lang.raw("menu.bank_budget.period.monthly.action"),
-                lang.raw("menu.bank_budget.period.monthly.range")
+                lang.gui("menu.bank_budget.period.current", "amount" to monthlyBudget),
+                lang.gui("menu.bank_budget.period.monthly.action"),
+                lang.gui("menu.bank_budget.period.monthly.range")
             )
         )
         val monthlyGuiItem = GuiItem(monthlyItem) { event ->
@@ -240,11 +243,11 @@ class GuildBankBudgetMenu(
         // Weekly budget
         val weeklyItem = createMenuItem(
             Material.TRAPPED_CHEST,
-            lang.raw("menu.bank_budget.period.weekly.name"),
+            lang.gui("menu.bank_budget.period.weekly.name"),
             listOf(
-                lang.legacy("menu.bank_budget.period.current", "amount" to weeklyBudget),
-                lang.raw("menu.bank_budget.period.weekly.action"),
-                lang.raw("menu.bank_budget.period.weekly.range")
+                lang.gui("menu.bank_budget.period.current", "amount" to weeklyBudget),
+                lang.gui("menu.bank_budget.period.weekly.action"),
+                lang.gui("menu.bank_budget.period.weekly.range")
             )
         )
         val weeklyGuiItem = GuiItem(weeklyItem) { event ->
@@ -258,11 +261,11 @@ class GuildBankBudgetMenu(
         // Daily budget
         val dailyItem = createMenuItem(
             Material.ENDER_CHEST,
-            lang.raw("menu.bank_budget.period.daily.name"),
+            lang.gui("menu.bank_budget.period.daily.name"),
             listOf(
-                lang.legacy("menu.bank_budget.period.current", "amount" to dailyBudget),
-                lang.raw("menu.bank_budget.period.daily.action"),
-                lang.raw("menu.bank_budget.period.daily.range")
+                lang.gui("menu.bank_budget.period.current", "amount" to dailyBudget),
+                lang.gui("menu.bank_budget.period.daily.action"),
+                lang.gui("menu.bank_budget.period.daily.range")
             )
         )
         val dailyGuiItem = GuiItem(dailyItem) { event ->
@@ -284,20 +287,21 @@ class GuildBankBudgetMenu(
         if (budgetAlerts.isEmpty()) {
             val noAlertsItem = createMenuItem(
                 Material.GREEN_WOOL,
-                lang.raw("menu.bank_budget.alert.empty.name"),
+                lang.gui("menu.bank_budget.alert.empty.name"),
                 listOf(
-                    lang.raw("menu.bank_budget.alert.empty.description"),
-                    lang.raw("menu.bank_budget.alert.empty.encouragement")
+                    lang.gui("menu.bank_budget.alert.empty.description"),
+                    lang.gui("menu.bank_budget.alert.empty.encouragement")
                 )
             )
             alertsPane.addItem(GuiItem(noAlertsItem), 0, 0)
         } else {
             // Display alerts
             budgetAlerts.take(5).forEachIndexed { index, alert ->
+                val alertText = PlainTextComponentSerializer.plainText().serialize(alert)
                 val alertItem = createMenuItem(
-                    if (alert.contains("⚠")) Material.RED_WOOL else Material.YELLOW_WOOL,
-                    lang.raw("menu.bank_budget.alert.name"),
-                    listOf(alert, lang.raw("menu.bank_budget.alert.monitor"))
+                    if (alertText.contains("⚠")) Material.RED_WOOL else Material.YELLOW_WOOL,
+                    lang.gui("menu.bank_budget.alert.name"),
+                    listOf(alert, lang.gui("menu.bank_budget.alert.monitor"))
                 )
                 alertsPane.addItem(GuiItem(alertItem), index % 9, index / 9)
             }
@@ -331,33 +335,33 @@ class GuildBankBudgetMenu(
         // Status items
         val monthlyStatusItem = createMenuItem(
             getBudgetStatusMaterial(monthlySpent, monthlyBudget),
-            lang.raw("menu.bank_budget.status.monthly"),
+            lang.gui("menu.bank_budget.status.monthly"),
             listOf(
-                lang.legacy("menu.bank_budget.status.spent", "spent" to monthlySpent, "budget" to monthlyBudget),
-                lang.legacy("menu.bank_budget.status.used", "percent" to String.format("%.1f", (monthlySpent.toDouble() / monthlyBudget) * 100)),
-                lang.legacy("menu.bank_budget.status.remaining", "amount" to monthlyBudget - monthlySpent)
+                lang.gui("menu.bank_budget.status.spent", "spent" to monthlySpent, "budget" to monthlyBudget),
+                lang.gui("menu.bank_budget.status.used", "percent" to String.format("%.1f", (monthlySpent.toDouble() / monthlyBudget) * 100)),
+                lang.gui("menu.bank_budget.status.remaining", "amount" to monthlyBudget - monthlySpent)
             )
         )
         budgetPane.addItem(GuiItem(monthlyStatusItem), 4, 0)
 
         val weeklyStatusItem = createMenuItem(
             getBudgetStatusMaterial(weeklySpent, weeklyBudget),
-            lang.raw("menu.bank_budget.status.weekly"),
+            lang.gui("menu.bank_budget.status.weekly"),
             listOf(
-                lang.legacy("menu.bank_budget.status.spent", "spent" to weeklySpent, "budget" to weeklyBudget),
-                lang.legacy("menu.bank_budget.status.used", "percent" to String.format("%.1f", (weeklySpent.toDouble() / weeklyBudget) * 100)),
-                lang.legacy("menu.bank_budget.status.remaining", "amount" to weeklyBudget - weeklySpent)
+                lang.gui("menu.bank_budget.status.spent", "spent" to weeklySpent, "budget" to weeklyBudget),
+                lang.gui("menu.bank_budget.status.used", "percent" to String.format("%.1f", (weeklySpent.toDouble() / weeklyBudget) * 100)),
+                lang.gui("menu.bank_budget.status.remaining", "amount" to weeklyBudget - weeklySpent)
             )
         )
         budgetPane.addItem(GuiItem(weeklyStatusItem), 5, 0)
 
         val dailyStatusItem = createMenuItem(
             getBudgetStatusMaterial(dailySpent, dailyBudget),
-            lang.raw("menu.bank_budget.status.daily"),
+            lang.gui("menu.bank_budget.status.daily"),
             listOf(
-                lang.legacy("menu.bank_budget.status.spent", "spent" to dailySpent, "budget" to dailyBudget),
-                lang.legacy("menu.bank_budget.status.used", "percent" to String.format("%.1f", (dailySpent.toDouble() / dailyBudget) * 100)),
-                lang.legacy("menu.bank_budget.status.remaining", "amount" to dailyBudget - dailySpent)
+                lang.gui("menu.bank_budget.status.spent", "spent" to dailySpent, "budget" to dailyBudget),
+                lang.gui("menu.bank_budget.status.used", "percent" to String.format("%.1f", (dailySpent.toDouble() / dailyBudget) * 100)),
+                lang.gui("menu.bank_budget.status.remaining", "amount" to dailyBudget - dailySpent)
             )
         )
         budgetPane.addItem(GuiItem(dailyStatusItem), 6, 0)
@@ -447,19 +451,18 @@ class GuildBankBudgetMenu(
     /**
      * Create a menu item with consistent formatting
      */
-    private fun createMenuItem(material: Material, name: String, lore: List<String>): ItemStack {
+    private fun createMenuItem(material: Material, name: Component, lore: List<*>): ItemStack {
         val item = ItemStack.of(material)
         val meta = item.itemMeta
 
-        meta.displayName(Component.text(name)
-            .color(NamedTextColor.YELLOW)
-            .decoration(TextDecoration.ITALIC, false))
+        meta.displayName(name.decoration(TextDecoration.ITALIC, false))
 
         if (lore.isNotEmpty()) {
             val loreComponents = lore.map { line ->
-                Component.text(line)
-                    .color(NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false)
+                when (line) {
+                    is Component -> line
+                    else -> Component.text(line.toString()).color(NamedTextColor.GRAY)
+                }.decoration(TextDecoration.ITALIC, false)
             }
             meta.lore(loreComponents)
         }
@@ -471,7 +474,7 @@ class GuildBankBudgetMenu(
     /**
      * Get localized string with optional parameters
      */
-    private fun getLocalizedString(key: String): String {
-        return lang.legacy(key)
+    private fun getLocalizedString(key: String): Component {
+        return lang.gui(key)
     }
 }

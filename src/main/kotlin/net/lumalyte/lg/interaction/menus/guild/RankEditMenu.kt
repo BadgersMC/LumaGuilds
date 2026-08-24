@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -77,11 +79,11 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         val canDown = canActorReorder() && downNeighbor != null && !isOwnerRank()
 
         val upItem = ItemStack.of(if (canUp) Material.SPECTRAL_ARROW else Material.BARRIER)
-            .name(if (canUp) lang.legacy("menu.rank_edit.priority.up") else lang.legacy("menu.rank_edit.priority.up_locked"))
-            .lore(lang.legacy("menu.rank_edit.priority.current", "priority" to rank.priority))
-            .lore(if (upNeighbor != null) lang.legacy("menu.rank_edit.priority.above", "rank" to upNeighbor.name) else lang.legacy("menu.rank_edit.priority.no_above"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(if (canUp) lang.legacy("menu.rank_edit.priority.raise") else lang.legacy("menu.rank_edit.priority.cannot_reorder"))
+            .name(if (canUp) lang.gui("menu.rank_edit.priority.up") else lang.gui("menu.rank_edit.priority.up_locked"))
+            .lore(lang.gui("menu.rank_edit.priority.current", "priority" to rank.priority))
+            .lore(if (upNeighbor != null) lang.gui("menu.rank_edit.priority.above", "rank" to upNeighbor.name) else lang.gui("menu.rank_edit.priority.no_above"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(if (canUp) lang.gui("menu.rank_edit.priority.raise") else lang.gui("menu.rank_edit.priority.cannot_reorder"))
         pane.addItem(GuiItem(upItem) {
             if (!canUp) return@GuiItem
             val ok = rankService.moveRankPriority(rank.id, net.lumalyte.lg.application.services.PriorityDirection.UP, player.uniqueId)
@@ -95,11 +97,11 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         }, 0, 0)
 
         val downItem = ItemStack.of(if (canDown) Material.SPECTRAL_ARROW else Material.BARRIER)
-            .name(if (canDown) lang.legacy("menu.rank_edit.priority.down") else lang.legacy("menu.rank_edit.priority.down_locked"))
-            .lore(lang.legacy("menu.rank_edit.priority.current", "priority" to rank.priority))
-            .lore(if (downNeighbor != null) lang.legacy("menu.rank_edit.priority.below", "rank" to downNeighbor.name) else lang.legacy("menu.rank_edit.priority.no_below"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(if (canDown) lang.legacy("menu.rank_edit.priority.lower") else lang.legacy("menu.rank_edit.priority.cannot_reorder"))
+            .name(if (canDown) lang.gui("menu.rank_edit.priority.down") else lang.gui("menu.rank_edit.priority.down_locked"))
+            .lore(lang.gui("menu.rank_edit.priority.current", "priority" to rank.priority))
+            .lore(if (downNeighbor != null) lang.gui("menu.rank_edit.priority.below", "rank" to downNeighbor.name) else lang.gui("menu.rank_edit.priority.no_below"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(if (canDown) lang.gui("menu.rank_edit.priority.lower") else lang.gui("menu.rank_edit.priority.cannot_reorder"))
         pane.addItem(GuiItem(downItem) {
             if (!canDown) return@GuiItem
             val ok = rankService.moveRankPriority(rank.id, net.lumalyte.lg.application.services.PriorityDirection.DOWN, player.uniqueId)
@@ -149,7 +151,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.rank_edit.title", "rank" to rank.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.rank_edit.title", "rank" to rank.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -175,27 +177,27 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     private fun addRankInfoSection(pane: StaticPane) {
         // Rank name and basic info
         val infoItem = ItemStack.of(Material.NAME_TAG)
-            .name(lang.legacy("menu.rank_edit.info.name"))
-            .lore(lang.legacy("menu.rank_edit.info.rank_name", "rank" to rank.name))
-            .lore(lang.legacy("menu.rank_edit.info.priority", "priority" to rank.priority))
-            .lore(lang.legacy("menu.rank_edit.info.members", "count" to getMemberCount()))
+            .name(lang.gui("menu.rank_edit.info.name"))
+            .lore(lang.gui("menu.rank_edit.info.rank_name", "rank" to rank.name))
+            .lore(lang.gui("menu.rank_edit.info.priority", "priority" to rank.priority))
+            .lore(lang.gui("menu.rank_edit.info.members", "count" to getMemberCount()))
             
         // Add protection warning if editing own rank
         if (isEditingOwnRank()) {
-            infoItem.lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.rank_edit.info.protection"))
-                .lore(lang.legacy("menu.rank_edit.info.permission_changes_blocked"))
-                .lore(lang.legacy("menu.rank_edit.info.own_rank"))
+            infoItem.lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.rank_edit.info.protection"))
+                .lore(lang.gui("menu.rank_edit.info.permission_changes_blocked"))
+                .lore(lang.gui("menu.rank_edit.info.own_rank"))
         }
         
-        infoItem.lore(lang.legacy("menu.common.blank"))
+        infoItem.lore(lang.gui("menu.common.blank"))
 
         if (inputMode == "name") {
-            infoItem.name(lang.legacy("menu.rank_edit.info.waiting_name"))
-                .lore(lang.legacy("menu.rank_edit.info.type_name"))
-                .lore(lang.legacy("menu.rank_edit.info.cancel_hint"))
+            infoItem.name(lang.gui("menu.rank_edit.info.waiting_name"))
+                .lore(lang.gui("menu.rank_edit.info.type_name"))
+                .lore(lang.gui("menu.rank_edit.info.cancel_hint"))
         } else {
-            infoItem.lore(lang.legacy("menu.rank_edit.info.rename"))
+            infoItem.lore(lang.gui("menu.rank_edit.info.rename"))
         }
 
         val infoGuiItem = GuiItem(infoItem) {
@@ -210,22 +212,22 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         // Rank icon selection
         val displayIcon = if (selectedIcon == Material.AIR) Material.DIAMOND_SWORD else selectedIcon
         val iconItem = ItemStack.of(displayIcon)
-            .name(lang.legacy("menu.rank_edit.icon.name"))
-            .lore(lang.legacy("menu.rank_edit.icon.current", "material" to if (selectedIcon == Material.AIR) lang.raw("menu.rank_edit.icon.not_set") else selectedIcon.name))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.rank_edit.icon.examples"))
-            .lore(lang.legacy("menu.rank_edit.icon.example_basic"))
-            .lore(lang.legacy("menu.rank_edit.icon.example_tools"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.rank_edit.icon.link_hint"))
+            .name(lang.gui("menu.rank_edit.icon.name"))
+            .lore(lang.gui("menu.rank_edit.icon.current", "material" to if (selectedIcon == Material.AIR) lang.gui("menu.rank_edit.icon.not_set") else selectedIcon.name))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.rank_edit.icon.examples"))
+            .lore(lang.gui("menu.rank_edit.icon.example_basic"))
+            .lore(lang.gui("menu.rank_edit.icon.example_tools"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.rank_edit.icon.link_hint"))
 
         if (inputMode == "icon") {
-            iconItem.name(lang.legacy("menu.rank_edit.icon.waiting"))
-                .lore(lang.legacy("menu.rank_edit.icon.type_material"))
-                .lore(lang.legacy("menu.rank_edit.icon.example_short"))
-                .lore(lang.legacy("menu.rank_edit.info.cancel_hint"))
+            iconItem.name(lang.gui("menu.rank_edit.icon.waiting"))
+                .lore(lang.gui("menu.rank_edit.icon.type_material"))
+                .lore(lang.gui("menu.rank_edit.icon.example_short"))
+                .lore(lang.gui("menu.rank_edit.info.cancel_hint"))
         } else {
-            iconItem.lore(lang.legacy("menu.rank_edit.icon.change"))
+            iconItem.lore(lang.gui("menu.rank_edit.icon.change"))
         }
 
         val iconGuiItem = GuiItem(iconItem) {
@@ -239,10 +241,10 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Permission count
         val permCountItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.rank_edit.summary.name"))
-            .lore(lang.legacy("menu.rank_edit.summary.total", "count" to rank.permissions.size))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.rank_edit.summary.manage_below"))
+            .name(lang.gui("menu.rank_edit.summary.name"))
+            .lore(lang.gui("menu.rank_edit.summary.total", "count" to rank.permissions.size))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.rank_edit.summary.manage_below"))
 
         pane.addItem(GuiItem(permCountItem), 7, 0)
     }
@@ -309,28 +311,28 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                     "Administrative" -> Material.COMMAND_BLOCK
                     else -> Material.PAPER
                 }
-            ).name(lang.legacy("menu.rank_edit.category.name", "category" to localizedCategoryName(categoryName)))
+            ).name(lang.gui("menu.rank_edit.category.name", "category" to localizedCategoryName(categoryName)))
 
-            categoryItem.lore(lang.legacy("menu.rank_edit.category.permissions"))
+            categoryItem.lore(lang.gui("menu.rank_edit.category.permissions"))
             permissions.forEach { permission ->
                 val hasPermission = rank.permissions.contains(permission)
                 val permissionKey = "permission.${permission.name.lowercase().replace("_", ".")}"
-                val displayName = lang.raw(permissionKey)
+                val displayName = lang.gui(permissionKey)
                 categoryItem.lore(if (hasPermission) {
-                    lang.legacy("menu.rank_edit.category.permission_enabled", "permission" to displayName)
+                    lang.gui("menu.rank_edit.category.permission_enabled", "permission" to displayName)
                 } else {
-                    lang.legacy("menu.rank_edit.category.permission_disabled", "permission" to displayName)
+                    lang.gui("menu.rank_edit.category.permission_disabled", "permission" to displayName)
                 })
             }
 
-            categoryItem.lore(lang.legacy("menu.common.blank"))
+            categoryItem.lore(lang.gui("menu.common.blank"))
             when {
-                hasAllPermissions -> categoryItem.lore(lang.legacy("menu.rank_edit.category.all_enabled"))
-                hasAnyPermission -> categoryItem.lore(lang.legacy("menu.rank_edit.category.some_enabled"))
-                else -> categoryItem.lore(lang.legacy("menu.rank_edit.category.none_enabled"))
+                hasAllPermissions -> categoryItem.lore(lang.gui("menu.rank_edit.category.all_enabled"))
+                hasAnyPermission -> categoryItem.lore(lang.gui("menu.rank_edit.category.some_enabled"))
+                else -> categoryItem.lore(lang.gui("menu.rank_edit.category.none_enabled"))
             }
-            categoryItem.lore(lang.legacy("menu.common.blank"))
-            categoryItem.lore(lang.legacy("menu.rank_edit.category.open"))
+            categoryItem.lore(lang.gui("menu.common.blank"))
+            categoryItem.lore(lang.gui("menu.rank_edit.category.open"))
 
             val categoryGuiItem = GuiItem(categoryItem) {
                 // Prevent owner from removing their own permissions
@@ -350,23 +352,23 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         }
     }
 
-    private fun localizedCategoryName(categoryName: String): String = when (categoryName) {
-        "Guild Management" -> lang.raw("menu.rank_edit.category.guild_management")
-        "Banking" -> lang.raw("menu.rank_edit.category.banking")
-        "Diplomacy" -> lang.raw("menu.rank_edit.category.diplomacy")
-        "Communication" -> lang.raw("menu.rank_edit.category.communication")
-        "Administrative" -> lang.raw("menu.rank_edit.category.administrative")
-        "Claims" -> lang.raw("menu.rank_edit.category.claims")
-        else -> categoryName
+    private fun localizedCategoryName(categoryName: String): Component = when (categoryName) {
+        "Guild Management" -> lang.gui("menu.rank_edit.category.guild_management")
+        "Banking" -> lang.gui("menu.rank_edit.category.banking")
+        "Diplomacy" -> lang.gui("menu.rank_edit.category.diplomacy")
+        "Communication" -> lang.gui("menu.rank_edit.category.communication")
+        "Administrative" -> lang.gui("menu.rank_edit.category.administrative")
+        "Claims" -> lang.gui("menu.rank_edit.category.claims")
+        else -> net.lumalyte.lg.infrastructure.i18n.GuiTextStyler.style(Component.text(categoryName))
     }
 
     private fun addActionButtons(pane: StaticPane) {
         // Save changes
         val saveItem = ItemStack.of(Material.EMERALD_BLOCK)
-            .name(lang.legacy("menu.rank_edit.action.save.name"))
-            .lore(lang.legacy("menu.rank_edit.action.save.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.rank_edit.action.save.click"))
+            .name(lang.gui("menu.rank_edit.action.save.name"))
+            .lore(lang.gui("menu.rank_edit.action.save.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.rank_edit.action.save.click"))
 
         val saveGuiItem = GuiItem(saveItem) {
             // Create updated rank with current permissions and new icon
@@ -393,11 +395,11 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Reset to defaults
         val resetItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.rank_edit.action.reset.name"))
-            .lore(lang.legacy("menu.rank_edit.action.reset.description"))
-            .lore(lang.legacy("menu.rank_edit.action.irreversible"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.rank_edit.action.reset.click"))
+            .name(lang.gui("menu.rank_edit.action.reset.name"))
+            .lore(lang.gui("menu.rank_edit.action.reset.description"))
+            .lore(lang.gui("menu.rank_edit.action.irreversible"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.rank_edit.action.reset.click"))
 
         val resetGuiItem = GuiItem(resetItem) {
             // Prevent resetting the owner rank
@@ -428,12 +430,12 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Delete rank
         val deleteItem = ItemStack.of(Material.TNT)
-            .name(lang.legacy("menu.rank_edit.action.delete.name"))
-            .lore(lang.legacy("menu.rank_edit.action.delete.description"))
-            .lore(lang.legacy("menu.rank_edit.action.delete.members"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.rank_edit.action.delete.warning"))
-            .lore(lang.legacy("menu.rank_edit.action.delete.click"))
+            .name(lang.gui("menu.rank_edit.action.delete.name"))
+            .lore(lang.gui("menu.rank_edit.action.delete.description"))
+            .lore(lang.gui("menu.rank_edit.action.delete.members"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.rank_edit.action.delete.warning"))
+            .lore(lang.gui("menu.rank_edit.action.delete.click"))
 
         val deleteGuiItem = GuiItem(deleteItem) {
             // Prevent deleting the owner rank
@@ -490,8 +492,8 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Back to rank management
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.rank_edit.action.back.name"))
-            .lore(lang.legacy("menu.rank_edit.action.back.description"))
+            .name(lang.gui("menu.rank_edit.action.back.name"))
+            .lore(lang.gui("menu.rank_edit.action.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
@@ -547,10 +549,10 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         player.sendMessage(lang.msg("menu.common.blank"))
         
         // Create clickable link using Adventure API
-        val linkText = Component.text(lang.raw("menu.rank_edit.input.icon.link_prefix"))
+        val linkText = lang.msg("menu.rank_edit.input.icon.link_prefix")
             .color(NamedTextColor.YELLOW)
             .append(
-                Component.text(lang.raw("menu.rank_edit.input.icon.link_action"))
+                lang.msg("menu.rank_edit.input.icon.link_action")
                     .color(NamedTextColor.AQUA)
                     .decorate(TextDecoration.UNDERLINED)
                     .clickEvent(ClickEvent.openUrl("https://jd.papermc.io/paper/1.21.8/org/bukkit/Material.html"))
@@ -562,17 +564,17 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         player.sendMessage(lang.msg("menu.rank_edit.input.footer"))
     }
 
-    private fun validateRankName(name: String): String? {
+    private fun validateRankName(name: String): Component? {
         if (name.length !in 1..24) {
-            return lang.legacy("menu.rank_edit.validation.length", "length" to name.length)
+            return lang.msg("menu.rank_edit.validation.length", "length" to name.length)
         }
         if (!name.matches(Regex("^[a-zA-Z0-9 ]+$"))) {
-            return lang.legacy("menu.rank_edit.validation.characters")
+            return lang.msg("menu.rank_edit.validation.characters")
         }
         // Check if name is unique in guild (excluding current rank)
         val existingRank = rankService.getRankByName(guild.id, name)
         if (existingRank != null && existingRank.id != rank.id) {
-            return lang.legacy("menu.rank_edit.validation.duplicate")
+            return lang.msg("menu.rank_edit.validation.duplicate")
         }
         return null
     }

@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.plain
 
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
@@ -38,14 +39,14 @@ class PartitionsCommand : ClaimCommand(), KoinComponent {
 
         // Output list of partitions
         val claimName = getClaimName(player.uniqueId, partition.claimId)
-        val header = lang.legacy("command.partitions.header", "claim" to claimName)
+        val header = lang.msg("command.partitions.header", "claim" to claimName)
         val chatInfo = ChatInfoBuilder(lang, player.uniqueId, header)
         for (i in 0..9 + page) {
             if (i > partitions.count() - 1) {
                 break
             }
 
-            chatInfo.addIndexed(i, lang.legacy("command.partitions.row",
+            chatInfo.addIndexed(i, lang.msg("command.partitions.row",
                 "lower_x" to partitions[i].area.lowerPosition2D.x,
                 "lower_z" to partitions[i].area.lowerPosition2D.z,
                 "upper_x" to partitions[i].area.upperPosition2D.x,
@@ -59,6 +60,6 @@ class PartitionsCommand : ClaimCommand(), KoinComponent {
      * Helper function to retrieve the claim name or a default error message if not found.
      */
     private fun getClaimName(playerId: UUID, claimId: UUID): String {
-        return getClaimDetails.execute(claimId)?.name ?: lang.legacy("general.name_error")
+        return getClaimDetails.execute(claimId)?.name ?: lang.plain("general.name_error")
     }
 }

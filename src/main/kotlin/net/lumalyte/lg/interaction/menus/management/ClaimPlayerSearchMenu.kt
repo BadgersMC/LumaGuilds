@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.AnvilGui
@@ -28,7 +30,7 @@ class ClaimPlayerSearchMenu(private val menuNavigator: MenuNavigator, private va
     override fun open() {
         // Create homes menu
         val playerId = player.uniqueId
-        val gui = AnvilGui(lang.legacy("menu.player_search.title"))
+        val gui = AnvilGui(lang.guiTitle("menu.player_search.title"))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
@@ -36,7 +38,7 @@ class ClaimPlayerSearchMenu(private val menuNavigator: MenuNavigator, private va
         // Add lodestone menu item
         val firstPane = StaticPane(0, 0, 1, 1)
         val headItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name(lang.legacy("menu.player_search.item.player.name"))
+            .name(lang.gui("menu.player_search.item.player.name"))
         val guiHeadItem = GuiItem(headItem) { guiEvent -> guiEvent.isCancelled = true }
         firstPane.addItem(guiHeadItem, 0, 0)
         gui.firstItemComponent.addPane(firstPane)
@@ -45,8 +47,8 @@ class ClaimPlayerSearchMenu(private val menuNavigator: MenuNavigator, private va
         if (playerDoesNotExist) {
             val secondPane = StaticPane(0, 0, 1, 1)
             val paperItem = ItemStack.of(Material.PAPER)
-                .name(lang.legacy("menu.player_search.item.player_unknown.name"))
-                .lore(lang.legacy("menu.player_search.item.player_unknown.lore"))
+                .name(lang.gui("menu.player_search.item.player_unknown.name"))
+                .lore(lang.gui("menu.player_search.item.player_unknown.lore"))
 
             val guiPaperItem = GuiItem(paperItem) { guiEvent -> guiEvent.isCancelled = true }
             secondPane.addItem(guiPaperItem, 0, 0)
@@ -56,7 +58,7 @@ class ClaimPlayerSearchMenu(private val menuNavigator: MenuNavigator, private va
         // Add confirm menu item.
         val thirdPane = StaticPane(0, 0, 1, 1)
         val confirmItem = ItemStack.of(Material.NETHER_STAR)
-            .name(lang.legacy("menu.common.item.confirm.name"))
+            .name(lang.gui("menu.common.item.confirm.name"))
         val confirmGuiItem = GuiItem(confirmItem) { _ ->
             val player = Bukkit.getOfflinePlayer(gui.renameText)
             if (!player.hasPlayedBefore()) {

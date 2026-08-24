@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -13,6 +15,8 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -48,7 +52,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val gui = ChestGui(6, MenuTitleBuilder.build(
             guild.guiTheme,
             6,
-            lang.legacy("menu.statistics.title", "guild" to guild.name),
+            lang.guiTitle("menu.statistics.title", "guild" to guild.name),
         ))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -93,13 +97,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val killStats = killService.getGuildKillStats(guild.id)
 
         val item = ItemStack.of(Material.DIAMOND_SWORD)
-            .name(lang.legacy("menu.statistics.item.kills.name"))
-            .lore(lang.legacy("menu.statistics.common.total_kills", "count" to killStats.totalKills))
-            .lore(lang.legacy("menu.statistics.common.total_deaths", "count" to killStats.totalDeaths))
+            .name(lang.gui("menu.statistics.item.kills.name"))
+            .lore(lang.gui("menu.statistics.common.total_kills", "count" to killStats.totalKills))
+            .lore(lang.gui("menu.statistics.common.total_deaths", "count" to killStats.totalDeaths))
             .lore(netKillsLore(killStats.netKills))
-            .lore(lang.legacy("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.statistics.item.kills.lore.action"))
+            .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.statistics.item.kills.lore.action"))
 
         val guiItem = GuiItem(item) {
             openKillStatsDetail()
@@ -117,14 +121,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val draws = warHistory.count { it.winner == null }
 
             val item = ItemStack.of(Material.WHITE_BANNER)
-                .name(lang.legacy("menu.statistics.item.wars.name"))
-                .lore(lang.legacy("menu.statistics.common.active_wars", "count" to activeWars.size))
-                .lore(lang.legacy("menu.statistics.common.total_wars", "count" to warHistory.size))
-                .lore(lang.legacy("menu.statistics.common.wins", "count" to wins))
-                .lore(lang.legacy("menu.statistics.common.losses", "count" to losses))
-                .lore(lang.legacy("menu.statistics.common.draws", "count" to draws))
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.statistics.common.win_rate", "rate" to decimalFormat.format(calculateWinRate(wins, warHistory.size))))
+                .name(lang.gui("menu.statistics.item.wars.name"))
+                .lore(lang.gui("menu.statistics.common.active_wars", "count" to activeWars.size))
+                .lore(lang.gui("menu.statistics.common.total_wars", "count" to warHistory.size))
+                .lore(lang.gui("menu.statistics.common.wins", "count" to wins))
+                .lore(lang.gui("menu.statistics.common.losses", "count" to losses))
+                .lore(lang.gui("menu.statistics.common.draws", "count" to draws))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.statistics.common.win_rate", "rate" to decimalFormat.format(calculateWinRate(wins, warHistory.size))))
 
             val guiItem = GuiItem(item) {
                 openWarStatsDetail()
@@ -134,15 +138,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             // Menu operation - catching all exceptions to prevent UI failure
             // Fallback to placeholder if war service fails
             val item = ItemStack.of(Material.WHITE_BANNER)
-                .name(lang.legacy("menu.statistics.item.wars.name"))
-                .lore(lang.legacy("menu.statistics.common.active_wars", "count" to 0))
-                .lore(lang.legacy("menu.statistics.common.total_wars", "count" to 0))
-                .lore(lang.legacy("menu.statistics.common.wins", "count" to 0))
-                .lore(lang.legacy("menu.statistics.common.losses", "count" to 0))
-                .lore(lang.legacy("menu.statistics.common.draws", "count" to 0))
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.statistics.common.win_rate", "rate" to decimalFormat.format(0)))
-                .lore(lang.legacy("menu.statistics.item.wars.lore.unavailable"))
+                .name(lang.gui("menu.statistics.item.wars.name"))
+                .lore(lang.gui("menu.statistics.common.active_wars", "count" to 0))
+                .lore(lang.gui("menu.statistics.common.total_wars", "count" to 0))
+                .lore(lang.gui("menu.statistics.common.wins", "count" to 0))
+                .lore(lang.gui("menu.statistics.common.losses", "count" to 0))
+                .lore(lang.gui("menu.statistics.common.draws", "count" to 0))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.statistics.common.win_rate", "rate" to decimalFormat.format(0)))
+                .lore(lang.gui("menu.statistics.item.wars.lore.unavailable"))
 
             val guiItem = GuiItem(item) {
                 openWarStatsDetail()
@@ -157,13 +161,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val onlineMembers = 0
 
         val item = ItemStack.of(Material.PLAYER_HEAD)
-            .name(lang.legacy("menu.statistics.item.members.name"))
-            .lore(lang.legacy("menu.statistics.common.total_members", "count" to memberCount))
-            .lore(lang.legacy("menu.statistics.common.online", "count" to onlineMembers))
-            .lore(lang.legacy("menu.statistics.common.offline", "count" to memberCount - onlineMembers))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.statistics.common.activity_rate", "rate" to calculateActivityRate(memberCount, onlineMembers)))
-            .lore(lang.legacy("menu.statistics.item.members.lore.placeholder"))
+            .name(lang.gui("menu.statistics.item.members.name"))
+            .lore(lang.gui("menu.statistics.common.total_members", "count" to memberCount))
+            .lore(lang.gui("menu.statistics.common.online", "count" to onlineMembers))
+            .lore(lang.gui("menu.statistics.common.offline", "count" to memberCount - onlineMembers))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.statistics.common.activity_rate", "rate" to calculateActivityRate(memberCount, onlineMembers)))
+            .lore(lang.gui("menu.statistics.item.members.lore.placeholder"))
 
         val guiItem = GuiItem(item) {
             openMemberStatsDetail()
@@ -179,11 +183,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val avgDeathsPerMember = if (memberCount > 0) killStats.totalDeaths.toDouble() / memberCount else 0.0
 
         val item = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-            .name(lang.legacy("menu.statistics.item.performance.name"))
-            .lore(lang.legacy("menu.statistics.common.average_kills", "average" to decimalFormat.format(avgKillsPerMember)))
-            .lore(lang.legacy("menu.statistics.common.average_deaths", "average" to decimalFormat.format(avgDeathsPerMember)))
-            .lore(lang.legacy("menu.statistics.common.efficiency", "percent" to calculateEfficiency(killStats)))
-            .lore(lang.legacy("menu.common.blank"))
+            .name(lang.gui("menu.statistics.item.performance.name"))
+            .lore(lang.gui("menu.statistics.common.average_kills", "average" to decimalFormat.format(avgKillsPerMember)))
+            .lore(lang.gui("menu.statistics.common.average_deaths", "average" to decimalFormat.format(avgDeathsPerMember)))
+            .lore(lang.gui("menu.statistics.common.efficiency", "percent" to calculateEfficiency(killStats)))
+            .lore(lang.gui("menu.common.blank"))
             .lore(performanceRatingLore(killStats, memberCount))
 
         val guiItem = GuiItem(item) {
@@ -194,13 +198,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addGraphPlaceholderButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.FILLED_MAP)
-            .name(lang.legacy("menu.statistics.item.charts.name"))
-            .lore(lang.legacy("menu.statistics.item.charts.lore.description"))
-            .lore(lang.legacy("menu.statistics.item.charts.lore.trends"))
-            .lore(lang.legacy("menu.statistics.item.charts.lore.visualizations"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.statistics.item.charts.lore.action"))
-            .lore(lang.legacy("menu.statistics.item.charts.lore.rendering"))
+            .name(lang.gui("menu.statistics.item.charts.name"))
+            .lore(lang.gui("menu.statistics.item.charts.lore.description"))
+            .lore(lang.gui("menu.statistics.item.charts.lore.trends"))
+            .lore(lang.gui("menu.statistics.item.charts.lore.visualizations"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.statistics.item.charts.lore.action"))
+            .lore(lang.gui("menu.statistics.item.charts.lore.rendering"))
 
         val guiItem = GuiItem(item) {
             renderGuildBalanceChart()
@@ -210,8 +214,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.statistics.item.back_control.name"))
-            .lore(lang.legacy("menu.statistics.item.back_control.lore"))
+            .name(lang.gui("menu.statistics.item.back_control.name"))
+            .lore(lang.gui("menu.statistics.item.back_control.lore"))
 
         val guiItem = GuiItem(item) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -221,7 +225,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun statisticsGui(rows: Int): ChestGui = ChestGui(
         rows,
-        MenuTitleBuilder.build(guild.guiTheme, rows, lang.legacy("menu.statistics.title", "guild" to guild.name)),
+        MenuTitleBuilder.build(guild.guiTheme, rows, lang.guiTitle("menu.statistics.title", "guild" to guild.name)),
     )
 
     // Helper functions for calculations and ratings
@@ -238,32 +242,32 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         return if (totalActions > 0) decimalFormat.format((killStats.totalKills.toDouble() / totalActions) * 100) else "0"
     }
 
-    private fun netKillsLore(netKills: Int): String = if (netKills >= 0) {
-        lang.legacy("menu.statistics.common.net_kills.positive", "count" to netKills)
+    private fun netKillsLore(netKills: Int): Component = if (netKills >= 0) {
+        lang.gui("menu.statistics.common.net_kills.positive", "count" to netKills)
     } else {
-        lang.legacy("menu.statistics.common.net_kills.negative", "count" to netKills)
+        lang.gui("menu.statistics.common.net_kills.negative", "count" to netKills)
     }
 
-    private fun performanceRatingLore(killStats: GuildKillStats, memberCount: Int): String {
+    private fun performanceRatingLore(killStats: GuildKillStats, memberCount: Int): Component {
         val rating = getPerformanceRating(killStats, memberCount)
         val averageKills = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
         return when {
-            averageKills >= 50 -> lang.legacy("menu.statistics.common.overall_rating.green", "rating" to rating)
-            averageKills >= 25 -> lang.legacy("menu.statistics.common.overall_rating.yellow", "rating" to rating)
-            averageKills >= 10 -> lang.legacy("menu.statistics.common.overall_rating.gold", "rating" to rating)
-            else -> lang.legacy("menu.statistics.common.overall_rating.red", "rating" to rating)
+            averageKills >= 50 -> lang.gui("menu.statistics.common.overall_rating.green", "rating" to rating)
+            averageKills >= 25 -> lang.gui("menu.statistics.common.overall_rating.yellow", "rating" to rating)
+            averageKills >= 10 -> lang.gui("menu.statistics.common.overall_rating.gold", "rating" to rating)
+            else -> lang.gui("menu.statistics.common.overall_rating.red", "rating" to rating)
         }
     }
 
-    private fun getPerformanceRating(killStats: GuildKillStats, memberCount: Int): String {
+    private fun getPerformanceRating(killStats: GuildKillStats, memberCount: Int): Component {
         val avgKills = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
         return when {
-            avgKills >= 100 -> lang.raw("menu.statistics.rating.performance.legendary")
-            avgKills >= 50 -> lang.raw("menu.statistics.rating.performance.elite")
-            avgKills >= 25 -> lang.raw("menu.statistics.rating.performance.veteran")
-            avgKills >= 10 -> lang.raw("menu.statistics.rating.performance.skilled")
-            avgKills >= 5 -> lang.raw("menu.statistics.rating.performance.novice")
-            else -> lang.raw("menu.statistics.rating.performance.recruit")
+            avgKills >= 100 -> lang.gui("menu.statistics.rating.performance.legendary")
+            avgKills >= 50 -> lang.gui("menu.statistics.rating.performance.elite")
+            avgKills >= 25 -> lang.gui("menu.statistics.rating.performance.veteran")
+            avgKills >= 10 -> lang.gui("menu.statistics.rating.performance.skilled")
+            avgKills >= 5 -> lang.gui("menu.statistics.rating.performance.novice")
+            else -> lang.gui("menu.statistics.rating.performance.recruit")
         }
     }
 
@@ -282,18 +286,18 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val summaryItem = ItemStack.of(Material.DIAMOND_SWORD)
-                .name(lang.legacy("menu.statistics.detail.kills.name"))
-                .lore(lang.legacy("menu.statistics.common.total_kills_green", "count" to killStats.totalKills))
-                .lore(lang.legacy("menu.statistics.common.total_deaths_red", "count" to killStats.totalDeaths))
+                .name(lang.gui("menu.statistics.detail.kills.name"))
+                .lore(lang.gui("menu.statistics.common.total_kills_green", "count" to killStats.totalKills))
+                .lore(lang.gui("menu.statistics.common.total_deaths_red", "count" to killStats.totalDeaths))
                 .lore(netKillsLore(killStats.netKills))
-                .lore(lang.legacy("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
-                .lore(lang.legacy("menu.common.blank"))
-                .lore(lang.legacy("menu.statistics.common.efficiency_white", "percent" to calculateEfficiency(killStats)))
+                .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.statistics.common.efficiency_white", "percent" to calculateEfficiency(killStats)))
             pane.addItem(GuiItem(summaryItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.statistics.item.back.name"))
-                .lore(lang.legacy("menu.statistics.item.back.lore"))
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
             gui.show(player)
@@ -342,38 +346,38 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
         val activeWarsItem = ItemStack.of(Material.DIAMOND_SWORD)
-            .name(lang.legacy("menu.statistics.detail.wars.active.name", "count" to activeWars.size))
-            .lore(lang.legacy("menu.statistics.detail.wars.active.description"))
+            .name(lang.gui("menu.statistics.detail.wars.active.name", "count" to activeWars.size))
+            .lore(lang.gui("menu.statistics.detail.wars.active.description"))
 
         if (activeWars.isNotEmpty()) {
-            activeWarsItem.lore(lang.legacy("menu.common.blank"))
+            activeWarsItem.lore(lang.gui("menu.common.blank"))
             activeWars.take(3).forEach { war ->
                 val enemyGuild = guildService.getGuild(
                     if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
                 )
-                val enemyName = enemyGuild?.name ?: lang.raw("menu.statistics.common.unknown_guild")
+                val enemyName: Any = enemyGuild?.name ?: lang.gui("menu.statistics.common.unknown_guild")
                 val status = if (war.declaringGuildId == guild.id) {
-                    lang.raw("menu.statistics.common.attacker")
+                    lang.gui("menu.statistics.common.attacker")
                 } else {
-                    lang.raw("menu.statistics.common.defender")
+                    lang.gui("menu.statistics.common.defender")
                 }
                 val remainingTime = war.remainingDuration
 
-                activeWarsItem.lore(lang.legacy("menu.statistics.detail.wars.active.opponent", "guild" to enemyName, "status" to status))
+                activeWarsItem.lore(lang.gui("menu.statistics.detail.wars.active.opponent", "guild" to enemyName, "status" to status))
                 if (remainingTime != null) {
                     val days = remainingTime.toDays()
                     val hours = remainingTime.toHours() % 24
-                    activeWarsItem.lore(lang.legacy("menu.statistics.detail.wars.active.remaining", "days" to days, "hours" to hours))
+                    activeWarsItem.lore(lang.gui("menu.statistics.detail.wars.active.remaining", "days" to days, "hours" to hours))
                 } else {
-                    activeWarsItem.lore(lang.legacy("menu.statistics.detail.wars.active.expired"))
+                    activeWarsItem.lore(lang.gui("menu.statistics.detail.wars.active.expired"))
                 }
             }
 
             if (activeWars.size > 3) {
-                activeWarsItem.lore(lang.legacy("menu.statistics.common.more", "count" to activeWars.size - 3))
+                activeWarsItem.lore(lang.gui("menu.statistics.common.more", "count" to activeWars.size - 3))
             }
         } else {
-            activeWarsItem.lore(lang.legacy("menu.statistics.detail.wars.active.none"))
+            activeWarsItem.lore(lang.gui("menu.statistics.detail.wars.active.none"))
         }
 
         pane.addItem(GuiItem(activeWarsItem), 1, 0)
@@ -383,25 +387,25 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val warHistory = warService.getWarHistory(guild.id, 5)
 
         val historyItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.statistics.detail.wars.history.name"))
-            .lore(lang.legacy("menu.statistics.detail.wars.history.description"))
+            .name(lang.gui("menu.statistics.detail.wars.history.name"))
+            .lore(lang.gui("menu.statistics.detail.wars.history.description"))
 
         if (warHistory.isNotEmpty()) {
-            historyItem.lore(lang.legacy("menu.common.blank"))
+            historyItem.lore(lang.gui("menu.common.blank"))
 
             warHistory.take(4).forEachIndexed { index, war ->
                 val enemyGuild = guildService.getGuild(
                     if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
                 )
-                val enemyName = enemyGuild?.name ?: lang.raw("menu.statistics.common.unknown_guild")
+                val enemyName: Any = enemyGuild?.name ?: lang.gui("menu.statistics.common.unknown_guild")
 
                 val result = when {
-                    war.winner == guild.id -> lang.raw("menu.statistics.detail.wars.history.result.won")
-                    war.winner != null -> lang.raw("menu.statistics.detail.wars.history.result.lost")
-                    else -> lang.raw("menu.statistics.detail.wars.history.result.draw")
+                    war.winner == guild.id -> lang.gui("menu.statistics.detail.wars.history.result.won")
+                    war.winner != null -> lang.gui("menu.statistics.detail.wars.history.result.lost")
+                    else -> lang.gui("menu.statistics.detail.wars.history.result.draw")
                 }
 
-                historyItem.lore(lang.legacy("menu.statistics.detail.wars.history.row", "rank" to index + 1, "guild" to enemyName, "result" to result))
+                historyItem.lore(lang.gui("menu.statistics.detail.wars.history.row", "rank" to index + 1, "guild" to enemyName, "result" to result))
 
                 // Show duration if available
                 val duration = war.startedAt?.let { start ->
@@ -413,15 +417,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 if (duration != null) {
                     val days = duration.toDays()
                     val hours = duration.toHours() % 24
-                    historyItem.lore(lang.legacy("menu.statistics.detail.wars.history.duration", "days" to days, "hours" to hours))
+                    historyItem.lore(lang.gui("menu.statistics.detail.wars.history.duration", "days" to days, "hours" to hours))
                 }
             }
 
             if (warHistory.size > 4) {
-                historyItem.lore(lang.legacy("menu.statistics.detail.wars.history.more", "count" to warHistory.size - 4))
+                historyItem.lore(lang.gui("menu.statistics.detail.wars.history.more", "count" to warHistory.size - 4))
             }
         } else {
-            historyItem.lore(lang.legacy("menu.statistics.detail.wars.history.none"))
+            historyItem.lore(lang.gui("menu.statistics.detail.wars.history.none"))
         }
 
         pane.addItem(GuiItem(historyItem), 3, 0)
@@ -436,24 +440,24 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val winRate = calculateWinRate(wins, warHistory.size)
 
         val statsItem = ItemStack.of(Material.TOTEM_OF_UNDYING)
-            .name(lang.legacy("menu.statistics.detail.wars.summary.name"))
-            .lore(lang.legacy("menu.statistics.detail.wars.summary.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.statistics.common.total_wars", "count" to warHistory.size))
-            .lore(lang.legacy("menu.statistics.common.wins", "count" to wins))
-            .lore(lang.legacy("menu.statistics.common.losses", "count" to losses))
-            .lore(lang.legacy("menu.statistics.common.draws", "count" to draws))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.statistics.common.win_rate", "rate" to String.format("%.1f", winRate)))
+            .name(lang.gui("menu.statistics.detail.wars.summary.name"))
+            .lore(lang.gui("menu.statistics.detail.wars.summary.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.statistics.common.total_wars", "count" to warHistory.size))
+            .lore(lang.gui("menu.statistics.common.wins", "count" to wins))
+            .lore(lang.gui("menu.statistics.common.losses", "count" to losses))
+            .lore(lang.gui("menu.statistics.common.draws", "count" to draws))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.statistics.common.win_rate", "rate" to String.format("%.1f", winRate)))
 
         // Add current win streak
         val recentWars = warHistory.take(10)
         val currentStreak = calculateCurrentStreak(recentWars, guild.id)
         if (currentStreak > 0) {
             val streakLore = if (recentWars.first().winner == guild.id) {
-                lang.legacy("menu.statistics.detail.wars.summary.win_streak", "count" to currentStreak)
+                lang.gui("menu.statistics.detail.wars.summary.win_streak", "count" to currentStreak)
             } else {
-                lang.legacy("menu.statistics.detail.wars.summary.loss_streak", "count" to currentStreak)
+                lang.gui("menu.statistics.detail.wars.summary.loss_streak", "count" to currentStreak)
             }
             statsItem.lore(streakLore)
         }
@@ -469,8 +473,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         if (activeWars.isNotEmpty()) {
             val warKillStats = ItemStack.of(Material.IRON_SWORD)
-                .name(lang.legacy("menu.statistics.detail.wars.kills.name"))
-                .lore(lang.legacy("menu.statistics.detail.wars.kills.description"))
+                .name(lang.gui("menu.statistics.detail.wars.kills.name"))
+                .lore(lang.gui("menu.statistics.detail.wars.kills.description"))
 
             // Get kill stats for each active war
             activeWars.forEach { war ->
@@ -483,11 +487,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                     val guildKills = killsBetween.count { it.killerGuildId == guild.id }
                     val enemyKills = killsBetween.count { it.killerGuildId == enemyGuildId }
 
-                    warKillStats.lore(lang.legacy("menu.common.blank"))
-                        .lore(lang.legacy("menu.statistics.detail.wars.kills.opponent", "guild" to enemyGuild.name))
-                        .lore(lang.legacy("menu.statistics.detail.wars.kills.yours", "count" to guildKills))
-                        .lore(lang.legacy("menu.statistics.detail.wars.kills.enemy", "count" to enemyKills))
-                        .lore(lang.legacy("menu.statistics.detail.wars.kills.ratio", "ratio" to calculateKillRatio(guildKills, enemyKills)))
+                    warKillStats.lore(lang.gui("menu.common.blank"))
+                        .lore(lang.gui("menu.statistics.detail.wars.kills.opponent", "guild" to enemyGuild.name))
+                        .lore(lang.gui("menu.statistics.detail.wars.kills.yours", "count" to guildKills))
+                        .lore(lang.gui("menu.statistics.detail.wars.kills.enemy", "count" to enemyKills))
+                        .lore(lang.gui("menu.statistics.detail.wars.kills.ratio", "ratio" to calculateKillRatio(guildKills, enemyKills)))
                 }
             }
 
@@ -537,9 +541,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val summaryItem = ItemStack.of(Material.PLAYER_HEAD)
-                .name(lang.legacy("menu.statistics.detail.members.name"))
-                .lore(lang.legacy("menu.statistics.common.total_members", "count" to memberCount))
-                .lore(lang.legacy("menu.statistics.common.online", "count" to Bukkit.getOnlinePlayers().count { p -> members.any { it.playerId == p.uniqueId } }))
+                .name(lang.gui("menu.statistics.detail.members.name"))
+                .lore(lang.gui("menu.statistics.common.total_members", "count" to memberCount))
+                .lore(lang.gui("menu.statistics.common.online", "count" to Bukkit.getOnlinePlayers().count { p -> members.any { it.playerId == p.uniqueId } }))
             pane.addItem(GuiItem(summaryItem), 4, 0)
 
             var col = 0
@@ -549,14 +553,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 val isOnline = Bukkit.getPlayer(member.playerId) != null
                 val memberItem = ItemStack.of(Material.PLAYER_HEAD)
                     .name(if (isOnline) {
-                        lang.legacy("menu.statistics.detail.members.player.online_name", "player" to playerName)
+                        lang.gui("menu.statistics.detail.members.player.online_name", "player" to playerName)
                     } else {
-                        lang.legacy("menu.statistics.detail.members.player.offline_name", "player" to playerName)
+                        lang.gui("menu.statistics.detail.members.player.offline_name", "player" to playerName)
                     })
                     .lore(if (isOnline) {
-                        lang.legacy("menu.statistics.detail.members.player.online")
+                        lang.gui("menu.statistics.detail.members.player.online")
                     } else {
-                        lang.legacy("menu.statistics.detail.members.player.offline")
+                        lang.gui("menu.statistics.detail.members.player.offline")
                     })
                 pane.addItem(GuiItem(memberItem), 1 + col, 1 + row)
                 col++
@@ -568,13 +572,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             if (members.size > 21) {
                 val moreItem = ItemStack.of(Material.PAPER)
-                    .name(lang.legacy("menu.statistics.detail.members.more", "count" to members.size - 21))
+                    .name(lang.gui("menu.statistics.detail.members.more", "count" to members.size - 21))
                 pane.addItem(GuiItem(moreItem), 4, 4)
             }
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.statistics.item.back.name"))
-                .lore(lang.legacy("menu.statistics.item.back.lore"))
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 8, 4)
 
             gui.show(player)
@@ -602,18 +606,18 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val perfItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-                .name(lang.legacy("menu.statistics.detail.performance.name"))
-                .lore(lang.legacy("menu.statistics.common.average_kills", "average" to decimalFormat.format(avgKillsPerMember)))
-                .lore(lang.legacy("menu.statistics.common.average_deaths", "average" to decimalFormat.format(avgDeathsPerMember)))
-                .lore(lang.legacy("menu.statistics.common.efficiency", "percent" to calculateEfficiency(killStats)))
-                .lore(lang.legacy("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
-                .lore(lang.legacy("menu.common.blank"))
+                .name(lang.gui("menu.statistics.detail.performance.name"))
+                .lore(lang.gui("menu.statistics.common.average_kills", "average" to decimalFormat.format(avgKillsPerMember)))
+                .lore(lang.gui("menu.statistics.common.average_deaths", "average" to decimalFormat.format(avgDeathsPerMember)))
+                .lore(lang.gui("menu.statistics.common.efficiency", "percent" to calculateEfficiency(killStats)))
+                .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+                .lore(lang.gui("menu.common.blank"))
                 .lore(performanceRatingLore(killStats, memberCount))
             pane.addItem(GuiItem(perfItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.statistics.item.back.name"))
-                .lore(lang.legacy("menu.statistics.item.back.lore"))
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
             gui.show(player)
@@ -628,17 +632,17 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val topKillers = killService.getTopKillers(guildMembers, 5)
 
         val item = ItemStack.of(Material.TOTEM_OF_UNDYING)
-            .name(lang.legacy("menu.statistics.item.top_killers.name"))
-            .lore(lang.legacy("menu.statistics.item.top_killers.lore.description"))
+            .name(lang.gui("menu.statistics.item.top_killers.name"))
+            .lore(lang.gui("menu.statistics.item.top_killers.lore.description"))
 
         if (topKillers.isNotEmpty()) {
-            item.lore(lang.legacy("menu.common.blank"))
+            item.lore(lang.gui("menu.common.blank"))
             topKillers.take(3).forEachIndexed { index, (playerId, stats) ->
-                val playerName = Bukkit.getPlayer(playerId)?.name ?: lang.raw("general.unknown")
+                val playerName: Any = Bukkit.getPlayer(playerId)?.name ?: lang.gui("general.unknown")
                 item.lore(rankedKillsLore(index + 1, playerName, stats.totalKills))
             }
         } else {
-            item.lore(lang.legacy("menu.statistics.common.no_kill_data"))
+            item.lore(lang.gui("menu.statistics.common.no_kill_data"))
         }
 
         val guiItem = GuiItem(item) {
@@ -655,17 +659,17 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .take(3)
 
         val item = ItemStack.of(Material.GOLD_BLOCK)
-            .name(lang.legacy("menu.statistics.item.top_contributors.name"))
-            .lore(lang.legacy("menu.statistics.item.top_contributors.lore.description"))
+            .name(lang.gui("menu.statistics.item.top_contributors.name"))
+            .lore(lang.gui("menu.statistics.item.top_contributors.lore.description"))
 
         if (topContributors.isNotEmpty()) {
-            item.lore(lang.legacy("menu.common.blank"))
+            item.lore(lang.gui("menu.common.blank"))
             topContributors.forEachIndexed { index, contribution ->
-                val playerName = contribution.playerName ?: lang.raw("general.unknown")
+                val playerName: Any = contribution.playerName ?: lang.gui("general.unknown")
                 item.lore(rankedContributionLore(index + 1, playerName, contribution.netContribution))
             }
         } else {
-            item.lore(lang.legacy("menu.statistics.common.no_contribution_data"))
+            item.lore(lang.gui("menu.statistics.common.no_contribution_data"))
         }
 
         val guiItem = GuiItem(item) {
@@ -678,11 +682,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val killStats = killService.getGuildKillStats(guild.id)
 
         val item = ItemStack.of(Material.COMPARATOR)
-            .name(lang.legacy("menu.statistics.item.kd.name"))
-            .lore(lang.legacy("menu.statistics.common.kill_death_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+            .name(lang.gui("menu.statistics.item.kd.name"))
+            .lore(lang.gui("menu.statistics.common.kill_death_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
             .lore(kdRatingLore(killStats.killDeathRatio))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.statistics.common.efficiency_score", "value" to calculateEfficiencyScore(killStats)))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.statistics.common.efficiency_score", "value" to calculateEfficiencyScore(killStats)))
 
         val guiItem = GuiItem(item) {
             openKDAnalysisDetail()
@@ -695,9 +699,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val recentActivity = recentKills.size
 
         val item = ItemStack.of(Material.CLOCK)
-            .name(lang.legacy("menu.statistics.item.recent.name"))
-            .lore(lang.legacy("menu.statistics.item.recent.lore.latest"))
-            .lore(lang.legacy("menu.statistics.item.recent.lore.kills", "count" to recentActivity))
+            .name(lang.gui("menu.statistics.item.recent.name"))
+            .lore(lang.gui("menu.statistics.item.recent.lore.latest"))
+            .lore(lang.gui("menu.statistics.item.recent.lore.kills", "count" to recentActivity))
             .lore(activityLevelLore(recentActivity))
 
         val guiItem = GuiItem(item) {
@@ -708,10 +712,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addPeriodStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.statistics.item.period.name"))
-            .lore(lang.legacy("menu.statistics.item.period.lore.description"))
-            .lore(lang.legacy("menu.statistics.item.period.lore.periods"))
-            .lore(lang.legacy("menu.statistics.common.coming_soon"))
+            .name(lang.gui("menu.statistics.item.period.name"))
+            .lore(lang.gui("menu.statistics.item.period.lore.description"))
+            .lore(lang.gui("menu.statistics.item.period.lore.periods"))
+            .lore(lang.gui("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             openPeriodStatsMenu()
@@ -721,10 +725,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addRivalryStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.RED_BANNER)
-            .name(lang.legacy("menu.statistics.item.rivalry.name"))
-            .lore(lang.legacy("menu.statistics.item.rivalry.lore.description"))
-            .lore(lang.legacy("menu.statistics.item.rivalry.lore.rankings"))
-            .lore(lang.legacy("menu.statistics.common.coming_soon"))
+            .name(lang.gui("menu.statistics.item.rivalry.name"))
+            .lore(lang.gui("menu.statistics.item.rivalry.lore.description"))
+            .lore(lang.gui("menu.statistics.item.rivalry.lore.rankings"))
+            .lore(lang.gui("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             openRivalryStatsDetail()
@@ -738,11 +742,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val achievementCount = calculateAchievementCount(killStats)
 
         val item = ItemStack.of(Material.TROPICAL_FISH_BUCKET)
-            .name(lang.legacy("menu.statistics.item.achievements.name"))
-            .lore(lang.legacy("menu.statistics.item.achievements.lore.count", "count" to achievementCount))
+            .name(lang.gui("menu.statistics.item.achievements.name"))
+            .lore(lang.gui("menu.statistics.item.achievements.lore.count", "count" to achievementCount))
             .lore(achievementKillsLore(killStats.totalKills))
             .lore(achievementNetKillsLore(killStats.netKills))
-            .lore(lang.legacy("menu.statistics.common.coming_soon"))
+            .lore(lang.gui("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             openAchievementsDetail()
@@ -752,10 +756,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addTrendAnalysisButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.REPEATER)
-            .name(lang.legacy("menu.statistics.item.kill_trends.name"))
-            .lore(lang.legacy("menu.statistics.item.kill_trends.lore.description"))
-            .lore(lang.legacy("menu.statistics.item.kill_trends.lore.patterns"))
-            .lore(lang.legacy("menu.statistics.item.kill_trends.lore.chart"))
+            .name(lang.gui("menu.statistics.item.kill_trends.name"))
+            .lore(lang.gui("menu.statistics.item.kill_trends.lore.description"))
+            .lore(lang.gui("menu.statistics.item.kill_trends.lore.patterns"))
+            .lore(lang.gui("menu.statistics.item.kill_trends.lore.chart"))
 
         val guiItem = GuiItem(item) {
             renderKillTrendChart()
@@ -765,10 +769,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addComparisonButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.COMPARATOR)
-            .name(lang.legacy("menu.statistics.item.contribution_chart.name"))
-            .lore(lang.legacy("menu.statistics.item.contribution_chart.lore.description"))
-            .lore(lang.legacy("menu.statistics.item.contribution_chart.lore.chart"))
-            .lore(lang.legacy("menu.statistics.item.contribution_chart.lore.details"))
+            .name(lang.gui("menu.statistics.item.contribution_chart.name"))
+            .lore(lang.gui("menu.statistics.item.contribution_chart.lore.description"))
+            .lore(lang.gui("menu.statistics.item.contribution_chart.lore.chart"))
+            .lore(lang.gui("menu.statistics.item.contribution_chart.lore.details"))
 
         val guiItem = GuiItem(item) {
             renderMemberContributionsChart()
@@ -778,10 +782,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addExportStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.statistics.item.export.name"))
-            .lore(lang.legacy("menu.statistics.item.export.lore.description"))
-            .lore(lang.legacy("menu.statistics.item.export.lore.format"))
-            .lore(lang.legacy("menu.statistics.common.coming_soon"))
+            .name(lang.gui("menu.statistics.item.export.name"))
+            .lore(lang.gui("menu.statistics.item.export.lore.description"))
+            .lore(lang.gui("menu.statistics.item.export.lore.format"))
+            .lore(lang.gui("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             exportGuildStatistics()
@@ -791,9 +795,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addRefreshStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.KNOWLEDGE_BOOK)
-            .name(lang.legacy("menu.statistics.item.refresh.name"))
-            .lore(lang.legacy("menu.statistics.item.refresh.lore.description"))
-            .lore(lang.legacy("menu.statistics.item.refresh.lore.details"))
+            .name(lang.gui("menu.statistics.item.refresh.name"))
+            .lore(lang.gui("menu.statistics.item.refresh.lore.description"))
+            .lore(lang.gui("menu.statistics.item.refresh.lore.details"))
 
         val guiItem = GuiItem(item) {
             player.sendMessage(lang.msg("menu.statistics.feedback.refreshing"))
@@ -813,63 +817,63 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    private fun rankedKillsLore(rank: Int, playerName: String, kills: Int): String {
+    private fun rankedKillsLore(rank: Int, playerName: Any, kills: Int): Component {
         return when (rank) {
-            1 -> lang.legacy("menu.statistics.common.ranked_kills.first", "rank" to rank, "player" to playerName, "kills" to kills)
-            2 -> lang.legacy("menu.statistics.common.ranked_kills.second", "rank" to rank, "player" to playerName, "kills" to kills)
-            3 -> lang.legacy("menu.statistics.common.ranked_kills.third", "rank" to rank, "player" to playerName, "kills" to kills)
-            else -> lang.legacy("menu.statistics.common.ranked_kills.other", "rank" to rank, "player" to playerName, "kills" to kills)
+            1 -> lang.gui("menu.statistics.common.ranked_kills.first", "rank" to rank, "player" to playerName, "kills" to kills)
+            2 -> lang.gui("menu.statistics.common.ranked_kills.second", "rank" to rank, "player" to playerName, "kills" to kills)
+            3 -> lang.gui("menu.statistics.common.ranked_kills.third", "rank" to rank, "player" to playerName, "kills" to kills)
+            else -> lang.gui("menu.statistics.common.ranked_kills.other", "rank" to rank, "player" to playerName, "kills" to kills)
         }
     }
 
-    private fun rankedContributionLore(rank: Int, playerName: String, contribution: Int): String {
+    private fun rankedContributionLore(rank: Int, playerName: Any, contribution: Int): Component {
         return when (rank) {
-            1 -> lang.legacy("menu.statistics.common.ranked_contribution.first", "rank" to rank, "player" to playerName, "amount" to contribution)
-            2 -> lang.legacy("menu.statistics.common.ranked_contribution.second", "rank" to rank, "player" to playerName, "amount" to contribution)
-            3 -> lang.legacy("menu.statistics.common.ranked_contribution.third", "rank" to rank, "player" to playerName, "amount" to contribution)
-            else -> lang.legacy("menu.statistics.common.ranked_contribution.other", "rank" to rank, "player" to playerName, "amount" to contribution)
+            1 -> lang.gui("menu.statistics.common.ranked_contribution.first", "rank" to rank, "player" to playerName, "amount" to contribution)
+            2 -> lang.gui("menu.statistics.common.ranked_contribution.second", "rank" to rank, "player" to playerName, "amount" to contribution)
+            3 -> lang.gui("menu.statistics.common.ranked_contribution.third", "rank" to rank, "player" to playerName, "amount" to contribution)
+            else -> lang.gui("menu.statistics.common.ranked_contribution.other", "rank" to rank, "player" to playerName, "amount" to contribution)
         }
     }
 
-    private fun kdRatingLore(ratio: Double): String {
+    private fun kdRatingLore(ratio: Double): Component {
         val rating = getKDRating(ratio)
         return when {
-            ratio >= 3.0 -> lang.legacy("menu.statistics.common.performance_grade.green", "rating" to rating)
-            ratio >= 1.5 -> lang.legacy("menu.statistics.common.performance_grade.yellow", "rating" to rating)
-            ratio >= 1.0 -> lang.legacy("menu.statistics.common.performance_grade.gold", "rating" to rating)
-            else -> lang.legacy("menu.statistics.common.performance_grade.red", "rating" to rating)
+            ratio >= 3.0 -> lang.gui("menu.statistics.common.performance_grade.green", "rating" to rating)
+            ratio >= 1.5 -> lang.gui("menu.statistics.common.performance_grade.yellow", "rating" to rating)
+            ratio >= 1.0 -> lang.gui("menu.statistics.common.performance_grade.gold", "rating" to rating)
+            else -> lang.gui("menu.statistics.common.performance_grade.red", "rating" to rating)
         }
     }
 
-    private fun activityLevelLore(activity: Int): String {
+    private fun activityLevelLore(activity: Int): Component {
         val level = getActivityLevel(activity)
         return when {
-            activity >= 20 -> lang.legacy("menu.statistics.common.activity_level.green", "level" to level)
-            activity >= 10 -> lang.legacy("menu.statistics.common.activity_level.yellow", "level" to level)
-            activity >= 5 -> lang.legacy("menu.statistics.common.activity_level.gold", "level" to level)
-            else -> lang.legacy("menu.statistics.common.activity_level.red", "level" to level)
+            activity >= 20 -> lang.gui("menu.statistics.common.activity_level.green", "level" to level)
+            activity >= 10 -> lang.gui("menu.statistics.common.activity_level.yellow", "level" to level)
+            activity >= 5 -> lang.gui("menu.statistics.common.activity_level.gold", "level" to level)
+            else -> lang.gui("menu.statistics.common.activity_level.red", "level" to level)
         }
     }
 
-    private fun achievementKillsLore(kills: Int): String = lang.legacy(
+    private fun achievementKillsLore(kills: Int): Component = lang.gui(
         "menu.statistics.item.achievements.lore.total_kills",
         "milestone" to getKillMilestone(kills),
     )
 
-    private fun achievementNetKillsLore(netKills: Int): String = lang.legacy(
+    private fun achievementNetKillsLore(netKills: Int): Component = lang.gui(
         "menu.statistics.item.achievements.lore.net_kills",
         "milestone" to getNetKillMilestone(netKills),
     )
 
-    private fun getKDRating(kdRatio: Double): String {
+    private fun getKDRating(kdRatio: Double): Component {
         return when {
-            kdRatio >= 5.0 -> lang.raw("menu.statistics.rating.kd.godlike")
-            kdRatio >= 3.0 -> lang.raw("menu.statistics.rating.kd.excellent")
-            kdRatio >= 2.0 -> lang.raw("menu.statistics.rating.kd.very_good")
-            kdRatio >= 1.5 -> lang.raw("menu.statistics.rating.kd.good")
-            kdRatio >= 1.0 -> lang.raw("menu.statistics.rating.kd.average")
-            kdRatio >= 0.5 -> lang.raw("menu.statistics.rating.kd.below_average")
-            else -> lang.raw("menu.statistics.rating.kd.needs_improvement")
+            kdRatio >= 5.0 -> lang.gui("menu.statistics.rating.kd.godlike")
+            kdRatio >= 3.0 -> lang.gui("menu.statistics.rating.kd.excellent")
+            kdRatio >= 2.0 -> lang.gui("menu.statistics.rating.kd.very_good")
+            kdRatio >= 1.5 -> lang.gui("menu.statistics.rating.kd.good")
+            kdRatio >= 1.0 -> lang.gui("menu.statistics.rating.kd.average")
+            kdRatio >= 0.5 -> lang.gui("menu.statistics.rating.kd.below_average")
+            else -> lang.gui("menu.statistics.rating.kd.needs_improvement")
         }
     }
 
@@ -885,14 +889,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    private fun getActivityLevel(activity: Int): String {
+    private fun getActivityLevel(activity: Int): Component {
         return when {
-            activity >= 50 -> lang.raw("menu.statistics.rating.activity.extremely_active")
-            activity >= 20 -> lang.raw("menu.statistics.rating.activity.very_active")
-            activity >= 10 -> lang.raw("menu.statistics.rating.activity.active")
-            activity >= 5 -> lang.raw("menu.statistics.rating.activity.moderately_active")
-            activity >= 1 -> lang.raw("menu.statistics.rating.activity.lightly_active")
-            else -> lang.raw("menu.statistics.rating.activity.inactive")
+            activity >= 50 -> lang.gui("menu.statistics.rating.activity.extremely_active")
+            activity >= 20 -> lang.gui("menu.statistics.rating.activity.very_active")
+            activity >= 10 -> lang.gui("menu.statistics.rating.activity.active")
+            activity >= 5 -> lang.gui("menu.statistics.rating.activity.moderately_active")
+            activity >= 1 -> lang.gui("menu.statistics.rating.activity.lightly_active")
+            else -> lang.gui("menu.statistics.rating.activity.inactive")
         }
     }
 
@@ -917,25 +921,25 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    private fun getKillMilestone(kills: Int): String {
+    private fun getKillMilestone(kills: Int): Component {
         return when {
-            kills >= 10000 -> lang.raw("menu.statistics.rating.kill_milestone.massacre")
-            kills >= 5000 -> lang.raw("menu.statistics.rating.kill_milestone.slaughter")
-            kills >= 1000 -> lang.raw("menu.statistics.rating.kill_milestone.carnage")
-            kills >= 500 -> lang.raw("menu.statistics.rating.kill_milestone.bloodbath")
-            kills >= 100 -> lang.raw("menu.statistics.rating.kill_milestone.butcher")
-            else -> lang.raw("menu.statistics.rating.kill_milestone.novice")
+            kills >= 10000 -> lang.gui("menu.statistics.rating.kill_milestone.massacre")
+            kills >= 5000 -> lang.gui("menu.statistics.rating.kill_milestone.slaughter")
+            kills >= 1000 -> lang.gui("menu.statistics.rating.kill_milestone.carnage")
+            kills >= 500 -> lang.gui("menu.statistics.rating.kill_milestone.bloodbath")
+            kills >= 100 -> lang.gui("menu.statistics.rating.kill_milestone.butcher")
+            else -> lang.gui("menu.statistics.rating.kill_milestone.novice")
         }
     }
 
-    private fun getNetKillMilestone(netKills: Int): String {
+    private fun getNetKillMilestone(netKills: Int): Component {
         return when {
-            netKills >= 1000 -> lang.raw("menu.statistics.rating.net_kill_milestone.dominator")
-            netKills >= 500 -> lang.raw("menu.statistics.rating.net_kill_milestone.conqueror")
-            netKills >= 100 -> lang.raw("menu.statistics.rating.net_kill_milestone.warrior")
-            netKills >= 0 -> lang.raw("menu.statistics.rating.net_kill_milestone.balanced")
-            netKills >= -50 -> lang.raw("menu.statistics.rating.net_kill_milestone.challenged")
-            else -> lang.raw("menu.statistics.rating.net_kill_milestone.struggling")
+            netKills >= 1000 -> lang.gui("menu.statistics.rating.net_kill_milestone.dominator")
+            netKills >= 500 -> lang.gui("menu.statistics.rating.net_kill_milestone.conqueror")
+            netKills >= 100 -> lang.gui("menu.statistics.rating.net_kill_milestone.warrior")
+            netKills >= 0 -> lang.gui("menu.statistics.rating.net_kill_milestone.balanced")
+            netKills >= -50 -> lang.gui("menu.statistics.rating.net_kill_milestone.challenged")
+            else -> lang.gui("menu.statistics.rating.net_kill_milestone.struggling")
         }
     }
 
@@ -955,23 +959,23 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val titleItem = ItemStack.of(Material.TOTEM_OF_UNDYING)
-                .name(lang.legacy("menu.statistics.detail.top_killers.name"))
-                .lore(lang.legacy("menu.statistics.detail.top_killers.description"))
+                .name(lang.gui("menu.statistics.detail.top_killers.name"))
+                .lore(lang.gui("menu.statistics.detail.top_killers.description"))
 
             if (topKillers.isNotEmpty()) {
-                titleItem.lore(lang.legacy("menu.common.blank"))
+                titleItem.lore(lang.gui("menu.common.blank"))
                 topKillers.take(10).forEachIndexed { index, (playerId, stats) ->
                     val playerName = Bukkit.getOfflinePlayer(playerId).name ?: playerId.toString().take(8)
                     titleItem.lore(rankedKillsLore(index + 1, playerName, stats.totalKills))
                 }
             } else {
-                titleItem.lore(lang.legacy("menu.statistics.common.no_kill_data"))
+                titleItem.lore(lang.gui("menu.statistics.common.no_kill_data"))
             }
             pane.addItem(GuiItem(titleItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.statistics.item.back.name"))
-                .lore(lang.legacy("menu.statistics.item.back.lore"))
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
             gui.show(player)
@@ -999,23 +1003,23 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val titleItem = ItemStack.of(Material.GOLD_BLOCK)
-                .name(lang.legacy("menu.statistics.detail.top_contributors.name"))
-                .lore(lang.legacy("menu.statistics.item.top_contributors.lore.description"))
+                .name(lang.gui("menu.statistics.detail.top_contributors.name"))
+                .lore(lang.gui("menu.statistics.item.top_contributors.lore.description"))
 
             if (topContributors.isNotEmpty()) {
-                titleItem.lore(lang.legacy("menu.common.blank"))
+                titleItem.lore(lang.gui("menu.common.blank"))
                 topContributors.forEachIndexed { index, contribution ->
-                    val playerName = contribution.playerName ?: lang.raw("general.unknown")
+                    val playerName: Any = contribution.playerName ?: lang.gui("general.unknown")
                     titleItem.lore(rankedContributionLore(index + 1, playerName, contribution.netContribution))
                 }
             } else {
-                titleItem.lore(lang.legacy("menu.statistics.common.no_contribution_data"))
+                titleItem.lore(lang.gui("menu.statistics.common.no_contribution_data"))
             }
             pane.addItem(GuiItem(titleItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.statistics.item.back.name"))
-                .lore(lang.legacy("menu.statistics.item.back.lore"))
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
             gui.show(player)
@@ -1039,19 +1043,19 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val kdItem = ItemStack.of(Material.COMPARATOR)
-                .name(lang.legacy("menu.statistics.detail.kd.name"))
-                .lore(lang.legacy("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
-                .lore(lang.legacy("menu.statistics.common.total_kills_green", "count" to killStats.totalKills))
-                .lore(lang.legacy("menu.statistics.common.total_deaths_red", "count" to killStats.totalDeaths))
+                .name(lang.gui("menu.statistics.detail.kd.name"))
+                .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+                .lore(lang.gui("menu.statistics.common.total_kills_green", "count" to killStats.totalKills))
+                .lore(lang.gui("menu.statistics.common.total_deaths_red", "count" to killStats.totalDeaths))
                 .lore(netKillsLore(killStats.netKills))
-                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.gui("menu.common.blank"))
                 .lore(kdRatingLore(killStats.killDeathRatio))
-                .lore(lang.legacy("menu.statistics.common.efficiency_score", "value" to calculateEfficiencyScore(killStats)))
+                .lore(lang.gui("menu.statistics.common.efficiency_score", "value" to calculateEfficiencyScore(killStats)))
             pane.addItem(GuiItem(kdItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.statistics.item.back.name"))
-                .lore(lang.legacy("menu.statistics.item.back.lore"))
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
             gui.show(player)
@@ -1075,30 +1079,30 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val titleItem = ItemStack.of(Material.CLOCK)
-                .name(lang.legacy("menu.statistics.detail.recent.name"))
-                .lore(lang.legacy("menu.statistics.item.recent.lore.kills", "count" to recentKills.size))
+                .name(lang.gui("menu.statistics.detail.recent.name"))
+                .lore(lang.gui("menu.statistics.item.recent.lore.kills", "count" to recentKills.size))
                 .lore(activityLevelLore(recentKills.size))
 
             if (recentKills.isNotEmpty()) {
-                titleItem.lore(lang.legacy("menu.common.blank"))
+                titleItem.lore(lang.gui("menu.common.blank"))
                 recentKills.take(10).forEach { kill ->
                     val killerName = Bukkit.getOfflinePlayer(kill.killerId).name ?: kill.killerId.toString().take(8)
                     val victimName = Bukkit.getOfflinePlayer(kill.victimId).name ?: kill.victimId.toString().take(8)
                     titleItem.lore(if (!kill.weapon.isNullOrEmpty()) {
-                        lang.legacy("menu.statistics.detail.recent.kill_with_weapon", "killer" to killerName, "victim" to victimName, "weapon" to kill.weapon)
+                        lang.gui("menu.statistics.detail.recent.kill_with_weapon", "killer" to killerName, "victim" to victimName, "weapon" to kill.weapon)
                     } else {
-                        lang.legacy("menu.statistics.detail.recent.kill", "killer" to killerName, "victim" to victimName)
+                        lang.gui("menu.statistics.detail.recent.kill", "killer" to killerName, "victim" to victimName)
                     })
                 }
             }
             if (recentKills.size > 10) {
-                titleItem.lore(lang.legacy("menu.statistics.common.more", "count" to recentKills.size - 10))
+                titleItem.lore(lang.gui("menu.statistics.common.more", "count" to recentKills.size - 10))
             }
             pane.addItem(GuiItem(titleItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.legacy("menu.statistics.item.back.name"))
-                .lore(lang.legacy("menu.statistics.item.back.lore"))
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
             gui.show(player)
@@ -1166,7 +1170,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
             val chart = mapRendererService.renderCustomChart(
-                title = lang.legacy("menu.statistics.chart.title.balance", "guild" to guild.name),
+                title = plainLocale("menu.statistics.chart.title.balance", "guild" to guild.name),
                 dataPoints = dailyBalances,
                 chartType = ChartType.LINE,
                 player = player
@@ -1203,7 +1207,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                     val weekLabel = if (weeksAgo == 0) {
                         lang.raw("menu.statistics.chart.label.this_week")
                     } else {
-                        lang.legacy("menu.statistics.chart.label.weeks_ago", "weeks" to weeksAgo)
+                        plainLocale("menu.statistics.chart.label.weeks_ago", "weeks" to weeksAgo)
                     }
                     weekTrends.add(weekLabel to weekStats.totalKills)
                 } catch (e: Exception) {
@@ -1213,7 +1217,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                     val weekLabel = if (weeksAgo == 0) {
                         lang.raw("menu.statistics.chart.label.this_week")
                     } else {
-                        lang.legacy("menu.statistics.chart.label.weeks_ago", "weeks" to weeksAgo)
+                        plainLocale("menu.statistics.chart.label.weeks_ago", "weeks" to weeksAgo)
                     }
                     weekTrends.add(weekLabel to 0)
                 }
@@ -1228,7 +1232,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
             val chart = mapRendererService.renderCustomChart(
-                title = lang.legacy("menu.statistics.chart.title.kills", "guild" to guild.name),
+                title = plainLocale("menu.statistics.chart.title.kills", "guild" to guild.name),
                 dataPoints = weekTrends,
                 chartType = ChartType.LINE,
                 player = player
@@ -1273,7 +1277,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
             val chart = mapRendererService.renderCustomChart(
-                title = lang.legacy("menu.statistics.chart.title.contributions", "guild" to guild.name),
+                title = plainLocale("menu.statistics.chart.title.contributions", "guild" to guild.name),
                 dataPoints = chartData,
                 chartType = ChartType.BAR,
                 player = player
@@ -1296,5 +1300,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
+
+    private fun plainLocale(key: String, vararg placeholders: Pair<String, Any?>): String =
+        PlainTextComponentSerializer.plainText().serialize(lang.msg(key, *placeholders))
 }
 

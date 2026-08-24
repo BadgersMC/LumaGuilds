@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -32,7 +34,7 @@ class BedrockGuildBankStatisticsMenu(
         val bankStats = bankService.getBankStats(guild.id)
         val currentBalance = bankService.getBalance(guild.id)
 
-        val content = lang.legacy(
+        val content = lang.bedrock(
             "bedrock.bank.statistics.content",
             "balance" to currentBalance,
             "deposits" to bankStats.totalDeposits,
@@ -43,10 +45,10 @@ class BedrockGuildBankStatisticsMenu(
         )
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.bank.statistics.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.bank.statistics.title", "guild" to guild.name))
             .content(content)
-            .button(lang.raw("bedrock.bank.statistics.button.refresh"))
-            .button(lang.raw("bedrock.bank.statistics.button.back"))
+            .button(lang.bedrock("bedrock.bank.statistics.button.refresh"))
+            .button(lang.bedrock("bedrock.bank.statistics.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> {

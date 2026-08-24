@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
@@ -31,16 +33,16 @@ class BedrockDescriptionEditorMenu(
         val descIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.description_editor.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.description_editor.title", "guild" to guild.name))
             .apply { descIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.description_editor.instructions"))
+            .label(lang.bedrock("bedrock.description_editor.instructions"))
             .label(createCurrentDescriptionSection(currentDescription))
             .input(
-                lang.raw("bedrock.description_editor.input.label"),
-                lang.raw("bedrock.description_editor.input.placeholder"),
+                lang.bedrock("bedrock.description_editor.input.label"),
+                lang.bedrock("bedrock.description_editor.input.placeholder"),
                 currentDescription
             )
-            .label(lang.raw("bedrock.description_editor.format_info"))
+            .label(lang.bedrock("bedrock.description_editor.format_info"))
             .validResultHandler { response ->
                 val newDescription = response.asInput(2) ?: ""  // Index 2 is the input field
                 handleDescriptionUpdate(newDescription)
@@ -53,9 +55,9 @@ class BedrockDescriptionEditorMenu(
 
     private fun createCurrentDescriptionSection(description: String): String {
         return if (description.isNotEmpty()) {
-            lang.legacy("bedrock.description_editor.current", "description" to description)
+            lang.bedrock("bedrock.description_editor.current", "description" to description)
         } else {
-            lang.raw("bedrock.description_editor.none")
+            lang.bedrock("bedrock.description_editor.none")
         }
     }
 
@@ -87,13 +89,13 @@ class BedrockDescriptionEditorMenu(
         }
 
         if (description.length > 200) {
-            return lang.raw("bedrock.description_editor.validation.too_long")
+            return lang.bedrock("bedrock.description_editor.validation.too_long")
         }
 
         // Check for inappropriate content (basic filter)
         val inappropriate = listOf("fuck", "shit", "damn", "bitch", "ass")
         if (inappropriate.any { description.lowercase().contains(it) }) {
-            return lang.raw("bedrock.description_editor.validation.inappropriate")
+            return lang.bedrock("bedrock.description_editor.validation.inappropriate")
         }
 
         return null

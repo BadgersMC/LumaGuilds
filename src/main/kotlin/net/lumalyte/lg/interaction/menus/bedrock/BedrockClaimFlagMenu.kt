@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.flag.GetClaimFlags
 import net.lumalyte.lg.domain.entities.Claim
@@ -30,18 +32,18 @@ class BedrockClaimFlagMenu(
         val flags = getClaimFlags.execute(claim.id)
 
         val content = if (flags.isEmpty()) {
-            lang.raw("bedrock.claim_flags.content.empty")
+            lang.bedrock("bedrock.claim_flags.content.empty")
         } else {
             val rows = flags.take(10).joinToString("\n") { flag ->
-                lang.legacy("bedrock.claim_flags.row", "flag" to flag)
+                lang.bedrock("bedrock.claim_flags.row", "flag" to flag)
             }
-            lang.legacy("bedrock.claim_flags.content.list", "count" to flags.size, "flags" to rows)
+            lang.bedrock("bedrock.claim_flags.content.list", "count" to flags.size, "flags" to rows)
         }
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.claim_flags.title", "claim" to claim.name))
+            .title(lang.bedrock("bedrock.claim_flags.title", "claim" to claim.name))
             .content(content)
-            .button(lang.raw("bedrock.claim_flags.button.back"))
+            .button(lang.bedrock("bedrock.claim_flags.button.back"))
             .validResultHandler { _ ->
                 bedrockNavigator.goBack()
             }

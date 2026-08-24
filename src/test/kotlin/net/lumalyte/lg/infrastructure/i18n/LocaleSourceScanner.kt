@@ -60,7 +60,7 @@ object LocaleSourceScanner {
         "net/lumalyte/lg/utils/GuildResolver.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
         "net/lumalyte/lg/utils/MenuTitleBuilder.kt" to PlayerTextClassification.GLYPH_MARKUP,
     )
-    private val rendererCall = Regex("""\blang\.(msg|legacy|raw)\s*\(""")
+    private val rendererCall = Regex("""\blang\.(msg|legacy|raw|gui|guiTitle|bedrock|plain)\s*\(""")
     private val literalKey = Regex("^\"([^\"]+)\"")
     private val namedPair = Regex("""["']([A-Za-z][A-Za-z0-9_]*)["']\s+to\b""")
     private val placeholder = Regex("""(?<!\\)</?([A-Za-z][A-Za-z0-9_-]*)(?::[^>]*)?>""")

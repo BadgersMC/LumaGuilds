@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import org.bukkit.entity.Player
@@ -24,7 +25,7 @@ class BedrockConfirmationMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val lang: LangService by inject()
-    private val message: String = message ?: lang.raw("bedrock.confirmation.default_message")
+    private val message: String = message ?: lang.bedrock("bedrock.confirmation.default_message")
 
     // Overloaded constructor for backward compatibility
     constructor(
@@ -41,8 +42,8 @@ class BedrockConfirmationMenu(
             ModalForm.builder()
                 .title(title)
                 .content(message)
-                .button1(lang.raw("bedrock.confirmation.button.yes"))
-                .button2(lang.raw("bedrock.confirmation.button.no"))
+                .button1(lang.bedrock("bedrock.confirmation.button.yes"))
+                .button2(lang.bedrock("bedrock.confirmation.button.no"))
                 .validResultHandler { response ->
                     // Handle response
                     if (response.clickedButtonId() == 0) { // Confirm button (Yes)

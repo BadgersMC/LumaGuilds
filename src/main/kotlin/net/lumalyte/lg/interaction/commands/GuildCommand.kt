@@ -3,6 +3,7 @@ package net.lumalyte.lg.interaction.commands
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.plain
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -518,7 +519,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val menuNavigator = MenuNavigator(player)
         menuNavigator.openMenu(net.lumalyte.lg.interaction.menus.common.ConfirmationMenu(
-            menuNavigator, player, lang.legacy("command.migrated.guild.removehome.remove_home", "home_name" to homeName)
+            menuNavigator, player, lang.plain("command.migrated.guild.removehome.remove_home", "home_name" to homeName)
         ) {
             val success = guildService.removeHome(guild.id, homeName, playerId)
             if (success) {

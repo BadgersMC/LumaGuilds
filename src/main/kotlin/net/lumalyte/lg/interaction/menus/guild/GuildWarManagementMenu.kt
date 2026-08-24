@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -31,7 +33,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_war_management.title", "guild" to guild.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_war_management.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -64,9 +66,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         if (activeWars.isEmpty()) {
             val noWarsItem = ItemStack.of(Material.BARRIER)
-                .name(lang.legacy("menu.guild_war_management.current.none.name"))
-                .lore(lang.legacy("menu.guild_war_management.current.none.description"))
-                .lore(lang.legacy("menu.guild_war_management.current.none.hint"))
+                .name(lang.gui("menu.guild_war_management.current.none.name"))
+                .lore(lang.gui("menu.guild_war_management.current.none.description"))
+                .lore(lang.gui("menu.guild_war_management.current.none.hint"))
             pane.addItem(GuiItem(noWarsItem), 0, 0)
         } else {
             // Display first active war
@@ -75,10 +77,10 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
             val enemyGuild = guildService.getGuild(enemyGuildId)
 
             val warItem = ItemStack.of(Material.DIAMOND_SWORD)
-                .name(lang.legacy("menu.guild_war_management.current.active.name", "enemy" to (enemyGuild?.name ?: lang.raw("menu.guild_war_management.fallback.unknown"))))
-                .lore(lang.legacy("menu.guild_war_management.current.active.duration", "days" to war.duration.toDays()))
-                .lore(lang.legacy("menu.guild_war_management.current.active.remaining", "days" to (war.remainingDuration?.toDays() ?: 0)))
-                .lore(lang.legacy("menu.guild_war_management.current.active.status"))
+                .name(lang.gui("menu.guild_war_management.current.active.name", "enemy" to (enemyGuild?.name ?: lang.raw("menu.guild_war_management.fallback.unknown"))))
+                .lore(lang.gui("menu.guild_war_management.current.active.duration", "days" to war.duration.toDays()))
+                .lore(lang.gui("menu.guild_war_management.current.active.remaining", "days" to (war.remainingDuration?.toDays() ?: 0)))
+                .lore(lang.gui("menu.guild_war_management.current.active.status"))
 
             val guiItem = GuiItem(warItem) {
                 openWarDetailsMenu(war)
@@ -88,8 +90,8 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
             // Show war count if more than one
             if (activeWars.size > 1) {
                 val moreWarsItem = ItemStack.of(Material.BOOK)
-                    .name(lang.legacy("menu.guild_war_management.current.more.name", "count" to activeWars.size - 1))
-                    .lore(lang.legacy("menu.guild_war_management.current.more.description"))
+                    .name(lang.gui("menu.guild_war_management.current.more.name", "count" to activeWars.size - 1))
+                    .lore(lang.gui("menu.guild_war_management.current.more.description"))
                 pane.addItem(GuiItem(moreWarsItem) {
                     openWarListMenu()
                 }, 1, 0)
@@ -103,9 +105,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // Incoming declarations
         val incomingItem = ItemStack.of(if (incomingDeclarations.isEmpty()) Material.GRAY_DYE else Material.PAPER)
-            .name(lang.legacy("menu.guild_war_management.declarations.incoming.name"))
-            .lore(lang.legacy("menu.guild_war_management.declarations.incoming.description"))
-            .lore(lang.legacy("menu.guild_war_management.declarations.count", "count" to incomingDeclarations.size))
+            .name(lang.gui("menu.guild_war_management.declarations.incoming.name"))
+            .lore(lang.gui("menu.guild_war_management.declarations.incoming.description"))
+            .lore(lang.gui("menu.guild_war_management.declarations.count", "count" to incomingDeclarations.size))
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingDeclarationsMenu()
@@ -114,9 +116,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // Outgoing declarations
         val outgoingItem = ItemStack.of(if (outgoingDeclarations.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.guild_war_management.declarations.outgoing.name"))
-            .lore(lang.legacy("menu.guild_war_management.declarations.outgoing.description"))
-            .lore(lang.legacy("menu.guild_war_management.declarations.count", "count" to outgoingDeclarations.size))
+            .name(lang.gui("menu.guild_war_management.declarations.outgoing.name"))
+            .lore(lang.gui("menu.guild_war_management.declarations.outgoing.description"))
+            .lore(lang.gui("menu.guild_war_management.declarations.count", "count" to outgoingDeclarations.size))
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingDeclarationsMenu()
@@ -127,9 +129,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     private fun addWarActionsSection(pane: StaticPane) {
         // Declare war
         val declareWarItem = ItemStack.of(Material.IRON_SWORD)
-            .name(lang.legacy("menu.guild_war_management.actions.declare.name"))
-            .lore(lang.legacy("menu.guild_war_management.actions.declare.description"))
-            .lore(lang.legacy("menu.guild_war_management.actions.declare.hint"))
+            .name(lang.gui("menu.guild_war_management.actions.declare.name"))
+            .lore(lang.gui("menu.guild_war_management.actions.declare.description"))
+            .lore(lang.gui("menu.guild_war_management.actions.declare.hint"))
 
         val declareWarGuiItem = GuiItem(declareWarItem) {
             openDeclareWarMenu()
@@ -138,9 +140,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // War statistics
         val warStatsItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
-            .name(lang.legacy("menu.guild_war_management.actions.statistics.name"))
-            .lore(lang.legacy("menu.guild_war_management.actions.statistics.description"))
-            .lore(lang.legacy("menu.guild_war_management.actions.statistics.hint"))
+            .name(lang.gui("menu.guild_war_management.actions.statistics.name"))
+            .lore(lang.gui("menu.guild_war_management.actions.statistics.description"))
+            .lore(lang.gui("menu.guild_war_management.actions.statistics.hint"))
 
         val warStatsGuiItem = GuiItem(warStatsItem) {
             openWarStatsMenu()
@@ -149,9 +151,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // War history
         val warHistoryItem = ItemStack.of(Material.BOOKSHELF)
-            .name(lang.legacy("menu.guild_war_management.actions.history.name"))
-            .lore(lang.legacy("menu.guild_war_management.actions.history.description"))
-            .lore(lang.legacy("menu.guild_war_management.actions.history.hint"))
+            .name(lang.gui("menu.guild_war_management.actions.history.name"))
+            .lore(lang.gui("menu.guild_war_management.actions.history.description"))
+            .lore(lang.gui("menu.guild_war_management.actions.history.hint"))
 
         val warHistoryGuiItem = GuiItem(warHistoryItem) {
             openWarHistoryMenu()
@@ -160,9 +162,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
         // Peace agreements
         val peaceItem = ItemStack.of(Material.WHITE_WOOL)
-            .name(lang.legacy("menu.guild_war_management.actions.peace.name"))
-            .lore(lang.legacy("menu.guild_war_management.actions.peace.description"))
-            .lore(lang.legacy("menu.guild_war_management.actions.peace.hint"))
+            .name(lang.gui("menu.guild_war_management.actions.peace.name"))
+            .lore(lang.gui("menu.guild_war_management.actions.peace.description"))
+            .lore(lang.gui("menu.guild_war_management.actions.peace.hint"))
 
         val peaceGuiItem = GuiItem(peaceItem) {
             openPeaceAgreementsMenu()
@@ -176,10 +178,10 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val totalWars = warService.getWarsForGuild(guild.id).size
 
         val statsItem = ItemStack.of(Material.TOTEM_OF_UNDYING)
-            .name(lang.legacy("menu.guild_war_management.quick_stats.name"))
-            .lore(lang.legacy("menu.guild_war_management.quick_stats.total", "count" to totalWars))
-            .lore(lang.legacy("menu.guild_war_management.quick_stats.ratio", "ratio" to String.format("%.2f", winLossRatio)))
-            .lore(lang.legacy("menu.guild_war_management.quick_stats.active", "count" to warService.getWarsForGuild(guild.id).count { it.isActive }))
+            .name(lang.gui("menu.guild_war_management.quick_stats.name"))
+            .lore(lang.gui("menu.guild_war_management.quick_stats.total", "count" to totalWars))
+            .lore(lang.gui("menu.guild_war_management.quick_stats.ratio", "ratio" to String.format("%.2f", winLossRatio)))
+            .lore(lang.gui("menu.guild_war_management.quick_stats.active", "count" to warService.getWarsForGuild(guild.id).count { it.isActive }))
 
         val statsGuiItem = GuiItem(statsItem) {
             openDetailedStatsMenu()
@@ -189,8 +191,8 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.guild_war_management.back.name"))
-            .lore(lang.legacy("menu.guild_war_management.back.description"))
+            .name(lang.gui("menu.guild_war_management.back.name"))
+            .lore(lang.gui("menu.guild_war_management.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))

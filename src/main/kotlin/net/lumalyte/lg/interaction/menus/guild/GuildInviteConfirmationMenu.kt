@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -37,7 +39,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         val gui = ChestGui(3, MenuTitleBuilder.build(
             guild.guiTheme,
             3,
-            lang.legacy("menu.guild_confirmation.invite.title", "guild" to guild.name),
+            lang.guiTitle("menu.guild_confirmation.invite.title", "guild" to guild.name),
         ))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -63,15 +65,15 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
     private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
         val infoItem = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.guild_confirmation.invite.item.info.name"))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.line_1"))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.line_2"))
+            .name(lang.gui("menu.guild_confirmation.invite.item.info.name"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.line_1"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.line_2"))
             .lore("")
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.instructions_line_1"))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.instructions_line_2"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.instructions_line_1"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.instructions_line_2"))
             .lore("")
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.command_label"))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.info.lore.command", "guild" to guild.name))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.command_label"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.command", "guild" to guild.name))
 
         pane.addItem(GuiItem(infoItem), x, y)
     }
@@ -84,20 +86,20 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         meta.owningPlayer = targetPlayer
         head.itemMeta = meta
 
-        val playerItem = head.name(lang.legacy("menu.guild_confirmation.invite.item.player.name", "player" to targetPlayer.name))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.player.lore.player", "player" to targetPlayer.name))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.player.lore.status"))
+        val playerItem = head.name(lang.gui("menu.guild_confirmation.invite.item.player.name", "player" to targetPlayer.name))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.player.lore.player", "player" to targetPlayer.name))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.player.lore.status"))
             .lore("")
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.player.lore.result"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.player.lore.result"))
 
         pane.addItem(GuiItem(playerItem), x, y)
     }
 
     private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
         val confirmItem = ItemStack.of(Material.GREEN_WOOL)
-            .name(lang.legacy("menu.guild_confirmation.invite.item.confirm.name"))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.confirm.lore.line_1"))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.confirm.lore.line_2"))
+            .name(lang.gui("menu.guild_confirmation.invite.item.confirm.name"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.confirm.lore.line_1"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.confirm.lore.line_2"))
 
         val confirmGuiItem = GuiItem(confirmItem) {
             sendInvite()
@@ -107,9 +109,9 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack.of(Material.RED_WOOL)
-            .name(lang.legacy("menu.guild_confirmation.invite.item.cancel.name"))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.cancel.lore.line_1"))
-            .lore(lang.legacy("menu.guild_confirmation.invite.item.cancel.lore.line_2"))
+            .name(lang.gui("menu.guild_confirmation.invite.item.cancel.name"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.cancel.lore.line_1"))
+            .lore(lang.gui("menu.guild_confirmation.invite.item.cancel.lore.line_2"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             menuNavigator.goBack()

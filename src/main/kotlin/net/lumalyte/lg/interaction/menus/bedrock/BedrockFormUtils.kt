@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BedrockLocalizationService
 import net.lumalyte.lg.application.services.TextDirection
@@ -408,25 +410,25 @@ object BedrockFormUtils : KoinComponent {
      * Creates a section header with consistent formatting
      */
     fun createSectionHeader(title: String): LabelComponent {
-        return LabelComponent.of(lang.legacy("bedrock.form_utils.label.section", "text" to title))
+        return LabelComponent.of(lang.bedrock("bedrock.form_utils.label.section", "text" to title))
     }
 
     /**
      * Creates an error message label
      */
     fun createErrorLabel(message: String): LabelComponent {
-        return LabelComponent.of(lang.legacy("bedrock.form_utils.label.error", "text" to message))
+        return LabelComponent.of(lang.bedrock("bedrock.form_utils.label.error", "text" to message))
     }
 
     /**
      * Creates a success message label
      */
     fun createSuccessLabel(message: String): LabelComponent {
-        return LabelComponent.of(lang.legacy("bedrock.form_utils.label.success", "text" to message))
+        return LabelComponent.of(lang.bedrock("bedrock.form_utils.label.success", "text" to message))
     }
 
     fun createInfoLabel(message: String): LabelComponent {
-        return LabelComponent.of(lang.legacy("bedrock.form_utils.label.info", "text" to message))
+        return LabelComponent.of(lang.bedrock("bedrock.form_utils.label.info", "text" to message))
     }
 
     /**

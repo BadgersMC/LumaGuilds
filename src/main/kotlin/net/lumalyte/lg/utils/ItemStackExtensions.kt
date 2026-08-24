@@ -43,6 +43,22 @@ fun ItemStack.name(name: String): ItemStack {
     return this
 }
 
+fun ItemStack.name(name: Component): ItemStack {
+    val meta = itemMeta ?: Bukkit.getItemFactory().getItemMeta(type) ?: return this
+    meta.itemName(name.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE))
+    meta.addItemFlags(
+        ItemFlag.HIDE_ATTRIBUTES,
+        ItemFlag.HIDE_ENCHANTS,
+        ItemFlag.HIDE_UNBREAKABLE,
+        ItemFlag.HIDE_DESTROYS,
+        ItemFlag.HIDE_PLACED_ON,
+        ItemFlag.HIDE_ADDITIONAL_TOOLTIP,
+        ItemFlag.HIDE_DYE,
+    )
+    itemMeta = meta
+    return this
+}
+
 fun ItemStack.lore(text: String): ItemStack {
     val meta = itemMeta ?: Bukkit.getItemFactory().getItemMeta(type) ?: return this
     var lore: MutableList<Component>? = meta.lore()
@@ -57,15 +73,29 @@ fun ItemStack.lore(text: String): ItemStack {
     return this
 }
 
+fun ItemStack.lore(text: Component): ItemStack {
+    val meta = itemMeta ?: Bukkit.getItemFactory().getItemMeta(type) ?: return this
+    val lore = meta.lore()?.toMutableList() ?: mutableListOf()
+    lore += text.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+    meta.lore(lore)
+    itemMeta = meta
+    return this
+}
+
 fun ItemStack.lore(vararg text: String): ItemStack {
     Arrays.stream(text).forEach { this.lore(it) }
     return this
 }
 
-fun ItemStack.lore(text: List<String>): ItemStack {
+fun ItemStack.lore(text: List<*>): ItemStack {
     val meta = itemMeta ?: Bukkit.getItemFactory().getItemMeta(type) ?: return this
-    // Apply italic formatting removal to each lore line
-    val componentLore = text.c().map { it.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE) }
+    val componentLore = text.map { line ->
+        when (line) {
+            is Component -> line
+            is String -> line.c()
+            else -> Component.text(line.toString())
+        }.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+    }
     meta.lore(componentLore)
     itemMeta = meta
     return this
@@ -162,10 +192,6 @@ fun ItemStack.setStringMeta(key: String, value: String): ItemStack {
 private fun String.c(): Component {
     return LegacyComponentSerializer.legacyAmpersand().deserialize(this)
         .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
-}
-
-private fun List<String>.c(): List<Component> {
-    return this.map { it.c() }
 }
 
 /**

@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -38,7 +40,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
         val gui = ChestGui(3, MenuTitleBuilder.build(
             guild.guiTheme,
             3,
-            lang.legacy("menu.guild_confirmation.kick.title", "guild" to guild.name),
+            lang.guiTitle("menu.guild_confirmation.kick.title", "guild" to guild.name),
         ))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -64,16 +66,16 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addWarningDisplay(pane: StaticPane, x: Int, y: Int) {
         val warningItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.guild_confirmation.kick.item.warning.name"))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.irreversible"))
+            .name(lang.gui("menu.guild_confirmation.kick.item.warning.name"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.warning.lore.irreversible"))
             .lore("")
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.removed_line_1"))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.removed_line_2"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.warning.lore.removed_line_1"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.warning.lore.removed_line_2"))
             .lore("")
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.loss_header"))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.bank"))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.claims"))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.warning.lore.permissions"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.warning.lore.loss_header"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.warning.lore.bank"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.warning.lore.claims"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.warning.lore.permissions"))
 
         pane.addItem(GuiItem(warningItem), x, y)
     }
@@ -93,20 +95,20 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
         head.itemMeta = meta
 
-        val memberItem = head.name(lang.legacy("menu.guild_confirmation.kick.item.player.name", "player" to playerName))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.player.lore.player", "player" to playerName))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.player.lore.joined", "joined" to memberToKick.joinedAt))
+        val memberItem = head.name(lang.gui("menu.guild_confirmation.kick.item.player.name", "player" to playerName))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.player.lore.player", "player" to playerName))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.player.lore.joined", "joined" to memberToKick.joinedAt))
             .lore("")
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.player.lore.result"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.player.lore.result"))
 
         pane.addItem(GuiItem(memberItem), x, y)
     }
 
     private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
         val confirmItem = ItemStack.of(Material.RED_WOOL)
-            .name(lang.legacy("menu.guild_confirmation.kick.item.confirm.name"))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.confirm.lore.line_1"))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.confirm.lore.line_2"))
+            .name(lang.gui("menu.guild_confirmation.kick.item.confirm.name"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.confirm.lore.line_1"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.confirm.lore.line_2"))
 
         val confirmGuiItem = GuiItem(confirmItem) {
             performKick()
@@ -116,9 +118,9 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack.of(Material.GREEN_WOOL)
-            .name(lang.legacy("menu.guild_confirmation.kick.item.cancel.name"))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.cancel.lore.line_1"))
-            .lore(lang.legacy("menu.guild_confirmation.kick.item.cancel.lore.line_2"))
+            .name(lang.gui("menu.guild_confirmation.kick.item.cancel.name"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.cancel.lore.line_1"))
+            .lore(lang.gui("menu.guild_confirmation.kick.item.cancel.lore.line_2"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
             menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))

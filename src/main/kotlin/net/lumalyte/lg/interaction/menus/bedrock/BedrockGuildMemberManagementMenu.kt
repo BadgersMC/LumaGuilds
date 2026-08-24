@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -31,13 +33,13 @@ class BedrockGuildMemberManagementMenu(
         val memberCount = members.size
 
         return SimpleForm.builder()
-            .title(lang.legacy("bedrock.member_management.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.member_management.title", "guild" to guild.name))
             .content(buildMemberContent(memberCount))
-            .button(lang.raw("bedrock.member_management.button.list"))
-            .button(lang.raw("bedrock.member_management.button.invite"))
-            .button(lang.raw("bedrock.member_management.button.kick"))
-            .button(lang.raw("bedrock.member_management.button.promote"))
-            .button(lang.raw("bedrock.member_management.button.demote"))
+            .button(lang.bedrock("bedrock.member_management.button.list"))
+            .button(lang.bedrock("bedrock.member_management.button.invite"))
+            .button(lang.bedrock("bedrock.member_management.button.kick"))
+            .button(lang.bedrock("bedrock.member_management.button.promote"))
+            .button(lang.bedrock("bedrock.member_management.button.demote"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> openMemberList()
@@ -54,7 +56,7 @@ class BedrockGuildMemberManagementMenu(
     }
 
     private fun buildMemberContent(memberCount: Int): String {
-        return lang.legacy("bedrock.member_management.content", "count" to memberCount)
+        return lang.bedrock("bedrock.member_management.content", "count" to memberCount)
     }
 
     private fun openMemberList() {
