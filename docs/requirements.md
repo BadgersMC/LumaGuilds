@@ -342,3 +342,21 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 
 ### REQ-073
 **Event-driven.** WHEN a guild is disbanded THEN THE SYSTEM SHALL broadcast a server-wide announcement.
+
+### REQ-074
+**State-driven.** WHILE weekly guild quests are enabled THE SYSTEM SHALL persist one shared weekly quest set for all guilds, generate it once per configured reset period, preserve it across restarts, catch up a missed reset on startup, and track progress independently per guild.
+
+### REQ-075
+**Ubiquitous.** THE SYSTEM SHALL represent a weekly quest as `[action] [amount] [target] [optional condition]`, generate only typed trackable combinations, reject incompatible, impossible, redundant, duplicate, or amount-invalid rolls with structured reasons, and use a bounded deterministic fallback when random generation exhausts its retry limit. Target location metadata SHALL validate only explicit location conditions and SHALL NOT create hidden location requirements.
+
+### REQ-076
+**Event-driven.** WHEN qualifying guild-member activity occurs THEN THE SYSTEM SHALL increment every matching active quest for that member's guild, retain progress beyond the milestone for leaderboard ranking, reject cancelled/creative/spectator activity, and prevent player-placed blocks from satisfying `NATURAL_ONLY` break quests while allowing player-grown crops under an `ANY` provenance policy.
+
+### REQ-077
+**Event-driven.** WHEN a guild reaches a milestone THEN THE SYSTEM SHALL allow that guild to claim its configured Guild EXP and item rewards once during the active week; WHEN all milestone quests are claimed before reset THEN THE SYSTEM SHALL award the configured full-set Guild EXP bonus once; WHEN reset occurs THEN THE SYSTEM SHALL pay configured leaderboard Guild EXP positions before clearing progress. All reward paths SHALL be idempotent.
+
+### REQ-078
+**Event-driven.** WHEN a guild member opens the main guild menu THEN THE SYSTEM SHALL provide access to a localized six-row weekly quest menu showing the shared quests, that guild's progress, claim status, rewards, leaderboard rank where enabled, full-set bonus state, pagination, and time remaining until reset.
+
+### REQ-079
+**Optional feature.** WHERE PlaceholderAPI is installed THE SYSTEM SHALL expose read-only timer, quest-definition, guild-progress, completion, reward, and weekly-bonus placeholders with documented safe fallbacks for missing players, guilds, quests, and active weeks; placeholder evaluation SHALL NOT generate, reset, claim, reward, or otherwise mutate quest state.

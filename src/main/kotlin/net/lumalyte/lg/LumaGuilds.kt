@@ -935,6 +935,10 @@ class LumaGuilds : JavaPlugin() {
         val progressionEventListener = get().get<ProgressionEventListener>()
         server.pluginManager.registerEvents(progressionEventListener, this)
 
+        val questProgressListener = get().get<net.lumalyte.lg.infrastructure.listeners.QuestProgressListener>()
+        server.pluginManager.registerEvents(questProgressListener, this)
+        get().get<net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator>().start(this)
+
         // Register guild channel creation listener (for creating default channels)
         val guildChannelCreationListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener>()
         server.pluginManager.registerEvents(guildChannelCreationListener, this)
@@ -1221,6 +1225,11 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        try {
+            get().getOrNull<net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator>()?.stop()
+        } catch (e: Exception) {
+            logger.warning("Failed to stop weekly quest coordinator: ${e.message}")
+        }
         try {
             get().getOrNull<ProgressionEventListener>()?.shutdown()
         } catch (e: Exception) {

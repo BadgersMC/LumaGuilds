@@ -132,3 +132,26 @@ Cached for 30 seconds. Returns `""` if the slot is empty.
 - Top-N rankings are computed live from `GuildService`, `BankService`, `LeaderboardRepository`, and `ProgressionRepository`. The 30-second cache prevents PAPI tick storms on busy scoreboards.
 - The same data is exposed over HTTP via the public web API (`/api/leaderboards/guilds?type=<category>`).
 - Service errors are swallowed and resolve to safe defaults (`0`, `""`, `0.0`) so PAPI never propagates exceptions to chat or scoreboards.
+# Weekly guild quests
+
+Weekly quest placeholders are read-only. Quest definitions are shared by the server; progress, completion, claim, and bonus values resolve for the viewing player's guild. Missing players/guilds and invalid quest indexes return an empty string for indexed fields and safe zero/false values for aggregate fields.
+
+- `%lumaguilds_guild_weekly_quests_time_remaining%` — time until reset (`2d 14h 32m`, floored at zero)
+- `%lumaguilds_guild_weekly_quests_count%` / `%lumaguilds_guild_weekly_quests_total%` — active quest count
+- `%lumaguilds_guild_weekly_quests_completed%` — milestones completed by the player's guild
+- `%lumaguilds_guild_weekly_quests_all_completed%` — whether every milestone is complete
+- `%lumaguilds_guild_weekly_quests_bonus_exp%` — configured full-set Guild EXP bonus
+- `%lumaguilds_guild_weekly_quests_bonus_awarded%` — whether the player's guild received that bonus
+
+Indexed placeholders use a one-based quest number:
+
+- `%lumaguilds_guild_weekly_quest_1_name%`
+- `%lumaguilds_guild_weekly_quest_1_description%`
+- `%lumaguilds_guild_weekly_quest_1_action%`
+- `%lumaguilds_guild_weekly_quest_1_target%`
+- `%lumaguilds_guild_weekly_quest_1_required%`
+- `%lumaguilds_guild_weekly_quest_1_progress%`
+- `%lumaguilds_guild_weekly_quest_1_progress_percent%`
+- `%lumaguilds_guild_weekly_quest_1_completed%`
+- `%lumaguilds_guild_weekly_quest_1_claimed%`
+- `%lumaguilds_guild_weekly_quest_1_reward_exp%`
