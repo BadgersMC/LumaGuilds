@@ -8,6 +8,7 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.*
@@ -16,7 +17,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -26,10 +26,6 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.text.DecimalFormat
-import java.time.LocalDate
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
 import java.util.*
 
 class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
@@ -39,10 +35,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private val warService: WarService by inject()
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
-    private val mapRendererService: MapRendererService by inject()
     private val guildService: GuildService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
+    private val leaderboardService: LeaderboardService by inject()
 
     private val logger = LoggerFactory.getLogger(GuildStatisticsMenu::class.java)
 
@@ -80,11 +76,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         addRivalryStatsButton(pane, 1, 2)
         addAchievementsButton(pane, 3, 2)
 
-        // Row 4: Visualizations (Future)
-        addGraphPlaceholderButton(pane, 0, 3)
-        addTrendAnalysisButton(pane, 1, 3)
-        addComparisonButton(pane, 2, 3)
-        addExportStatsButton(pane, 3, 3)
+        // Row 4: Advanced Analytics
+        addTrendAnalysisButton(pane, 0, 3)
+        addComparisonButton(pane, 1, 3)
+        addExportStatsButton(pane, 2, 3)
 
         // Row 5: Navigation
         addRefreshStatsButton(pane, 0, 4)
@@ -192,22 +187,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         val guiItem = GuiItem(item) {
             openPerformanceDetail()
-        }
-        pane.addItem(guiItem, x, y)
-    }
-
-    private fun addGraphPlaceholderButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.FILLED_MAP)
-            .name(lang.gui("menu.statistics.item.charts.name"))
-            .lore(lang.gui("menu.statistics.item.charts.lore.description"))
-            .lore(lang.gui("menu.statistics.item.charts.lore.trends"))
-            .lore(lang.gui("menu.statistics.item.charts.lore.visualizations"))
-            .lore(lang.gui("menu.common.blank"))
-            .lore(lang.gui("menu.statistics.item.charts.lore.action"))
-            .lore(lang.gui("menu.statistics.item.charts.lore.rendering"))
-
-        val guiItem = GuiItem(item) {
-            renderGuildBalanceChart()
         }
         pane.addItem(guiItem, x, y)
     }
@@ -715,7 +694,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .name(lang.gui("menu.statistics.item.period.name"))
             .lore(lang.gui("menu.statistics.item.period.lore.description"))
             .lore(lang.gui("menu.statistics.item.period.lore.periods"))
-            .lore(lang.gui("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             openPeriodStatsMenu()
@@ -728,7 +706,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .name(lang.gui("menu.statistics.item.rivalry.name"))
             .lore(lang.gui("menu.statistics.item.rivalry.lore.description"))
             .lore(lang.gui("menu.statistics.item.rivalry.lore.rankings"))
-            .lore(lang.gui("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             openRivalryStatsDetail()
@@ -746,7 +723,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .lore(lang.gui("menu.statistics.item.achievements.lore.count", "count" to achievementCount))
             .lore(achievementKillsLore(killStats.totalKills))
             .lore(achievementNetKillsLore(killStats.netKills))
-            .lore(lang.gui("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             openAchievementsDetail()
@@ -762,7 +738,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .lore(lang.gui("menu.statistics.item.kill_trends.lore.chart"))
 
         val guiItem = GuiItem(item) {
-            renderKillTrendChart()
+            openTrendAnalysis()
         }
         pane.addItem(guiItem, x, y)
     }
@@ -775,7 +751,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .lore(lang.gui("menu.statistics.item.contribution_chart.lore.details"))
 
         val guiItem = GuiItem(item) {
-            renderMemberContributionsChart()
+            openGuildComparison()
         }
         pane.addItem(guiItem, x, y)
     }
@@ -785,7 +761,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .name(lang.gui("menu.statistics.item.export.name"))
             .lore(lang.gui("menu.statistics.item.export.lore.description"))
             .lore(lang.gui("menu.statistics.item.export.lore.format"))
-            .lore(lang.gui("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             exportGuildStatistics()
@@ -1113,195 +1088,342 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun openPeriodStatsMenu() {
-        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.period"))
+        try {
+            val gui = statisticsGui(4)
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 4)
+            gui.addPane(pane)
+
+            val killStats = killService.getGuildKillStats(guild.id)
+            val balance = try { bankService.getBalance(guild.id) } catch (_: Exception) { 0 }
+
+            val periods = listOf(
+                "daily" to LeaderboardPeriod.DAILY,
+                "weekly" to LeaderboardPeriod.WEEKLY,
+                "monthly" to LeaderboardPeriod.MONTHLY,
+                "all_time" to LeaderboardPeriod.ALL_TIME
+            )
+
+            periods.forEachIndexed { index, (key, period) ->
+                val item = ItemStack.of(Material.CLOCK)
+                    .name(lang.gui("menu.statistics.detail.period_item.name", "period" to lang.gui("menu.statistics.period.$key")))
+                    .lore(lang.gui("menu.statistics.common.total_kills", "count" to killStats.totalKills))
+                    .lore(lang.gui("menu.statistics.common.total_deaths", "count" to killStats.totalDeaths))
+                    .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.statistics.common.balance", "amount" to balance))
+
+                pane.addItem(GuiItem(item), 1 + index * 2, 1)
+            }
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
+            pane.addItem(GuiItem(backItem) { open() }, 4, 3)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.period"))
+            logger.error("Error opening period stats menu for guild ${guild.id}", e)
+        }
     }
 
     private fun openRivalryStatsDetail() {
-        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.rivalry"))
+        try {
+            val warHistory = warService.getWarHistory(guild.id, 100)
+            val rivalGuildIds = warHistory.map { war ->
+                if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
+            }.distinct()
+
+            val gui = statisticsGui(6)
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val paginatedPane = PaginatedPane(0, 0, 9, 5)
+            gui.addPane(paginatedPane)
+
+            val pages = rivalGuildIds.chunked(5).ifEmpty { listOf(emptyList()) }
+
+            pages.forEachIndexed { pageIndex, pageGuilds ->
+                val pagePane = StaticPane(0, 0, 9, 5)
+                pageGuilds.forEachIndexed { index, rivalId ->
+                    val enemyGuild = guildService.getGuild(rivalId)
+                    val enemyName: Any = enemyGuild?.name ?: lang.gui("menu.statistics.common.unknown_guild")
+                    val warsBetween = warHistory.filter { war ->
+                        (war.declaringGuildId == guild.id && war.defendingGuildId == rivalId) ||
+                                (war.declaringGuildId == rivalId && war.defendingGuildId == guild.id)
+                    }
+                    val wins = warsBetween.count { it.winner == guild.id }
+                    val losses = warsBetween.count { it.winner == rivalId }
+                    val draws = warsBetween.count { it.winner == null }
+
+                    val killsBetween = killService.getKillsBetweenGuilds(guild.id, rivalId, 100)
+                    val guildKills = killsBetween.count { it.killerGuildId == guild.id }
+                    val enemyKills = killsBetween.count { it.killerGuildId == rivalId }
+                    val kdr = if (enemyKills > 0) String.format("%.2f", guildKills.toDouble() / enemyKills) else guildKills.toString()
+
+                    val item = ItemStack.of(Material.RED_BANNER)
+                        .name(lang.gui("menu.statistics.detail.rivalry.enemy", "guild" to enemyName))
+                        .lore(lang.gui("menu.statistics.common.wars_fought", "count" to warsBetween.size))
+                        .lore(lang.gui("menu.statistics.common.wins", "count" to wins))
+                        .lore(lang.gui("menu.statistics.common.losses", "count" to losses))
+                        .lore(lang.gui("menu.statistics.common.draws", "count" to draws))
+                        .lore(lang.gui("menu.common.blank"))
+                        .lore(lang.gui("menu.statistics.common.kdr_against", "ratio" to kdr))
+
+                    pagePane.addItem(GuiItem(item), 1, index)
+                }
+                paginatedPane.addPage(pagePane)
+            }
+
+            val navPane = StaticPane(0, 5, 9, 1)
+            if (pages.size > 1) {
+                val prevItem = ItemStack.of(Material.ARROW)
+                    .name(lang.gui("menu.statistics.item.previous_page.name"))
+                navPane.addItem(GuiItem(prevItem) {
+                    val newPage = (paginatedPane.page - 1).coerceAtLeast(0)
+                    paginatedPane.page = newPage
+                    gui.update()
+                }, 2, 0)
+
+                val nextItem = ItemStack.of(Material.ARROW)
+                    .name(lang.gui("menu.statistics.item.next_page.name"))
+                navPane.addItem(GuiItem(nextItem) {
+                    val newPage = (paginatedPane.page + 1).coerceAtMost(pages.size - 1)
+                    paginatedPane.page = newPage
+                    gui.update()
+                }, 6, 0)
+
+                val pageIndicator = ItemStack.of(Material.PAPER)
+                    .name(lang.gui("menu.statistics.common.page_info", "page" to 1, "total" to pages.size))
+                navPane.addItem(GuiItem(pageIndicator), 4, 0)
+            }
+
+            addBackButton(navPane, 8, 0)
+            gui.addPane(navPane)
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.rivalry"))
+            logger.error("Error opening rivalry stats for guild ${guild.id}", e)
+        }
     }
 
-
     private fun openAchievementsDetail() {
-        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.achievements"))
+        try {
+            val killStats = killService.getGuildKillStats(guild.id)
+            val warHistory = warService.getWarHistory(guild.id, 100)
+            val warsFought = warHistory.size
+            val warsWon = warHistory.count { it.winner == guild.id }
+
+            data class Achievement(val key: String, val unlockCondition: Boolean)
+
+            val achievements = listOf(
+                Achievement("first_blood", killStats.totalKills >= 1),
+                Achievement("centurion", killStats.totalKills >= 100),
+                Achievement("warlord", killStats.totalKills >= 1000),
+                Achievement("survivor", warsFought >= 10),
+                Achievement("champion", warsWon >= 5),
+                Achievement("veteran", warsFought >= 25),
+                Achievement("net_positive", killStats.netKills > 0),
+                Achievement("well_rounded",
+                    killStats.totalKills > 0 && killStats.totalDeaths > 0 &&
+                            killStats.killDeathRatio > 0.0 && warsFought > 0)
+            )
+
+            val gui = statisticsGui(3)
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 3)
+            gui.addPane(pane)
+
+            achievements.forEachIndexed { index, achievement ->
+                val material = if (achievement.unlockCondition) Material.LIME_STAINED_GLASS_PANE else Material.GRAY_STAINED_GLASS_PANE
+                val itemName = if (achievement.unlockCondition)
+                    lang.gui("menu.statistics.detail.achievements.${achievement.key}.unlocked")
+                else
+                    lang.gui("menu.statistics.detail.achievements.${achievement.key}.locked")
+                val item = ItemStack.of(material)
+                    .name(itemName)
+                val col = index % 7
+                val row = index / 7
+                pane.addItem(GuiItem(item), 1 + col, row)
+            }
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
+            pane.addItem(GuiItem(backItem) { open() }, 4, 2)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.achievements"))
+            logger.error("Error opening achievements for guild ${guild.id}", e)
+        }
     }
 
     private fun openTrendAnalysis() {
-        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.trends"))
+        try {
+            val gui = statisticsGui(3)
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 3)
+            gui.addPane(pane)
+
+            val killStats = killService.getGuildKillStats(guild.id)
+            val balance = try { bankService.getBalance(guild.id) } catch (_: Exception) { 0 }
+
+            data class TrendInfo(val label: String, val currentValue: Number, val previousValue: Number)
+
+            val trends = listOf(
+                TrendInfo("kill", killStats.totalKills, 0),
+                TrendInfo("death", killStats.totalDeaths, 0),
+                TrendInfo("balance", balance, 0)
+            )
+
+            trends.forEachIndexed { index, trend ->
+                val arrow = when {
+                    trend.currentValue.toDouble() > trend.previousValue.toDouble() -> "↑"
+                    trend.currentValue.toDouble() < trend.previousValue.toDouble() -> "↓"
+                    else -> "→"
+                }
+
+                val item = ItemStack.of(Material.REPEATER)
+                    .name(lang.gui("menu.statistics.detail.trend.${trend.label}.name"))
+                    .lore(lang.gui("menu.statistics.detail.trend.current", "value" to trend.currentValue))
+                    .lore(lang.gui("menu.statistics.detail.trend.arrow", "arrow" to arrow))
+
+                pane.addItem(GuiItem(item), 1 + index * 2, 1)
+            }
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
+            pane.addItem(GuiItem(backItem) { open() }, 4, 2)
+
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.trends"))
+            logger.error("Error opening trend analysis for guild ${guild.id}", e)
+        }
     }
 
     private fun openGuildComparison() {
-        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.comparison"))
-    }
+        try {
+            val allGuilds = guildService.getAllGuilds().sortedBy { it.name }
 
+            val gui = statisticsGui(6)
+            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
+            gui.setOnBottomClick { guiEvent ->
+                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
+                    guiEvent.isCancelled = true
+            }
+            val paginatedPane = PaginatedPane(0, 0, 9, 5)
+            gui.addPane(paginatedPane)
+
+            val pages = allGuilds.chunked(14).ifEmpty { listOf(emptyList()) }
+
+            pages.forEachIndexed { pageIndex, pageGuilds ->
+                val pagePane = StaticPane(0, 0, 9, 5)
+                pageGuilds.forEachIndexed { index, otherGuild ->
+                    val otherKills = killService.getGuildKillStats(otherGuild.id)
+                    val memberCount = memberService.getMemberCount(otherGuild.id)
+                    val warHistory = warService.getWarHistory(otherGuild.id, 50)
+                    val warsWon = warHistory.count { it.winner == otherGuild.id }
+                    val warsLost = warHistory.count { it.winner != null && it.winner != otherGuild.id }
+                    val balance = try { bankService.getBalance(otherGuild.id) } catch (_: Exception) { 0 }
+
+                    val item = ItemStack.of(Material.PLAYER_HEAD)
+                        .name(lang.gui("menu.statistics.detail.comparison.guild", "guild" to otherGuild.name))
+                        .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(otherKills.killDeathRatio)))
+                        .lore(lang.gui("menu.statistics.common.war_record", "wins" to warsWon, "losses" to warsLost))
+                        .lore(lang.gui("menu.statistics.common.balance", "amount" to decimalFormat.format(balance)))
+                        .lore(lang.gui("menu.statistics.common.total_members", "count" to memberCount))
+
+                    val col = index % 7
+                    val row = index / 7
+                    pagePane.addItem(GuiItem(item), col, row)
+                }
+                paginatedPane.addPage(pagePane)
+            }
+
+            val navPane = StaticPane(0, 5, 9, 1)
+            if (pages.size > 1) {
+                val prevItem = ItemStack.of(Material.ARROW)
+                    .name(lang.gui("menu.statistics.item.previous_page.name"))
+                navPane.addItem(GuiItem(prevItem) {
+                    val newPage = (paginatedPane.page - 1).coerceAtLeast(0)
+                    paginatedPane.page = newPage
+                    gui.update()
+                }, 2, 0)
+
+                val nextItem = ItemStack.of(Material.ARROW)
+                    .name(lang.gui("menu.statistics.item.next_page.name"))
+                navPane.addItem(GuiItem(nextItem) {
+                    val newPage = (paginatedPane.page + 1).coerceAtMost(pages.size - 1)
+                    paginatedPane.page = newPage
+                    gui.update()
+                }, 6, 0)
+
+                val pageIndicator = ItemStack.of(Material.PAPER)
+                    .name(lang.gui("menu.statistics.common.page_info", "page" to 1, "total" to pages.size))
+                navPane.addItem(GuiItem(pageIndicator), 4, 0)
+            }
+
+            addBackButton(navPane, 8, 0)
+            gui.addPane(navPane)
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.comparison"))
+            logger.error("Error opening guild comparison for guild ${guild.id}", e)
+        }
+    }
 
     private fun exportGuildStatistics() {
-        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.export"))
-        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.export_description"))
-    }
-
-    // Chart rendering methods
-    private fun renderGuildBalanceChart() {
         try {
-            player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.generating"))
+            val killStats = killService.getGuildKillStats(guild.id)
+            val warHistory = warService.getWarHistory(guild.id, 50)
+            val warsWon = warHistory.count { it.winner == guild.id }
+            val warsLost = warHistory.count { it.winner != null && it.winner != guild.id }
+            val balance = try { bankService.getBalance(guild.id) } catch (_: Exception) { 0.0 }
+            val memberCount = memberService.getMemberCount(guild.id)
 
-            // Get real transaction history from the database
-            val transactions = bankService.getTransactionHistory(guild.id, 50)
+            val guildMembers = memberService.getGuildMembers(guild.id).map { it.playerId }
+            val topKillers = killService.getTopKillers(guildMembers, 3)
+            val topKillerNames = topKillers.mapIndexed { idx, (playerId, _) ->
+                "${idx + 1}. ${Bukkit.getOfflinePlayer(playerId).name ?: "Unknown"}"
+            }.joinToString(", ")
 
-            if (transactions.isEmpty()) {
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.no_data"))
-                return
+            player.sendMessage(lang.msg("menu.statistics.export.header", "guild" to guild.name))
+            player.sendMessage(lang.msg("menu.statistics.export.level", "level" to guild.level))
+            player.sendMessage(lang.msg("menu.statistics.export.kills", "kills" to killStats.totalKills, "deaths" to killStats.totalDeaths))
+            player.sendMessage(lang.msg("menu.statistics.export.kdr", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+            player.sendMessage(lang.msg("menu.statistics.export.wars", "wins" to warsWon, "losses" to warsLost))
+            player.sendMessage(lang.msg("menu.statistics.export.balance", "amount" to decimalFormat.format(balance)))
+            player.sendMessage(lang.msg("menu.statistics.export.members", "count" to memberCount))
+            if (topKillerNames.isNotEmpty()) {
+                player.sendMessage(lang.msg("menu.statistics.export.top_killers", "killers" to topKillerNames))
             }
-
-            // Group transactions by date and calculate balance progression
-            val dateToBalance = mutableMapOf<LocalDate, Int>()
-            for (transaction in transactions) {
-                val date = LocalDateTime.ofInstant(transaction.timestamp, ZoneId.systemDefault()).toLocalDate()
-                dateToBalance[date] = (dateToBalance[date] ?: 0) + transaction.amount
-            }
-
-            val dailyBalances = dateToBalance.toList()
-                .sortedBy { it.first }
-                .takeLast(30) // Last 30 days
-                .map { it.first.toString() to it.second }
-
-            if (dailyBalances.isEmpty()) {
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.process_failed"))
-                return
-            }
-
-            val chart = mapRendererService.renderCustomChart(
-                title = plainLocale("menu.statistics.chart.title.balance", "guild" to guild.name),
-                dataPoints = dailyBalances,
-                chartType = ChartType.LINE,
-                player = player
-            )
-
-            if (chart != null) {
-                player.inventory.addItem(chart)
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.success"))
-            } else {
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.failure"))
-            }
-
+            player.sendMessage(lang.msg("menu.statistics.export.footer"))
         } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.error"))
-            e.printStackTrace()
-        }
-    }
-
-    private fun renderKillTrendChart() {
-        try {
-            player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.generating"))
-
-            // Get real kill data for the past 7 weeks
-            val now = Instant.now()
-            val weekTrends = mutableListOf<Pair<String, Int>>()
-
-            for (weeksAgo in 6 downTo 0) {
-                val weekStart = now.minusSeconds(weeksAgo * 7L * 24L * 60L * 60L)
-                val weekEnd = weekStart.plusSeconds(7L * 24L * 60L * 60L)
-
-                try {
-                    val weekStats = killService.getKillStatsForPeriod(guild.id, weekStart, weekEnd)
-                    val weekLabel = if (weeksAgo == 0) {
-                        lang.raw("menu.statistics.chart.label.this_week")
-                    } else {
-                        plainLocale("menu.statistics.chart.label.weeks_ago", "weeks" to weeksAgo)
-                    }
-                    weekTrends.add(weekLabel to weekStats.totalKills)
-                } catch (e: Exception) {
-                // Menu operation - catching all exceptions to prevent UI failure
-            // Menu operation - catching all exceptions to prevent UI failure
-                    // If we can't get data for this week, use 0
-                    val weekLabel = if (weeksAgo == 0) {
-                        lang.raw("menu.statistics.chart.label.this_week")
-                    } else {
-                        plainLocale("menu.statistics.chart.label.weeks_ago", "weeks" to weeksAgo)
-                    }
-                    weekTrends.add(weekLabel to 0)
-                }
-            }
-
-            // Reverse to show chronological order
-            weekTrends.reverse()
-
-            if (weekTrends.all { it.second == 0 }) {
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.no_data"))
-                return
-            }
-
-            val chart = mapRendererService.renderCustomChart(
-                title = plainLocale("menu.statistics.chart.title.kills", "guild" to guild.name),
-                dataPoints = weekTrends,
-                chartType = ChartType.LINE,
-                player = player
-            )
-
-            if (chart != null) {
-                player.inventory.addItem(chart)
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.success"))
-            } else {
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.failure"))
-            }
-
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.error"))
-            e.printStackTrace()
-        }
-    }
-
-    private fun renderMemberContributionsChart() {
-        try {
-            player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.generating"))
-
-            // Get real member contribution data from BankService
-            val contributions = bankService.getMemberContributions(guild.id)
-
-            if (contributions.isEmpty()) {
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.no_data"))
-                return
-            }
-
-            // Convert to chart data format with player names
-            val chartData = contributions
-                .filter { it.netContribution > 0 }
-                .sortedByDescending { it.netContribution }
-                .take(10) // Top 10 contributors
-                .map { (it.playerName ?: lang.raw("general.unknown")) to it.netContribution }
-
-            if (chartData.isEmpty()) {
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.no_positive"))
-                return
-            }
-
-            val chart = mapRendererService.renderCustomChart(
-                title = plainLocale("menu.statistics.chart.title.contributions", "guild" to guild.name),
-                dataPoints = chartData,
-                chartType = ChartType.BAR,
-                player = player
-            )
-
-            if (chart != null) {
-                player.inventory.addItem(chart)
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.success"))
-            } else {
-                player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.failure"))
-            }
-
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.error"))
-            e.printStackTrace()
+            player.sendMessage(lang.msg("menu.statistics.feedback.export_failed"))
+            logger.error("Error exporting guild statistics for guild ${guild.id}", e)
         }
     }
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
-
-    private fun plainLocale(key: String, vararg placeholders: Pair<String, Any?>): String =
-        PlainTextComponentSerializer.plainText().serialize(lang.msg(key, *placeholders))
 }
 
