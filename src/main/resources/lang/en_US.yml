@@ -2297,6 +2297,38 @@ item:
     lore: Place this where you want the new location to be.
     name: "Move Claim '<claim>'"
 menu:
+  quests:
+    title: "<guild>'s Weekly Quests"
+    feedback:
+      not_member: '<red>❌ You must belong to this guild to view its weekly quests.'
+      no_quests: '<yellow>No weekly quests are active right now.'
+      claimed: '<green>✓ Quest claimed for <xp> Guild EXP!'
+    item:
+      header:
+        name: '<gold><bold>Active Weekly Quests'
+        claimed: '<gray>Claimed: <white><claimed>/<total>'
+        reset: '<gray>Resets in: <yellow><time>'
+        bonus: '<gray>Full-set bonus: <gold><xp> EXP <status>'
+      back:
+        name: '<red>← Back'
+      prev_page:
+        name: '<yellow>← Previous Page'
+      next_page:
+        name: '<yellow>Next Page →'
+      quest:
+        name: '<gold><action> <target>'
+        description: '<gray><amount> <target><condition>'
+        progress: '<gray>Progress: <white><count>/<target> <dark_gray>(<percent>%)'
+        reward: '<gray>Reward: <gold><xp> Guild EXP'
+        rank: '<gray>Current rank: <aqua><rank>'
+        completed: '<green>✅ Click to claim!'
+        claimed: '<dark_gray>✅ Claimed'
+        in_progress: '<yellow>⏳ In progress'
+    tier:
+      common: '<gray>Common Quest'
+      challenging: '<white>Challenging Quest'
+      headline: '<gold>Headline Quest'
+      conditioned: '<aqua>Conditioned Quest'
   party:
     creation:
       title: '<gold>Create New Party - <guild>'
@@ -2816,6 +2848,11 @@ menu:
           line_1: '<gray>Guild leveling, XP,'
           line_2: '<gray>and unlocked perks'
         name: '<green>Progression'
+      quests:
+        lore:
+          line_1: '<gray>Complete shared weekly challenges'
+          line_2: '<gray>for generous guild rewards'
+        name: '<gold>⏳ Quests'
       ranks:
         lore:
           line_1: '<gray>Create, edit, and manage'

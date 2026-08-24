@@ -493,48 +493,48 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [ ] **LG-1601** Domain model: `QuestDefinition`, `GuildQuestProgress`, `QuestAction` enum (with `ExperienceSource` mapping), and `ExperienceSource` reuse — domain layer, zero Bukkit imports
   - Tag: `TDD`
   - References: REQ-074, REQ-075, REQ-081
-  - Evidence:
+  - Evidence: Domain model, semantic validator, bounded generator, overflow protection, and zero-Bukkit layer checks are GREEN; the newly specified direct `QuestAction`→`ExperienceSource` mapping remains open.
   - Files: `domain/values/QuestAction.kt`, `domain/entities/QuestDefinition.kt`, `domain/entities/GuildQuestProgress.kt`
 
 - [ ] **LG-1602** Quest persistence: `QuestRepository` (interface in application/persistence) + `QuestRepositorySQLite` with migration for per-guild quest progress (quest_id, guild_id, current_count, completed, claimed, reset_timestamp)
   - Tag: `TDD`
   - References: REQ-080
-  - Evidence:
+  - Evidence: Repository, atomic active-set replacement, claim-preserving upserts, per-recipient payout markers, cleanup, and restart tests are GREEN; the newly specified quest-table migration chain remains open.
   - Files: `application/persistence/QuestRepository.kt`, `infrastructure/persistence/guilds/QuestRepositorySQLite.kt`, `migrations/*.sql`
 
-- [ ] **LG-1603** Quest config loading: load weekly quest definitions from config (quests section in config.yml or separate quests.yml) — action type, target count, reward tier (COMMON/CHALLENGING/HEADLINE/CONDITIONED), optional item rewards, lang keys, enabled flag
+- [x] **LG-1603** Quest config loading: load weekly quest definitions from config (quests section in config.yml or separate quests.yml) — action type, target count, reward tier (COMMON/CHALLENGING/HEADLINE/CONDITIONED), optional item rewards, lang keys, enabled flag
   - Tag: `TDD`
   - References: REQ-079
-  - Evidence:
+  - Evidence: Typed progression config loads actions, targets, reward tiers, optional conditions/items, lang keys, enabled/default-disabled state, and rejects empty definition sets.
   - Files: config loader, quest definition config model
 
 - [ ] **LG-1604** Quest progress listener: Bukkit event listener in infrastructure/listeners that increments quest progress matching active weekly quests, using `QuestAction`→`ExperienceSource` mapping for provenance compatibility. Claims-adjacent event handlers (block break/place for MINE_BLOCKS/PLACE_BLOCKS) SHALL gate on `claims_enabled` before registering — the listener SHALL NOT register claim-related handlers when claims are disabled.
   - Tag: `TDD`
   - References: REQ-075
-  - Evidence:
+  - Evidence: Listener covers the configured activity families and provenance reconciliation; the newly specified `claims_enabled` registration gate remains open.
   - Files: `infrastructure/listeners/QuestProgressListener.kt`
 
-- [ ] **LG-1605** Quest lifecycle service: weekly rotation (auto-reset at configured time, default Monday 00:00 UTC), quest activation/deactivation, guild progress aggregation, completion detection per quest
+- [x] **LG-1605** Quest lifecycle service: weekly rotation (auto-reset at configured time, default Monday 00:00 UTC), quest activation/deactivation, guild progress aggregation, completion detection per quest
   - Tag: `TDD`
   - References: REQ-074
-  - Evidence:
+  - Evidence: `QuestServiceTest` and coordinator integration cover shared weekly rotation, deactivation, guild aggregation, completion, payout-before-cleanup, and retry-safe recipient state.
   - Files: `application/services/QuestService.kt`
 
-- [ ] **LG-1606** Quest reward delivery: claim flow awarding Guild EXP via `ProgressionService.awardExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)` + optional item rewards (drop or inventory); claim-once-per-week-per-guild enforcement
+- [x] **LG-1606** Quest reward delivery: claim flow awarding Guild EXP via `ProgressionService.awardExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)` + optional item rewards (drop or inventory); claim-once-per-week-per-guild enforcement
   - Tag: `TDD`
   - References: REQ-077, REQ-078
-  - Evidence:
+  - Evidence: Claim-once persistence, claim-gated full-set bonus, weekly activity XP, namespaced item reward round-trip, stack splitting, and inventory overflow drops are implemented and tested.
   - Files: reward delivery in `QuestService`, claim command/menu handler
 
-- [ ] **LG-1607** Quest menu UI: ChestGUI/StaticPane menu shown as a nav-accessible page (Row 1, Slot 5 — replacing the former vault slot which now lives under Economy). Menu displays active quests with name, description, progress bar, target count, reward tier, and claim button — wired through `MenuFactory` and `MenuNavigator`.
+- [x] **LG-1607** Quest menu UI: ChestGUI/StaticPane menu shown as a nav-accessible page (Row 1, Slot 5 — replacing the former vault slot which now lives under Economy). Menu displays active quests with name, description, progress bar, target count, reward tier, and claim button — wired through `MenuFactory` and `MenuNavigator`.
   - Tag: `TDD`
   - References: REQ-076
-  - Evidence:
+  - Evidence: Dashboard/factory/6-row ChestGUI navigation, progress/reward/claim rendering, timer, pagination, and explicit Bedrock fallback are wired.
   - Files: `interaction/menus/guild/GuildQuestsMenu.kt`
 
-- [ ] **LG-1608** Lang keys: all player-facing quest strings in `lang/en_US.yml` via `LangService` — quest names, descriptions, completion messages, error messages, reward announcements
+- [x] **LG-1608** Lang keys: all player-facing quest strings in `lang/en_US.yml` via `LangService` — quest names, descriptions, completion messages, error messages, reward announcements
   - Tag: `INFRA`
   - References: REQ-074..REQ-081
-  - Evidence:
+  - Evidence: Quest menu and feedback strings use `LangService`; `MenuLocalizationTest`, `LocaleContractTest`, and the full clean suite (625 tests before merge) are GREEN.
   - Files: `lang/en_US.yml` (quest section)
 

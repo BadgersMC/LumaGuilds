@@ -75,6 +75,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(25)
                 currentDbVersion = 25
             }
+            if (currentDbVersion < 26) {
+                migrateToVersion26()
+                updateDatabaseVersion(26)
+                currentDbVersion = 26
+            }
 
             connection.commit()
 
@@ -883,5 +888,19 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
         componentLogger.info(
             Component.text("✓ Added guild_penalties table (migration v25)"),
         )
+    }
+
+    private fun migrateToVersion26() {
+        connection.createStatement().use { statement ->
+            statement.execute(
+                """
+                CREATE TABLE IF NOT EXISTS quest_player_placed_blocks (
+                    world_id VARCHAR(36) NOT NULL, x INT NOT NULL, y INT NOT NULL, z INT NOT NULL,
+                    PRIMARY KEY (world_id, x, y, z)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """.trimIndent()
+            )
+        }
+        componentLogger.info(Component.text("✓ Migration v26 complete: weekly quest provenance added"))
     }
 }
