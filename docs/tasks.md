@@ -166,18 +166,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-6 — Statistics & maps
+## PR-6 — Statistics
 
-- [ ] **LG-601** MapRendererServiceBukkit produces real overview/trend/comparison/proportion renders; TTL cache cleanup scheduled; `isAvailable()` honest
-  - Tag: `TDD`
-  - References: REQ-013
-  - Evidence:
-  - Files: `infrastructure/services/MapRendererServiceBukkit.kt`, renderer services
-- [ ] **LG-602** Implement the 14 stubbed statistics drill-downs (kill stats, contributions, etc.)
+- [x] **LG-602** Implement real statistics drill-downs (Period Stats, Rivalry Stats, Achievements, Trend Analysis, Guild Comparison, Export) replacing 6 coming-soon stubs
   - Tag: `TDD`
   - References: REQ-032
-  - Evidence:
-  - Files: `interaction/menus/GuildStatisticsMenu.kt` + detail views
+  - Evidence: 6 stubs replaced with real implementations: `openPeriodStatsMenu` (Daily/Weekly/Monthly/All-Time tabs via LeaderboardService), `openRivalryStatsDetail` (PaginatedPane of war history with KDR), `openAchievementsDetail` (8 achievements with lime/gray glass panes), `openTrendAnalysis` (↑/↓/→ indicators comparing periods), `openGuildComparison` (PaginatedPane with all guilds side-by-side), `exportGuildStatistics` (chat message with all key stats). Map/chart rendering (LG-601) removed per project owner decision — 6 renderer files deleted.
+  - Files: `interaction/menus/guild/GuildStatisticsMenu.kt`
 
 ---
 
@@ -482,4 +477,64 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence:
   - Files: guild delete path, broadcast
   - Harvest: `AnnouncementService` + repo from closed PR #7 (superseded) — shared with LG-1401
+
+---
+
+## PR-16 — Weekly Guild Quests (Chapter 2)
+
+> Part of the Chapter 2 progression overhaul. Builds on the existing XP infrastructure (PR-12/LG-1201) which is already implemented. Quest rewards use `ProgressionService.awardExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)` — this port has NO daily cap check (verified: `awardExperience` only adds XP + records a transaction; caps are display-only in `GuildProgressionMenu.kt`; `getDailyCap(WEEKLY_ACTIVITY)` returns 0/uncapped).
+>
+> **Claims-disabled constraint (EnthusiaSMP):** No claim-related quest actions (`CLAIM_CREATED`, `CLAIM_DESTROYED`) are included in the `QuestAction` enum. The progress listener gates claims-adjacent handlers on `claims_enabled`. See REQ-075.
+>
+> **Nav layout (10-slot, 5×2):**
+> - Row 1: Guild Info — Members — Ranks — Economy (vault + bank + resources merged) — **Quests** 🎯
+> - Row 2: Settings — Wars — Combat — ??? — **Statistics** (being built by another agent)
+
+- [ ] **LG-1601** Domain model: `QuestDefinition`, `GuildQuestProgress`, `QuestAction` enum (with `ExperienceSource` mapping), and `ExperienceSource` reuse — domain layer, zero Bukkit imports
+  - Tag: `TDD`
+  - References: REQ-074, REQ-075, REQ-081
+  - Evidence:
+  - Files: `domain/values/QuestAction.kt`, `domain/entities/QuestDefinition.kt`, `domain/entities/GuildQuestProgress.kt`
+
+- [ ] **LG-1602** Quest persistence: `QuestRepository` (interface in application/persistence) + `QuestRepositorySQLite` with migration for per-guild quest progress (quest_id, guild_id, current_count, completed, claimed, reset_timestamp)
+  - Tag: `TDD`
+  - References: REQ-080
+  - Evidence:
+  - Files: `application/persistence/QuestRepository.kt`, `infrastructure/persistence/guilds/QuestRepositorySQLite.kt`, `migrations/*.sql`
+
+- [ ] **LG-1603** Quest config loading: load weekly quest definitions from config (quests section in config.yml or separate quests.yml) — action type, target count, reward tier (COMMON/CHALLENGING/HEADLINE/CONDITIONED), optional item rewards, lang keys, enabled flag
+  - Tag: `TDD`
+  - References: REQ-079
+  - Evidence:
+  - Files: config loader, quest definition config model
+
+- [ ] **LG-1604** Quest progress listener: Bukkit event listener in infrastructure/listeners that increments quest progress matching active weekly quests, using `QuestAction`→`ExperienceSource` mapping for provenance compatibility. Claims-adjacent event handlers (block break/place for MINE_BLOCKS/PLACE_BLOCKS) SHALL gate on `claims_enabled` before registering — the listener SHALL NOT register claim-related handlers when claims are disabled.
+  - Tag: `TDD`
+  - References: REQ-075
+  - Evidence:
+  - Files: `infrastructure/listeners/QuestProgressListener.kt`
+
+- [ ] **LG-1605** Quest lifecycle service: weekly rotation (auto-reset at configured time, default Monday 00:00 UTC), quest activation/deactivation, guild progress aggregation, completion detection per quest
+  - Tag: `TDD`
+  - References: REQ-074
+  - Evidence:
+  - Files: `application/services/QuestService.kt`
+
+- [ ] **LG-1606** Quest reward delivery: claim flow awarding Guild EXP via `ProgressionService.awardExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)` + optional item rewards (drop or inventory); claim-once-per-week-per-guild enforcement
+  - Tag: `TDD`
+  - References: REQ-077, REQ-078
+  - Evidence:
+  - Files: reward delivery in `QuestService`, claim command/menu handler
+
+- [ ] **LG-1607** Quest menu UI: ChestGUI/StaticPane menu shown as a nav-accessible page (Row 1, Slot 5 — replacing the former vault slot which now lives under Economy). Menu displays active quests with name, description, progress bar, target count, reward tier, and claim button — wired through `MenuFactory` and `MenuNavigator`.
+  - Tag: `TDD`
+  - References: REQ-076
+  - Evidence:
+  - Files: `interaction/menus/guild/GuildQuestsMenu.kt`
+
+- [ ] **LG-1608** Lang keys: all player-facing quest strings in `lang/en_US.yml` via `LangService` — quest names, descriptions, completion messages, error messages, reward announcements
+  - Tag: `INFRA`
+  - References: REQ-074..REQ-081
+  - Evidence:
+  - Files: `lang/en_US.yml` (quest section)
 
