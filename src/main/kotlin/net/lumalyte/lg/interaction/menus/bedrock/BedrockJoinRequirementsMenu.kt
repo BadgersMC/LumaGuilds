@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.LfgJoinResult
@@ -32,6 +33,7 @@ class BedrockJoinRequirementsMenu(
     private val configService: ConfigService by inject()
     private val physicalCurrencyService: PhysicalCurrencyService by inject()
     private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val requirement = lfgService.getJoinRequirement(guild)
@@ -41,13 +43,13 @@ class BedrockJoinRequirementsMenu(
         val content = buildFormContent(requirement, canJoinResult)
 
         val builder = SimpleForm.builder()
-            .title(localize("lfg.join.requirements.title"))
+            .title(lang.legacy("bedrock.join_requirements.title", "guild" to guild.name))
             .content(content)
 
         if (canJoin) {
-            builder.button(localize("lfg.join.requirements.button.join"))
+            builder.button(lang.raw("bedrock.join_requirements.button.join"))
         }
-        builder.button(localize("lfg.join.requirements.button.cancel"))
+        builder.button(lang.raw("bedrock.join_requirements.button.cancel"))
 
         return builder
             .validResultHandler { response ->
@@ -58,12 +60,12 @@ class BedrockJoinRequirementsMenu(
                     processJoin()
                 } else {
                     // Cancel button or cannot join
-                    player.sendMessage(localize("lfg.join.requirements.cancelled"))
+                    player.sendMessage(lang.msg("bedrock.join_requirements.feedback.cancelled"))
                     player.closeInventory()
                 }
             }
             .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
-                player.sendMessage(localize("lfg.join.requirements.cancelled"))
+                player.sendMessage(lang.msg("bedrock.join_requirements.feedback.cancelled"))
             })
             .build()
     }
@@ -77,14 +79,14 @@ class BedrockJoinRequirementsMenu(
         // Guild info section
         val isPeaceful = guild.mode == GuildMode.PEACEFUL
         val modeText = if (isPeaceful) {
-            localize("lfg.join.requirements.mode.peaceful")
+            lang.raw("bedrock.join_requirements.mode.peaceful")
         } else {
-            localize("lfg.join.requirements.mode.hostile")
+            lang.raw("bedrock.join_requirements.mode.hostile")
         }
 
-        sb.appendLine(localize("lfg.join.requirements.guild.header", guild.name))
-        sb.appendLine(localize("lfg.join.requirements.guild.level", guild.level))
-        sb.appendLine(localize("lfg.join.requirements.guild.mode", modeText))
+        sb.appendLine(lang.legacy("bedrock.join_requirements.guild.header", "guild" to guild.name))
+        sb.appendLine(lang.legacy("bedrock.join_requirements.guild.level", "level" to guild.level))
+        sb.appendLine(lang.legacy("bedrock.join_requirements.guild.mode", "mode" to modeText))
         sb.appendLine()
 
         // Join requirement section
@@ -98,41 +100,41 @@ class BedrockJoinRequirementsMenu(
             val hasEnough = playerBalance >= requirement.amount
             val currencyDisplayName = formatCurrencyName(requirement.currencyName)
 
-            sb.appendLine(localize("lfg.join.requirements.fee.header"))
-            sb.appendLine(localize("lfg.join.requirements.fee.required", requirement.amount, currencyDisplayName))
-            sb.appendLine(localize("lfg.join.requirements.fee.balance", playerBalance, currencyDisplayName))
+            sb.appendLine(lang.raw("bedrock.join_requirements.fee.header"))
+            sb.appendLine(lang.legacy("bedrock.join_requirements.fee.required", "amount" to requirement.amount, "currency" to currencyDisplayName))
+            sb.appendLine(lang.legacy("bedrock.join_requirements.fee.balance", "balance" to playerBalance, "currency" to currencyDisplayName))
             sb.appendLine()
 
             if (hasEnough) {
-                sb.appendLine(localize("lfg.join.requirements.fee.sufficient"))
+                sb.appendLine(lang.raw("bedrock.join_requirements.fee.sufficient"))
             } else {
-                sb.appendLine(localize("lfg.join.requirements.fee.insufficient"))
+                sb.appendLine(lang.raw("bedrock.join_requirements.fee.insufficient"))
             }
         } else {
-            sb.appendLine(localize("lfg.join.requirements.no.fee"))
-            sb.appendLine(localize("lfg.join.requirements.no.fee.description"))
+            sb.appendLine(lang.raw("bedrock.join_requirements.no_fee.title"))
+            sb.appendLine(lang.raw("bedrock.join_requirements.no_fee.description"))
         }
 
         // Status section
         sb.appendLine()
         when (canJoinResult) {
             is LfgJoinResult.Success -> {
-                sb.appendLine(localize("lfg.join.requirements.status.ready"))
+                sb.appendLine(lang.raw("bedrock.join_requirements.status.ready"))
             }
             is LfgJoinResult.InsufficientFunds -> {
-                sb.appendLine(localize("lfg.join.requirements.status.insufficient", canJoinResult.required, canJoinResult.currencyType))
+                sb.appendLine(lang.legacy("bedrock.join_requirements.status.insufficient", "required" to canJoinResult.required, "currency" to canJoinResult.currencyType))
             }
             is LfgJoinResult.GuildFull -> {
-                sb.appendLine(localize("lfg.join.requirements.status.full"))
+                sb.appendLine(lang.raw("bedrock.join_requirements.status.full"))
             }
             is LfgJoinResult.AlreadyInGuild -> {
-                sb.appendLine(localize("lfg.join.requirements.status.already.in.guild"))
+                sb.appendLine(lang.raw("bedrock.join_requirements.status.already_in_guild"))
             }
             is LfgJoinResult.VaultUnavailable -> {
-                sb.appendLine(localize("lfg.join.requirements.status.vault.unavailable"))
+                sb.appendLine(lang.raw("bedrock.join_requirements.status.vault_unavailable"))
             }
             is LfgJoinResult.Error -> {
-                sb.appendLine(localize("lfg.join.requirements.status.error", canJoinResult.message))
+                sb.appendLine(lang.legacy("bedrock.join_requirements.status.error", "error" to canJoinResult.message))
             }
         }
 
@@ -144,27 +146,27 @@ class BedrockJoinRequirementsMenu(
 
         when (result) {
             is LfgJoinResult.Success -> {
-                player.sendMessage(localize("lfg.join.success", guild.name))
+                player.sendMessage(lang.msg("bedrock.join_requirements.feedback.success", "guild" to guild.name))
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
             }
             is LfgJoinResult.InsufficientFunds -> {
-                player.sendMessage(localize("lfg.join.error.insufficient", result.required, result.currencyType, result.current))
+                player.sendMessage(lang.msg("bedrock.join_requirements.feedback.insufficient", "required" to result.required, "currency" to result.currencyType, "current" to result.current))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
             is LfgJoinResult.GuildFull -> {
-                player.sendMessage(localize("lfg.join.error.full"))
+                player.sendMessage(lang.msg("bedrock.join_requirements.feedback.full"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
             is LfgJoinResult.AlreadyInGuild -> {
-                player.sendMessage(localize("lfg.join.error.already.member"))
+                player.sendMessage(lang.msg("bedrock.join_requirements.feedback.already_member"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
             is LfgJoinResult.VaultUnavailable -> {
-                player.sendMessage(localize("lfg.join.error.vault.unavailable"))
+                player.sendMessage(lang.msg("bedrock.join_requirements.feedback.vault_unavailable"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
             is LfgJoinResult.Error -> {
-                player.sendMessage(localize("lfg.join.error.generic", result.message))
+                player.sendMessage(lang.msg("bedrock.join_requirements.feedback.error", "error" to result.message))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         }

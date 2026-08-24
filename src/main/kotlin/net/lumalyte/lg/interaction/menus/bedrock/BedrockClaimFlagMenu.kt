@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.flag.GetClaimFlags
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -22,29 +23,25 @@ class BedrockClaimFlagMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val getClaimFlags: GetClaimFlags by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val flags = getClaimFlags.execute(claim.id)
 
-        val content = buildString {
-            appendLine(bedrockLocalization.getBedrockString(player, "claim.flags.title"))
-            appendLine()
-            if (flags.isEmpty()) {
-                appendLine(bedrockLocalization.getBedrockString(player, "claim.flags.none"))
-            } else {
-                appendLine("§7${bedrockLocalization.getBedrockString(player, "claim.flags.total", flags.size)}")
-                appendLine()
-                flags.take(10).forEach { flag ->
-                    appendLine("§7• $flag")
-                }
+        val content = if (flags.isEmpty()) {
+            lang.raw("bedrock.claim_flags.content.empty")
+        } else {
+            val rows = flags.take(10).joinToString("\n") { flag ->
+                lang.legacy("bedrock.claim_flags.row", "flag" to flag)
             }
+            lang.legacy("bedrock.claim_flags.content.list", "count" to flags.size, "flags" to rows)
         }
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "claim.flags.menu.title")} - ${claim.name}")
+            .title(lang.legacy("bedrock.claim_flags.title", "claim" to claim.name))
             .content(content)
-            .button(bedrockLocalization.getBedrockString(player, "common.back"))
+            .button(lang.raw("bedrock.claim_flags.button.back"))
             .validResultHandler { _ ->
                 bedrockNavigator.goBack()
             }

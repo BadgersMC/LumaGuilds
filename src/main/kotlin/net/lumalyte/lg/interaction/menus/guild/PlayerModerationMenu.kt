@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -42,16 +43,17 @@ class PlayerModerationMenu(
 
     private val memberService: MemberService by inject()
     private val partyService: PartyService by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         // Check permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)) {
-            player.sendMessage("§c You don't have permission to moderate players!")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.no_permission"))
             return
         }
 
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown Player"
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, "§6Moderate: $targetName"))
+        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.player_moderation.fallback.unknown_player")
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.player_moderation.title", "player" to targetName)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -81,29 +83,29 @@ class PlayerModerationMenu(
         )
 
         val meta = head.itemMeta as SkullMeta
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown Player"
+        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.player_moderation.fallback.unknown_player")
         head.itemMeta = meta
 
         val isMuted = party.isPlayerMuted(targetPlayerId)
         val isBanned = party.isPlayerBanned(targetPlayerId)
 
-        val playerItem = head.name("§6$targetName")
-            .lore("§7Target player for moderation")
-            .lore("")
+        val playerItem = head.name(lang.legacy("menu.player_moderation.player.name", "player" to targetName))
+            .lore(lang.legacy("menu.player_moderation.player.description"))
+            .lore(lang.legacy("menu.common.blank"))
             .apply {
                 if (isBanned) {
-                    lore("§c Status: BANNED")
+                    lore(lang.legacy("menu.player_moderation.player.status.banned"))
                 } else if (isMuted) {
                     val expiration = party.mutedPlayers[targetPlayerId]
                     if (expiration != null) {
                         val remaining = Duration.between(Instant.now(), expiration)
-                        lore("§e Status: MUTED")
-                        lore("§7Expires: §f${remaining.toHours()}h ${remaining.toMinutes() % 60}m")
+                        lore(lang.legacy("menu.player_moderation.player.status.muted"))
+                        lore(lang.legacy("menu.player_moderation.player.expires", "hours" to remaining.toHours(), "minutes" to remaining.toMinutes() % 60))
                     } else {
-                        lore("§e Status: PERMANENTLY MUTED")
+                        lore(lang.legacy("menu.player_moderation.player.status.permanently_muted"))
                     }
                 } else {
-                    lore("§a Status: Normal")
+                    lore(lang.legacy("menu.player_moderation.player.status.normal"))
                 }
             }
 
@@ -113,54 +115,52 @@ class PlayerModerationMenu(
     private fun addModerationActions(pane: StaticPane) {
         val isMuted = party.isPlayerMuted(targetPlayerId)
         val isBanned = party.isPlayerBanned(targetPlayerId)
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown"
-
         // Mute buttons (1h, 1d, 1w, permanent)
         if (!isMuted && !isBanned) {
             // 1 Hour mute
             val mute1hItem = ItemStack.of(Material.CLOCK)
-                .name("§e Mute 1 Hour")
-                .lore("§7Mute player for 1 hour")
-                .lore("§7Player cannot send messages")
+                .name(lang.legacy("menu.player_moderation.actions.mute_hour.name"))
+                .lore(lang.legacy("menu.player_moderation.actions.mute_hour.description"))
+                .lore(lang.legacy("menu.player_moderation.actions.mute.restriction"))
             pane.addItem(GuiItem(mute1hItem) {
-                performMute(Duration.ofHours(1), "1 hour")
+                performMute(Duration.ofHours(1), lang.raw("menu.player_moderation.duration.hour"))
             }, 0, 1)
 
             // 1 Day mute
             val mute1dItem = ItemStack.of(Material.CLOCK)
-                .name("§e Mute 1 Day")
-                .lore("§7Mute player for 1 day")
-                .lore("§7Player cannot send messages")
+                .name(lang.legacy("menu.player_moderation.actions.mute_day.name"))
+                .lore(lang.legacy("menu.player_moderation.actions.mute_day.description"))
+                .lore(lang.legacy("menu.player_moderation.actions.mute.restriction"))
             pane.addItem(GuiItem(mute1dItem) {
-                performMute(Duration.ofDays(1), "1 day")
+                performMute(Duration.ofDays(1), lang.raw("menu.player_moderation.duration.day"))
             }, 1, 1)
 
             // 1 Week mute
             val mute1wItem = ItemStack.of(Material.CLOCK)
-                .name("§e Mute 1 Week")
-                .lore("§7Mute player for 1 week")
-                .lore("§7Player cannot send messages")
+                .name(lang.legacy("menu.player_moderation.actions.mute_week.name"))
+                .lore(lang.legacy("menu.player_moderation.actions.mute_week.description"))
+                .lore(lang.legacy("menu.player_moderation.actions.mute.restriction"))
             pane.addItem(GuiItem(mute1wItem) {
-                performMute(Duration.ofDays(7), "1 week")
+                performMute(Duration.ofDays(7), lang.raw("menu.player_moderation.duration.week"))
             }, 2, 1)
 
             // Permanent mute
             val mutePermItem = ItemStack.of(Material.BELL)
-                .name("§c Permanent Mute")
-                .lore("§7Mute player permanently")
-                .lore("§7Player cannot send messages")
-                .lore("§c Must be manually unmuted")
+                .name(lang.legacy("menu.player_moderation.actions.mute_permanent.name"))
+                .lore(lang.legacy("menu.player_moderation.actions.mute_permanent.description"))
+                .lore(lang.legacy("menu.player_moderation.actions.mute.restriction"))
+                .lore(lang.legacy("menu.player_moderation.actions.mute_permanent.warning"))
             pane.addItem(GuiItem(mutePermItem) {
-                performMute(null, "permanent")
+                performMute(null, lang.raw("menu.player_moderation.duration.permanent"))
             }, 3, 1)
         }
 
         // Unmute button (only if muted)
         if (isMuted && !isBanned) {
             val unmuteItem = ItemStack.of(Material.LIME_DYE)
-                .name("§a Unmute Player")
-                .lore("§7Remove mute from player")
-                .lore("§7Player can send messages again")
+                .name(lang.legacy("menu.player_moderation.actions.unmute.name"))
+                .lore(lang.legacy("menu.player_moderation.actions.unmute.description"))
+                .lore(lang.legacy("menu.player_moderation.actions.unmute.result"))
             pane.addItem(GuiItem(unmuteItem) {
                 performUnmute()
             }, 1, 1)
@@ -169,10 +169,10 @@ class PlayerModerationMenu(
         // Ban button (only if not banned)
         if (!isBanned) {
             val banItem = ItemStack.of(Material.BARRIER)
-                .name("§c Ban Player")
-                .lore("§7Ban player from this channel")
-                .lore("§7Player cannot see or access channel")
-                .lore("§c This is a permanent action!")
+                .name(lang.legacy("menu.player_moderation.actions.ban.name"))
+                .lore(lang.legacy("menu.player_moderation.actions.ban.description"))
+                .lore(lang.legacy("menu.player_moderation.actions.ban.restriction"))
+                .lore(lang.legacy("menu.player_moderation.actions.ban.warning"))
             pane.addItem(GuiItem(banItem) {
                 performBan()
             }, 5, 1)
@@ -181,9 +181,9 @@ class PlayerModerationMenu(
         // Unban button (only if banned)
         if (isBanned) {
             val unbanItem = ItemStack.of(Material.LIME_DYE)
-                .name("§a Unban Player")
-                .lore("§7Remove ban from player")
-                .lore("§7Player can access channel again")
+                .name(lang.legacy("menu.player_moderation.actions.unban.name"))
+                .lore(lang.legacy("menu.player_moderation.actions.unban.description"))
+                .lore(lang.legacy("menu.player_moderation.actions.unban.result"))
             pane.addItem(GuiItem(unbanItem) {
                 performUnban()
             }, 5, 1)
@@ -192,10 +192,10 @@ class PlayerModerationMenu(
         // Kick button (only if not banned)
         if (!isBanned) {
             val kickItem = ItemStack.of(Material.IRON_BOOTS)
-                .name("§c Kick Player")
-                .lore("§7Kick and ban player from channel")
-                .lore("§7Player is removed and banned")
-                .lore("§c This bans the player!")
+                .name(lang.legacy("menu.player_moderation.actions.kick.name"))
+                .lore(lang.legacy("menu.player_moderation.actions.kick.description"))
+                .lore(lang.legacy("menu.player_moderation.actions.kick.result"))
+                .lore(lang.legacy("menu.player_moderation.actions.kick.warning"))
             pane.addItem(GuiItem(kickItem) {
                 performKick()
             }, 7, 1)
@@ -203,112 +203,112 @@ class PlayerModerationMenu(
     }
 
     private fun performMute(duration: Duration?, durationText: String) {
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown"
+        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.player_moderation.fallback.unknown")
         val result = partyService.mutePlayer(party.id, targetPlayerId, player.uniqueId, duration)
 
         if (result != null) {
             party = result
-            player.sendMessage("§a Muted $targetName for $durationText")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.muted", "player" to targetName, "duration" to durationText))
 
             // Notify target player
             val targetPlayer = Bukkit.getPlayer(targetPlayerId)
             if (targetPlayer != null && targetPlayer.isOnline) {
-                val channelName = party.name ?: "a channel"
+                val channelName = party.name ?: lang.raw("menu.player_moderation.fallback.channel")
                 if (duration != null) {
-                    targetPlayer.sendMessage("§c You have been muted in $channelName for $durationText")
+                    targetPlayer.sendMessage(lang.msg("menu.player_moderation.notification.muted", "channel" to channelName, "duration" to durationText))
                 } else {
-                    targetPlayer.sendMessage("§c You have been permanently muted in $channelName")
+                    targetPlayer.sendMessage(lang.msg("menu.player_moderation.notification.permanently_muted", "channel" to channelName))
                 }
             }
 
             open() // Refresh menu
         } else {
-            player.sendMessage("§c Failed to mute $targetName")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.mute_failed", "player" to targetName))
         }
     }
 
     private fun performUnmute() {
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown"
+        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.player_moderation.fallback.unknown")
         val result = partyService.unmutePlayer(party.id, targetPlayerId, player.uniqueId)
 
         if (result != null) {
             party = result
-            player.sendMessage("§a Unmuted $targetName")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.unmuted", "player" to targetName))
 
             // Notify target player
             val targetPlayer = Bukkit.getPlayer(targetPlayerId)
             if (targetPlayer != null && targetPlayer.isOnline) {
-                val channelName = party.name ?: "a channel"
-                targetPlayer.sendMessage("§a You have been unmuted in $channelName")
+                val channelName = party.name ?: lang.raw("menu.player_moderation.fallback.channel")
+                targetPlayer.sendMessage(lang.msg("menu.player_moderation.notification.unmuted", "channel" to channelName))
             }
 
             open() // Refresh menu
         } else {
-            player.sendMessage("§c Failed to unmute $targetName")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.unmute_failed", "player" to targetName))
         }
     }
 
     private fun performBan() {
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown"
+        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.player_moderation.fallback.unknown")
         val result = partyService.banPlayer(party.id, targetPlayerId, player.uniqueId)
 
         if (result != null) {
             party = result
-            player.sendMessage("§a Banned $targetName from channel")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.banned", "player" to targetName))
 
             // Notify target player
             val targetPlayer = Bukkit.getPlayer(targetPlayerId)
             if (targetPlayer != null && targetPlayer.isOnline) {
-                val channelName = party.name ?: "a channel"
-                targetPlayer.sendMessage("§c You have been banned from $channelName")
+                val channelName = party.name ?: lang.raw("menu.player_moderation.fallback.channel")
+                targetPlayer.sendMessage(lang.msg("menu.player_moderation.notification.banned", "channel" to channelName))
             }
 
             open() // Refresh menu
         } else {
-            player.sendMessage("§c Failed to ban $targetName")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.ban_failed", "player" to targetName))
         }
     }
 
     private fun performUnban() {
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown"
+        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.player_moderation.fallback.unknown")
         val result = partyService.unbanPlayer(party.id, targetPlayerId, player.uniqueId)
 
         if (result != null) {
             party = result
-            player.sendMessage("§a Unbanned $targetName from channel")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.unbanned", "player" to targetName))
 
             // Notify target player
             val targetPlayer = Bukkit.getPlayer(targetPlayerId)
             if (targetPlayer != null && targetPlayer.isOnline) {
-                val channelName = party.name ?: "a channel"
-                targetPlayer.sendMessage("§a You have been unbanned from $channelName")
+                val channelName = party.name ?: lang.raw("menu.player_moderation.fallback.channel")
+                targetPlayer.sendMessage(lang.msg("menu.player_moderation.notification.unbanned", "channel" to channelName))
             }
 
             open() // Refresh menu
         } else {
-            player.sendMessage("§c Failed to unban $targetName")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.unban_failed", "player" to targetName))
         }
     }
 
     private fun performKick() {
-        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: "Unknown"
+        val targetName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.raw("menu.player_moderation.fallback.unknown")
         val result = partyService.kickPlayer(party.id, targetPlayerId, player.uniqueId)
 
         if (result != null) {
             party = result
-            player.sendMessage("§a Kicked $targetName from channel")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.kicked", "player" to targetName))
             // Note: kickPlayer already sends notification to target
 
             open() // Refresh menu
         } else {
-            player.sendMessage("§c Failed to kick $targetName")
+            player.sendMessage(lang.msg("menu.player_moderation.feedback.kick_failed", "player" to targetName))
         }
     }
 
     private fun addBackButton(pane: StaticPane) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§c Back")
-            .lore("§7Return to channel moderation")
+            .name(lang.legacy("menu.player_moderation.back.name"))
+            .lore(lang.legacy("menu.player_moderation.back.description"))
 
         pane.addItem(GuiItem(backItem) {
             menuNavigator.openMenu(PartyModerationMenu(menuNavigator, player, guild, party))

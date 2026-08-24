@@ -53,11 +53,11 @@ class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, priva
     override fun open() {
         // Validate that claim and targetPlayer are provided
         val validClaim = claim ?: run {
-            player.sendMessage("§cError: No claim available")
+            player.sendMessage(lang.msg("menu.common.feedback.no_claim"))
             return
         }
         val validTarget = targetPlayer ?: run {
-            player.sendMessage("§cError: No target player available")
+            player.sendMessage(lang.msg("menu.common.feedback.no_target_player"))
             return
         }
 

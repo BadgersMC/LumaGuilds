@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -23,18 +24,19 @@ class BedrockGuildInviteMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val memberService: MemberService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val inviteIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.invite.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.invite.title", "guild" to guild.name))
             .apply { inviteIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.invite.description"))
+            .label(lang.raw("bedrock.invite.description"))
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.invite.player.name.label"),
-                bedrockLocalization.getBedrockString(player, "guild.invite.player.name.placeholder"),
+                lang.raw("bedrock.invite.player.label"),
+                lang.raw("bedrock.invite.player.placeholder"),
                 ""
             )
             .validResultHandler { response ->
@@ -55,7 +57,7 @@ class BedrockGuildInviteMenu(
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error handling invite form response: ${e.message}")
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.error"))
+            player.sendMessage(lang.msg("bedrock.invite.feedback.error"))
             bedrockNavigator.goBack()
         }
     }
@@ -63,17 +65,17 @@ class BedrockGuildInviteMenu(
     private fun validateAndInvitePlayer(playerName: String) {
         // Basic validation
         if (playerName.isBlank()) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "validation.required"))
+            player.sendMessage(lang.msg("bedrock.invite.feedback.required"))
             return
         }
 
         if (playerName.length < 3) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "validation.too.short", 3))
+            player.sendMessage(lang.msg("bedrock.invite.feedback.too_short", "minimum" to 3))
             return
         }
 
         if (playerName.equals(player.name, ignoreCase = true)) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.validation.cannot.invite.self"))
+            player.sendMessage(lang.msg("bedrock.invite.feedback.self"))
             bedrockNavigator.goBack()
             return
         }
@@ -81,14 +83,14 @@ class BedrockGuildInviteMenu(
         // Check if player is online — uses Floodgate-aware lookup so Bedrock names work without the dot prefix
         val targetPlayer = findPlayerByName(playerName)
         if (targetPlayer == null) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.validation.player.not.found"))
+            player.sendMessage(lang.msg("bedrock.invite.feedback.not_found"))
             bedrockNavigator.goBack()
             return
         }
 
         // Check if player is already in guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.validation.player.in.guild"))
+            player.sendMessage(lang.msg("bedrock.invite.feedback.already_member"))
             bedrockNavigator.goBack()
             return
         }

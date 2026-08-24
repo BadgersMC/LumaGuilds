@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.listeners
 
 import dev.rosewood.rosechat.api.event.message.PreParseMessageEvent
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PenaltyService
 import net.lumalyte.lg.infrastructure.services.LumaGuildsChannel
@@ -24,6 +25,7 @@ import org.bukkit.event.Listener
 class GuildMuteChatListener(
     private val guildService: GuildService,
     private val penaltyService: PenaltyService,
+    private val lang: LangService,
 ) : Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -41,6 +43,6 @@ class GuildMuteChatListener(
         if (!muted) return
 
         event.isCancelled = true
-        sender.sendMessage("§c❌ Your guild is muted — guild chat is disabled until the mute expires.")
+        sender.sendMessage(lang.msg("notification.guild_chat.guild_muted"))
     }
 }

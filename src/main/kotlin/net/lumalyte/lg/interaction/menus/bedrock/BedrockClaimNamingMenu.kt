@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -22,21 +23,22 @@ class BedrockClaimNamingMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val claimRepository: ClaimRepository by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "claim.naming.title")} - ${claim.name}")
-            .label(bedrockLocalization.getBedrockString(player, "claim.naming.instructions"))
+            .title(lang.legacy("bedrock.claim_naming.title", "claim" to claim.name))
+            .label(lang.raw("bedrock.claim_naming.instructions"))
             .input(
-                bedrockLocalization.getBedrockString(player, "claim.naming.name"),
-                bedrockLocalization.getBedrockString(player, "claim.naming.name.placeholder"),
+                lang.raw("bedrock.claim_naming.name.label"),
+                lang.raw("bedrock.claim_naming.name.placeholder"),
                 claim.name
             )
             .input(
-                bedrockLocalization.getBedrockString(player, "claim.naming.description"),
-                bedrockLocalization.getBedrockString(player, "claim.naming.description.placeholder"),
+                lang.raw("bedrock.claim_naming.description.label"),
+                lang.raw("bedrock.claim_naming.description.placeholder"),
                 claim.description
             )
             .validResultHandler { response ->
@@ -45,21 +47,21 @@ class BedrockClaimNamingMenu(
 
                 // Validate name length
                 if (newName.length !in 1..50) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.naming.name.invalid"))
+                    player.sendMessage(lang.msg("bedrock.claim_naming.feedback.invalid_name"))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }
 
                 // Validate description length
                 if (newDescription.length > 300) {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.naming.description.too.long"))
+                    player.sendMessage(lang.msg("bedrock.claim_naming.feedback.description_too_long"))
                     bedrockNavigator.goBack()
                     return@validResultHandler
                 }
 
                 if (newName != claim.name || newDescription != claim.description) {
                     claimRepository.update(claim.copy(name = newName, description = newDescription))
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "claim.naming.updated"))
+                    player.sendMessage(lang.msg("bedrock.claim_naming.feedback.updated"))
                 }
 
                 bedrockNavigator.goBack()

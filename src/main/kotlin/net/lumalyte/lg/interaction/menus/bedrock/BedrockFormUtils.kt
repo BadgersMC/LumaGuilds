@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BedrockLocalizationService
 import net.lumalyte.lg.application.services.TextDirection
 import net.lumalyte.lg.config.BedrockConfig
@@ -11,6 +12,8 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.response.CustomFormResponse
 import org.geysermc.cumulus.util.FormImage
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Adds a button with image to a SimpleForm using Cumulus FormImage API
@@ -45,7 +48,9 @@ fun org.geysermc.cumulus.form.SimpleForm.Builder.addButtonWithImage(
 /**
  * Utility class for managing Bedrock form components and images
  */
-object BedrockFormUtils {
+object BedrockFormUtils : KoinComponent {
+
+    private val lang: LangService by inject()
 
     /**
      * Creates a form image based on configuration using Cumulus FormImage API
@@ -403,25 +408,25 @@ object BedrockFormUtils {
      * Creates a section header with consistent formatting
      */
     fun createSectionHeader(title: String): LabelComponent {
-        return LabelComponent.of("§e§l$title")
+        return LabelComponent.of(lang.legacy("bedrock.form_utils.label.section", "text" to title))
     }
 
     /**
      * Creates an error message label
      */
     fun createErrorLabel(message: String): LabelComponent {
-        return LabelComponent.of("§c[ERROR] $message")
+        return LabelComponent.of(lang.legacy("bedrock.form_utils.label.error", "text" to message))
     }
 
     /**
      * Creates a success message label
      */
     fun createSuccessLabel(message: String): LabelComponent {
-        return LabelComponent.of("§a[SUCCESS] $message")
+        return LabelComponent.of(lang.legacy("bedrock.form_utils.label.success", "text" to message))
     }
 
     fun createInfoLabel(message: String): LabelComponent {
-        return LabelComponent.of("§b[i] $message")
+        return LabelComponent.of(lang.legacy("bedrock.form_utils.label.info", "text" to message))
     }
 
     /**
@@ -714,277 +719,6 @@ object BedrockFormUtils {
         return valueAt(index)
     }
 
-    // Localization-Aware Component Builders
-
-    /**
-     * Creates a localized InputComponent with validation and enhanced features
-     */
-    fun createLocalizedInputComponent(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        labelKey: String,
-        placeholderKey: String? = null,
-        defaultValue: String = "",
-        maxLength: Int = 256,
-        validator: ((String) -> String?)? = null
-    ): InputComponent {
-        val label = bedrockLocalization.getBedrockString(player, labelKey)
-        val placeholder = placeholderKey?.let { bedrockLocalization.getBedrockString(player, it) } ?: ""
-
-        return createInputComponent(label, placeholder, defaultValue, maxLength, validator)
-    }
-
-    /**
-     * Creates a localized DropdownComponent with current value selection
-     */
-    fun createLocalizedDropdownComponent(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        labelKey: String,
-        optionKeys: List<String>,
-        defaultValue: String? = null,
-        selectByValue: Boolean = true
-    ): DropdownComponent {
-        val label = bedrockLocalization.getBedrockString(player, labelKey)
-        val options = optionKeys.map { bedrockLocalization.getBedrockString(player, it) }
-
-        return createDropdownComponent(label, options, defaultValue, selectByValue)
-    }
-
-    /**
-     * Creates a localized DropdownComponent using builder pattern for complex option sets
-     */
-    fun createLocalizedDropdownComponent(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        labelKey: String,
-        builder: (DropdownComponent.Builder, BedrockLocalizationService, Player) -> Unit
-    ): DropdownComponent {
-        val label = bedrockLocalization.getBedrockString(player, labelKey)
-        val dropdownBuilder = DropdownComponent.builder(label)
-        builder(dropdownBuilder, bedrockLocalization, player)
-        return dropdownBuilder.build()
-    }
-
-    /**
-     * Creates a localized SliderComponent with range validation
-     */
-    fun createLocalizedSliderComponent(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        labelKey: String,
-        min: Float,
-        max: Float,
-        step: Float = 1.0f,
-        defaultValue: Float = min,
-        validator: ((Float) -> String?)? = null
-    ): SliderComponent {
-        val label = bedrockLocalization.getBedrockString(player, labelKey)
-
-        return createSliderComponent(label, min, max, step, defaultValue, validator)
-    }
-
-    /**
-     * Creates a localized ToggleComponent with enhanced state management
-     */
-    fun createLocalizedToggleComponent(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        labelKey: String,
-        defaultValue: Boolean = false
-    ): ToggleComponent {
-        val label = bedrockLocalization.getBedrockString(player, labelKey)
-
-        return createToggleComponent(label, defaultValue)
-    }
-
-    /**
-     * Creates a localized StepSliderComponent with option building
-     */
-    fun createLocalizedStepSliderComponent(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        labelKey: String,
-        optionKeys: List<String>,
-        defaultValue: String? = null
-    ): StepSliderComponent {
-        val label = bedrockLocalization.getBedrockString(player, labelKey)
-        val options = optionKeys.map { bedrockLocalization.getBedrockString(player, it) }
-
-        val defaultIndex = defaultValue?.let { dv ->
-            val translatedValue = bedrockLocalization.getBedrockString(player, dv)
-            options.indexOf(translatedValue).takeIf { it >= 0 } ?: 0
-        } ?: 0
-
-        return createStepSliderComponent(label, options, defaultIndex)
-    }
-
-    /**
-     * Creates a localized StepSliderComponent using builder pattern for complex option sets
-     */
-    fun createLocalizedStepSliderComponent(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        labelKey: String,
-        builder: (StepSliderComponent.Builder, BedrockLocalizationService, Player) -> Unit
-    ): StepSliderComponent {
-        val label = bedrockLocalization.getBedrockString(player, labelKey)
-        val stepSliderBuilder = StepSliderComponent.builder(label)
-        builder(stepSliderBuilder, bedrockLocalization, player)
-        return stepSliderBuilder.build()
-    }
-
-    /**
-     * Creates a localized LabelComponent for section headers
-     */
-    fun createLocalizedSectionHeader(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        titleKey: String
-    ): LabelComponent {
-        val title = bedrockLocalization.getBedrockString(player, titleKey)
-        return createSectionHeader(title)
-    }
-
-    /**
-     * Creates a localized LabelComponent for error messages
-     */
-    fun createLocalizedErrorLabel(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        messageKey: String,
-        vararg args: Any?
-    ): LabelComponent {
-        val message = bedrockLocalization.getBedrockString(player, messageKey, *args)
-        return createErrorLabel(message)
-    }
-
-    /**
-     * Creates a localized LabelComponent for success messages
-     */
-    fun createLocalizedSuccessLabel(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        messageKey: String,
-        vararg args: Any?
-    ): LabelComponent {
-        val message = bedrockLocalization.getBedrockString(player, messageKey, *args)
-        return createSuccessLabel(message)
-    }
-
-    /**
-     * Creates a localized LabelComponent for info messages
-     */
-    fun createLocalizedInfoLabel(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        messageKey: String,
-        vararg args: Any?
-    ): LabelComponent {
-        val message = bedrockLocalization.getBedrockString(player, messageKey, *args)
-        return createInfoLabel(message)
-    }
-
-    /**
-     * Creates a localized LabelComponent for general text
-     */
-    fun createLocalizedLabel(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        textKey: String,
-        vararg args: Any?
-    ): LabelComponent {
-        val text = bedrockLocalization.getBedrockString(player, textKey, *args)
-        return LabelComponent.of(text)
-    }
-
-    // RTL-Aware Form Utilities
-
-    /**
-     * Creates a section header with RTL-aware formatting
-     */
-    fun createLocalizedSectionHeaderWithRTL(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        titleKey: String
-    ): LabelComponent {
-        val title = bedrockLocalization.getBedrockString(player, titleKey)
-        val direction = bedrockLocalization.getTextDirection(bedrockLocalization.getBedrockLocale(player))
-
-        return when (direction) {
-            TextDirection.RTL -> {
-                // For RTL, add RTL marker and use right-aligned formatting
-                LabelComponent.of("§e§l${BedrockLocalizationServiceFloodgate.RTL_MARKER}$title")
-            }
-            TextDirection.LTR -> {
-                // For LTR, use standard formatting
-                LabelComponent.of("§e§l$title")
-            }
-            else -> {
-                // Default to LTR
-                LabelComponent.of("§e§l$title")
-            }
-        }
-    }
-
-    /**
-     * Creates RTL-aware label with proper text direction markers
-     */
-    fun createLocalizedLabelWithRTL(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        textKey: String,
-        vararg args: Any?
-    ): LabelComponent {
-        val text = bedrockLocalization.getBedrockString(player, textKey, *args)
-        val direction = bedrockLocalization.getTextDirection(bedrockLocalization.getBedrockLocale(player))
-
-        return when (direction) {
-            TextDirection.RTL -> {
-                LabelComponent.of("${BedrockLocalizationServiceFloodgate.RTL_MARKER}$text${BedrockLocalizationServiceFloodgate.LTR_MARKER}")
-            }
-            TextDirection.LTR -> {
-                LabelComponent.of(text)
-            }
-            else -> {
-                LabelComponent.of(text)
-            }
-        }
-    }
-
-    /**
-     * Creates RTL-aware input component with proper placeholder direction
-     */
-    fun createLocalizedInputComponentWithRTL(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        labelKey: String,
-        placeholderKey: String? = null,
-        defaultValue: String = "",
-        maxLength: Int = 256,
-        validator: ((String) -> String?)? = null
-    ): InputComponent {
-        val label = bedrockLocalization.getBedrockString(player, labelKey)
-        val placeholder = placeholderKey?.let { bedrockLocalization.getBedrockString(player, it) } ?: ""
-        val direction = bedrockLocalization.getTextDirection(bedrockLocalization.getBedrockLocale(player))
-
-        // For RTL languages, add direction markers to placeholder
-        val adjustedPlaceholder = when (direction) {
-            TextDirection.RTL -> {
-                "${BedrockLocalizationServiceFloodgate.RTL_MARKER}$placeholder${BedrockLocalizationServiceFloodgate.LTR_MARKER}"
-            }
-            TextDirection.LTR -> placeholder
-            else -> placeholder
-        }
-
-        return createInputComponent(label, adjustedPlaceholder, defaultValue, maxLength, validator)
-    }
-
-    /**
-     * Gets RTL-adjusted text alignment for form layouts
-     * Note: Cumulus forms don't directly support text alignment, but this can be used
-     * for future enhancements or custom implementations
-     */
     fun getRTLTextAlignment(
         bedrockLocalization: BedrockLocalizationService,
         locale: java.util.Locale
@@ -1023,168 +757,6 @@ object BedrockFormUtils {
         }
     }
 
-    // Localized Validation Utilities
-
-    /**
-     * Creates a validation function that returns localized error messages
-     */
-    fun createLocalizedValidator(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        validationKey: String,
-        vararg args: Any?
-    ): (Any?) -> String? {
-        return { value ->
-            // This is a simple validator that always returns the localized message
-            // In a real implementation, you'd check the value and return null if valid
-            bedrockLocalization.getBedrockString(player, validationKey, *args)
-        }
-    }
-
-    /**
-     * Creates a length validator with localized error messages
-     */
-    fun createLocalizedLengthValidator(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        minLength: Int? = null,
-        maxLength: Int? = null
-    ): (String) -> String? {
-        return { value ->
-            when {
-                minLength != null && value.length < minLength -> {
-                    bedrockLocalization.getBedrockString(player, "validation.too.short", minLength)
-                }
-                maxLength != null && value.length > maxLength -> {
-                    bedrockLocalization.getBedrockString(player, "validation.too.long", maxLength)
-                }
-                else -> null // Valid
-            }
-        }
-    }
-
-    /**
-     * Creates a numeric range validator with localized error messages
-     */
-    fun createLocalizedRangeValidator(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        min: Number? = null,
-        max: Number? = null
-    ): (Number) -> String? {
-        return { value ->
-            val doubleValue = value.toDouble()
-            when {
-                min != null && doubleValue < min.toDouble() -> {
-                    bedrockLocalization.getBedrockString(player, "validation.number.too.small", min)
-                }
-                max != null && doubleValue > max.toDouble() -> {
-                    bedrockLocalization.getBedrockString(player, "validation.number.too.large", max)
-                }
-                else -> null // Valid
-            }
-        }
-    }
-
-    /**
-     * Creates a regex pattern validator with localized error messages
-     */
-    fun createLocalizedPatternValidator(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        pattern: Regex,
-        errorKey: String = "validation.invalid.format"
-    ): (String) -> String? {
-        return { value ->
-            if (pattern.matches(value)) null
-            else bedrockLocalization.getBedrockString(player, errorKey)
-        }
-    }
-
-    /**
-     * Creates a required field validator with localized error messages
-     */
-    fun createLocalizedRequiredValidator(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService
-    ): (String) -> String? {
-        return { value ->
-            if (value.isBlank()) {
-                bedrockLocalization.getBedrockString(player, "validation.required")
-            } else null
-        }
-    }
-
-    /**
-     * Creates a composite validator that combines multiple validation rules
-     */
-    fun createCompositeValidator(vararg validators: (Any?) -> String?): (Any?) -> String? {
-        return { value ->
-            validators.firstNotNullOfOrNull { validator -> validator(value) }
-        }
-    }
-
-    /**
-     * Creates validation error components for form redisplay
-     */
-    fun createValidationErrorComponents(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        validationErrors: Map<String, String>
-    ): List<LabelComponent> {
-        if (validationErrors.isEmpty()) return emptyList()
-
-        val components = mutableListOf<LabelComponent>()
-
-        // Add error header
-        components.add(createLocalizedErrorLabel(
-            player,
-            bedrockLocalization,
-            "form.validation.errors.title"
-        ))
-
-        // Add individual error messages
-        validationErrors.values.forEach { errorMessage ->
-            components.add(createErrorLabel(errorMessage))
-        }
-
-        // Add retry instruction
-        components.add(createLocalizedInfoLabel(
-            player,
-            bedrockLocalization,
-            "form.button.retry"
-        ))
-
-        return components
-    }
-
-    /**
-     * Validates form data and returns localized error messages
-     */
-    fun validateFormData(
-        player: Player,
-        bedrockLocalization: BedrockLocalizationService,
-        formData: Map<String, Any?>,
-        validationRules: Map<String, (Any?) -> String?>
-    ): Map<String, String> {
-        val errors = mutableMapOf<String, String>()
-
-        formData.forEach { (fieldName, value) ->
-            val validator = validationRules[fieldName]
-            if (validator != null) {
-                val error = validator(value)
-                if (error != null) {
-                    errors[fieldName] = error
-                }
-            }
-        }
-
-        return errors
-    }
-
-    /**
-     * Converts FormResponseData to business-friendly values
-     */
     private fun FormResponseData.toBusinessValue(): Any? {
         return when (this) {
             is FormResponseData.InputData -> value
@@ -1216,109 +788,4 @@ enum class GuildIconType {
 
 enum class ActionIconType {
     CONFIRM, CANCEL, BACK, CLOSE, EDIT, DELETE
-}
-
-// Extension methods for CustomForm.Builder to support localized components
-
-/**
- * Adds a localized input component to a CustomForm
- */
-fun org.geysermc.cumulus.form.CustomForm.Builder.addLocalizedInput(
-    player: Player,
-    bedrockLocalization: BedrockLocalizationService,
-    labelKey: String,
-    placeholderKey: String? = null,
-    defaultValue: String = "",
-    maxLength: Int = 256,
-    validator: ((String) -> String?)? = null
-): org.geysermc.cumulus.form.CustomForm.Builder {
-    val label = bedrockLocalization.getBedrockString(player, labelKey)
-    val placeholder = placeholderKey?.let { bedrockLocalization.getBedrockString(player, it) } ?: ""
-
-    return input(label, placeholder, defaultValue)
-}
-
-/**
- * Adds a localized dropdown component to a CustomForm
- */
-fun org.geysermc.cumulus.form.CustomForm.Builder.addLocalizedDropdown(
-    player: Player,
-    bedrockLocalization: BedrockLocalizationService,
-    labelKey: String,
-    optionKeys: List<String>,
-    defaultValue: String? = null,
-    selectByValue: Boolean = true
-): org.geysermc.cumulus.form.CustomForm.Builder {
-    val label = bedrockLocalization.getBedrockString(player, labelKey)
-    val options = optionKeys.map { bedrockLocalization.getBedrockString(player, it) }
-
-    val defaultIndex = when {
-        defaultValue == null -> 0
-        selectByValue -> options.indexOf(defaultValue).takeIf { it >= 0 } ?: 0
-        else -> defaultValue.toIntOrNull()?.takeIf { it in options.indices } ?: 0
-    }
-
-    return dropdown(label, options, defaultIndex)
-}
-
-/**
- * Adds a localized toggle component to a CustomForm
- */
-fun org.geysermc.cumulus.form.CustomForm.Builder.addLocalizedToggle(
-    player: Player,
-    bedrockLocalization: BedrockLocalizationService,
-    labelKey: String,
-    defaultValue: Boolean = false
-): org.geysermc.cumulus.form.CustomForm.Builder {
-    val label = bedrockLocalization.getBedrockString(player, labelKey)
-    return toggle(label, defaultValue)
-}
-
-/**
- * Adds a localized slider component to a CustomForm
- */
-fun org.geysermc.cumulus.form.CustomForm.Builder.addLocalizedSlider(
-    player: Player,
-    bedrockLocalization: BedrockLocalizationService,
-    labelKey: String,
-    min: Float,
-    max: Float,
-    step: Float = 1.0f,
-    defaultValue: Float = min
-): org.geysermc.cumulus.form.CustomForm.Builder {
-    val label = bedrockLocalization.getBedrockString(player, labelKey)
-    return slider(label, min, max, step, defaultValue)
-}
-
-/**
- * Adds a localized step slider component to a CustomForm
- */
-fun org.geysermc.cumulus.form.CustomForm.Builder.addLocalizedStepSlider(
-    player: Player,
-    bedrockLocalization: BedrockLocalizationService,
-    labelKey: String,
-    optionKeys: List<String>,
-    defaultValue: String? = null
-): org.geysermc.cumulus.form.CustomForm.Builder {
-    val label = bedrockLocalization.getBedrockString(player, labelKey)
-    val options = optionKeys.map { bedrockLocalization.getBedrockString(player, it) }
-
-    val defaultIndex = defaultValue?.let { dv ->
-        options.indexOf(dv).takeIf { it >= 0 } ?: 0
-    } ?: 0
-
-    return stepSlider(label, options, defaultIndex)
-}
-
-/**
- * Adds a localized label component to a CustomForm
- */
-fun org.geysermc.cumulus.form.CustomForm.Builder.addLocalizedLabel(
-    player: Player,
-    bedrockLocalization: BedrockLocalizationService,
-    textKey: String,
-    vararg args: Any?
-): org.geysermc.cumulus.form.CustomForm.Builder {
-    val text = bedrockLocalization.getBedrockString(player, textKey, *args)
-    return label(text)
 }

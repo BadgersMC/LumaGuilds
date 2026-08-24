@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Rank
@@ -25,29 +26,30 @@ class BedrockRankEditMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val rankService: RankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val rankIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.rank.edit.title")} - ${rank.name}")
+            .title(lang.legacy("bedrock.rank_edit.title", "rank" to rank.name))
             .apply { rankIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.rank.edit.description"))
+            .label(lang.raw("bedrock.rank_edit.description"))
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.rank.name"),
-                bedrockLocalization.getBedrockString(player, "guild.rank.name.placeholder"),
+                lang.raw("bedrock.rank_creation.name.label"),
+                lang.raw("bedrock.rank_creation.name.placeholder"),
                 rank.name
             )
-            .label(bedrockLocalization.getBedrockString(player, "guild.rank.permissions.basic"))
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.invite"), rank.permissions.contains(RankPermission.MANAGE_MEMBERS))
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.kick"), rank.permissions.contains(RankPermission.MANAGE_MEMBERS))
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.promote"), rank.permissions.contains(RankPermission.MANAGE_MEMBERS))
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.manage.ranks"), rank.permissions.contains(RankPermission.MANAGE_RANKS))
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.manage.settings"), rank.permissions.contains(RankPermission.MANAGE_GUILD_SETTINGS))
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.declare.war"), rank.permissions.contains(RankPermission.DECLARE_WAR))
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.manage.bank"), rank.permissions.contains(RankPermission.MANAGE_BANK_SETTINGS))
-            .toggle(bedrockLocalization.getBedrockString(player, "guild.rank.perm.access.vault"), rank.permissions.contains(RankPermission.ACCESS_VAULT))
+            .label(lang.raw("bedrock.rank_creation.permissions.header"))
+            .toggle(lang.raw("bedrock.rank_creation.permissions.invite"), rank.permissions.contains(RankPermission.MANAGE_MEMBERS))
+            .toggle(lang.raw("bedrock.rank_creation.permissions.kick"), rank.permissions.contains(RankPermission.MANAGE_MEMBERS))
+            .toggle(lang.raw("bedrock.rank_creation.permissions.promote"), rank.permissions.contains(RankPermission.MANAGE_MEMBERS))
+            .toggle(lang.raw("bedrock.rank_creation.permissions.manage_ranks"), rank.permissions.contains(RankPermission.MANAGE_RANKS))
+            .toggle(lang.raw("bedrock.rank_creation.permissions.manage_settings"), rank.permissions.contains(RankPermission.MANAGE_GUILD_SETTINGS))
+            .toggle(lang.raw("bedrock.rank_creation.permissions.declare_war"), rank.permissions.contains(RankPermission.DECLARE_WAR))
+            .toggle(lang.raw("bedrock.rank_creation.permissions.manage_bank"), rank.permissions.contains(RankPermission.MANAGE_BANK_SETTINGS))
+            .toggle(lang.raw("bedrock.rank_creation.permissions.access_vault"), rank.permissions.contains(RankPermission.ACCESS_VAULT))
             .validResultHandler { response ->
                 val newName = response.asInput(1)?.trim() ?: rank.name
                 val canInvite = response.asToggle(3)
@@ -109,10 +111,10 @@ class BedrockRankEditMenu(
         }
 
         if (permSuccess && nameSuccess) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.rank.updated.success"))
+            player.sendMessage(lang.msg("bedrock.rank_edit.feedback.updated"))
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.rank.updated.failed"))
+            player.sendMessage(lang.msg("bedrock.rank_edit.feedback.failed"))
             bedrockNavigator.goBack()
         }
     }

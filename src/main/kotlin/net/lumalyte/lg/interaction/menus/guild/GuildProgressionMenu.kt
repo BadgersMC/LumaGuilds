@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -17,6 +18,8 @@ import net.lumalyte.lg.utils.name
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Guild Progression Menu — shows guild level, daily XP caps per source, and rewards.
@@ -40,7 +43,9 @@ class GuildProgressionMenu(
     private val menuFactory: MenuFactory,
     private val menuItemBuilder: MenuItemBuilder,
     private val configService: ConfigService
-) : Menu {
+) : Menu, KoinComponent {
+
+    private val lang: LangService by inject()
 
     private var currentPage = 0
     private val itemsPerPage = 24
@@ -58,7 +63,7 @@ class GuildProgressionMenu(
         val playerId = player.uniqueId
 
         if (memberService.getMember(playerId, guild.id) == null) {
-            player.sendMessage("§c❌ You cannot access this menu!")
+            player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access"))
             menuNavigator.goBack()
             return
         }
@@ -67,13 +72,13 @@ class GuildProgressionMenu(
         val progression = progressionService.let {
             repoProgression()
         } ?: run {
-            player.sendMessage("§c❌ Could not load progression data.")
+            player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed"))
             menuNavigator.goBack()
             return
         }
 
         val totalPages = (trackableSources.size + itemsPerPage - 1) / itemsPerPage
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§0§8⭐ §7Guild Progression §8• Page ${currentPage + 1}/$totalPages"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_progression.title", "page" to currentPage + 1, "pages" to totalPages)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
@@ -134,14 +139,14 @@ class GuildProgressionMenu(
         val item = NexoItemProvider.getItemStackOrFallback("lg_level") {
             ItemStack.of(Material.EXPERIENCE_BOTTLE)
         }.also { it.editMeta { meta ->
-            meta.setDisplayName("§6§l⭐ Guild Level ${prog.level}")
+            meta.setDisplayName(lang.legacy("menu.guild_progression.level.name", "level" to prog.level))
             val lore = mutableListOf(
-                "§7XP: §e$currentXp §7/ §e$neededXp  §8($percent%)",
-                "§7$bars",
-                "§7Today: §e+$totalToday XP",
+                lang.legacy("menu.guild_progression.level.progress", "current" to currentXp, "needed" to neededXp, "percent" to percent),
+                lang.legacy("menu.guild_progression.level.bar", "bar" to bars),
+                lang.legacy("menu.guild_progression.level.today", "xp" to totalToday),
                 "",
-                "§7Unlocked Perks: §a$perksCount",
-                "§7Total XP: §e${totalXp}"
+                lang.legacy("menu.guild_progression.level.perks", "count" to perksCount),
+                lang.legacy("menu.guild_progression.level.total", "xp" to totalXp)
             )
             meta.lore = lore
         }}
@@ -152,12 +157,19 @@ class GuildProgressionMenu(
         val filled = (percent * length / 100).coerceIn(0, length)
         val empty = length - filled
         val color = when {
-            percent >= 100 -> "§a"
-            percent >= 70 -> "§e"
-            percent >= 40 -> "§6"
-            else -> "§c"
+            percent >= 100 -> "green"
+            percent >= 70 -> "yellow"
+            percent >= 40 -> "gold"
+            else -> "red"
         }
-        return "$color${"█".repeat(filled)}§7${"█".repeat(empty)}"
+        val filledBar = "█".repeat(filled)
+        val emptyBar = "█".repeat(empty)
+        return when (color) {
+            "green" -> lang.legacy("menu.guild_progression.bar.green", "filled" to filledBar, "empty" to emptyBar)
+            "yellow" -> lang.legacy("menu.guild_progression.bar.yellow", "filled" to filledBar, "empty" to emptyBar)
+            "gold" -> lang.legacy("menu.guild_progression.bar.gold", "filled" to filledBar, "empty" to emptyBar)
+            else -> lang.legacy("menu.guild_progression.bar.red", "filled" to filledBar, "empty" to emptyBar)
+        }
     }
 
     private fun addSourceItem(pane: StaticPane, x: Int, y: Int, source: ExperienceSource, todayXp: Int) {
@@ -169,23 +181,29 @@ class GuildProgressionMenu(
         val name = sourceToDisplayName(source)
 
         val bars = buildProgressBar(percent, 10)
-        val color = when {
-            percent >= 100 -> "§c" // capped
-            percent >= 80 -> "§e" // near cap
-            percent >= 40 -> "§6" // moderate
-            else -> "§a" // plenty of room
+        val state = when {
+            percent >= 100 -> "capped"
+            percent >= 80 -> "near_cap"
+            percent >= 40 -> "moderate"
+            else -> "available"
         }
 
         val item = NexoItemProvider.getItemStackOrFallback(nexoId) {
             ItemStack.of(material)
         }.also { it.editMeta { meta ->
-            meta.setDisplayName("§f$name")
+            meta.setDisplayName(lang.legacy("menu.guild_progression.source.name", "source" to name))
             val lore = mutableListOf<String>()
             if (cap > 0) {
-                lore.add("$color$bars §7$percent%")
-                lore.add("§7Today: §e$todayXp §7/ §e$cap §7max")
+                val progress = when (state) {
+                    "capped" -> lang.legacy("menu.guild_progression.source.progress.capped", "bar" to bars, "percent" to percent)
+                    "near_cap" -> lang.legacy("menu.guild_progression.source.progress.near_cap", "bar" to bars, "percent" to percent)
+                    "moderate" -> lang.legacy("menu.guild_progression.source.progress.moderate", "bar" to bars, "percent" to percent)
+                    else -> lang.legacy("menu.guild_progression.source.progress.available", "bar" to bars, "percent" to percent)
+                }
+                lore.add(progress)
+                lore.add(lang.legacy("menu.guild_progression.source.today", "today" to todayXp, "cap" to cap))
             } else {
-                lore.add("§7Tracked: §e$todayXp XP")
+                lore.add(lang.legacy("menu.guild_progression.source.tracked", "xp" to todayXp))
             }
             meta.lore = lore
         }}
@@ -194,8 +212,8 @@ class GuildProgressionMenu(
 
     private fun addRankInfo(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.GOLD_INGOT).also { it.editMeta { meta ->
-            meta.setDisplayName("§6Guild Rank")
-            meta.lore = listOf("§7Your guild's standing", "§7among all guilds")
+            meta.setDisplayName(lang.legacy("menu.guild_progression.rank.name"))
+            meta.lore = listOf(lang.legacy("menu.guild_progression.rank.description"), lang.legacy("menu.guild_progression.rank.scope"))
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
     }
@@ -204,19 +222,19 @@ class GuildProgressionMenu(
         val item = NexoItemProvider.getItemStackOrFallback("lg_sources") {
             ItemStack.of(Material.BOOK)
         }.also { it.editMeta { meta ->
-            meta.setDisplayName("§eXP Sources")
+            meta.setDisplayName(lang.legacy("menu.guild_progression.sources.name"))
             meta.lore = listOf(
-                "§7How to earn guild XP:",
-                "§7• §f💰 Bank deposits",
-                "§7• §f⚔ War victories",
-                "§7• §f👥 Member invites",
-                "§7• §f🗡 Player/mob kills",
-                "§7• §f🌾 Farming & fishing",
-                "§7• §f⛏ Mining & building",
-                "§7• §f🔨 Crafting & smelting",
-                "§7• §f🧪 Brewing & enchanting",
-                "§7• §f✨ Enchanting",
-                "§7• §f🏞 Claiming land"
+                lang.legacy("menu.guild_progression.sources.description"),
+                lang.legacy("menu.guild_progression.sources.bank"),
+                lang.legacy("menu.guild_progression.sources.war"),
+                lang.legacy("menu.guild_progression.sources.invites"),
+                lang.legacy("menu.guild_progression.sources.kills"),
+                lang.legacy("menu.guild_progression.sources.farming"),
+                lang.legacy("menu.guild_progression.sources.mining"),
+                lang.legacy("menu.guild_progression.sources.crafting"),
+                lang.legacy("menu.guild_progression.sources.brewing"),
+                lang.legacy("menu.guild_progression.sources.enchanting"),
+                lang.legacy("menu.guild_progression.sources.claiming")
             )
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
@@ -227,14 +245,14 @@ class GuildProgressionMenu(
         val item = NexoItemProvider.getItemStackOrFallback("lg_reward") {
             ItemStack.of(Material.DIAMOND)
         }.also { it.editMeta { meta ->
-            meta.setDisplayName("§aUnlocked Perks")
+            meta.setDisplayName(lang.legacy("menu.guild_progression.perks.name"))
             val lore = mutableListOf<String>()
             if (perks.isEmpty()) {
-                lore.add("§7No perks unlocked yet")
-                lore.add("§7Earn XP to level up!")
+                lore.add(lang.legacy("menu.guild_progression.perks.none"))
+                lore.add(lang.legacy("menu.guild_progression.perks.hint"))
             } else {
                 for (perk in perks) {
-                    lore.add("§a✓ §f${perkToDisplayName(perk)}")
+                    lore.add(lang.legacy("menu.guild_progression.perks.entry", "perk" to perkToDisplayName(perk)))
                 }
             }
             meta.lore = lore
@@ -246,13 +264,13 @@ class GuildProgressionMenu(
         val item = NexoItemProvider.getItemStackOrFallback("lg_prestige") {
             ItemStack.of(Material.NETHER_STAR)
         }.also { it.editMeta { meta ->
-            meta.setDisplayName("§dPrestige")
+            meta.setDisplayName(lang.legacy("menu.guild_progression.prestige.name"))
             meta.lore = listOf(
-                "§7Reset your guild's level",
-                "§7for exclusive rewards.",
-                "§7Requires Level §d25",
+                lang.legacy("menu.guild_progression.prestige.description"),
+                lang.legacy("menu.guild_progression.prestige.rewards"),
+                lang.legacy("menu.guild_progression.prestige.requirement"),
                 "",
-                "§8Coming in a future update"
+                lang.legacy("menu.guild_progression.prestige.coming_soon")
             )
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
@@ -260,29 +278,29 @@ class GuildProgressionMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val item = NexoItemProvider.getItemStackOrFallback("lg_page_prev") {
-            ItemStack.of(Material.ARROW).name("§7Back")
-        }.also { it.editMeta { meta -> meta.setDisplayName("§a← Back") }}
+            ItemStack.of(Material.ARROW).name(lang.legacy("menu.guild_progression.navigation.back_fallback"))
+        }.also { it.editMeta { meta -> meta.setDisplayName(lang.legacy("menu.guild_progression.navigation.back")) }}
         pane.addItem(GuiItem(item) { menuNavigator.goBack() }, x, y)
     }
 
     private fun addCloseButton(pane: StaticPane, x: Int, y: Int) {
         val item = NexoItemProvider.getItemStackOrFallback("lg_close") {
-            ItemStack.of(Material.BARRIER).name("§cClose")
-        }.also { it.editMeta { meta -> meta.setDisplayName("§cClose") }}
+            ItemStack.of(Material.BARRIER).name(lang.legacy("menu.guild_progression.navigation.close"))
+        }.also { it.editMeta { meta -> meta.setDisplayName(lang.legacy("menu.guild_progression.navigation.close")) }}
         pane.addItem(GuiItem(item) { menuNavigator.clearMenuStack(); player.closeInventory() }, x, y)
     }
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {
         val item = NexoItemProvider.getItemStackOrFallback("lg_page_prev") {
-            ItemStack.of(Material.ARROW).name("§e← Previous")
-        }.also { it.editMeta { meta -> meta.setDisplayName("§e← Previous Page") }}
+            ItemStack.of(Material.ARROW).name(lang.legacy("menu.guild_progression.navigation.previous_fallback"))
+        }.also { it.editMeta { meta -> meta.setDisplayName(lang.legacy("menu.guild_progression.navigation.previous")) }}
         pane.addItem(GuiItem(item) { currentPage--; open() }, x, y)
     }
 
     private fun addNextPageButton(pane: StaticPane, x: Int, y: Int) {
         val item = NexoItemProvider.getItemStackOrFallback("lg_page_next") {
-            ItemStack.of(Material.ARROW).name("§eNext →")
-        }.also { it.editMeta { meta -> meta.setDisplayName("§eNext Page →") }}
+            ItemStack.of(Material.ARROW).name(lang.legacy("menu.guild_progression.navigation.next_fallback"))
+        }.also { it.editMeta { meta -> meta.setDisplayName(lang.legacy("menu.guild_progression.navigation.next")) }}
         pane.addItem(GuiItem(item) { currentPage++; open() }, x, y)
     }
 
@@ -327,42 +345,42 @@ class GuildProgressionMenu(
     }
 
     private fun sourceToDisplayName(source: ExperienceSource): String = when (source) {
-        ExperienceSource.BANK_DEPOSIT -> "Bank Deposits"
-        ExperienceSource.MEMBER_JOINED -> "Member Invites"
-        ExperienceSource.WAR_WON -> "War Victories"
-        ExperienceSource.WAR_LOST -> "War Participation"
-        ExperienceSource.PLAYER_KILL -> "Player Kills"
-        ExperienceSource.MOB_KILL -> "Mob Kills"
-        ExperienceSource.CROP_BREAK -> "Farming"
-        ExperienceSource.BLOCK_BREAK -> "Mining"
-        ExperienceSource.BLOCK_PLACE -> "Building"
-        ExperienceSource.CRAFTING -> "Crafting"
-        ExperienceSource.SMELTING -> "Smelting"
-        ExperienceSource.FISHING -> "Fishing"
-        ExperienceSource.ENCHANTING -> "Enchanting"
-        ExperienceSource.CLAIM_CREATED -> "Claiming Land"
-        ExperienceSource.CLAIM_DESTROYED -> "Claims"
-        ExperienceSource.WEEKLY_ACTIVITY -> "Weekly Activity"
-        ExperienceSource.ADMIN_BONUS -> "Admin Bonus"
+        ExperienceSource.BANK_DEPOSIT -> lang.raw("menu.guild_progression.source.names.bank_deposit")
+        ExperienceSource.MEMBER_JOINED -> lang.raw("menu.guild_progression.source.names.member_joined")
+        ExperienceSource.WAR_WON -> lang.raw("menu.guild_progression.source.names.war_won")
+        ExperienceSource.WAR_LOST -> lang.raw("menu.guild_progression.source.names.war_lost")
+        ExperienceSource.PLAYER_KILL -> lang.raw("menu.guild_progression.source.names.player_kill")
+        ExperienceSource.MOB_KILL -> lang.raw("menu.guild_progression.source.names.mob_kill")
+        ExperienceSource.CROP_BREAK -> lang.raw("menu.guild_progression.source.names.crop_break")
+        ExperienceSource.BLOCK_BREAK -> lang.raw("menu.guild_progression.source.names.block_break")
+        ExperienceSource.BLOCK_PLACE -> lang.raw("menu.guild_progression.source.names.block_place")
+        ExperienceSource.CRAFTING -> lang.raw("menu.guild_progression.source.names.crafting")
+        ExperienceSource.SMELTING -> lang.raw("menu.guild_progression.source.names.smelting")
+        ExperienceSource.FISHING -> lang.raw("menu.guild_progression.source.names.fishing")
+        ExperienceSource.ENCHANTING -> lang.raw("menu.guild_progression.source.names.enchanting")
+        ExperienceSource.CLAIM_CREATED -> lang.raw("menu.guild_progression.source.names.claim_created")
+        ExperienceSource.CLAIM_DESTROYED -> lang.raw("menu.guild_progression.source.names.claim_destroyed")
+        ExperienceSource.WEEKLY_ACTIVITY -> lang.raw("menu.guild_progression.source.names.weekly_activity")
+        ExperienceSource.ADMIN_BONUS -> lang.raw("menu.guild_progression.source.names.admin_bonus")
     }
 
     private fun perkToDisplayName(perk: net.lumalyte.lg.domain.values.PerkType): String = when (perk) {
-        net.lumalyte.lg.domain.values.PerkType.HIGHER_BANK_BALANCE -> "Higher Bank Limit"
-        net.lumalyte.lg.domain.values.PerkType.BANK_INTEREST -> "Bank Interest"
-        net.lumalyte.lg.domain.values.PerkType.INCREASED_BANK_LIMIT -> "Increased Bank Limit"
-        net.lumalyte.lg.domain.values.PerkType.REDUCED_WITHDRAWAL_FEES -> "Reduced Fees"
-        net.lumalyte.lg.domain.values.PerkType.ADDITIONAL_HOMES -> "Extra Homes"
-        net.lumalyte.lg.domain.values.PerkType.TELEPORT_COOLDOWN_REDUCTION -> "Faster Teleports"
-        net.lumalyte.lg.domain.values.PerkType.HOME_TELEPORT_SOUND_EFFECTS -> "Home Teleport SFX"
-        net.lumalyte.lg.domain.values.PerkType.SPECIAL_PARTICLES -> "Particle Effects"
-        net.lumalyte.lg.domain.values.PerkType.ANNOUNCEMENT_SOUND_EFFECTS -> "Announcement SFX"
-        net.lumalyte.lg.domain.values.PerkType.WAR_DECLARATION_SOUND_EFFECTS -> "War Declaration SFX"
-        net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_BLOCKS -> "More Claim Blocks"
-        net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_COUNT -> "More Claims"
-        net.lumalyte.lg.domain.values.PerkType.FASTER_CLAIM_REGEN -> "Faster Claim Regen"
-        net.lumalyte.lg.domain.values.PerkType.CUSTOM_BANNER_COLORS -> "Custom Banner Colors"
-        net.lumalyte.lg.domain.values.PerkType.ANIMATED_EMOJIS -> "Animated Emojis"
-        net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS -> "Ally Home Access"
+        net.lumalyte.lg.domain.values.PerkType.HIGHER_BANK_BALANCE -> lang.raw("menu.guild_progression.perks.names.higher_bank_balance")
+        net.lumalyte.lg.domain.values.PerkType.BANK_INTEREST -> lang.raw("menu.guild_progression.perks.names.bank_interest")
+        net.lumalyte.lg.domain.values.PerkType.INCREASED_BANK_LIMIT -> lang.raw("menu.guild_progression.perks.names.increased_bank_limit")
+        net.lumalyte.lg.domain.values.PerkType.REDUCED_WITHDRAWAL_FEES -> lang.raw("menu.guild_progression.perks.names.reduced_withdrawal_fees")
+        net.lumalyte.lg.domain.values.PerkType.ADDITIONAL_HOMES -> lang.raw("menu.guild_progression.perks.names.additional_homes")
+        net.lumalyte.lg.domain.values.PerkType.TELEPORT_COOLDOWN_REDUCTION -> lang.raw("menu.guild_progression.perks.names.teleport_cooldown_reduction")
+        net.lumalyte.lg.domain.values.PerkType.HOME_TELEPORT_SOUND_EFFECTS -> lang.raw("menu.guild_progression.perks.names.home_teleport_sound_effects")
+        net.lumalyte.lg.domain.values.PerkType.SPECIAL_PARTICLES -> lang.raw("menu.guild_progression.perks.names.special_particles")
+        net.lumalyte.lg.domain.values.PerkType.ANNOUNCEMENT_SOUND_EFFECTS -> lang.raw("menu.guild_progression.perks.names.announcement_sound_effects")
+        net.lumalyte.lg.domain.values.PerkType.WAR_DECLARATION_SOUND_EFFECTS -> lang.raw("menu.guild_progression.perks.names.war_declaration_sound_effects")
+        net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_BLOCKS -> lang.raw("menu.guild_progression.perks.names.increased_claim_blocks")
+        net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_COUNT -> lang.raw("menu.guild_progression.perks.names.increased_claim_count")
+        net.lumalyte.lg.domain.values.PerkType.FASTER_CLAIM_REGEN -> lang.raw("menu.guild_progression.perks.names.faster_claim_regen")
+        net.lumalyte.lg.domain.values.PerkType.CUSTOM_BANNER_COLORS -> lang.raw("menu.guild_progression.perks.names.custom_banner_colors")
+        net.lumalyte.lg.domain.values.PerkType.ANIMATED_EMOJIS -> lang.raw("menu.guild_progression.perks.names.animated_emojis")
+        net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS -> lang.raw("menu.guild_progression.perks.names.ally_home_access")
     }
 
     private data class GuildProgressionDisplay(

@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -39,9 +40,10 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private val relationService: RelationService by inject()
     private val bankService: net.lumalyte.lg.application.services.BankService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Guild Info - ${guild.name}"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.guild_info.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -76,34 +78,34 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addGuildOverview(pane: StaticPane, x: Int, y: Int) {
         val overviewItem = ItemStack.of(Material.SHIELD)
-            .name("§6Guild Overview")
-            .lore("§7Name: §f${guild.name}")
-            .lore("§7Level: §e${guild.level}")
-            .lore("§7Mode: §f${guild.mode.name.lowercase().replaceFirstChar { it.uppercase() }}")
+            .name(lang.legacy("menu.guild_info.overview.name"))
+            .lore(lang.legacy("menu.guild_info.overview.guild", "guild" to guild.name))
+            .lore(lang.legacy("menu.guild_info.overview.level", "level" to guild.level))
+            .lore(lang.legacy("menu.guild_info.overview.mode", "mode" to modeDisplayName()))
 
         if (guild.emoji != null) {
-            overviewItem.lore("§7Emoji: §f${guild.emoji}")
+            overviewItem.lore(lang.legacy("menu.guild_info.overview.emoji", "emoji" to guild.emoji!!))
         }
 
         guild.tag?.let { tag ->
             val parsedTag = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(tag)
-            overviewItem.lore("§7Tag: §f${parsedTag}")
+            overviewItem.lore(lang.legacy("menu.guild_info.overview.tag", "tag" to parsedTag))
         }
 
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        overviewItem.lore("§7Founded: §f${guild.createdAt.atZone(java.time.ZoneId.systemDefault()).format(formatter)}")
+        val formatter = DateTimeFormatter.ofPattern(lang.raw("menu.guild_info.overview.date_format"))
+        overviewItem.lore(lang.legacy("menu.guild_info.overview.founded", "date" to guild.createdAt.atZone(java.time.ZoneId.systemDefault()).format(formatter)))
 
         pane.addItem(GuiItem(overviewItem), x, y)
     }
 
     private fun addDescriptionSection(pane: StaticPane, x: Int, y: Int) {
         val descriptionItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§6Description")
+            .name(lang.legacy("menu.guild_info.description.name"))
 
         // Parse and display the description with MiniMessage formatting
         val formattedDescription = parseMiniMessageForDisplay(guild.description)
         if (formattedDescription != null) {
-            descriptionItem.lore("§r$formattedDescription")
+            descriptionItem.lore(lang.legacy("menu.guild_info.description.value", "description" to formattedDescription))
         }
 
         pane.addItem(GuiItem(descriptionItem), x, y)
@@ -112,8 +114,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private fun addMembersSection(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
         val membersItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name("§bMembers (§f$memberCount§b)")
-            .lore("§7Click to view member list")
+            .name(lang.legacy("menu.guild_info.members.name", "count" to memberCount))
+            .lore(lang.legacy("menu.guild_info.members.description"))
 
         val membersGuiItem = GuiItem(membersItem) {
             menuNavigator.openMenu(menuFactory.createGuildMemberListMenu(menuNavigator, player, guild))
@@ -125,10 +127,10 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         members.forEachIndexed { index, member ->
             if (index < 3) { // Show only first 3 members to fit
                 val rank = rankService.getPlayerRank(member.playerId, guild.id)
-                val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown Player"
+                val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.guild_info.fallback.unknown_player")
                 val memberItem = ItemStack.of(Material.PLAYER_HEAD)
-                    .name("§f$playerName")
-                    .lore("§7Rank: §f${rank?.name ?: "Member"}")
+                    .name(lang.legacy("menu.guild_info.members.player", "player" to playerName))
+                    .lore(lang.legacy("menu.guild_info.members.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_info.fallback.member"))))
 
                 memberItem.setData(
                     DataComponentTypes.PROFILE,
@@ -139,8 +141,8 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         if (members.size > 3) {
             val moreItem = ItemStack.of(Material.PAPER)
-                .name("§7... and ${members.size - 3} more")
-                .lore("§7Click members button above to see all")
+                .name(lang.legacy("menu.guild_info.members.more", "count" to members.size - 3))
+                .lore(lang.legacy("menu.guild_info.members.more_hint"))
             pane.addItem(GuiItem(moreItem), x, y + 4)
         }
     }
@@ -154,18 +156,18 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             it.type == RelationType.ALLY && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
         }
         val alliesItem = ItemStack.of(Material.LIME_BANNER)
-            .name("§aAllies (§f${allies.size}§a)")
+            .name(lang.legacy("menu.guild_info.relations.allies.name", "count" to allies.size))
 
         if (allies.isNotEmpty()) {
             allies.take(3).forEach { relation ->
                 val allyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
-                alliesItem.lore("§7• §f${allyGuild!!.name}")
+                alliesItem.lore(lang.legacy("menu.guild_info.relations.entry", "guild" to allyGuild!!.name))
             }
             if (allies.size > 3) {
-                alliesItem.lore("§7... and ${allies.size - 3} more")
+                alliesItem.lore(lang.legacy("menu.guild_info.relations.more", "count" to allies.size - 3))
             }
         } else {
-            alliesItem.lore("§7No allies")
+            alliesItem.lore(lang.legacy("menu.guild_info.relations.allies.none"))
         }
 
         pane.addItem(GuiItem(alliesItem), x, y)
@@ -175,18 +177,18 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             it.type == RelationType.TRUCE && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
         }
         val trucesItem = ItemStack.of(Material.WHITE_BANNER)
-            .name("§fTruces (§f${truces.size}§f)")
+            .name(lang.legacy("menu.guild_info.relations.truces.name", "count" to truces.size))
 
         if (truces.isNotEmpty()) {
             truces.take(3).forEach { relation ->
                 val truceGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
-                trucesItem.lore("§7• §f${truceGuild!!.name}")
+                trucesItem.lore(lang.legacy("menu.guild_info.relations.entry", "guild" to truceGuild!!.name))
             }
             if (truces.size > 3) {
-                trucesItem.lore("§7... and ${truces.size - 3} more")
+                trucesItem.lore(lang.legacy("menu.guild_info.relations.more", "count" to truces.size - 3))
             }
         } else {
-            trucesItem.lore("§7No truces")
+            trucesItem.lore(lang.legacy("menu.guild_info.relations.truces.none"))
         }
 
         pane.addItem(GuiItem(trucesItem), x, y + 1)
@@ -196,18 +198,18 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             it.type == RelationType.ENEMY && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
         }
         val enemiesItem = ItemStack.of(Material.RED_BANNER)
-            .name("§cWars (§f${enemies.size}§c)")
+            .name(lang.legacy("menu.guild_info.relations.wars.name", "count" to enemies.size))
 
         if (enemies.isNotEmpty()) {
             enemies.take(3).forEach { relation ->
                 val enemyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
-                enemiesItem.lore("§7• §f${enemyGuild!!.name}")
+                enemiesItem.lore(lang.legacy("menu.guild_info.relations.entry", "guild" to enemyGuild!!.name))
             }
             if (enemies.size > 3) {
-                enemiesItem.lore("§7... and ${enemies.size - 3} more")
+                enemiesItem.lore(lang.legacy("menu.guild_info.relations.more", "count" to enemies.size - 3))
             }
         } else {
-            enemiesItem.lore("§7No active wars")
+            enemiesItem.lore(lang.legacy("menu.guild_info.relations.wars.none"))
         }
 
         pane.addItem(GuiItem(enemiesItem), x, y + 2)
@@ -215,37 +217,37 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun addStatisticsSection(pane: StaticPane, x: Int, y: Int) {
         val statsItem = ItemStack.of(Material.BOOK)
-            .name("§eStatistics")
-            .lore("§7Bank Balance: §6$${bankService.getBalance(guild.id)}")
-            .lore("§7Level: §e${guild.level}")
+            .name(lang.legacy("menu.guild_info.statistics.name"))
+            .lore(lang.legacy("menu.guild_info.statistics.balance", "balance" to bankService.getBalance(guild.id)))
+            .lore(lang.legacy("menu.guild_info.statistics.level", "level" to guild.level))
 
         if (guild.home != null) {
-            statsItem.lore("§7Has Guild Home: §aYes")
+            statsItem.lore(lang.legacy("menu.guild_info.statistics.home.present"))
         } else {
-            statsItem.lore("§7Has Guild Home: §cNo")
+            statsItem.lore(lang.legacy("menu.guild_info.statistics.home.missing"))
         }
 
         if (guild.banner != null) {
-            statsItem.lore("§7Has Banner: §aYes")
+            statsItem.lore(lang.legacy("menu.guild_info.statistics.banner.present"))
         } else {
-            statsItem.lore("§7Has Banner: §cNo")
+            statsItem.lore(lang.legacy("menu.guild_info.statistics.banner.missing"))
         }
 
         pane.addItem(GuiItem(statsItem), x, y)
 
         // Progression info
         val progressionItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-            .name("§dProgression")
-            .lore("§7Level: §e${guild.level}")
-            .lore("§7Next Level: §e${guild.level + 1}")
+            .name(lang.legacy("menu.guild_info.progression.name"))
+            .lore(lang.legacy("menu.guild_info.progression.level", "level" to guild.level))
+            .lore(lang.legacy("menu.guild_info.progression.next", "level" to guild.level + 1))
 
         pane.addItem(GuiItem(progressionItem), x, y + 1)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.BARRIER)
-            .name("§c⬅ BACK")
-            .lore("§7Return to previous menu")
+            .name(lang.legacy("menu.guild_info.back.name"))
+            .lore(lang.legacy("menu.guild_info.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.goBack()
@@ -259,13 +261,18 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         return try {
             val miniMessage = MiniMessage.miniMessage()
             val component = miniMessage.deserialize(description)
-            // Convert to legacy format (§ codes) for menu display
+            // Convert to legacy formatting for menu display
             val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
             legacyText
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             description // Fallback to raw text if parsing fails
         }
+    }
+
+    private fun modeDisplayName(): String = when (guild.mode.name) {
+        "PEACEFUL" -> lang.raw("menu.guild_info.overview.modes.peaceful")
+        else -> lang.raw("menu.guild_info.overview.modes.hostile")
     }
 
     override fun passData(data: Any?) {

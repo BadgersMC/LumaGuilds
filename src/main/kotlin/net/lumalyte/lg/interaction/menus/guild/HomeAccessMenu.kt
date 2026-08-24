@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -31,22 +32,23 @@ class HomeAccessMenu(
     private val rankService: RankService by inject()
     private val guildService: GuildService by inject()
     private val menuFactory: MenuFactory by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_HOME)) {
-            player.sendMessage("§c❌ You need MANAGE_HOME to configure home access.")
+            player.sendMessage(lang.msg("menu.home_access.permission_denied"))
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
             return
         }
 
         val home = guildService.getHome(guild.id, homeName)
         if (home == null) {
-            player.sendMessage("§cHome '$homeName' no longer exists.")
+            player.sendMessage(lang.msg("menu.home_access.missing", "home" to homeName))
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
             return
         }
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6Access: $homeName"))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.legacy("menu.home_access.title", "home" to homeName)))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick {
@@ -69,14 +71,17 @@ class HomeAccessMenu(
                     on -> Material.LIME_DYE
                     else -> Material.GRAY_DYE
                 }
-            ).name(if (on) "§a✓ ${r.name}" else "§c✗ ${r.name}")
-                .lore("§7Priority: §f${r.priority}")
-                .lore("§7")
+            ).name(
+                if (on) lang.legacy("menu.home_access.rank.allowed", "rank" to r.name)
+                else lang.legacy("menu.home_access.rank.denied", "rank" to r.name)
+            )
+                .lore(lang.legacy("menu.home_access.rank.priority", "priority" to r.priority))
+                .lore(lang.legacy("menu.common.blank"))
                 .lore(
                     when {
-                        isOwner -> "§eOwner — always allowed"
-                        on -> "§eClick to revoke"
-                        else -> "§eClick to grant"
+                        isOwner -> lang.legacy("menu.home_access.rank.owner")
+                        on -> lang.legacy("menu.home_access.rank.revoke")
+                        else -> lang.legacy("menu.home_access.rank.grant")
                     }
                 )
             pane.addItem(GuiItem(item) {
@@ -87,7 +92,7 @@ class HomeAccessMenu(
             }, col, row)
         }
 
-        val backItem = ItemStack.of(Material.ARROW).name("§7← Back to Homes")
+        val backItem = ItemStack.of(Material.ARROW).name(lang.legacy("menu.home_access.back"))
         pane.addItem(GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
         }, 8, 3)

@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -42,23 +43,24 @@ class GuildWarAcceptanceMenu(
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         // Check permissions first
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DECLARE_WAR)) {
-            player.sendMessage("§c❌ You don't have permission to respond to war declarations!")
+            player.sendMessage(lang.msg("menu.war_acceptance.feedback.no_permission"))
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
 
         // Check if declaration is still valid
         if (!warDeclaration.isValid) {
-            player.sendMessage("§c❌ This war declaration has expired or is no longer valid!")
+            player.sendMessage(lang.msg("menu.war_acceptance.feedback.expired"))
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
 
-        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§4⚔ War Declaration - ${guild.name}"))
+        val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.legacy("menu.war_acceptance.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -83,47 +85,47 @@ class GuildWarAcceptanceMenu(
     private fun addWarDeclarationInfo(pane: StaticPane) {
         val declaringGuild = guildService.getGuild(warDeclaration.declaringGuildId)
         if (declaringGuild == null) {
-            player.sendMessage("§c❌ Error: Declaring guild not found!")
+            player.sendMessage(lang.msg("menu.war_acceptance.feedback.declaring_guild_missing"))
             return
         }
 
         // Declaring guild display with banner
-        val declaringGuildItem = createGuildDisplayItem(declaringGuild, "§c⚔ DECLARING WAR")
+        val declaringGuildItem = createGuildDisplayItem(declaringGuild, lang.legacy("menu.war_acceptance.guild.declaring"))
         pane.addItem(GuiItem(declaringGuildItem), 1, 1)
 
         // VS indicator
         val vsItem = ItemStack.of(Material.BARRIER)
-            .name("§4⚡ VS ⚡")
-            .lore("§7War Declaration")
+            .name(lang.legacy("menu.war_acceptance.vs.name"))
+            .lore(lang.legacy("menu.war_acceptance.vs.description"))
         pane.addItem(GuiItem(vsItem), 4, 1)
 
         // Your guild display
-        val yourGuildItem = createGuildDisplayItem(guild, "§a🛡 YOUR GUILD")
+        val yourGuildItem = createGuildDisplayItem(guild, lang.legacy("menu.war_acceptance.guild.yours"))
         pane.addItem(GuiItem(yourGuildItem), 7, 1)
 
         // War details
         val detailsItem = ItemStack.of(Material.WRITTEN_BOOK)
-            .name("§e📋 War Details")
-            .lore("§7Duration: §f${warDeclaration.proposedDuration.toDays()} days")
-            .lore("§7Objectives: §f${warDeclaration.objectives.size}")
+            .name(lang.legacy("menu.war_acceptance.details.name"))
+            .lore(lang.legacy("menu.war_acceptance.details.duration", "days" to warDeclaration.proposedDuration.toDays()))
+            .lore(lang.legacy("menu.war_acceptance.details.objectives", "count" to warDeclaration.objectives.size))
             if (warDeclaration.objectives.isNotEmpty()) {
                 warDeclaration.objectives.forEach { objective ->
-                    detailsItem.lore("§7• §f${objective.description}")
+                    detailsItem.lore(lang.legacy("menu.war_acceptance.details.objective", "objective" to objective.description))
                 }
             }
-            detailsItem.lore("§7")
+            detailsItem.lore(lang.legacy("menu.common.blank"))
             if (warDeclaration.wagerAmount > 0) {
-                detailsItem.lore("§6💰 Wager: §f${warDeclaration.wagerAmount} gold")
-                detailsItem.lore("§7  • You must match: §6${warDeclaration.wagerAmount} gold")
-                detailsItem.lore("§7  • Total pot: §6${warDeclaration.wagerAmount * 2} gold")
-                detailsItem.lore("§7  • Winner takes all!")
-                detailsItem.lore("§7")
+                detailsItem.lore(lang.legacy("menu.war_acceptance.details.wager", "amount" to warDeclaration.wagerAmount))
+                detailsItem.lore(lang.legacy("menu.war_acceptance.details.match", "amount" to warDeclaration.wagerAmount))
+                detailsItem.lore(lang.legacy("menu.war_acceptance.details.pot", "amount" to warDeclaration.wagerAmount * 2))
+                detailsItem.lore(lang.legacy("menu.war_acceptance.details.winner"))
+                detailsItem.lore(lang.legacy("menu.common.blank"))
             }
             if (warDeclaration.terms != null) {
-                detailsItem.lore("§7Terms: §f${warDeclaration.terms}")
-                detailsItem.lore("§7")
+                detailsItem.lore(lang.legacy("menu.war_acceptance.details.terms", "terms" to warDeclaration.terms!!))
+                detailsItem.lore(lang.legacy("menu.common.blank"))
             }
-            detailsItem.lore("§7Expires: §f${warDeclaration.remainingTime.toHours()}h remaining")
+            detailsItem.lore(lang.legacy("menu.war_acceptance.details.expires", "hours" to warDeclaration.remainingTime.toHours()))
 
         pane.addItem(GuiItem(detailsItem), 4, 0)
     }
@@ -146,26 +148,26 @@ class GuildWarAcceptanceMenu(
 
         return bannerItem
             .name(title)
-            .lore("§7Guild: §f${targetGuild.name}")
-            .lore("§7Members: §f$memberCount")
-            .lore("§7Level: §f${targetGuild.level}")
-            .lore("§7Mode: §f${targetGuild.mode}")
+            .lore(lang.legacy("menu.war_acceptance.guild.name", "guild" to targetGuild.name))
+            .lore(lang.legacy("menu.war_acceptance.guild.members", "count" to memberCount))
+            .lore(lang.legacy("menu.war_acceptance.guild.level", "level" to targetGuild.level))
+            .lore(lang.legacy("menu.war_acceptance.guild.mode", "mode" to targetGuild.mode))
     }
 
     private fun addResponseOptions(pane: StaticPane) {
         // Accept button
         val acceptItem = ItemStack.of(Material.EMERALD_BLOCK)
-            .name("§a✅ ACCEPT WAR")
-            .lore("§7Accept this war declaration")
-            .lore("§7and begin the conflict!")
-            .lore("§7")
+            .name(lang.legacy("menu.war_acceptance.accept.name"))
+            .lore(lang.legacy("menu.war_acceptance.accept.description"))
+            .lore(lang.legacy("menu.war_acceptance.accept.begin"))
+            .lore(lang.legacy("menu.common.blank"))
             if (warDeclaration.wagerAmount > 0) {
-                acceptItem.lore("§6💰 This will withdraw:")
-                acceptItem.lore("§6  ${warDeclaration.wagerAmount} gold from guild bank")
-                acceptItem.lore("§7")
+                acceptItem.lore(lang.legacy("menu.war_acceptance.accept.withdraw"))
+                acceptItem.lore(lang.legacy("menu.war_acceptance.accept.amount", "amount" to warDeclaration.wagerAmount))
+                acceptItem.lore(lang.legacy("menu.common.blank"))
             }
-            acceptItem.lore("§a⚔ Battle begins immediately")
-            acceptItem.lore("§aFirst to reach kill target wins!")
+            acceptItem.lore(lang.legacy("menu.war_acceptance.accept.immediate"))
+            acceptItem.lore(lang.legacy("menu.war_acceptance.accept.target"))
 
         val acceptGuiItem = GuiItem(acceptItem) {
             acceptWarDeclaration()
@@ -174,11 +176,11 @@ class GuildWarAcceptanceMenu(
 
         // Reject button
         val rejectItem = ItemStack.of(Material.REDSTONE_BLOCK)
-            .name("§c❌ REJECT WAR")
-            .lore("§7Reject this war declaration")
-            .lore("§7")
-            .lore("§c⚠ This will decline the war")
-            .lore("§cNo conflict will occur")
+            .name(lang.legacy("menu.war_acceptance.reject.name"))
+            .lore(lang.legacy("menu.war_acceptance.reject.description"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_acceptance.reject.warning"))
+            .lore(lang.legacy("menu.war_acceptance.reject.no_conflict"))
 
         val rejectGuiItem = GuiItem(rejectItem) {
             rejectWarDeclaration()
@@ -194,7 +196,7 @@ class GuildWarAcceptanceMenu(
             if (warDeclaration.wagerAmount > 0) {
                 // Refresh guild data to get current bank balance
                 guild = guildService.getGuild(guild.id) ?: run {
-                    player.sendMessage("§c❌ Error: Could not load guild data!")
+                    player.sendMessage(lang.msg("menu.war_acceptance.feedback.guild_load_failed"))
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
@@ -202,16 +204,16 @@ class GuildWarAcceptanceMenu(
                 // Check if guild has sufficient funds to match wager
                 val currentBalance = bankService.getBalance(guild.id)
                 if (currentBalance < warDeclaration.wagerAmount) {
-                    player.sendMessage("§c❌ Insufficient guild bank funds to match wager!")
-                    player.sendMessage("§7Need: §6${warDeclaration.wagerAmount} gold")
-                    player.sendMessage("§7Have: §6$currentBalance gold")
+                    player.sendMessage(lang.msg("menu.war_acceptance.feedback.insufficient_funds"))
+                    player.sendMessage(lang.msg("menu.war_acceptance.feedback.need", "amount" to warDeclaration.wagerAmount))
+                    player.sendMessage(lang.msg("menu.war_acceptance.feedback.have", "amount" to currentBalance))
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
 
                 // Check withdraw permissions
                 if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.WITHDRAW_FROM_BANK)) {
-                    player.sendMessage("§c❌ You don't have permission to withdraw from guild bank for wagers!")
+                    player.sendMessage(lang.msg("menu.war_acceptance.feedback.no_withdraw_permission"))
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
@@ -219,19 +221,19 @@ class GuildWarAcceptanceMenu(
 
             val war = warService.acceptWarDeclaration(warDeclaration.id, player.uniqueId)
             if (war != null) {
-                player.sendMessage("§a⚔ War accepted! Battle begins now!")
+                player.sendMessage(lang.msg("menu.war_acceptance.feedback.accepted"))
                 if (warDeclaration.wagerAmount > 0) {
                     val wager = warService.getWager(war.id)
                     if (wager != null) {
-                        player.sendMessage("§6💰 War pot: ${wager.totalPot} gold (winner takes all!)")
+                        player.sendMessage(lang.msg("menu.war_acceptance.feedback.pot", "amount" to wager.totalPot))
                     } else {
-                        player.sendMessage("§e⚠ Warning: Failed to create wager escrow")
+                        player.sendMessage(lang.msg("menu.war_acceptance.feedback.escrow_failed"))
                     }
                 }
 
-                player.sendMessage("§7Duration: §f${war.duration.toDays()} days")
+                player.sendMessage(lang.msg("menu.war_acceptance.feedback.duration", "days" to war.duration.toDays()))
                 if (war.objectives.isNotEmpty()) {
-                    player.sendMessage("§7Objectives: §f${war.objectives.size}")
+                    player.sendMessage(lang.msg("menu.war_acceptance.feedback.objectives", "count" to war.objectives.size))
                 }
                 player.playSound(player.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
                 
@@ -243,12 +245,12 @@ class GuildWarAcceptanceMenu(
                 notifyGuildsOfWarAcceptance(war)
                 
             } else {
-                player.sendMessage("§c❌ Failed to accept war declaration!")
+                player.sendMessage(lang.msg("menu.war_acceptance.feedback.accept_failed"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Error accepting war: ${e.message}")
+            player.sendMessage(lang.msg("menu.war_acceptance.feedback.accept_error", "error" to (e.message ?: lang.raw("general.unknown"))))
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -257,8 +259,8 @@ class GuildWarAcceptanceMenu(
         try {
             val success = warService.rejectWarDeclaration(warDeclaration.id, player.uniqueId)
             if (success) {
-                player.sendMessage("§c❌ War declaration rejected!")
-                player.sendMessage("§7The conflict has been declined.")
+                player.sendMessage(lang.msg("menu.war_acceptance.feedback.rejected"))
+                player.sendMessage(lang.msg("menu.war_acceptance.feedback.declined"))
                 player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.8f)
                 
                 // Close menu and return to war management
@@ -269,20 +271,20 @@ class GuildWarAcceptanceMenu(
                 notifyGuildOfWarRejection(warDeclaration.declaringGuildId)
                 
             } else {
-                player.sendMessage("§c❌ Failed to reject war declaration!")
+                player.sendMessage(lang.msg("menu.war_acceptance.feedback.reject_failed"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             }
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Error rejecting war: ${e.message}")
+            player.sendMessage(lang.msg("menu.war_acceptance.feedback.reject_error", "error" to (e.message ?: lang.raw("general.unknown"))))
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§c⬅ Back")
-            .lore("§7Return to war management")
+            .name(lang.legacy("menu.war_declaration.item.back.name"))
+            .lore(lang.legacy("menu.war_declaration.item.back.lore"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
@@ -303,18 +305,18 @@ class GuildWarAcceptanceMenu(
                 val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§a⚔ WAR ACCEPTED! ⚔"),
-                        Component.text("§7${defendingGuild.name} accepted - BATTLE BEGINS!"),
+                        lang.msg("menu.war_acceptance.notification.accepted.title"),
+                        lang.msg("menu.war_acceptance.notification.accepted.subtitle", "guild" to defendingGuild.name),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(4), JavaDuration.ofSeconds(1))
                     ))
-                    onlinePlayer.sendMessage("§a═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§a⚔ WAR DECLARATION ACCEPTED!")
-                    onlinePlayer.sendMessage("§7Enemy Guild: §f${defendingGuild.name}")
-                    onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
-                    onlinePlayer.sendMessage("§7Target: §f${war.objectives.firstOrNull()?.description ?: "No objectives"}")
-                    onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§c⚔ THE BATTLE HAS BEGUN! ⚔")
-                    onlinePlayer.sendMessage("§a═══════════════════════════════════")
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.accepted.border"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.accepted.header"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.enemy", "guild" to defendingGuild.name))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.duration", "days" to war.duration.toDays()))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.target", "objective" to (war.objectives.firstOrNull()?.description ?: lang.raw("menu.war_acceptance.notification.no_objectives"))))
+                    onlinePlayer.sendMessage(lang.msg("menu.common.blank"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.accepted.begun"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.accepted.border"))
                     onlinePlayer.playSound(onlinePlayer.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
                 }
             }
@@ -327,18 +329,18 @@ class GuildWarAcceptanceMenu(
                 val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§c⚔ WAR BEGINS! ⚔"),
-                        Component.text("§7War against ${declaringGuild.name} - FIGHT!"),
+                        lang.msg("menu.war_acceptance.notification.defending.title"),
+                        lang.msg("menu.war_acceptance.notification.defending.subtitle", "guild" to declaringGuild.name),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(4), JavaDuration.ofSeconds(1))
                     ))
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§c⚔ WAR HAS BEEN DECLARED!")
-                    onlinePlayer.sendMessage("§7Enemy Guild: §f${declaringGuild.name}")
-                    onlinePlayer.sendMessage("§7Duration: §f${war.duration.toDays()} days")
-                    onlinePlayer.sendMessage("§7Target: §f${war.objectives.firstOrNull()?.description ?: "No objectives"}")
-                    onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§a⚔ YOUR GUILD ACCEPTED THE CHALLENGE!")
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.defending.border"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.defending.header"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.enemy", "guild" to declaringGuild.name))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.duration", "days" to war.duration.toDays()))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.target", "objective" to (war.objectives.firstOrNull()?.description ?: lang.raw("menu.war_acceptance.notification.no_objectives"))))
+                    onlinePlayer.sendMessage(lang.msg("menu.common.blank"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.defending.challenge"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.defending.border"))
                     onlinePlayer.playSound(onlinePlayer.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
                 }
             }
@@ -358,22 +360,22 @@ class GuildWarAcceptanceMenu(
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     // Send title
                     onlinePlayer.showTitle(Title.title(
-                        Component.text("§c⚔ WAR REJECTED ⚔"),
-                        Component.text("§7${guild.name} declined your declaration"),
+                        lang.msg("menu.war_acceptance.notification.rejected.title"),
+                        lang.msg("menu.war_acceptance.notification.rejected.subtitle", "guild" to guild.name),
                         Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(3), JavaDuration.ofSeconds(1))
                     ))
                     
                     // Send chat messages
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§c⚔ WAR DECLARATION REJECTED!")
-                    onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§7Guild: §f${guild.name}")
-                    onlinePlayer.sendMessage("§7Response: §cDECLINED")
-                    onlinePlayer.sendMessage("§7")
-                    onlinePlayer.sendMessage("§7They chose not to engage in battle.")
-                    onlinePlayer.sendMessage("§7Consider diplomatic solutions or")
-                    onlinePlayer.sendMessage("§7find other opponents willing to fight!")
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.rejected.border"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.rejected.header"))
+                    onlinePlayer.sendMessage(lang.msg("menu.common.blank"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.rejected.guild", "guild" to guild.name))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.rejected.response"))
+                    onlinePlayer.sendMessage(lang.msg("menu.common.blank"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.rejected.decision"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.rejected.diplomacy"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.rejected.opponents"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.rejected.border"))
                     
                     // Play sound
                     onlinePlayer.playSound(onlinePlayer.location, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f)

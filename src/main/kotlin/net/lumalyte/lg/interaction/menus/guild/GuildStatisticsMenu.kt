@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -37,13 +38,18 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private val mapRendererService: MapRendererService by inject()
     private val guildService: GuildService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private val logger = LoggerFactory.getLogger(GuildStatisticsMenu::class.java)
 
     private val decimalFormat = DecimalFormat("#.##")
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6${guild.name} - Statistics"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(
+            guild.guiTheme,
+            6,
+            lang.legacy("menu.statistics.title", "guild" to guild.name),
+        ))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -87,13 +93,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val killStats = killService.getGuildKillStats(guild.id)
 
         val item = ItemStack.of(Material.DIAMOND_SWORD)
-            .name("§4Kill Statistics")
-            .lore("§7Total Kills: §f${killStats.totalKills}")
-            .lore("§7Total Deaths: §f${killStats.totalDeaths}")
-            .lore("§7Net Kills: §${if (killStats.netKills >= 0) "a" else "c"}${killStats.netKills}")
-            .lore("§7K/D Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
-            .lore("")
-            .lore("§7Click for detailed breakdown")
+            .name(lang.legacy("menu.statistics.item.kills.name"))
+            .lore(lang.legacy("menu.statistics.common.total_kills", "count" to killStats.totalKills))
+            .lore(lang.legacy("menu.statistics.common.total_deaths", "count" to killStats.totalDeaths))
+            .lore(netKillsLore(killStats.netKills))
+            .lore(lang.legacy("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.statistics.item.kills.lore.action"))
 
         val guiItem = GuiItem(item) {
             openKillStatsDetail()
@@ -111,14 +117,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val draws = warHistory.count { it.winner == null }
 
             val item = ItemStack.of(Material.WHITE_BANNER)
-                .name("§4War Statistics")
-                .lore("§7Active Wars: §f${activeWars.size}")
-                .lore("§7Total Wars: §f${warHistory.size}")
-                .lore("§7Wins: §a$wins")
-                .lore("§7Losses: §c$losses")
-                .lore("§7Draws: §e$draws")
-                .lore("")
-                .lore("§7Win Rate: §e${decimalFormat.format(calculateWinRate(wins, warHistory.size))}%")
+                .name(lang.legacy("menu.statistics.item.wars.name"))
+                .lore(lang.legacy("menu.statistics.common.active_wars", "count" to activeWars.size))
+                .lore(lang.legacy("menu.statistics.common.total_wars", "count" to warHistory.size))
+                .lore(lang.legacy("menu.statistics.common.wins", "count" to wins))
+                .lore(lang.legacy("menu.statistics.common.losses", "count" to losses))
+                .lore(lang.legacy("menu.statistics.common.draws", "count" to draws))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.statistics.common.win_rate", "rate" to decimalFormat.format(calculateWinRate(wins, warHistory.size))))
 
             val guiItem = GuiItem(item) {
                 openWarStatsDetail()
@@ -128,15 +134,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             // Menu operation - catching all exceptions to prevent UI failure
             // Fallback to placeholder if war service fails
             val item = ItemStack.of(Material.WHITE_BANNER)
-                .name("§4War Statistics")
-                .lore("§7Active Wars: §f0")
-                .lore("§7Total Wars: §f0")
-                .lore("§7Wins: §a0")
-                .lore("§7Losses: §c0")
-                .lore("§7Draws: §e0")
-                .lore("")
-                .lore("§7Win Rate: §e0.0%")
-                .lore("§cWar system not available")
+                .name(lang.legacy("menu.statistics.item.wars.name"))
+                .lore(lang.legacy("menu.statistics.common.active_wars", "count" to 0))
+                .lore(lang.legacy("menu.statistics.common.total_wars", "count" to 0))
+                .lore(lang.legacy("menu.statistics.common.wins", "count" to 0))
+                .lore(lang.legacy("menu.statistics.common.losses", "count" to 0))
+                .lore(lang.legacy("menu.statistics.common.draws", "count" to 0))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.statistics.common.win_rate", "rate" to decimalFormat.format(0)))
+                .lore(lang.legacy("menu.statistics.item.wars.lore.unavailable"))
 
             val guiItem = GuiItem(item) {
                 openWarStatsDetail()
@@ -147,17 +153,17 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addMemberStatsButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
-        // Placeholder for online members until MemberService is extended
-        val onlineMembers = 0 // memberService.getOnlineMembers(guild.id).size
+        // Placeholder until online membership tracking is implemented for this overview.
+        val onlineMembers = 0
 
         val item = ItemStack.of(Material.PLAYER_HEAD)
-            .name("§bMember Statistics")
-            .lore("§7Total Members: §f$memberCount")
-            .lore("§7Online Now: §a$onlineMembers")
-            .lore("§7Offline: §7${memberCount - onlineMembers}")
-            .lore("")
-            .lore("§7Activity Rate: §e${calculateActivityRate(memberCount, onlineMembers)}%")
-            .lore("§cOnline tracking coming soon!")
+            .name(lang.legacy("menu.statistics.item.members.name"))
+            .lore(lang.legacy("menu.statistics.common.total_members", "count" to memberCount))
+            .lore(lang.legacy("menu.statistics.common.online", "count" to onlineMembers))
+            .lore(lang.legacy("menu.statistics.common.offline", "count" to memberCount - onlineMembers))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.statistics.common.activity_rate", "rate" to calculateActivityRate(memberCount, onlineMembers)))
+            .lore(lang.legacy("menu.statistics.item.members.lore.placeholder"))
 
         val guiItem = GuiItem(item) {
             openMemberStatsDetail()
@@ -173,12 +179,12 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val avgDeathsPerMember = if (memberCount > 0) killStats.totalDeaths.toDouble() / memberCount else 0.0
 
         val item = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-            .name("§ePerformance Metrics")
-            .lore("§7Avg Kills/Member: §f${decimalFormat.format(avgKillsPerMember)}")
-            .lore("§7Avg Deaths/Member: §f${decimalFormat.format(avgDeathsPerMember)}")
-            .lore("§7Kill Efficiency: §e${calculateEfficiency(killStats)}%")
-            .lore("")
-            .lore("§7Overall Rating: §${getPerformanceColor(killStats, memberCount)}${getPerformanceRating(killStats, memberCount)}")
+            .name(lang.legacy("menu.statistics.item.performance.name"))
+            .lore(lang.legacy("menu.statistics.common.average_kills", "average" to decimalFormat.format(avgKillsPerMember)))
+            .lore(lang.legacy("menu.statistics.common.average_deaths", "average" to decimalFormat.format(avgDeathsPerMember)))
+            .lore(lang.legacy("menu.statistics.common.efficiency", "percent" to calculateEfficiency(killStats)))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(performanceRatingLore(killStats, memberCount))
 
         val guiItem = GuiItem(item) {
             openPerformanceDetail()
@@ -188,13 +194,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addGraphPlaceholderButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.FILLED_MAP)
-            .name("§5📊 Visual Charts")
-            .lore("§7Interactive charts & graphs")
-            .lore("§7Kill trends over time")
-            .lore("§7Performance visualizations")
-            .lore("")
-            .lore("§eClick to view guild balance chart")
-            .lore("§7Advanced map-based rendering")
+            .name(lang.legacy("menu.statistics.item.charts.name"))
+            .lore(lang.legacy("menu.statistics.item.charts.lore.description"))
+            .lore(lang.legacy("menu.statistics.item.charts.lore.trends"))
+            .lore(lang.legacy("menu.statistics.item.charts.lore.visualizations"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.statistics.item.charts.lore.action"))
+            .lore(lang.legacy("menu.statistics.item.charts.lore.rendering"))
 
         val guiItem = GuiItem(item) {
             renderGuildBalanceChart()
@@ -204,14 +210,19 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.ARROW)
-            .name("§cBack to Control Panel")
-            .lore("§7Return to guild management")
+            .name(lang.legacy("menu.statistics.item.back_control.name"))
+            .lore(lang.legacy("menu.statistics.item.back_control.lore"))
 
         val guiItem = GuiItem(item) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
     }
+
+    private fun statisticsGui(rows: Int): ChestGui = ChestGui(
+        rows,
+        MenuTitleBuilder.build(guild.guiTheme, rows, lang.legacy("menu.statistics.title", "guild" to guild.name)),
+    )
 
     // Helper functions for calculations and ratings
     private fun calculateWinRate(wins: Int, totalWars: Int): Double {
@@ -227,25 +238,32 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         return if (totalActions > 0) decimalFormat.format((killStats.totalKills.toDouble() / totalActions) * 100) else "0"
     }
 
-    private fun getPerformanceColor(killStats: GuildKillStats, memberCount: Int): String {
-        val avgKills = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
+    private fun netKillsLore(netKills: Int): String = if (netKills >= 0) {
+        lang.legacy("menu.statistics.common.net_kills.positive", "count" to netKills)
+    } else {
+        lang.legacy("menu.statistics.common.net_kills.negative", "count" to netKills)
+    }
+
+    private fun performanceRatingLore(killStats: GuildKillStats, memberCount: Int): String {
+        val rating = getPerformanceRating(killStats, memberCount)
+        val averageKills = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
         return when {
-            avgKills >= 50 -> "a" // Green
-            avgKills >= 25 -> "e" // Yellow
-            avgKills >= 10 -> "6" // Gold
-            else -> "c" // Red
+            averageKills >= 50 -> lang.legacy("menu.statistics.common.overall_rating.green", "rating" to rating)
+            averageKills >= 25 -> lang.legacy("menu.statistics.common.overall_rating.yellow", "rating" to rating)
+            averageKills >= 10 -> lang.legacy("menu.statistics.common.overall_rating.gold", "rating" to rating)
+            else -> lang.legacy("menu.statistics.common.overall_rating.red", "rating" to rating)
         }
     }
 
     private fun getPerformanceRating(killStats: GuildKillStats, memberCount: Int): String {
         val avgKills = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
         return when {
-            avgKills >= 100 -> "Legendary"
-            avgKills >= 50 -> "Elite"
-            avgKills >= 25 -> "Veteran"
-            avgKills >= 10 -> "Skilled"
-            avgKills >= 5 -> "Novice"
-            else -> "Recruit"
+            avgKills >= 100 -> lang.raw("menu.statistics.rating.performance.legendary")
+            avgKills >= 50 -> lang.raw("menu.statistics.rating.performance.elite")
+            avgKills >= 25 -> lang.raw("menu.statistics.rating.performance.veteran")
+            avgKills >= 10 -> lang.raw("menu.statistics.rating.performance.skilled")
+            avgKills >= 5 -> lang.raw("menu.statistics.rating.performance.novice")
+            else -> lang.raw("menu.statistics.rating.performance.recruit")
         }
     }
 
@@ -254,7 +272,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         try {
             val killStats = killService.getGuildKillStats(guild.id)
 
-            val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6${guild.name} - Statistics"))
+            val gui = statisticsGui(4)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -264,23 +282,23 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val summaryItem = ItemStack.of(Material.DIAMOND_SWORD)
-                .name("§4⚔ KILL STATISTICS")
-                .lore("§7Total Kills: §a${killStats.totalKills}")
-                .lore("§7Total Deaths: §c${killStats.totalDeaths}")
-                .lore("§7Net Kills: §${if (killStats.netKills >= 0) "a" else "c"}${killStats.netKills}")
-                .lore("§7K/D Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
-                .lore("")
-                .lore("§7Kill Efficiency: §f${calculateEfficiency(killStats)}%")
+                .name(lang.legacy("menu.statistics.detail.kills.name"))
+                .lore(lang.legacy("menu.statistics.common.total_kills_green", "count" to killStats.totalKills))
+                .lore(lang.legacy("menu.statistics.common.total_deaths_red", "count" to killStats.totalDeaths))
+                .lore(netKillsLore(killStats.netKills))
+                .lore(lang.legacy("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.statistics.common.efficiency_white", "percent" to calculateEfficiency(killStats)))
             pane.addItem(GuiItem(summaryItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name("§cBack to Statistics")
-                .lore("§7Return to guild statistics")
+                .name(lang.legacy("menu.statistics.item.back.name"))
+                .lore(lang.legacy("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load kill statistics. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.kills"))
             logger.error("Error opening kill stats detail for guild ${guild.id}", e)
         }
     }
@@ -290,7 +308,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
             val warHistory = warService.getWarHistory(guild.id, 20)
 
-            val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6${guild.name} - Statistics"))
+            val gui = statisticsGui(6)
             val pane = StaticPane(0, 0, 9, 6)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
@@ -315,7 +333,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.show(player)
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Failed to load war statistics. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.wars"))
             logger.error("Error opening war stats detail for guild ${guild.id}", e)
         }
     }
@@ -324,34 +342,38 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
         val activeWarsItem = ItemStack.of(Material.DIAMOND_SWORD)
-            .name("§4⚔ ACTIVE WARS (${activeWars.size})")
-            .lore("§7Currently ongoing conflicts")
+            .name(lang.legacy("menu.statistics.detail.wars.active.name", "count" to activeWars.size))
+            .lore(lang.legacy("menu.statistics.detail.wars.active.description"))
 
         if (activeWars.isNotEmpty()) {
-            activeWarsItem.lore("")
+            activeWarsItem.lore(lang.legacy("menu.common.blank"))
             activeWars.take(3).forEach { war ->
                 val enemyGuild = guildService.getGuild(
                     if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
                 )
-                val enemyName = enemyGuild?.name ?: "Unknown Guild"
-                val status = if (war.declaringGuildId == guild.id) "Attacker" else "Defender"
+                val enemyName = enemyGuild?.name ?: lang.raw("menu.statistics.common.unknown_guild")
+                val status = if (war.declaringGuildId == guild.id) {
+                    lang.raw("menu.statistics.common.attacker")
+                } else {
+                    lang.raw("menu.statistics.common.defender")
+                }
                 val remainingTime = war.remainingDuration
 
-                activeWarsItem.lore("§c⚔ vs $enemyName ($status)")
+                activeWarsItem.lore(lang.legacy("menu.statistics.detail.wars.active.opponent", "guild" to enemyName, "status" to status))
                 if (remainingTime != null) {
                     val days = remainingTime.toDays()
                     val hours = remainingTime.toHours() % 24
-                    activeWarsItem.lore("§7⏰ ${days}d ${hours}h remaining")
+                    activeWarsItem.lore(lang.legacy("menu.statistics.detail.wars.active.remaining", "days" to days, "hours" to hours))
                 } else {
-                    activeWarsItem.lore("§7⏰ Time expired")
+                    activeWarsItem.lore(lang.legacy("menu.statistics.detail.wars.active.expired"))
                 }
             }
 
             if (activeWars.size > 3) {
-                activeWarsItem.lore("§7... and ${activeWars.size - 3} more")
+                activeWarsItem.lore(lang.legacy("menu.statistics.common.more", "count" to activeWars.size - 3))
             }
         } else {
-            activeWarsItem.lore("§7No active wars")
+            activeWarsItem.lore(lang.legacy("menu.statistics.detail.wars.active.none"))
         }
 
         pane.addItem(GuiItem(activeWarsItem), 1, 0)
@@ -361,25 +383,25 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val warHistory = warService.getWarHistory(guild.id, 5)
 
         val historyItem = ItemStack.of(Material.BOOK)
-            .name("§6📜 WAR HISTORY")
-            .lore("§7Recent completed wars")
+            .name(lang.legacy("menu.statistics.detail.wars.history.name"))
+            .lore(lang.legacy("menu.statistics.detail.wars.history.description"))
 
         if (warHistory.isNotEmpty()) {
-            historyItem.lore("")
+            historyItem.lore(lang.legacy("menu.common.blank"))
 
             warHistory.take(4).forEachIndexed { index, war ->
                 val enemyGuild = guildService.getGuild(
                     if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
                 )
-                val enemyName = enemyGuild?.name ?: "Unknown Guild"
+                val enemyName = enemyGuild?.name ?: lang.raw("menu.statistics.common.unknown_guild")
 
                 val result = when {
-                    war.winner == guild.id -> "§a✓ Won"
-                    war.winner != null -> "§c✗ Lost"
-                    else -> "§e⚖ Draw"
+                    war.winner == guild.id -> lang.raw("menu.statistics.detail.wars.history.result.won")
+                    war.winner != null -> lang.raw("menu.statistics.detail.wars.history.result.lost")
+                    else -> lang.raw("menu.statistics.detail.wars.history.result.draw")
                 }
 
-                historyItem.lore("§${index + 1}. vs $enemyName: $result")
+                historyItem.lore(lang.legacy("menu.statistics.detail.wars.history.row", "rank" to index + 1, "guild" to enemyName, "result" to result))
 
                 // Show duration if available
                 val duration = war.startedAt?.let { start ->
@@ -391,15 +413,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 if (duration != null) {
                     val days = duration.toDays()
                     val hours = duration.toHours() % 24
-                    historyItem.lore("§7   Duration: ${days}d ${hours}h")
+                    historyItem.lore(lang.legacy("menu.statistics.detail.wars.history.duration", "days" to days, "hours" to hours))
                 }
             }
 
             if (warHistory.size > 4) {
-                historyItem.lore("§7... and ${warHistory.size - 4} more wars")
+                historyItem.lore(lang.legacy("menu.statistics.detail.wars.history.more", "count" to warHistory.size - 4))
             }
         } else {
-            historyItem.lore("§7No war history available")
+            historyItem.lore(lang.legacy("menu.statistics.detail.wars.history.none"))
         }
 
         pane.addItem(GuiItem(historyItem), 3, 0)
@@ -414,22 +436,26 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val winRate = calculateWinRate(wins, warHistory.size)
 
         val statsItem = ItemStack.of(Material.TOTEM_OF_UNDYING)
-            .name("§e📊 WAR STATISTICS")
-            .lore("§7Overall Performance")
-            .lore("")
-            .lore("§7Total Wars: §f${warHistory.size}")
-            .lore("§7Wins: §a$wins")
-            .lore("§7Losses: §c$losses")
-            .lore("§7Draws: §e$draws")
-            .lore("")
-            .lore("§7Win Rate: §e${String.format("%.1f", winRate)}%")
+            .name(lang.legacy("menu.statistics.detail.wars.summary.name"))
+            .lore(lang.legacy("menu.statistics.detail.wars.summary.description"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.statistics.common.total_wars", "count" to warHistory.size))
+            .lore(lang.legacy("menu.statistics.common.wins", "count" to wins))
+            .lore(lang.legacy("menu.statistics.common.losses", "count" to losses))
+            .lore(lang.legacy("menu.statistics.common.draws", "count" to draws))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.statistics.common.win_rate", "rate" to String.format("%.1f", winRate)))
 
         // Add current win streak
         val recentWars = warHistory.take(10)
         val currentStreak = calculateCurrentStreak(recentWars, guild.id)
         if (currentStreak > 0) {
-            val streakType = if (recentWars.first().winner == guild.id) "§aWin" else "§cLoss"
-            statsItem.lore("§7Current Streak: ${streakType} §fx$currentStreak")
+            val streakLore = if (recentWars.first().winner == guild.id) {
+                lang.legacy("menu.statistics.detail.wars.summary.win_streak", "count" to currentStreak)
+            } else {
+                lang.legacy("menu.statistics.detail.wars.summary.loss_streak", "count" to currentStreak)
+            }
+            statsItem.lore(streakLore)
         }
 
         pane.addItem(GuiItem(statsItem), 5, 0)
@@ -443,8 +469,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         if (activeWars.isNotEmpty()) {
             val warKillStats = ItemStack.of(Material.IRON_SWORD)
-                .name("§c⚔ CURRENT WAR KILLS")
-                .lore("§7Kill statistics in active wars")
+                .name(lang.legacy("menu.statistics.detail.wars.kills.name"))
+                .lore(lang.legacy("menu.statistics.detail.wars.kills.description"))
 
             // Get kill stats for each active war
             activeWars.forEach { war ->
@@ -457,11 +483,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                     val guildKills = killsBetween.count { it.killerGuildId == guild.id }
                     val enemyKills = killsBetween.count { it.killerGuildId == enemyGuildId }
 
-                    warKillStats.lore("")
-                        .lore("§c⚔ vs ${enemyGuild.name}:")
-                        .lore("§7   Your kills: §a$guildKills")
-                        .lore("§7   Enemy kills: §c$enemyKills")
-                        .lore("§7   Ratio: §e${calculateKillRatio(guildKills, enemyKills)}")
+                    warKillStats.lore(lang.legacy("menu.common.blank"))
+                        .lore(lang.legacy("menu.statistics.detail.wars.kills.opponent", "guild" to enemyGuild.name))
+                        .lore(lang.legacy("menu.statistics.detail.wars.kills.yours", "count" to guildKills))
+                        .lore(lang.legacy("menu.statistics.detail.wars.kills.enemy", "count" to enemyKills))
+                        .lore(lang.legacy("menu.statistics.detail.wars.kills.ratio", "ratio" to calculateKillRatio(guildKills, enemyKills)))
                 }
             }
 
@@ -501,7 +527,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val members = memberService.getGuildMembers(guild.id)
             val memberCount = memberService.getMemberCount(guild.id)
 
-            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6${guild.name} - Statistics"))
+            val gui = statisticsGui(5)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -511,9 +537,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val summaryItem = ItemStack.of(Material.PLAYER_HEAD)
-                .name("§b👥 MEMBER SUMMARY")
-                .lore("§7Total Members: §f$memberCount")
-                .lore("§7Online: §a${Bukkit.getOnlinePlayers().count { p -> members.any { it.playerId == p.uniqueId } }}")
+                .name(lang.legacy("menu.statistics.detail.members.name"))
+                .lore(lang.legacy("menu.statistics.common.total_members", "count" to memberCount))
+                .lore(lang.legacy("menu.statistics.common.online", "count" to Bukkit.getOnlinePlayers().count { p -> members.any { it.playerId == p.uniqueId } }))
             pane.addItem(GuiItem(summaryItem), 4, 0)
 
             var col = 0
@@ -522,8 +548,16 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: member.playerId.toString().take(8)
                 val isOnline = Bukkit.getPlayer(member.playerId) != null
                 val memberItem = ItemStack.of(Material.PLAYER_HEAD)
-                    .name("§${if (isOnline) "a" else "7"}$playerName")
-                    .lore("§7Online: §${if (isOnline) "aYes" else "7No"}")
+                    .name(if (isOnline) {
+                        lang.legacy("menu.statistics.detail.members.player.online_name", "player" to playerName)
+                    } else {
+                        lang.legacy("menu.statistics.detail.members.player.offline_name", "player" to playerName)
+                    })
+                    .lore(if (isOnline) {
+                        lang.legacy("menu.statistics.detail.members.player.online")
+                    } else {
+                        lang.legacy("menu.statistics.detail.members.player.offline")
+                    })
                 pane.addItem(GuiItem(memberItem), 1 + col, 1 + row)
                 col++
                 if (col >= 7) {
@@ -534,18 +568,18 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             if (members.size > 21) {
                 val moreItem = ItemStack.of(Material.PAPER)
-                    .name("§e... and ${members.size - 21} more members")
+                    .name(lang.legacy("menu.statistics.detail.members.more", "count" to members.size - 21))
                 pane.addItem(GuiItem(moreItem), 4, 4)
             }
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name("§cBack to Statistics")
-                .lore("§7Return to guild statistics")
+                .name(lang.legacy("menu.statistics.item.back.name"))
+                .lore(lang.legacy("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 8, 4)
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load member statistics. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.members"))
             logger.error("Error opening member stats detail for guild ${guild.id}", e)
         }
     }
@@ -558,7 +592,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val avgKillsPerMember = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
             val avgDeathsPerMember = if (memberCount > 0) killStats.totalDeaths.toDouble() / memberCount else 0.0
 
-            val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6${guild.name} - Statistics"))
+            val gui = statisticsGui(4)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -568,23 +602,23 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val perfItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
-                .name("§e📊 PERFORMANCE METRICS")
-                .lore("§7Avg Kills/Member: §f${decimalFormat.format(avgKillsPerMember)}")
-                .lore("§7Avg Deaths/Member: §f${decimalFormat.format(avgDeathsPerMember)}")
-                .lore("§7Kill Efficiency: §e${calculateEfficiency(killStats)}%")
-                .lore("§7K/D Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
-                .lore("")
-                .lore("§7Overall Rating: §${getPerformanceColor(killStats, memberCount)}${getPerformanceRating(killStats, memberCount)}")
+                .name(lang.legacy("menu.statistics.detail.performance.name"))
+                .lore(lang.legacy("menu.statistics.common.average_kills", "average" to decimalFormat.format(avgKillsPerMember)))
+                .lore(lang.legacy("menu.statistics.common.average_deaths", "average" to decimalFormat.format(avgDeathsPerMember)))
+                .lore(lang.legacy("menu.statistics.common.efficiency", "percent" to calculateEfficiency(killStats)))
+                .lore(lang.legacy("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(performanceRatingLore(killStats, memberCount))
             pane.addItem(GuiItem(perfItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name("§cBack to Statistics")
-                .lore("§7Return to guild statistics")
+                .name(lang.legacy("menu.statistics.item.back.name"))
+                .lore(lang.legacy("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load performance statistics. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.performance"))
             logger.error("Error opening performance detail for guild ${guild.id}", e)
         }
     }
@@ -594,17 +628,17 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val topKillers = killService.getTopKillers(guildMembers, 5)
 
         val item = ItemStack.of(Material.TOTEM_OF_UNDYING)
-            .name("§cTop Killers")
-            .lore("§7Guild's elite warriors")
+            .name(lang.legacy("menu.statistics.item.top_killers.name"))
+            .lore(lang.legacy("menu.statistics.item.top_killers.lore.description"))
 
         if (topKillers.isNotEmpty()) {
-            item.lore("")
+            item.lore(lang.legacy("menu.common.blank"))
             topKillers.take(3).forEachIndexed { index, (playerId, stats) ->
-                val playerName = Bukkit.getPlayer(playerId)?.name ?: "Unknown"
-                item.lore("§${getRankColor(index + 1)}${index + 1}. $playerName: §f${stats.totalKills} kills")
+                val playerName = Bukkit.getPlayer(playerId)?.name ?: lang.raw("general.unknown")
+                item.lore(rankedKillsLore(index + 1, playerName, stats.totalKills))
             }
         } else {
-            item.lore("§7No kill data available")
+            item.lore(lang.legacy("menu.statistics.common.no_kill_data"))
         }
 
         val guiItem = GuiItem(item) {
@@ -621,17 +655,17 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .take(3)
 
         val item = ItemStack.of(Material.GOLD_BLOCK)
-            .name("§6Top Contributors")
-            .lore("§7Most generous members")
+            .name(lang.legacy("menu.statistics.item.top_contributors.name"))
+            .lore(lang.legacy("menu.statistics.item.top_contributors.lore.description"))
 
         if (topContributors.isNotEmpty()) {
-            item.lore("")
+            item.lore(lang.legacy("menu.common.blank"))
             topContributors.forEachIndexed { index, contribution ->
-                val playerName = contribution.playerName ?: "Unknown"
-                item.lore("§${getRankColor(index + 1)}${index + 1}. $playerName: §f$${contribution.netContribution}")
+                val playerName = contribution.playerName ?: lang.raw("general.unknown")
+                item.lore(rankedContributionLore(index + 1, playerName, contribution.netContribution))
             }
         } else {
-            item.lore("§7No contribution data")
+            item.lore(lang.legacy("menu.statistics.common.no_contribution_data"))
         }
 
         val guiItem = GuiItem(item) {
@@ -644,11 +678,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val killStats = killService.getGuildKillStats(guild.id)
 
         val item = ItemStack.of(Material.COMPARATOR)
-            .name("§dK/D Analysis")
-            .lore("§7Kill/Death Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
-            .lore("§7Performance Grade: §${getKDRatingColor(killStats.killDeathRatio)}${getKDRating(killStats.killDeathRatio)}")
-            .lore("")
-            .lore("§7Efficiency Score: §f${calculateEfficiencyScore(killStats)}/100")
+            .name(lang.legacy("menu.statistics.item.kd.name"))
+            .lore(lang.legacy("menu.statistics.common.kill_death_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+            .lore(kdRatingLore(killStats.killDeathRatio))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.statistics.common.efficiency_score", "value" to calculateEfficiencyScore(killStats)))
 
         val guiItem = GuiItem(item) {
             openKDAnalysisDetail()
@@ -661,10 +695,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val recentActivity = recentKills.size
 
         val item = ItemStack.of(Material.CLOCK)
-            .name("§fRecent Activity")
-            .lore("§7Last 24 hours")
-            .lore("§7Kills: §f$recentActivity")
-            .lore("§7Activity Level: §${getActivityColor(recentActivity)}${getActivityLevel(recentActivity)}")
+            .name(lang.legacy("menu.statistics.item.recent.name"))
+            .lore(lang.legacy("menu.statistics.item.recent.lore.latest"))
+            .lore(lang.legacy("menu.statistics.item.recent.lore.kills", "count" to recentActivity))
+            .lore(activityLevelLore(recentActivity))
 
         val guiItem = GuiItem(item) {
             openRecentActivityDetail()
@@ -674,10 +708,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addPeriodStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.BOOK)
-            .name("§3Period Statistics")
-            .lore("§7View stats by time period")
-            .lore("§7Daily, Weekly, Monthly")
-            .lore("§7Compare performance over time")
+            .name(lang.legacy("menu.statistics.item.period.name"))
+            .lore(lang.legacy("menu.statistics.item.period.lore.description"))
+            .lore(lang.legacy("menu.statistics.item.period.lore.periods"))
+            .lore(lang.legacy("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             openPeriodStatsMenu()
@@ -687,10 +721,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addRivalryStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.RED_BANNER)
-            .name("§4Rivalry Statistics")
-            .lore("§7Kills vs other guilds")
-            .lore("§7Dominance rankings")
-            .lore("§7Most aggressive rivals")
+            .name(lang.legacy("menu.statistics.item.rivalry.name"))
+            .lore(lang.legacy("menu.statistics.item.rivalry.lore.description"))
+            .lore(lang.legacy("menu.statistics.item.rivalry.lore.rankings"))
+            .lore(lang.legacy("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             openRivalryStatsDetail()
@@ -704,10 +738,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val achievementCount = calculateAchievementCount(killStats)
 
         val item = ItemStack.of(Material.TROPICAL_FISH_BUCKET)
-            .name("§eGuild Achievements")
-            .lore("§7Milestones unlocked: §f$achievementCount")
-            .lore("§7Total Kills: §${getAchievementColor(killStats.totalKills)}${getKillMilestone(killStats.totalKills)}")
-            .lore("§7Net Kills: §${getAchievementColor(killStats.netKills)}${getNetKillMilestone(killStats.netKills)}")
+            .name(lang.legacy("menu.statistics.item.achievements.name"))
+            .lore(lang.legacy("menu.statistics.item.achievements.lore.count", "count" to achievementCount))
+            .lore(achievementKillsLore(killStats.totalKills))
+            .lore(achievementNetKillsLore(killStats.netKills))
+            .lore(lang.legacy("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             openAchievementsDetail()
@@ -717,10 +752,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addTrendAnalysisButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.REPEATER)
-            .name("§3📈 Kill Trends")
-            .lore("§7Kill performance over time")
-            .lore("§7Track improvement patterns")
-            .lore("§7Interactive trend chart")
+            .name(lang.legacy("menu.statistics.item.kill_trends.name"))
+            .lore(lang.legacy("menu.statistics.item.kill_trends.lore.description"))
+            .lore(lang.legacy("menu.statistics.item.kill_trends.lore.patterns"))
+            .lore(lang.legacy("menu.statistics.item.kill_trends.lore.chart"))
 
         val guiItem = GuiItem(item) {
             renderKillTrendChart()
@@ -730,10 +765,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addComparisonButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.COMPARATOR)
-            .name("§9📊 Member Contributions")
-            .lore("§7Compare member contributions")
-            .lore("§7Visual ranking chart")
-            .lore("§7Identify top contributors")
+            .name(lang.legacy("menu.statistics.item.contribution_chart.name"))
+            .lore(lang.legacy("menu.statistics.item.contribution_chart.lore.description"))
+            .lore(lang.legacy("menu.statistics.item.contribution_chart.lore.chart"))
+            .lore(lang.legacy("menu.statistics.item.contribution_chart.lore.details"))
 
         val guiItem = GuiItem(item) {
             renderMemberContributionsChart()
@@ -743,10 +778,10 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addExportStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§fExport Statistics")
-            .lore("§7Download detailed stats")
-            .lore("§7CSV format for analysis")
-            .lore("§7Secure file delivery")
+            .name(lang.legacy("menu.statistics.item.export.name"))
+            .lore(lang.legacy("menu.statistics.item.export.lore.description"))
+            .lore(lang.legacy("menu.statistics.item.export.lore.format"))
+            .lore(lang.legacy("menu.statistics.common.coming_soon"))
 
         val guiItem = GuiItem(item) {
             exportGuildStatistics()
@@ -756,12 +791,12 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addRefreshStatsButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.KNOWLEDGE_BOOK)
-            .name("§aRefresh Statistics")
-            .lore("§7Update all statistics")
-            .lore("§7Fetch latest data")
+            .name(lang.legacy("menu.statistics.item.refresh.name"))
+            .lore(lang.legacy("menu.statistics.item.refresh.lore.description"))
+            .lore(lang.legacy("menu.statistics.item.refresh.lore.details"))
 
         val guiItem = GuiItem(item) {
-            player.sendMessage("§a🔄 Refreshing statistics...")
+            player.sendMessage(lang.msg("menu.statistics.feedback.refreshing"))
             // Reopen the menu to refresh all data
             open()
         }
@@ -778,24 +813,63 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    private fun getKDRatingColor(kdRatio: Double): String {
-        return when {
-            kdRatio >= 3.0 -> "a" // Green
-            kdRatio >= 1.5 -> "e" // Yellow
-            kdRatio >= 1.0 -> "6" // Gold
-            else -> "c" // Red
+    private fun rankedKillsLore(rank: Int, playerName: String, kills: Int): String {
+        return when (rank) {
+            1 -> lang.legacy("menu.statistics.common.ranked_kills.first", "rank" to rank, "player" to playerName, "kills" to kills)
+            2 -> lang.legacy("menu.statistics.common.ranked_kills.second", "rank" to rank, "player" to playerName, "kills" to kills)
+            3 -> lang.legacy("menu.statistics.common.ranked_kills.third", "rank" to rank, "player" to playerName, "kills" to kills)
+            else -> lang.legacy("menu.statistics.common.ranked_kills.other", "rank" to rank, "player" to playerName, "kills" to kills)
         }
     }
 
+    private fun rankedContributionLore(rank: Int, playerName: String, contribution: Int): String {
+        return when (rank) {
+            1 -> lang.legacy("menu.statistics.common.ranked_contribution.first", "rank" to rank, "player" to playerName, "amount" to contribution)
+            2 -> lang.legacy("menu.statistics.common.ranked_contribution.second", "rank" to rank, "player" to playerName, "amount" to contribution)
+            3 -> lang.legacy("menu.statistics.common.ranked_contribution.third", "rank" to rank, "player" to playerName, "amount" to contribution)
+            else -> lang.legacy("menu.statistics.common.ranked_contribution.other", "rank" to rank, "player" to playerName, "amount" to contribution)
+        }
+    }
+
+    private fun kdRatingLore(ratio: Double): String {
+        val rating = getKDRating(ratio)
+        return when {
+            ratio >= 3.0 -> lang.legacy("menu.statistics.common.performance_grade.green", "rating" to rating)
+            ratio >= 1.5 -> lang.legacy("menu.statistics.common.performance_grade.yellow", "rating" to rating)
+            ratio >= 1.0 -> lang.legacy("menu.statistics.common.performance_grade.gold", "rating" to rating)
+            else -> lang.legacy("menu.statistics.common.performance_grade.red", "rating" to rating)
+        }
+    }
+
+    private fun activityLevelLore(activity: Int): String {
+        val level = getActivityLevel(activity)
+        return when {
+            activity >= 20 -> lang.legacy("menu.statistics.common.activity_level.green", "level" to level)
+            activity >= 10 -> lang.legacy("menu.statistics.common.activity_level.yellow", "level" to level)
+            activity >= 5 -> lang.legacy("menu.statistics.common.activity_level.gold", "level" to level)
+            else -> lang.legacy("menu.statistics.common.activity_level.red", "level" to level)
+        }
+    }
+
+    private fun achievementKillsLore(kills: Int): String = lang.legacy(
+        "menu.statistics.item.achievements.lore.total_kills",
+        "milestone" to getKillMilestone(kills),
+    )
+
+    private fun achievementNetKillsLore(netKills: Int): String = lang.legacy(
+        "menu.statistics.item.achievements.lore.net_kills",
+        "milestone" to getNetKillMilestone(netKills),
+    )
+
     private fun getKDRating(kdRatio: Double): String {
         return when {
-            kdRatio >= 5.0 -> "Godlike"
-            kdRatio >= 3.0 -> "Excellent"
-            kdRatio >= 2.0 -> "Very Good"
-            kdRatio >= 1.5 -> "Good"
-            kdRatio >= 1.0 -> "Average"
-            kdRatio >= 0.5 -> "Below Average"
-            else -> "Needs Improvement"
+            kdRatio >= 5.0 -> lang.raw("menu.statistics.rating.kd.godlike")
+            kdRatio >= 3.0 -> lang.raw("menu.statistics.rating.kd.excellent")
+            kdRatio >= 2.0 -> lang.raw("menu.statistics.rating.kd.very_good")
+            kdRatio >= 1.5 -> lang.raw("menu.statistics.rating.kd.good")
+            kdRatio >= 1.0 -> lang.raw("menu.statistics.rating.kd.average")
+            kdRatio >= 0.5 -> lang.raw("menu.statistics.rating.kd.below_average")
+            else -> lang.raw("menu.statistics.rating.kd.needs_improvement")
         }
     }
 
@@ -811,23 +885,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    private fun getActivityColor(activity: Int): String {
-        return when {
-            activity >= 20 -> "a" // Green
-            activity >= 10 -> "e" // Yellow
-            activity >= 5 -> "6" // Gold
-            else -> "c" // Red
-        }
-    }
-
     private fun getActivityLevel(activity: Int): String {
         return when {
-            activity >= 50 -> "Extremely Active"
-            activity >= 20 -> "Very Active"
-            activity >= 10 -> "Active"
-            activity >= 5 -> "Moderately Active"
-            activity >= 1 -> "Lightly Active"
-            else -> "Inactive"
+            activity >= 50 -> lang.raw("menu.statistics.rating.activity.extremely_active")
+            activity >= 20 -> lang.raw("menu.statistics.rating.activity.very_active")
+            activity >= 10 -> lang.raw("menu.statistics.rating.activity.active")
+            activity >= 5 -> lang.raw("menu.statistics.rating.activity.moderately_active")
+            activity >= 1 -> lang.raw("menu.statistics.rating.activity.lightly_active")
+            else -> lang.raw("menu.statistics.rating.activity.inactive")
         }
     }
 
@@ -854,23 +919,23 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun getKillMilestone(kills: Int): String {
         return when {
-            kills >= 10000 -> "Massacre (10k+)"
-            kills >= 5000 -> "Slaughter (5k+)"
-            kills >= 1000 -> "Carnage (1k+)"
-            kills >= 500 -> "Bloodbath (500+)"
-            kills >= 100 -> "Butcher (100+)"
-            else -> "Novice (<100)"
+            kills >= 10000 -> lang.raw("menu.statistics.rating.kill_milestone.massacre")
+            kills >= 5000 -> lang.raw("menu.statistics.rating.kill_milestone.slaughter")
+            kills >= 1000 -> lang.raw("menu.statistics.rating.kill_milestone.carnage")
+            kills >= 500 -> lang.raw("menu.statistics.rating.kill_milestone.bloodbath")
+            kills >= 100 -> lang.raw("menu.statistics.rating.kill_milestone.butcher")
+            else -> lang.raw("menu.statistics.rating.kill_milestone.novice")
         }
     }
 
     private fun getNetKillMilestone(netKills: Int): String {
         return when {
-            netKills >= 1000 -> "Dominator (1k+)"
-            netKills >= 500 -> "Conqueror (500+)"
-            netKills >= 100 -> "Warrior (100+)"
-            netKills >= 0 -> "Balanced (0+)"
-            netKills >= -50 -> "Challenged (-50)"
-            else -> "Struggling (-100)"
+            netKills >= 1000 -> lang.raw("menu.statistics.rating.net_kill_milestone.dominator")
+            netKills >= 500 -> lang.raw("menu.statistics.rating.net_kill_milestone.conqueror")
+            netKills >= 100 -> lang.raw("menu.statistics.rating.net_kill_milestone.warrior")
+            netKills >= 0 -> lang.raw("menu.statistics.rating.net_kill_milestone.balanced")
+            netKills >= -50 -> lang.raw("menu.statistics.rating.net_kill_milestone.challenged")
+            else -> lang.raw("menu.statistics.rating.net_kill_milestone.struggling")
         }
     }
 
@@ -880,7 +945,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val guildMembers = memberService.getGuildMembers(guild.id).map { it.playerId }
             val topKillers = killService.getTopKillers(guildMembers, 10)
 
-            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6${guild.name} - Statistics"))
+            val gui = statisticsGui(5)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -890,28 +955,28 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val titleItem = ItemStack.of(Material.TOTEM_OF_UNDYING)
-                .name("§c🏆 TOP KILLERS")
-                .lore("§7Guild's most lethal members")
+                .name(lang.legacy("menu.statistics.detail.top_killers.name"))
+                .lore(lang.legacy("menu.statistics.detail.top_killers.description"))
 
             if (topKillers.isNotEmpty()) {
-                titleItem.lore("")
+                titleItem.lore(lang.legacy("menu.common.blank"))
                 topKillers.take(10).forEachIndexed { index, (playerId, stats) ->
                     val playerName = Bukkit.getOfflinePlayer(playerId).name ?: playerId.toString().take(8)
-                    titleItem.lore("§${getRankColor(index + 1)}${index + 1}. $playerName: §f${stats.totalKills} kills")
+                    titleItem.lore(rankedKillsLore(index + 1, playerName, stats.totalKills))
                 }
             } else {
-                titleItem.lore("§7No kill data available")
+                titleItem.lore(lang.legacy("menu.statistics.common.no_kill_data"))
             }
             pane.addItem(GuiItem(titleItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name("§cBack to Statistics")
-                .lore("§7Return to guild statistics")
+                .name(lang.legacy("menu.statistics.item.back.name"))
+                .lore(lang.legacy("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load top killers. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.top_killers"))
             logger.error("Error opening top killers detail for guild ${guild.id}", e)
         }
     }
@@ -924,7 +989,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .sortedByDescending { it.netContribution }
                 .take(10)
 
-            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6${guild.name} - Statistics"))
+            val gui = statisticsGui(5)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -934,28 +999,28 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val titleItem = ItemStack.of(Material.GOLD_BLOCK)
-                .name("§6💰 TOP CONTRIBUTORS")
-                .lore("§7Most generous members")
+                .name(lang.legacy("menu.statistics.detail.top_contributors.name"))
+                .lore(lang.legacy("menu.statistics.item.top_contributors.lore.description"))
 
             if (topContributors.isNotEmpty()) {
-                titleItem.lore("")
+                titleItem.lore(lang.legacy("menu.common.blank"))
                 topContributors.forEachIndexed { index, contribution ->
-                    val playerName = contribution.playerName ?: "Unknown"
-                    titleItem.lore("§${getRankColor(index + 1)}${index + 1}. $playerName: §f$${contribution.netContribution}")
+                    val playerName = contribution.playerName ?: lang.raw("general.unknown")
+                    titleItem.lore(rankedContributionLore(index + 1, playerName, contribution.netContribution))
                 }
             } else {
-                titleItem.lore("§7No contribution data")
+                titleItem.lore(lang.legacy("menu.statistics.common.no_contribution_data"))
             }
             pane.addItem(GuiItem(titleItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name("§cBack to Statistics")
-                .lore("§7Return to guild statistics")
+                .name(lang.legacy("menu.statistics.item.back.name"))
+                .lore(lang.legacy("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load top contributors. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.top_contributors"))
             logger.error("Error opening top contributors detail for guild ${guild.id}", e)
         }
     }
@@ -964,7 +1029,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         try {
             val killStats = killService.getGuildKillStats(guild.id)
 
-            val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6${guild.name} - Statistics"))
+            val gui = statisticsGui(4)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -974,24 +1039,24 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val kdItem = ItemStack.of(Material.COMPARATOR)
-                .name("§d📈 K/D ANALYSIS")
-                .lore("§7K/D Ratio: §e${decimalFormat.format(killStats.killDeathRatio)}")
-                .lore("§7Total Kills: §a${killStats.totalKills}")
-                .lore("§7Total Deaths: §c${killStats.totalDeaths}")
-                .lore("§7Net Kills: §${if (killStats.netKills >= 0) "a" else "c"}${killStats.netKills}")
-                .lore("")
-                .lore("§7Performance Grade: §${getKDRatingColor(killStats.killDeathRatio)}${getKDRating(killStats.killDeathRatio)}")
-                .lore("§7Efficiency Score: §f${calculateEfficiencyScore(killStats)}/100")
+                .name(lang.legacy("menu.statistics.detail.kd.name"))
+                .lore(lang.legacy("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+                .lore(lang.legacy("menu.statistics.common.total_kills_green", "count" to killStats.totalKills))
+                .lore(lang.legacy("menu.statistics.common.total_deaths_red", "count" to killStats.totalDeaths))
+                .lore(netKillsLore(killStats.netKills))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(kdRatingLore(killStats.killDeathRatio))
+                .lore(lang.legacy("menu.statistics.common.efficiency_score", "value" to calculateEfficiencyScore(killStats)))
             pane.addItem(GuiItem(kdItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name("§cBack to Statistics")
-                .lore("§7Return to guild statistics")
+                .name(lang.legacy("menu.statistics.item.back.name"))
+                .lore(lang.legacy("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load K/D analysis. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.kd"))
             logger.error("Error opening K/D analysis for guild ${guild.id}", e)
         }
     }
@@ -1000,7 +1065,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         try {
             val recentKills = killService.getRecentGuildKills(guild.id, 15)
 
-            val gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, "§6${guild.name} - Statistics"))
+            val gui = statisticsGui(5)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
             gui.setOnBottomClick { guiEvent ->
                 if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
@@ -1010,73 +1075,76 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             val titleItem = ItemStack.of(Material.CLOCK)
-                .name("§f🕐 RECENT ACTIVITY")
-                .lore("§7Recent kills: ${recentKills.size}")
-                .lore("§7Activity Level: §${getActivityColor(recentKills.size)}${getActivityLevel(recentKills.size)}")
+                .name(lang.legacy("menu.statistics.detail.recent.name"))
+                .lore(lang.legacy("menu.statistics.item.recent.lore.kills", "count" to recentKills.size))
+                .lore(activityLevelLore(recentKills.size))
 
             if (recentKills.isNotEmpty()) {
-                titleItem.lore("")
+                titleItem.lore(lang.legacy("menu.common.blank"))
                 recentKills.take(10).forEach { kill ->
                     val killerName = Bukkit.getOfflinePlayer(kill.killerId).name ?: kill.killerId.toString().take(8)
                     val victimName = Bukkit.getOfflinePlayer(kill.victimId).name ?: kill.victimId.toString().take(8)
-                    val weapon = if (!kill.weapon.isNullOrEmpty()) " §7with §f${kill.weapon}" else ""
-                    titleItem.lore("§a$killerName §7→ §c$victimName$weapon")
+                    titleItem.lore(if (!kill.weapon.isNullOrEmpty()) {
+                        lang.legacy("menu.statistics.detail.recent.kill_with_weapon", "killer" to killerName, "victim" to victimName, "weapon" to kill.weapon)
+                    } else {
+                        lang.legacy("menu.statistics.detail.recent.kill", "killer" to killerName, "victim" to victimName)
+                    })
                 }
             }
             if (recentKills.size > 10) {
-                titleItem.lore("§7... and ${recentKills.size - 10} more")
+                titleItem.lore(lang.legacy("menu.statistics.common.more", "count" to recentKills.size - 10))
             }
             pane.addItem(GuiItem(titleItem), 4, 1)
 
             val backItem = ItemStack.of(Material.ARROW)
-                .name("§cBack to Statistics")
-                .lore("§7Return to guild statistics")
+                .name(lang.legacy("menu.statistics.item.back.name"))
+                .lore(lang.legacy("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
             gui.show(player)
         } catch (e: Exception) {
-            player.sendMessage("§c❌ Failed to load recent activity. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.recent"))
             logger.error("Error opening recent activity for guild ${guild.id}", e)
         }
     }
 
     private fun openPeriodStatsMenu() {
-        player.sendMessage("§e📅 Period-based statistics coming soon!")
+        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.period"))
     }
 
     private fun openRivalryStatsDetail() {
-        player.sendMessage("§e🏴 Rivalry statistics coming soon!")
+        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.rivalry"))
     }
 
 
     private fun openAchievementsDetail() {
-        player.sendMessage("§e🏅 Achievement details coming soon!")
+        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.achievements"))
     }
 
     private fun openTrendAnalysis() {
-        player.sendMessage("§e📈 Trend analysis coming soon!")
+        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.trends"))
     }
 
     private fun openGuildComparison() {
-        player.sendMessage("§e⚖ Guild comparison coming soon!")
+        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.comparison"))
     }
 
 
     private fun exportGuildStatistics() {
-        player.sendMessage("§e📊 Statistics export feature coming soon!")
-        player.sendMessage("§7Will generate CSV files with all guild data")
+        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.export"))
+        player.sendMessage(lang.msg("menu.statistics.feedback.coming_soon.export_description"))
     }
 
     // Chart rendering methods
     private fun renderGuildBalanceChart() {
         try {
-            player.sendMessage("§e📊 Generating guild balance trend chart...")
+            player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.generating"))
 
             // Get real transaction history from the database
             val transactions = bankService.getTransactionHistory(guild.id, 50)
 
             if (transactions.isEmpty()) {
-                player.sendMessage("§c❌ No transaction history found for this guild.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.no_data"))
                 return
             }
 
@@ -1093,12 +1161,12 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .map { it.first.toString() to it.second }
 
             if (dailyBalances.isEmpty()) {
-                player.sendMessage("§c❌ Unable to process transaction data.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.process_failed"))
                 return
             }
 
             val chart = mapRendererService.renderCustomChart(
-                title = "${guild.name} Balance Trend",
+                title = lang.legacy("menu.statistics.chart.title.balance", "guild" to guild.name),
                 dataPoints = dailyBalances,
                 chartType = ChartType.LINE,
                 player = player
@@ -1106,21 +1174,21 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             if (chart != null) {
                 player.inventory.addItem(chart)
-                player.sendMessage("§a✅ Guild balance chart generated! Hold the map to view interactive trends.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.success"))
             } else {
-                player.sendMessage("§c❌ Failed to generate balance chart. Please try again.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.failure"))
             }
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Error generating balance chart. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.chart.balance.error"))
             e.printStackTrace()
         }
     }
 
     private fun renderKillTrendChart() {
         try {
-            player.sendMessage("§e📊 Generating kill trend analysis chart...")
+            player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.generating"))
 
             // Get real kill data for the past 7 weeks
             val now = Instant.now()
@@ -1132,13 +1200,21 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
                 try {
                     val weekStats = killService.getKillStatsForPeriod(guild.id, weekStart, weekEnd)
-                    val weekLabel = if (weeksAgo == 0) "This Week" else "${weeksAgo}W ago"
+                    val weekLabel = if (weeksAgo == 0) {
+                        lang.raw("menu.statistics.chart.label.this_week")
+                    } else {
+                        lang.legacy("menu.statistics.chart.label.weeks_ago", "weeks" to weeksAgo)
+                    }
                     weekTrends.add(weekLabel to weekStats.totalKills)
                 } catch (e: Exception) {
                 // Menu operation - catching all exceptions to prevent UI failure
             // Menu operation - catching all exceptions to prevent UI failure
                     // If we can't get data for this week, use 0
-                    val weekLabel = if (weeksAgo == 0) "This Week" else "${weeksAgo}W ago"
+                    val weekLabel = if (weeksAgo == 0) {
+                        lang.raw("menu.statistics.chart.label.this_week")
+                    } else {
+                        lang.legacy("menu.statistics.chart.label.weeks_ago", "weeks" to weeksAgo)
+                    }
                     weekTrends.add(weekLabel to 0)
                 }
             }
@@ -1147,12 +1223,12 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             weekTrends.reverse()
 
             if (weekTrends.all { it.second == 0 }) {
-                player.sendMessage("§c❌ No kill data found for this guild in the past 7 weeks.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.no_data"))
                 return
             }
 
             val chart = mapRendererService.renderCustomChart(
-                title = "${guild.name} Kill Trends",
+                title = lang.legacy("menu.statistics.chart.title.kills", "guild" to guild.name),
                 dataPoints = weekTrends,
                 chartType = ChartType.LINE,
                 player = player
@@ -1160,27 +1236,27 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             if (chart != null) {
                 player.inventory.addItem(chart)
-                player.sendMessage("§a✅ Kill trend chart generated! Hold the map to view performance patterns.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.success"))
             } else {
-                player.sendMessage("§c❌ Failed to generate kill trend chart. Please try again.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.failure"))
             }
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Error generating kill trend chart. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.chart.kills.error"))
             e.printStackTrace()
         }
     }
 
     private fun renderMemberContributionsChart() {
         try {
-            player.sendMessage("§e📊 Generating member contributions chart...")
+            player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.generating"))
 
             // Get real member contribution data from BankService
             val contributions = bankService.getMemberContributions(guild.id)
 
             if (contributions.isEmpty()) {
-                player.sendMessage("§c❌ No contribution data found for this guild.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.no_data"))
                 return
             }
 
@@ -1189,15 +1265,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .filter { it.netContribution > 0 }
                 .sortedByDescending { it.netContribution }
                 .take(10) // Top 10 contributors
-                .map { (it.playerName ?: "Unknown") to it.netContribution }
+                .map { (it.playerName ?: lang.raw("general.unknown")) to it.netContribution }
 
             if (chartData.isEmpty()) {
-                player.sendMessage("§c❌ No positive contributions found for this guild.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.no_positive"))
                 return
             }
 
             val chart = mapRendererService.renderCustomChart(
-                title = "${guild.name} Member Contributions",
+                title = lang.legacy("menu.statistics.chart.title.contributions", "guild" to guild.name),
                 dataPoints = chartData,
                 chartType = ChartType.BAR,
                 player = player
@@ -1205,14 +1281,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
             if (chart != null) {
                 player.inventory.addItem(chart)
-                player.sendMessage("§a✅ Member contributions chart generated! Hold the map to view ranking visualization.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.success"))
             } else {
-                player.sendMessage("§c❌ Failed to generate contributions chart. Please try again.")
+                player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.failure"))
             }
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Error generating contributions chart. Please try again later.")
+            player.sendMessage(lang.msg("menu.statistics.feedback.chart.contributions.error"))
             e.printStackTrace()
         }
     }

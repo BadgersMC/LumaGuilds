@@ -265,7 +265,7 @@ class MenuItemBuilder(
             // Set player name as display name for member icons (need to modify the returned item)
         }.let { item ->
             if (itemConfig == config.ui.memberIcon) {
-                item.name("§r$playerName")
+                item.name(playerName)
             } else {
                 item
             }

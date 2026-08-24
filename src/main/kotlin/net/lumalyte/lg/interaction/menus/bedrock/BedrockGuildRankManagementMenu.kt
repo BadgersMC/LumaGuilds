@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -27,56 +28,50 @@ class BedrockGuildRankManagementMenu(
 
     private val rankService: RankService by inject()
     private val configService: ConfigService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val editIcon = BedrockFormUtils.createFormImage(config, config.editIconUrl, config.editIconPath)
 
         val formBuilder = CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "form.title.guild.rank.management")} - ${guild.name}")
+            .title(lang.legacy("bedrock.rank_management.title", "guild" to guild.name))
             .apply { editIcon?.let { icon(it) } }
 
         // Info section
         formBuilder.label(createInfoSection())
 
         // Mode selection: Create or Edit
-        val modes = listOf(
-            bedrockLocalization.getBedrockString(player, "rank.management.mode.create"),
-            bedrockLocalization.getBedrockString(player, "rank.management.mode.edit")
-        )
         val defaultMode = if (selectedRank != null) 1 else 0
-        formBuilder.addLocalizedDropdown(
-            player, bedrockLocalization,
-            "rank.management.mode.label",
-            listOf("rank.management.mode.create", "rank.management.mode.edit"),
-            if (selectedRank != null) "rank.management.mode.edit" else "rank.management.mode.create"
+        formBuilder.dropdown(
+            lang.raw("bedrock.rank_management.mode.label"),
+            listOf(
+                lang.raw("bedrock.rank_management.mode.create"),
+                lang.raw("bedrock.rank_management.mode.edit")
+            ),
+            defaultMode
         )
 
         // Rank name input
-        formBuilder.addLocalizedInput(
-            player, bedrockLocalization,
-            "rank.management.name.label",
-            "rank.management.name.placeholder",
+        formBuilder.input(
+            lang.raw("bedrock.rank_management.name.label"),
+            lang.raw("bedrock.rank_management.name.placeholder"),
             selectedRank?.name ?: ""
         )
 
         // Existing ranks dropdown (for editing)
         val existingRanks = rankService.listRanks(guild.id).sortedBy { it.priority }
-        formBuilder.addLocalizedDropdown(
-            player, bedrockLocalization,
-            "rank.management.select.rank.label",
-            existingRanks.map { "rank.${it.name}" }, // This would need proper keys
-            selectedRank?.name ?: existingRanks.firstOrNull()?.name ?: ""
+        formBuilder.dropdown(
+            lang.raw("bedrock.rank_management.select_rank"),
+            existingRanks.map { it.name }.ifEmpty { listOf(lang.raw("bedrock.rank_management.no_ranks")) },
+            selectedRank?.let { existingRanks.indexOf(it).coerceAtLeast(0) } ?: 0
         )
 
         // Note: Priority slider removed as it's confusing for users
         // Priority is now automatically assigned based on creation order
 
         // Permission toggles organized by category
-        formBuilder.addLocalizedLabel(
-            player, bedrockLocalization,
-            "rank.management.permissions.guild"
-        )
+        formBuilder.label(lang.legacy("bedrock.rank_management.permissions"))
 
         // Filter out claims permissions if claims are disabled
         val mainConfig = configService.loadConfig()
@@ -120,80 +115,25 @@ class BedrockGuildRankManagementMenu(
 
     private fun createInfoSection(): String {
         val rankCount = rankService.getRankCount(guild.id)
-        val statusColor = if (selectedRank != null) "§e" else "§a"
-        val statusText = if (selectedRank != null) {
-            bedrockLocalization.getBedrockString(player, "rank.management.info.editing", selectedRank.name)
+        return if (selectedRank != null) {
+            lang.legacy(
+                "bedrock.rank_management.info.editing",
+                "guild" to guild.name,
+                "count" to rankCount,
+                "rank" to selectedRank.name
+            )
         } else {
-            bedrockLocalization.getBedrockString(player, "rank.management.info.creating")
+            lang.legacy("bedrock.rank_management.info.creating", "guild" to guild.name, "count" to rankCount)
         }
-
-        return """
-            |§7${bedrockLocalization.getBedrockString(player, "rank.management.description")}
-            |
-            |§6§l━━━ RANK OVERVIEW ━━━
-            |§e${bedrockLocalization.getBedrockString(player, "guild.info.guild.name")}§7: §f${guild.name}
-            |§b${bedrockLocalization.getBedrockString(player, "rank.list.total")}§7: §f$rankCount
-            |$statusColor$statusText
-        """.trimMargin()
-    }
-
-    private fun createSectionHeader(title: String): String {
-        return "§6§l━━━ $title §r§6━━━"
     }
 
     private fun getPermissionDisplayName(permission: RankPermission): String {
-        return when (permission) {
-            RankPermission.MANAGE_RANKS -> bedrockLocalization.getBedrockString(player, "permission.manage.ranks")
-            RankPermission.MANAGE_MEMBERS -> bedrockLocalization.getBedrockString(player, "permission.manage.members")
-            RankPermission.MANAGE_BANNER -> bedrockLocalization.getBedrockString(player, "permission.manage.banner")
-            RankPermission.MANAGE_EMOJI -> bedrockLocalization.getBedrockString(player, "permission.manage.emoji")
-            RankPermission.MANAGE_DESCRIPTION -> bedrockLocalization.getBedrockString(player, "permission.manage.description")
-            RankPermission.MANAGE_HOME -> bedrockLocalization.getBedrockString(player, "permission.manage.home")
-            RankPermission.MANAGE_MODE -> bedrockLocalization.getBedrockString(player, "permission.manage.mode")
-            RankPermission.MANAGE_GUILD_SETTINGS -> bedrockLocalization.getBedrockString(player, "permission.manage.guild.settings")
-            RankPermission.MANAGE_RELATIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.relations")
-            RankPermission.DECLARE_WAR -> bedrockLocalization.getBedrockString(player, "permission.declare.war")
-            RankPermission.ACCEPT_ALLIANCES -> bedrockLocalization.getBedrockString(player, "permission.accept.alliances")
-            RankPermission.MANAGE_PARTIES -> bedrockLocalization.getBedrockString(player, "permission.manage.parties")
-            RankPermission.SEND_PARTY_REQUESTS -> bedrockLocalization.getBedrockString(player, "permission.send.party.requests")
-            RankPermission.ACCEPT_PARTY_INVITES -> bedrockLocalization.getBedrockString(player, "permission.accept.party.invites")
-            RankPermission.USE_ALLY_HOMES -> bedrockLocalization.getBedrockString(player, "permission.use.ally.homes")
-            RankPermission.DEPOSIT_TO_BANK -> bedrockLocalization.getBedrockString(player, "permission.deposit.bank")
-            RankPermission.WITHDRAW_FROM_BANK -> bedrockLocalization.getBedrockString(player, "permission.withdraw.bank")
-            RankPermission.VIEW_BANK_TRANSACTIONS -> bedrockLocalization.getBedrockString(player, "permission.view.bank.transactions")
-            RankPermission.MANAGE_BANK_SETTINGS -> bedrockLocalization.getBedrockString(player, "permission.manage.bank.settings")
-            RankPermission.PLACE_VAULT -> bedrockLocalization.getBedrockString(player, "permission.place.vault")
-            RankPermission.ACCESS_VAULT -> bedrockLocalization.getBedrockString(player, "permission.access.vault")
-            RankPermission.DEPOSIT_TO_VAULT -> bedrockLocalization.getBedrockString(player, "permission.deposit.vault")
-            RankPermission.WITHDRAW_FROM_VAULT -> bedrockLocalization.getBedrockString(player, "permission.withdraw.vault")
-            RankPermission.MANAGE_VAULT -> bedrockLocalization.getBedrockString(player, "permission.manage.vault")
-            RankPermission.BREAK_VAULT -> bedrockLocalization.getBedrockString(player, "permission.break.vault")
-            RankPermission.SEND_ANNOUNCEMENTS -> bedrockLocalization.getBedrockString(player, "permission.send.announcements")
-            RankPermission.SEND_PINGS -> bedrockLocalization.getBedrockString(player, "permission.send.pings")
-            RankPermission.MODERATE_CHAT -> bedrockLocalization.getBedrockString(player, "permission.moderate.chat")
-            RankPermission.MANAGE_CLAIMS -> bedrockLocalization.getBedrockString(player, "permission.manage.claims")
-            RankPermission.MANAGE_FLAGS -> bedrockLocalization.getBedrockString(player, "permission.manage.flags")
-            RankPermission.MANAGE_PERMISSIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.permissions")
-            RankPermission.CREATE_CLAIMS -> bedrockLocalization.getBedrockString(player, "permission.create.claims")
-            RankPermission.DELETE_CLAIMS -> bedrockLocalization.getBedrockString(player, "permission.delete.claims")
-            RankPermission.ACCESS_ADMIN_COMMANDS -> bedrockLocalization.getBedrockString(player, "permission.access.admin.commands")
-            RankPermission.BYPASS_RESTRICTIONS -> bedrockLocalization.getBedrockString(player, "permission.bypass.restrictions")
-            RankPermission.VIEW_AUDIT_LOGS -> bedrockLocalization.getBedrockString(player, "permission.view.audit.logs")
-            RankPermission.MANAGE_INTEGRATIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.integrations")
-            RankPermission.ACCESS_SHOP_CHESTS -> bedrockLocalization.getBedrockString(player, "permission.access.shop.chests")
-            RankPermission.EDIT_SHOP_STOCK -> bedrockLocalization.getBedrockString(player, "permission.edit.shop.stock")
-            RankPermission.MODIFY_SHOP_PRICES -> bedrockLocalization.getBedrockString(player, "permission.modify.shop.prices")
-        }
+        val key = "permission.${permission.name.lowercase().replace("_", ".")}"
+        return lang.raw(key)
     }
 
     private fun createValidationSection(): String {
-        return """
-            |${createSectionHeader(bedrockLocalization.getBedrockString(player, "form.validation.title"))}
-            |§7• ${bedrockLocalization.getBedrockString(player, "validation.rank.name.too.short")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "validation.rank.name.too.long")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "validation.rank.permissions.required")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "validation.rank.priority.conflict")}
-        """.trimMargin()
+        return lang.legacy("bedrock.rank_management.validation.section")
     }
 
     private fun handleFormResponse(response: org.geysermc.cumulus.response.CustomFormResponse) {
@@ -231,14 +171,14 @@ class BedrockGuildRankManagementMenu(
 
             // Validate permissions
             if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) {
-                player.sendMessage("§c[ERROR] ${localize("rank.management.error.no.permission")}")
+                player.sendMessage(lang.msg("bedrock.rank_management.error.no_permission"))
                 navigateBack()
                 return
             }
 
             // Validate rank name
             if (rankName.length !in 1..24) {
-                player.sendMessage("§c[ERROR] ${localize("rank.management.validation.name.length.error", 1, 24)}")
+                player.sendMessage(lang.msg("bedrock.rank_management.error.name_length", "minimum" to 1, "maximum" to 24))
                 reopen()
                 return
             }
@@ -246,7 +186,7 @@ class BedrockGuildRankManagementMenu(
             // Check for duplicate names
             val existingRank = rankService.getRankByName(guild.id, rankName)
             if (existingRank != null && existingRank != selectedRank) {
-                player.sendMessage("§c[ERROR] ${localize("rank.management.validation.name.duplicate", rankName)}")
+                player.sendMessage(lang.msg("bedrock.rank_management.error.duplicate", "rank" to rankName))
                 reopen()
                 return
             }
@@ -272,9 +212,9 @@ class BedrockGuildRankManagementMenu(
                         rankService.updateRank(updatedRank, player.uniqueId)
                     }
 
-                    player.sendMessage("§a[SUCCESS] ${localize("rank.management.success.created", rankName)}")
+                    player.sendMessage(lang.msg("bedrock.rank_management.success.created", "rank" to rankName))
                 } else {
-                    player.sendMessage("§c[ERROR] ${localize("rank.management.error.create.failed")}")
+                    player.sendMessage(lang.msg("bedrock.rank_management.error.create_failed"))
                 }
             } else {
                 // Edit existing rank
@@ -292,12 +232,12 @@ class BedrockGuildRankManagementMenu(
 
                     val success = rankService.updateRank(updatedRank, player.uniqueId)
                     if (success) {
-                        player.sendMessage("§a[SUCCESS] ${localize("rank.management.success.updated", rankName)}")
+                        player.sendMessage(lang.msg("bedrock.rank_management.success.updated", "rank" to rankName))
                     } else {
-                        player.sendMessage("§c[ERROR] ${localize("rank.management.error.update.failed")}")
+                        player.sendMessage(lang.msg("bedrock.rank_management.error.update_failed"))
                     }
                 } else {
-                    player.sendMessage("§c[ERROR] ${localize("rank.management.error.rank.not.found")}")
+                    player.sendMessage(lang.msg("bedrock.rank_management.error.not_found"))
                 }
             }
 
@@ -306,7 +246,7 @@ class BedrockGuildRankManagementMenu(
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error processing rank management form response: ${e.message}")
-            player.sendMessage("§c[ERROR] ${localize("form.error.processing")}")
+            player.sendMessage(lang.msg("bedrock.rank_management.error.processing"))
             navigateBack()
         }
     }

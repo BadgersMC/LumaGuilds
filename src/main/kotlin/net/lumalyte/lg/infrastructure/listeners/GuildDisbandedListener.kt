@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.listeners
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.domain.events.GuildDisbandedEvent
 import net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory
 internal class GuildDisbandedListener(
     private val partyService: PartyService,
     private val bannermanListeners: BannermanListeners,
+    private val lang: LangService,
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(GuildDisbandedListener::class.java)
@@ -28,7 +30,7 @@ internal class GuildDisbandedListener(
             val player = Bukkit.getPlayer(memberId) ?: return@forEach
             if (!player.isOnline) return@forEach
             player.closeInventory()
-            player.sendMessage("§c✗ Your guild §f${event.guild.name} §chas been disbanded.")
+            player.sendMessage(lang.msg("notification.guild.disbanded", "guild" to event.guild.name))
         }
 
         // 2. Remove this guild from every party it participates in.

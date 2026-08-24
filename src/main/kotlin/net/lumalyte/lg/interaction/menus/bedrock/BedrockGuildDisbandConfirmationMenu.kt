@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -22,23 +23,24 @@ class BedrockGuildDisbandConfirmationMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildService: GuildService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         return SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.disband.confirm.title"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.disband.confirm.message", guild.name, player.name))
-            .button(bedrockLocalization.getBedrockString(player, "guild.disband.confirm.button.disband"))
-            .button(bedrockLocalization.getBedrockString(player, "guild.disband.confirm.button.keep"))
+            .title(lang.raw("bedrock.disband_confirmation.title"))
+            .content(lang.legacy("bedrock.disband_confirmation.content", "guild" to guild.name, "player" to player.name))
+            .button(lang.raw("bedrock.disband_confirmation.button.disband"))
+            .button(lang.raw("bedrock.disband_confirmation.button.keep"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> disbandGuild()
                     1 -> bedrockNavigator.createBackHandler {
-                        player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.cancelled"))
+                        player.sendMessage(lang.msg("bedrock.disband_confirmation.feedback.cancelled"))
                     }.run()
                 }
             }
             .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.cancelled"))
+                player.sendMessage(lang.msg("bedrock.disband_confirmation.feedback.cancelled"))
             })
             .build()
     }
@@ -48,13 +50,13 @@ class BedrockGuildDisbandConfirmationMenu(
         val success = guildService.disbandGuild(guild.id, player.uniqueId)
 
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.success", guild.name))
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.success.details"))
+            player.sendMessage(lang.msg("bedrock.disband_confirmation.feedback.disbanded", "guild" to guild.name))
+            player.sendMessage(lang.msg("bedrock.disband_confirmation.feedback.details"))
 
             // Clear menu stack - player no longer has a guild so close all menus
             clearMenuStack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.disband.failed"))
+            player.sendMessage(lang.msg("bedrock.disband_confirmation.feedback.failed"))
             bedrockNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
     }

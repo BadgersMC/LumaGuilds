@@ -16,6 +16,13 @@ data class LocalizationCall(
 
 data class PlayerTextCandidate(val file: Path, val line: Int, val source: String)
 
+enum class PlayerTextClassification {
+    LEGACY_SERIALIZER_FIXTURE,
+    COLOR_CODE_UTILITY,
+    GLYPH_MARKUP,
+    PERSISTENCE_LITERAL,
+}
+
 data class PlaceholderMismatch(
     val key: String,
     val expected: Set<String>,
@@ -41,6 +48,18 @@ data class LocaleSourceInventory(
 }
 
 object LocaleSourceScanner {
+    private val exactFileClassifications = mapOf(
+        "net/lumalyte/lg/infrastructure/services/ChatServiceBukkit.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
+        "net/lumalyte/lg/infrastructure/placeholders/LumaGuildsExpansion.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
+        "net/lumalyte/lg/infrastructure/persistence/migrations/GuildNameSanitizer.kt" to PlayerTextClassification.PERSISTENCE_LITERAL,
+        "net/lumalyte/lg/infrastructure/persistence/migrations/SQLiteMigrations.kt" to PlayerTextClassification.PERSISTENCE_LITERAL,
+        "net/lumalyte/lg/infrastructure/services/GuildServiceBukkit.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
+        "net/lumalyte/lg/interaction/menus/bedrock/BedrockTagEditorMenu.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
+        "net/lumalyte/lg/utils/ColorCodeUtils.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
+        "net/lumalyte/lg/utils/GuildDisplayUtils.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
+        "net/lumalyte/lg/utils/GuildResolver.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
+        "net/lumalyte/lg/utils/MenuTitleBuilder.kt" to PlayerTextClassification.GLYPH_MARKUP,
+    )
     private val rendererCall = Regex("""\blang\.(msg|legacy|raw)\s*\(""")
     private val literalKey = Regex("^\"([^\"]+)\"")
     private val namedPair = Regex("""["']([A-Za-z][A-Za-z0-9_]*)["']\s+to\b""")
@@ -79,6 +98,11 @@ object LocaleSourceScanner {
             .filterNot { it.lowercase() in miniMessageTags }
             .toSortedSet()
 
+    fun classificationFor(file: Path): PlayerTextClassification? {
+        val normalized = file.toAbsolutePath().normalize().toString().replace('\\', '/')
+        return exactFileClassifications.entries.singleOrNull { (suffix, _) -> normalized.endsWith("/$suffix") }?.value
+    }
+
     private fun scanFile(
         file: Path,
         calls: MutableList<LocalizationCall>,
@@ -88,7 +112,7 @@ object LocaleSourceScanner {
         val source = Files.readString(file)
         val executableSource = executableMask(source)
         source.lineSequence().forEachIndexed { index, line ->
-            if ('§' in line) {
+            if ('§' in line && classificationFor(file) == null) {
                 playerTextCandidates += PlayerTextCandidate(file, index + 1, line.trim())
             }
         }

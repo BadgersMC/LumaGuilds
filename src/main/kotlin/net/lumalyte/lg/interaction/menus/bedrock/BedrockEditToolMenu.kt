@@ -1,10 +1,12 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.Form
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
@@ -17,23 +19,17 @@ class BedrockEditToolMenu(
     logger: Logger
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
+    private val lang: LangService by inject()
+
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
-        val content = buildString {
-            appendLine(bedrockLocalization.getBedrockString(player, "claim.edit.tool.title"))
-            appendLine()
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "claim.edit.tool.info")}")
-            appendLine()
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "claim.edit.tool.instructions")}")
-            appendLine()
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "claim.edit.tool.coming.soon")}")
-        }
+        val content = lang.raw("bedrock.edit_tool.content")
 
         return SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "claim.edit.tool.menu.title"))
+            .title(lang.raw("bedrock.edit_tool.title"))
             .content(content)
-            .button(bedrockLocalization.getBedrockString(player, "common.close"))
+            .button(lang.raw("bedrock.edit_tool.button.close"))
             .validResultHandler { _ ->
                 bedrockNavigator.goBack()
             }

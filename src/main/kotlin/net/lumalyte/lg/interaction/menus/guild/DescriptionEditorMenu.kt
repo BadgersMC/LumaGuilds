@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -32,6 +33,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     private val guildService: GuildService by inject()
     private val menuItemBuilder: MenuItemBuilder by inject()
     private val chatInputListener: ChatInputListener by inject()
+    private val lang: LangService by inject()
 
     // State for the description input
     private var currentDescription: String? = null
@@ -52,7 +54,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         // Validate current input
         validationError = validateDescription(inputDescription)
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6Edit Guild Description"))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.legacy("menu.description_editor.title")))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -85,25 +87,25 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addCurrentDescriptionDisplay(pane: StaticPane, x: Int, y: Int) {
         val displayItem = ItemStack.of(Material.BOOK)
-            .name("§eCurrent Description")
-            .lore("§7${parseMiniMessageForDisplay(currentDescription) ?: "§oNone set"}")
-            .lore("")
-            .lore("§7This is the description that")
-            .lore("§7is currently displayed for your guild")
+            .name(lang.legacy("menu.description_editor.current.name"))
+            .lore(lang.legacy("menu.description_editor.current.value", "description" to (parseMiniMessageForDisplay(currentDescription) ?: lang.legacy("menu.description_editor.current.none"))))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.description_editor.current.description"))
+            .lore(lang.legacy("menu.description_editor.current.scope"))
 
         pane.addItem(GuiItem(displayItem), x, y)
     }
 
     private fun addInputField(pane: StaticPane, x: Int, y: Int) {
         val inputItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§bDescription Input")
-            .lore("§7Click to type your new description")
-            .lore("")
-            .lore("§7Current input:")
-            .lore("§f${inputDescription ?: "§oNone"}")
-            .lore("")
-            .lore("§7Supports MiniMessage formatting")
-            .lore("§7Max 100 characters")
+            .name(lang.legacy("menu.description_editor.input.name"))
+            .lore(lang.legacy("menu.description_editor.input.description"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.description_editor.input.current"))
+            .lore(lang.legacy("menu.description_editor.input.value", "description" to (inputDescription ?: lang.raw("menu.description_editor.input.none"))))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.description_editor.input.formatting"))
+            .lore(lang.legacy("menu.description_editor.input.limit"))
 
         val guiItem = GuiItem(inputItem) {
             // Start chat input for description
@@ -115,12 +117,12 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     private fun addValidationStatus(pane: StaticPane, x: Int, y: Int) {
         val statusItem = if (validationError != null) {
             ItemStack.of(Material.RED_CONCRETE)
-                .name("§c❌ Validation Error")
-                .lore("§7${validationError}")
+                .name(lang.legacy("menu.description_editor.validation.error.name"))
+                .lore(lang.legacy("menu.description_editor.validation.error.description", "error" to validationError!!))
         } else {
             ItemStack.of(Material.GREEN_CONCRETE)
-                .name("§a✅ Valid Description")
-                .lore("§7Description is ready to save")
+                .name(lang.legacy("menu.description_editor.validation.valid.name"))
+                .lore(lang.legacy("menu.description_editor.validation.valid.description"))
         }
 
         pane.addItem(GuiItem(statusItem), x, y)
@@ -128,25 +130,25 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addSaveButton(pane: StaticPane, x: Int, y: Int) {
         val saveItem = ItemStack.of(Material.EMERALD_BLOCK)
-            .name("§a💾 Save Description")
-            .lore("§7Save your changes")
-            .lore("")
-            .lore("§7This will update the guild description")
-            .lore("§7for all members to see")
+            .name(lang.legacy("menu.description_editor.save.name"))
+            .lore(lang.legacy("menu.description_editor.save.description"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.description_editor.save.effect"))
+            .lore(lang.legacy("menu.description_editor.save.scope"))
 
         val canSave = validationError == null && inputDescription != currentDescription
         if (!canSave) {
-            saveItem.name("§7💾 Save Description")
-                .lore("§7Save your changes")
-                .lore("")
-                .lore("§c❌ Cannot save - check validation")
+            saveItem.name(lang.legacy("menu.description_editor.save.disabled"))
+                .lore(lang.legacy("menu.description_editor.save.description"))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.description_editor.save.invalid"))
         }
 
         val guiItem = GuiItem(saveItem) {
             if (canSave) {
                 saveDescription()
             } else {
-                player.sendMessage("§c❌ Cannot save description - please check validation errors")
+                player.sendMessage(lang.msg("menu.description_editor.feedback.cannot_save"))
             }
         }
         pane.addItem(guiItem, x, y)
@@ -154,8 +156,8 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val cancelItem = ItemStack.of(Material.REDSTONE_BLOCK)
-            .name("§c❌ Cancel")
-            .lore("§7Discard changes and go back")
+            .name(lang.legacy("menu.description_editor.cancel.name"))
+            .lore(lang.legacy("menu.description_editor.cancel.description"))
 
         val guiItem = GuiItem(cancelItem) {
             menuNavigator.goBack()
@@ -165,8 +167,8 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     private fun addPreview(pane: StaticPane, x: Int, y: Int) {
         val previewItem = ItemStack.of(Material.ITEM_FRAME)
-            .name("§d🔍 Preview")
-            .lore("§7How your description will appear:")
+            .name(lang.legacy("menu.description_editor.preview.name"))
+            .lore(lang.legacy("menu.description_editor.preview.description"))
 
         inputDescription?.let { desc ->
             if (validationError == null) {
@@ -175,17 +177,17 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
                     val component = miniMessage.deserialize(desc)
                     val plainText = PlainTextComponentSerializer.plainText().serialize(component)
 
-                    previewItem.lore("§f\"${plainText}\"")
+                    previewItem.lore(lang.legacy("menu.description_editor.preview.value", "description" to plainText))
                 } catch (e: Exception) {
                 // Menu operation - catching all exceptions to prevent UI failure
             // Menu operation - catching all exceptions to prevent UI failure
-                    previewItem.lore("§cError parsing description")
+                    previewItem.lore(lang.legacy("menu.description_editor.preview.error"))
                 }
             } else {
-                previewItem.lore("§7§oEnter a description to see preview")
+                previewItem.lore(lang.legacy("menu.description_editor.preview.empty"))
             }
         } ?: run {
-            previewItem.lore("§7§oEnter a description to see preview")
+            previewItem.lore(lang.legacy("menu.description_editor.preview.empty"))
         }
 
         pane.addItem(GuiItem(previewItem), x, y)
@@ -196,7 +198,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
         // Check permission
         if (!guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_DESCRIPTION)) {
-            player.sendMessage("§c❌ You don't have permission to manage guild description")
+            player.sendMessage(lang.msg("menu.description_editor.feedback.no_permission"))
             return
         }
 
@@ -204,21 +206,21 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         val success = guildService.setDescription(guild.id, description, player.uniqueId)
 
         if (success) {
-            player.sendMessage("§a✅ Guild description updated successfully!")
+            player.sendMessage(lang.msg("menu.description_editor.feedback.updated"))
 
             // Show the description with MiniMessage formatting rendered
             if (description != null) {
                 try {
                     val miniMessage = MiniMessage.miniMessage()
-                    val component = miniMessage.deserialize("<gray>New description: <reset>$description")
+                    val component = miniMessage.deserialize("${lang.raw("menu.description_editor.feedback.new_description_prefix")}$description")
                     player.sendMessage(component)
                 } catch (e: Exception) {
                 // Menu operation - catching all exceptions to prevent UI failure
             // Menu operation - catching all exceptions to prevent UI failure
-                    player.sendMessage("§7New description: §f$description")
+                    player.sendMessage(lang.msg("menu.description_editor.feedback.new_description", "description" to description))
                 }
             } else {
-                player.sendMessage("§7New description: §oCleared")
+                player.sendMessage(lang.msg("menu.description_editor.feedback.cleared"))
             }
 
             // Refresh guild data
@@ -227,7 +229,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
             // Go back to previous menu
             menuNavigator.goBack()
         } else {
-            player.sendMessage("§c❌ Failed to update guild description")
+            player.sendMessage(lang.msg("menu.description_editor.feedback.update_failed"))
         }
     }
 
@@ -235,7 +237,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         if (description == null) return null
 
         if (description.length > 100) {
-            return "Description too long (${description.length}/100 characters)"
+            return lang.legacy("menu.description_editor.validation.too_long", "length" to description.length)
         }
 
         // Try to parse with MiniMessage to check for errors
@@ -244,18 +246,18 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
             miniMessage.deserialize(description)
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            return "Invalid MiniMessage format: ${e.message}"
+            return lang.legacy("menu.description_editor.validation.invalid_format", "error" to (e.message ?: lang.raw("menu.description_editor.validation.unknown_error")))
         }
 
         return null
     }
 
     private fun startChatInput() {
-        player.sendMessage("§6=== Guild Description Editor ===")
-        player.sendMessage("§7Type your new guild description in chat")
-        player.sendMessage("§7Supports MiniMessage formatting (e.g., <red>text</red>)")
-        player.sendMessage("§7Maximum 100 characters")
-        player.sendMessage("§7Type 'cancel' to cancel editing")
+        player.sendMessage(lang.msg("menu.description_editor.chat.header"))
+        player.sendMessage(lang.msg("menu.description_editor.chat.prompt"))
+        player.sendMessage(lang.msg("menu.description_editor.chat.formatting"))
+        player.sendMessage(lang.msg("menu.description_editor.chat.limit"))
+        player.sendMessage(lang.msg("menu.description_editor.chat.cancel"))
 
         chatInputListener.startInputMode(player, this)
 
@@ -265,7 +267,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
     override fun onChatInput(player: Player, input: String) {
         if (input.lowercase() == "cancel") {
-            player.sendMessage("§7Description editing cancelled")
+            player.sendMessage(lang.msg("menu.description_editor.feedback.cancelled"))
             open() // Reopen menu
             return
         }
@@ -275,7 +277,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     }
 
     override fun onCancel(player: Player) {
-        player.sendMessage("§7Description editing cancelled")
+        player.sendMessage(lang.msg("menu.description_editor.feedback.cancelled"))
         open() // Reopen menu
     }
 
@@ -289,7 +291,7 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         return try {
             val miniMessage = MiniMessage.miniMessage()
             val component = miniMessage.deserialize(description)
-            // Convert to legacy format (§ codes) for menu display
+            // Convert to legacy formatting for menu display
             val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
             legacyText
         } catch (e: Exception) {

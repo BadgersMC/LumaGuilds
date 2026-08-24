@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -22,22 +23,17 @@ class BedrockGuildBankAutomationMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
 
-        val content = buildString {
-            appendLine(bedrockLocalization.getBedrockString(player, "bank.automation.title"))
-            appendLine()
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.automation.info")}")
-            appendLine()
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.automation.coming.soon")}")
-        }
+        val content = lang.raw("bedrock.bank_automation.content")
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "bank.automation.menu.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.bank_automation.title", "guild" to guild.name))
             .content(content)
-            .button(bedrockLocalization.getBedrockString(player, "common.back"))
+            .button(lang.raw("bedrock.bank_automation.button.back"))
             .validResultHandler { _ ->
                 bedrockNavigator.goBack()
             }

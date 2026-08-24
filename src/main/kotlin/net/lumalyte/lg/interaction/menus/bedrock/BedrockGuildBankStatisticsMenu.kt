@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -22,6 +23,7 @@ class BedrockGuildBankStatisticsMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -30,26 +32,21 @@ class BedrockGuildBankStatisticsMenu(
         val bankStats = bankService.getBankStats(guild.id)
         val currentBalance = bankService.getBalance(guild.id)
 
-        val content = buildString {
-            appendLine(bedrockLocalization.getBedrockString(player, "bank.stats.title"))
-            appendLine()
-            appendLine("§6${bedrockLocalization.getBedrockString(player, "bank.balance")}: §f${currentBalance}")
-            appendLine()
-            appendLine("§7=== ${bedrockLocalization.getBedrockString(player, "bank.stats.overview")} ===")
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.stats.deposits")}: §a+${bankStats.totalDeposits}")
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.stats.withdrawals")}: §c-${bankStats.totalWithdrawals}")
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.stats.net")}: §f${bankStats.totalDeposits - bankStats.totalWithdrawals}")
-            appendLine()
-            appendLine("§7=== ${bedrockLocalization.getBedrockString(player, "bank.stats.activity")} ===")
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.stats.transactions")}: §f${bankStats.totalTransactions}")
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.stats.volume")}: §f${bankStats.transactionVolume}")
-        }
+        val content = lang.legacy(
+            "bedrock.bank.statistics.content",
+            "balance" to currentBalance,
+            "deposits" to bankStats.totalDeposits,
+            "withdrawals" to bankStats.totalWithdrawals,
+            "net" to bankStats.totalDeposits - bankStats.totalWithdrawals,
+            "transactions" to bankStats.totalTransactions,
+            "volume" to bankStats.transactionVolume
+        )
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "bank.stats.menu.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.bank.statistics.title", "guild" to guild.name))
             .content(content)
-            .button(bedrockLocalization.getBedrockString(player, "bank.stats.refresh"))
-            .button(bedrockLocalization.getBedrockString(player, "common.back"))
+            .button(lang.raw("bedrock.bank.statistics.button.refresh"))
+            .button(lang.raw("bedrock.bank.statistics.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> {

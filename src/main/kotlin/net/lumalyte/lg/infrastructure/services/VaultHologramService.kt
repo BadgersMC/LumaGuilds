@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.Guild
 import org.bukkit.Bukkit
@@ -19,7 +20,8 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class VaultHologramService(
     private val plugin: Plugin,
-    private val guildRepository: GuildRepository
+    private val guildRepository: GuildRepository,
+    private val lang: LangService,
 ) {
 
     private val logger = LoggerFactory.getLogger(VaultHologramService::class.java)
@@ -75,7 +77,7 @@ class VaultHologramService(
 
             val textDisplay = world.spawn(hologramLoc, TextDisplay::class.java) { display ->
                 // Set the text
-                display.text(net.kyori.adventure.text.Component.text("§6⚑ ${guild.name} Vault")
+                display.text(lang.msg("notification.vault.hologram", "guild" to guild.name)
                     .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
 
                 // Display properties

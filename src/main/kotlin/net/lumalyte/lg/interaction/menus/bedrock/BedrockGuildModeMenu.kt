@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.WarService
@@ -30,13 +31,14 @@ class BedrockGuildModeMenu(
     private val guildService: GuildService by inject()
     private val configService: ConfigService by inject()
     private val warService: WarService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val mainConfig = configService.loadConfig()
         val guildConfig = mainConfig.guild
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.mode.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.mode.title", "guild" to guild.name))
             .content(buildModeContent(guildConfig))
             .apply {
                 // Add switch buttons based on current mode and restrictions
@@ -58,33 +60,22 @@ class BedrockGuildModeMenu(
     }
 
     private fun buildModeContent(guildConfig: GuildConfig): String {
-        val (currentModeText, modeColor) = when (guild.mode) {
-            GuildMode.PEACEFUL -> Pair(bedrockLocalization.getBedrockString(player, "guild.mode.peaceful"), "§a")
-            GuildMode.HOSTILE -> Pair(bedrockLocalization.getBedrockString(player, "guild.mode.hostile"), "§c")
-        }
-
         val lastChangedText = guild.modeChangedAt?.let { formatTimeAgo(it) }
-            ?: bedrockLocalization.getBedrockString(player, "guild.mode.never")
+            ?: lang.raw("bedrock.mode.time.never")
 
-        return """
-            |§7${bedrockLocalization.getBedrockString(player, "guild.mode.description")}
-            |
-            |§6§l━━━ CURRENT MODE ━━━
-            |§e${bedrockLocalization.getBedrockString(player, "guild.mode.current")}§7: $modeColor$currentModeText
-            |§7${bedrockLocalization.getBedrockString(player, "guild.mode.last.changed")}§7: §f$lastChangedText
-            |
-            |§a§l${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.benefits")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.no.pvp")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.safe.trading")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.peaceful.no.wars")}
-            |
-            |§c§l${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.benefits")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.pvp")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.wars")}
-            |§7• ${bedrockLocalization.getBedrockString(player, "guild.mode.hostile.competitive")}
-            |
-            |§e${bedrockLocalization.getBedrockString(player, "guild.mode.cooldown")}§7: §f${guildConfig.modeSwitchCooldownDays} §7${bedrockLocalization.getBedrockString(player, "guild.mode.days")}
-        """.trimMargin()
+        return if (guild.mode == GuildMode.PEACEFUL) {
+            lang.legacy(
+                "bedrock.mode.content.peaceful",
+                "last_changed" to lastChangedText,
+                "cooldown_days" to guildConfig.modeSwitchCooldownDays
+            )
+        } else {
+            lang.legacy(
+                "bedrock.mode.content.hostile",
+                "last_changed" to lastChangedText,
+                "cooldown_days" to guildConfig.modeSwitchCooldownDays
+            )
+        }
     }
 
     private fun SimpleForm.Builder.addPeacefulButton(guildConfig: GuildConfig) {
@@ -92,9 +83,9 @@ class BedrockGuildModeMenu(
         val canSwitch = canSwitchToPeaceful(guild, guildConfig.modeSwitchCooldownDays) && !hasActiveWar
 
         val buttonText = if (canSwitch) {
-            "§a${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.peaceful")}"
+            lang.legacy("bedrock.mode.button.peaceful")
         } else {
-            "§7${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.peaceful")} §c(${bedrockLocalization.getBedrockString(player, "guild.mode.cannot.switch")})"
+            lang.legacy("bedrock.mode.button.peaceful_locked")
         }
 
         button(buttonText)
@@ -104,9 +95,9 @@ class BedrockGuildModeMenu(
         val canSwitch = canSwitchToHostile(guild, guildConfig.hostileModeMinimumDays)
 
         val buttonText = if (canSwitch) {
-            "§c${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.hostile")}"
+            lang.legacy("bedrock.mode.button.hostile")
         } else {
-            "§7${bedrockLocalization.getBedrockString(player, "guild.mode.switch.to.hostile")} §c(${bedrockLocalization.getBedrockString(player, "guild.mode.cannot.switch")})"
+            lang.legacy("bedrock.mode.button.hostile_locked")
         }
 
         button(buttonText)
@@ -149,7 +140,7 @@ class BedrockGuildModeMenu(
 
         if (!canSwitch) {
             if (hasActiveWar) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.mode.active.war"))
+                player.sendMessage(lang.msg("bedrock.mode.feedback.active_war"))
             } else {
                 player.sendMessage(getCooldownMessage(guild, guildConfig.modeSwitchCooldownDays))
             }
@@ -158,11 +149,11 @@ class BedrockGuildModeMenu(
 
         val success = guildService.setMode(guild.id, GuildMode.PEACEFUL, player.uniqueId)
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.mode.switched.success"))
+            player.sendMessage(lang.msg("bedrock.mode.feedback.switched_peaceful"))
             // Return to settings or control panel
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.mode.switched.failed"))
+            player.sendMessage(lang.msg("bedrock.mode.feedback.switch_failed"))
         }
     }
 
@@ -176,11 +167,11 @@ class BedrockGuildModeMenu(
 
         val success = guildService.setMode(guild.id, GuildMode.HOSTILE, player.uniqueId)
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.mode.switched.success"))
+            player.sendMessage(lang.msg("bedrock.mode.feedback.switched_hostile"))
             // Return to settings or control panel
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.mode.switched.failed"))
+            player.sendMessage(lang.msg("bedrock.mode.feedback.switch_failed"))
         }
     }
 
@@ -200,31 +191,31 @@ class BedrockGuildModeMenu(
     }
 
     private fun getCooldownMessage(guild: Guild, cooldownDays: Int): String {
-        if (guild.modeChangedAt == null) return "No previous changes"
+        if (guild.modeChangedAt == null) return lang.raw("bedrock.mode.time.no_previous_changes")
 
         val cooldownEnd = guild.modeChangedAt.plus(Duration.ofDays(cooldownDays.toLong()))
         val remaining = Duration.between(Instant.now(), cooldownEnd)
 
-        if (remaining.isNegative) return "Cooldown expired"
+        if (remaining.isNegative) return lang.raw("bedrock.mode.time.cooldown_expired")
 
         val days = remaining.toDays()
         val hours = remaining.toHours() % 24
 
-        return "${days}d ${hours}h until you can switch to Peaceful"
+        return lang.legacy("bedrock.mode.time.until_peaceful", "days" to days, "hours" to hours)
     }
 
     private fun getHostileLockMessage(guild: Guild, minimumDays: Int): String {
-        if (guild.modeChangedAt == null) return "No previous changes"
+        if (guild.modeChangedAt == null) return lang.raw("bedrock.mode.time.no_previous_changes")
 
         val lockEnd = guild.modeChangedAt.plus(Duration.ofDays(minimumDays.toLong()))
         val remaining = Duration.between(Instant.now(), lockEnd)
 
-        if (remaining.isNegative) return "Lock expired"
+        if (remaining.isNegative) return lang.raw("bedrock.mode.time.lock_expired")
 
         val days = remaining.toDays()
         val hours = remaining.toHours() % 24
 
-        return "${days}d ${hours}h until you can switch to Hostile"
+        return lang.legacy("bedrock.mode.time.until_hostile", "days" to days, "hours" to hours)
     }
 
     private fun formatTimeAgo(instant: Instant): String {
@@ -233,9 +224,9 @@ class BedrockGuildModeMenu(
         val hours = duration.toHours() % 24
 
         return when {
-            days > 0 -> "${days}d ${hours}h ago"
-            hours > 0 -> "${hours}h ago"
-            else -> "Recently"
+            days > 0 -> lang.legacy("bedrock.mode.time.days_ago", "days" to days, "hours" to hours)
+            hours > 0 -> lang.legacy("bedrock.mode.time.hours_ago", "hours" to hours)
+            else -> lang.raw("bedrock.mode.time.recently")
         }
     }
 
