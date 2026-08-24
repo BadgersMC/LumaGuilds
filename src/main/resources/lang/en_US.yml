@@ -3984,14 +3984,6 @@ menu:
       wager: '<gray>Their Wager: <gold><amount> coins'
     title: '<dark_red>⚔ Declare War - <guild>'
   statistics:
-    chart:
-      label:
-        this_week: This Week
-        weeks_ago: <weeks>W ago
-      title:
-        balance: <guild> Balance Trend
-        contributions: <guild> Member Contributions
-        kills: <guild> Kill Trends
     common:
       active_wars: '<gray>Active Wars: <white><count>'
       activity_rate: '<gray>Activity Rate: <yellow><rate>%'
@@ -4035,7 +4027,6 @@ menu:
         other: '<white><rank>. <player>: <white><kills> kills'
         second: '<gray><rank>. <player>: <white><kills> kills'
         third: '<red><rank>. <player>: <white><kills> kills'
-      coming_soon: '<yellow>Coming soon'
       total_deaths: '<gray>Total Deaths: <white><count>'
       total_kills: '<gray>Total Kills: <white><count>'
       total_members: '<gray>Total Members: <white><count>'
@@ -4049,6 +4040,11 @@ menu:
       total_kills_green: '<gray>Total Kills: <green><count>'
       unknown_guild: Unknown Guild
       efficiency_white: '<gray>Kill Efficiency: <white><percent>%'
+      balance: '<gold>Balance: <white><amount>'
+      kdr_against: '<gray>KDR: <yellow><ratio>'
+      page_info: '<gray>Page <page>/<total>'
+      wars_fought: '<gray>Wars Fought: <yellow><count>'
+      war_record: '<gray>War Record: <green><wins>W</green> <red><losses>L</red>'
     detail:
       kd:
         name: '<light_purple>📈 K/D ANALYSIS'
@@ -4104,6 +4100,33 @@ menu:
           loss_streak: '<gray>Current Streak: <red>Loss <white>x<count>'
           name: '<yellow>📊 WAR STATISTICS'
           win_streak: '<gray>Current Streak: <green>Win <white>x<count>'
+      period_item:
+        name: '<gold><period>'
+      rivalry:
+        enemy: '<red><guild>'
+      achievements:
+        '${achievement.key}':
+          locked: '<gray>✗ '
+          unlocked: '<green>✔ '
+      comparison:
+        guild: '<yellow><guild>'
+      trend:
+        '${trend.label}':
+          name: '<gold>'
+        arrow: '<gray>Trend: <arrow>'
+        current: '<gray>Current: <value>'
+    period:
+      '$key': '<green>📅 $key'
+    export:
+      header: '<gold>=== <guild> Statistics ==='
+      footer: '<gray>=== End of Report ==='
+      level: '<gray>Level: <white><level>'
+      kills: '<gray>Kills: <white><kills> | Deaths: <red><deaths>'
+      kdr: '<gray>K/D Ratio: <yellow><ratio>'
+      balance: '<gray>Balance: <gold><amount>'
+      wars: '<gray>Wars: <green><wins>W <red><losses>L</red>'
+      members: '<gray>Members: <white><count>'
+      top_killers: '<gray>Top Killers: <white><killers>'
     item:
       back:
         lore: '<gray>Return to guild statistics'
@@ -4111,26 +4134,12 @@ menu:
       back_control:
         lore: '<gray>Return to guild management'
         name: '<red>Back to Control Panel'
-      charts:
-        lore:
-          action: '<yellow>Click to view guild balance chart'
-          description: '<gray>Interactive charts & graphs'
-          rendering: '<gray>Advanced map-based rendering'
-          trends: '<gray>Kill trends over time'
-          visualizations: '<gray>Performance visualizations'
-        name: '<dark_purple>📊 Visual Charts'
       achievements:
         lore:
           count: '<gray>Milestones unlocked: <white><count>'
           net_kills: '<gray>Net Kills: <white><milestone>'
           total_kills: '<gray>Total Kills: <white><milestone>'
         name: '<yellow>Guild Achievements'
-      contribution_chart:
-        lore:
-          chart: '<gray>Visual ranking chart'
-          description: '<gray>Compare member contributions'
-          details: '<gray>Identify top contributors'
-        name: '<blue>📊 Member Contributions'
       export:
         lore:
           description: '<gray>Download detailed stats'
@@ -4138,12 +4147,6 @@ menu:
         name: '<white>Export Statistics'
       kd:
         name: '<light_purple>K/D Analysis'
-      kill_trends:
-        lore:
-          chart: '<gray>Interactive trend chart'
-          description: '<gray>Kill performance over time'
-          patterns: '<gray>Track improvement patterns'
-        name: '<dark_aqua>📈 Kill Trends'
       kills:
         lore:
           action: '<gray>Click for detailed breakdown'
@@ -4186,37 +4189,16 @@ menu:
         lore:
           unavailable: '<red>War system not available'
         name: '<dark_red>War Statistics'
+      kill_trends:
+        name: '<gold>📈 Kill Trends'
+        lore:
+          description: '<gray>Analyze kill patterns over time'
+      next_page:
+        name: '<green>Next Page →'
+      previous_page:
+        name: '<green>← Previous Page'
     title: '<gold><guild> - Statistics'
     feedback:
-      chart:
-        balance:
-          error: '<red>❌ Error generating balance chart. Please try again later.'
-          failure: '<red>❌ Failed to generate balance chart. Please try again.'
-          generating: '<yellow>📊 Generating guild balance trend chart...'
-          no_data: '<red>❌ No transaction history found for this guild.'
-          process_failed: '<red>❌ Unable to process transaction data.'
-          success: '<green>✅ Guild balance chart generated! Hold the map to view interactive trends.'
-        contributions:
-          error: '<red>❌ Error generating contributions chart. Please try again later.'
-          failure: '<red>❌ Failed to generate contributions chart. Please try again.'
-          generating: '<yellow>📊 Generating member contributions chart...'
-          no_data: '<red>❌ No contribution data found for this guild.'
-          no_positive: '<red>❌ No positive contributions found for this guild.'
-          success: '<green>✅ Member contributions chart generated! Hold the map to view ranking visualization.'
-        kills:
-          error: '<red>❌ Error generating kill trend chart. Please try again later.'
-          failure: '<red>❌ Failed to generate kill trend chart. Please try again.'
-          generating: '<yellow>📊 Generating kill trend analysis chart...'
-          no_data: '<red>❌ No kill data found for this guild in the past 7 weeks.'
-          success: '<green>✅ Kill trend chart generated! Hold the map to view performance patterns.'
-      coming_soon:
-        achievements: '<yellow>🏅 Achievement details coming soon!'
-        comparison: '<yellow>⚖ Guild comparison coming soon!'
-        export: '<yellow>📊 Statistics export feature coming soon!'
-        export_description: '<gray>Will generate CSV files with all guild data'
-        period: '<yellow>📅 Period-based statistics coming soon!'
-        rivalry: '<yellow>🏴 Rivalry statistics coming soon!'
-        trends: '<yellow>📈 Trend analysis coming soon!'
       load_failed:
         kd: '<red>❌ Failed to load K/D analysis. Please try again later.'
         kills: '<red>❌ Failed to load kill statistics. Please try again later.'
@@ -4226,7 +4208,13 @@ menu:
         top_contributors: '<red>❌ Failed to load top contributors. Please try again later.'
         top_killers: '<red>❌ Failed to load top killers. Please try again later.'
         wars: '<red>❌ Failed to load war statistics. Please try again later.'
+        achievements: '<red>❌ Failed to load achievements.'
+        comparison: '<red>❌ Failed to load comparison data.'
+        period: '<red>❌ Failed to load period statistics.'
+        rivalry: '<red>❌ Failed to load rivalry data.'
+        trends: '<red>❌ Failed to load trend data.'
       refreshing: '<green>🔄 Refreshing statistics...'
+      export_failed: '<red>❌ Failed to export statistics.'
     rating:
       activity:
         active: Active

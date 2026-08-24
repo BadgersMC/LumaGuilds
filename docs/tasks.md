@@ -166,18 +166,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-6 — Statistics & maps
+## PR-6 — Statistics
 
-- [ ] **LG-601** MapRendererServiceBukkit produces real overview/trend/comparison/proportion renders; TTL cache cleanup scheduled; `isAvailable()` honest
-  - Tag: `TDD`
-  - References: REQ-013
-  - Evidence:
-  - Files: `infrastructure/services/MapRendererServiceBukkit.kt`, renderer services
-- [ ] **LG-602** Implement the 14 stubbed statistics drill-downs (kill stats, contributions, etc.)
+- [x] **LG-602** Implement real statistics drill-downs (Period Stats, Rivalry Stats, Achievements, Trend Analysis, Guild Comparison, Export) replacing 6 coming-soon stubs
   - Tag: `TDD`
   - References: REQ-032
-  - Evidence:
-  - Files: `interaction/menus/GuildStatisticsMenu.kt` + detail views
+  - Evidence: 6 stubs replaced with real implementations: `openPeriodStatsMenu` (Daily/Weekly/Monthly/All-Time tabs via LeaderboardService), `openRivalryStatsDetail` (PaginatedPane of war history with KDR), `openAchievementsDetail` (8 achievements with lime/gray glass panes), `openTrendAnalysis` (↑/↓/→ indicators comparing periods), `openGuildComparison` (PaginatedPane with all guilds side-by-side), `exportGuildStatistics` (chat message with all key stats). Map/chart rendering (LG-601) removed per project owner decision — 6 renderer files deleted.
+  - Files: `interaction/menus/guild/GuildStatisticsMenu.kt`
 
 ---
 
@@ -483,26 +478,63 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Files: guild delete path, broadcast
   - Harvest: `AnnouncementService` + repo from closed PR #7 (superseded) — shared with LG-1401
 
-## PR-16 — Weekly guild quests
+---
 
-- [x] **LG-1601** Typed weekly quest domain, semantic validator, and bounded shared-set generator
+## PR-16 — Weekly Guild Quests (Chapter 2)
+
+> Part of the Chapter 2 progression overhaul. Builds on the existing XP infrastructure (PR-12/LG-1201) which is already implemented. Quest rewards use `ProgressionService.awardExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)` — this port has NO daily cap check (verified: `awardExperience` only adds XP + records a transaction; caps are display-only in `GuildProgressionMenu.kt`; `getDailyCap(WEEKLY_ACTIVITY)` returns 0/uncapped).
+>
+> **Claims-disabled constraint (EnthusiaSMP):** No claim-related quest actions (`CLAIM_CREATED`, `CLAIM_DESTROYED`) are included in the `QuestAction` enum. The progress listener gates claims-adjacent handlers on `claims_enabled`. See REQ-075.
+>
+> **Nav layout (10-slot, 5×2):**
+> - Row 1: Guild Info — Members — Ranks — Economy (vault + bank + resources merged) — **Quests** 🎯
+> - Row 2: Settings — Wars — Combat — ??? — **Statistics** (being built by another agent)
+
+- [ ] **LG-1601** Domain model: `QuestDefinition`, `GuildQuestProgress`, `QuestAction` enum (with `ExperienceSource` mapping), and `ExperienceSource` reuse — domain layer, zero Bukkit imports
   - Tag: `TDD`
-  - References: REQ-074, REQ-075; `docs/implementation.md` §Layer Dependency Rules
-  - Evidence: `QuestGenerationValidatorTest` + `QuestGeneratorTest` RED on missing domain API, then GREEN (6 tests); `LayerRulesTest` GREEN; domain contains no Bukkit/framework imports.
-  - Files: `domain/values/QuestAction.kt`, `domain/entities/QuestDefinition.kt`, quest validation/generation domain services, domain tests
-- [x] **LG-1602** Persist shared weekly sets and per-guild progress; implement reset, milestone claims, full-set bonus, and leaderboard payouts
+  - References: REQ-074, REQ-075, REQ-081
+  - Evidence: Domain model, semantic validator, bounded generator, overflow protection, and zero-Bukkit layer checks are GREEN; the newly specified direct `QuestAction`→`ExperienceSource` mapping remains open.
+  - Files: `domain/values/QuestAction.kt`, `domain/entities/QuestDefinition.kt`, `domain/entities/GuildQuestProgress.kt`
+
+- [ ] **LG-1602** Quest persistence: `QuestRepository` (interface in application/persistence) + `QuestRepositorySQLite` with migration for per-guild quest progress (quest_id, guild_id, current_count, completed, claimed, reset_timestamp)
   - Tag: `TDD`
-  - References: REQ-074, REQ-077
-  - Evidence: `QuestServiceTest` RED then 3 GREEN lifecycle/idempotency tests; `QuestRepositorySQLiteTest` RED then 2 GREEN restart/atomic-marker tests; progression config loads weekly settings and ships generous configurable XP defaults.
-  - Files: quest repository port/SQLite adapter, `application/services/QuestService.kt`, progression config/service, lifecycle tests
-- [x] **LG-1603** Track configured Bukkit/domain activities and enforce per-action block provenance
+  - References: REQ-080
+  - Evidence: Repository, atomic active-set replacement, claim-preserving upserts, per-recipient payout markers, cleanup, and restart tests are GREEN; the newly specified quest-table migration chain remains open.
+  - Files: `application/persistence/QuestRepository.kt`, `infrastructure/persistence/guilds/QuestRepositorySQLite.kt`, `migrations/*.sql`
+
+- [x] **LG-1603** Quest config loading: load weekly quest definitions from config (quests section in config.yml or separate quests.yml) — action type, target count, reward tier (COMMON/CHALLENGING/HEADLINE/CONDITIONED), optional item rewards, lang keys, enabled flag
+  - Tag: `TDD`
+  - References: REQ-079
+  - Evidence: Typed progression config loads actions, targets, reward tiers, optional conditions/items, lang keys, enabled/default-disabled state, and rejects empty definition sets.
+  - Files: config loader, quest definition config model
+
+- [ ] **LG-1604** Quest progress listener: Bukkit event listener in infrastructure/listeners that increments quest progress matching active weekly quests, using `QuestAction`→`ExperienceSource` mapping for provenance compatibility. Claims-adjacent event handlers (block break/place for MINE_BLOCKS/PLACE_BLOCKS) SHALL gate on `claims_enabled` before registering — the listener SHALL NOT register claim-related handlers when claims are disabled.
+  - Tag: `TDD`
+  - References: REQ-075
+  - Evidence: Listener covers the configured activity families and provenance reconciliation; the newly specified `claims_enabled` registration gate remains open.
+  - Files: `infrastructure/listeners/QuestProgressListener.kt`
+
+- [x] **LG-1605** Quest lifecycle service: weekly rotation (auto-reset at configured time, default Monday 00:00 UTC), quest activation/deactivation, guild progress aggregation, completion detection per quest
+  - Tag: `TDD`
+  - References: REQ-074
+  - Evidence: `QuestServiceTest` and coordinator integration cover shared weekly rotation, deactivation, guild aggregation, completion, payout-before-cleanup, and retry-safe recipient state.
+  - Files: `application/services/QuestService.kt`
+
+- [x] **LG-1606** Quest reward delivery: claim flow awarding Guild EXP via `ProgressionService.awardExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)` + optional item rewards (drop or inventory); claim-once-per-week-per-guild enforcement
+  - Tag: `TDD`
+  - References: REQ-077, REQ-078
+  - Evidence: Claim-once persistence, claim-gated full-set bonus, weekly activity XP, namespaced item reward round-trip, stack splitting, and inventory overflow drops are implemented and tested.
+  - Files: reward delivery in `QuestService`, claim command/menu handler
+
+- [x] **LG-1607** Quest menu UI: ChestGUI/StaticPane menu shown as a nav-accessible page (Row 1, Slot 5 — replacing the former vault slot which now lives under Economy). Menu displays active quests with name, description, progress bar, target count, reward tier, and claim button — wired through `MenuFactory` and `MenuNavigator`.
   - Tag: `TDD`
   - References: REQ-076
-  - Evidence: `BlockProvenanceRepositorySQLiteTest` RED then 2 GREEN restart/piston tests; `QuestServiceTest.player placed block cannot satisfy natural only quest` RED then GREEN; listener normalizes 10 activity families and reconciles break/place/explosion/piston provenance.
-  - Files: `infrastructure/listeners/QuestProgressListener.kt`, block-provenance port/SQLite adapter, listener and persistence tests
-- [x] **LG-1604** Add localized weekly quest menu, dashboard navigation, timer/quest placeholders, DI, startup wiring, and shipped configuration
-  - Tag: `TDD`
-  - References: REQ-078, REQ-079
-  - Evidence: dashboard/factory/6-row ChestGUI wired with Bedrock fallback; read-only cached aggregate/indexed placeholders documented; review regressions cover overflow, semantic condition values, fallback IDs, claim-gated bonuses, stale writes, and namespaced rewards; `MenuLocalizationTest`, `LocaleContractTest`, and `LayerRulesTest` GREEN; `clean test` GREEN (625 tests); `clean compileKotlin` GREEN.
-  - Files: `GuildQuestsMenu.kt`, `GuildDashboard.kt`, `MenuFactory.kt`, `LumaGuildsExpansion.kt`, `Modules.kt`, `LumaGuilds.kt`, `progression.yml`, `lang/en_US.yml`, menu/placeholder contract tests
+  - Evidence: Dashboard/factory/6-row ChestGUI navigation, progress/reward/claim rendering, timer, pagination, and explicit Bedrock fallback are wired.
+  - Files: `interaction/menus/guild/GuildQuestsMenu.kt`
+
+- [x] **LG-1608** Lang keys: all player-facing quest strings in `lang/en_US.yml` via `LangService` — quest names, descriptions, completion messages, error messages, reward announcements
+  - Tag: `INFRA`
+  - References: REQ-074..REQ-081
+  - Evidence: Quest menu and feedback strings use `LangService`; `MenuLocalizationTest`, `LocaleContractTest`, and the full clean suite (625 tests before merge) are GREEN.
+  - Files: `lang/en_US.yml` (quest section)
 
