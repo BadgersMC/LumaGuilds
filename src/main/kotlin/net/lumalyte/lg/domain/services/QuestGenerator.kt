@@ -32,9 +32,11 @@ class QuestGenerator(
                 }
             }
 
-            val resolved = accepted ?: fallback.copy(
-                id = if (fallback.id in selected.map { it.id }) "${fallback.id}-${selected.size + 1}" else fallback.id
-            )
+            val usedIds = selected.mapTo(mutableSetOf()) { it.id }
+            var fallbackId = fallback.id
+            var suffix = 2
+            while (fallbackId in usedIds) fallbackId = "${fallback.id}-${suffix++}"
+            val resolved = accepted ?: fallback.copy(id = fallbackId)
             selected += resolved
         }
         return selected

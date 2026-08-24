@@ -7,6 +7,7 @@ enum class QuestValidationFailure {
     ACTION_TARGET_INCOMPATIBLE,
     AMOUNT_OUT_OF_RANGE,
     CONDITION_UNSUPPORTED,
+    CONDITION_VALUE_INVALID,
     TARGET_LOCATION_INCOMPATIBLE,
     CONDITION_REDUNDANT
 }
@@ -41,7 +42,14 @@ class QuestGenerationValidator {
                     target.naturalBiomes,
                     failures
                 )
-                else -> Unit
+                QuestConditionType.ABOVE_Y, QuestConditionType.BELOW_Y -> {
+                    if (condition.value?.toIntOrNull() == null) failures += QuestValidationFailure.CONDITION_VALUE_INVALID
+                }
+                QuestConditionType.WITH_TOOL, QuestConditionType.WITHOUT_TOOL,
+                QuestConditionType.USING_TRANSPORT -> {
+                    if (condition.value.isNullOrBlank()) failures += QuestValidationFailure.CONDITION_VALUE_INVALID
+                }
+                QuestConditionType.WITHOUT_ELYTRA -> Unit
             }
         }
 

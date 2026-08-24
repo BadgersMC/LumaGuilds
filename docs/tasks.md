@@ -503,6 +503,6 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-1604** Add localized weekly quest menu, dashboard navigation, timer/quest placeholders, DI, startup wiring, and shipped configuration
   - Tag: `TDD`
   - References: REQ-078, REQ-079
-  - Evidence: dashboard/factory/6-row ChestGUI wired; read-only aggregate/indexed placeholders documented; `MenuLocalizationTest`, `LocaleContractTest`, and `LayerRulesTest` GREEN; `clean test` GREEN (620 tests); `clean compileKotlin` GREEN.
+  - Evidence: dashboard/factory/6-row ChestGUI wired with Bedrock fallback; read-only cached aggregate/indexed placeholders documented; review regressions cover overflow, semantic condition values, fallback IDs, claim-gated bonuses, stale writes, and namespaced rewards; `MenuLocalizationTest`, `LocaleContractTest`, and `LayerRulesTest` GREEN; `clean test` GREEN (625 tests); `clean compileKotlin` GREEN.
   - Files: `GuildQuestsMenu.kt`, `GuildDashboard.kt`, `MenuFactory.kt`, `LumaGuildsExpansion.kt`, `Modules.kt`, `LumaGuilds.kt`, `progression.yml`, `lang/en_US.yml`, menu/placeholder contract tests
 

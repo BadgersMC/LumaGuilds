@@ -18,6 +18,12 @@ class BlockProvenanceRepositorySQLiteTest {
 
     @BeforeEach fun setUp() {
         storage = VirtualThreadSQLiteStorage(tempDir.toFile())
+        storage.connection.executeUpdate("""
+            CREATE TABLE quest_player_placed_blocks (
+                world_id TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL,
+                PRIMARY KEY (world_id, x, y, z)
+            )
+        """.trimIndent())
         repository = BlockProvenanceRepositorySQLite(storage)
     }
 

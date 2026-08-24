@@ -52,13 +52,13 @@ class QuestServiceTest {
         service.incrementProgress(guild, QuestAction.KILL_MOBS, "ZOMBIE", 2)
         service.incrementProgress(guild, QuestAction.KILL_MOBS, "SKELETON", 1)
 
-        assertEquals(listOf(2_000), rewards.experienceAwards.map { it.second })
+        assertEquals(emptyList<Int>(), rewards.experienceAwards.map { it.second })
 
         assertTrue(service.claimQuest(actor, guild, "zombies"))
         assertFalse(service.claimQuest(actor, guild, "zombies"))
         assertTrue(service.claimQuest(actor, guild, "skeletons"))
 
-        assertEquals(listOf(2_000, 500, 750), rewards.experienceAwards.map { it.second })
+        assertEquals(listOf(500, 750, 2_000), rewards.experienceAwards.map { it.second })
         assertTrue(repository.isWeeklyBonusAwarded(week.weekId, guild))
     }
 
@@ -83,6 +83,7 @@ class QuestServiceTest {
 
         assertEquals(listOf(first to 5_000, second to 2_500), rewards.experienceAwards)
         assertEquals("2026-W36", repository.getActiveQuestSet()!!.weekId)
+        assertTrue(repository.getGuildProgress(leaderboardWeek.weekId, first).isEmpty())
     }
 
     @Test
@@ -131,10 +132,11 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
     private var active = initial
     private val progress = mutableMapOf<Triple<String, String, UUID>, GuildQuestProgress>()
     private val bonuses = mutableSetOf<Pair<String, UUID>>()
-    private val paidLeaderboards = mutableSetOf<Pair<String, String>>()
+    private val paidLeaderboardRecipients = mutableSetOf<Triple<String, String, UUID>>()
 
     override fun getActiveQuestSet(): WeeklyQuestSet? = active
     override fun saveActiveQuestSet(questSet: WeeklyQuestSet) { active = questSet }
+    override fun deactivateActiveQuestSet() { active = null }
     override fun getProgress(weekId: String, questId: String, guildId: UUID): GuildQuestProgress? = progress[Triple(weekId, questId, guildId)]
     override fun saveProgress(value: GuildQuestProgress) { progress[Triple(value.weekId, value.questId, value.guildId)] = value }
     override fun getGuildProgress(weekId: String, guildId: UUID): List<GuildQuestProgress> = progress.values.filter { it.weekId == weekId && it.guildId == guildId }
@@ -148,5 +150,10 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
     }
     override fun tryMarkWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean = bonuses.add(weekId to guildId)
     override fun isWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean = weekId to guildId in bonuses
-    override fun tryMarkLeaderboardPaid(weekId: String, questId: String): Boolean = paidLeaderboards.add(weekId to questId)
+    override fun isLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID): Boolean =
+        Triple(weekId, questId, guildId) in paidLeaderboardRecipients
+    override fun markLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID) {
+        paidLeaderboardRecipients += Triple(weekId, questId, guildId)
+    }
+    override fun deleteWeekProgress(weekId: String) { progress.keys.removeIf { it.first == weekId } }
 }

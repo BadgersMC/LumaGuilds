@@ -38,6 +38,17 @@ class QuestGeneratorTest {
         assertNotEquals(invalid.definition, result.single())
     }
 
+    @Test
+    fun `fallback suffix skips ids already selected`() {
+        val fallback = candidate("fallback", "STONE", QuestAction.MINE_BLOCKS, 500).definition
+        val existing = fallback.copy(id = "fallback-2")
+
+        val result = QuestGenerator(QuestGenerationValidator(), Random(7), maxAttemptsPerQuest = 1)
+            .generate(listOf(QuestCandidate(existing, 1)), 3, fallback)
+
+        assertEquals(3, result.map { it.id }.toSet().size)
+    }
+
     private fun candidate(id: String, targetId: String, action: QuestAction, amount: Long): QuestCandidate {
         val target = QuestTarget(
             id = targetId,

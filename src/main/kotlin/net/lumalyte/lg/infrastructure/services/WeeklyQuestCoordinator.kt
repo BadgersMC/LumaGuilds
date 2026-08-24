@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.QuestCondition
 import net.lumalyte.lg.domain.entities.QuestConditionType
 import net.lumalyte.lg.domain.entities.QuestDefinition
 import net.lumalyte.lg.domain.entities.QuestRewardTier
+import net.lumalyte.lg.domain.entities.QuestItemReward
 import net.lumalyte.lg.domain.entities.QuestTarget
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import net.lumalyte.lg.domain.services.QuestGenerationValidator
@@ -46,7 +47,10 @@ class WeeklyQuestCoordinator(
 
     fun refreshIfRequired(now: Instant) {
         val config = configService.getProgressionConfig().quests
-        if (!config.enabled) return
+        if (!config.enabled || config.definitions.isEmpty()) {
+            questService.deactivate()
+            return
+        }
         val expected = periodFor(now, config)
         val active = questService.activeQuestSet()
         if (active?.weekId == expected.weekId && active.endsAt.isAfter(now)) return
@@ -68,7 +72,7 @@ class WeeklyQuestCoordinator(
             val fallback = valid.first().definition
             QuestGenerator(validator, Random(weekId.hashCode())).generate(
                 valid,
-                config.questCount.coerceAtMost(valid.size),
+                config.questCount,
                 fallback
             )
         }
@@ -100,6 +104,7 @@ class WeeklyQuestCoordinator(
                     QuestRewardTier.HEADLINE -> config.rewardXp.headline
                     QuestRewardTier.CONDITIONED -> config.rewardXp.conditioned
                 },
+                itemRewards = raw.itemRewards.map { QuestItemReward(it.itemId, it.amount) },
                 leaderboard = raw.leaderboard,
                 leaderboardPayouts = raw.leaderboardPayouts
             ),

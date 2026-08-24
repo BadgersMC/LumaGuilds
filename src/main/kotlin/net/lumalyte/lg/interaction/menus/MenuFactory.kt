@@ -772,6 +772,9 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
+        if (shouldUseBedrockMenus(player)) {
+            return BedrockAccessUnavailableMenu(player, "weekly guild quests", lang)
+        }
         val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
         val questService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.QuestService>()
         val lang = org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>()

@@ -16,10 +16,10 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.QuestDisplayFormatter
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import java.time.Duration
 
 class GuildQuestsMenu(
     private val menuNavigator: MenuNavigator,
@@ -56,7 +56,7 @@ class GuildQuestsMenu(
             meta.displayName(lang.gui("menu.quests.item.header.name"))
             meta.lore(listOf(
                 lang.gui("menu.quests.item.header.claimed", "claimed" to claimed, "total" to active.quests.count { it.targetCount > 0 }),
-                lang.gui("menu.quests.item.header.reset", "time" to formatDuration(questService.timeRemaining())),
+                lang.gui("menu.quests.item.header.reset", "time" to QuestDisplayFormatter.duration(questService.timeRemaining())),
                 lang.gui("menu.quests.item.header.bonus", "xp" to questService.fullSetBonusExperience,
                     "status" to if (questService.isWeeklyBonusAwarded(guild.id)) "✓" else "…")
             ))
@@ -99,11 +99,11 @@ class GuildQuestsMenu(
         }
         return NexoItemProvider.getItemStackOrFallback("lg_quest_${quest.tier.name.lowercase()}") { ItemStack.of(material) }
             .also { item -> item.editMeta { meta ->
-                meta.displayName(lang.gui("menu.quests.item.quest.name", "action" to displayToken(quest.action.name), "target" to displayToken(quest.target.id)))
+                meta.displayName(lang.gui("menu.quests.item.quest.name", "action" to QuestDisplayFormatter.token(quest.action.name), "target" to QuestDisplayFormatter.token(quest.target.id)))
                 val lore = mutableListOf<Component>(
                     tierLabel(quest.tier),
-                    lang.gui("menu.quests.item.quest.description", "amount" to quest.targetCount, "target" to displayToken(quest.target.id),
-                        "condition" to (quest.condition?.let { " ${displayToken(it.type.name)} ${it.value?.let(::displayToken).orEmpty()}" } ?: "")),
+                    lang.gui("menu.quests.item.quest.description", "amount" to quest.targetCount, "target" to QuestDisplayFormatter.token(quest.target.id),
+                        "condition" to (quest.condition?.let { " ${QuestDisplayFormatter.token(it.type.name)} ${it.value?.let(QuestDisplayFormatter::token).orEmpty()}" } ?: "")),
                     Component.empty(),
                     lang.gui("menu.quests.item.quest.progress", "count" to count, "target" to quest.targetCount, "percent" to percent),
                     lang.gui("menu.quests.item.quest.reward", "xp" to quest.experienceReward)
@@ -125,14 +125,4 @@ class GuildQuestsMenu(
         QuestRewardTier.CONDITIONED -> lang.gui("menu.quests.tier.conditioned")
     }
 
-    private fun displayToken(value: String): String = value.lowercase().split('_').joinToString(" ") {
-        it.replaceFirstChar(Char::uppercase)
-    }
-
-    private fun formatDuration(duration: Duration): String {
-        val days = duration.toDays()
-        val hours = duration.minusDays(days).toHours()
-        val minutes = duration.minusDays(days).minusHours(hours).toMinutes()
-        return "${days}d ${hours}h ${minutes}m"
-    }
 }

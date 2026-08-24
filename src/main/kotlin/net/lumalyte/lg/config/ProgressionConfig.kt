@@ -46,7 +46,7 @@ data class ProgressionSystemConfig(
 }
 
 data class QuestSystemConfig(
-    val enabled: Boolean = true,
+    val enabled: Boolean = false,
     val resetDay: DayOfWeek = DayOfWeek.MONDAY,
     val resetHourUtc: Int = 0,
     val questCount: Int = 3,
@@ -79,8 +79,11 @@ data class QuestDefinitionConfig(
     val maximumAmount: Long = amount,
     val provenancePolicy: String = "ANY",
     val leaderboard: Boolean = false,
-    val leaderboardPayouts: Map<Int, Int> = emptyMap()
+    val leaderboardPayouts: Map<Int, Int> = emptyMap(),
+    val itemRewards: List<QuestItemRewardConfig> = emptyList()
 )
+
+data class QuestItemRewardConfig(val itemId: String, val amount: Int)
 
 /**
  * Leveling formula configuration

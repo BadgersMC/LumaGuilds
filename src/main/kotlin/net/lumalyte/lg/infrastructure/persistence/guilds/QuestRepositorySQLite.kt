@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
 import co.aikar.idb.DbRow
+import co.aikar.idb.DbStatement
 import net.lumalyte.lg.application.persistence.QuestRepository
 import net.lumalyte.lg.domain.entities.BlockProvenancePolicy
 import net.lumalyte.lg.domain.entities.GuildQuestProgress
@@ -16,6 +17,7 @@ import net.lumalyte.lg.domain.values.QuestAction
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.time.Instant
 import java.util.UUID
+import java.util.Base64
 
 class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepository {
     init { createTables() }
@@ -52,7 +54,8 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         """.trimIndent())
         storage.connection.executeUpdate("""
             CREATE TABLE IF NOT EXISTS quest_leaderboard_payouts (
-                week_id TEXT NOT NULL, quest_id TEXT NOT NULL, PRIMARY KEY (week_id, quest_id)
+                week_id TEXT NOT NULL, quest_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+                PRIMARY KEY (week_id, quest_id, guild_id)
             )
         """.trimIndent())
     }
@@ -74,18 +77,26 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
     }
 
     override fun saveActiveQuestSet(questSet: WeeklyQuestSet) {
-        storage.connection.executeUpdate("UPDATE weekly_quest_sets SET active = 0 WHERE active = 1")
-        storage.connection.executeUpdate(
-            "INSERT OR REPLACE INTO weekly_quest_sets (week_id, starts_at, ends_at, active) VALUES (?, ?, ?, 1)",
-            questSet.weekId, questSet.startsAt.toEpochMilli(), questSet.endsAt.toEpochMilli()
-        )
-        storage.connection.executeUpdate("DELETE FROM weekly_quest_definitions WHERE week_id = ?", questSet.weekId)
-        questSet.quests.forEach { saveDefinition(questSet.weekId, it) }
+        val committed = storage.connection.createTransaction { statement ->
+            statement.executeUpdateQuery("UPDATE weekly_quest_sets SET active = 0 WHERE active = 1")
+            statement.executeUpdateQuery(
+                "INSERT OR REPLACE INTO weekly_quest_sets (week_id, starts_at, ends_at, active) VALUES (?, ?, ?, 1)",
+                questSet.weekId, questSet.startsAt.toEpochMilli(), questSet.endsAt.toEpochMilli()
+            )
+            statement.executeUpdateQuery("DELETE FROM weekly_quest_definitions WHERE week_id = ?", questSet.weekId)
+            questSet.quests.forEach { saveDefinition(statement, questSet.weekId, it) }
+            true
+        }
+        check(committed) { "Weekly quest-set transaction did not commit" }
     }
 
-    private fun saveDefinition(weekId: String, quest: QuestDefinition) {
+    override fun deactivateActiveQuestSet() {
+        storage.connection.executeUpdate("UPDATE weekly_quest_sets SET active = 0 WHERE active = 1")
+    }
+
+    private fun saveDefinition(statement: DbStatement, weekId: String, quest: QuestDefinition) {
         val target = quest.target
-        storage.connection.executeUpdate("""
+        statement.executeUpdateQuery("""
             INSERT INTO weekly_quest_definitions (
                 week_id, quest_id, name_key, description_key, action, target_id, allowed_actions,
                 minimum_amount, maximum_amount, natural_dimensions, natural_biomes, supported_conditions,
@@ -98,7 +109,7 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             target.naturalDimensions.joinToString(","), target.naturalBiomes.joinToString(","),
             target.supportedConditions.joinToString(",") { it.name }, target.provenancePolicy.name,
             quest.targetCount, quest.tier.name, quest.condition?.type?.name, quest.condition?.value,
-            quest.experienceReward, quest.itemRewards.joinToString(",") { "${it.itemId}:${it.amount}" },
+            quest.experienceReward, quest.itemRewards.joinToString(",") { "${it.amount}:${encode(it.itemId)}" },
             if (quest.leaderboard) 1 else 0,
             quest.leaderboardPayouts.entries.sortedBy { it.key }.joinToString(",") { "${it.key}:${it.value}" }
         )
@@ -112,8 +123,12 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
 
     override fun saveProgress(value: GuildQuestProgress) {
         storage.connection.executeUpdate("""
-            INSERT OR REPLACE INTO guild_quest_progress
+            INSERT INTO guild_quest_progress
             (week_id, quest_id, guild_id, current_count, claimed, completed_at) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(week_id, quest_id, guild_id) DO UPDATE SET
+                current_count = MAX(current_count, excluded.current_count),
+                claimed = MAX(claimed, excluded.claimed),
+                completed_at = COALESCE(completed_at, excluded.completed_at)
         """.trimIndent(), value.weekId, value.questId, value.guildId.toString(), value.currentCount,
             if (value.claimed) 1 else 0, value.completedAt?.toEpochMilli())
     }
@@ -145,10 +160,23 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             "SELECT 1 AS found FROM guild_quest_weekly_bonus WHERE week_id = ? AND guild_id = ?", weekId, guildId.toString()
         ) != null
 
-    override fun tryMarkLeaderboardPaid(weekId: String, questId: String): Boolean =
+    override fun isLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID): Boolean =
+        storage.connection.getFirstRow(
+            "SELECT 1 AS found FROM quest_leaderboard_payouts WHERE week_id = ? AND quest_id = ? AND guild_id = ?",
+            weekId, questId, guildId.toString()
+        ) != null
+
+    override fun markLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID) {
         storage.connection.executeUpdate(
-            "INSERT OR IGNORE INTO quest_leaderboard_payouts (week_id, quest_id) VALUES (?, ?)", weekId, questId
-        ) == 1
+            "INSERT OR IGNORE INTO quest_leaderboard_payouts (week_id, quest_id, guild_id) VALUES (?, ?, ?)",
+            weekId, questId, guildId.toString()
+        )
+    }
+
+    override fun deleteWeekProgress(weekId: String) {
+        storage.connection.executeUpdate("DELETE FROM guild_quest_progress WHERE week_id = ?", weekId)
+        storage.connection.executeUpdate("DELETE FROM guild_quest_weekly_bonus WHERE week_id = ?", weekId)
+    }
 
     private fun mapProgress(row: DbRow) = GuildQuestProgress(
         weekId = row.getString("week_id"),
@@ -177,7 +205,9 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             target = target, targetCount = row.longValue("target_count"), tier = QuestRewardTier.valueOf(row.getString("tier")),
             condition = conditionType?.let { QuestCondition(it, row.nullableString("condition_value")) },
             experienceReward = row.getInt("experience_reward"),
-            itemRewards = row.csv("item_rewards").mapNotNull { entry -> entry.split(":", limit = 2).takeIf { it.size == 2 }?.let { QuestItemReward(it[0], it[1].toInt()) } },
+            itemRewards = row.csv("item_rewards").mapNotNull { entry ->
+                entry.split(":", limit = 2).takeIf { it.size == 2 }?.let { QuestItemReward(decode(it[1]), it[0].toInt()) }
+            },
             leaderboard = row.getInt("leaderboard") == 1,
             leaderboardPayouts = row.csv("leaderboard_payouts").mapNotNull { entry -> entry.split(":", limit = 2).takeIf { it.size == 2 }?.let { it[0].toInt() to it[1].toInt() } }.toMap()
         )
@@ -195,4 +225,6 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         else -> null
     }
     private fun DbRow.nullableString(column: String): String? = get<Any?>(column)?.toString()?.takeIf(String::isNotBlank)
+    private fun encode(value: String): String = Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray())
+    private fun decode(value: String): String = String(Base64.getUrlDecoder().decode(value))
 }
