@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -22,25 +23,18 @@ class BedrockGuildBankBudgetMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val currentBalance = bankService.getBalance(guild.id)
 
-        val content = buildString {
-            appendLine(bedrockLocalization.getBedrockString(player, "bank.budget.title"))
-            appendLine()
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.balance")}: §6$currentBalance")
-            appendLine()
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.budget.info")}")
-            appendLine()
-            appendLine("§7${bedrockLocalization.getBedrockString(player, "bank.budget.coming.soon")}")
-        }
+        val content = lang.legacy("bedrock.bank_budget.content", "balance" to currentBalance)
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "bank.budget.menu.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.bank_budget.title", "guild" to guild.name))
             .content(content)
-            .button(bedrockLocalization.getBedrockString(player, "common.back"))
+            .button(lang.raw("bedrock.bank_budget.button.back"))
             .validResultHandler { _ ->
                 bedrockNavigator.goBack()
             }

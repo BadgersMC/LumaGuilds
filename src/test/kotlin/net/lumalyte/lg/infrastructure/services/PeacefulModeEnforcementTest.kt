@@ -198,7 +198,8 @@ class PeacefulModeEnforcementTest {
             vaultInventoryManager = mockk(relaxed = true),
             hologramService = mockk(relaxed = true),
             rankService = mockk(relaxed = true),
-            getClaimAtPosition = getClaimAtPosition
+            getClaimAtPosition = getClaimAtPosition,
+            lang = mockk(relaxed = true),
         )
     }
 

@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
+
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Subcommand
@@ -7,7 +9,6 @@ import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.metadata.UpdateClaimDescription
 import net.lumalyte.lg.application.results.common.TextValidationErrorResult
 import net.lumalyte.lg.application.results.claim.metadata.UpdateClaimAttributeResult
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -15,7 +16,7 @@ import java.util.UUID
 
 @CommandAlias("claim")
 class DescriptionCommand : ClaimCommand(), KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val updateClaimDescription: UpdateClaimDescription by inject()
     private val getClaimDetails: GetClaimDetails by inject()
 
@@ -32,56 +33,43 @@ class DescriptionCommand : ClaimCommand(), KoinComponent {
 
         // Update description and notify player of result
         val result = updateClaimDescription.execute(partition.claimId, description)
-        val (messageKey, messageArgs) = when (result) {
-            is UpdateClaimAttributeResult.Success -> Pair(
-                LocalizationKeys.COMMAND_CLAIM_DESCRIPTION_SUCCESS,
-                arrayOf(getClaimName(playerId, claimId))
+        val message = when (result) {
+            is UpdateClaimAttributeResult.Success -> lang.msg(
+                "command.claim.description.success",
+                "claim" to getClaimName(playerId, claimId),
             )
-            is UpdateClaimAttributeResult.ClaimNotFound -> Pair(
-                LocalizationKeys.COMMAND_COMMON_UNKNOWN_CLAIM,
-                emptyArray<String>()
-            )
+            is UpdateClaimAttributeResult.ClaimNotFound -> lang.msg("command.common.unknown_claim")
             is UpdateClaimAttributeResult.InputTextInvalid -> {
                 val firstError = result.errors.firstOrNull()
                 when (firstError) {
-                    is TextValidationErrorResult.ExceededCharacterLimit -> Pair(
-                        LocalizationKeys.COMMAND_CLAIM_DESCRIPTION_EXCEED_LIMIT,
-                        arrayOf(name.count().toString(), firstError.maxCharacters)
+                    is TextValidationErrorResult.ExceededCharacterLimit -> lang.msg(
+                        "command.claim.description.exceed_limit",
+                        "length" to description.count(),
+                        "limit" to firstError.maxCharacters,
                     )
-                    is TextValidationErrorResult.InvalidCharacters -> Pair(
-                        LocalizationKeys.COMMAND_CLAIM_DESCRIPTION_INVALID_CHARACTER,
-                        arrayOf(firstError.invalidCharacters)
+                    is TextValidationErrorResult.InvalidCharacters -> lang.msg(
+                        "command.claim.description.invalid_character",
+                        "characters" to firstError.invalidCharacters,
                     )
-                    is TextValidationErrorResult.ContainsBlacklistedWord -> Pair(
-                        LocalizationKeys.COMMAND_CLAIM_DESCRIPTION_BLACKLISTED_WORD,
-                        arrayOf(firstError.blacklistedWord)
+                    is TextValidationErrorResult.ContainsBlacklistedWord -> lang.msg(
+                        "command.claim.description.blacklisted_word",
+                        "word" to firstError.blacklistedWord,
                     )
-                    is TextValidationErrorResult.NoCharactersProvided -> Pair(
-                        LocalizationKeys.COMMAND_CLAIM_DESCRIPTION_BLANK,
-                        emptyArray<String>()
-                    )
-                    null -> Pair(
-                        LocalizationKeys.GENERAL_ERROR,
-                        emptyArray<String>()
-                    )
+                    is TextValidationErrorResult.NoCharactersProvided -> lang.msg("command.claim.description.blank")
+                    null -> lang.msg("general.error")
                 }
             }
-            is UpdateClaimAttributeResult.StorageError -> Pair(
-                LocalizationKeys.GENERAL_ERROR,
-                emptyArray<String>()
-            )
+            is UpdateClaimAttributeResult.StorageError -> lang.msg("general.error")
         }
 
         // Output to player chat
-        player.sendMessage(localizationProvider.get(player.uniqueId, messageKey, *messageArgs))
+        player.sendMessage(message)
     }
 
     /**
      * Helper function to retrieve the claim name or a default error message if not found.
      */
     private fun getClaimName(playerId: UUID, claimId: UUID): String {
-        return getClaimDetails.execute(claimId)?.name ?: localizationProvider.get(
-            playerId, LocalizationKeys.GENERAL_NAME_ERROR
-        )
+        return getClaimDetails.execute(claimId)?.name ?: lang.legacy("general.name_error")
     }
 }

@@ -1,12 +1,13 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
+
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Default
 import co.aikar.commands.annotation.Subcommand
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.partition.GetClaimPartitions
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import org.bukkit.entity.Player
 import net.lumalyte.lg.infrastructure.ChatInfoBuilder
 import org.koin.core.component.KoinComponent
@@ -16,7 +17,7 @@ import kotlin.math.ceil
 
 @CommandAlias("claim")
 class PartitionsCommand : ClaimCommand(), KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val getClaimPartitions: GetClaimPartitions by inject()
     private val getClaimDetails: GetClaimDetails by inject()
 
@@ -31,24 +32,25 @@ class PartitionsCommand : ClaimCommand(), KoinComponent {
 
         // Check if page is empty
         if (page * 10 - 9 > partitions.count() || page < 1) {
-            player.sendMessage("§cInvalid page specified.")
+            player.sendMessage(lang.msg("command.common.invalid_page"))
             return
         }
 
         // Output list of partitions
         val claimName = getClaimName(player.uniqueId, partition.claimId)
-        val header = localizationProvider.get(
-            player.uniqueId, LocalizationKeys.COMMAND_CLAIM_PARTITIONS_HEADER, claimName)
-        val chatInfo = ChatInfoBuilder(localizationProvider, player.uniqueId, header)
+        val header = lang.legacy("command.partitions.header", "claim" to claimName)
+        val chatInfo = ChatInfoBuilder(lang, player.uniqueId, header)
         for (i in 0..9 + page) {
             if (i > partitions.count() - 1) {
                 break
             }
 
-            chatInfo.addIndexed(i, localizationProvider.get(
-                player.uniqueId, LocalizationKeys.COMMAND_CLAIM_PARTITIONS_ROW,
-                partitions[i].area.lowerPosition2D.x, partitions[i].area.lowerPosition2D.z,
-                partitions[i].area.upperPosition2D.x, partitions[i].area.upperPosition2D.z))
+            chatInfo.addIndexed(i, lang.legacy("command.partitions.row",
+                "lower_x" to partitions[i].area.lowerPosition2D.x,
+                "lower_z" to partitions[i].area.lowerPosition2D.z,
+                "upper_x" to partitions[i].area.upperPosition2D.x,
+                "upper_z" to partitions[i].area.upperPosition2D.z,
+            ))
         }
         player.sendMessage(chatInfo.createPaged(page, ceil((partitions.count() / 10.0)).toInt()))
     }
@@ -57,8 +59,6 @@ class PartitionsCommand : ClaimCommand(), KoinComponent {
      * Helper function to retrieve the claim name or a default error message if not found.
      */
     private fun getClaimName(playerId: UUID, claimId: UUID): String {
-        return getClaimDetails.execute(claimId)?.name ?: localizationProvider.get(
-            playerId, LocalizationKeys.GENERAL_NAME_ERROR
-        )
+        return getClaimDetails.execute(claimId)?.name ?: lang.legacy("general.name_error")
     }
 }

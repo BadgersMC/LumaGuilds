@@ -1,12 +1,12 @@
 package net.lumalyte.lg.infrastructure
 
-import net.lumalyte.lg.domain.values.LocalizationKeys
+import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import java.util.UUID
 
 
-class ChatInfoBuilder(private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider, private val playerId: UUID,
+class ChatInfoBuilder(private val lang: LangService, private val playerId: UUID,
                       private val title: String) {
     private var elements = Component.text()
 
@@ -33,8 +33,8 @@ class ChatInfoBuilder(private val localizationProvider: net.lumalyte.lg.applicat
 
     fun addIndexed(index: Int, text: String) {
         newLine()
-        val indexedRow = localizationProvider.get(playerId, LocalizationKeys.COMMAND_INFO_BOX_INDEX, index, text)
-        elements.append(Component.text(indexedRow, NamedTextColor.WHITE))
+        val indexedRow = lang.msg("command.info_box.index", "index" to index, "text" to text)
+        elements.append(indexedRow)
     }
 
     fun addSpace() {
@@ -47,10 +47,10 @@ class ChatInfoBuilder(private val localizationProvider: net.lumalyte.lg.applicat
     }
 
     fun createPaged(currentPage: Int, pages: Int): Component {
-        val pageText = localizationProvider.get(
-            playerId, LocalizationKeys.COMMAND_INFO_BOX_PAGED, currentPage, pages)
+        val pageText = lang.msg(
+            "command.info_box.paged", "current_page" to currentPage, "total_pages" to pages)
         val finalisedElement = elements.append(Component.text("\n-----", NamedTextColor.WHITE))
-            .append(Component.text(pageText, NamedTextColor.DARK_AQUA))
+            .append(pageText)
         return finalisedElement.build()
     }
 

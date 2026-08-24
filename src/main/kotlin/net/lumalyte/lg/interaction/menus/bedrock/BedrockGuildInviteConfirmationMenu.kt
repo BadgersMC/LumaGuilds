@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -29,23 +30,24 @@ class BedrockGuildInviteConfirmationMenu(
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         return SimpleForm.builder()
-            .title(bedrockLocalization.getBedrockString(player, "guild.invite.confirm.title"))
-            .content(bedrockLocalization.getBedrockString(player, "guild.invite.confirm.message", guild.name, targetPlayer.name))
-            .button(bedrockLocalization.getBedrockString(player, "guild.invite.confirm.button.send"))
-            .button(bedrockLocalization.getBedrockString(player, "guild.invite.confirm.button.cancel"))
+            .title(lang.raw("bedrock.invite_confirmation.title"))
+            .content(lang.legacy("bedrock.invite_confirmation.content", "guild" to guild.name, "player" to targetPlayer.name))
+            .button(lang.raw("bedrock.invite_confirmation.button.send"))
+            .button(lang.raw("bedrock.invite_confirmation.button.cancel"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> sendInvite()
                     1 -> bedrockNavigator.createBackHandler {
-                        player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.confirm.cancelled"))
+                        player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.cancelled"))
                     }.run()
                 }
             }
             .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.confirm.cancelled"))
+                player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.cancelled"))
             })
             .build()
     }
@@ -53,7 +55,7 @@ class BedrockGuildInviteConfirmationMenu(
     private fun sendInvite() {
         // Check if player is already in a guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.invite.already.member", targetPlayer.name))
+            player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.already_member", "player" to targetPlayer.name))
             menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
             return
         }
@@ -67,16 +69,16 @@ class BedrockGuildInviteConfirmationMenu(
         )
 
         // Send invitation message
-        player.sendMessage("§a✅ Invitation sent to ${targetPlayer.name}!")
+        player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.sent", "player" to targetPlayer.name))
         player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f)
 
-        targetPlayer.sendMessage("")
-        targetPlayer.sendMessage("§6§l📨 GUILD INVITATION")
-        targetPlayer.sendMessage("§7${player.name} invited you to join §6${guild.name}§7!")
-        targetPlayer.sendMessage("")
-        targetPlayer.sendMessage("§7To accept: §a/guild join ${guild.name}")
-        targetPlayer.sendMessage("§7To decline: §c/guild decline ${guild.name}")
-        targetPlayer.sendMessage("")
+        targetPlayer.sendMessage(lang.msg("menu.common.blank"))
+        targetPlayer.sendMessage(lang.msg("bedrock.invite_confirmation.notification.title"))
+        targetPlayer.sendMessage(lang.msg("bedrock.invite_confirmation.notification.invited", "player" to player.name, "guild" to guild.name))
+        targetPlayer.sendMessage(lang.msg("menu.common.blank"))
+        targetPlayer.sendMessage(lang.msg("bedrock.invite_confirmation.notification.accept", "guild" to guild.name))
+        targetPlayer.sendMessage(lang.msg("bedrock.invite_confirmation.notification.decline", "guild" to guild.name))
+        targetPlayer.sendMessage(lang.msg("menu.common.blank"))
         targetPlayer.playSound(targetPlayer.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
 
         // Return to member management menu

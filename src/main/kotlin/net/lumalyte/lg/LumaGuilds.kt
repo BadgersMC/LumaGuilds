@@ -72,7 +72,6 @@ class LumaGuilds : JavaPlugin() {
 
         pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         scheduler = server.scheduler
-        initLang()
         initialiseVaultDependency()
         initialisePlaceholderAPI()
         initialiseAxKothIntegration()
@@ -416,19 +415,6 @@ class LumaGuilds : JavaPlugin() {
         }
     }
 
-    fun initLang() {
-        val defaultLanguageFilenames = listOf(
-            "en.properties"
-        )
-
-        // Move languages to the required folder and add readme for override instructions
-        defaultLanguageFilenames.forEach { filename ->
-            val resourcePathInJar = "lang/defaults/$filename"
-            saveResource(resourcePathInJar, true)
-        }
-        saveResource("lang/overrides/README.txt", true)
-    }
-
     /**
      * Displays a fancy startup message with gradient coloring and occasional secret meme text.
      */
@@ -539,23 +525,23 @@ class LumaGuilds : JavaPlugin() {
      * Test method to preview the startup messages (can be called from console for testing)
      */
     fun previewStartupMessages() {
-        logger.info("§6=== PREVIEWING STARTUP MESSAGES ===")
+        logger.info("=== PREVIEWING STARTUP MESSAGES ===")
         displayFancyStartupMessage()
-        logger.info("§6=== END PREVIEW ===")
+        logger.info("=== END PREVIEW ===")
     }
 
     /**
      * Test method to preview the secret easter egg (for developers only)
      */
     fun previewSecretEasterEgg() {
-        logger.info("§6=== PREVIEWING SECRET EASTER EGG ===")
+        logger.info("=== PREVIEWING SECRET EASTER EGG ===")
         try {
             val validator = net.lumalyte.lg.infrastructure.hidden.SystemValidator(pluginMeta.version)
             validator.validateAndDisplaySecretMessage()
         } catch (e: Exception) {
-            logger.warning("§cCould not load secret easter egg: ${e.message}")
+            logger.warning("Could not load secret easter egg: ${e.message}")
         }
-        logger.info("§6=== END SECRET PREVIEW ===")
+        logger.info("=== END SECRET PREVIEW ===")
     }
 
 

@@ -19,7 +19,11 @@ PLAYERS_DIR = REPO_ROOT / "wiki/docs/players"
 # Pages that exist in wiki/docs/players/ but intentionally have no HelpTopics entry:
 WIKI_ONLY = {"how-do-i", "shop"}
 
-SLUG_RE = re.compile(r'slug\s*=\s*"([a-z0-9][a-z0-9-]*)"')
+# HelpTopics supports both the original named-constructor form
+# (`slug = "guilds"`) and the localized catalog helper (`topic("guilds", ...)`).
+SLUG_RE = re.compile(
+    r'(?:slug\s*=\s*|topic\(\s*)"([a-z0-9][a-z0-9-]*)"'
+)
 
 
 def kotlin_slugs() -> set[str]:

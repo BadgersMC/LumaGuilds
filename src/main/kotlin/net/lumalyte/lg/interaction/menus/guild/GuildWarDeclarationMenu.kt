@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -53,6 +54,7 @@ class GuildWarDeclarationMenu(
     private val configService: ConfigService by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
     
     // War configuration state
     private var selectedDuration: Duration = Duration.ofDays(7) // Default 7 days
@@ -64,20 +66,24 @@ class GuildWarDeclarationMenu(
     override fun open() {
         // Check permissions first
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DECLARE_WAR)) {
-            player.sendMessage("§c❌ You don't have permission to declare war for your guild!")
+            player.sendMessage(lang.msg("menu.war_declaration.feedback.no_permission"))
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
 
         // Check if guild is in peaceful mode
         if (guild.mode == GuildMode.PEACEFUL) {
-            player.sendMessage("§c❌ Peaceful guilds cannot declare war!")
-            player.sendMessage("§7Switch to Hostile mode first in guild settings.")
+            player.sendMessage(lang.msg("menu.war_declaration.feedback.peaceful"))
+            player.sendMessage(lang.msg("menu.war_declaration.feedback.switch_hostile"))
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§4⚔ Declare War - ${guild.name}"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(
+            guild.guiTheme,
+            6,
+            lang.legacy("menu.war_declaration.title", "guild" to guild.name),
+        ))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -104,10 +110,10 @@ class GuildWarDeclarationMenu(
     private fun addGuildSelectionSection(pane: StaticPane) {
         // Title
         val titleItem = ItemStack.of(Material.DIAMOND_SWORD)
-            .name("§4⚔ SELECT TARGET GUILD")
-            .lore("§7Choose which guild to declare war against")
-            .lore("§7")
-            .lore("§cWarning: This action cannot be undone!")
+            .name(lang.legacy("menu.war_declaration.item.select_target.name"))
+            .lore(lang.legacy("menu.war_declaration.item.select_target.lore.description"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.select_target.lore.warning"))
         pane.addItem(GuiItem(titleItem), 4, 0)
 
         // Get all guilds except own guild
@@ -128,8 +134,8 @@ class GuildWarDeclarationMenu(
         // Show "More Guilds" if there are more than 7
         if (availableGuilds.size > 7) {
             val moreItem = ItemStack.of(Material.BOOK)
-                .name("§e📖 More Guilds (${availableGuilds.size - 7})")
-                .lore("§7Click to see all available guilds")
+                .name(lang.legacy("menu.war_declaration.item.more_guilds.name", "count" to availableGuilds.size - 7))
+                .lore(lang.legacy("menu.war_declaration.item.more_guilds.lore"))
             val guiItem = GuiItem(moreItem) {
                 openGuildListMenu(availableGuilds)
             }
@@ -138,13 +144,13 @@ class GuildWarDeclarationMenu(
 
         // Info section
         val infoItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
-            .name("§6ℹ War Declaration Info")
-            .lore("§7• Wars last 1-14 days")
-            .lore("§7• Both guilds can set objectives")
-            .lore("§7• Winners gain progression XP")
-            .lore("§7• Losers may lose resources")
-            .lore("§7")
-            .lore("§eChoose your target wisely!")
+            .name(lang.legacy("menu.war_declaration.item.info.name"))
+            .lore(lang.legacy("menu.war_declaration.item.info.lore.duration"))
+            .lore(lang.legacy("menu.war_declaration.item.info.lore.objectives"))
+            .lore(lang.legacy("menu.war_declaration.item.info.lore.winners"))
+            .lore(lang.legacy("menu.war_declaration.item.info.lore.losers"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.info.lore.warning"))
         pane.addItem(GuiItem(infoItem), 4, 4)
     }
 
@@ -168,22 +174,27 @@ class GuildWarDeclarationMenu(
         } ?: ItemStack.of(defaultBanner)
 
         // Add guild mode indicator
-        val modeColor = if (targetGuild.mode == GuildMode.HOSTILE) "§c" else "§a"
-        val modeIcon = if (targetGuild.mode == GuildMode.HOSTILE) "⚔" else "☮"
-
         return bannerItem
-            .name("$modeColor$modeIcon ${targetGuild.name}")
-            .lore("§7Members: §f$memberCount")
-            .lore("§7Win/Loss Ratio: §f${String.format("%.2f", winLossRatio)}")
-            .lore("§7Recent Wars: §f${warHistory.size}")
-            .lore("§7")
-            .lore("§7Mode: $modeColor${targetGuild.mode}")
-            .lore("§7Level: §f${targetGuild.level}")
-            .lore("§7")
-            .lore(if (targetGuild.mode == GuildMode.HOSTILE) {
-                "§eClick to declare war!"
+            .name(if (targetGuild.mode == GuildMode.HOSTILE) {
+                lang.legacy("menu.war_declaration.item.guild.name.hostile", "guild" to targetGuild.name)
             } else {
-                "§eClick to send war declaration!"
+                lang.legacy("menu.war_declaration.item.guild.name.peaceful", "guild" to targetGuild.name)
+            })
+            .lore(lang.legacy("menu.war_declaration.item.guild.lore.members", "count" to memberCount))
+            .lore(lang.legacy("menu.war_declaration.item.guild.lore.ratio", "ratio" to String.format("%.2f", winLossRatio)))
+            .lore(lang.legacy("menu.war_declaration.item.guild.lore.recent", "count" to warHistory.size))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(if (targetGuild.mode == GuildMode.HOSTILE) {
+                lang.legacy("menu.war_declaration.item.guild.lore.mode.hostile")
+            } else {
+                lang.legacy("menu.war_declaration.item.guild.lore.mode.peaceful")
+            })
+            .lore(lang.legacy("menu.war_declaration.item.guild.lore.level", "level" to targetGuild.level))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(if (targetGuild.mode == GuildMode.HOSTILE) {
+                lang.legacy("menu.war_declaration.item.guild.lore.declare")
+            } else {
+                lang.legacy("menu.war_declaration.item.guild.lore.send")
             })
     }
 
@@ -192,11 +203,11 @@ class GuildWarDeclarationMenu(
         
         // Target guild display
         val targetItem = ItemStack.of(Material.TARGET)
-            .name("§c🎯 Target: ${target.name}")
-            .lore("§7Declaring war against this guild")
-            .lore("§7Members: §f${memberService.getGuildMembers(target.id).size}")
-            .lore("§7")
-            .lore("§eClick to change target")
+            .name(lang.legacy("menu.war_declaration.item.target.name", "guild" to target.name))
+            .lore(lang.legacy("menu.war_declaration.item.target.lore.description"))
+            .lore(lang.legacy("menu.war_declaration.item.target.lore.members", "count" to memberService.getGuildMembers(target.id).size))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.target.lore.action"))
         val targetGuiItem = GuiItem(targetItem) {
             targetGuild = null
             open() // Return to guild selection
@@ -221,15 +232,15 @@ class GuildWarDeclarationMenu(
 
     private fun addDurationSelection(pane: StaticPane) {
         val durationItem = ItemStack.of(Material.CLOCK)
-            .name("§6◷ War Duration")
-            .lore("§7Current: §f${selectedDuration.toDays()} days")
-            .lore("§7")
-            .lore("§7Available durations:")
-            .lore("§7• §f3 days §7(Quick skirmish)")
-            .lore("§7• §f7 days §7(Standard war)")
-            .lore("§7• §f14 days §7(Extended campaign)")
-            .lore("§7")
-            .lore("§eClick to change duration")
+            .name(lang.legacy("menu.war_declaration.item.duration.name"))
+            .lore(lang.legacy("menu.war_declaration.item.duration.lore.current", "days" to selectedDuration.toDays()))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.duration.lore.available"))
+            .lore(lang.legacy("menu.war_declaration.item.duration.lore.quick"))
+            .lore(lang.legacy("menu.war_declaration.item.duration.lore.standard"))
+            .lore(lang.legacy("menu.war_declaration.item.duration.lore.extended"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.duration.lore.action"))
 
         val guiItem = GuiItem(durationItem) {
             cycleDuration()
@@ -244,21 +255,21 @@ class GuildWarDeclarationMenu(
 
         // Main wager display
         val wagerItem = ItemStack.of(Material.GOLD_INGOT)
-            .name("§6$ War Wager")
-            .lore("§7Current Wager: §6$wagerAmount coins")
-            .lore("§7Guild Bank: §6$guildBalance coins")
-            .lore("§7Max Wager: §6$maxWager coins §c(ALL IN!)")
-            .lore("§7")
-            .lore("§7The enemy guild must match your wager")
-            .lore("§7Winner takes the entire pot!")
-            .lore("§7")
+            .name(lang.legacy("menu.war_declaration.item.wager.name"))
+            .lore(lang.legacy("menu.war_declaration.item.wager.lore.current", "amount" to wagerAmount))
+            .lore(lang.legacy("menu.war_declaration.item.wager.lore.bank", "amount" to guildBalance))
+            .lore(lang.legacy("menu.war_declaration.item.wager.lore.maximum", "amount" to maxWager))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.wager.lore.match"))
+            .lore(lang.legacy("menu.war_declaration.item.wager.lore.winner"))
+            .lore(lang.legacy("menu.common.blank"))
             if (wagerAmount > 0) {
-                wagerItem.lore("§a✓ Pot: §6${wagerAmount * 2} coins §7(if matched)")
+                wagerItem.lore(lang.legacy("menu.war_declaration.item.wager.lore.pot", "amount" to wagerAmount * 2))
             } else {
-                wagerItem.lore("§7No wager set - war for honor only")
+                wagerItem.lore(lang.legacy("menu.war_declaration.item.wager.lore.none"))
             }
-            wagerItem.lore("§7")
-            wagerItem.lore("§eClick to adjust wager amount")
+            wagerItem.lore(lang.legacy("menu.common.blank"))
+            wagerItem.lore(lang.legacy("menu.war_declaration.item.wager.lore.action"))
 
         val guiItem = GuiItem(wagerItem) {
             cycleWagerAmount(maxWager)
@@ -270,19 +281,19 @@ class GuildWarDeclarationMenu(
         if (guildBalance > 0) {
             // Add 10% button
             val add10Percent = ItemStack.of(Material.GREEN_CONCRETE)
-                .name("§a➕ Add 10%")
-                .lore("§7Add 10% of guild bank")
-                .lore("§7Amount: §6${guildBalance / 10} coins")
+                .name(lang.legacy("menu.war_declaration.item.wager_add.ten.name"))
+                .lore(lang.legacy("menu.war_declaration.item.wager_add.ten.lore"))
+                .lore(lang.legacy("menu.war_declaration.item.wager_add.amount", "amount" to guildBalance / 10))
 
             val add10GuiItem = GuiItem(add10Percent) {
                 val amountToAdd = guildBalance / 10
                 if (amountToAdd > 0 && wagerAmount + amountToAdd <= guildBalance) {
                     wagerAmount += amountToAdd
-                    player.sendMessage("§a✅ Added §6$amountToAdd coins §ato wager")
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.wager_added", "amount" to amountToAdd))
                     player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f)
                     open() // Refresh menu
                 } else {
-                    player.sendMessage("§c❌ Insufficient funds or would exceed bank balance!")
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.insufficient_funds"))
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                 }
             }
@@ -290,19 +301,19 @@ class GuildWarDeclarationMenu(
 
             // Add 25% button
             val add25Percent = ItemStack.of(Material.BLUE_CONCRETE)
-                .name("§9➕ Add 25%")
-                .lore("§7Add 25% of guild bank")
-                .lore("§7Amount: §6${guildBalance / 4} coins")
+                .name(lang.legacy("menu.war_declaration.item.wager_add.twenty_five.name"))
+                .lore(lang.legacy("menu.war_declaration.item.wager_add.twenty_five.lore"))
+                .lore(lang.legacy("menu.war_declaration.item.wager_add.amount", "amount" to guildBalance / 4))
 
             val add25GuiItem = GuiItem(add25Percent) {
                 val amountToAdd = guildBalance / 4
                 if (amountToAdd > 0 && wagerAmount + amountToAdd <= guildBalance) {
                     wagerAmount += amountToAdd
-                    player.sendMessage("§a✅ Added §6$amountToAdd coins §ato wager")
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.wager_added", "amount" to amountToAdd))
                     player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f)
                     open() // Refresh menu
                 } else {
-                    player.sendMessage("§c❌ Insufficient funds or would exceed bank balance!")
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.insufficient_funds"))
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                 }
             }
@@ -310,20 +321,20 @@ class GuildWarDeclarationMenu(
 
             // Wager All button
             val wagerAllItem = ItemStack.of(Material.RED_CONCRETE)
-                .name("§c$ WAGER ALL")
-                .lore("§7Wager entire guild bank!")
-                .lore("§7Amount: §6$guildBalance coins")
-                .lore("§7")
-                .lore("§c⚠︎ HIGH RISK!")
+                .name(lang.legacy("menu.war_declaration.item.wager_all.name"))
+                .lore(lang.legacy("menu.war_declaration.item.wager_all.lore.description"))
+                .lore(lang.legacy("menu.war_declaration.item.wager_add.amount", "amount" to guildBalance))
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.war_declaration.item.wager_all.lore.warning"))
 
             val wagerAllGuiItem = GuiItem(wagerAllItem) {
                 if (guildBalance > 0) {
                     wagerAmount = guildBalance
-                    player.sendMessage("§c$ ALL IN! §6$guildBalance coins §cwagered!")
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.all_in", "amount" to guildBalance))
                     player.playSound(player.location, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f)
                     open() // Refresh menu
                 } else {
-                    player.sendMessage("§c❌ No funds available to wager!")
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.no_funds"))
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                 }
             }
@@ -333,25 +344,25 @@ class GuildWarDeclarationMenu(
             val enemyBalance = targetGuild?.let { bankService.getBalance(it.id) } ?: 0
             if (enemyBalance > 0) {
                 val wagerEnemyItem = ItemStack.of(Material.PURPLE_CONCRETE)
-                    .name("§5∩ MATCH ENEMY")
-                    .lore("§7Wager to match enemy bank!")
-                    .lore("§7Enemy Bank: §6$enemyBalance coins")
-                    .lore("§7You would wager: §6$enemyBalance coins")
-                    .lore("§7")
-                    .lore("§c⚠︎ Must have sufficient funds!")
+                    .name(lang.legacy("menu.war_declaration.item.match_enemy.name"))
+                    .lore(lang.legacy("menu.war_declaration.item.match_enemy.lore.description"))
+                    .lore(lang.legacy("menu.war_declaration.item.match_enemy.lore.bank", "amount" to enemyBalance))
+                    .lore(lang.legacy("menu.war_declaration.item.match_enemy.lore.wager", "amount" to enemyBalance))
+                    .lore(lang.legacy("menu.common.blank"))
+                    .lore(lang.legacy("menu.war_declaration.item.match_enemy.lore.warning"))
 
                 val wagerEnemyGuiItem = GuiItem(wagerEnemyItem) {
                     if (enemyBalance > 0 && guildBalance >= enemyBalance) {
                         wagerAmount = enemyBalance
-                        player.sendMessage("§5∩ MATCHING ENEMY! §6$enemyBalance coins §5wagered!")
+                        player.sendMessage(lang.msg("menu.war_declaration.feedback.matching_enemy", "amount" to enemyBalance))
                         player.playSound(player.location, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f)
                         open() // Refresh menu
                     } else if (enemyBalance > 0 && guildBalance < enemyBalance) {
-                        player.sendMessage("§c❌ Insufficient funds to match enemy wager!")
-                        player.sendMessage("§7Need: §6$enemyBalance coins, Have: §6$guildBalance coins")
+                        player.sendMessage(lang.msg("menu.war_declaration.feedback.match_insufficient"))
+                        player.sendMessage(lang.msg("menu.war_declaration.feedback.need_have", "need" to enemyBalance, "have" to guildBalance))
                         player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     } else {
-                        player.sendMessage("§c❌ Enemy guild has no funds to match!")
+                        player.sendMessage(lang.msg("menu.war_declaration.feedback.enemy_no_funds"))
                         player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     }
                 }
@@ -361,14 +372,14 @@ class GuildWarDeclarationMenu(
             // Remove wager button
             if (wagerAmount > 0) {
                 val removeWager = ItemStack.of(Material.GRAY_CONCRETE)
-                    .name("§7➖ Remove All")
-                    .lore("§7Remove entire wager")
-                    .lore("§7Current: §6$wagerAmount coins")
+                    .name(lang.legacy("menu.war_declaration.item.remove_wager.name"))
+                    .lore(lang.legacy("menu.war_declaration.item.remove_wager.lore.description"))
+                    .lore(lang.legacy("menu.war_declaration.item.remove_wager.lore.current", "amount" to wagerAmount))
 
                 val removeGuiItem = GuiItem(removeWager) {
                     val removedAmount = wagerAmount
                     wagerAmount = 0
-                    player.sendMessage("§7🗑 Removed §6$removedAmount coins §7from wager")
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.wager_removed", "amount" to removedAmount))
                     player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
                     open() // Refresh menu
                 }
@@ -383,33 +394,36 @@ class GuildWarDeclarationMenu(
             selectedObjectives.add(WarObjective(
                 type = ObjectiveType.KILLS,
                 targetValue = 10,
-                description = "Kill 10 enemy players"
+                description = lang.raw("menu.war_declaration.objective.default_description")
             ))
         }
 
         val objectivesItem = ItemStack.of(Material.DIAMOND_SWORD)
-            .name("§c⚔ War Objectives (${selectedObjectives.size})")
-            .lore("§7")
+            .name(lang.legacy("menu.war_declaration.item.objectives.name", "count" to selectedObjectives.size))
+            .lore(lang.legacy("menu.common.blank"))
 
         // List all selected objectives
         selectedObjectives.forEach { obj ->
             val icon = when (obj.type) {
-                ObjectiveType.KILLS -> "⚔"
-                ObjectiveType.TIME_SURVIVAL -> "⏱"
-                ObjectiveType.CLAIMS_CAPTURED -> "🏰"
-                else -> "▪"
+                ObjectiveType.KILLS -> lang.raw("menu.war_declaration.objective.icon.kills")
+                ObjectiveType.TIME_SURVIVAL -> lang.raw("menu.war_declaration.objective.icon.time")
+                ObjectiveType.CLAIMS_CAPTURED -> lang.raw("menu.war_declaration.objective.icon.claims")
+                else -> lang.raw("menu.war_declaration.objective.icon.other")
             }
-            val typeName = obj.type.name.split("_").joinToString(" ") {
-                it.lowercase().replaceFirstChar { char -> char.uppercase() }
+            val typeName = when (obj.type) {
+                ObjectiveType.KILLS -> lang.raw("menu.war_declaration.objective.type.kills")
+                ObjectiveType.TIME_SURVIVAL -> lang.raw("menu.war_declaration.objective.type.time")
+                ObjectiveType.CLAIMS_CAPTURED -> lang.raw("menu.war_declaration.objective.type.claims")
+                else -> lang.raw("menu.war_declaration.objective.type.other")
             }
-            objectivesItem.lore("§7$icon §f$typeName: §e${obj.targetValue}")
+            objectivesItem.lore(lang.legacy("menu.war_declaration.item.objectives.lore.row", "icon" to icon, "type" to typeName, "target" to obj.targetValue))
         }
 
         objectivesItem
-            .lore("§7")
-            .lore("§7First guild to complete any objective wins!")
-            .lore("§7")
-            .lore("§eClick to customize objectives")
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.objectives.lore.description"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.objectives.lore.action"))
 
         val guiItem = GuiItem(objectivesItem) {
             openObjectivesMenu()
@@ -419,16 +433,20 @@ class GuildWarDeclarationMenu(
 
     private fun addWarTermsSection(pane: StaticPane) {
         val termsItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name("§e§ War Terms")
-            .lore(if (warTerms != null) "§7Terms: §f$warTerms" else "§7No terms set")
-            .lore("§7")
-            .lore("§7Optional message to the defending guild")
-            .lore("§7explaining your reasons for war")
-            .lore("§7")
-            .lore("§eClick to set terms")
+            .name(lang.legacy("menu.war_declaration.item.terms.name"))
+            .lore(if (warTerms != null) {
+                lang.legacy("menu.war_declaration.item.terms.lore.current", "terms" to warTerms)
+            } else {
+                lang.legacy("menu.war_declaration.item.terms.lore.none")
+            })
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.terms.lore.description"))
+            .lore(lang.legacy("menu.war_declaration.item.terms.lore.reason"))
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.war_declaration.item.terms.lore.action"))
 
         val guiItem = GuiItem(termsItem) {
-            player.sendMessage("§e💬 Type your war terms in chat (or 'cancel' to skip):")
+            player.sendMessage(lang.msg("menu.war_declaration.feedback.terms_prompt"))
             inputMode = "war_terms"
             chatInputListener.startInputMode(player, this@GuildWarDeclarationMenu)
             player.closeInventory()
@@ -445,32 +463,32 @@ class GuildWarDeclarationMenu(
 
         val declareItem = if (canDeclare && !hasActiveWar) {
             ItemStack.of(Material.DIAMOND_SWORD)
-                .name("§4⚔ DECLARE WAR!")
-                .lore("§7Target: §f${target.name}")
-                .lore("§7Duration: §f${selectedDuration.toDays()} days")
-                .lore("§7Objectives: §f${selectedObjectives.size}")
+                .name(lang.legacy("menu.war_declaration.item.declare.name"))
+                .lore(lang.legacy("menu.war_declaration.item.declare.lore.target", "guild" to target.name))
+                .lore(lang.legacy("menu.war_declaration.item.declare.lore.duration", "days" to selectedDuration.toDays()))
+                .lore(lang.legacy("menu.war_declaration.item.declare.lore.objectives", "count" to selectedObjectives.size))
                 .lore(if (wagerAmount > 0) {
-                    "§7Wager: §6$wagerAmount coins"
+                    lang.legacy("menu.war_declaration.item.declare.lore.wager", "amount" to wagerAmount)
                 } else {
-                    "§7Wager: §7None (honor only)"
+                    lang.legacy("menu.war_declaration.item.declare.lore.no_wager")
                 })
-                .lore("§7")
-                .lore("§c⚠︎ This will notify all members")
-                .lore("§c⚠︎ of both guilds!")
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.war_declaration.item.declare.lore.notify_1"))
+                .lore(lang.legacy("menu.war_declaration.item.declare.lore.notify_2"))
                 .also { item ->
                     if (wagerAmount > 0) {
-                        item.lore("§c⚠︎ Funds will be held in escrow!")
+                        item.lore(lang.legacy("menu.war_declaration.item.declare.lore.escrow"))
                     }
                 }
-                .lore("§7")
-                .lore("§eClick to declare war!")
+                .lore(lang.legacy("menu.common.blank"))
+                .lore(lang.legacy("menu.war_declaration.item.declare.lore.action"))
         } else {
             ItemStack.of(Material.BARRIER)
-                .name("§c❌ Cannot Declare War")
+                .name(lang.legacy("menu.war_declaration.item.cannot_declare.name"))
                 .lore(when {
-                    !canDeclare -> "§cYour guild cannot declare war right now"
-                    hasActiveWar -> "§cAlready at war with this guild"
-                    else -> "§cUnknown restriction"
+                    !canDeclare -> lang.legacy("menu.war_declaration.item.cannot_declare.lore.guild_restricted")
+                    hasActiveWar -> lang.legacy("menu.war_declaration.item.cannot_declare.lore.active_war")
+                    else -> lang.legacy("menu.war_declaration.item.cannot_declare.lore.unknown")
                 })
         }
 
@@ -491,8 +509,8 @@ class GuildWarDeclarationMenu(
             // DUPLICATE PROTECTION: Check if war or declaration already exists
             val existingWar = warService.getCurrentWarBetweenGuilds(guild.id, target.id)
             if (existingWar != null) {
-                player.sendMessage("§c❌ Cannot declare war - you already have an active war with ${target.name}!")
-                player.sendMessage("§7End the current war before starting a new one.")
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.active_war", "guild" to target.name))
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.end_current_war"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                 return
             }
@@ -501,8 +519,8 @@ class GuildWarDeclarationMenu(
             val existingDeclarations = warService.getPendingDeclarationsForGuild(target.id)
                 .filter { it.declaringGuildId == guild.id }
             if (existingDeclarations.isNotEmpty()) {
-                player.sendMessage("§c❌ You already have a pending war declaration with ${target.name}!")
-                player.sendMessage("§7Wait for them to accept or reject your declaration.")
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.pending", "guild" to target.name))
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.await_decision"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                 return
             }
@@ -522,15 +540,15 @@ class GuildWarDeclarationMenu(
             )
 
             if (declaration != null) {
-                player.sendMessage("§6⚔ WAR DECLARATION SENT to ${target.name}!")
-                player.sendMessage("§7Duration: §f${selectedDuration.toDays()} days")
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.sent", "guild" to target.name))
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.duration", "days" to selectedDuration.toDays()))
                 if (selectedObjectives.isNotEmpty()) {
-                    player.sendMessage("§7Objectives: §f${selectedObjectives.size} set")
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.objectives", "count" to selectedObjectives.size))
                 }
                 if (wagerAmount > 0) {
-                    player.sendMessage("§7Wager: §6$wagerAmount coins §7(escrowed on acceptance)")
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.wager_escrow", "amount" to wagerAmount))
                 }
-                player.sendMessage("§7They must accept your declaration for war to begin.")
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.must_accept"))
                 player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
 
                 // Close menu and return to war management
@@ -541,13 +559,13 @@ class GuildWarDeclarationMenu(
                 notifyGuildOfWarDeclaration(declaration)
                 return
             } else {
-                player.sendMessage("§c❌ Failed to send war declaration!")
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.send_failed"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                 return
             }
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Error declaring war: ${e.message}")
+            player.sendMessage(lang.msg("menu.war_declaration.feedback.error", "error" to (e.message ?: lang.raw("general.unknown"))))
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         }
     }
@@ -624,8 +642,8 @@ class GuildWarDeclarationMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§c⬅ Back")
-            .lore("§7Return to war management")
+            .name(lang.legacy("menu.war_declaration.item.back.name"))
+            .lore(lang.legacy("menu.war_declaration.item.back.lore"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
@@ -648,8 +666,8 @@ class GuildWarDeclarationMenu(
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
                     // Send title
                     onlinePlayer.showTitle(net.kyori.adventure.title.Title.title(
-                        net.kyori.adventure.text.Component.text("§c⚠︎ WAR DECLARATION! ⚠︎"),
-                        net.kyori.adventure.text.Component.text("§7${declaringGuild.name} challenges you!"),
+                        lang.msg("menu.war_declaration.notification.title"),
+                        lang.msg("menu.war_declaration.notification.subtitle", "guild" to declaringGuild.name),
                         net.kyori.adventure.title.Title.Times.times(
                             java.time.Duration.ofMillis(500),
                             java.time.Duration.ofSeconds(4),
@@ -658,22 +676,22 @@ class GuildWarDeclarationMenu(
                     ))
 
                     // Send chat messages
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
-                    onlinePlayer.sendMessage("§c⚠︎ WAR DECLARATION RECEIVED! ⚠︎")
-                    onlinePlayer.sendMessage("§7From: §f${declaringGuild.name}")
-                    onlinePlayer.sendMessage("§7Duration: §f${declaration.proposedDuration.toDays()} days")
-                    onlinePlayer.sendMessage("§7Objectives: §f${declaration.objectives.size}")
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.divider"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.received"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.from", "guild" to declaringGuild.name))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.duration", "days" to declaration.proposedDuration.toDays()))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.objectives", "count" to declaration.objectives.size))
                     if (wagerAmount > 0) {
-                        onlinePlayer.sendMessage("§7Their Wager: §6$wagerAmount coins")
-                        onlinePlayer.sendMessage("§7You must match to accept!")
+                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.wager", "amount" to wagerAmount))
+                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.match"))
                     }
                     if (declaration.terms != null) {
-                        onlinePlayer.sendMessage("§7Terms: §f${declaration.terms}")
+                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.terms", "terms" to declaration.terms))
                     }
-                    onlinePlayer.sendMessage("§7Expires: §f${declaration.remainingTime.toHours()}h")
-                    onlinePlayer.sendMessage("")
-                    onlinePlayer.sendMessage("§eUse §f/guild war §eto respond!")
-                    onlinePlayer.sendMessage("§c═══════════════════════════════════")
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.expires", "hours" to declaration.remainingTime.toHours()))
+                    onlinePlayer.sendMessage(lang.msg("menu.common.blank"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.respond"))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.divider"))
 
                     // Play alert sound
                     onlinePlayer.playSound(onlinePlayer.location, org.bukkit.Sound.BLOCK_BELL_USE, 1.0f, 0.8f)
@@ -688,18 +706,18 @@ class GuildWarDeclarationMenu(
 
                 val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
                 if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    onlinePlayer.sendMessage("§6⚔ War declaration sent to ${defendingGuild.name}!")
-                    onlinePlayer.sendMessage("§7Duration: §f${declaration.proposedDuration.toDays()} days")
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.ally_sent", "guild" to defendingGuild.name))
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.duration", "days" to declaration.proposedDuration.toDays()))
                     if (wagerAmount > 0) {
-                        onlinePlayer.sendMessage("§7Wager: §6$wagerAmount coins")
+                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.ally_wager", "amount" to wagerAmount))
                     }
-                    onlinePlayer.sendMessage("§7Awaiting their response...")
+                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.awaiting"))
                 }
             }
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage("§c❌ Failed to notify defending guild of war declaration!")
+            player.sendMessage(lang.msg("menu.war_declaration.feedback.notify_failed"))
             println("Error notifying guild of war declaration: ${e.message}")
         }
     }
@@ -712,7 +730,7 @@ class GuildWarDeclarationMenu(
     override fun onChatInput(player: Player, input: String) {
         if (inputMode == "war_terms") {
             if (input.lowercase() == "cancel") {
-                player.sendMessage("§7War terms input cancelled")
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.terms_cancelled"))
                 inputMode = null
                 open() // Reopen menu
                 return
@@ -720,21 +738,21 @@ class GuildWarDeclarationMenu(
 
             // Validate terms length
             if (input.length > 200) {
-                player.sendMessage("§c❌ War terms too long! Maximum 200 characters.")
-                player.sendMessage("§7Please try again or type 'cancel' to skip:")
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.terms_too_long", "maximum" to 200))
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.terms_retry"))
                 return
             }
 
             warTerms = input
             inputMode = null
-            player.sendMessage("§a✅ War terms set: §f\"$input\"")
+            player.sendMessage(lang.msg("menu.war_declaration.feedback.terms_set", "terms" to input))
             open() // Reopen menu with updated terms
         }
     }
 
     override fun onCancel(player: Player) {
         if (inputMode == "war_terms") {
-            player.sendMessage("§7War terms input cancelled")
+            player.sendMessage(lang.msg("menu.war_declaration.feedback.terms_cancelled"))
             inputMode = null
             open() // Reopen menu
         }

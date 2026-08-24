@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -33,10 +34,11 @@ class AllyHomeAccessMenu(
     private val guildService: GuildService by inject()
     private val relationService: RelationService by inject()
     private val menuFactory: MenuFactory by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_HOME)) {
-            player.sendMessage("§c❌ You need MANAGE_HOME to configure ally-home access.")
+            player.sendMessage(lang.msg("menu.ally_home_access.permission_denied"))
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
             return
         }
@@ -51,7 +53,7 @@ class AllyHomeAccessMenu(
             }
         val allowed = current.allyHomeAllowedGuilds.toMutableSet()
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, "§6Ally-home Access"))
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.legacy("menu.ally_home_access.title")))
         val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick {
@@ -64,8 +66,11 @@ class AllyHomeAccessMenu(
             val col = idx % 9
             val on = allyId in allowed
             val item = ItemStack.of(if (on) Material.LIME_DYE else Material.GRAY_DYE)
-                .name(if (on) "§a✓ $allyName" else "§c✗ $allyName")
-                .lore("§7Click to toggle inbound access")
+                .name(
+                    if (on) lang.legacy("menu.ally_home_access.ally.allowed", "guild" to allyName)
+                    else lang.legacy("menu.ally_home_access.ally.denied", "guild" to allyName)
+                )
+                .lore(lang.legacy("menu.ally_home_access.ally.toggle"))
             pane.addItem(GuiItem(item) {
                 if (allyId in allowed) allowed.remove(allyId) else allowed.add(allyId)
                 guildService.setAllyHomeAllowedGuilds(guild.id, allowed.toSet(), player.uniqueId)
@@ -74,12 +79,12 @@ class AllyHomeAccessMenu(
         }
 
         val info = ItemStack.of(Material.BOOK)
-            .name("§eOutbound access (read-only)")
-            .lore("§7To control which of YOUR ranks can use ally homes,")
-            .lore("§7edit the §fUSE_ALLY_HOMES§7 permission in rank settings.")
+            .name(lang.legacy("menu.ally_home_access.info.name"))
+            .lore(lang.legacy("menu.ally_home_access.info.description"))
+            .lore(lang.legacy("menu.ally_home_access.info.instructions"))
         pane.addItem(GuiItem(info), 4, 3)
 
-        val backItem = ItemStack.of(Material.ARROW).name("§7← Back to Homes")
+        val backItem = ItemStack.of(Material.ARROW).name(lang.legacy("menu.ally_home_access.back"))
         pane.addItem(GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
         }, 8, 3)

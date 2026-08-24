@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -22,6 +23,7 @@ class BedrockDescriptionEditorMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildService: GuildService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val currentDescription = guildService.getDescription(guild.id) ?: ""
@@ -29,16 +31,16 @@ class BedrockDescriptionEditorMenu(
         val descIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.description.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.description_editor.title", "guild" to guild.name))
             .apply { descIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.description.instructions"))
+            .label(lang.raw("bedrock.description_editor.instructions"))
             .label(createCurrentDescriptionSection(currentDescription))
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.description.input.label"),
-                bedrockLocalization.getBedrockString(player, "guild.description.input.placeholder"),
+                lang.raw("bedrock.description_editor.input.label"),
+                lang.raw("bedrock.description_editor.input.placeholder"),
                 currentDescription
             )
-            .label(bedrockLocalization.getBedrockString(player, "guild.description.format.info"))
+            .label(lang.raw("bedrock.description_editor.format_info"))
             .validResultHandler { response ->
                 val newDescription = response.asInput(2) ?: ""  // Index 2 is the input field
                 handleDescriptionUpdate(newDescription)
@@ -51,12 +53,9 @@ class BedrockDescriptionEditorMenu(
 
     private fun createCurrentDescriptionSection(description: String): String {
         return if (description.isNotEmpty()) {
-            """
-            |${bedrockLocalization.getBedrockString(player, "guild.description.current")}:
-            |$description
-            """.trimMargin()
+            lang.legacy("bedrock.description_editor.current", "description" to description)
         } else {
-            bedrockLocalization.getBedrockString(player, "guild.description.none")
+            lang.raw("bedrock.description_editor.none")
         }
     }
 
@@ -66,7 +65,7 @@ class BedrockDescriptionEditorMenu(
         // Validate description
         val validationError = validateDescription(trimmedDescription)
         if (validationError != null) {
-            player.sendMessage("§c$validationError")
+            player.sendMessage(lang.msg("bedrock.description_editor.feedback.validation", "error" to validationError))
             bedrockNavigator.goBack()
             return
         }
@@ -74,10 +73,10 @@ class BedrockDescriptionEditorMenu(
         // Update description
         val success = guildService.setDescription(guild.id, trimmedDescription, player.uniqueId)
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.description.updated"))
+            player.sendMessage(lang.msg("bedrock.description_editor.feedback.updated"))
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.description.failed"))
+            player.sendMessage(lang.msg("bedrock.description_editor.feedback.failed"))
             bedrockNavigator.goBack()
         }
     }
@@ -88,13 +87,13 @@ class BedrockDescriptionEditorMenu(
         }
 
         if (description.length > 200) {
-            return bedrockLocalization.getBedrockString(player, "guild.description.too.long")
+            return lang.raw("bedrock.description_editor.validation.too_long")
         }
 
         // Check for inappropriate content (basic filter)
         val inappropriate = listOf("fuck", "shit", "damn", "bitch", "ass")
         if (inappropriate.any { description.lowercase().contains(it) }) {
-            return bedrockLocalization.getBedrockString(player, "guild.description.inappropriate")
+            return lang.raw("bedrock.description_editor.validation.inappropriate")
         }
 
         return null

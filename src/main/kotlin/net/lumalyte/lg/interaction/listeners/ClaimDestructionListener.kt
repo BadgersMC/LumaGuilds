@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.listeners
 
+import net.badgersmc.nexus.i18n.LangService
+
 import com.destroystokyo.paper.event.block.BlockDestroyEvent
 import net.lumalyte.lg.application.actions.claim.anchor.BreakClaimAnchor
 import net.lumalyte.lg.application.actions.claim.anchor.GetClaimAnchorAtPosition
@@ -7,8 +9,6 @@ import net.lumalyte.lg.application.actions.player.DoesPlayerHaveClaimOverride
 import net.lumalyte.lg.application.results.claim.anchor.BreakClaimAnchorResult
 import net.lumalyte.lg.application.results.claim.anchor.GetClaimAnchorAtPositionResult
 import net.lumalyte.lg.application.results.player.DoesPlayerHaveClaimOverrideResult
-import net.lumalyte.lg.domain.values.LocalizationKeys
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import org.bukkit.block.data.type.Bell
 import org.bukkit.event.EventHandler
@@ -39,7 +39,7 @@ import org.koin.core.component.inject
 import java.util.UUID
 
 class ClaimDestructionListener: Listener, KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val getClaimAnchorAtPosition: GetClaimAnchorAtPosition by inject()
     private val breakClaimAnchor: BreakClaimAnchor by inject()
     private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
@@ -62,10 +62,9 @@ class ClaimDestructionListener: Listener, KoinComponent {
         val playerId = event.player.uniqueId
         if (playerId != claim.playerId && !hasOverride) {
             val playerName = Bukkit.getOfflinePlayer(claim.playerId).name ?:
-                localizationProvider.get(playerId, LocalizationKeys.GENERAL_NAME_ERROR)
+                lang.legacy("general.name_error")
             event.player.sendActionBar(
-                Component.text(localizationProvider.get(
-                    playerId, LocalizationKeys.FEEDBACK_DESTRUCTION_PERMISSION, playerName))
+                lang.msg("feedback.destruction.permission", "owner" to playerName)
                     .color(TextColor.color(255, 85, 85)))
             event.isCancelled = true
             return
@@ -74,15 +73,17 @@ class ClaimDestructionListener: Listener, KoinComponent {
         when(val result = breakClaimAnchor.execute(event.block.world.uid, event.block.location.toPosition3D())) {
             is BreakClaimAnchorResult.ClaimBreaking -> {
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(playerId, LocalizationKeys.FEEDBACK_DESTRUCTION_PENDING,
-                        result.remainingBreaks, 10)).color(TextColor.color(255, 201, 14)))
+                    lang.msg(
+                        "feedback.destruction.pending",
+                        "remaining_breaks" to result.remainingBreaks,
+                        "seconds" to 10,
+                    ).color(TextColor.color(255, 201, 14)))
                 event.isCancelled = true
                 return
             }
             is BreakClaimAnchorResult.Success -> {
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(
-                        playerId, LocalizationKeys.FEEDBACK_DESTRUCTION_SUCCESS, claim.name))
+                    lang.msg("feedback.destruction.success", "claim" to claim.name)
                         .color(TextColor.color(85, 255, 85)))
             }
             else -> {}
@@ -111,8 +112,7 @@ class ClaimDestructionListener: Listener, KoinComponent {
     fun onClaimHubAttachedDestroy(event: BlockBreakEvent) {
         if (wouldBlockBreakBell(event.block)) {
             event.player.sendActionBar(
-                Component.text(localizationProvider.get(
-                    event.player.uniqueId, LocalizationKeys.FEEDBACK_DESTRUCTION_ATTACHED))
+                lang.msg("feedback.destruction.attached")
                     .color(TextColor.color(255, 85, 85)))
             event.isCancelled = true
             return
@@ -164,8 +164,7 @@ class ClaimDestructionListener: Listener, KoinComponent {
 
             val player = event.primingEntity as? Player ?: return
             player.sendActionBar(
-                Component.text(localizationProvider.get(
-                    player.uniqueId, LocalizationKeys.FEEDBACK_DESTRUCTION_ATTACHED))
+                lang.msg("feedback.destruction.attached")
                     .color(TextColor.color(255, 85, 85)))
         }
     }
@@ -175,8 +174,7 @@ class ClaimDestructionListener: Listener, KoinComponent {
         val block = event.clickedBlock ?: return
         if (wouldBlockBreakBell(block)) {
             event.player.sendActionBar(
-                Component.text(localizationProvider.get(
-                    event.player.uniqueId, LocalizationKeys.FEEDBACK_DESTRUCTION_ATTACHED))
+                lang.msg("feedback.destruction.attached")
                     .color(TextColor.color(255, 85, 85)))
             event.isCancelled = true
         }
@@ -187,8 +185,7 @@ class ClaimDestructionListener: Listener, KoinComponent {
             otherLocation.y = otherLocation.y + 1
             if (wouldBlockBreakBell(block.world.getBlockAt(otherLocation))) {
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(
-                        event.player.uniqueId, LocalizationKeys.FEEDBACK_DESTRUCTION_ATTACHED))
+                    lang.msg("feedback.destruction.attached")
                         .color(TextColor.color(255, 85, 85)))
                 event.isCancelled = true
             }
@@ -198,8 +195,7 @@ class ClaimDestructionListener: Listener, KoinComponent {
             otherLocation.y = otherLocation.y - 1
             if (wouldBlockBreakBell(block.world.getBlockAt(otherLocation))) {
                 event.player.sendActionBar(
-                    Component.text(localizationProvider.get(
-                        event.player.uniqueId, LocalizationKeys.FEEDBACK_DESTRUCTION_ATTACHED))
+                    lang.msg("feedback.destruction.attached")
                         .color(TextColor.color(255, 85, 85)))
                 event.isCancelled = true
             }

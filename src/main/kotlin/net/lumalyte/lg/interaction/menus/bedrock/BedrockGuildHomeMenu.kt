@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
@@ -31,6 +32,7 @@ class BedrockGuildHomeMenu(
     private val guildService: GuildService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val plugin: Plugin by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val homes = guildService.getHomes(guild.id)
@@ -38,25 +40,25 @@ class BedrockGuildHomeMenu(
         val availableSlots = maxHomes - homes.size
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.home.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.home.title", "guild" to guild.name))
             .content(buildHomeContent(maxHomes, availableSlots))
             .apply {
                 // Add existing homes
                 if (homes.hasHomes()) {
                     homes.homeNames.forEach { homeName ->
-                        button("$homeName (${bedrockLocalization.getBedrockString(player, "guild.home.teleport")})")
+                        button(lang.legacy("bedrock.home.button.teleport", "home" to homeName))
                     }
                 } else {
-                    button(bedrockLocalization.getBedrockString(player, "guild.home.no.homes"))
+                    button(lang.raw("bedrock.home.button.no_homes"))
                 }
 
                 // Add management options if user has permission
                 if (canManageHomes()) {
                     if (availableSlots > 0) {
-                        button(bedrockLocalization.getBedrockString(player, "guild.home.set.new"))
+                        button(lang.raw("bedrock.home.button.set_new"))
                     }
                     if (homes.hasHomes()) {
-                        button(bedrockLocalization.getBedrockString(player, "guild.home.remove"))
+                        button(lang.raw("bedrock.home.button.remove"))
                     }
                 }
             }
@@ -74,15 +76,11 @@ class BedrockGuildHomeMenu(
     }
 
     private fun buildHomeContent(maxHomes: Int, availableSlots: Int): String {
-        val slotsColor = if (availableSlots > 0) "§a" else "§c"
-
-        return """
-            |§7${bedrockLocalization.getBedrockString(player, "guild.home.description")}
-            |
-            |§6§l━━━ HOME SLOTS ━━━
-            |§b${bedrockLocalization.getBedrockString(player, "guild.home.max.homes")}§7: §f$maxHomes
-            |§e${bedrockLocalization.getBedrockString(player, "guild.home.available.slots")}§7: $slotsColor$availableSlots
-        """.trimMargin()
+        return if (availableSlots > 0) {
+            lang.legacy("bedrock.home.content.available", "maximum" to maxHomes, "available" to availableSlots)
+        } else {
+            lang.legacy("bedrock.home.content.full", "maximum" to maxHomes, "available" to availableSlots)
+        }
     }
 
     private fun canManageHomes(): Boolean {
@@ -102,7 +100,7 @@ class BedrockGuildHomeMenu(
             val home = homes.getHome(homeName)
             if (home != null) {
                 if (!guildService.canUseHome(player.uniqueId, guild.id, homeName)) {
-                    player.sendMessage("§c❌ You don't have permission to use the home '$homeName'.")
+                    player.sendMessage(lang.msg("bedrock.home.feedback.no_permission", "home" to homeName))
                     return
                 }
                 teleportToHome(home)
@@ -151,13 +149,13 @@ class BedrockGuildHomeMenu(
         try {
             val targetLocation = buildHomeLocation(home)
             if (targetLocation == null) {
-                player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.failed"))
+                player.sendMessage(lang.msg("bedrock.home.feedback.teleport_failed"))
             } else {
                 teleportationService.startTeleport(player, targetLocation)
             }
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Error teleporting to home", e)
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.teleport.failed"))
+            player.sendMessage(lang.msg("bedrock.home.feedback.teleport_failed"))
         }
         bedrockNavigator.goBack()
     }
@@ -192,9 +190,9 @@ class BedrockGuildHomeMenu(
             player.uniqueId,
         )
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.home.set"))
+            player.sendMessage(lang.msg("bedrock.home.feedback.set", "home" to homeName))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.set.failed"))
+            player.sendMessage(lang.msg("bedrock.home.feedback.set_failed"))
         }
 
         // Reopen menu to refresh
@@ -206,11 +204,11 @@ class BedrockGuildHomeMenu(
             return
         }
         val removeForm = SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.home.remove")} - ${guild.name}")
-            .content(bedrockLocalization.getBedrockString(player, "guild.home.description"))
+            .title(lang.legacy("bedrock.home.remove.title", "guild" to guild.name))
+            .content(lang.raw("bedrock.home.remove.description"))
             .apply {
                 homes.homeNames.forEach { homeName ->
-                    button("$homeName (${bedrockLocalization.getBedrockString(player, "guild.home.remove")})")
+                    button(lang.legacy("bedrock.home.remove.button", "home" to homeName))
                 }
             }
             .validResultHandler { response ->
@@ -242,9 +240,9 @@ class BedrockGuildHomeMenu(
     private fun removeHome(homeName: String) {
         val success = guildService.removeHome(guild.id, homeName, player.uniqueId)
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.home.removed"))
+            player.sendMessage(lang.msg("bedrock.home.feedback.removed", "home" to homeName))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.home.remove.failed"))
+            player.sendMessage(lang.msg("bedrock.home.feedback.remove_failed"))
         }
 
         // Reopen menu to refresh

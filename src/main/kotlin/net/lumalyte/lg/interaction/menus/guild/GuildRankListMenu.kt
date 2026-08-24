@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -27,18 +28,19 @@ class GuildRankListMenu(
 ) : Menu, KoinComponent {
 
     private val rankService: RankService by inject()
+    private val lang: LangService by inject()
 
     override fun open() {
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
         if (ranks.isEmpty()) {
-            player.sendMessage("§cThis guild has no ranks configured.")
+            player.sendMessage(lang.msg("menu.rank_list.feedback.empty"))
             menuNavigator.goBack()
             return
         }
 
         val rows = (ranks.size + 8) / 9 + 1 // 1 row for header nav
         val height = rows.coerceIn(3, 6)
-        val gui = ChestGui(height, "§6Ranks — ${guild.name}")
+        val gui = ChestGui(height, lang.legacy("menu.rank_list.title", "guild" to guild.name))
         val pane = StaticPane(0, 0, 9, height)
         gui.setOnTopClick { e -> e.isCancelled = true }
         gui.setOnBottomClick { e ->
@@ -55,8 +57,11 @@ class GuildRankListMenu(
             if (slot >= totalDataSlots) {
                 // Overflow: show overflow notice instead of remaining ranks
                 val omitted = ranks.size - displayed
-                val overflowItem = ItemStack.of(Material.PAPER)
-                    .name("§e... and $omitted more ${if (omitted == 1) "rank" else "ranks"}")
+                val overflowItem = ItemStack.of(Material.PAPER).name(if (omitted == 1) {
+                    lang.legacy("menu.rank_list.item.overflow.single")
+                } else {
+                    lang.legacy("menu.rank_list.item.overflow.multiple", "count" to omitted)
+                })
                 pane.addItem(GuiItem(overflowItem), 4, height - 2)
                 break
             }
@@ -65,8 +70,11 @@ class GuildRankListMenu(
             if (slot >= totalDataSlots) {
                 // Overflow after slot skip too
                 val omitted = ranks.size - displayed
-                val overflowItem = ItemStack.of(Material.PAPER)
-                    .name("§e... and $omitted more ${if (omitted == 1) "rank" else "ranks"}")
+                val overflowItem = ItemStack.of(Material.PAPER).name(if (omitted == 1) {
+                    lang.legacy("menu.rank_list.item.overflow.single")
+                } else {
+                    lang.legacy("menu.rank_list.item.overflow.multiple", "count" to omitted)
+                })
                 pane.addItem(GuiItem(overflowItem), 4, height - 2)
                 break
             }
@@ -79,18 +87,19 @@ class GuildRankListMenu(
 
             val permCount = rank.permissions.size
             val item = ItemStack.of(displayIcon)
-                .name("§e${rank.name}")
-                .lore("§7Priority: §f${rank.priority}")
-                .lore("§7Permissions: §f$permCount")
+                .name(lang.legacy("menu.rank_list.item.rank.name", "rank" to rank.name))
+                .lore(lang.legacy("menu.rank_list.item.rank.lore.priority", "priority" to rank.priority))
+                .lore(lang.legacy("menu.rank_list.item.rank.lore.permission_count", "permission_count" to permCount))
                 .lore("")
             if (permCount > 0) {
-                val perms = rank.permissions.take(8).joinToString("§7, §f") { it.name }
-                item.lore("§7Includes: §f$perms")
+                val perms = rank.permissions.take(8)
+                    .joinToString(lang.legacy("menu.rank_list.permission_separator")) { it.name }
+                item.lore(lang.legacy("menu.rank_list.item.rank.lore.includes", "permissions" to perms))
                 if (rank.permissions.size > 8) {
-                    item.lore("§7...and ${rank.permissions.size - 8} more")
+                    item.lore(lang.legacy("menu.rank_list.item.rank.lore.more", "count" to (rank.permissions.size - 8)))
                 }
             } else {
-                item.lore("§7No special permissions")
+                item.lore(lang.legacy("menu.rank_list.item.rank.lore.none"))
             }
             pane.addItem(GuiItem(item), slot % 9, slot / 9)
             displayed++
@@ -99,8 +108,8 @@ class GuildRankListMenu(
 
         // Back button in bottom-right
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§e⬅ BACK")
-            .lore("§7Return to rank management")
+            .name(lang.legacy("menu.rank_list.item.back.name"))
+            .lore(lang.legacy("menu.rank_list.item.back.lore"))
         pane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 8, height - 1)
 
         gui.show(player)

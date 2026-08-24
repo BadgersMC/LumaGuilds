@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.lumalyte.lg.utils.CombatUtil
 import org.bukkit.Bukkit
@@ -17,7 +18,10 @@ import kotlin.math.abs
  * Centralized service for guild home teleportation countdowns.
  * Single source of truth for command, Java menu, and Bedrock menu surfaces.
  */
-class TeleportationService(private val plugin: Plugin) {
+class TeleportationService(
+    private val plugin: Plugin,
+    private val lang: LangService,
+) {
 
     private val logger = LoggerFactory.getLogger(TeleportationService::class.java)
 
@@ -98,7 +102,7 @@ class TeleportationService(private val plugin: Plugin) {
         val playerId = player.uniqueId
         cancelTeleport(playerId)
         if (CombatUtil.isInCombat(player)) {
-            player.sendMessage("§e◷ Cannot teleport in combat.")
+            player.sendMessage(lang.msg("notification.teleport.in_combat"))
             return
         }
         val session = TeleportSession(player, targetLocation, player.location.clone(), onSuccess)
@@ -118,21 +122,25 @@ class TeleportationService(private val plugin: Plugin) {
 
     private fun announceCountdownStart(player: Player) {
         player.sendMessage(
-            "§e◷ Teleportation countdown started! Don't move for ${countdownSecondsPhrase(COUNTDOWN_SECONDS)}...",
+            lang.msg("notification.teleport.countdown_started", "duration" to countdownSecondsPhrase(COUNTDOWN_SECONDS)),
         )
         player.sendActionBar(LEGACY.deserialize(countdownActionBarLegacyString(COUNTDOWN_SECONDS)))
     }
 
     /** Chat phrase: "1 second" vs "N seconds" for countdown copy. */
     private fun countdownSecondsPhrase(seconds: Int): String =
-        if (seconds == 1) "1 second" else "$seconds seconds"
+        if (seconds == 1) {
+            lang.raw("notification.teleport.duration.one")
+        } else {
+            lang.legacy("notification.teleport.duration.many", "seconds" to seconds)
+        }
 
     /** Legacy-section action bar string for "N second(s)" remaining. */
     private fun countdownActionBarLegacyString(remaining: Int): String =
         if (remaining == 1) {
-            "§eTeleporting to guild home in §f1§e second..."
+            lang.legacy("notification.teleport.action_bar.one")
         } else {
-            "§eTeleporting to guild home in §f$remaining§e seconds..."
+            lang.legacy("notification.teleport.action_bar.many", "seconds" to remaining)
         }
 
     /** Per-tick (1s) countdown runnable; checks movement, decrements, triggers teleport at 0. */
@@ -147,7 +155,7 @@ class TeleportationService(private val plugin: Plugin) {
                 }
                 hasPlayerMoved(current) -> {
                     cancelTeleport(playerId)
-                    current.player.sendMessage("§c❌ Teleportation canceled - you moved!")
+                    current.player.sendMessage(lang.msg("notification.teleport.moved"))
                     cancel()
                 }
                 current.remainingSeconds <= 0 -> {
@@ -205,13 +213,13 @@ class TeleportationService(private val plugin: Plugin) {
 
     private fun onTeleportException(ctx: TeleportContext, throwable: Throwable) {
         logger.warn("Teleport threw for ${ctx.player.name} -> ${ctx.targetLocation}", throwable)
-        if (ctx.player.isOnline) ctx.player.sendMessage("§c❌ Teleport failed — an error occurred. Please show this to an admin.")
+        if (ctx.player.isOnline) ctx.player.sendMessage(lang.msg("notification.teleport.failed_with_error"))
     }
 
     private fun onTeleportSucceeded(ctx: TeleportContext) {
         if (ctx.player.isOnline) {
-            ctx.player.sendMessage("§a✅ Welcome to your guild home!")
-            ctx.player.sendActionBar(LEGACY.deserialize("§aTeleported to guild home!"))
+            ctx.player.sendMessage(lang.msg("notification.teleport.success"))
+            ctx.player.sendActionBar(lang.msg("notification.teleport.action_bar.success"))
         }
         ctx.onSuccess?.invoke()
     }
@@ -223,7 +231,7 @@ class TeleportationService(private val plugin: Plugin) {
                 "(likely cancelled by another plugin's PlayerTeleportEvent listener)",
             ctx.player.name, world, ctx.targetLocation.x, ctx.targetLocation.y, ctx.targetLocation.z,
         )
-        if (ctx.player.isOnline) ctx.player.sendMessage("§c❌ Teleport failed — please show this to an admin.")
+        if (ctx.player.isOnline) ctx.player.sendMessage(lang.msg("notification.teleport.failed"))
     }
 
     private fun hasPlayerMoved(session: TeleportSession): Boolean {

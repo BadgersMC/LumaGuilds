@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -22,22 +23,23 @@ class BedrockGuildEmojiMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildService: GuildService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val emojiIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.emoji.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.emoji.title", "guild" to guild.name))
             .apply { emojiIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.emoji.description"))
+            .label(lang.raw("bedrock.emoji.description"))
             .label(createCurrentEmojiSection())
             .input(
-                bedrockLocalization.getBedrockString(player, "guild.emoji.input.label"),
-                bedrockLocalization.getBedrockString(player, "guild.emoji.input.placeholder"),
+                lang.raw("bedrock.emoji.input.label"),
+                lang.raw("bedrock.emoji.input.placeholder"),
                 getCurrentEmojiName() ?: ""
             )
-            .label(bedrockLocalization.getBedrockString(player, "guild.emoji.format.info"))
+            .label(lang.raw("bedrock.emoji.format_info"))
             .label(createPreviewSection())
             .validResultHandler { response ->
                 handleFormResponse(response)
@@ -50,20 +52,13 @@ class BedrockGuildEmojiMenu(
 
     private fun createCurrentEmojiSection(): String {
         val currentEmoji = guildService.getEmoji(guild.id)
-        val displayEmoji = currentEmoji ?: bedrockLocalization.getBedrockString(player, "guild.emoji.not.set")
-
-        return """
-            |${bedrockLocalization.getBedrockString(player, "guild.emoji.current")}: $displayEmoji
-        """.trimMargin()
+        val displayEmoji = currentEmoji ?: lang.raw("bedrock.emoji.not_set")
+        return lang.legacy("bedrock.emoji.current", "emoji" to displayEmoji)
     }
 
     private fun createPreviewSection(): String {
-        val previewEmoji = getCurrentEmojiName()?.let { ":$it:" } ?: bedrockLocalization.getBedrockString(player, "guild.emoji.not.set")
-
-        return """
-            |${bedrockLocalization.getBedrockString(player, "guild.emoji.preview")}
-            |${bedrockLocalization.getBedrockString(player, "guild.emoji.chat.preview")}: [${player.name}] $previewEmoji Hello!
-        """.trimMargin()
+        val previewEmoji = getCurrentEmojiName()?.let { ":$it:" } ?: lang.raw("bedrock.emoji.not_set")
+        return lang.legacy("bedrock.emoji.preview", "player" to player.name, "emoji" to previewEmoji)
     }
 
     private fun getCurrentEmojiName(): String? {
@@ -96,14 +91,14 @@ class BedrockGuildEmojiMenu(
                 }
                 else -> {
                     // Show validation error and reopen menu
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.save.failed"))
+                    player.sendMessage(lang.msg("bedrock.emoji.feedback.save_failed"))
                     bedrockNavigator.openMenu(BedrockGuildEmojiMenu(menuNavigator, player, guild, logger))
                 }
             }
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error handling emoji form response: ${e.message}")
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.save.failed"))
+            player.sendMessage(lang.msg("bedrock.emoji.feedback.save_failed"))
             bedrockNavigator.goBack()
         }
     }
@@ -114,13 +109,13 @@ class BedrockGuildEmojiMenu(
 
         // Check length (reasonable limit for emoji names)
         if (emojiName.length > 20) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.validation.too.long"))
+            player.sendMessage(lang.msg("bedrock.emoji.feedback.too_long"))
             return false
         }
 
         // Check for basic format issues
         if (!emojiName.matches(Regex("^[a-zA-Z0-9_-]+$"))) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.validation.invalid.chars"))
+            player.sendMessage(lang.msg("bedrock.emoji.feedback.invalid_characters"))
             return false
         }
 
@@ -132,10 +127,10 @@ class BedrockGuildEmojiMenu(
 
         val success = guildService.setEmoji(guild.id, emojiFormat, player.uniqueId)
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.save.success"))
-            player.sendMessage("New emoji: $emojiFormat")
+            player.sendMessage(lang.msg("bedrock.emoji.feedback.saved"))
+            player.sendMessage(lang.msg("bedrock.emoji.feedback.new_emoji", "emoji" to emojiFormat))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.save.failed"))
+            player.sendMessage(lang.msg("bedrock.emoji.feedback.save_failed"))
         }
 
         bedrockNavigator.goBack()
@@ -144,9 +139,9 @@ class BedrockGuildEmojiMenu(
     private fun clearEmoji() {
         val success = guildService.setEmoji(guild.id, null, player.uniqueId)
         if (success) {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.clear.success"))
+            player.sendMessage(lang.msg("bedrock.emoji.feedback.cleared"))
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.emoji.clear.failed"))
+            player.sendMessage(lang.msg("bedrock.emoji.feedback.clear_failed"))
         }
 
         bedrockNavigator.goBack()

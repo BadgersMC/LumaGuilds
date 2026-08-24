@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.badgersmc.nexus.i18n.LangService
+
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -10,7 +12,6 @@ import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.BankStats
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.TransactionType
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
@@ -37,7 +38,7 @@ class GuildBankStatisticsMenu(
 ) : Menu, KoinComponent {
 
     private val bankService: BankService by inject()
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
 
@@ -87,7 +88,7 @@ class GuildBankStatisticsMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString(LocalizationKeys.MENU_BANK_STATS_TITLE, guild.name)))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedString("menu.bank.stats.title")))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane
@@ -119,8 +120,8 @@ class GuildBankStatisticsMenu(
         // Back to bank button
         val backItem = createMenuItem(
             Material.ARROW,
-            getLocalizedString(LocalizationKeys.MENU_BANK_BACK_TO_CONTROL_PANEL),
-            listOf("Return to guild bank")
+            getLocalizedString("menu.bank.back_to_control_panel"),
+            listOf(lang.raw("menu.bank.history.navigation.back_description"))
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
@@ -131,8 +132,8 @@ class GuildBankStatisticsMenu(
         // Back to history button
         val historyItem = createMenuItem(
             Material.BOOK,
-            "Transaction History",
-            listOf("View detailed transaction history")
+            lang.raw("menu.bank.stats.navigation.history_name"),
+            listOf(lang.raw("menu.bank.stats.navigation.history_description"))
         )
         val historyGuiItem = GuiItem(historyItem) { event ->
             event.isCancelled = true
@@ -143,26 +144,26 @@ class GuildBankStatisticsMenu(
         // Refresh button
         val refreshItem = createMenuItem(
             Material.CLOCK,
-            "Refresh Data",
-            listOf("Update statistics with latest data")
+            lang.raw("menu.bank.stats.refresh.data"),
+            listOf(lang.raw("menu.bank.stats.navigation.refresh_description"))
         )
         val refreshGuiItem = GuiItem(refreshItem) { event ->
             event.isCancelled = true
             loadAnalyticsData()
             updateAnalyticsDisplay()
             gui.update()
-            player.sendMessage("§aStatistics refreshed!")
+            player.sendMessage(lang.msg("menu.bank.stats.feedback.refreshed"))
         }
         mainPane.addItem(refreshGuiItem, 7, 0)
 
         // Security & Audit button
         val securityItem = createMenuItem(
             Material.SHIELD,
-            "Security & Audit",
+            lang.raw("menu.bank.stats.navigation.security_name"),
             listOf(
-                "Fraud detection and security monitoring",
-                "Dual authorization settings",
-                "Emergency transaction controls"
+                lang.raw("menu.bank.stats.navigation.security_fraud"),
+                lang.raw("menu.bank.stats.navigation.security_authorization"),
+                lang.raw("menu.bank.stats.navigation.security_emergency")
             )
         )
         val securityGuiItem = GuiItem(securityItem) { event ->
@@ -174,11 +175,11 @@ class GuildBankStatisticsMenu(
         // Automation & Rewards button
         val automationItem = createMenuItem(
             Material.REDSTONE,
-            "Automation & Rewards",
+            lang.raw("menu.bank.navigation.automation_name"),
             listOf(
-                "Scheduled tasks and automated processes",
-                "Auto-reward distribution system",
-                "Budget alerts and recurring payments"
+                lang.raw("menu.bank.stats.navigation.automation_tasks"),
+                lang.raw("menu.bank.stats.navigation.automation_rewards"),
+                lang.raw("menu.bank.stats.navigation.automation_alerts")
             )
         )
         val automationGuiItem = GuiItem(automationItem) { event ->
@@ -190,8 +191,8 @@ class GuildBankStatisticsMenu(
         // Close button
         val closeItem = createMenuItem(
             Material.BARRIER,
-            getLocalizedString(LocalizationKeys.MENU_BANK_CLOSE),
-            listOf("Close menu")
+            getLocalizedString("menu.bank.close"),
+            listOf(lang.raw("menu.common.close_description"))
         )
         val closeGuiItem = GuiItem(closeItem) { event ->
             event.isCancelled = true
@@ -207,11 +208,11 @@ class GuildBankStatisticsMenu(
         // Current balance
         val balanceItem = createMenuItem(
             Material.EMERALD_BLOCK,
-            "Current Balance",
+            lang.raw("menu.bank.balance.title"),
             listOf(
-                "${bankStats.currentBalance} coins",
-                "Total Transactions: ${bankStats.totalTransactions}",
-                "Transaction Volume: ${bankStats.transactionVolume} coins"
+                lang.legacy("menu.bank.stats.overview.balance", "amount" to bankStats.currentBalance),
+                lang.legacy("menu.bank.stats.overview.total_transactions", "count" to bankStats.totalTransactions),
+                lang.legacy("menu.bank.stats.overview.transaction_volume", "amount" to bankStats.transactionVolume)
             )
         )
         overviewPane.addItem(GuiItem(balanceItem), 0, 0)
@@ -223,11 +224,11 @@ class GuildBankStatisticsMenu(
 
         val netFlowItem = createMenuItem(
             if (netFlow >= 0) Material.LIME_WOOL else Material.RED_WOOL,
-            "Net Cash Flow",
+            lang.raw("menu.bank.stats.overview.net_flow_name"),
             listOf(
-                "${if (netFlow >= 0) "+" else ""}${netFlow} coins",
-                "Deposits: +${deposits} coins",
-                "Withdrawals: -${withdrawals} coins"
+                if (netFlow >= 0) lang.legacy("menu.bank.stats.overview.net_flow_positive", "amount" to netFlow) else lang.legacy("menu.bank.stats.overview.net_flow_negative", "amount" to netFlow),
+                lang.legacy("menu.bank.stats.overview.deposits", "amount" to deposits),
+                lang.legacy("menu.bank.stats.overview.withdrawals", "amount" to withdrawals)
             )
         )
         overviewPane.addItem(GuiItem(netFlowItem), 1, 0)
@@ -236,11 +237,11 @@ class GuildBankStatisticsMenu(
         val activityLevel = calculateActivityLevel()
         val activityItem = createMenuItem(
             Material.COMPASS,
-            "Activity Level",
+            lang.raw("menu.bank.stats.overview.activity_name"),
             listOf(
                 activityLevel,
-                "Based on transaction frequency",
-                "Last 30 days"
+                lang.raw("menu.bank.stats.overview.activity_basis"),
+                lang.raw("menu.bank.stats.overview.activity_period")
             )
         )
         overviewPane.addItem(GuiItem(activityItem), 2, 0)
@@ -252,10 +253,10 @@ class GuildBankStatisticsMenu(
 
         val avgItem = createMenuItem(
             Material.COMPARATOR,
-            "Average Transaction",
+            lang.raw("menu.bank.stats.overview.average_name"),
             listOf(
-                "${avgTransaction} coins",
-                "Across all ${bankStats.totalTransactions} transactions"
+                lang.legacy("menu.bank.stats.overview.average_amount", "amount" to avgTransaction),
+                lang.legacy("menu.bank.stats.overview.average_count", "count" to bankStats.totalTransactions)
             )
         )
         overviewPane.addItem(GuiItem(avgItem), 3, 0)
@@ -264,15 +265,15 @@ class GuildBankStatisticsMenu(
         val topContributor = memberContributions.maxByOrNull { it.value }
         val topItem = createMenuItem(
             Material.PLAYER_HEAD,
-            "Top Contributor",
+            lang.raw("menu.bank.stats.contributor.top"),
             if (topContributor != null) {
                 listOf(
                     topContributor.key,
-                    "${topContributor.value} coins contributed",
-                    "Most active member"
+                    lang.legacy("menu.bank.stats.member.contributed", "amount" to topContributor.value),
+                    lang.raw("menu.bank.stats.overview.most_active")
                 )
             } else {
-                listOf("No contributions yet")
+                listOf(lang.raw("menu.bank.stats.overview.no_contributions"))
             }
         )
         overviewPane.addItem(GuiItem(topItem), 4, 0)
@@ -280,8 +281,9 @@ class GuildBankStatisticsMenu(
         // Recent activity summary — clicking navigates to full transaction history
         val recentItem = createMenuItem(
             Material.WRITABLE_BOOK,
-            "Recent Activity",
-            recentActivity.take(3).map { "• $it" } + listOf("", "Click to view full history")
+            lang.raw("menu.bank.stats.activity.recent"),
+            recentActivity.take(3).map { lang.legacy("menu.bank.stats.overview.recent_activity_row", "activity" to it) } +
+                listOf(lang.raw("menu.common.blank"), lang.raw("menu.bank.history.open_action"))
         )
         val recentGuiItem = GuiItem(recentItem) { event ->
             event.isCancelled = true
@@ -298,11 +300,11 @@ class GuildBankStatisticsMenu(
         val weeklyTrend = spendingTrends["weekly"] ?: 0.0
         val weeklyItem = createMenuItem(
             if (weeklyTrend >= 0) Material.GREEN_WOOL else Material.RED_WOOL,
-            "Weekly Trend",
+            lang.raw("menu.bank.stats.trend.weekly"),
             listOf(
-                "${if (weeklyTrend >= 0) "+" else ""}${String.format("%.1f", weeklyTrend)}% change",
-                "Compared to previous week",
-                "Based on transaction volume"
+                lang.legacy("menu.bank.stats.trends.weekly_change", "change" to signedDecimal(weeklyTrend)),
+                lang.raw("menu.bank.stats.trends.weekly_comparison"),
+                lang.raw("menu.bank.stats.trends.volume_basis")
             )
         )
         trendsPane.addItem(GuiItem(weeklyItem), 0, 0)
@@ -311,11 +313,11 @@ class GuildBankStatisticsMenu(
         val monthlyTrend = spendingTrends["monthly"] ?: 0.0
         val monthlyItem = createMenuItem(
             if (monthlyTrend >= 0) Material.BLUE_WOOL else Material.ORANGE_WOOL,
-            "Monthly Growth",
+            lang.raw("menu.bank.stats.trend.monthly"),
             listOf(
-                "${if (monthlyTrend >= 0) "+" else ""}${String.format("%.1f", monthlyTrend)}% growth",
-                "30-day transaction analysis",
-                "Activity trend indicator"
+                lang.legacy("menu.bank.stats.trends.monthly_growth", "growth" to signedDecimal(monthlyTrend)),
+                lang.raw("menu.bank.stats.trends.monthly_analysis"),
+                lang.raw("menu.bank.stats.trends.activity_indicator")
             )
         )
         trendsPane.addItem(GuiItem(monthlyItem), 1, 0)
@@ -324,11 +326,11 @@ class GuildBankStatisticsMenu(
         val peakDay = spendingTrends["peak_day"] ?: 0.0
         val peakItem = createMenuItem(
             Material.CLOCK,
-            "Peak Activity",
+            lang.raw("menu.bank.stats.trend.peak"),
             listOf(
-                "${peakDay.toInt()} transactions/day average",
-                "Most active period",
-                "Guild activity indicator"
+                lang.legacy("menu.bank.stats.trends.peak_average", "count" to peakDay.toInt()),
+                lang.raw("menu.bank.stats.trends.peak_period"),
+                lang.raw("menu.bank.stats.trends.guild_indicator")
             )
         )
         trendsPane.addItem(GuiItem(peakItem), 2, 0)
@@ -336,11 +338,11 @@ class GuildBankStatisticsMenu(
         // Budget management
         val budgetItem = createMenuItem(
             Material.GOLD_INGOT,
-            getLocalizedString(LocalizationKeys.MENU_BANK_STATS_BUDGET_STATUS),
+            getLocalizedString("menu.bank.stats.budget.status"),
             listOf(
-                "Manage spending limits and alerts",
-                "Set monthly, weekly, and daily budgets",
-                "Track budget usage and get alerts"
+                lang.raw("menu.bank.stats.budget.manage"),
+                lang.raw("menu.bank.stats.budget.periods"),
+                lang.raw("menu.bank.stats.budget.tracking")
             )
         )
         val budgetGuiItem = GuiItem(budgetItem) { event ->
@@ -372,8 +374,8 @@ class GuildBankStatisticsMenu(
                     Material.PLAYER_HEAD,
                     "$rank $memberName",
                     listOf(
-                        "${amount} coins contributed",
-                        "Active guild member"
+                        lang.legacy("menu.bank.stats.member.contributed", "amount" to amount),
+                        lang.raw("menu.bank.stats.member.active")
                     )
                 )
                 memberPane.addItem(GuiItem(contributorItem), index, 0)
@@ -394,12 +396,12 @@ class GuildBankStatisticsMenu(
 
         val summaryItem = createMenuItem(
             Material.BOOK,
-            "Member Summary",
+            lang.raw("menu.bank.stats.member.summary"),
             listOf(
-                "Total Members: $totalMembers",
-                "Active Contributors: $activeContributors",
-                "Inactive: $inactiveMembers",
-                "$participationRate% participation rate"
+                lang.legacy("menu.bank.stats.member.total", "count" to totalMembers),
+                lang.legacy("menu.bank.stats.member.active_count", "count" to activeContributors),
+                lang.legacy("menu.bank.stats.member.inactive_count", "count" to inactiveMembers),
+                lang.legacy("menu.bank.stats.member.participation", "rate" to participationRate)
             )
         )
         memberPane.addItem(GuiItem(summaryItem), 6, 0)
@@ -407,16 +409,16 @@ class GuildBankStatisticsMenu(
         // Tax collection info
         val taxItem = createMenuItem(
             Material.IRON_INGOT,
-            "Tax Collection",
+            lang.raw("menu.bank.stats.tax.collection"),
             listOf(
-                "Automatic tax system — coming soon",
-                "Collect maintenance fees from members",
-                "Fund guild projects automatically"
+                lang.raw("menu.bank.stats.tax.unavailable"),
+                lang.raw("menu.bank.stats.tax.maintenance"),
+                lang.raw("menu.bank.stats.tax.projects")
             )
         )
         val taxGuiItem = GuiItem(taxItem) { event ->
             event.isCancelled = true
-            player.sendMessage("§eTax Collection is not yet available — coming in a future update!")
+            player.sendMessage(lang.msg("menu.bank.stats.tax.feedback"))
         }
         memberPane.addItem(taxGuiItem, 7, 0)
     }
@@ -484,7 +486,7 @@ class GuildBankStatisticsMenu(
             .filter { it.type == TransactionType.DEPOSIT }
             .groupBy {
                 val player = Bukkit.getOfflinePlayer(it.actorId)
-                player.name ?: "Unknown"
+                player.name ?: lang.raw("menu.bank.history.value.unknown")
             }
             .mapValues { (_, transactions) ->
                 transactions.sumOf { it.amount }
@@ -498,14 +500,14 @@ class GuildBankStatisticsMenu(
         val transactions = bankService.getTransactionHistory(guild.id, 10)
 
         return transactions.map { transaction ->
-            val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: "Unknown"
+            val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: lang.raw("menu.bank.history.value.unknown")
             val action = when (transaction.type) {
-                TransactionType.DEPOSIT -> "deposited ${transaction.amount}"
-                TransactionType.WITHDRAWAL -> "withdrew ${transaction.amount}"
-                TransactionType.FEE -> "paid ${transaction.amount} fee"
-                TransactionType.DEDUCTION -> "deducted ${transaction.amount}"
+                TransactionType.DEPOSIT -> lang.legacy("menu.bank.stats.activity.deposited", "amount" to transaction.amount)
+                TransactionType.WITHDRAWAL -> lang.legacy("menu.bank.stats.activity.withdrew", "amount" to transaction.amount)
+                TransactionType.FEE -> lang.legacy("menu.bank.stats.activity.paid_fee", "amount" to transaction.amount)
+                TransactionType.DEDUCTION -> lang.legacy("menu.bank.stats.activity.deducted", "amount" to transaction.amount)
             }
-            "$actorName $action"
+            lang.legacy("menu.bank.stats.activity.row", "player" to actorName, "action" to action)
         }
     }
 
@@ -521,13 +523,16 @@ class GuildBankStatisticsMenu(
         val transactionsPerDay = recentTransactions.size / 30.0
 
         return when {
-            transactionsPerDay >= 5 -> "Very High Activity"
-            transactionsPerDay >= 2 -> "High Activity"
-            transactionsPerDay >= 0.5 -> "Moderate Activity"
-            transactionsPerDay > 0 -> "Low Activity"
-            else -> "No Recent Activity"
+            transactionsPerDay >= 5 -> lang.raw("menu.bank.stats.activity.very_high")
+            transactionsPerDay >= 2 -> lang.raw("menu.bank.stats.activity.high")
+            transactionsPerDay >= 0.5 -> lang.raw("menu.bank.stats.activity.moderate")
+            transactionsPerDay > 0 -> lang.raw("menu.bank.stats.activity.low")
+            else -> lang.raw("menu.bank.stats.activity.none")
         }
     }
+
+    private fun signedDecimal(value: Double): String =
+        (if (value >= 0) "+" else "") + String.format("%.1f", value)
 
     /**
      * Create a menu item with consistent formatting
@@ -556,8 +561,8 @@ class GuildBankStatisticsMenu(
     /**
      * Get localized string with optional parameters
      */
-    private fun getLocalizedString(key: String, vararg params: Any?): String {
-        return localizationProvider.get(player.uniqueId, key, *params)
+    private fun getLocalizedString(key: String): String {
+        return lang.legacy(key)
     }
 }
 

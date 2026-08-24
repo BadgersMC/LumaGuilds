@@ -4,6 +4,7 @@ import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Default
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PenaltyService
 import net.lumalyte.lg.domain.values.ChatChannelIds
@@ -21,6 +22,7 @@ import org.koin.core.component.inject
  */
 @CommandAlias("gc")
 internal class QuickGuildChatCommand : BaseCommand(), KoinComponent {
+    private val lang: LangService by inject()
     private val guildService: GuildService by inject()
     private val penaltyService: PenaltyService by inject()
 
@@ -28,22 +30,22 @@ internal class QuickGuildChatCommand : BaseCommand(), KoinComponent {
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onDefault(player: Player) {
-        if (!player.requireGuildMembership(guildService)) return
-        player.sendMessage("§2=== Quick Guild Chat ===")
-        player.sendMessage("§7Use §f/gc <message> §7to send a single message to guild chat.")
-        player.sendMessage("§7Your chat channel won't change — you stay in your current chat.")
-        player.sendMessage("§7To toggle permanent guild chat mode, use §f/g chat§7.")
+        if (!player.requireGuildMembership(guildService, lang)) return
+        player.sendMessage(lang.msg("command.migrated.quick_guild_chat.default.quick_guild_chat"))
+        player.sendMessage(lang.msg("command.migrated.quick_guild_chat.default.use_gc_message_to_send_a_single"))
+        player.sendMessage(lang.msg("command.migrated.quick_ally_chat.default.your_chat_channel_won_t_change_you"))
+        player.sendMessage(lang.msg("command.migrated.quick_guild_chat.default.to_toggle_permanent_guild_chat_mode_use"))
     }
 
     /** Sends a one-shot message to the RoseChat guild channel via quickChat. */
     @Default
     @CommandPermission("lumaguilds.guild.chat")
     fun onMessage(player: Player, vararg message: String) {
-        if (!player.requireGuildMembership(guildService)) return
+        if (!player.requireGuildMembership(guildService, lang)) return
 
         val guildId = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()?.id
         if (guildId != null && penaltyService.isGuildMuted(guildId)) {
-            player.sendMessage("§c❌ Your guild is muted — guild chat is disabled until the mute expires.")
+            player.sendMessage(lang.msg("command.migrated.quick_guild_chat.message.your_guild_is_muted_guild_chat_is"))
             return
         }
 
@@ -51,9 +53,9 @@ internal class QuickGuildChatCommand : BaseCommand(), KoinComponent {
         when (RoseChatQuickChat.send(player, ChatChannelIds.GUILD, text)) {
             RoseChatQuickChat.Result.Dispatched -> {} // routed via RoseChat — no echo needed
             RoseChatQuickChat.Result.EmptyMessage ->
-                player.sendMessage("§c❌ Message cannot be empty.")
+                player.sendMessage(lang.msg("command.migrated.quick_ally_chat.message.message_cannot_be_empty"))
             RoseChatQuickChat.Result.ChannelMissing ->
-                player.sendMessage("§c❌ Guild channel is not configured in RoseChat.")
+                player.sendMessage(lang.msg("command.migrated.quick_guild_chat.message.guild_channel_is_not_configured_in_rosechat"))
         }
     }
 }

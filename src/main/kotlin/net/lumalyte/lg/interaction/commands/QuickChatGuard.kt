@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -7,10 +9,10 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import org.bukkit.entity.Player
 import java.util.UUID
 
-internal fun Player.requireGuildMembership(guildService: GuildService): Boolean {
+internal fun Player.requireGuildMembership(guildService: GuildService, lang: LangService): Boolean {
     val guilds = guildService.getPlayerGuilds(uniqueId)
     return if (guilds.isEmpty()) {
-        sendMessage("§c❌ You are not in a guild!")
+        sendMessage(lang.msg("guild.not_member"))
         false
     } else {
         true
@@ -21,13 +23,15 @@ internal fun Player.requireGuildPermission(
     guildService: GuildService,
     memberService: MemberService,
     permission: RankPermission,
-    noPermissionMessage: String,
+    noPermissionMessage: Component,
+    lang: LangService,
 ): Boolean {
     return requireGuildForPermission(
         guildService,
         memberService,
         permission,
         noPermissionMessage,
+        lang,
     ) != null
 }
 
@@ -35,11 +39,12 @@ internal fun Player.requireGuildForPermission(
     guildService: GuildService,
     memberService: MemberService,
     permission: RankPermission,
-    noPermissionMessage: String,
+    noPermissionMessage: Component,
+    lang: LangService,
 ): Guild? {
     val guilds = guildService.getPlayerGuilds(uniqueId)
     return if (guilds.isEmpty()) {
-        sendMessage("§c❌ You are not in a guild!")
+        sendMessage(lang.msg("guild.not_member"))
         null
     } else {
         val authorizedGuild =

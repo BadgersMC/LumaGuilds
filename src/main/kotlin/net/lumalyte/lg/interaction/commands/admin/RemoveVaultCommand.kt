@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.commands.admin
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.GuildVaultService
 import net.lumalyte.lg.application.services.VaultResult
@@ -8,6 +9,8 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.slf4j.LoggerFactory
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Admin command to forcibly remove a guild's vault.
@@ -17,8 +20,9 @@ import org.slf4j.LoggerFactory
 class RemoveVaultCommand(
     private val guildService: GuildService,
     private val vaultService: GuildVaultService
-) : CommandExecutor, TabCompleter {
+) : CommandExecutor, TabCompleter, KoinComponent {
 
+    private val lang: LangService by inject()
     private val logger = LoggerFactory.getLogger(RemoveVaultCommand::class.java)
 
     override fun onCommand(
@@ -28,13 +32,13 @@ class RemoveVaultCommand(
         args: Array<out String>
     ): Boolean {
         if (!sender.hasPermission("lumaguilds.admin.vault.remove")) {
-            sender.sendMessage("§cYou don't have permission to use this command")
+            sender.sendMessage(lang.msg("admin.common.no_permission"))
             return true
         }
 
         if (args.isEmpty()) {
-            sender.sendMessage("§cUsage: /removevault <guildName> [dropItems]")
-            sender.sendMessage("§7dropItems: true/false (default: true)")
+            sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.usage_removevault_guildname_dropitems"))
+            sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.dropitems_true_false_default_true"))
             return true
         }
 
@@ -48,36 +52,36 @@ class RemoveVaultCommand(
         // Find guild (resolve handles exact, case-insensitive, and stripped names)
         val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
         if (guild == null) {
-            sender.sendMessage("§cGuild '$guildName' not found")
+            sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.guild_not_found", "guild" to guildName))
             return true
         }
 
         // Check if guild has a vault
         if (guild.vaultChestLocation == null) {
-            sender.sendMessage("§cGuild '${guild.name}' does not have a vault")
+            sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.guild_does_not_have_a_vault", "guild" to guild.name))
             return true
         }
 
-        sender.sendMessage("§e⚠ Removing vault for guild §f${guild.name}§e...")
-        sender.sendMessage("§7Vault location: §f${guild.vaultChestLocation}")
-        sender.sendMessage("§7Drop items: §f$dropItems")
+        sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.removing_vault_for_guild", "guild" to guild.name))
+        sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.vault_location", "vault_chest_location" to guild.vaultChestLocation))
+        sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.drop_items", "drop_items" to dropItems))
 
         // Remove the vault
         val result = vaultService.removeVaultChest(guild, dropItems)
 
         when (result) {
             is VaultResult.Success -> {
-                sender.sendMessage("§a✓ Successfully removed vault for guild §f${guild.name}")
+                sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.successfully_removed_vault_for_guild", "guild" to guild.name))
                 if (dropItems) {
-                    sender.sendMessage("§7Items have been dropped at the vault location")
+                    sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.items_have_been_dropped_at_the_vault"))
                 } else {
-                    sender.sendMessage("§7Items have been §c§lDELETED §7(not dropped)")
+                    sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.items_have_been_deleted_not_dropped"))
                 }
                 logger.info("Admin ${sender.name} forcibly removed vault for guild ${guild.name} (dropItems=$dropItems)")
             }
             is VaultResult.Failure -> {
-                sender.sendMessage("§c✗ Failed to remove vault: ${result.message}")
-                sender.sendMessage("§7Check server logs for details")
+                sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.failed_to_remove_vault", "reason" to result.message))
+                sender.sendMessage(lang.msg("admin.migrated.remove_vault.command.check_server_logs_for_details"))
                 logger.error("Failed to remove vault for guild ${guild.name}: ${result.message}")
             }
         }

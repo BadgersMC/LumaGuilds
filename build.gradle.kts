@@ -68,6 +68,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
 
+    // nexus-i18n for LangService — all player-facing strings in en_US.yml
+    implementation("com.github.BadgersMC.Nexus:nexus-i18n:v2.1.1")
+
     // QR Code generation
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.google.zxing:javase:3.5.3")
@@ -120,7 +123,7 @@ dependencies {
 
     //combatlogX api
     compileOnly("com.github.sirblobman.api:core:2.9-SNAPSHOT")
-    compileOnly("com.github.sirblobman.combatlogx:api:11.6-SNAPSHOT")
+    compileOnly(files("libs/CombatLogX-api.jar"))
 
     // Lunar Client Apollo API
     compileOnly("com.lunarclient:apollo-api:1.2.3")

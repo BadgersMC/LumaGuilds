@@ -1,9 +1,12 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import org.bukkit.entity.Player
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Helper class for Bedrock menu navigation patterns
@@ -13,7 +16,8 @@ class BedrockMenuNavigator(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val menuFactory: MenuFactory
-) {
+) : KoinComponent {
+    private val lang: LangService by inject()
 
     /**
      * Creates a back button handler that can be used in Bedrock forms
@@ -147,7 +151,7 @@ class BedrockMenuNavigator(
             customHandler?.invoke()
             clearMenuStack()
             // Send cancellation message
-            player.sendMessage("§eWorkflow cancelled. All progress has been cleared.")
+            player.sendMessage(lang.msg("bedrock.common.workflow.cancelled"))
         }
     }
 
@@ -160,7 +164,7 @@ class BedrockMenuNavigator(
     fun createRecoveryHandler(recoveryMenu: Menu, stateKey: String = "timeout_recovery"): Runnable {
         return Runnable {
             // Send recovery message
-            player.sendMessage("§aRestoring previous session...")
+            player.sendMessage(lang.msg("bedrock.common.workflow.restoring"))
             openMenu(recoveryMenu)
         }
     }

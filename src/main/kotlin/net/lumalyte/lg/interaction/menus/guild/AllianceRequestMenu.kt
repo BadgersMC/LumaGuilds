@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -36,6 +38,7 @@ class AllianceRequestMenu(
     private val memberService: MemberService by inject()
     private val relationService: RelationService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val lang: LangService by inject()
 
     private lateinit var guildsPane: PaginatedPane
     private var currentPage = 0
@@ -44,11 +47,11 @@ class AllianceRequestMenu(
     override fun open() {
         // Check permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)) {
-            player.sendMessage("§cYou don't have permission to manage relations.")
+            player.sendMessage(lang.msg("menu.alliance_request.permission_denied"))
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, "§6Request Alliance"))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.legacy("menu.alliance_request.title")))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -106,9 +109,9 @@ class AllianceRequestMenu(
         if (pageGuilds.isEmpty()) {
             // No available guilds
             val emptyItem = ItemStack.of(Material.BARRIER)
-                .name("§7No Guilds Available")
-                .lore("§7All guilds already have relations")
-                .lore("§7with your guild or have pending requests.")
+                .name(lang.legacy("menu.alliance_request.empty.name"))
+                .lore(lang.legacy("menu.alliance_request.empty.description"))
+                .lore(lang.legacy("menu.alliance_request.empty.detail"))
 
             val guiItem = GuiItem(emptyItem) { }
             newPage.addItem(guiItem, 3, 1)
@@ -140,12 +143,18 @@ class AllianceRequestMenu(
             ItemStack.of(Material.GREEN_BANNER)
         }
 
-        item.name("§a${targetGuild.name}")
-            .lore("§7Members: §f$memberCount")
-            .lore("§7Level: §f${targetGuild.level}")
-            .lore("§7Mode: ${if (targetGuild.mode.name == "PEACEFUL") "§a⚐ Peaceful" else "§c⚔ Hostile"}")
-            .lore("§7")
-            .lore("§aClick to request alliance")
+        item.name(lang.legacy("menu.alliance_request.guild.name", "guild" to targetGuild.name))
+            .lore(lang.legacy("menu.alliance_request.guild.members", "count" to memberCount))
+            .lore(lang.legacy("menu.alliance_request.guild.level", "level" to targetGuild.level))
+            .lore(
+                if (targetGuild.mode.name == "PEACEFUL") {
+                    lang.legacy("menu.alliance_request.guild.mode.peaceful")
+                } else {
+                    lang.legacy("menu.alliance_request.guild.mode.hostile")
+                }
+            )
+            .lore(lang.legacy("menu.common.blank"))
+            .lore(lang.legacy("menu.alliance_request.guild.action"))
 
         return item
     }
@@ -155,15 +164,15 @@ class AllianceRequestMenu(
 
         if (relation != null) {
             player.closeInventory()
-            player.sendMessage("§a✓ Alliance request sent to ${targetGuild.name}!")
-            player.sendMessage("§7They must accept your request for the alliance to become active.")
+            player.sendMessage(lang.msg("menu.alliance_request.feedback.sent", "guild" to targetGuild.name))
+            player.sendMessage(lang.msg("menu.alliance_request.feedback.pending"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
 
             // Notify target guild members
-            notifyGuildMembers(targetGuild.id, "§6${guild.name} §7has requested an alliance with your guild! Use §6/guild menu §7→ Relations to respond.")
+            notifyGuildMembers(targetGuild.id, lang.msg("menu.alliance_request.notification.received", "guild" to guild.name))
         } else {
-            player.sendMessage("§c✗ Failed to send alliance request.")
-            player.sendMessage("§7There may already be a pending request.")
+            player.sendMessage(lang.msg("menu.alliance_request.feedback.failed"))
+            player.sendMessage(lang.msg("menu.alliance_request.feedback.failure_hint"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             open() // Refresh the menu
         }
@@ -184,8 +193,8 @@ class AllianceRequestMenu(
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack.of(Material.ARROW)
-                .name("§f⬅ PREVIOUS PAGE")
-                .lore("§7Go to previous page")
+                .name(lang.legacy("menu.alliance_request.navigation.previous.name"))
+                .lore(lang.legacy("menu.alliance_request.navigation.previous.description"))
 
             val prevGuiItem = GuiItem(prevItem) {
                 currentPage--
@@ -196,8 +205,8 @@ class AllianceRequestMenu(
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
-            .name("§ePage ${currentPage + 1} / ${if (totalPages > 0) totalPages else 1}")
-            .lore("§7Available guilds: §f${allGuilds.size}")
+            .name(lang.legacy("menu.alliance_request.navigation.page", "page" to currentPage + 1, "pages" to if (totalPages > 0) totalPages else 1))
+            .lore(lang.legacy("menu.alliance_request.navigation.total", "count" to allGuilds.size))
 
         val pageGuiItem = GuiItem(pageItem) { }
         pane.addItem(pageGuiItem, 4, 4)
@@ -205,8 +214,8 @@ class AllianceRequestMenu(
         // Next page button
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack.of(Material.ARROW)
-                .name("§fNEXT PAGE ➡")
-                .lore("§7Go to next page")
+                .name(lang.legacy("menu.alliance_request.navigation.next.name"))
+                .lore(lang.legacy("menu.alliance_request.navigation.next.description"))
 
             val nextGuiItem = GuiItem(nextItem) {
                 currentPage++
@@ -218,8 +227,8 @@ class AllianceRequestMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name("§eBack to Relations")
-            .lore("§7Return to relations menu")
+            .name(lang.legacy("menu.alliance_request.navigation.back.name"))
+            .lore(lang.legacy("menu.alliance_request.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
@@ -227,7 +236,7 @@ class AllianceRequestMenu(
         pane.addItem(guiItem, x, y)
     }
 
-    private fun notifyGuildMembers(guildId: UUID, message: String) {
+    private fun notifyGuildMembers(guildId: UUID, message: Component) {
         val members = memberService.getGuildMembers(guildId)
         members.forEach { member ->
             val onlinePlayer = Bukkit.getPlayer(member.playerId)

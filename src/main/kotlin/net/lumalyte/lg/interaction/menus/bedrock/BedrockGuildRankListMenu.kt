@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -26,6 +27,7 @@ class BedrockGuildRankListMenu(
 
     private val rankService: RankService by inject()
     private val configService: ConfigService by inject()
+    private val lang: LangService by inject()
 
     /** Permissions that are irrelevant when the claims system is disabled. */
     private val claimsPermissions = setOf(
@@ -48,11 +50,11 @@ class BedrockGuildRankListMenu(
         val rankCount = ranks.size
 
         return SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.rank.list.title")} - ${guild.name}")
+            .title(lang.legacy("bedrock.rank_list.title", "guild" to guild.name))
             .content(buildRankListContent(rankCount))
             .apply {
                 if (ranks.isEmpty()) {
-                    button(bedrockLocalization.getBedrockString(player, "guild.rank.list.no.ranks"))
+                    button(lang.raw("bedrock.rank_list.no_ranks"))
                 } else {
                     ranks.forEach { rank ->
                         val permissionCount = visiblePermissions(rank).size
@@ -72,19 +74,16 @@ class BedrockGuildRankListMenu(
     }
 
     private fun buildRankListContent(rankCount: Int): String {
-        return """
-            |§7${bedrockLocalization.getBedrockString(player, "guild.rank.list.description")}
-            |
-            |§6§l━━━ RANKS ━━━
-            |§bTotal Ranks§7: §f$rankCount
-            |
-            |§7${bedrockLocalization.getBedrockString(player, "guild.rank.list.priority")}: ${bedrockLocalization.getBedrockString(player, "guild.rank.list.permissions")}
-        """.trimMargin()
+        return lang.legacy("bedrock.rank_list.content", "count" to rankCount)
     }
 
     private fun buildRankButtonText(rank: Rank, permissionCount: Int): String {
-        val permissionText = bedrockLocalization.getBedrockString(player, "guild.rank.list.permission.count", permissionCount)
-        return "§6${rank.name} §7(${rank.priority}) §f- §b$permissionText"
+        return lang.legacy(
+            "bedrock.rank_list.rank_button",
+            "rank" to rank.name,
+            "priority" to rank.priority,
+            "permission_count" to permissionCount
+        )
     }
 
     private fun handleRankSelection(buttonIndex: Int, ranks: List<Rank>) {
@@ -99,9 +98,9 @@ class BedrockGuildRankListMenu(
 
     private fun showRankDetails(rank: Rank) {
         val detailForm = SimpleForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.rank.details.title")} - ${rank.name}")
+            .title(lang.legacy("bedrock.rank_list.details.title", "rank" to rank.name))
             .content(buildRankDetailsContent(rank))
-            .button(bedrockLocalization.getBedrockString(player, "guild.rank.details.back"))
+            .button(lang.raw("bedrock.rank_list.details.back"))
             .validResultHandler { _ ->
                 // Re-show the rank list
                 bedrockNavigator.openMenu(BedrockGuildRankListMenu(menuNavigator, player, guild, logger))
@@ -120,100 +119,38 @@ class BedrockGuildRankListMenu(
     private fun buildRankDetailsContent(rank: Rank): String {
         val visible = visiblePermissions(rank)
         val permissions = if (visible.isEmpty()) {
-            "§7${bedrockLocalization.getBedrockString(player, "guild.rank.details.no.permissions")}"
+            lang.legacy("bedrock.rank_list.details.no_permissions")
         } else {
             visible.joinToString("\n") { permission ->
-                "§b• §f${getLocalizedPermissionName(permission)}"
+                lang.legacy("bedrock.rank_list.details.permission_row", "permission" to getLocalizedPermissionName(permission))
             }
         }
 
-        return """
-            |§6§l━━━ ${rank.name} §r§6━━━
-            |§e${bedrockLocalization.getBedrockString(player, "guild.rank.details.priority")}§7: §f${rank.priority}
-            |
-            |§6${bedrockLocalization.getBedrockString(player, "guild.rank.details.permissions")}§7:
-            |$permissions
-        """.trimMargin()
+        return lang.legacy(
+            "bedrock.rank_list.details.content",
+            "rank" to rank.name,
+            "priority" to rank.priority,
+            "permissions" to permissions
+        )
     }
 
     private fun getLocalizedPermissionName(permission: RankPermission): String {
-        return when (permission) {
-            // Guild management
-            RankPermission.MANAGE_RANKS -> bedrockLocalization.getBedrockString(player, "permission.manage.ranks")
-            RankPermission.MANAGE_MEMBERS -> bedrockLocalization.getBedrockString(player, "permission.manage.members")
-            RankPermission.MANAGE_BANNER -> bedrockLocalization.getBedrockString(player, "permission.manage.banner")
-            RankPermission.MANAGE_EMOJI -> bedrockLocalization.getBedrockString(player, "permission.manage.emoji")
-            RankPermission.MANAGE_DESCRIPTION -> bedrockLocalization.getBedrockString(player, "permission.manage.description")
-            RankPermission.MANAGE_HOME -> bedrockLocalization.getBedrockString(player, "permission.manage.home")
-            RankPermission.MANAGE_MODE -> bedrockLocalization.getBedrockString(player, "permission.manage.mode")
-            RankPermission.MANAGE_GUILD_SETTINGS -> bedrockLocalization.getBedrockString(player, "permission.manage.guild.settings")
-
-            // Relations & Diplomacy
-            RankPermission.MANAGE_RELATIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.relations")
-            RankPermission.DECLARE_WAR -> bedrockLocalization.getBedrockString(player, "permission.declare.war")
-            RankPermission.ACCEPT_ALLIANCES -> bedrockLocalization.getBedrockString(player, "permission.accept.alliances")
-            RankPermission.MANAGE_PARTIES -> bedrockLocalization.getBedrockString(player, "permission.manage.parties")
-            RankPermission.SEND_PARTY_REQUESTS -> bedrockLocalization.getBedrockString(player, "permission.send.party.requests")
-            RankPermission.ACCEPT_PARTY_INVITES -> bedrockLocalization.getBedrockString(player, "permission.accept.party.invites")
-            RankPermission.USE_ALLY_HOMES -> bedrockLocalization.getBedrockString(player, "permission.use.ally.homes")
-
-            // Banking & Economy
-            RankPermission.DEPOSIT_TO_BANK -> bedrockLocalization.getBedrockString(player, "permission.deposit.bank")
-            RankPermission.WITHDRAW_FROM_BANK -> bedrockLocalization.getBedrockString(player, "permission.withdraw.bank")
-            RankPermission.VIEW_BANK_TRANSACTIONS -> bedrockLocalization.getBedrockString(player, "permission.view.bank.transactions")
-            RankPermission.MANAGE_BANK_SETTINGS -> bedrockLocalization.getBedrockString(player, "permission.manage.bank.settings")
-            RankPermission.PLACE_VAULT -> bedrockLocalization.getBedrockString(player, "permission.place.vault")
-            RankPermission.ACCESS_VAULT -> bedrockLocalization.getBedrockString(player, "permission.access.vault")
-            RankPermission.DEPOSIT_TO_VAULT -> bedrockLocalization.getBedrockString(player, "permission.deposit.vault")
-            RankPermission.WITHDRAW_FROM_VAULT -> bedrockLocalization.getBedrockString(player, "permission.withdraw.vault")
-            RankPermission.MANAGE_VAULT -> bedrockLocalization.getBedrockString(player, "permission.manage.vault")
-            RankPermission.BREAK_VAULT -> bedrockLocalization.getBedrockString(player, "permission.break.vault")
-
-            // Communication
-            RankPermission.SEND_ANNOUNCEMENTS -> bedrockLocalization.getBedrockString(player, "permission.send.announcements")
-            RankPermission.SEND_PINGS -> bedrockLocalization.getBedrockString(player, "permission.send.pings")
-            RankPermission.MODERATE_CHAT -> bedrockLocalization.getBedrockString(player, "permission.moderate.chat")
-
-            // Claims & Territory
-            RankPermission.MANAGE_CLAIMS -> bedrockLocalization.getBedrockString(player, "permission.manage.claims")
-            RankPermission.MANAGE_FLAGS -> bedrockLocalization.getBedrockString(player, "permission.manage.flags")
-            RankPermission.MANAGE_PERMISSIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.permissions")
-            RankPermission.CREATE_CLAIMS -> bedrockLocalization.getBedrockString(player, "permission.create.claims")
-            RankPermission.DELETE_CLAIMS -> bedrockLocalization.getBedrockString(player, "permission.delete.claims")
-
-            // Special Roles
-            RankPermission.ACCESS_ADMIN_COMMANDS -> bedrockLocalization.getBedrockString(player, "permission.access.admin.commands")
-            RankPermission.BYPASS_RESTRICTIONS -> bedrockLocalization.getBedrockString(player, "permission.bypass.restrictions")
-            RankPermission.VIEW_AUDIT_LOGS -> bedrockLocalization.getBedrockString(player, "permission.view.audit.logs")
-            RankPermission.MANAGE_INTEGRATIONS -> bedrockLocalization.getBedrockString(player, "permission.manage.integrations")
-
-            // Guild Shop Permissions
-            RankPermission.ACCESS_SHOP_CHESTS -> bedrockLocalization.getBedrockString(player, "permission.access.shop.chests")
-            RankPermission.EDIT_SHOP_STOCK -> bedrockLocalization.getBedrockString(player, "permission.edit.shop.stock")
-            RankPermission.MODIFY_SHOP_PRICES -> bedrockLocalization.getBedrockString(player, "permission.modify.shop.prices")
-        }
+        val key = "permission.${permission.name.lowercase().replace("_", ".")}"
+        return lang.raw(key)
     }
 
     private fun showRankDetailsInChat(rank: Rank) {
-        val title = bedrockLocalization.getBedrockString(player, "guild.rank.details.title")
-        player.sendMessage("§6$title: §f${rank.name}")
-
-        val name = bedrockLocalization.getBedrockString(player, "guild.rank.details.name")
-        player.sendMessage("§7$name: §f${rank.name}")
-
-        val priority = bedrockLocalization.getBedrockString(player, "guild.rank.details.priority")
-        player.sendMessage("§7$priority: §f${rank.priority}")
-
-        val permissions = bedrockLocalization.getBedrockString(player, "guild.rank.details.permissions")
-        player.sendMessage("§7$permissions:")
+        player.sendMessage(lang.msg("bedrock.rank_list.chat.title", "rank" to rank.name))
+        player.sendMessage(lang.msg("bedrock.rank_list.chat.name", "rank" to rank.name))
+        player.sendMessage(lang.msg("bedrock.rank_list.chat.priority", "priority" to rank.priority))
+        player.sendMessage(lang.msg("bedrock.rank_list.chat.permissions"))
 
         val visible = visiblePermissions(rank)
         if (visible.isEmpty()) {
-            val noPermissions = bedrockLocalization.getBedrockString(player, "guild.rank.details.no.permissions")
-            player.sendMessage("§7• §f$noPermissions")
+            player.sendMessage(lang.msg("bedrock.rank_list.chat.no_permissions"))
         } else {
             visible.forEach { permission ->
-                player.sendMessage("§7• §f${getLocalizedPermissionName(permission)}")
+                player.sendMessage(lang.msg("bedrock.rank_list.chat.permission_row", "permission" to getLocalizedPermissionName(permission)))
             }
         }
     }

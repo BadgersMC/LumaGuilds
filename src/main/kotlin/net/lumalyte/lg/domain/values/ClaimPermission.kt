@@ -7,70 +7,70 @@ enum class ClaimPermission(val nameKey: String, val loreKey: String) {
     /**
      * When a block is broken/placed by a player.
      */
-    BUILD(LocalizationKeys.PERMISSION_BUILD_NAME, LocalizationKeys.PERMISSION_BUILD_LORE),
+    BUILD("permission.build.name", "permission.build.lore"),
 
     /**
      * When plants are harvested and replanted by a player.
      */
-    HARVEST(LocalizationKeys.PERMISSION_HARVEST_NAME, LocalizationKeys.PERMISSION_HARVEST_LORE),
+    HARVEST("permission.harvest.name", "permission.harvest.lore"),
 
     /**
      * When a container is opened by a player.
      */
-    CONTAINER(LocalizationKeys.PERMISSION_CONTAINER_NAME, LocalizationKeys.PERMISSION_CONTAINER_LORE),
+    CONTAINER("permission.container.name", "permission.container.lore"),
 
     /**
      * When an item is taken or put in display blocks.
      */
-    DISPLAY(LocalizationKeys.PERMISSION_DISPLAY_NAME, LocalizationKeys.PERMISSION_DISPLAY_LORE),
+    DISPLAY("permission.display.name", "permission.display.lore"),
 
     /**
      * When a vehicle is placed or destroyed.
      */
-    VEHICLE(LocalizationKeys.PERMISSION_VEHICLE_NAME, LocalizationKeys.PERMISSION_VEHICLE_LORE),
+    VEHICLE("permission.vehicle.name", "permission.vehicle.lore"),
 
     /**
      * When the sign edit menu is opened.
      */
-    SIGN(LocalizationKeys.PERMISSION_SIGN_NAME, LocalizationKeys.PERMISSION_SIGN_LORE),
+    SIGN("permission.sign.name", "permission.sign.lore"),
 
     /**
      * When a device used to activate redstone is interacted with by a player.
      */
-    REDSTONE(LocalizationKeys.PERMISSION_REDSTONE_NAME, LocalizationKeys.PERMISSION_REDSTONE_LORE),
+    REDSTONE("permission.redstone.name", "permission.redstone.lore"),
 
     /**
      * When a door is opened by a player.
      */
-    DOOR(LocalizationKeys.PERMISSION_DOOR_NAME, LocalizationKeys.PERMISSION_DOOR_LORE),
+    DOOR("permission.door.name", "permission.door.lore"),
 
     /**
      * When a villager or travelling merchant is traded with by a player.
      */
-    TRADE(LocalizationKeys.PERMISSION_TRADE_NAME, LocalizationKeys.PERMISSION_TRADE_LORE),
+    TRADE("permission.trade.name", "permission.trade.lore"),
 
     /**
      * When a passive mob is interacted with.
      */
-    HUSBANDRY(LocalizationKeys.PERMISSION_HUSBANDRY_NAME, LocalizationKeys.PERMISSION_HUSBANDRY_LORE),
+    HUSBANDRY("permission.husbandry.name", "permission.husbandry.lore"),
 
     /**
      * When an explosive is detonated by a player.
      */
-    DETONATE(LocalizationKeys.PERMISSION_DETONATE_NAME, LocalizationKeys.PERMISSION_DETONATE_LORE),
+    DETONATE("permission.detonate.name", "permission.detonate.lore"),
 
     /**
      * When an event is triggered by an omen effect.
      */
-    EVENT(LocalizationKeys.PERMISSION_EVENT_NAME, LocalizationKeys.PERMISSION_EVENT_LORE),
+    EVENT("permission.event.name", "permission.event.lore"),
 
     /**
      * When a player sleeps in a bed or uses a respawn anchor.
      */
-    SLEEP(LocalizationKeys.PERMISSION_SLEEP_NAME, LocalizationKeys.PERMISSION_SLEEP_LORE),
+    SLEEP("permission.sleep.name", "permission.sleep.lore"),
 
     /**
      * When a player views the contents of an interactable block.
      */
-    VIEW(LocalizationKeys.PERMISSION_VIEW_NAME, LocalizationKeys.PERMISSION_VIEW_LORE)
+    VIEW("permission.view.name", "permission.view.lore")
 }

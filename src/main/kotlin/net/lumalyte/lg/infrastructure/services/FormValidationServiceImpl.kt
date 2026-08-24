@@ -1,5 +1,8 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.lumalyte.lg.application.services.*
 import org.bukkit.entity.Player
 import java.util.logging.Logger
@@ -40,12 +43,13 @@ class FormValidationServiceImpl(
         if (errors.isEmpty()) return
 
         val errorMessage = errors.joinToString("\n") { "• $it" }
+        val legacy = LegacyComponentSerializer.legacySection()
 
         // Send error message
-        player.sendMessage("§c❌ ${localize("form.validation.errors.title")}")
-        player.sendMessage("§7$errorMessage")
-        player.sendMessage("§e${localize("form.button.retry")}")
-        player.sendMessage("§c${localize("form.button.cancel")}")
+        player.sendMessage(Component.text("❌ ", NamedTextColor.RED).append(legacy.deserialize(localize("form.validation.errors.title"))))
+        player.sendMessage(Component.text(errorMessage, NamedTextColor.GRAY))
+        player.sendMessage(legacy.deserialize(localize("form.button.retry")))
+        player.sendMessage(legacy.deserialize(localize("form.button.cancel")))
 
         // Reopen the form for retry
         reopenForm()

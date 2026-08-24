@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
@@ -21,6 +22,7 @@ import kotlin.io.path.exists
  */
 class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
+    private val lang: LangService by inject()
     private val guildService: GuildService by inject()
     private val adminOverrideService: AdminOverrideService by inject()
 
@@ -33,7 +35,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
-            sender.sendMessage("§cThis command can only be used by players!")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.command.this_command_can_only_be_used_by"))
             return true
         }
 
@@ -50,7 +52,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             "override" -> handleOverride(sender)
             "help" -> showHelp(sender)
             else -> {
-                sender.sendMessage("§cUnknown subcommand: ${args[0]}")
+                sender.sendMessage(lang.msg("admin.migrated.luma_guilds.command.unknown_subcommand", "args" to args[0]))
                 showHelp(sender)
             }
         }
@@ -64,12 +66,12 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private fun handleDisband(sender: CommandSender, args: Array<out String>) {
         // Check permissions - only console or ops can disband guilds
         if (sender is Player && !sender.isOp) {
-            sender.sendMessage("§c❌ You don't have permission to disband guilds!")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.you_don_t_have_permission_to_disband"))
             return
         }
 
         if (args.size < 2) {
-            sender.sendMessage("§cUsage: /bellclaims disband <guild_name>")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.usage_bellclaims_disband_guild_name"))
             return
         }
 
@@ -86,16 +88,16 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
 
         if (guild == null) {
-            sender.sendMessage("§c❌ Guild not found: $guildName")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.guild_not_found", "guild" to guildName))
             return
         }
 
         if (!isConfirmation) {
             // Show confirmation prompt
-            sender.sendMessage("§e⚠️ WARNING: You are about to force-disband the guild: §6${guild.name}")
-            sender.sendMessage("§7This will remove all members and delete the guild permanently!")
-            sender.sendMessage("§7Run the command again within 10 seconds to confirm:")
-            sender.sendMessage("§e/bellclaims disband ${guild.name} confirm")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.warning_you_are_about_to_force_disband", "guild" to guild.name))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.this_will_remove_all_members_and_delete"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.run_the_command_again_within_10_seconds"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.bellclaims_disband_confirm", "guild" to guild.name))
             return
         }
 
@@ -104,11 +106,11 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         val success = guildService.disbandGuild(guild.id, systemUuid)
 
         if (success) {
-            sender.sendMessage("§a✅ Guild '${guild.name}' has been forcefully disbanded!")
-            sender.sendMessage("§7All members have been removed from the guild.")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.guild_has_been_forcefully_disbanded", "guild" to guild.name))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.all_members_have_been_removed_from_the"))
         } else {
-            sender.sendMessage("§c❌ Failed to disband guild '${guild.name}'")
-            sender.sendMessage("§7Check server console for errors.")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.failed_to_disband_guild", "guild" to guild.name))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handledisband.check_server_console_for_errors"))
         }
     }
 
@@ -118,7 +120,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private fun handleReload(sender: CommandSender) {
         // Check permissions - only console or ops can reload
         if (sender is Player && !sender.isOp) {
-            sender.sendMessage("§c❌ You don't have permission to reload the plugin!")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.you_don_t_have_permission_to_reload"))
             return
         }
 
@@ -126,13 +128,13 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             // Get the plugin instance
             val plugin = sender.server.pluginManager.getPlugin("LumaGuilds") as? LumaGuilds
             if (plugin == null) {
-                sender.sendMessage("§c❌ LumaGuilds plugin not found!")
+                sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.lumaguilds_plugin_not_found"))
                 return
             }
 
             // Reload the configuration
             plugin.reloadConfig()
-            sender.sendMessage("§e🔄 Reloading LumaGuilds configuration...")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.reloading_lumaguilds_configuration"))
 
             // Reinitialize config and services
             plugin.initConfig()
@@ -147,13 +149,13 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             // stopping and restarting schedulers, recreating Koin context, etc.
             // For development, config reload should be sufficient.
 
-            sender.sendMessage("§a✅ LumaGuilds configuration reloaded successfully!")
-            sender.sendMessage("§7💡 Some changes may require a full server restart to take effect.")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.lumaguilds_configuration_reloaded_successfully"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.some_changes_may_require_a_full_server"))
 
         } catch (e: Exception) {
             // Command handler - catching all exceptions to prevent command crash
-            sender.sendMessage("§c❌ Failed to reload plugin: ${e.message}")
-            sender.sendMessage("§7💡 You may need to restart the server for changes to take effect.")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.failed_to_reload_plugin", "reason" to e.message))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.you_may_need_to_restart_the_server"))
         }
     }
 
@@ -163,12 +165,12 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private fun handleProgressionReload(sender: CommandSender) {
         // Check permissions - only console or ops can reload
         if (sender is Player && !sender.isOp) {
-            sender.sendMessage("§c❌ You don't have permission to reload progression config!")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleprogressionreload.you_don_t_have_permission_to_reload"))
             return
         }
 
         try {
-            sender.sendMessage("§e🔄 Reloading progression.yml configuration...")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleprogressionreload.reloading_progression_yml_configuration"))
 
             // Reload the progression configuration
             progressionConfigService.reloadProgressionConfig()
@@ -176,14 +178,14 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                 .getOrNull<net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener>()
                 ?.refreshCaches()
 
-            sender.sendMessage("§a✅ Progression configuration reloaded successfully!")
-            sender.sendMessage("§7💡 Changes to level rewards and XP sources are now active.")
-            sender.sendMessage("§7    Existing guild levels and XP are unaffected.")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleprogressionreload.progression_configuration_reloaded_successfully"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleprogressionreload.changes_to_level_rewards_and_xp_sources"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleprogressionreload.existing_guild_levels_and_xp_are_unaffected"))
 
         } catch (e: Exception) {
             // Command handler - catching all exceptions to prevent command crash
-            sender.sendMessage("§c❌ Failed to reload progression config: ${e.message}")
-            sender.sendMessage("§7💡 Check your progression.yml file for errors.")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleprogressionreload.failed_to_reload_progression_config", "reason" to e.message))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleprogressionreload.check_your_progression_yml_file_for_errors"))
         }
     }
 
@@ -193,13 +195,13 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private fun handleOverride(sender: CommandSender) {
         // Only players can use this command
         if (sender !is Player) {
-            sender.sendMessage("§c❌ Only players can use this command!")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleoverride.only_players_can_use_this_command"))
             return
         }
 
         // Check permissions
         if (!sender.hasPermission("bellclaims.admin")) {
-            sender.sendMessage("§c❌ You don't have permission to use this command!")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleoverride.you_don_t_have_permission_to_use"))
             return
         }
 
@@ -212,11 +214,11 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
         // Send appropriate message based on new state
         if (newState) {
-            sender.sendMessage("§a✅ Admin guild override enabled!")
-            sender.sendMessage("§7You now have owner permissions in all guilds.")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleoverride.admin_guild_override_enabled"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleoverride.you_now_have_owner_permissions_in_all"))
         } else {
-            sender.sendMessage("§c❌ Admin guild override disabled!")
-            sender.sendMessage("§7You no longer have owner permissions in all guilds.")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleoverride.admin_guild_override_disabled"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleoverride.you_no_longer_have_owner_permissions_in"))
         }
     }
 
@@ -226,7 +228,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private fun handleMigrate(sender: CommandSender, args: Array<out String>) {
         // Check permissions - only console or ops can migrate
         if (sender is Player && !sender.isOp) {
-            sender.sendMessage("§c❌ You don't have permission to migrate databases!")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.you_don_t_have_permission_to_migrate"))
             return
         }
 
@@ -235,26 +237,26 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
         if (!isConfirmation) {
             // Show confirmation prompt
-            sender.sendMessage("§e⚠️ WARNING: Database Migration (SQLite → MariaDB)")
-            sender.sendMessage("§7This will copy all data from SQLite to MariaDB.")
-            sender.sendMessage("§7")
-            sender.sendMessage("§7Prerequisites:")
-            sender.sendMessage("§7  1. MariaDB must be configured in config.yml")
-            sender.sendMessage("§7  2. MariaDB must be running and accessible")
-            sender.sendMessage("§7  3. The MariaDB database schema must be initialized")
-            sender.sendMessage("§7     (Start server with database_type: mariadb first)")
-            sender.sendMessage("§7")
-            sender.sendMessage("§c⚠️ WARNING: This will DELETE all existing data in MariaDB!")
-            sender.sendMessage("§7")
-            sender.sendMessage("§7Run the command again to confirm:")
-            sender.sendMessage("§e/bellclaims migrate confirm")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.warning_database_migration_sqlite_mariadb"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.this_will_copy_all_data_from_sqlite"))
+            sender.sendMessage(lang.msg("command.common.blank_line"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.prerequisites"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.1_mariadb_must_be_configured_in_config"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.2_mariadb_must_be_running_and_accessible"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.3_the_mariadb_database_schema_must_be"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.start_server_with_database_type_mariadb_first"))
+            sender.sendMessage(lang.msg("command.common.blank_line"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.warning_this_will_delete_all_existing_data"))
+            sender.sendMessage(lang.msg("command.common.blank_line"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.run_the_command_again_to_confirm"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.bellclaims_migrate_confirm"))
             return
         }
 
         // Get plugin instance
         val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds") as? LumaGuilds
         if (plugin == null) {
-            sender.sendMessage("§c❌ LumaGuilds plugin not found!")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.lumaguilds_plugin_not_found"))
             return
         }
 
@@ -269,16 +271,16 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         // Get SQLite file
         val sqliteFile = File(plugin.dataFolder, "lumaguilds.db")
         if (!sqliteFile.exists()) {
-            sender.sendMessage("§c❌ SQLite database not found: ${sqliteFile.absolutePath}")
-            sender.sendMessage("§7Cannot migrate - no source database!")
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.sqlite_database_not_found", "absolute_path" to sqliteFile.absolutePath))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.cannot_migrate_no_source_database"))
             return
         }
 
-        sender.sendMessage("§e🔄 Starting database migration...")
-        sender.sendMessage("§7From: SQLite (${sqliteFile.name})")
-        sender.sendMessage("§7To: MariaDB ($host:$port/$database)")
-        sender.sendMessage("§7")
-        sender.sendMessage("§c⚠️ DO NOT stop the server during migration!")
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.starting_database_migration"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.from_sqlite", "sqlite_file" to sqliteFile.name))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.to_mariadb", "host" to host, "port" to port, "database" to database))
+        sender.sendMessage(lang.msg("command.common.blank_line"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.do_not_stop_the_server_during_migration"))
 
         // Run migration asynchronously to avoid blocking
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
@@ -300,23 +302,23 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                     report.printReport(plugin.logger)
 
                     if (report.success) {
-                        sender.sendMessage("§a✅ Migration completed successfully!")
-                        sender.sendMessage("§7Migrated ${report.migratedTables.size} tables with ${report.totalRows} total rows")
-                        sender.sendMessage("§7")
-                        sender.sendMessage("§6📝 Next steps:")
-                        sender.sendMessage("§7  1. Verify the data in MariaDB")
-                        sender.sendMessage("§7  2. Update config.yml: database_type: mariadb")
-                        sender.sendMessage("§7  3. Restart the server")
-                        sender.sendMessage("§7  4. Test thoroughly before going to production")
-                        sender.sendMessage("§7")
-                        sender.sendMessage("§e💾 Your SQLite database is still intact as a backup!")
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.migration_completed_successfully"))
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.migrated_tables_with_total_rows", "size" to report.migratedTables.size, "total_rows" to report.totalRows))
+                        sender.sendMessage(lang.msg("command.common.blank_line"))
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.next_steps"))
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.1_verify_the_data_in_mariadb"))
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.2_update_config_yml_database_type_mariadb"))
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.3_restart_the_server"))
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.4_test_thoroughly_before_going_to_production"))
+                        sender.sendMessage(lang.msg("command.common.blank_line"))
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.your_sqlite_database_is_still_intact_as"))
                     } else {
-                        sender.sendMessage("§c❌ Migration failed!")
-                        sender.sendMessage("§7Check server console for details")
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.migration_failed"))
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.check_server_console_for_details"))
                         if (report.errors.isNotEmpty()) {
-                            sender.sendMessage("§7Errors:")
+                            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.errors"))
                             report.errors.forEach { error ->
-                                sender.sendMessage("§c  - $error")
+                                sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.blank_line", "error" to error))
                             }
                         }
                     }
@@ -325,7 +327,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             } catch (e: Exception) {
             // Command handler - catching all exceptions to prevent command crash
                 Bukkit.getScheduler().runTask(plugin, Runnable {
-                    sender.sendMessage("§c❌ Migration failed with exception: ${e.message}")
+                    sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.migration_failed_with_exception", "reason" to e.message))
                     plugin.logger.severe("Migration exception: ${e.message}")
                     e.printStackTrace()
                 })
@@ -337,17 +339,17 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
      * Show help message
      */
     private fun showHelp(sender: CommandSender) {
-        sender.sendMessage("§6=== LumaGuilds Admin Commands ===")
-        sender.sendMessage("§e/bellclaims reload §7- Reload plugin configuration (OP only)")
-        sender.sendMessage("§e/bellclaims progressionreload §7- Reload progression.yml (OP only)")
-        sender.sendMessage("§e/bellclaims disband <guild> confirm §7- Force disband a guild (OP only)")
-        sender.sendMessage("§e/bellclaims migrate confirm §7- Migrate SQLite → MariaDB (OP only)")
-        sender.sendMessage("§e/bellclaims override §7- Toggle admin override mode (Admin only)")
-        sender.sendMessage("§e/bellclaims help §7- Show this help")
-        sender.sendMessage("§7🔧 Reload commands are for development - some changes require server restart")
-        sender.sendMessage("§7⚠️ Disband is for emergency use only - removes all members!")
-        sender.sendMessage("§7🔄 Migrate transfers all data from SQLite to MariaDB (requires confirmation)")
-        sender.sendMessage("§7🔓 Override grants owner permissions in all guilds temporarily")
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.lumaguilds_admin_commands"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_reload_reload_plugin_configuration_op_only"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_progressionreload_reload_progression_yml_op_only"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_disband_guild_confirm_force_disband_a"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_migrate_confirm_migrate_sqlite_mariadb_op"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_override_toggle_admin_override_mode_admin"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_help_show_this_help"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.reload_commands_are_for_development_some_changes"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.disband_is_for_emergency_use_only_removes"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.migrate_transfers_all_data_from_sqlite_to"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.override_grants_owner_permissions_in_all_guilds"))
     }
 
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> {

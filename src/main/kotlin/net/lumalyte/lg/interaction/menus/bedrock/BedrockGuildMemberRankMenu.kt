@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -27,24 +28,25 @@ class BedrockGuildMemberRankMenu(
 
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
+    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val rankIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
-        val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown"
+        val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.common.unknown_player")
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
         val rankNames = ranks.map { it.name }
         val currentRank = rankService.getRank(member.rankId)
         val currentRankIndex = ranks.indexOfFirst { it.id == member.rankId }.coerceAtLeast(0)
 
         return CustomForm.builder()
-            .title("${bedrockLocalization.getBedrockString(player, "guild.member.rank.title")} - $memberName")
+            .title(lang.legacy("bedrock.member_rank.title", "player" to memberName))
             .apply { rankIcon?.let { icon(it) } }
-            .label(bedrockLocalization.getBedrockString(player, "guild.member.rank.description", memberName))
-            .label("${bedrockLocalization.getBedrockString(player, "guild.member.rank.current")}: ${currentRank?.name ?: "Unknown"}")
+            .label(lang.legacy("bedrock.member_rank.description", "player" to memberName))
+            .label(lang.legacy("bedrock.member_rank.current", "rank" to (currentRank?.name ?: lang.raw("bedrock.member_rank.unknown_rank"))))
             .dropdown(
-                bedrockLocalization.getBedrockString(player, "guild.member.rank.new"),
+                lang.raw("bedrock.member_rank.new_rank"),
                 rankNames,
                 currentRankIndex
             )
@@ -55,7 +57,7 @@ class BedrockGuildMemberRankMenu(
                 if (newRank != null && newRank.id != member.rankId) {
                     handleRankChange(newRank.id, newRank.name)
                 } else {
-                    player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.member.rank.no.change"))
+                    player.sendMessage(lang.msg("bedrock.member_rank.feedback.no_change"))
                     bedrockNavigator.goBack()
                 }
             }
@@ -74,17 +76,11 @@ class BedrockGuildMemberRankMenu(
         )
 
         if (success) {
-            player.sendMessage(
-                bedrockLocalization.getBedrockString(
-                    player,
-                    "guild.member.rank.changed.success",
-                    Bukkit.getOfflinePlayer(member.playerId).name ?: "Unknown",
-                    newRankName
-                )
-            )
+            val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.common.unknown_player")
+            player.sendMessage(lang.msg("bedrock.member_rank.feedback.changed", "player" to memberName, "rank" to newRankName))
             bedrockNavigator.goBack()
         } else {
-            player.sendMessage(bedrockLocalization.getBedrockString(player, "guild.member.rank.changed.failed"))
+            player.sendMessage(lang.msg("bedrock.member_rank.feedback.failed"))
             bedrockNavigator.goBack()
         }
     }

@@ -1,10 +1,11 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.badgersmc.nexus.i18n.LangService
+
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimBlockCount
 import net.lumalyte.lg.application.actions.claim.ListPlayerClaims
-import net.lumalyte.lg.domain.values.LocalizationKeys
 import org.bukkit.entity.Player
 import net.lumalyte.lg.infrastructure.ChatInfoBuilder
 import org.koin.core.component.KoinComponent
@@ -14,7 +15,7 @@ import kotlin.math.ceil
 
 @CommandAlias("claimlist")
 class ClaimListCommand : BaseCommand(), KoinComponent {
-    private val localizationProvider: net.lumalyte.lg.application.utilities.LocalizationProvider by inject()
+    private val lang: LangService by inject()
     private val listPlayerClaims: ListPlayerClaims by inject()
     private val getClaimBlockCount: GetClaimBlockCount by inject()
 
@@ -28,28 +29,33 @@ class ClaimListCommand : BaseCommand(), KoinComponent {
 
         // Notify if player doesn't have any claims
         if (playerClaims.isEmpty()) {
-            player.sendMessage(localizationProvider.get(player.uniqueId, LocalizationKeys.COMMAND_CLAIM_LIST_NO_CLAIMS))
+            player.sendMessage(lang.msg("command.claim_list.no_claims"))
             return
         }
 
         // Notify if player specifies an invalid page
         if (page * 10 - 9 > playerClaims.count() || page < 1) {
-            player.sendMessage(localizationProvider.get(player.uniqueId, LocalizationKeys.COMMAND_COMMON_INVALID_PAGE))
+            player.sendMessage(lang.msg("command.common.invalid_page"))
             return
         }
 
         // Create page listing claims with their coordinate and block count
-        val chatInfo = ChatInfoBuilder(localizationProvider, player.uniqueId,
-            localizationProvider.get(player.uniqueId, LocalizationKeys.COMMAND_CLAIM_LIST_HEADER))
+        val chatInfo = ChatInfoBuilder(lang, player.uniqueId,
+            lang.legacy("command.claim_list.header"))
         val totalClaims = playerClaims.size
         val startIndex = page * 10
         val endIndex = minOf(startIndex + 10, totalClaims)
         playerClaims.subList(startIndex, endIndex).forEachIndexed { index, claim ->
             val name = claim.name.ifEmpty { claim.id.toString().take(7) }
             val blockCount = getClaimBlockCount.execute(claim.id)
-            val rowString = localizationProvider.get(
-                player.uniqueId, LocalizationKeys.COMMAND_CLAIM_LIST_ROW, name,
-                claim.position.x, claim.position.y, claim.position.z, blockCount)
+            val rowString = lang.legacy(
+                "command.claim_list.row",
+                "claim" to name,
+                "x" to claim.position.x,
+                "y" to claim.position.y,
+                "z" to claim.position.z,
+                "blocks" to blockCount,
+            )
             chatInfo.addIndexed(index, rowString)
         }
 
