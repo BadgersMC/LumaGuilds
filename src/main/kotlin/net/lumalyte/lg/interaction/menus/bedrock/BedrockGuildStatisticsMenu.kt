@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.MemberService
@@ -33,16 +35,16 @@ class BedrockGuildStatisticsMenu(
         val statsIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.statistics.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.statistics.title", "guild" to guild.name))
             .apply { statsIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.statistics.description"))
-            .label(createSectionHeader(lang.raw("bedrock.statistics.header.overview")))
+            .label(lang.bedrock("bedrock.statistics.description"))
+            .label(createSectionHeader(lang.bedrock("bedrock.statistics.header.overview")))
             .label(createOverviewSection())
-            .label(createSectionHeader(lang.raw("bedrock.statistics.header.activity")))
+            .label(createSectionHeader(lang.bedrock("bedrock.statistics.header.activity")))
             .label(createActivitySection())
-            .label(createSectionHeader(lang.raw("bedrock.statistics.header.economy")))
+            .label(createSectionHeader(lang.bedrock("bedrock.statistics.header.economy")))
             .label(createEconomySection())
-            .label(createSectionHeader(lang.raw("bedrock.statistics.header.territory")))
+            .label(createSectionHeader(lang.bedrock("bedrock.statistics.header.territory")))
             .label(createTerritorySection())
             .validResultHandler { response ->
                 // Read-only menu, just close
@@ -55,7 +57,7 @@ class BedrockGuildStatisticsMenu(
     }
 
     private fun createSectionHeader(title: String): String {
-        return lang.legacy("bedrock.statistics.header.format", "title" to title)
+        return lang.bedrock("bedrock.statistics.header.format", "title" to title)
     }
 
     private fun createOverviewSection(): String {
@@ -74,7 +76,7 @@ class BedrockGuildStatisticsMenu(
         val formatter = DateTimeFormatter.ofPattern(lang.raw("bedrock.statistics.date_format.overview"))
         val createdDate = formatter.format(guild.createdAt.atZone(java.time.ZoneId.systemDefault()))
 
-        return lang.legacy(
+        return lang.bedrock(
             "bedrock.statistics.overview",
             "total_members" to totalMembers,
             "online_members" to onlineMembers,
@@ -90,7 +92,7 @@ class BedrockGuildStatisticsMenu(
         val formatter = DateTimeFormatter.ofPattern(lang.raw("bedrock.statistics.date_format.activity"))
         val lastSeen = formatter.format(lastActivity)
 
-        return lang.legacy("bedrock.statistics.activity", "status" to lang.raw("bedrock.statistics.value.active"), "last_seen" to lastSeen)
+        return lang.bedrock("bedrock.statistics.activity", "status" to lang.bedrock("bedrock.statistics.value.active"), "last_seen" to lastSeen)
     }
 
     private fun createEconomySection(): String {
@@ -100,7 +102,7 @@ class BedrockGuildStatisticsMenu(
         } else {
             0.0
         }
-        return lang.legacy(
+        return lang.bedrock(
             "bedrock.statistics.economy",
             "balance" to stats.currentBalance,
             "transactions" to stats.totalTransactions,
@@ -114,7 +116,7 @@ class BedrockGuildStatisticsMenu(
         val controlledArea = 0
         val powerLevel = 1
 
-        return lang.legacy(
+        return lang.bedrock(
             "bedrock.statistics.territory",
             "claims" to totalClaims,
             "area" to controlledArea,

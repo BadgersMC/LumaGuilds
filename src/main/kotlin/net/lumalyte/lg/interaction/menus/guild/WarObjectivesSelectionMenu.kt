@@ -1,6 +1,9 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.utils.GuiTheme
 import net.badgersmc.nexus.i18n.LangService
 
@@ -36,7 +39,7 @@ class WarObjectivesSelectionMenu(
     override fun open() {
         val claimsEnabled = configService.loadConfig().claimsEnabled
 
-        val gui = ChestGui(5, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 5, lang.legacy("menu.war_objectives.title")))
+        val gui = ChestGui(5, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 5, lang.guiTitle("menu.war_objectives.title")))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click == ClickType.SHIFT_LEFT || it.click == ClickType.SHIFT_RIGHT) it.isCancelled = true }
@@ -65,11 +68,11 @@ class WarObjectivesSelectionMenu(
 
     private fun addInfoItem(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.BOOK)
-            .name(lang.legacy("menu.war_objectives.info.name"))
-            .lore(lang.legacy("menu.war_objectives.info.description"))
-            .lore(lang.legacy("menu.war_objectives.info.win_condition"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_objectives.info.current", "count" to tempObjectives.size))
+            .name(lang.gui("menu.war_objectives.info.name"))
+            .lore(lang.gui("menu.war_objectives.info.description"))
+            .lore(lang.gui("menu.war_objectives.info.win_condition"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_objectives.info.current", "count" to tempObjectives.size))
 
         pane.addItem(GuiItem(item) {}, x, y)
     }
@@ -80,19 +83,19 @@ class WarObjectivesSelectionMenu(
         val currentValue = killObjective?.targetValue ?: 10
 
         val item = ItemStack.of(if (hasObjective) Material.DIAMOND_SWORD else Material.IRON_SWORD)
-            .name(if (hasObjective) lang.legacy("menu.war_objectives.kills.selected") else lang.legacy("menu.war_objectives.kills.name"))
-            .lore(lang.legacy("menu.war_objectives.kills.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_objectives.kills.current", "count" to currentValue))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_objectives.common.available_targets"))
-            .lore(lang.legacy("menu.war_objectives.kills.target_5"))
-            .lore(lang.legacy("menu.war_objectives.kills.target_10"))
-            .lore(lang.legacy("menu.war_objectives.kills.target_25"))
-            .lore(lang.legacy("menu.war_objectives.kills.target_50"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(if (hasObjective) lang.legacy("menu.war_objectives.common.cycle_target") else lang.legacy("menu.war_objectives.common.add"))
-            .lore(if (hasObjective) lang.legacy("menu.war_objectives.common.remove") else lang.legacy("menu.common.blank"))
+            .name(if (hasObjective) lang.gui("menu.war_objectives.kills.selected") else lang.gui("menu.war_objectives.kills.name"))
+            .lore(lang.gui("menu.war_objectives.kills.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_objectives.kills.current", "count" to currentValue))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_objectives.common.available_targets"))
+            .lore(lang.gui("menu.war_objectives.kills.target_5"))
+            .lore(lang.gui("menu.war_objectives.kills.target_10"))
+            .lore(lang.gui("menu.war_objectives.kills.target_25"))
+            .lore(lang.gui("menu.war_objectives.kills.target_50"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(if (hasObjective) lang.gui("menu.war_objectives.common.cycle_target") else lang.gui("menu.war_objectives.common.add"))
+            .lore(if (hasObjective) lang.gui("menu.war_objectives.common.remove") else lang.gui("menu.common.blank"))
 
         val guiItem = GuiItem(item) { event ->
             if (event.isRightClick && hasObjective) {
@@ -110,7 +113,9 @@ class WarObjectivesSelectionMenu(
                 tempObjectives.add(WarObjective(
                     type = ObjectiveType.KILLS,
                     targetValue = newTarget,
-                    description = lang.legacy("menu.war_objectives.kills.objective_description", "count" to newTarget)
+                    description = PlainTextComponentSerializer.plainText().serialize(
+                        lang.msg("menu.war_objectives.kills.objective_description", "count" to newTarget)
+                    )
                 ))
                 player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.2f)
             }
@@ -125,19 +130,19 @@ class WarObjectivesSelectionMenu(
         val currentValue = timeObjective?.targetValue ?: 24 // hours
 
         val item = ItemStack.of(if (hasObjective) Material.CLOCK else Material.STONE)
-            .name(if (hasObjective) lang.legacy("menu.war_objectives.survival.selected") else lang.legacy("menu.war_objectives.survival.name"))
-            .lore(lang.legacy("menu.war_objectives.survival.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_objectives.survival.current", "count" to currentValue))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_objectives.survival.available"))
-            .lore(lang.legacy("menu.war_objectives.survival.duration_12"))
-            .lore(lang.legacy("menu.war_objectives.survival.duration_24"))
-            .lore(lang.legacy("menu.war_objectives.survival.duration_48"))
-            .lore(lang.legacy("menu.war_objectives.survival.duration_72"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(if (hasObjective) lang.legacy("menu.war_objectives.common.cycle_duration") else lang.legacy("menu.war_objectives.common.add"))
-            .lore(if (hasObjective) lang.legacy("menu.war_objectives.common.remove") else lang.legacy("menu.common.blank"))
+            .name(if (hasObjective) lang.gui("menu.war_objectives.survival.selected") else lang.gui("menu.war_objectives.survival.name"))
+            .lore(lang.gui("menu.war_objectives.survival.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_objectives.survival.current", "count" to currentValue))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_objectives.survival.available"))
+            .lore(lang.gui("menu.war_objectives.survival.duration_12"))
+            .lore(lang.gui("menu.war_objectives.survival.duration_24"))
+            .lore(lang.gui("menu.war_objectives.survival.duration_48"))
+            .lore(lang.gui("menu.war_objectives.survival.duration_72"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(if (hasObjective) lang.gui("menu.war_objectives.common.cycle_duration") else lang.gui("menu.war_objectives.common.add"))
+            .lore(if (hasObjective) lang.gui("menu.war_objectives.common.remove") else lang.gui("menu.common.blank"))
 
         val guiItem = GuiItem(item) { event ->
             if (event.isRightClick && hasObjective) {
@@ -153,7 +158,9 @@ class WarObjectivesSelectionMenu(
                 tempObjectives.add(WarObjective(
                     type = ObjectiveType.TIME_SURVIVAL,
                     targetValue = newTarget,
-                    description = lang.legacy("menu.war_objectives.survival.objective_description", "count" to newTarget)
+                    description = PlainTextComponentSerializer.plainText().serialize(
+                        lang.msg("menu.war_objectives.survival.objective_description", "count" to newTarget)
+                    )
                 ))
                 player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.2f)
             }
@@ -168,19 +175,19 @@ class WarObjectivesSelectionMenu(
         val currentValue = claimObjective?.targetValue ?: 3
 
         val item = ItemStack.of(if (hasObjective) Material.GOLDEN_PICKAXE else Material.WOODEN_PICKAXE)
-            .name(if (hasObjective) lang.legacy("menu.war_objectives.claims.selected") else lang.legacy("menu.war_objectives.claims.name"))
-            .lore(lang.legacy("menu.war_objectives.claims.description"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_objectives.claims.current", "count" to currentValue))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.war_objectives.common.available_targets"))
-            .lore(lang.legacy("menu.war_objectives.claims.target_1"))
-            .lore(lang.legacy("menu.war_objectives.claims.target_3"))
-            .lore(lang.legacy("menu.war_objectives.claims.target_5"))
-            .lore(lang.legacy("menu.war_objectives.claims.target_10"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(if (hasObjective) lang.legacy("menu.war_objectives.common.cycle_target") else lang.legacy("menu.war_objectives.common.add"))
-            .lore(if (hasObjective) lang.legacy("menu.war_objectives.common.remove") else lang.legacy("menu.common.blank"))
+            .name(if (hasObjective) lang.gui("menu.war_objectives.claims.selected") else lang.gui("menu.war_objectives.claims.name"))
+            .lore(lang.gui("menu.war_objectives.claims.description"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_objectives.claims.current", "count" to currentValue))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.war_objectives.common.available_targets"))
+            .lore(lang.gui("menu.war_objectives.claims.target_1"))
+            .lore(lang.gui("menu.war_objectives.claims.target_3"))
+            .lore(lang.gui("menu.war_objectives.claims.target_5"))
+            .lore(lang.gui("menu.war_objectives.claims.target_10"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(if (hasObjective) lang.gui("menu.war_objectives.common.cycle_target") else lang.gui("menu.war_objectives.common.add"))
+            .lore(if (hasObjective) lang.gui("menu.war_objectives.common.remove") else lang.gui("menu.common.blank"))
 
         val guiItem = GuiItem(item) { event ->
             if (event.isRightClick && hasObjective) {
@@ -196,7 +203,9 @@ class WarObjectivesSelectionMenu(
                 tempObjectives.add(WarObjective(
                     type = ObjectiveType.CLAIMS_CAPTURED,
                     targetValue = newTarget,
-                    description = lang.legacy("menu.war_objectives.claims.objective_description", "count" to newTarget)
+                    description = PlainTextComponentSerializer.plainText().serialize(
+                        lang.msg("menu.war_objectives.claims.objective_description", "count" to newTarget)
+                    )
                 ))
                 player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.2f)
             }
@@ -209,14 +218,14 @@ class WarObjectivesSelectionMenu(
         val canSave = tempObjectives.isNotEmpty()
 
         val item = ItemStack.of(if (canSave) Material.LIME_WOOL else Material.GRAY_WOOL)
-            .name(if (canSave) lang.legacy("menu.war_objectives.save.name") else lang.legacy("menu.war_objectives.save.disabled"))
+            .name(if (canSave) lang.gui("menu.war_objectives.save.name") else lang.gui("menu.war_objectives.save.disabled"))
             .lore(if (canSave) {
-                lang.legacy("menu.war_objectives.save.selected", "count" to tempObjectives.size)
+                lang.gui("menu.war_objectives.save.selected", "count" to tempObjectives.size)
             } else {
-                lang.legacy("menu.war_objectives.save.requirement")
+                lang.gui("menu.war_objectives.save.requirement")
             })
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(if (canSave) lang.legacy("menu.war_objectives.save.click") else lang.legacy("menu.war_objectives.save.hint"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(if (canSave) lang.gui("menu.war_objectives.save.click") else lang.gui("menu.war_objectives.save.hint"))
 
         val guiItem = GuiItem(item) {
             if (canSave) {
@@ -234,8 +243,8 @@ class WarObjectivesSelectionMenu(
 
     private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.war_objectives.cancel.name"))
-            .lore(lang.legacy("menu.war_objectives.cancel.description"))
+            .name(lang.gui("menu.war_objectives.cancel.name"))
+            .lore(lang.gui("menu.war_objectives.cancel.description"))
 
         val guiItem = GuiItem(item) {
             player.sendMessage(lang.msg("menu.war_objectives.feedback.discarded"))
@@ -246,8 +255,8 @@ class WarObjectivesSelectionMenu(
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.war_objectives.back.name"))
-            .lore(lang.legacy("menu.war_objectives.back.description"))
+            .name(lang.gui("menu.war_objectives.back.name"))
+            .lore(lang.gui("menu.war_objectives.back.description"))
 
         val guiItem = GuiItem(item) {
             menuNavigator.goBack()

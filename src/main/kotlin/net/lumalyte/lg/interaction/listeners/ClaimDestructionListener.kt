@@ -62,7 +62,7 @@ class ClaimDestructionListener: Listener, KoinComponent {
         val playerId = event.player.uniqueId
         if (playerId != claim.playerId && !hasOverride) {
             val playerName = Bukkit.getOfflinePlayer(claim.playerId).name ?:
-                lang.legacy("general.name_error")
+                lang.msg("general.name_error")
             event.player.sendActionBar(
                 lang.msg("feedback.destruction.permission", "owner" to playerName)
                     .color(TextColor.color(255, 85, 85)))

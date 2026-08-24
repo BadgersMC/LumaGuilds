@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.RankService
@@ -35,7 +37,7 @@ class BedrockGuildRankManagementMenu(
         val editIcon = BedrockFormUtils.createFormImage(config, config.editIconUrl, config.editIconPath)
 
         val formBuilder = CustomForm.builder()
-            .title(lang.legacy("bedrock.rank_management.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.rank_management.title", "guild" to guild.name))
             .apply { editIcon?.let { icon(it) } }
 
         // Info section
@@ -44,26 +46,26 @@ class BedrockGuildRankManagementMenu(
         // Mode selection: Create or Edit
         val defaultMode = if (selectedRank != null) 1 else 0
         formBuilder.dropdown(
-            lang.raw("bedrock.rank_management.mode.label"),
+            lang.bedrock("bedrock.rank_management.mode.label"),
             listOf(
-                lang.raw("bedrock.rank_management.mode.create"),
-                lang.raw("bedrock.rank_management.mode.edit")
+                lang.bedrock("bedrock.rank_management.mode.create"),
+                lang.bedrock("bedrock.rank_management.mode.edit")
             ),
             defaultMode
         )
 
         // Rank name input
         formBuilder.input(
-            lang.raw("bedrock.rank_management.name.label"),
-            lang.raw("bedrock.rank_management.name.placeholder"),
+            lang.bedrock("bedrock.rank_management.name.label"),
+            lang.bedrock("bedrock.rank_management.name.placeholder"),
             selectedRank?.name ?: ""
         )
 
         // Existing ranks dropdown (for editing)
         val existingRanks = rankService.listRanks(guild.id).sortedBy { it.priority }
         formBuilder.dropdown(
-            lang.raw("bedrock.rank_management.select_rank"),
-            existingRanks.map { it.name }.ifEmpty { listOf(lang.raw("bedrock.rank_management.no_ranks")) },
+            lang.bedrock("bedrock.rank_management.select_rank"),
+            existingRanks.map { it.name }.ifEmpty { listOf(lang.bedrock("bedrock.rank_management.no_ranks")) },
             selectedRank?.let { existingRanks.indexOf(it).coerceAtLeast(0) } ?: 0
         )
 
@@ -71,7 +73,7 @@ class BedrockGuildRankManagementMenu(
         // Priority is now automatically assigned based on creation order
 
         // Permission toggles organized by category
-        formBuilder.label(lang.legacy("bedrock.rank_management.permissions"))
+        formBuilder.label(lang.bedrock("bedrock.rank_management.permissions"))
 
         // Filter out claims permissions if claims are disabled
         val mainConfig = configService.loadConfig()
@@ -116,24 +118,24 @@ class BedrockGuildRankManagementMenu(
     private fun createInfoSection(): String {
         val rankCount = rankService.getRankCount(guild.id)
         return if (selectedRank != null) {
-            lang.legacy(
+            lang.bedrock(
                 "bedrock.rank_management.info.editing",
                 "guild" to guild.name,
                 "count" to rankCount,
                 "rank" to selectedRank.name
             )
         } else {
-            lang.legacy("bedrock.rank_management.info.creating", "guild" to guild.name, "count" to rankCount)
+            lang.bedrock("bedrock.rank_management.info.creating", "guild" to guild.name, "count" to rankCount)
         }
     }
 
     private fun getPermissionDisplayName(permission: RankPermission): String {
         val key = "permission.${permission.name.lowercase().replace("_", ".")}"
-        return lang.raw(key)
+        return lang.bedrock(key)
     }
 
     private fun createValidationSection(): String {
-        return lang.legacy("bedrock.rank_management.validation.section")
+        return lang.bedrock("bedrock.rank_management.validation.section")
     }
 
     private fun handleFormResponse(response: org.geysermc.cumulus.response.CustomFormResponse) {

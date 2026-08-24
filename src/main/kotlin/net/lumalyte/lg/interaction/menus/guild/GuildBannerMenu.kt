@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -52,7 +54,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         activeMenus.remove(player.uniqueId)
 
         // Create a 3x9 GUI for banner selection
-        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.legacy("menu.guild_banner.title", "guild" to guild.name)))
+        val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.guild_banner.title", "guild" to guild.name)))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent ->
             // Allow clicks on the banner placement slot (slot 11)
@@ -102,29 +104,29 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
             val bannerItem = bannerData.deserializeToItemStack()
             if (bannerItem != null) {
                 bannerItem.clone()
-                    .name(lang.legacy("menu.guild_banner.current.name"))
-                    .lore(lang.legacy("menu.guild_banner.current.description"))
+                    .name(lang.gui("menu.guild_banner.current.name"))
+                    .lore(lang.gui("menu.guild_banner.current.description"))
             } else {
                 // Fallback to white banner if deserialization fails
                 ItemStack.of(Material.WHITE_BANNER)
-                    .name(lang.legacy("menu.guild_banner.current.error"))
-                    .lore(lang.legacy("menu.guild_banner.current.load_failed"))
-                    .lore(lang.legacy("menu.guild_banner.current.contact"))
+                    .name(lang.gui("menu.guild_banner.current.error"))
+                    .lore(lang.gui("menu.guild_banner.current.load_failed"))
+                    .lore(lang.gui("menu.guild_banner.current.contact"))
             }
         } ?: ItemStack.of(Material.WHITE_BANNER)
-            .name(lang.legacy("menu.guild_banner.current.none"))
-            .lore(lang.legacy("menu.guild_banner.current.not_configured"))
+            .name(lang.gui("menu.guild_banner.current.none"))
+            .lore(lang.gui("menu.guild_banner.current.not_configured"))
 
         pane.addItem(GuiItem(currentItem), x, y)
     }
 
     private fun addVisualBorder(pane: StaticPane) {
         val borderItem = ItemStack.of(Material.BLACK_STAINED_GLASS_PANE)
-            .name(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.guild_banner.slot.place"))
-            .lore(lang.legacy("menu.guild_banner.slot.set"))
-            .lore(lang.legacy("menu.common.blank"))
-            .lore(lang.legacy("menu.guild_banner.slot.supported"))
+            .name(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.guild_banner.slot.place"))
+            .lore(lang.gui("menu.guild_banner.slot.set"))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.guild_banner.slot.supported"))
 
         // Create a tight border around just the banner placement slot (2,1)
         val borderPositions = listOf(
@@ -142,8 +144,8 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         // Use a placeholder item that allows banner placement
         // The BannerSelectionListener will handle the actual placement logic
         val placeholderItem = ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE)
-            .name(lang.legacy("menu.guild_banner.slot.name"))
-            .lore(lang.legacy("menu.guild_banner.slot.description"))
+            .name(lang.gui("menu.guild_banner.slot.name"))
+            .lore(lang.gui("menu.guild_banner.slot.description"))
 
         val guiItem = GuiItem(placeholderItem)
 
@@ -153,16 +155,16 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
     private fun addClearBannerButton(pane: StaticPane, x: Int, y: Int) {
         val hasBanner = guild.banner != null
         val clearItem = ItemStack.of(if (hasBanner) Material.BARRIER else Material.GRAY_DYE)
-            .name(if (hasBanner) lang.legacy("menu.guild_banner.clear.name") else lang.legacy("menu.guild_banner.clear.disabled"))
-            .lore(if (hasBanner) {
-                listOf(
-                    lang.legacy("menu.guild_banner.clear.description"),
-                    lang.legacy("menu.guild_banner.clear.fallback"),
-                    lang.legacy("menu.guild_banner.clear.warning")
-                )
-            } else {
-                listOf(lang.legacy("menu.guild_banner.clear.none"))
-            })
+            .name(if (hasBanner) lang.gui("menu.guild_banner.clear.name") else lang.gui("menu.guild_banner.clear.disabled"))
+            .apply {
+                if (hasBanner) {
+                    lore(lang.gui("menu.guild_banner.clear.description"))
+                    lore(lang.gui("menu.guild_banner.clear.fallback"))
+                    lore(lang.gui("menu.guild_banner.clear.warning"))
+                } else {
+                    lore(lang.gui("menu.guild_banner.clear.none"))
+                }
+            }
 
         val guiItem = GuiItem(clearItem) {
             if (hasBanner) {
@@ -185,9 +187,9 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addApplyChangesButton(pane: StaticPane, x: Int, y: Int) {
         val applyItem = ItemStack.of(Material.LIME_CONCRETE)
-            .name(lang.legacy("menu.guild_banner.apply.name"))
-            .lore(lang.legacy("menu.guild_banner.apply.place"))
-            .lore(lang.legacy("menu.guild_banner.apply.click"))
+            .name(lang.gui("menu.guild_banner.apply.name"))
+            .lore(lang.gui("menu.guild_banner.apply.place"))
+            .lore(lang.gui("menu.guild_banner.apply.click"))
 
         val guiItem = GuiItem(applyItem) { event ->
             // Check the actual inventory contents when clicked (slot 11 = pane position 2,1)
@@ -230,8 +232,8 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
         val backItem = ItemStack.of(Material.ARROW)
-            .name(lang.legacy("menu.guild_banner.back.name"))
-            .lore(lang.legacy("menu.guild_banner.back.description"))
+            .name(lang.gui("menu.guild_banner.back.name"))
+            .lore(lang.gui("menu.guild_banner.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -255,19 +257,19 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
         val itemCustomModelData = config.bannerCopyItemCustomModelData
 
         val copyItem = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.legacy("menu.guild_banner.copy.name"))
-            .lore(lang.legacy("menu.guild_banner.copy.description"))
+            .name(lang.gui("menu.guild_banner.copy.name"))
+            .lore(lang.gui("menu.guild_banner.copy.description"))
 
         if (bannerCopyFree) {
-            copyItem.lore(lang.legacy("menu.guild_banner.copy.free"))
+            copyItem.lore(lang.gui("menu.guild_banner.copy.free"))
         } else if (useItemCost) {
             // Item-based cost
             try {
                 val material = Material.valueOf(itemMaterial.uppercase())
-                copyItem.lore(lang.legacy("menu.guild_banner.copy.item_cost", "amount" to itemAmount, "material" to material.name.lowercase().replace("_", " ")))
-                copyItem.lore(lang.legacy("menu.guild_banner.copy.inventory"))
+                copyItem.lore(lang.gui("menu.guild_banner.copy.item_cost", "amount" to itemAmount, "material" to material.name.lowercase().replace("_", " ")))
+                copyItem.lore(lang.gui("menu.guild_banner.copy.inventory"))
             } catch (e: IllegalArgumentException) {
-                copyItem.lore(lang.legacy("menu.guild_banner.copy.invalid_material"))
+                copyItem.lore(lang.gui("menu.guild_banner.copy.invalid_material"))
             }
         } else {
             // Coin-based cost or physical currency
@@ -275,19 +277,19 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 // Physical currency cost
                 val physicalCost = config.bannerCopyPhysicalCost
                 val materialName = physicalCurrencyService.getCurrencyMaterialName()
-                copyItem.lore(lang.legacy("menu.guild_banner.copy.item_cost", "amount" to physicalCost, "material" to materialName.lowercase().replace("_", " ")))
-                copyItem.lore(lang.legacy("menu.guild_banner.copy.guild_vault"))
+                copyItem.lore(lang.gui("menu.guild_banner.copy.item_cost", "amount" to physicalCost, "material" to materialName.lowercase().replace("_", " ")))
+                copyItem.lore(lang.gui("menu.guild_banner.copy.guild_vault"))
             } else {
                 // Virtual economy cost
-                copyItem.lore(lang.legacy("menu.guild_banner.copy.coin_cost", "amount" to bannerCopyCost))
-                copyItem.lore(if (chargeGuildBank) lang.legacy("menu.guild_banner.copy.guild_bank") else lang.legacy("menu.guild_banner.copy.personal"))
+                copyItem.lore(lang.gui("menu.guild_banner.copy.coin_cost", "amount" to bannerCopyCost))
+                copyItem.lore(if (chargeGuildBank) lang.gui("menu.guild_banner.copy.guild_bank") else lang.gui("menu.guild_banner.copy.personal"))
 
                 // Add fee information to lore if charging guild bank
                 if (chargeGuildBank) {
                     val fee = bankService.calculateWithdrawalFee(guild.id, bannerCopyCost)
                         if (fee > 0) {
                             val totalCostForDisplay = bannerCopyCost + fee
-                            copyItem.lore(lang.legacy("menu.guild_banner.copy.total", "total" to totalCostForDisplay, "fee" to fee))
+                            copyItem.lore(lang.gui("menu.guild_banner.copy.total", "total" to totalCostForDisplay, "fee" to fee))
                         }
                 }
             }

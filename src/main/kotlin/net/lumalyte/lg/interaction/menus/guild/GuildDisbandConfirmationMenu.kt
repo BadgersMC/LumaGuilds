@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -41,7 +43,7 @@ class GuildDisbandConfirmationMenu(
         val gui = ChestGui(3, MenuTitleBuilder.build(
             guild.guiTheme,
             3,
-            lang.legacy("menu.guild_confirmation.disband.title", "guild" to guild.name),
+            lang.guiTitle("menu.guild_confirmation.disband.title", "guild" to guild.name),
         ))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { e -> e.isCancelled = true }
@@ -53,18 +55,18 @@ class GuildDisbandConfirmationMenu(
 
         // Info item
         val infoItem = ItemStack.of(Material.BARRIER)
-            .name(lang.legacy("menu.guild_confirmation.disband.item.info.name"))
-            .lore(lang.legacy("menu.guild_confirmation.disband.item.info.lore.guild", "guild" to guild.name))
-            .lore(lang.legacy("menu.guild_confirmation.disband.item.info.lore.level", "level" to guild.level))
+            .name(lang.gui("menu.guild_confirmation.disband.item.info.name"))
+            .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.guild", "guild" to guild.name))
+            .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.level", "level" to guild.level))
             .lore("")
-            .lore(lang.legacy("menu.guild_confirmation.disband.item.info.lore.irreversible"))
-            .lore(lang.legacy("menu.guild_confirmation.disband.item.info.lore.vault_loss"))
+            .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.irreversible"))
+            .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.vault_loss"))
         pane.addItem(GuiItem(infoItem), 4, 0)
 
         // Confirm button
         val confirmItem = ItemStack.of(Material.RED_WOOL)
-            .name(lang.legacy("menu.guild_confirmation.disband.item.confirm.name"))
-            .lore(lang.legacy("menu.guild_confirmation.disband.item.confirm.lore"))
+            .name(lang.gui("menu.guild_confirmation.disband.item.confirm.name"))
+            .lore(lang.gui("menu.guild_confirmation.disband.item.confirm.lore"))
         pane.addItem(GuiItem(confirmItem) {
             val success = guildService.disbandGuild(guild.id, player.uniqueId)
             if (success) {
@@ -80,8 +82,8 @@ class GuildDisbandConfirmationMenu(
 
         // Cancel button
         val cancelItem = ItemStack.of(Material.GREEN_WOOL)
-            .name(lang.legacy("menu.guild_confirmation.common.cancel.name"))
-            .lore(lang.legacy("menu.guild_confirmation.common.cancel.lore"))
+            .name(lang.gui("menu.guild_confirmation.common.cancel.name"))
+            .lore(lang.gui("menu.guild_confirmation.common.cancel.lore"))
         pane.addItem(GuiItem(cancelItem) {
             menuNavigator.goBack()
         }, 5, 2)

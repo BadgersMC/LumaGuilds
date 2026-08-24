@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.plain
 
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
@@ -55,13 +56,13 @@ class RemoveFlagCommand : ClaimCommand(), KoinComponent {
      * Helper function to retrieve the claim name or a default error message if not found.
      */
     private fun getClaimName(playerId: UUID, claimId: UUID): String {
-        return getClaimDetails.execute(claimId)?.name ?: lang.legacy("general.name_error")
+        return getClaimDetails.execute(claimId)?.name ?: lang.plain("general.name_error")
     }
 
     /**
      * Helper function to retrieve the name of the permission.
      */
     private fun getFlagName(playerId: UUID, flag: Flag): String {
-        return lang.legacy(flag.nameKey)
+        return lang.plain(flag.nameKey)
     }
 }

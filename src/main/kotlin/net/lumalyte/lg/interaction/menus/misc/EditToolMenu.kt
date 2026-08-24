@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.misc
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -52,7 +54,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
     private val menuFactory: MenuFactory by inject()
 
     override fun open() {
-        val title = lang.legacy( "menu.edit_tool.title")
+        val title = lang.guiTitle("menu.edit_tool.title")
         val gui = ChestGui(1, title)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
@@ -69,11 +71,11 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Add mode switch icon
         val modeSwitchItem = ItemStack.of(Material.SPYGLASS)
-            .name(lang.legacy( "menu.edit_tool.item.change_mode.name"))
+            .name(lang.gui( "menu.edit_tool.item.change_mode.name"))
         val guiModeSwitchItem: GuiItem
         if (visualiserMode == 0) {
-            modeSwitchItem.lore(lang.legacy("menu.edit_tool.item.change_mode.lore.view_active"))
-            modeSwitchItem.lore(lang.legacy("menu.edit_tool.item.change_mode.lore.edit"))
+            modeSwitchItem.lore(lang.gui("menu.edit_tool.item.change_mode.lore.view_active"))
+            modeSwitchItem.lore(lang.gui("menu.edit_tool.item.change_mode.lore.edit"))
 
             guiModeSwitchItem = GuiItem(modeSwitchItem) {
                 toggleVisualiserMode.execute(player.uniqueId)
@@ -83,8 +85,8 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
             }
         }
         else {
-            modeSwitchItem.lore(lang.legacy("menu.edit_tool.item.change_mode.lore.view"))
-            modeSwitchItem.lore(lang.legacy("menu.edit_tool.item.change_mode.lore.edit_active"))
+            modeSwitchItem.lore(lang.gui("menu.edit_tool.item.change_mode.lore.view"))
+            modeSwitchItem.lore(lang.gui("menu.edit_tool.item.change_mode.lore.edit_active"))
             guiModeSwitchItem = GuiItem(modeSwitchItem) {
                 toggleVisualiserMode.execute(player.uniqueId)
                 clearVisualisation.execute(player.uniqueId)
@@ -103,8 +105,8 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         // Add a message item if selection is out of any claim
         if (partition == null) {
             val messageItem = ItemStack.of(Material.COAL)
-                .name(lang.legacy("menu.edit_tool.item.no_claim.name"))
-                .lore(lang.legacy("menu.edit_tool.item.no_claim.lore"))
+                .name(lang.gui("menu.edit_tool.item.no_claim.name"))
+                .lore(lang.gui("menu.edit_tool.item.no_claim.lore"))
 
             val guiMessageItem = GuiItem(messageItem) { guiEvent -> guiEvent.isCancelled = true }
             pane.addItem(guiMessageItem, 5, 0)
@@ -123,8 +125,8 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         val claim = getClaimDetails.execute(partition.claimId) ?: return
         if (claim.playerId != player.uniqueId && !hasOverride) {
             val messageItem = ItemStack.of(Material.COAL)
-                .name(lang.legacy("menu.edit_tool.item.no_permission.name"))
-                .lore(lang.legacy("menu.edit_tool.item.no_permission.lore"))
+                .name(lang.gui("menu.edit_tool.item.no_permission.name"))
+                .lore(lang.gui("menu.edit_tool.item.no_permission.lore"))
 
             val guiMessageItem = GuiItem(messageItem) { guiEvent -> guiEvent.isCancelled = true }
             pane.addItem(guiMessageItem, 5, 0)
@@ -136,30 +138,30 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         val partitions = getClaimPartitions.execute(claim.id)
         val blockCount = getClaimBlockCount.execute(claim.id)
         val claimItem = ItemStack.of(Material.BELL)
-            .name(lang.legacy("menu.edit_tool.item.claim.name"))
-            .lore(lang.legacy("menu.edit_tool.item.claim.lore.claim_name", "claim" to claim.name))
-            .lore(lang.legacy(
+            .name(lang.gui("menu.edit_tool.item.claim.name"))
+            .lore(lang.gui("menu.edit_tool.item.claim.lore.claim_name", "claim" to claim.name))
+            .lore(lang.gui(
                 "menu.edit_tool.item.claim.lore.location",
                 "x" to claim.position.x,
                 "y" to claim.position.y,
                 "z" to claim.position.z,
             ))
-            .lore(lang.legacy("menu.edit_tool.item.claim.lore.partitions", "partition_count" to partitions.count()))
-            .lore(lang.legacy("menu.edit_tool.item.claim.lore.blocks", "blocks" to blockCount))
+            .lore(lang.gui("menu.edit_tool.item.claim.lore.partitions", "partition_count" to partitions.count()))
+            .lore(lang.gui("menu.edit_tool.item.claim.lore.blocks", "blocks" to blockCount))
         val guiClaimItem = GuiItem(claimItem) { guiEvent -> guiEvent.isCancelled = true }
         pane.addItem(guiClaimItem, 3, 0)
 
         // Add partition information item
         val partitionItem = ItemStack.of(Material.PAPER)
-            .name(lang.legacy( "menu.edit_tool.item.partition.name"))
-            .lore(lang.legacy(
+            .name(lang.gui( "menu.edit_tool.item.partition.name"))
+            .lore(lang.gui(
                 "menu.edit_tool.item.partition.lore.location",
                 "lower_x" to partition.area.lowerPosition2D.x,
                 "lower_z" to partition.area.lowerPosition2D.z,
                 "upper_x" to partition.area.upperPosition2D.x,
                 "upper_z" to partition.area.upperPosition2D.z,
             ))
-            .lore(lang.legacy("menu.edit_tool.item.partition.lore.blocks", "blocks" to partition.area.getBlockCount()))
+            .lore(lang.gui("menu.edit_tool.item.partition.lore.blocks", "blocks" to partition.area.getBlockCount()))
         val guiPartitionItem = GuiItem(partitionItem) { guiEvent -> guiEvent.isCancelled = true }
         pane.addItem(guiPartitionItem, 5, 0)
 
@@ -167,8 +169,8 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
         when (canRemovePartition.execute(partition.id)) {
             CanRemovePartitionResult.Success -> {
                 val deleteItem = ItemStack.of(Material.REDSTONE)
-                    .name(lang.legacy("menu.edit_tool.item.delete.name"))
-                val deleteTitle = lang.legacy("menu.confirm_partition_delete.title")
+                    .name(lang.gui("menu.edit_tool.item.delete.name"))
+                val deleteTitle = lang.guiTitle("menu.confirm_partition_delete.title")
                 val confirmAction: () -> Unit = {
                     removePartition.execute(partition.id)
                     val event = PartitionModificationEvent(partition)
@@ -181,8 +183,8 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
             }
             else -> {
                 val deleteItem = ItemStack.of(Material.GUNPOWDER)
-                    .name(lang.legacy("menu.edit_tool.item.cannot_delete.name"))
-                    .lore(lang.legacy("menu.edit_tool.item.cannot_delete.lore"))
+                    .name(lang.gui("menu.edit_tool.item.cannot_delete.name"))
+                    .lore(lang.gui("menu.edit_tool.item.cannot_delete.lore"))
                 val guiDeleteItem = GuiItem(deleteItem) { guiEvent -> guiEvent.isCancelled = true }
                 pane.addItem(guiDeleteItem, 7, 0)
             }

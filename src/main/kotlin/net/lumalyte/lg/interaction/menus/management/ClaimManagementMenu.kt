@@ -1,6 +1,8 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -45,7 +47,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
 
     override fun open() {
         val playerId = player.uniqueId
-        val gui = ChestGui(1, lang.legacy("menu.management.title", "claim" to claim.name))
+        val gui = ChestGui(1, lang.guiTitle("menu.management.title", "claim" to claim.name))
         val pane = StaticPane(0, 0, 9, 1)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
@@ -54,8 +56,8 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
 
         // Add a give claim tool button
         val claimToolItem = ItemStack.of(Material.STICK)
-            .name(lang.legacy("menu.management.item.tool.name"))
-            .lore(lang.legacy("menu.management.item.tool.lore"))
+            .name(lang.gui("menu.management.item.tool.name"))
+            .lore(lang.gui("menu.management.item.tool.lore"))
             .enchantment(Enchantment.LUCK_OF_THE_SEA)
             .flag(ItemFlag.HIDE_ENCHANTS)
         val guiClaimToolItem = GuiItem(claimToolItem) { guiEvent ->
@@ -66,23 +68,23 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
 
         // Add update icon menu button
         val iconEditorItem = ItemStack.of(Material.matchMaterial(claim.icon) ?: Material.GRASS_BLOCK)
-            .name(lang.legacy("menu.management.item.icon.name"))
-            .lore(lang.legacy("menu.management.item.icon.lore"))
+            .name(lang.gui("menu.management.item.icon.name"))
+            .lore(lang.gui("menu.management.item.icon.lore"))
         val guiIconEditorItem = GuiItem(iconEditorItem) {
             menuNavigator.openMenu(menuFactory.createClaimIconMenu(player, menuNavigator, claim)) }
         pane.addItem(guiIconEditorItem, 2, 0)
 
         // Add a claim renaming button
         val renamingItem = ItemStack.of(Material.NAME_TAG)
-            .name(lang.legacy("menu.management.item.rename.name"))
-            .lore(lang.legacy("menu.management.item.rename.lore"))
+            .name(lang.gui("menu.management.item.rename.name"))
+            .lore(lang.gui("menu.management.item.rename.lore"))
         val guiRenamingItem = GuiItem(renamingItem) { menuNavigator.openMenu(
             ClaimRenamingMenu(menuNavigator, player, claim)) }
         pane.addItem(guiRenamingItem, 3, 0)
 
         // Add a player trusts button
         val playerTrustItem = ItemStack.of(Material.PLAYER_HEAD)
-            .name(lang.legacy("menu.management.item.permissions.name"))
+            .name(lang.gui("menu.management.item.permissions.name"))
             .lore("${getPlayersWithPermissionInClaim.execute(claim.id).count()}")
         val guiPlayerTrustItem = GuiItem(playerTrustItem) {
             menuNavigator.openMenu(menuFactory.createClaimTrustMenu(menuNavigator, player, claim)) }
@@ -91,8 +93,8 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
         // Add a convert to guild claim button (only for personal claims)
         if (claim.teamId == null) {
             val convertGuildItem = ItemStack.of(Material.WHITE_BANNER)
-                .name(lang.legacy("menu.management.item.convert_guild.name"))
-                .lore(lang.legacy("menu.management.item.convert_guild.lore"))
+                .name(lang.gui("menu.management.item.convert_guild.name"))
+                .lore(lang.gui("menu.management.item.convert_guild.lore"))
             val guiConvertGuildItem = GuiItem(convertGuildItem) { guiEvent ->
                 guiEvent.isCancelled = true
 
@@ -141,7 +143,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
 
         // Add a claim flags button
         val claimFlagsItem = ItemStack.of(Material.ACACIA_HANGING_SIGN)
-            .name(lang.legacy("menu.management.item.flags.name"))
+            .name(lang.gui("menu.management.item.flags.name"))
             .lore("${getClaimFlags.execute(claim.id).count()}")
         val guiClaimFlagsItem = GuiItem(claimFlagsItem) {
             menuNavigator.openMenu(menuFactory.createClaimFlagMenu(menuNavigator, player, claim)) }
@@ -149,8 +151,8 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
 
         // Add a claim move button
         val deleteItem = ItemStack.of(Material.PISTON)
-            .name(lang.legacy("menu.management.item.move.name"))
-            .lore(lang.legacy("menu.management.item.move.lore"))
+            .name(lang.gui("menu.management.item.move.name"))
+            .lore(lang.gui("menu.management.item.move.lore"))
         val guiDeleteItem = GuiItem(deleteItem) { guiEvent ->
             guiEvent.isCancelled = true
             givePlayerMoveTool.execute(player.uniqueId, claim.id)

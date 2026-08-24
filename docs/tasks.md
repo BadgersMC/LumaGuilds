@@ -190,6 +190,18 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Files: `interaction/commands/*`, Java/Bedrock menus, notification adapters, `lang/en_US.yml`, locale contract tests
   - Note: large — decompose into per-command sub-tasks during spec if the briefing exceeds ~1500 tokens.
 
+- [x] **LG-702** Keep nested Guild Emoji fallback values in MiniMessage format until the outer locale template renders
+  - Tag: `TDD`
+  - References: REQ-016
+  - Evidence: `GuildEmojiMenu` uses `lang.raw` for nested `current.not_set` and `input.none` fallbacks so the outer `lang.legacy` call never receives section-sign output; `MenuLocalizationTest` passed (Aug 24).
+  - Files: `interaction/menus/guild/GuildEmojiMenu.kt`, menu localization regression tests
+
+- [~] **LG-703** Replace legacy localization rendering with strict MiniMessage Components and surface-aware typography
+  - Tag: `TDD`
+  - References: REQ-016
+  - Evidence:
+  - Files: locale contract tests, GUI text renderer, item/menu rendering boundaries, Component-capable message paths, Bedrock plain-text adapter, `lang/en_US.yml`
+
 ---
 
 ## PR-8a — Java UI completion

@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.management
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.Menu
@@ -28,6 +29,6 @@ class ClaimTransferMenu(private val menuNavigator: MenuNavigator, private val cl
             menuNavigator.openMenu(menuFactory.createClaimTransferNamingMenu(menuNavigator, claim, player))
         }
         menuNavigator.openMenu(menuFactory.createConfirmationMenu(menuNavigator, player,
-            lang.legacy("menu.transfer.title"), confirmAction))
+            lang.guiTitle("menu.transfer.title"), confirmAction))
     }
 }

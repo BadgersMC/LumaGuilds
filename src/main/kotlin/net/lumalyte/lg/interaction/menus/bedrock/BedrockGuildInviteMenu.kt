@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.infrastructure.i18n.bedrock
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -31,12 +33,12 @@ class BedrockGuildInviteMenu(
         val inviteIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
         return CustomForm.builder()
-            .title(lang.legacy("bedrock.invite.title", "guild" to guild.name))
+            .title(lang.bedrock("bedrock.invite.title", "guild" to guild.name))
             .apply { inviteIcon?.let { icon(it) } }
-            .label(lang.raw("bedrock.invite.description"))
+            .label(lang.bedrock("bedrock.invite.description"))
             .input(
-                lang.raw("bedrock.invite.player.label"),
-                lang.raw("bedrock.invite.player.placeholder"),
+                lang.bedrock("bedrock.invite.player.label"),
+                lang.bedrock("bedrock.invite.player.placeholder"),
                 ""
             )
             .validResultHandler { response ->

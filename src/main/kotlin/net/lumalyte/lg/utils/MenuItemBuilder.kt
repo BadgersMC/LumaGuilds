@@ -1,5 +1,7 @@
 package net.lumalyte.lg.utils
 
+import net.lumalyte.lg.infrastructure.i18n.gui
+
 import net.lumalyte.lg.application.services.ConfigService
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.config.MainConfig
@@ -50,20 +52,19 @@ class MenuItemBuilder(
         var item = ItemStack.of(material)
         
         // Set display name using extension function (extension function now handles italic removal)
-        val displayName = if (localizationKey != null) {
-            lang.legacy(localizationKey)
+        item = if (localizationKey != null) {
+            item.name(lang.gui(localizationKey))
         } else {
-            itemConfig.name
+            item.name(itemConfig.name)
         }
-        item = item.name(displayName)
         
         // Set lore from localization keys using extension functions
         if (loreKeys.isNotEmpty()) {
             val loreLines = loreKeys.map { key ->
-                lang.legacy(key, *lorePlaceholders)
+                lang.gui(key, *lorePlaceholders)
             }
             // Extension function will handle italic removal, but preserve existing color codes
-            item = item.lore(loreLines)
+            loreLines.forEach { item.lore(it) }
         }
         
         // Set custom model data and enchantments manually
