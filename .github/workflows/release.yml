@@ -80,7 +80,10 @@ jobs:
           chmod +x gradlew
           ./gradlew :api:jar --no-daemon
           mkdir -p "$GITHUB_WORKSPACE/libs"
-          cp api/build/libs/api-11.6-SNAPSHOT.jar "$GITHUB_WORKSPACE/libs/CombatLogX-api.jar"
+          COMBATLOGX_JAR=$(find api/build/libs -maxdepth 1 -name '*.jar' \
+            ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+          test -n "$COMBATLOGX_JAR"
+          cp "$COMBATLOGX_JAR" "$GITHUB_WORKSPACE/libs/CombatLogX-api.jar"
 
       # Run the full test suite, including the Koin graph smoke test. The v2.1.23
       # release shipped a jar whose Koin graph referenced an unregistered type — a
