@@ -110,7 +110,7 @@ class GuildDashboard(
             menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
         }
 
-        // Row 2 (y=2): Settings, Progression, Diplomacy, Warfare
+        // Row 2 (y=2): Settings, Progression, Diplomacy, Warfare, Statistics
         addNavButton(pane, 0, 2, "lg_nav_settings", Material.COMMAND_BLOCK,
             lang.gui("menu.dashboard.item.settings.name"),
             lang.gui("menu.dashboard.item.settings.lore.line_1"),
@@ -137,6 +137,13 @@ class GuildDashboard(
             lang.gui("menu.dashboard.item.warfare.lore.line_1"),
             lang.gui("menu.dashboard.item.warfare.lore.line_2")) {
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
+        }
+
+        addNavButton(pane, 8, 2, "lg_nav_statistics", Material.BOOKSHELF,
+            lang.gui("menu.dashboard.item.statistics.name"),
+            lang.gui("menu.dashboard.item.statistics.lore.line_1"),
+            lang.gui("menu.dashboard.item.statistics.lore.line_2")) {
+            menuNavigator.openMenu(menuFactory.createGuildStatisticsMenu(menuNavigator, player, guild))
         }
 
         gui.show(player)

@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import org.junit.jupiter.api.Test
 import java.lang.reflect.Modifier
+import java.nio.file.Path
+import kotlin.test.assertTrue
 
 /**
  * Verifies that GuildDashboard does not add filler items to inventory slots.
@@ -39,9 +41,9 @@ internal class GuildDashboardFillerItemTest {
     }
 
     @Test
-    fun `GuildDashboard declares exactly 9 positioned items`() {
-        // The dashboard's open() method places 9 items into the pane:
-        // 8 nav buttons + 1 guild info display.
+    fun `GuildDashboard declares exactly 11 positioned items`() {
+        // The dashboard's open() method places 11 items into the pane:
+        // 10 nav buttons + 1 guild info display.
         // No filler items should occupy any slots.
         // Verify by checking the method count of addNavButton calls
         val source = javaClass.getResourceAsStream("/net/lumalyte/lg/interaction/menus/guild/GuildDashboard.kt")
@@ -49,5 +51,16 @@ internal class GuildDashboardFillerItemTest {
         // If we can't read the source, the test is vacuously true
         // (the important thing is the method doesn't exist, tested above)
         assert(true)
+    }
+
+    @Test
+    fun `GuildDashboard wires statistics below economy in the bottom right slot`() {
+        val source = Path.of(System.getProperty("user.dir"))
+            .resolve("src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildDashboard.kt")
+            .toFile()
+            .readText()
+
+        assertTrue(source.contains("addNavButton(pane, 8, 2, \"lg_nav_statistics\""))
+        assertTrue(source.contains("menuFactory.createGuildStatisticsMenu(menuNavigator, player, guild)"))
     }
 }

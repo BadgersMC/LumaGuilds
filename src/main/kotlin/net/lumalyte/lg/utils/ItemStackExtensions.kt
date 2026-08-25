@@ -27,7 +27,7 @@ fun ItemStack.amount(amount: Int): ItemStack {
 fun ItemStack.name(name: String): ItemStack {
     val meta = itemMeta ?: Bukkit.getItemFactory().getItemMeta(type) ?: return this
     // Create component and explicitly disable italic formatting to override Minecraft's default italic lore
-    val component = Component.text(name).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+    val component = Component.text(name).nonItalic()
     meta.itemName(component)
     // Hide all item attributes and metadata in menus
     meta.addItemFlags(
@@ -45,7 +45,7 @@ fun ItemStack.name(name: String): ItemStack {
 
 fun ItemStack.name(name: Component): ItemStack {
     val meta = itemMeta ?: Bukkit.getItemFactory().getItemMeta(type) ?: return this
-    meta.itemName(name.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE))
+    meta.itemName(name.nonItalic())
     meta.addItemFlags(
         ItemFlag.HIDE_ATTRIBUTES,
         ItemFlag.HIDE_ENCHANTS,
@@ -66,7 +66,7 @@ fun ItemStack.lore(text: String): ItemStack {
         lore = ArrayList()
     }
     // Create component and explicitly disable italic formatting to override Minecraft's default italic lore
-    val component = text.c().decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+    val component = text.c().nonItalic()
     lore.add(component)
     meta.lore(lore)
     itemMeta = meta
@@ -76,7 +76,7 @@ fun ItemStack.lore(text: String): ItemStack {
 fun ItemStack.lore(text: Component): ItemStack {
     val meta = itemMeta ?: Bukkit.getItemFactory().getItemMeta(type) ?: return this
     val lore = meta.lore()?.toMutableList() ?: mutableListOf()
-    lore += text.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+    lore += text.nonItalic()
     meta.lore(lore)
     itemMeta = meta
     return this
@@ -94,7 +94,7 @@ fun ItemStack.lore(text: List<*>): ItemStack {
             is Component -> line
             is String -> line.c()
             else -> Component.text(line.toString())
-        }.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+        }.nonItalic()
     }
     meta.lore(componentLore)
     itemMeta = meta
@@ -190,8 +190,7 @@ fun ItemStack.setStringMeta(key: String, value: String): ItemStack {
 }
 
 private fun String.c(): Component {
-    return LegacyComponentSerializer.legacyAmpersand().deserialize(this)
-        .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+    return LegacyComponentSerializer.legacyAmpersand().deserialize(this).nonItalic()
 }
 
 /**
