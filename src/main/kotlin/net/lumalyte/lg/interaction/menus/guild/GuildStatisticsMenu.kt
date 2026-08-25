@@ -38,6 +38,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private val guildService: GuildService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
+    private val leaderboardService: LeaderboardService by inject()
 
     private val logger = LoggerFactory.getLogger(GuildStatisticsMenu::class.java)
 
