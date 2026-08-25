@@ -206,17 +206,16 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-022
   - Evidence:
   - Files: `MenuItemConfig.kt:338`, menu builders
-- [ ] **LG-802** Real disband/leave/rank-list/promotion menus (replace "coming soon!" stubs)
+- [x] **LG-802** Real disband/leave/rank-list/promotion menus (replace "coming soon!" stubs)
   - Tag: `TDD`
   - References: REQ-030
-  - Evidence:
-  - Files: `GuildDisbandConfirmationMenu.kt:17`, `GuildLeaveConfirmationMenu.kt:17`, `GuildRankListMenu.kt:12`, `GuildPromotionMenu.kt:17`
-- [ ] **LG-803** War management buttons ×7 (details/list/incoming/outgoing/stats/history/detailed) implemented
+  - Evidence: All 4 menus already fully implemented — `GuildDisbandConfirmationMenu` (permission check, confirm/cancel, guildService.disbandGuild), `GuildLeaveConfirmationMenu` (confirm/cancel, memberService.removeMember), `GuildRankListMenu` (sorted paginated list with icons, permission display, overflow handling), `GuildPromotionMenu` (paginated member grid, left-click promote, right-click demote, reload-safe). Wired in MenuFactory since PR #126.
+  - Files: `GuildDisbandConfirmationMenu.kt`, `GuildLeaveConfirmationMenu.kt`, `GuildRankListMenu.kt`, `GuildPromotionMenu.kt`, `MenuFactory.kt:189-216,819-842`
+- [x] **LG-803** War management buttons ×7 (details/list/incoming/outgoing/stats/history/detailed) implemented
   - Tag: `TDD`
   - References: REQ-033
-  - Evidence:
-  - Files: war management menus
-  - Note: needs PR-4 war data.
+  - Evidence: All 7 submenus implemented with real ChestGui/PaginatedPane: `openWarDetailsMenu` (war info + objectives progress + WarStats + surrender/peace actions), `openWarListMenu` (PaginatedPane of active wars), `openIncomingDeclarationsMenu` (accept/reject declarations with left/right click), `openOutgoingDeclarationsMenu` (cancel pending declarations), `openWarStatsMenu` (wins/losses/draws/KDR summary), `openWarHistoryMenu` (PaginatedPane of past wars with outcome indicators), `openDetailedStatsMenu` (aggregate war analytics). 170 new lang keys added, `coming_soon` block removed. Dynamic keys declared in LocaleContractTest. All 600+ tests green.
+  - Files: `GuildWarManagementMenu.kt`, `lang/en_US.yml`, `LocaleContractTest.kt`
 - [ ] **LG-804** Party management buttons ×5 (details/list/send request/create/access settings) implemented
   - Tag: `TDD`
   - References: REQ-034

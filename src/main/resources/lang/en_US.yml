@@ -5424,28 +5424,154 @@ menu:
     back:
       name: "<yellow>Back to Control Panel"
       description: "<gray>Return to guild management"
-    coming_soon:
-      details:
-        title: "<yellow>War details menu coming soon!"
-        description: "<gray>This would show detailed war information, objectives, and management options."
-      list:
-        title: "<yellow>War list menu coming soon!"
-        description: "<gray>This would show all active wars your guild is involved in."
-      incoming:
-        title: "<yellow>Incoming declarations menu coming soon!"
-        description: "<gray>This would show war declarations against your guild that you can accept or reject."
-      outgoing:
-        title: "<yellow>Outgoing declarations menu coming soon!"
-        description: "<gray>This would show war declarations your guild has sent."
-      statistics:
-        title: "<yellow>War statistics menu coming soon!"
-        description: "<gray>This would show detailed war performance metrics."
-      history:
-        title: "<yellow>War history menu coming soon!"
-        description: "<gray>This would show a history of all past wars."
-      detailed_statistics:
-        title: "<yellow>Detailed statistics menu coming soon!"
-        description: "<gray>This would show comprehensive war statistics and analytics."
+    war_details:
+      title: "<red>War Details - vs <enemy>"
+      info:
+        enemy: "<red>⚔ vs <enemy>"
+        duration: "<gray>Duration: <white><days> days"
+        remaining: "<gray>Remaining: <white><days> days"
+        status_active: "<gray>Status: <dark_red>ACTIVE"
+        status_ended: "<gray>Status: <dark_gray>ENDED"
+        status_declared: "<gray>Status: <yellow>DECLARED"
+      objectives:
+        title: "<dark_aqua>Objectives"
+        entry: "<gray><type>: <white><current>/<target>"
+        completed: "<green>✔ <type>: <white><current>/<target>"
+      stats:
+        your_kills: "<green>Your Kills: <white><kills>"
+        your_deaths: "<red>Your Deaths: <white><deaths>"
+        enemy_kills: "<green><enemy> Kills: <white><kills>"
+        enemy_deaths: "<red><enemy> Deaths: <white><deaths>"
+        your_kdr: "<gray>Your KDR: <yellow><ratio>"
+        enemy_kdr: "<gray><enemy> KDR: <yellow><ratio>"
+      actions:
+        surrender:
+          name: "<red>Surrender"
+          lore: "<gray>End this war as a loss"
+        propose_peace:
+          name: "<green>☮ Propose Peace"
+          lore: "<gray>Negotiate peace terms"
+        back:
+          name: "<yellow>Back to War Management"
+          lore: "<gray>Return to war management"
+    war_list:
+      title: "<red>Active Wars"
+      item:
+        name: "<red>⚔ vs <enemy>"
+        lore:
+          duration: "<gray>Duration: <white><days> days"
+          kills: "<gray>Kills: <yellow><kills>"
+          deaths: "<red>Deaths: <red><deaths>"
+          click: "<gray>Click for details"
+      empty:
+        name: "<green>No Active Wars"
+        description: "<gray>Your guild is not at war"
+      navigation:
+        previous:
+          name: "<white>⬅ Previous"
+          description: "<gray>Go to previous page"
+        page: "<gray>Page <page>/<pages>"
+        next:
+          name: "<white>Next ➡"
+          description: "<gray>Go to next page"
+        back:
+          name: "<yellow>Back"
+          description: "<gray>Return to war management"
+    incoming_declarations:
+      title: "<green>Incoming Declarations"
+      item:
+        name: "<red>⚔ <enemy>"
+        lore:
+          duration: "<gray>Duration: <white><days> days"
+          expires: "<gray>Expires in: <yellow><hours>h"
+          accept: "<green>Left-click to ACCEPT"
+          reject: "<red>Right-click to REJECT"
+        expired:
+          name: "<gray>⚔ <enemy> (Expired)"
+      empty:
+        name: "<green>No Incoming Declarations"
+        description: "<gray>No one has declared war on your guild"
+      accepted: "<green>✅ War accepted! War has begun."
+      rejected: "<green>✅ Declaration rejected."
+      navigation:
+        previous:
+          name: "<white>⬅ Previous"
+          description: "<gray>Go to previous page"
+        page: "<gray>Page <page>/<pages>"
+        next:
+          name: "<white>Next ➡"
+          description: "<gray>Go to next page"
+        back:
+          name: "<yellow>Back"
+          description: "<gray>Return to war management"
+    outgoing_declarations:
+      title: "<yellow>Outgoing Declarations"
+      item:
+        name: "<red>⚔ vs <enemy>"
+        lore:
+          duration: "<gray>Duration: <white><days> days"
+          expires: "<gray>Expires in: <yellow><hours>h"
+          cancel: "<red>Click to CANCEL"
+        expired:
+          name: "<gray>⚔ vs <enemy> (Expired)"
+      empty:
+        name: "<yellow>No Outgoing Declarations"
+        description: "<gray>Your guild has not declared war"
+      cancelled: "<green>✅ Declaration cancelled."
+      navigation:
+        previous:
+          name: "<white>⬅ Previous"
+          description: "<gray>Go to previous page"
+        page: "<gray>Page <page>/<pages>"
+        next:
+          name: "<white>Next ➡"
+          description: "<gray>Go to next page"
+        back:
+          name: "<yellow>Back"
+          description: "<gray>Return to war management"
+    war_stats:
+      title: "<gold>War Statistics"
+      total: "<gray>Total Wars: <white><count>"
+      wins: "<gray>Wins: <green><count>"
+      losses: "<gray>Losses: <red><count>"
+      draws: "<gray>Draws: <yellow><count>"
+      win_rate: "<gray>Win Rate: <yellow><rate>%"
+      active: "<gray>Active: <dark_red><count>"
+      kills: "<gray>Total Kills: <green><count>"
+      deaths: "<gray>Total Deaths: <red><count>"
+      kdr: "<gray>Overall KDR: <yellow><ratio>"
+      objectives: "<gray>Objectives Completed: <white><count>"
+      claims_captured: "<gray>Claims Captured: <white><count>"
+      claims_lost: "<gray>Claims Lost: <red><count>"
+      back:
+        name: "<yellow>Back to War Management"
+        lore: "<gray>Return to war management"
+    war_history:
+      title: "<yellow>War History"
+      item:
+        won: "<green>⚔ vs <enemy> — VICTORY"
+        lost: "<red>⚔ vs <enemy> — DEFEAT"
+        draw: "<yellow>⚔ vs <enemy> — DRAW"
+        ended: "<gray>⚔ vs <enemy> — ENDED"
+        duration: "<gray>Duration: <white><days> days"
+        date: "<gray>Ended: <white><date>"
+      empty:
+        name: "<gray>No War History"
+        description: "<gray>Your guild has not fought any wars"
+      navigation:
+        previous:
+          name: "<white>⬅ Previous"
+          description: "<gray>Go to previous page"
+        page: "<gray>Page <page>/<pages>"
+        next:
+          name: "<white>Next ➡"
+          description: "<gray>Go to next page"
+        back:
+          name: "<yellow>Back"
+          description: "<gray>Return to war management"
+    feedback:
+      surrendered: "<green>✅ Your guild has surrendered. The war has ended."
+      action_failed: "<red>❌ Action failed. Please try again."
 
   enemies_list:
     title: "<red>Enemy Guilds"
