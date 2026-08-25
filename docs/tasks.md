@@ -232,6 +232,18 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence:
   - Files: `GuildSettingsMenu.kt:77`, `EnemiesListMenu.kt:232`, `PeaceAgreementMenu.kt:375,379`, `GuildBankStatisticsMenu.kt:410,417`, `GuildStatisticsMenu.kt:158`
 
+- [x] **LG-807** Wire Statistics into the Guild Dashboard bottom-right slot
+  - Tag: `TDD`
+  - References: REQ-032, REQ-087
+  - Evidence: RED/GREEN dashboard slot regression; locale/menu contract tests; 627-test full suite; shaded JAR boot-verified locally
+  - Files: `GuildDashboard.kt`, `lang/en_US.yml`, dashboard navigation test
+
+- [x] **LG-1709** Enforce non-italic text across all Java inventory menus
+  - Tag: `TDD`
+  - References: REQ-088
+  - Evidence: recursive decoration regression; Java-menu localization contract; 627-test full suite; visually approved in local testing
+  - Files: GUI component styler, ItemStack text extensions, styling/localization tests
+
 ---
 
 ## PR-8b — Bedrock & misc UX

@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.i18n
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.format.ShadowColor
+import net.lumalyte.lg.utils.nonItalic
 
 /** Surface-aware typography for translated inventory text. */
 object GuiTextStyler {
@@ -16,7 +17,7 @@ object GuiTextStyler {
     private val blackShadow = ShadowColor.shadowColor(0xFF000000.toInt())
 
     fun style(component: Component, protectedText: Set<String> = emptySet()): Component =
-        shadow(smallCaps(component, protectedText))
+        shadow(smallCaps(component, protectedText)).nonItalic()
 
     fun shadow(component: Component): Component = component.shadowColor(blackShadow)
 
