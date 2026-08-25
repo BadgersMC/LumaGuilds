@@ -151,9 +151,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addMemberStatsButton(pane: StaticPane, x: Int, y: Int) {
-        val memberCount = memberService.getMemberCount(guild.id)
-        // Placeholder until online membership tracking is implemented for this overview.
-        val onlineMembers = 0
+        val members = memberService.getGuildMembers(guild.id)
+        val memberCount = members.size
+        val onlineMembers = Bukkit.getOnlinePlayers().count { p -> members.any { it.playerId == p.uniqueId } }
 
         val item = ItemStack.of(Material.PLAYER_HEAD)
             .name(lang.gui("menu.statistics.item.members.name"))
@@ -162,7 +162,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .lore(lang.gui("menu.statistics.common.offline", "count" to memberCount - onlineMembers))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.statistics.common.activity_rate", "rate" to calculateActivityRate(memberCount, onlineMembers)))
-            .lore(lang.gui("menu.statistics.item.members.lore.placeholder"))
 
         val guiItem = GuiItem(item) {
             openMemberStatsDetail()

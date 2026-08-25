@@ -4158,8 +4158,6 @@ menu:
           action: '<gray>Click for detailed breakdown'
         name: '<dark_red>Kill Statistics'
       members:
-        lore:
-          placeholder: '<red>Online tracking coming soon!'
         name: '<aqua>Member Statistics'
       performance:
         name: '<yellow>Performance Metrics'
