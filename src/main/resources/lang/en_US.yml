@@ -4193,6 +4193,10 @@ menu:
         name: '<gold>📈 Kill Trends'
         lore:
           description: '<gray>Analyze kill patterns over time'
+      comparison:
+        name: '<gold>📊 Guild Comparison'
+        lore:
+          description: '<gray>Compare stats across all guilds'
       next_page:
         name: '<green>Next Page →'
       previous_page:
@@ -5470,6 +5474,7 @@ menu:
         status_active: "<gray>Status: <dark_red>ACTIVE"
         status_ended: "<gray>Status: <dark_gray>ENDED"
         status_declared: "<gray>Status: <yellow>DECLARED"
+        status_cancelled: "<gray>Status: <dark_gray>CANCELLED"
       objectives:
         title: "<dark_aqua>Objectives"
         entry: "<gray><type>: <white><current>/<target>"

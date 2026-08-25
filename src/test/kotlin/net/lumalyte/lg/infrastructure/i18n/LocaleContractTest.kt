@@ -57,6 +57,7 @@ class LocaleContractTest {
         "menu.guild_war_management.war_history.item.lost",
         "menu.guild_war_management.war_history.item.draw",
         "menu.guild_war_management.war_history.item.ended",
+        "menu.guild_war_management.war_details.info.status_cancelled",
     )
     private val helpTopicDynamicKeys = HelpTopics.all.flatMap { listOf(it.menuKey, it.pageKey) }.toSet()
     private val localizedHelperKeys = setOf(
@@ -75,6 +76,11 @@ class LocaleContractTest {
         "menu.statistics.chart.title.balance",
         "menu.statistics.chart.title.contributions",
         "menu.statistics.chart.title.kills",
+        "menu.statistics.chart.title.weeks_ago",
+        "menu.statistics.period.daily",
+        "menu.statistics.period.weekly",
+        "menu.statistics.period.monthly",
+        "menu.statistics.period.all_time",
         "menu.tag_editor.validation.double_brackets",
         "menu.tag_editor.validation.empty",
         "menu.tag_editor.validation.format_error",
@@ -201,6 +207,7 @@ class LocaleContractTest {
             "menu.guild_war_management.war_history.item.lost",
             "menu.guild_war_management.war_history.item.draw",
             "menu.guild_war_management.war_history.item.ended",
+            "menu.guild_war_management.war_details.info.status_cancelled",
         )
 
         assertEquals(expectedMenuStateKeys, finiteMenuStateKeys)

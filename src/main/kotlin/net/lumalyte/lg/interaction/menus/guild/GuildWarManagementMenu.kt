@@ -244,7 +244,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
                         WarStatus.ACTIVE -> "menu.guild_war_management.war_details.info.status_active"
                         WarStatus.ENDED -> "menu.guild_war_management.war_details.info.status_ended"
                         WarStatus.DECLARED -> "menu.guild_war_management.war_details.info.status_declared"
-                        WarStatus.CANCELLED -> "menu.guild_war_management.war_details.info.status_ended"
+                        WarStatus.CANCELLED -> "menu.guild_war_management.war_details.info.status_cancelled"
                     }
                 ))
         pane.addItem(GuiItem(infoItem), 0, 0)
@@ -340,6 +340,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     private fun buildWarListMenu() {
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
+        if (activeWars.isEmpty()) warListCurrentPage = 0
 
         val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6,
             lang.guiTitle("menu.guild_war_management.war_list.title")))
@@ -441,6 +442,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     private fun buildIncomingDeclarationsMenu() {
         val declarations = warService.getPendingDeclarationsForGuild(guild.id)
+        if (declarations.isEmpty()) incomingPage = 0
 
         val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6,
             lang.guiTitle("menu.guild_war_management.incoming_declarations.title")))
@@ -555,6 +557,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     private fun buildOutgoingDeclarationsMenu() {
         val declarations = warService.getDeclarationsByGuild(guild.id).filter { it.isValid }
+        if (declarations.isEmpty()) outgoingPage = 0
 
         val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6,
             lang.guiTitle("menu.guild_war_management.outgoing_declarations.title")))
@@ -703,6 +706,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     private fun buildWarHistoryMenu() {
         val history = warService.getWarHistory(guild.id, 50)
+        if (history.isEmpty()) historyPage = 0
 
         val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6,
             lang.guiTitle("menu.guild_war_management.war_history.title")))

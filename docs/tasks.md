@@ -171,7 +171,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-602** Implement real statistics drill-downs (Period Stats, Rivalry Stats, Achievements, Trend Analysis, Guild Comparison, Export) replacing 6 coming-soon stubs
   - Tag: `TDD`
   - References: REQ-032
-  - Evidence: 6 stubs replaced with real implementations: `openPeriodStatsMenu` (Daily/Weekly/Monthly/All-Time tabs via LeaderboardService), `openRivalryStatsDetail` (PaginatedPane of war history with KDR), `openAchievementsDetail` (8 achievements with lime/gray glass panes), `openTrendAnalysis` (↑/↓/→ indicators comparing periods), `openGuildComparison` (PaginatedPane with all guilds side-by-side), `exportGuildStatistics` (chat message with all key stats). Map/chart rendering (LG-601) removed per project owner decision — 6 renderer files deleted.
+  - Evidence: 6 stubs replaced with real implementations: `openPeriodStatsMenu` (4 periods shown with same all-time data — `LeaderboardService` injected but not yet wired for period queries), `openRivalryStatsDetail` (PaginatedPane of war history with KDR), `openAchievementsDetail` (8 achievements with lime/gray glass panes), `openTrendAnalysis` (current values only — arrows shown as "→" stable pending historical data), `openGuildComparison` (PaginatedPane with all guilds side-by-side), `exportGuildStatistics` (chat message with all key stats). Map/chart rendering (LG-601) removed per project owner decision — 6 renderer files deleted.
   - Files: `interaction/menus/guild/GuildStatisticsMenu.kt`
 
 ---
