@@ -48,6 +48,16 @@ class LocaleContractTest {
         "menu.bank.stats.activity.none",
         "menu.bank.stats.activity.recent",
         "menu.bank.stats.activity.very_high",
+        "menu.guild_war_management.war_details.info.status_active",
+        "menu.guild_war_management.war_details.info.status_ended",
+        "menu.guild_war_management.war_details.info.status_declared",
+        "menu.guild_war_management.war_details.objectives.completed",
+        "menu.guild_war_management.war_details.objectives.entry",
+        "menu.guild_war_management.war_history.item.won",
+        "menu.guild_war_management.war_history.item.lost",
+        "menu.guild_war_management.war_history.item.draw",
+        "menu.guild_war_management.war_history.item.ended",
+        "menu.guild_war_management.war_details.info.status_cancelled",
     )
     private val helpTopicDynamicKeys = HelpTopics.all.flatMap { listOf(it.menuKey, it.pageKey) }.toSet()
     private val localizedHelperKeys = setOf(
@@ -66,6 +76,11 @@ class LocaleContractTest {
         "menu.statistics.chart.title.balance",
         "menu.statistics.chart.title.contributions",
         "menu.statistics.chart.title.kills",
+        "menu.statistics.chart.title.weeks_ago",
+        "menu.statistics.period.daily",
+        "menu.statistics.period.weekly",
+        "menu.statistics.period.monthly",
+        "menu.statistics.period.all_time",
         "menu.tag_editor.validation.double_brackets",
         "menu.tag_editor.validation.empty",
         "menu.tag_editor.validation.format_error",
@@ -183,6 +198,16 @@ class LocaleContractTest {
             "menu.bank.stats.activity.none",
             "menu.bank.stats.activity.recent",
             "menu.bank.stats.activity.very_high",
+            "menu.guild_war_management.war_details.info.status_active",
+            "menu.guild_war_management.war_details.info.status_ended",
+            "menu.guild_war_management.war_details.info.status_declared",
+            "menu.guild_war_management.war_details.objectives.completed",
+            "menu.guild_war_management.war_details.objectives.entry",
+            "menu.guild_war_management.war_history.item.won",
+            "menu.guild_war_management.war_history.item.lost",
+            "menu.guild_war_management.war_history.item.draw",
+            "menu.guild_war_management.war_history.item.ended",
+            "menu.guild_war_management.war_details.info.status_cancelled",
         )
 
         assertEquals(expectedMenuStateKeys, finiteMenuStateKeys)
@@ -355,7 +380,7 @@ class LocaleContractTest {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
         const val BASELINE_UNUSED_KEYS = 0
-        const val BASELINE_DYNAMIC_CALLS = 36
+        const val BASELINE_DYNAMIC_CALLS = 39
         const val BASELINE_HARDCODED_PLAYER_TEXT = 0
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }

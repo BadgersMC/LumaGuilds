@@ -744,8 +744,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addComparisonButton(pane: StaticPane, x: Int, y: Int) {
         val item = ItemStack.of(Material.COMPARATOR)
-            .name(lang.gui("menu.statistics.item.kill_trends.name"))
-            .lore(lang.gui("menu.statistics.item.kill_trends.lore.description"))
+            .name(lang.gui("menu.statistics.item.comparison.name"))
+            .lore(lang.gui("menu.statistics.item.comparison.lore.description"))
             .lore(lang.gui("menu.common.blank"))
 
         val guiItem = GuiItem(item) {
@@ -1096,7 +1096,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val pane = StaticPane(0, 0, 9, 4)
             gui.addPane(pane)
 
-            val killStats = killService.getGuildKillStats(guild.id)
             val balance = try { bankService.getBalance(guild.id) } catch (_: Exception) { 0 }
 
             val periods = listOf(
@@ -1107,13 +1106,19 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             )
 
             periods.forEachIndexed { index, (key, period) ->
-                val item = ItemStack.of(Material.CLOCK)
-                    .name(lang.gui("menu.statistics.detail.period_item.name", "period" to lang.gui("menu.statistics.period.$key")))
-                    .lore(lang.gui("menu.statistics.common.total_kills", "count" to killStats.totalKills))
-                    .lore(lang.gui("menu.statistics.common.total_deaths", "count" to killStats.totalDeaths))
-                    .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
+                val entry = leaderboardService.getEntityEntry(LeaderboardType.KILLS, guild.id, period)
+                val periodKills = entry?.value?.toInt() ?: 0
+                val periodRank = entry?.rank
+
+                val name = lang.gui("menu.statistics.detail.period_item.name", "period" to lang.gui("menu.statistics.period.$key"))
+                val item = ItemStack.of(Material.CLOCK).name(name)
+                    .lore(lang.gui("menu.statistics.common.total_kills", "count" to periodKills))
                     .lore(lang.gui("menu.common.blank"))
                     .lore(lang.gui("menu.statistics.common.balance", "amount" to balance))
+
+                if (periodRank != null && periodRank > 0) {
+                    item.lore(lang.gui("menu.statistics.common.ranking", "rank" to periodRank))
+                }
 
                 pane.addItem(GuiItem(item), 1 + index * 2, 1)
             }
@@ -1130,12 +1135,21 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
+    private var rivalryPage = 0
+    private val rivalryItemsPerPage = 5
+
     private fun openRivalryStatsDetail() {
+        rivalryPage = 0
+        buildRivalryStatsDetail()
+    }
+
+    private fun buildRivalryStatsDetail() {
         try {
             val warHistory = warService.getWarHistory(guild.id, 100)
             val rivalGuildIds = warHistory.map { war ->
                 if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
             }.distinct()
+            if (rivalGuildIds.isEmpty()) rivalryPage = 0
 
             val gui = statisticsGui(6)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -1146,61 +1160,65 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val paginatedPane = PaginatedPane(0, 0, 9, 5)
             gui.addPane(paginatedPane)
 
-            val pages = rivalGuildIds.chunked(5).ifEmpty { listOf(emptyList()) }
+            val totalPages = (rivalGuildIds.size + rivalryItemsPerPage - 1) / rivalryItemsPerPage
+            if (rivalryPage >= totalPages && totalPages > 0) rivalryPage = totalPages - 1
 
-            pages.forEachIndexed { pageIndex, pageGuilds ->
-                val pagePane = StaticPane(0, 0, 9, 5)
-                pageGuilds.forEachIndexed { index, rivalId ->
-                    val enemyGuild = guildService.getGuild(rivalId)
-                    val enemyName: Any = enemyGuild?.name ?: lang.gui("menu.statistics.common.unknown_guild")
-                    val warsBetween = warHistory.filter { war ->
-                        (war.declaringGuildId == guild.id && war.defendingGuildId == rivalId) ||
-                                (war.declaringGuildId == rivalId && war.defendingGuildId == guild.id)
-                    }
-                    val wins = warsBetween.count { it.winner == guild.id }
-                    val losses = warsBetween.count { it.winner == rivalId }
-                    val draws = warsBetween.count { it.winner == null }
+            val startIndex = rivalryPage * rivalryItemsPerPage
+            val endIndex = minOf(startIndex + rivalryItemsPerPage, rivalGuildIds.size)
+            val pageGuilds = rivalGuildIds.subList(startIndex, endIndex)
 
-                    val killsBetween = killService.getKillsBetweenGuilds(guild.id, rivalId, 100)
-                    val guildKills = killsBetween.count { it.killerGuildId == guild.id }
-                    val enemyKills = killsBetween.count { it.killerGuildId == rivalId }
-                    val kdr = if (enemyKills > 0) String.format("%.2f", guildKills.toDouble() / enemyKills) else guildKills.toString()
-
-                    val item = ItemStack.of(Material.RED_BANNER)
-                        .name(lang.gui("menu.statistics.detail.rivalry.enemy", "guild" to enemyName))
-                        .lore(lang.gui("menu.statistics.common.wars_fought", "count" to warsBetween.size))
-                        .lore(lang.gui("menu.statistics.common.wins", "count" to wins))
-                        .lore(lang.gui("menu.statistics.common.losses", "count" to losses))
-                        .lore(lang.gui("menu.statistics.common.draws", "count" to draws))
-                        .lore(lang.gui("menu.common.blank"))
-                        .lore(lang.gui("menu.statistics.common.kdr_against", "ratio" to kdr))
-
-                    pagePane.addItem(GuiItem(item), 1, index)
+            val pagePane = StaticPane(0, 0, 9, 5)
+            pageGuilds.forEachIndexed { index, rivalId ->
+                val enemyGuild = guildService.getGuild(rivalId)
+                val enemyName: Any = enemyGuild?.name ?: lang.gui("menu.statistics.common.unknown_guild")
+                val warsBetween = warHistory.filter { war ->
+                    (war.declaringGuildId == guild.id && war.defendingGuildId == rivalId) ||
+                            (war.declaringGuildId == rivalId && war.defendingGuildId == guild.id)
                 }
-                paginatedPane.addPage(pagePane)
+                val wins = warsBetween.count { it.winner == guild.id }
+                val losses = warsBetween.count { it.winner == rivalId }
+                val draws = warsBetween.count { it.winner == null }
+
+                val killsBetween = killService.getKillsBetweenGuilds(guild.id, rivalId, 100)
+                val guildKills = killsBetween.count { it.killerGuildId == guild.id }
+                val enemyKills = killsBetween.count { it.killerGuildId == rivalId }
+                val kdr = if (enemyKills > 0) String.format("%.2f", guildKills.toDouble() / enemyKills) else guildKills.toString()
+
+                val item = ItemStack.of(Material.RED_BANNER)
+                    .name(lang.gui("menu.statistics.detail.rivalry.enemy", "guild" to enemyName))
+                    .lore(lang.gui("menu.statistics.common.wars_fought", "count" to warsBetween.size))
+                    .lore(lang.gui("menu.statistics.common.wins", "count" to wins))
+                    .lore(lang.gui("menu.statistics.common.losses", "count" to losses))
+                    .lore(lang.gui("menu.statistics.common.draws", "count" to draws))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.statistics.common.kdr_against", "ratio" to kdr))
+
+                pagePane.addItem(GuiItem(item), 1, index)
             }
+            paginatedPane.addPage(pagePane)
+            paginatedPane.page = 0
 
             val navPane = StaticPane(0, 5, 9, 1)
-            if (pages.size > 1) {
-                val prevItem = ItemStack.of(Material.ARROW)
-                    .name(lang.gui("menu.statistics.item.previous_page.name"))
-                navPane.addItem(GuiItem(prevItem) {
-                    val newPage = (paginatedPane.page - 1).coerceAtLeast(0)
-                    paginatedPane.page = newPage
-                    gui.update()
-                }, 2, 0)
-
-                val nextItem = ItemStack.of(Material.ARROW)
-                    .name(lang.gui("menu.statistics.item.next_page.name"))
-                navPane.addItem(GuiItem(nextItem) {
-                    val newPage = (paginatedPane.page + 1).coerceAtMost(pages.size - 1)
-                    paginatedPane.page = newPage
-                    gui.update()
-                }, 6, 0)
+            if (totalPages > 1) {
+                if (rivalryPage > 0) {
+                    val prevItem = ItemStack.of(Material.ARROW)
+                        .name(lang.gui("menu.statistics.item.previous_page.name"))
+                    navPane.addItem(GuiItem(prevItem) {
+                        rivalryPage--; buildRivalryStatsDetail()
+                    }, 2, 0)
+                }
 
                 val pageIndicator = ItemStack.of(Material.PAPER)
-                    .name(lang.gui("menu.statistics.common.page_info", "page" to 1, "total" to pages.size))
+                    .name(lang.gui("menu.statistics.common.page_info", "page" to rivalryPage + 1, "total" to totalPages))
                 navPane.addItem(GuiItem(pageIndicator), 4, 0)
+
+                if (rivalryPage < totalPages - 1) {
+                    val nextItem = ItemStack.of(Material.ARROW)
+                        .name(lang.gui("menu.statistics.item.next_page.name"))
+                    navPane.addItem(GuiItem(nextItem) {
+                        rivalryPage++; buildRivalryStatsDetail()
+                    }, 6, 0)
+                }
             }
 
             addBackButton(navPane, 8, 0)
@@ -1291,11 +1309,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             )
 
             trends.forEachIndexed { index, trend ->
-                val arrow = when {
-                    trend.currentValue.toDouble() > trend.previousValue.toDouble() -> "↑"
-                    trend.currentValue.toDouble() < trend.previousValue.toDouble() -> "↓"
-                    else -> "→"
-                }
+                val arrow = "→"
 
                 val item = ItemStack.of(Material.REPEATER)
                     .name(lang.gui("menu.statistics.detail.trend.${trend.label}.name"))
@@ -1317,7 +1331,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
+    private var comparisonPage = 0
+    private val comparisonItemsPerPage = 14
+
     private fun openGuildComparison() {
+        comparisonPage = 0
+        buildGuildComparison()
+    }
+
+    private fun buildGuildComparison() {
         try {
             val allGuilds = guildService.getAllGuilds().sortedBy { it.name }
 
@@ -1330,53 +1352,57 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val paginatedPane = PaginatedPane(0, 0, 9, 5)
             gui.addPane(paginatedPane)
 
-            val pages = allGuilds.chunked(14).ifEmpty { listOf(emptyList()) }
+            val totalPages = (allGuilds.size + comparisonItemsPerPage - 1) / comparisonItemsPerPage
+            if (comparisonPage >= totalPages && totalPages > 0) comparisonPage = totalPages - 1
 
-            pages.forEachIndexed { pageIndex, pageGuilds ->
-                val pagePane = StaticPane(0, 0, 9, 5)
-                pageGuilds.forEachIndexed { index, otherGuild ->
-                    val otherKills = killService.getGuildKillStats(otherGuild.id)
-                    val memberCount = memberService.getMemberCount(otherGuild.id)
-                    val warHistory = warService.getWarHistory(otherGuild.id, 50)
-                    val warsWon = warHistory.count { it.winner == otherGuild.id }
-                    val warsLost = warHistory.count { it.winner != null && it.winner != otherGuild.id }
-                    val balance = try { bankService.getBalance(otherGuild.id) } catch (_: Exception) { 0 }
+            val startIndex = comparisonPage * comparisonItemsPerPage
+            val endIndex = minOf(startIndex + comparisonItemsPerPage, allGuilds.size)
+            val pageGuilds = allGuilds.subList(startIndex, endIndex)
 
-                    val item = ItemStack.of(Material.PLAYER_HEAD)
-                        .name(lang.gui("menu.statistics.detail.comparison.guild", "guild" to otherGuild.name))
-                        .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(otherKills.killDeathRatio)))
-                        .lore(lang.gui("menu.statistics.common.war_record", "wins" to warsWon, "losses" to warsLost))
-                        .lore(lang.gui("menu.statistics.common.balance", "amount" to decimalFormat.format(balance)))
-                        .lore(lang.gui("menu.statistics.common.total_members", "count" to memberCount))
+            val pagePane = StaticPane(0, 0, 9, 5)
+            pageGuilds.forEachIndexed { index, otherGuild ->
+                val otherKills = killService.getGuildKillStats(otherGuild.id)
+                val memberCount = memberService.getMemberCount(otherGuild.id)
+                val warHistory = warService.getWarHistory(otherGuild.id, 50)
+                val warsWon = warHistory.count { it.winner == otherGuild.id }
+                val warsLost = warHistory.count { it.winner != null && it.winner != otherGuild.id }
+                val balance = try { bankService.getBalance(otherGuild.id) } catch (_: Exception) { 0 }
 
-                    val col = index % 7
-                    val row = index / 7
-                    pagePane.addItem(GuiItem(item), col, row)
-                }
-                paginatedPane.addPage(pagePane)
+                val item = ItemStack.of(Material.PLAYER_HEAD)
+                    .name(lang.gui("menu.statistics.detail.comparison.guild", "guild" to otherGuild.name))
+                    .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(otherKills.killDeathRatio)))
+                    .lore(lang.gui("menu.statistics.common.war_record", "wins" to warsWon, "losses" to warsLost))
+                    .lore(lang.gui("menu.statistics.common.balance", "amount" to decimalFormat.format(balance)))
+                    .lore(lang.gui("menu.statistics.common.total_members", "count" to memberCount))
+
+                val col = index % 7
+                val row = index / 7
+                pagePane.addItem(GuiItem(item), col, row)
             }
+            paginatedPane.addPage(pagePane)
+            paginatedPane.page = 0
 
             val navPane = StaticPane(0, 5, 9, 1)
-            if (pages.size > 1) {
-                val prevItem = ItemStack.of(Material.ARROW)
-                    .name(lang.gui("menu.statistics.item.previous_page.name"))
-                navPane.addItem(GuiItem(prevItem) {
-                    val newPage = (paginatedPane.page - 1).coerceAtLeast(0)
-                    paginatedPane.page = newPage
-                    gui.update()
-                }, 2, 0)
-
-                val nextItem = ItemStack.of(Material.ARROW)
-                    .name(lang.gui("menu.statistics.item.next_page.name"))
-                navPane.addItem(GuiItem(nextItem) {
-                    val newPage = (paginatedPane.page + 1).coerceAtMost(pages.size - 1)
-                    paginatedPane.page = newPage
-                    gui.update()
-                }, 6, 0)
+            if (totalPages > 1) {
+                if (comparisonPage > 0) {
+                    val prevItem = ItemStack.of(Material.ARROW)
+                        .name(lang.gui("menu.statistics.item.previous_page.name"))
+                    navPane.addItem(GuiItem(prevItem) {
+                        comparisonPage--; buildGuildComparison()
+                    }, 2, 0)
+                }
 
                 val pageIndicator = ItemStack.of(Material.PAPER)
-                    .name(lang.gui("menu.statistics.common.page_info", "page" to 1, "total" to pages.size))
+                    .name(lang.gui("menu.statistics.common.page_info", "page" to comparisonPage + 1, "total" to totalPages))
                 navPane.addItem(GuiItem(pageIndicator), 4, 0)
+
+                if (comparisonPage < totalPages - 1) {
+                    val nextItem = ItemStack.of(Material.ARROW)
+                        .name(lang.gui("menu.statistics.item.next_page.name"))
+                    navPane.addItem(GuiItem(nextItem) {
+                        comparisonPage++; buildGuildComparison()
+                    }, 6, 0)
+                }
             }
 
             addBackButton(navPane, 8, 0)
@@ -1394,7 +1420,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val warHistory = warService.getWarHistory(guild.id, 50)
             val warsWon = warHistory.count { it.winner == guild.id }
             val warsLost = warHistory.count { it.winner != null && it.winner != guild.id }
-            val balance = try { bankService.getBalance(guild.id) } catch (_: Exception) { 0.0 }
+            val balance = try { bankService.getBalance(guild.id) } catch (_: Exception) { 0 }
             val memberCount = memberService.getMemberCount(guild.id)
 
             val guildMembers = memberService.getGuildMembers(guild.id).map { it.playerId }
