@@ -171,7 +171,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-602** Implement real statistics drill-downs (Period Stats, Rivalry Stats, Achievements, Trend Analysis, Guild Comparison, Export) replacing 6 coming-soon stubs
   - Tag: `TDD`
   - References: REQ-032
-  - Evidence: 6 stubs replaced with real implementations: `openPeriodStatsMenu` (Daily/Weekly/Monthly/All-Time tabs via LeaderboardService), `openRivalryStatsDetail` (PaginatedPane of war history with KDR), `openAchievementsDetail` (8 achievements with lime/gray glass panes), `openTrendAnalysis` (↑/↓/→ indicators comparing periods), `openGuildComparison` (PaginatedPane with all guilds side-by-side), `exportGuildStatistics` (chat message with all key stats). Map/chart rendering (LG-601) removed per project owner decision — 6 renderer files deleted.
+  - Evidence: 6 stubs replaced with real implementations: `openPeriodStatsMenu` (4 periods shown with same all-time data — `LeaderboardService` injected but not yet wired for period queries), `openRivalryStatsDetail` (PaginatedPane of war history with KDR), `openAchievementsDetail` (8 achievements with lime/gray glass panes), `openTrendAnalysis` (current values only — arrows shown as "→" stable pending historical data), `openGuildComparison` (PaginatedPane with all guilds side-by-side), `exportGuildStatistics` (chat message with all key stats). Map/chart rendering (LG-601) removed per project owner decision — 6 renderer files deleted.
   - Files: `interaction/menus/guild/GuildStatisticsMenu.kt`
 
 ---
@@ -206,17 +206,16 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-022
   - Evidence:
   - Files: `MenuItemConfig.kt:338`, menu builders
-- [ ] **LG-802** Real disband/leave/rank-list/promotion menus (replace "coming soon!" stubs)
+- [x] **LG-802** Real disband/leave/rank-list/promotion menus (replace "coming soon!" stubs)
   - Tag: `TDD`
   - References: REQ-030
-  - Evidence:
-  - Files: `GuildDisbandConfirmationMenu.kt:17`, `GuildLeaveConfirmationMenu.kt:17`, `GuildRankListMenu.kt:12`, `GuildPromotionMenu.kt:17`
-- [ ] **LG-803** War management buttons ×7 (details/list/incoming/outgoing/stats/history/detailed) implemented
+  - Evidence: All 4 menus already fully implemented — `GuildDisbandConfirmationMenu` (permission check, confirm/cancel, guildService.disbandGuild), `GuildLeaveConfirmationMenu` (confirm/cancel, memberService.removeMember), `GuildRankListMenu` (sorted paginated list with icons, permission display, overflow handling), `GuildPromotionMenu` (paginated member grid, left-click promote, right-click demote, reload-safe). Wired in MenuFactory since PR #126.
+  - Files: `GuildDisbandConfirmationMenu.kt`, `GuildLeaveConfirmationMenu.kt`, `GuildRankListMenu.kt`, `GuildPromotionMenu.kt`, `MenuFactory.kt:189-216,819-842`
+- [x] **LG-803** War management buttons ×7 (details/list/incoming/outgoing/stats/history/detailed) implemented
   - Tag: `TDD`
   - References: REQ-033
-  - Evidence:
-  - Files: war management menus
-  - Note: needs PR-4 war data.
+  - Evidence: All 7 submenus implemented with real ChestGui/PaginatedPane: `openWarDetailsMenu` (war info + objectives progress + WarStats + surrender/peace actions), `openWarListMenu` (PaginatedPane of active wars), `openIncomingDeclarationsMenu` (accept/reject declarations with left/right click), `openOutgoingDeclarationsMenu` (cancel pending declarations), `openWarStatsMenu` (wins/losses/draws/KDR summary), `openWarHistoryMenu` (PaginatedPane of past wars with outcome indicators), `openDetailedStatsMenu` (aggregate war analytics). 170 new lang keys added, `coming_soon` block removed. Dynamic keys declared in LocaleContractTest. All 600+ tests green.
+  - Files: `GuildWarManagementMenu.kt`, `lang/en_US.yml`, `LocaleContractTest.kt`
 - [ ] **LG-804** Party management buttons ×5 (details/list/send request/create/access settings) implemented
   - Tag: `TDD`
   - References: REQ-034
@@ -493,13 +492,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [ ] **LG-1601** Domain model: `QuestDefinition`, `GuildQuestProgress`, `QuestAction` enum (with `ExperienceSource` mapping), and `ExperienceSource` reuse — domain layer, zero Bukkit imports
   - Tag: `TDD`
   - References: REQ-074, REQ-075, REQ-081
-  - Evidence: Domain model, semantic validator, bounded generator, overflow protection, and zero-Bukkit layer checks are GREEN; the newly specified direct `QuestAction`→`ExperienceSource` mapping remains open.
+- Evidence: Domain model, semantic validator, bounded generator, overflow protection, and zero-Bukkit layer checks are GREEN; the newly specified direct `QuestAction`→`ExperienceSource` mapping remains open.
   - Files: `domain/values/QuestAction.kt`, `domain/entities/QuestDefinition.kt`, `domain/entities/GuildQuestProgress.kt`
 
 - [ ] **LG-1602** Quest persistence: `QuestRepository` (interface in application/persistence) + `QuestRepositorySQLite` with migration for per-guild quest progress (quest_id, guild_id, current_count, completed, claimed, reset_timestamp)
   - Tag: `TDD`
   - References: REQ-080
-  - Evidence: Repository, atomic active-set replacement, claim-preserving upserts, per-recipient payout markers, cleanup, and restart tests are GREEN; the newly specified quest-table migration chain remains open.
+- Evidence: Repository, atomic active-set replacement, claim-preserving upserts, per-recipient payout markers, cleanup, and restart tests are GREEN; the newly specified quest-table migration chain remains open.
   - Files: `application/persistence/QuestRepository.kt`, `infrastructure/persistence/guilds/QuestRepositorySQLite.kt`, `migrations/*.sql`
 
 - [x] **LG-1603** Quest config loading: load weekly quest definitions from config (quests section in config.yml or separate quests.yml) — action type, target count, reward tier (COMMON/CHALLENGING/HEADLINE/CONDITIONED), optional item rewards, lang keys, enabled flag
@@ -511,7 +510,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [ ] **LG-1604** Quest progress listener: Bukkit event listener in infrastructure/listeners that increments quest progress matching active weekly quests, using `QuestAction`→`ExperienceSource` mapping for provenance compatibility. Claims-adjacent event handlers (block break/place for MINE_BLOCKS/PLACE_BLOCKS) SHALL gate on `claims_enabled` before registering — the listener SHALL NOT register claim-related handlers when claims are disabled.
   - Tag: `TDD`
   - References: REQ-075
-  - Evidence: Listener covers the configured activity families and provenance reconciliation; the newly specified `claims_enabled` registration gate remains open.
+- Evidence: Listener covers the configured activity families and provenance reconciliation; the newly specified `claims_enabled` registration gate remains open.
   - Files: `infrastructure/listeners/QuestProgressListener.kt`
 
 - [x] **LG-1605** Quest lifecycle service: weekly rotation (auto-reset at configured time, default Monday 00:00 UTC), quest activation/deactivation, guild progress aggregation, completion detection per quest
