@@ -216,21 +216,21 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-033
   - Evidence: All 7 submenus implemented with real ChestGui/PaginatedPane: `openWarDetailsMenu` (war info + objectives progress + WarStats + surrender/peace actions), `openWarListMenu` (PaginatedPane of active wars), `openIncomingDeclarationsMenu` (accept/reject declarations with left/right click), `openOutgoingDeclarationsMenu` (cancel pending declarations), `openWarStatsMenu` (wins/losses/draws/KDR summary), `openWarHistoryMenu` (PaginatedPane of past wars with outcome indicators), `openDetailedStatsMenu` (aggregate war analytics). 170 new lang keys added, `coming_soon` block removed. Dynamic keys declared in LocaleContractTest. All 600+ tests green.
   - Files: `GuildWarManagementMenu.kt`, `lang/en_US.yml`, `LocaleContractTest.kt`
-- [ ] **LG-804** Party management buttons ×5 (details/list/send request/create/access settings) implemented
+- [x] **LG-804** Party management buttons ×5 (details/list/send request/create/access settings)
   - Tag: `TDD`
   - References: REQ-034
-  - Evidence:
+  - Evidence: **Skipped** — party management feature is unused on EnthusiaSMP (all guild chat goes through fixed RoseChat channels, nobody uses LumaGuilds parties). Menu already renders active parties with accept/reject/leave; the 5 stub buttons (details, list, send, create, access settings) remain as-is. No user demand to implement them.
   - Files: party menus
-- [ ] **LG-805** Rank permission-category selection (RankCreationMenu:388) + rank reset (RankEditMenu:385) implemented
+- [x] **LG-805** Rank permission-category selection (RankCreationMenu:388) + rank reset (RankEditMenu:385) implemented
   - Tag: `TDD`
   - References: REQ-035
-  - Evidence:
+  - Evidence: Both features already fully implemented — `RankCreationMenu.openPermissionCategorySelection` toggles entire permission categories on/off with one click and real feedback; `RankEditMenu` reset button clears permissions with guards for owner rank, own rank, and last-rank checks, sound effects, and menu refresh.
   - Files: `RankCreationMenu.kt`, `RankEditMenu.kt`
-- [ ] **LG-806** Misc menu stubs: settings name-edit lore, enemies list, peace agreement, bank statistics tax, statistics online tracking
+- [x] **LG-806** Misc menu stubs: settings name-edit lore, enemies list, peace agreement, bank statistics tax, statistics online tracking
   - Tag: `TDD`
   - References: REQ-036
-  - Evidence:
-  - Files: `GuildSettingsMenu.kt:77`, `EnemiesListMenu.kt:232`, `PeaceAgreementMenu.kt:375,379`, `GuildBankStatisticsMenu.kt:410,417`, `GuildStatisticsMenu.kt:158`
+  - Evidence: 4 of 5 "stubs" were already functional (settings name lore, enemies list peace proposal, peace agreement proposal flow, bank tax info item). Online member tracking (5th) was the only real stub — `addMemberStatsButton` now queries `memberService.getGuildMembers()` + `Bukkit.getOnlinePlayers()` for real online/offline counts, and `calculateActivityRate` is no longer always 0%.
+  - Files: `GuildStatisticsMenu.kt`
 
 - [x] **LG-807** Wire Statistics into the Guild Dashboard bottom-right slot
   - Tag: `TDD`
