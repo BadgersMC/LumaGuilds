@@ -360,3 +360,9 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 
 ### REQ-079
 **Optional feature.** WHERE PlaceholderAPI is installed THE SYSTEM SHALL expose read-only timer, quest-definition, guild-progress, completion, reward, and weekly-bonus placeholders with documented safe fallbacks for missing players, guilds, quests, and active weeks; placeholder evaluation SHALL NOT generate, reset, claim, reward, or otherwise mutate quest state.
+
+### REQ-087
+**Event-driven.** WHEN a guild member opens the main Guild Dashboard THEN THE SYSTEM SHALL show a Statistics navigation item in the bottom-right slot directly below Economy, and activating it SHALL open the guild statistics menu.
+
+### REQ-088
+**Ubiquitous.** THE SYSTEM SHALL render every Java inventory-menu item name and lore component with italic decoration explicitly disabled at every component depth while preserving colors and all other intentional text decorations.

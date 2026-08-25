@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.i18n
 
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -37,5 +38,19 @@ class GuiTextStylerTest {
 
         assertEquals("ʀᴀɴᴋ 10", plain.serialize(converted))
         assertNull(converted.shadowColor())
+    }
+
+    @Test
+    fun `menu styling disables italics at every component depth while preserving other decoration`() {
+        val translated = Component.text("Parent")
+            .decorate(TextDecoration.ITALIC)
+            .append(Component.text("Child", NamedTextColor.GOLD).decorate(TextDecoration.ITALIC, TextDecoration.BOLD))
+
+        val styled = GuiTextStyler.style(translated)
+
+        assertEquals(TextDecoration.State.FALSE, styled.decoration(TextDecoration.ITALIC))
+        assertEquals(TextDecoration.State.FALSE, styled.children().single().decoration(TextDecoration.ITALIC))
+        assertEquals(TextDecoration.State.TRUE, styled.children().single().decoration(TextDecoration.BOLD))
+        assertEquals(NamedTextColor.GOLD, styled.children().single().color())
     }
 }
