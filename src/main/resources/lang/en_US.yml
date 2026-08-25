@@ -2863,6 +2863,11 @@ menu:
           line_1: '<gray>Guild name, tag, emoji,'
           line_2: '<gray>home, mode, and more'
         name: '<yellow>Settings'
+      statistics:
+        lore:
+          line_1: '<gray>Performance, rivalries,'
+          line_2: '<gray>achievements, and trends'
+        name: '<green>Statistics'
       warfare:
         lore:
           line_1: '<gray>Declare war, manage'
