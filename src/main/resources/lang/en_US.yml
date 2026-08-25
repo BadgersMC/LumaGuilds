@@ -4043,6 +4043,7 @@ menu:
       balance: '<gold>Balance: <white><amount>'
       kdr_against: '<gray>KDR: <yellow><ratio>'
       page_info: '<gray>Page <page>/<total>'
+      ranking: '<gray>Rank: <yellow>#<rank>'
       wars_fought: '<gray>Wars Fought: <yellow><count>'
       war_record: '<gray>War Record: <green><wins>W</green> <red><losses>L</red>'
     detail:
