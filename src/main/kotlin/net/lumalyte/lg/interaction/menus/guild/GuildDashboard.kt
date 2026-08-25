@@ -96,7 +96,14 @@ class GuildDashboard(
             menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
         }
 
-        addNavButton(pane, 6, 1, "lg_nav_economy", Material.GOLD_BLOCK,
+        addNavButton(pane, 6, 1, "lg_nav_quests", Material.CLOCK,
+            lang.gui("menu.dashboard.item.quests.name"),
+            lang.gui("menu.dashboard.item.quests.lore.line_1"),
+            lang.gui("menu.dashboard.item.quests.lore.line_2")) {
+            menuNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
+        }
+
+        addNavButton(pane, 8, 1, "lg_nav_economy", Material.GOLD_BLOCK,
             lang.gui("menu.dashboard.item.economy.name"),
             lang.gui("menu.dashboard.item.economy.lore.line_1"),
             lang.gui("menu.dashboard.item.economy.lore.line_2")) {
