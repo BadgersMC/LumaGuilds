@@ -28,7 +28,7 @@ class BankServiceBukkit(
     private val configService: ConfigService,
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
     private val guildService: net.lumalyte.lg.application.services.GuildService,
-    private val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager
+    private val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
 ) : BankService {
 
     companion object {

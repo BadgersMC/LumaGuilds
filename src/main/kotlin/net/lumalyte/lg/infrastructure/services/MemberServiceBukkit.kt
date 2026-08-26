@@ -9,9 +9,9 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
-import net.lumalyte.lg.domain.events.GuildMemberJoinEvent
-import net.lumalyte.lg.domain.events.GuildMemberRemovedEvent
-import net.lumalyte.lg.domain.events.GuildOwnershipTransferEvent
+import net.lumalyte.lg.api.events.GuildMemberJoinEvent
+import net.lumalyte.lg.api.events.GuildMemberRemovedEvent
+import net.lumalyte.lg.api.events.GuildOwnershipTransferEvent
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
 import java.time.Instant

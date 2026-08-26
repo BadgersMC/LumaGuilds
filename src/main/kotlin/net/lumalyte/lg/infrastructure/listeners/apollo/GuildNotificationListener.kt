@@ -2,8 +2,8 @@ package net.lumalyte.lg.infrastructure.listeners.apollo
 
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
-import net.lumalyte.lg.domain.events.GuildMemberJoinEvent
-import net.lumalyte.lg.domain.events.GuildRelationChangeEvent
+import net.lumalyte.lg.api.events.GuildMemberJoinEvent
+import net.lumalyte.lg.api.events.GuildRelationChangeEvent
 import net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService
 import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler

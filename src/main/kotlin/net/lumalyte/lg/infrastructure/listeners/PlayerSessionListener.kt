@@ -1,6 +1,6 @@
 package net.lumalyte.lg.infrastructure.listeners
 
-import net.lumalyte.lg.application.services.VaultInventoryManager
+import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
 import net.lumalyte.lg.infrastructure.services.TeleportationService
 import net.lumalyte.lg.infrastructure.services.VaultHologramService
 import net.lumalyte.lg.interaction.listeners.GuildChatListener

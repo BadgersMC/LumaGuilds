@@ -15,12 +15,42 @@ Packages outside the three layers (`api/`, `common/`, `config/`, `di/`, `integra
 ## Forbidden Domain Annotations
 
 ```yaml
-forbidden: []
+forbidden:
+  - org.bukkit
+  - org.koin
+  - co.aikar
+  - net.kyori
 ```
 
-> **Status: target-state contract, not yet fully enforced.** `LayerRulesTest` enforces layer dependencies (domain ← application ← infrastructure), but Konsist's `dependsOnNothing()` only checks other *declared layers* — external packages (`org.bukkit`, `org.koin`, `co.aikar`, `net.kyori`) are not flagged. The domain currently imports `org.bukkit.event.Event` in 21 files (38 imports, mostly `domain/events/*`). Decoupling is tracked as REQ-045 / LG-1001; once merged, the forbidden list becomes executable and LayerRulesTest gains an external-package assertion.
+> **Status: executable contract.** `LayerRulesTest` enforces both layer dependencies (domain ← application ← infrastructure) and the external-package prefixes listed above. The remaining violations are removed by REQ-045 / LG-1001.
 
 The `domain/**` package must stay free of framework and server annotations (no Bukkit/Spigot imports, no Koin annotations, no ACF annotations, no Adventure types). When a domain model needs a port to the server, define it in `domain` and implement it in `infrastructure`.
+
+### Public Guild Event Migration
+
+Public guild events remain synchronous, non-cancellable Bukkit events with unchanged constructors and payload properties. External plugins must replace `net.lumalyte.lg.domain.events` imports with `net.lumalyte.lg.api.events` and recompile.
+
+| Old package | New package |
+|---|---|
+| `net.lumalyte.lg.domain.events.GuildBankDepositEvent` | `net.lumalyte.lg.api.events.GuildBankDepositEvent` |
+| `net.lumalyte.lg.domain.events.GuildBannerChangedEvent` | `net.lumalyte.lg.api.events.GuildBannerChangedEvent` |
+| `net.lumalyte.lg.domain.events.GuildBannerSetEvent` | `net.lumalyte.lg.api.events.GuildBannerSetEvent` |
+| `net.lumalyte.lg.domain.events.GuildCreatedEvent` | `net.lumalyte.lg.api.events.GuildCreatedEvent` |
+| `net.lumalyte.lg.domain.events.GuildDisbandedEvent` | `net.lumalyte.lg.api.events.GuildDisbandedEvent` |
+| `net.lumalyte.lg.domain.events.GuildHomeSetEvent` | `net.lumalyte.lg.api.events.GuildHomeSetEvent` |
+| `net.lumalyte.lg.domain.events.GuildLeaderboardRankChangeEvent` | `net.lumalyte.lg.api.events.GuildLeaderboardRankChangeEvent` |
+| `net.lumalyte.lg.domain.events.GuildLevelUpEvent` | `net.lumalyte.lg.api.events.GuildLevelUpEvent` |
+| `net.lumalyte.lg.domain.events.GuildMemberJoinEvent` | `net.lumalyte.lg.api.events.GuildMemberJoinEvent` |
+| `net.lumalyte.lg.domain.events.GuildMemberRemovedEvent` | `net.lumalyte.lg.api.events.GuildMemberRemovedEvent` |
+| `net.lumalyte.lg.domain.events.GuildOwnershipTransferEvent` | `net.lumalyte.lg.api.events.GuildOwnershipTransferEvent` |
+| `net.lumalyte.lg.domain.events.GuildRelationChangeEvent` | `net.lumalyte.lg.api.events.GuildRelationChangeEvent` |
+| `net.lumalyte.lg.domain.events.GuildTrackingChangedEvent` | `net.lumalyte.lg.api.events.GuildTrackingChangedEvent` |
+| `net.lumalyte.lg.domain.events.GuildVaultPlacedEvent` | `net.lumalyte.lg.api.events.GuildVaultPlacedEvent` |
+| `net.lumalyte.lg.domain.events.GuildWarDeclaredEvent` | `net.lumalyte.lg.api.events.GuildWarDeclaredEvent` |
+| `net.lumalyte.lg.domain.events.GuildWarEndEvent` | `net.lumalyte.lg.api.events.GuildWarEndEvent` |
+| `net.lumalyte.lg.domain.events.GuildWarKillEvent` | `net.lumalyte.lg.api.events.GuildWarKillEvent` |
+
+The audited migration moved 17 Bukkit events to `api.events` and three Bukkit-backed state types out of `domain.entities` into the infrastructure-owned vault subsystem. `LayerRulesTest` enforces both layer direction and the documented external forbidden-prefix list.
 
 ## Authoring Conventions
 

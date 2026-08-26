@@ -4,7 +4,7 @@ import net.lumalyte.lg.application.persistence.LeaderboardRepository
 import net.lumalyte.lg.application.services.ActivityType
 import net.lumalyte.lg.application.services.LeaderboardService
 import net.lumalyte.lg.domain.entities.*
-import net.lumalyte.lg.domain.events.GuildLeaderboardRankChangeEvent
+import net.lumalyte.lg.api.events.GuildLeaderboardRankChangeEvent
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
 import java.time.*

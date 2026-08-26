@@ -1,9 +1,9 @@
-package net.lumalyte.lg.application.services
+package net.lumalyte.lg.infrastructure.vault
 
 import io.mockk.*
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.config.VaultConfig
-import net.lumalyte.lg.domain.entities.VaultInventory
+import net.lumalyte.lg.infrastructure.vault.VaultInventory
 import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger
 import org.bukkit.Material
 import org.bukkit.inventory.Inventory

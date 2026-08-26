@@ -4,7 +4,7 @@ import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Party
 import net.lumalyte.lg.domain.entities.PartyStatus
-import net.lumalyte.lg.domain.events.GuildCreatedEvent
+import net.lumalyte.lg.api.events.GuildCreatedEvent
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.slf4j.LoggerFactory

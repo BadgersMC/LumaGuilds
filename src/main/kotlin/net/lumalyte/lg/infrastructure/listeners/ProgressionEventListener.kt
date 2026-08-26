@@ -20,10 +20,10 @@ import net.lumalyte.lg.application.services.PlaytimeActivityService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.config.ProgressionConfig
-import net.lumalyte.lg.domain.events.GuildBankDepositEvent
-import net.lumalyte.lg.domain.events.GuildDisbandedEvent
-import net.lumalyte.lg.domain.events.GuildMemberJoinEvent
-import net.lumalyte.lg.domain.events.GuildMemberRemovedEvent
+import net.lumalyte.lg.api.events.GuildBankDepositEvent
+import net.lumalyte.lg.api.events.GuildDisbandedEvent
+import net.lumalyte.lg.api.events.GuildMemberJoinEvent
+import net.lumalyte.lg.api.events.GuildMemberRemovedEvent
 import net.lumalyte.lg.infrastructure.services.AsyncTaskService
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
