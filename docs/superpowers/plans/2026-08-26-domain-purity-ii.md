@@ -248,6 +248,8 @@ fun `public guild events remain synchronous`() {
 }
 ```
 
+Also define the expected Kotlin payload contract with `KType` values (for example, `typeOf<Set<UUID>>()`, `typeOf<Int?>()`, and `typeOf<UUID?>()`). For every primary-constructor parameter, assert its name and complete `KType` match the expected contract, and assert the corresponding public property exposes that same type. This protects generic arguments and Kotlin nullability in addition to the erased Java constructor signature.
+
 Import the five referenced domain types, `java.nio.file.Files`, `java.nio.file.Path`, and `java.util.UUID`.
 
 - [ ] **Step 2: Run the event contract and verify RED**
@@ -577,12 +579,25 @@ git commit -m "docs(architecture): close domain purity migration"
 - [ ] **Step 8: Push and open PR-10**
 
 ```powershell
-git push -u origin codex/pr10-domain-purity
+.\gradlew.bat clean test --no-daemon
+if ($LASTEXITCODE -ne 0) {
+    throw "Gradle verification failed with exit code $LASTEXITCODE"
+}
+
 $testCount = 0
+$failureCount = 0
+$errorCount = 0
 Get-ChildItem build/test-results/test -Filter 'TEST-*.xml' | ForEach-Object {
     $xml = [xml](Get-Content $_.FullName)
     $testCount += [int]$xml.testsuite.tests
+    $failureCount += [int]$xml.testsuite.failures
+    $errorCount += [int]$xml.testsuite.errors
 }
+if ($failureCount -ne 0 -or $errorCount -ne 0) {
+    throw "Test reports contain $failureCount failures and $errorCount errors"
+}
+
+git push -u origin codex/pr10-domain-purity
 $body = "PR-10 implements REQ-045: 17 public Bukkit events move to api.events, the Bukkit vault cache moves to infrastructure.vault, and LayerRulesTest enforces the documented forbidden domain imports. See docs/implementation.md for the external-plugin import migration table. Verification: $testCount tests passed with zero failures."
 gh pr create --repo BadgersMC/LumaGuilds --base main --head codex/pr10-domain-purity --title "PR-10: enforce Bukkit-free domain" --body $body
 ```
