@@ -3,7 +3,7 @@ package net.lumalyte.lg.interaction.menus.guild
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
-import net.lumalyte.lg.application.services.VaultInventoryManager
+import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionLogger
 import net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType

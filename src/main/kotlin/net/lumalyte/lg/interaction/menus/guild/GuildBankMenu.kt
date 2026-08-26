@@ -49,7 +49,7 @@ class GuildBankMenu(
     private var guild: Guild
 ) : Menu, KoinComponent, Listener {
 
-    private val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager by inject()
+    private val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager by inject()
     private val lang: LangService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val guildService: net.lumalyte.lg.application.services.GuildService by inject()
@@ -510,7 +510,7 @@ class GuildBankMenu(
             }
 
             // Deposit to guild vault (adds to virtual gold balance)
-            val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager by inject()
+            val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager by inject()
             val newBalance = vaultInventoryManager.depositGold(guild.id, player.uniqueId, amount.toLong())
             vaultInventoryManager.forceFlush(guild.id)
 
@@ -547,7 +547,7 @@ class GuildBankMenu(
 
         return try {
             // Get vault inventory manager
-            val vaultInventoryManager: net.lumalyte.lg.application.services.VaultInventoryManager by inject()
+            val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager by inject()
 
             // Check if guild has sufficient gold
             val currentVaultBalance = vaultInventoryManager.getGoldBalance(guild.id)

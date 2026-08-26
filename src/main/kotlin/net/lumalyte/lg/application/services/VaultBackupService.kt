@@ -1,7 +1,5 @@
 package net.lumalyte.lg.application.services
 
-import net.lumalyte.lg.domain.entities.VaultInventory
-import org.bukkit.inventory.ItemStack
 import java.time.Instant
 import java.util.UUID
 

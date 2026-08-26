@@ -1,13 +1,10 @@
-package net.lumalyte.lg.application.services
+package net.lumalyte.lg.infrastructure.vault
 
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import net.lumalyte.lg.application.utilities.ValuableItemChecker
 import net.lumalyte.lg.config.VaultConfig
-import net.lumalyte.lg.domain.entities.VaultInventory
-import net.lumalyte.lg.domain.entities.ViewerSession
-import net.lumalyte.lg.domain.entities.WriteBuffer
 import net.lumalyte.lg.interaction.inventory.VaultInventoryHolder
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player

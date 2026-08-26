@@ -1,4 +1,4 @@
-package net.lumalyte.lg.application.services
+package net.lumalyte.lg.infrastructure.vault
 
 import io.mockk.*
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
