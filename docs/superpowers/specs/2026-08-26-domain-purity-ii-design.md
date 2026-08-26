@@ -72,10 +72,16 @@ plugins.
 models, not domain entities.
 
 Moving only those types would create an application-to-infrastructure
-dependency because `VaultInventoryManager` and `VaultBackupService` currently
-consume them from `application.services`. Move all five classes together into
-an infrastructure vault package. Update Koin bindings and consumers to their
-new packages without changing public methods or runtime behavior.
+dependency because `VaultInventoryManager` consumes them and
+`VaultAutoSaveService` directly consumes the manager while scheduling Bukkit
+tasks. Move all five classes together into an infrastructure vault package:
+the three state types, `VaultInventoryManager`, and `VaultAutoSaveService`.
+Update Koin bindings and consumers to their new packages without changing
+public methods or runtime behavior.
+
+`VaultBackupService` remains an application port. Its current imports of
+`VaultInventory` and Bukkit `ItemStack` are unused and must be removed;
+`VaultBackupServiceBukkit` remains its infrastructure implementation.
 
 The move preserves:
 
@@ -125,7 +131,9 @@ graph, as already documented.
 2. Move the 17 events to `api.events`; update all producers, listeners, and
    tests in one compile-safe slice.
 3. Add event API contract tests for inheritance, handler lists, and payloads.
-4. Move the five Bukkit vault classes as one subsystem; update DI and consumers.
+4. Move the three state classes, `VaultInventoryManager`, and
+   `VaultAutoSaveService` as one subsystem; remove stale framework imports from
+   the application backup port; update DI and consumers.
 5. Run vault behavior tests and add missing regression coverage before changing
    behavior-sensitive code.
 6. Populate the implementation guide contract and migration table.
@@ -153,7 +161,9 @@ Completion requires all of the following:
 - no production classes under `domain.events`;
 - all 17 replacement Bukkit events available under `api.events`;
 - every existing event producer and listener compiling against the new API;
-- the five Bukkit vault classes located outside domain and application;
+- the three Bukkit vault state classes, `VaultInventoryManager`, and
+  `VaultAutoSaveService` located outside domain and application;
+- `VaultBackupService` remaining as a framework-free application port;
 - executable enforcement of the documented forbidden prefixes;
 - event and vault regression tests passing; and
 - the full repository verification suite and documentation lint passing.
