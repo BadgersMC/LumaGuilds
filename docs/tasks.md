@@ -334,7 +334,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-047
   - Evidence: Java Clear now persists `null` immediately through the existing permission-checked `GuildService.setEmoji` path, matching the Bedrock blank-input behavior; `GuildEmojiClearTest` reproduces the prior state-reset bug and is GREEN; full clean suite is GREEN (661 tests).
   - Files: `interaction/menus/guild/GuildEmojiMenu.kt`, `GuildEmojiClearTest.kt`
-- [ ] **LG-1104** Custom guild emojis via config — guild-name → Nexo permission grant for all members
+- [~] **LG-1104** Custom guild emojis via config — guild-name → Nexo permission grant for all members
   - Tag: `TDD`
   - References: REQ-048
   - Evidence:
