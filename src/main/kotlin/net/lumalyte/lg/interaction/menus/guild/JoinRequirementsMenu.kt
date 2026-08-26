@@ -42,7 +42,6 @@ class JoinRequirementsMenu(
     private val configService: ConfigService by inject()
     private val physicalCurrencyService: PhysicalCurrencyService by inject()
     private val bankService: BankService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
 
     override fun open() {
@@ -161,9 +160,8 @@ class JoinRequirementsMenu(
             .lore(lang.gui("menu.join_requirements.cancel.effect"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
-            player.closeInventory()
-            // Return to LFG menu - will be implemented later
             player.sendMessage(lang.msg("menu.join_requirements.feedback.cancelled", "guild" to guild.name))
+            returnToLfgBrowser(menuNavigator)
         }
         pane.addItem(cancelGuiItem, x, y)
     }

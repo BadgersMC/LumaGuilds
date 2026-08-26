@@ -371,7 +371,7 @@ class BedrockGuildPartyManagementMenu(
 
     // Helper methods for handling responses and opening sub-menus
     private fun openPartyDetailsMenu(party: Party) {
-        player.sendMessage(lang.msg("bedrock.party.management.party_details_coming_soon"))
+        player.sendMessage("<yellow>Party details are not available in Bedrock.")
     }
 
     private fun openIncomingRequestsMenu() {
@@ -617,7 +617,7 @@ class BedrockGuildPartyManagementMenu(
     }
 
     private fun openPartyPermissionsMenu() {
-        player.sendMessage(lang.msg("bedrock.party.management.settings_permissions_coming_soon"))
+        player.sendMessage("<yellow>Party permissions configuration is not available in Bedrock.")
     }
 
     private fun openPartyInfoMenu() {

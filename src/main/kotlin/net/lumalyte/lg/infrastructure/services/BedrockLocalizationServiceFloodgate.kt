@@ -10,7 +10,11 @@ import java.util.logging.Logger
  * Implementation of BedrockLocalizationService using Floodgate for locale detection.
  */
 class BedrockLocalizationServiceFloodgate(
-    private val logger: Logger
+    private val logger: Logger,
+    private val floodgateLanguageCode: (UUID) -> String? = { playerId ->
+        val api = org.geysermc.floodgate.api.FloodgateApi.getInstance()
+        if (api.isFloodgatePlayer(playerId)) api.getPlayer(playerId)?.languageCode else null
+    }
 ) : BedrockLocalizationService {
 
     // RTL language codes (ISO 639-1)
@@ -30,24 +34,26 @@ class BedrockLocalizationServiceFloodgate(
     }
 
     override fun getBedrockLocale(player: Player): Locale {
-        return try {
-            // Try to get Floodgate-specific locale first
-            val floodgateApi = org.geysermc.floodgate.api.FloodgateApi.getInstance()
-            if (floodgateApi != null && floodgateApi.isFloodgatePlayer(player.uniqueId)) {
-                // Floodgate stores locale information, but we need to access it differently
-                // For now, fall back to player's Minecraft locale
-                // TODO: Implement proper Floodgate locale detection when API allows
-                logger.fine("Using Minecraft locale for Bedrock player ${player.name}")
+        val languageCode = try {
+            floodgateLanguageCode(player.uniqueId)
+        } catch (error: Exception) {
+            logger.fine("Floodgate locale unavailable for ${player.name}: ${error.message}")
+            null
+        }
+        if (!languageCode.isNullOrBlank()) {
+            logger.fine("Resolved Bedrock locale for ${player.name}: $languageCode")
+            val parsed = Locale.forLanguageTag(languageCode.replace('_', '-'))
+            if (parsed.language.isNotBlank()) {
+                return parsed
             }
+        }
 
-            // Use player's Minecraft locale as fallback
+        return try {
             val minecraftLocale = player.locale()
             Locale.forLanguageTag(minecraftLocale.toString().replace('_', '-'))
-
         } catch (e: Exception) {
-            // Floodgate integration - catching all exceptions for compatibility
             logger.warning("Error detecting Bedrock locale for player ${player.name}: ${e.message}")
-            Locale.ENGLISH // Default fallback
+            Locale.ENGLISH
         }
     }
 
