@@ -329,11 +329,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-046
   - Evidence: `/g balance` renders the unified live vault-gold balance; `/g baltop` overlays buffered in-memory balances onto persisted rows before ranking; the `@guilds` completion contract returns every guild name. Focused regression tests and the clean repository suite are GREEN.
   - Files: `infrastructure/vault/VaultInventoryManager.kt`, `VaultLeaderboardConsistencyTest`, `GuildBalanceCommandContractTest`, existing `CommandLocalizationTest`
-- [ ] **LG-1103** Guild emoji removal — emoji can be cleared once set
+- [x] **LG-1103** Guild emoji removal — emoji can be cleared once set
   - Tag: `TDD`
   - References: REQ-047
-  - Evidence:
-  - Files: emoji menu/service
+  - Evidence: Java Clear now persists `null` immediately through the existing permission-checked `GuildService.setEmoji` path, matching the Bedrock blank-input behavior; `GuildEmojiClearTest` reproduces the prior state-reset bug and is GREEN; full clean suite is GREEN (661 tests).
+  - Files: `interaction/menus/guild/GuildEmojiMenu.kt`, `GuildEmojiClearTest.kt`
 - [ ] **LG-1104** Custom guild emojis via config — guild-name → Nexo permission grant for all members
   - Tag: `TDD`
   - References: REQ-048

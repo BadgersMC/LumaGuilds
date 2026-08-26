@@ -283,15 +283,16 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
         val guiItem = GuiItem(clearItem) {
             println("[LumaGuilds] GuildEmojiMenu: Clear button clicked")
-            println("[LumaGuilds] GuildEmojiMenu: Setting inputEmoji to null")
-
-            inputEmoji = null
-            validationError = null
-
-            player.sendMessage(lang.msg("menu.guild_emoji.feedback.cleared"))
-
-            // Refresh the menu to show updated state
-            open()
+            val success = guildService.setEmoji(guild.id, null, player.uniqueId)
+            if (success) {
+                currentEmoji = null
+                inputEmoji = null
+                validationError = null
+                player.sendMessage(lang.msg("menu.guild_emoji.feedback.cleared"))
+                open()
+            } else {
+                player.sendMessage(lang.msg("menu.guild_emoji.feedback.save_failed"))
+            }
         }
         pane.addItem(guiItem, x, y)
     }
