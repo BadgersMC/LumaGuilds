@@ -303,7 +303,18 @@ class VaultInventoryManager(
      * @return A list of (guildId, balance) pairs ordered by balance descending.
      */
     fun getTopGoldBalances(limit: Int): List<Pair<UUID, Long>> {
-        return vaultRepository.getTopGoldBalances(limit)
+        if (limit <= 0) return emptyList()
+
+        val candidateLimit = (limit.toLong() + vaultCache.size)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
+        val balances = vaultRepository.getTopGoldBalances(candidateLimit).toMap().toMutableMap()
+        vaultCache.forEach { (guildId, vault) -> balances[guildId] = vault.getGold() }
+
+        return balances.entries
+            .sortedWith(compareByDescending<Map.Entry<UUID, Long>> { it.value }.thenBy { it.key })
+            .take(limit)
+            .map { it.key to it.value }
     }
 
     /**
