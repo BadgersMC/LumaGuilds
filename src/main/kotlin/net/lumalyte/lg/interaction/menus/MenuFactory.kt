@@ -26,6 +26,7 @@ import net.lumalyte.lg.interaction.menus.guild.GuildMemberRankConfirmationMenu
 import net.lumalyte.lg.interaction.menus.guild.TagEditorMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildMemberListMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildSelectionMenu
+import net.lumalyte.lg.interaction.menus.bedrock.BedrockJoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.guild.JoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.guild.LfgBrowserMenu
 import net.lumalyte.lg.interaction.menus.guild.PartyCreationMenu

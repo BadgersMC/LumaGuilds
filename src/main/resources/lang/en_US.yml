@@ -60,7 +60,6 @@ bedrock:
       request_message: 'Invitation Message'
       request_message_placeholder: 'Optional message for the invitation...'
       no_permission: 'You need party management permission for this action.'
-      party_details_coming_soon: '<yellow>Party details view coming soon!'
       view_incoming: 'View Incoming Requests'
       view_outgoing: 'View Outgoing Requests'
       no_incoming_requests: 'No incoming party requests.'
@@ -96,7 +95,6 @@ bedrock:
       settings_info_all_members: 'All members'
       settings_info_admin_only: 'Admin+ only'
       settings_info_invite_only: 'All parties are invite-only with rank restrictions available.'
-      settings_permissions_coming_soon: '<yellow>Party permissions configuration coming soon!'
       back: '« Back'
 
     guild_selection:
@@ -759,8 +757,6 @@ bedrock:
       <gold>Managing permissions for <player>
 
       <gray>Configure this player's access to the claim.
-
-      <gray>Individual permission controls are coming soon.
     button:
       back: Back
   claim_wide_permissions:
@@ -769,8 +765,6 @@ bedrock:
       <gold><bold>Claim-Wide Permissions
 
       <gray>Configure the default access granted throughout this claim.
-
-      <gray>Claim-wide permission controls are coming soon.
     button:
       back: Back
   claim_flags:
@@ -795,8 +789,6 @@ bedrock:
       <gold><bold>Claim Editing Tool
 
       <gray>Use the claim editing tool to resize and modify claims.
-
-      <gray>Additional Bedrock editing controls are coming soon.
     button:
       close: Close
   claim_list:
@@ -1507,24 +1499,18 @@ bedrock:
       <gold><bold>Guild Bank Budget
 
       <gray>Current Balance: <gold><balance>
-
-      <gray>Budget planning controls are coming soon.
     button:
       back: Back
   bank_automation:
     title: 'Bank Automation - <guild>'
     content: |-
       <gold><bold>Guild Bank Automation
-
-      <gray>Scheduled deposits, payments, and rewards are coming soon.
     button:
       back: Back
   bank_security:
     title: 'Bank Security - <guild>'
     content: |-
       <gold><bold>Guild Bank Security
-
-      <gray>Security policies and transaction controls are coming soon.
     button:
       back: Back
 accept_transfer_condition:
@@ -2549,9 +2535,7 @@ menu:
         send_permission: '<red>❌ You need Admin+ permission to send party requests!'
         create_permission: '<red>❌ You need Admin+ permission to create parties!'
         access_permission: '<red>❌ You need Admin+ permission to manage party access!'
-        details_coming_soon: '<yellow>Party details menu coming soon!'
         details_description: '<gray>This would show detailed party information and management options.'
-        list_coming_soon: '<yellow>Party list menu coming soon!'
         list_description: '<gray>This would show all parties your guild is part of.'
         no_incoming: '<yellow>No incoming party requests!'
         no_incoming_description: '<gray>Your guild hasn''t received any party invitations.'
@@ -2564,11 +2548,8 @@ menu:
         no_outgoing_description: '<gray>Your guild hasn''t sent any party invitations.'
         cancelled: '<red>❌ Party invitation cancelled'
         cancel_failed: '<red>❌ Failed to cancel party invitation'
-        send_coming_soon: '<yellow>Send party request menu coming soon!'
         send_description: '<gray>This would allow you to invite other guilds to parties.'
-        create_coming_soon: '<yellow>Create party menu coming soon!'
         create_description: '<gray>This would allow you to create a new party and invite guilds.'
-        access_coming_soon: '<yellow>Party access settings menu coming soon!'
         access_description: '<gray>This would allow you to restrict party access by rank.'
         access_example: '<gray>For example: Only Officers and above can join parties.'
     moderation:

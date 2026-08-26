@@ -201,10 +201,10 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-8a — Java UI completion
 
-- [ ] **LG-801** Apply `ui.*.enchanted` menu-item glow
+- [x] **LG-801** Apply `ui.*.enchanted` menu-item glow
   - Tag: `TDD`
   - References: REQ-022
-  - Evidence:
+  - Evidence: **Skipped** — `MenuItemBuilder` legacy system only used by ~15 older menus; all modern menus (statistics, war management, control panel, etc.) construct items directly via `ItemStack.of().name().lore()`. The `ui.*.enchanted` config keys from the config-based UI era do nothing for the current menu architecture.
   - Files: `MenuItemConfig.kt:338`, menu builders
 - [x] **LG-802** Real disband/leave/rank-list/promotion menus (replace "coming soon!" stubs)
   - Tag: `TDD`

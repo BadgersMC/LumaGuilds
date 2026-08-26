@@ -34,10 +34,18 @@ class BedrockLocalizationServiceFloodgate(
             // Try to get Floodgate-specific locale first
             val floodgateApi = org.geysermc.floodgate.api.FloodgateApi.getInstance()
             if (floodgateApi != null && floodgateApi.isFloodgatePlayer(player.uniqueId)) {
-                // Floodgate stores locale information, but we need to access it differently
-                // For now, fall back to player's Minecraft locale
-                // TODO: Implement proper Floodgate locale detection when API allows
-                logger.fine("Using Minecraft locale for Bedrock player ${player.name}")
+                val floodgatePlayer = floodgateApi.getPlayer(player.uniqueId)
+                if (floodgatePlayer != null) {
+                    val languageCode = floodgatePlayer.languageCode
+                    if (languageCode != null && languageCode.isNotBlank()) {
+                        // Floodgate returns BCP 47 codes like "en_US", "fr_FR"
+                        logger.fine("Resolved Bedrock locale for ${player.name}: $languageCode")
+                        val parsed = Locale.forLanguageTag(languageCode.replace('_', '-'))
+                        if (parsed != null && parsed.language.isNotBlank()) {
+                            return parsed
+                        }
+                    }
+                }
             }
 
             // Use player's Minecraft locale as fallback
