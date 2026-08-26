@@ -9,6 +9,7 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import org.bukkit.entity.Player
+import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.geysermc.floodgate.api.FloodgateApi
 import org.koin.core.component.KoinComponent
@@ -41,7 +42,7 @@ abstract class BaseBedrockMenu(
             activeForms[playerId] = timeoutTask
 
             // Schedule the timeout
-            timeoutTask.runTaskLater(menu.getPlugin(), (timeoutSeconds * 20).toLong()) // 20 ticks per second
+            timeoutTask.runTaskLater(menu.plugin, (timeoutSeconds * 20).toLong()) // 20 ticks per second
         }
 
         /**
@@ -56,6 +57,7 @@ abstract class BaseBedrockMenu(
 
     protected val menuFactory: MenuFactory by inject()
     protected val bedrockLocalization: BedrockLocalizationService by inject()
+    private val plugin: Plugin by inject()
     private val lang: LangService by inject()
     protected val formCacheService: net.lumalyte.lg.application.services.FormCacheService by inject()
     protected val formValidationService: net.lumalyte.lg.application.services.FormValidationService by inject()
@@ -186,7 +188,7 @@ abstract class BaseBedrockMenu(
     /**
      * Bedrock-specific navigation helper
      */
-    protected val bedrockNavigator = BedrockMenuNavigator(menuNavigator, player, menuFactory)
+    protected val bedrockNavigator by lazy { BedrockMenuNavigator(menuNavigator, player, menuFactory) }
 
     /**
      * Helper method to handle navigation back to previous menu
@@ -570,16 +572,6 @@ abstract class BaseBedrockMenu(
         return null
     }
 
-    /**
-     * Gets the plugin instance for scheduling tasks
-     * This needs to be injected or accessed through the application
-     */
-    private fun getPlugin(): org.bukkit.plugin.Plugin {
-        // This is a placeholder - in a real implementation, you'd inject the plugin
-        // For now, we'll access it through the player/server
-        return player.server.pluginManager.getPlugin("LumaGuilds")
-            ?: throw IllegalStateException("LumaGuilds plugin not found")
-    }
 }
 
 /**

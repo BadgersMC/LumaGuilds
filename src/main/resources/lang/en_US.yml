@@ -327,7 +327,7 @@ bedrock:
       description: Choose an action for this diplomatic request
       accept: Accept
       reject: Reject
-      cancel: Cancel
+      cancel: Return to Guild List
       feedback:
         alliance_accepted: '<green>Alliance request accepted.'
         truce_accepted: '<green>Truce request accepted.'
@@ -753,20 +753,12 @@ bedrock:
       storage_error: '<red>Failed to convert the claim because of a storage error.'
   claim_player_permissions:
     title: 'Claim Permissions - <player>'
-    content: |-
-      <gold>Managing permissions for <player>
-
-      <gray>Configure this player's access to the claim.
-    button:
-      back: Back
+    saved: '<green>Player claim permissions saved.'
+    save_failed: '<red>Player claim permissions could not be fully saved. Please try again.'
   claim_wide_permissions:
     title: 'Claim-Wide Permissions - <claim>'
-    content: |-
-      <gold><bold>Claim-Wide Permissions
-
-      <gray>Configure the default access granted throughout this claim.
-    button:
-      back: Back
+    saved: '<green>Claim-wide permissions saved.'
+    save_failed: '<red>Claim-wide permissions could not be fully saved. Please try again.'
   claim_flags:
     title: 'Claim Flags - <claim>'
     content:
@@ -785,12 +777,15 @@ bedrock:
       back: Back
   edit_tool:
     title: Claim Editing Tool
-    content: |-
-      <gold><bold>Claim Editing Tool
-
-      <gray>Use the claim editing tool to resize and modify claims.
+    mode:
+      view: '<gold>Current mode: <white>View claims'
+      edit: '<gold>Current mode: <white>Edit claims'
     button:
+      toggle: Toggle claim-tool mode
       close: Close
+    feedback:
+      toggled: '<green>Claim-tool mode changed.'
+      cooldown: '<yellow>Please wait <seconds> seconds before changing modes again.'
   claim_list:
     title: Your Claims
     content:
@@ -1469,6 +1464,7 @@ bedrock:
       processing: '<red>[ERROR] Could not process the guild bank form.'
       deposit_failed: '<red>[ERROR] The deposit failed.'
       withdraw_failed: '<red>[ERROR] The withdrawal failed.'
+      auto_deposit_failed: '<red>[ERROR] Automatic-deposit setting could not be saved.'
     feedback:
       no_transactions: '<gray>No transaction was selected.'
     validation:
@@ -1490,29 +1486,27 @@ bedrock:
       deposit: Deposited <amount> coins
       withdraw: Withdrew <amount> coins
       auto_deposit_enabled: Automatic deposits enabled
+      auto_deposit_disabled: Automatic deposits disabled
       title: '<green>✅ Guild bank updated successfully!'
       row: '<gray>• <change>'
       partial: '<yellow>[WARNING] Some bank changes could not be completed.'
   bank_budget:
     title: 'Guild Bank Budget - <guild>'
-    content: |-
-      <gold><bold>Guild Bank Budget
-
-      <gray>Current Balance: <gold><balance>
-    button:
-      back: Back
+    monthly: Monthly budget (coins)
+    weekly: Weekly budget (coins)
+    daily: Daily budget (coins)
+    invalid: '<red>Enter whole numbers of zero or greater for every budget.'
   bank_automation:
     title: 'Bank Automation - <guild>'
-    content: |-
-      <gold><bold>Guild Bank Automation
-    button:
-      back: Back
+    scheduled_deposits: Scheduled deposits
+    auto_rewards: Automatic rewards
+    recurring_payments: Recurring payments
+    interest_percent: Interest rate (%)
+    invalid: '<red>Enter an interest percentage between 0 and 100.'
   bank_security:
     title: 'Bank Security - <guild>'
-    content: |-
-      <gold><bold>Guild Bank Security
-    button:
-      back: Back
+    dual_auth_threshold: Dual-authorization threshold (coins)
+    invalid: '<red>Enter a whole number of zero or greater.'
 accept_transfer_condition:
   invalid_claim: The claim you are trying to accept can no longer be found.
   invalid_request: There is no longer an active transfer request.

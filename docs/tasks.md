@@ -253,37 +253,37 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-037
   - Evidence: Already satisfied by the Nexus YAML localization migration: the legacy `lang/bedrock/forms.properties` file no longer ships, and obsolete Bedrock placeholder copy is absent from `lang/en_US.yml`; `LocaleContractTest` is GREEN.
   - Files: `lang/bedrock/forms.properties`
-- [~] **LG-812** Functional Bedrock forms for bank budget/automation/security, claim player/wide permissions, and edit tool
+- [x] **LG-812** Functional Bedrock forms for bank budget/automation/security, claim player/wide permissions, and edit tool
   - Tag: `TDD`
   - References: REQ-038
-  - Evidence:
+  - Evidence: The three bank forms use `CustomForm` inputs/toggles and preserve+upsert `BankSettings` through `BedrockBankSettingsEditor`; both claim permission forms render every `ClaimPermission` as a toggle and apply only grant/revoke deltas through the existing application actions; the edit-tool form toggles the persisted visualiser mode. `BedrockBankSettingsEditorTest` (5), `BedrockClaimPermissionEditorTest` (3), `BedrockEditToolControllerTest` (2), and `LocaleContractTest` are GREEN.
   - Files: `BedrockGuildBankBudgetMenu`, `BedrockGuildBankAutomationMenu`, `BedrockGuildBankSecurityMenu`, `BedrockClaimPlayerPermissionsMenu`, `BedrockClaimWidePermissionsMenu`, `BedrockEditToolMenu`
   - Note: bank forms need PR-3 persistence; claim forms need PR-5.
-- [ ] **LG-813** Floodgate locale detection in `BedrockLocalizationServiceFloodgate`
+- [x] **LG-813** Floodgate locale detection in `BedrockLocalizationServiceFloodgate`
   - Tag: `TDD`
   - References: REQ-041
-  - Evidence:
+  - Evidence: `BedrockLocalizationServiceFloodgate` queries Floodgate's language code first, normalizes underscore BCP-47 variants, and independently falls back to the Bukkit locale when Floodgate is unavailable. `BedrockLocalizationTest` proves Floodgate precedence and fallback behavior.
   - Files: `BedrockLocalizationServiceFloodgate.kt:52`
-- [ ] **LG-814** `BaseBedrockMenu` constructed via DI, not service-locator
+- [x] **LG-814** `BaseBedrockMenu` constructed via DI, not service-locator
   - Tag: `INFRA`
   - References: REQ-042
-  - Evidence:
+  - Evidence: `BaseBedrockMenu` now injects the existing `Plugin` Koin binding for timeout scheduling; the `player.server.pluginManager.getPlugin("LumaGuilds")` service locator and `getPlugin()` hack are removed. `KoinGraphSmokeTest` is GREEN.
   - Files: `BaseBedrockMenu.kt:576`, Koin modules
-- [ ] **LG-815** Bedrock join-requirements flow — no Java menu fallback
+- [x] **LG-815** Bedrock join-requirements flow — no Java menu fallback
   - Tag: `TDD`
   - References: REQ-043
-  - Evidence:
+  - Evidence: `MenuFactory.createJoinRequirementsMenu` now returns `BedrockJoinRequirementsMenu` when the platform/config decision selects Bedrock, while Java players retain `JoinRequirementsMenu`; `MenuFactoryBedrockJoinRequirementsTest` reproduced the prior Java fallback and is GREEN after the route change.
   - Files: `MenuFactory.kt:1065`
-- [ ] **LG-816** Bedrock guild bank auto-deposit toggle persisted and applied
+- [x] **LG-816** Bedrock guild bank auto-deposit toggle persisted and applied
   - Tag: `TDD`
   - References: REQ-044
-  - Evidence:
+  - Evidence: `BedrockGuildBankMenu` loads `BankSettings.scheduledDepositsEnabled` as the toggle default and persists both enabled and disabled submissions through `BedrockBankSettingsEditor`, including toggle-only submissions and confirmed transactions while preserving unrelated settings. `BedrockBankSettingsEditorTest` covers both states; `LocaleContractTest` is GREEN.
   - Files: `BedrockGuildBankMenu.kt:77,301`
-- [ ] **LG-817** "Return to LFG" in join-requirements menu reopens LFG
+- [x] **LG-817** "Return to LFG" in join-requirements menu reopens LFG
   - Tag: `TDD`
   - References: REQ-040
-  - Evidence:
-  - Files: `JoinRequirementsMenu.kt:157`
+  - Evidence: `JoinRequirementsNavigationTest` proves the shared return action opens the LFG browser through `MenuNavigator`. Both the Java cancel button and Bedrock return button invoke the same action; focused test and `LocaleContractTest` are GREEN.
+  - Files: `JoinRequirementsMenu.kt:157`, `BedrockJoinRequirementsMenu.kt:57`, `JoinRequirementsNavigation.kt`
 
 ---
 
