@@ -1,24 +1,21 @@
-package net.lumalyte.lg.domain.events
+package net.lumalyte.lg.api.events
 
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 
 /**
- * Event fired when a player joins a guild
+ * Fired when a guild reaches a new level.
  */
-class GuildMemberJoinEvent(
+class GuildLevelUpEvent(
     val guildId: UUID,
-    val playerId: UUID
+    val newLevel: Int
 ) : Event() {
-    
     companion object {
         @JvmStatic
         private val handlers = HandlerList()
-        
         @JvmStatic
         fun getHandlerList(): HandlerList = handlers
     }
-    
     override fun getHandlers(): HandlerList = Companion.handlers
 }

@@ -5,7 +5,7 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.ObjectiveType
 import net.lumalyte.lg.domain.entities.WarStats
-import net.lumalyte.lg.domain.events.GuildWarKillEvent
+import net.lumalyte.lg.api.events.GuildWarKillEvent
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler

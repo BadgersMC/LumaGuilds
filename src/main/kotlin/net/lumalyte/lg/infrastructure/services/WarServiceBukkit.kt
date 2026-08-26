@@ -4,8 +4,8 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.*
-import net.lumalyte.lg.domain.events.GuildWarDeclaredEvent
-import net.lumalyte.lg.domain.events.GuildWarEndEvent
+import net.lumalyte.lg.api.events.GuildWarDeclaredEvent
+import net.lumalyte.lg.api.events.GuildWarEndEvent
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
 import java.time.Duration

@@ -8,7 +8,7 @@ import net.lumalyte.lg.domain.entities.Relation
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.domain.entities.RelationStatus
 import net.lumalyte.lg.domain.entities.RankPermission
-import net.lumalyte.lg.domain.events.GuildRelationChangeEvent
+import net.lumalyte.lg.api.events.GuildRelationChangeEvent
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
 import java.time.Duration

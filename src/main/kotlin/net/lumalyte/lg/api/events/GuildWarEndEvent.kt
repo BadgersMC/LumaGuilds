@@ -1,16 +1,18 @@
-package net.lumalyte.lg.domain.events
+package net.lumalyte.lg.api.events
 
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 
 /**
- * Fired when one guild declares war on another guild.
+ * Fired when a guild war ends, either by victory, surrender, or expiration.
  */
-class GuildWarDeclaredEvent(
+class GuildWarEndEvent(
+    val warId: UUID,
+    val winnerGuildId: UUID?,
+    val loserGuildId: UUID?,
     val declaringGuildId: UUID,
-    val defendingGuildId: UUID,
-    val actorId: UUID
+    val defendingGuildId: UUID
 ) : Event() {
     companion object {
         @JvmStatic

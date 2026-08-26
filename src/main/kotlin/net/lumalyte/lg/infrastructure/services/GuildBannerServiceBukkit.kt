@@ -5,7 +5,7 @@ import net.lumalyte.lg.domain.values.BannerDesignData
 import net.lumalyte.lg.application.persistence.GuildBannerRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.GuildBanner
-import net.lumalyte.lg.domain.events.GuildBannerChangedEvent
+import net.lumalyte.lg.api.events.GuildBannerChangedEvent
 import org.bukkit.Bukkit
 import org.bukkit.block.banner.PatternType
 import org.koin.core.component.KoinComponent

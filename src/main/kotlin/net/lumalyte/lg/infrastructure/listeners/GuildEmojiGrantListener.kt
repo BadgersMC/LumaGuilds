@@ -1,9 +1,9 @@
 package net.lumalyte.lg.infrastructure.listeners
 
 import net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService
-import net.lumalyte.lg.domain.events.GuildMemberJoinEvent
-import net.lumalyte.lg.domain.events.GuildMemberRemovedEvent
-import net.lumalyte.lg.domain.events.GuildDisbandedEvent
+import net.lumalyte.lg.api.events.GuildMemberJoinEvent
+import net.lumalyte.lg.api.events.GuildMemberRemovedEvent
+import net.lumalyte.lg.api.events.GuildDisbandedEvent
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener

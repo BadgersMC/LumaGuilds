@@ -7,9 +7,9 @@ import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.application.services.RelationService
-import net.lumalyte.lg.domain.events.GuildDisbandedEvent
-import net.lumalyte.lg.domain.events.GuildMemberRemovedEvent
-import net.lumalyte.lg.domain.events.GuildRelationChangeEvent
+import net.lumalyte.lg.api.events.GuildDisbandedEvent
+import net.lumalyte.lg.api.events.GuildMemberRemovedEvent
+import net.lumalyte.lg.api.events.GuildRelationChangeEvent
 import net.lumalyte.lg.domain.entities.RelationType
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player

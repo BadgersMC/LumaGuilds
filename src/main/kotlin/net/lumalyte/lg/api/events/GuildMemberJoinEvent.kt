@@ -1,22 +1,24 @@
-package net.lumalyte.lg.domain.events
+package net.lumalyte.lg.api.events
 
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 
 /**
- * Fired when ownership of a guild is transferred from one player to another.
+ * Event fired when a player joins a guild
  */
-class GuildOwnershipTransferEvent(
+class GuildMemberJoinEvent(
     val guildId: UUID,
-    val oldOwnerId: UUID,
-    val newOwnerId: UUID
+    val playerId: UUID
 ) : Event() {
+    
     companion object {
         @JvmStatic
         private val handlers = HandlerList()
+        
         @JvmStatic
         fun getHandlerList(): HandlerList = handlers
     }
+    
     override fun getHandlers(): HandlerList = Companion.handlers
 }
