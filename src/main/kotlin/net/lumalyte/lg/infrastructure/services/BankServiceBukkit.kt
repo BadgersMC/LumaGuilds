@@ -78,16 +78,6 @@ class BankServiceBukkit(
     // Vault Economy integration
     private var economy: Economy? = null
 
-    // --- Balance leaderboard cache ---
-    // The underlying repository already keeps balances in memory, so this cache only amortizes the
-    // sort. It is invalidated immediately whenever a balance changes (deposit/withdraw/deduct), and
-    // also carries a short TTL as a safety net against any balance path that bypasses this service.
-    private val balanceLeaderboardLock = Any()
-    @Volatile private var cachedTopBalances: List<Pair<UUID, Int>> = emptyList()
-    @Volatile private var balanceLeaderboardExpiresAtMs: Long = 0L
-    private val balanceLeaderboardTtlMs = 30_000L
-    private val balanceLeaderboardCacheSize = 100
-
     init {
         setupEconomy()
     }
@@ -287,7 +277,6 @@ class BankServiceBukkit(
             }
 
             // SUCCESS: player debited and guild balance credited
-            invalidateBalanceLeaderboard()
             val newBalance = creditedBalance.toInt()
             recordAudit(BankAudit(
                 transactionId = transaction.id,
@@ -471,7 +460,6 @@ class BankServiceBukkit(
             }
 
             // SUCCESS: guild balance debited and player paid
-            invalidateBalanceLeaderboard()
             val newBalance = debitedBalance.toInt()
             recordAudit(BankAudit(
                 transactionId = transaction.id,
@@ -512,23 +500,8 @@ class BankServiceBukkit(
 
     override fun getTopBalances(limit: Int): List<Pair<UUID, Int>> {
         if (limit <= 0) return emptyList()
-        // Cache the largest requested page so callers asking for a smaller N reuse it.
-        val cacheSize = maxOf(limit, balanceLeaderboardCacheSize)
-        val now = System.currentTimeMillis()
-        synchronized(balanceLeaderboardLock) {
-            if (now >= balanceLeaderboardExpiresAtMs || cachedTopBalances.size < limit) {
-                // Ranked by store B (vault gold balance), the unified source of truth.
-                cachedTopBalances = vaultInventoryManager.getTopGoldBalances(cacheSize)
-                    .map { (id, balance) -> id to balance.toInt() }
-                balanceLeaderboardExpiresAtMs = now + balanceLeaderboardTtlMs
-            }
-            return cachedTopBalances.take(limit)
-        }
-    }
-
-    /** Invalidates the cached balance leaderboard so the next read reflects the change. */
-    private fun invalidateBalanceLeaderboard() {
-        balanceLeaderboardExpiresAtMs = 0L
+        return vaultInventoryManager.getTopGoldBalances(limit)
+            .map { (id, balance) -> id to balance.toInt() }
     }
 
     override fun getPlayerBalance(playerId: UUID): Int {
@@ -750,7 +723,6 @@ class BankServiceBukkit(
                 logger.warn("Failed to record deduction history for guild $guildId (balance already updated)", e)
             }
 
-            invalidateBalanceLeaderboard()
             return true
         } catch (e: SQLException) {
             logger.error("Database error processing guild bank deduction for guild $guildId", e)
@@ -787,7 +759,6 @@ class BankServiceBukkit(
                 logger.warn("Failed to record credit history for guild $guildId (balance already updated)", e)
             }
 
-            invalidateBalanceLeaderboard()
             return true
         } catch (e: SQLException) {
             logger.error("Database error processing guild bank credit for guild $guildId", e)
