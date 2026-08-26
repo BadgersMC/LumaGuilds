@@ -53,4 +53,30 @@ class VaultLeaderboardConsistencyTest {
             manager.getTopGoldBalances(2)
         )
     }
+
+    @Test
+    fun `leaderboard does not mix a later cache load into an earlier candidate snapshot`() {
+        val concurrentlyLoadedGuild = UUID.randomUUID()
+        val secondGuild = UUID.randomUUID()
+        val thirdGuild = UUID.randomUUID()
+        val persisted = listOf(
+            concurrentlyLoadedGuild to 1_000L,
+            secondGuild to 900L,
+            thirdGuild to 800L
+        )
+        val repository = mockk<GuildVaultRepository>(relaxed = true)
+        every { repository.getVaultInventory(any()) } returns emptyMap()
+        every { repository.getGoldBalance(concurrentlyLoadedGuild) } returns 1_000L
+        lateinit var manager: VaultInventoryManager
+        every { repository.getTopGoldBalances(any()) } answers {
+            manager.setGoldBalance(concurrentlyLoadedGuild, 100L)
+            persisted.take(firstArg())
+        }
+        manager = VaultInventoryManager(repository, vaultConfig = mockk<VaultConfig>(relaxed = true))
+
+        assertEquals(
+            listOf(concurrentlyLoadedGuild to 1_000L, secondGuild to 900L),
+            manager.getTopGoldBalances(2)
+        )
+    }
 }
