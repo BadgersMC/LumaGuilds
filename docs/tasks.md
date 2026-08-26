@@ -324,11 +324,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: operator backlog (bugs channel `<#1421662495923372194>`)
   - Evidence:
   - Files: TBD — bug list must be pasted into this doc before tracking
-- [ ] **LG-1102** Economy commands fix: `/g balance` + `/g baltop` correct data; `/g balance` tab-completes all guild names
+- [x] **LG-1102** Economy commands fix: `/g balance` + `/g baltop` correct data; `/g balance` tab-completes all guild names
   - Tag: `TDD`
   - References: REQ-046
-  - Evidence:
-  - Files: guild balance/baltop commands, tab-completion provider
+  - Evidence: `/g balance` renders the unified live vault-gold balance; `/g baltop` overlays buffered in-memory balances onto persisted rows before ranking; the `@guilds` completion contract returns every guild name. Focused regression tests and the clean repository suite are GREEN.
+  - Files: `infrastructure/vault/VaultInventoryManager.kt`, `VaultLeaderboardConsistencyTest`, `GuildBalanceCommandContractTest`, existing `CommandLocalizationTest`
 - [ ] **LG-1103** Guild emoji removal — emoji can be cleared once set
   - Tag: `TDD`
   - References: REQ-047
