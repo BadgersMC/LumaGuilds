@@ -19,10 +19,14 @@ import kotlin.test.assertIs
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.reflect.KVisibility
+import kotlin.reflect.KType
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.typeOf
 
 class GuildEventApiContractTest {
+    private data class PayloadContract(val name: String, val type: KType)
+
     private val eventTypes = listOf(
         GuildBankDepositEvent::class.java,
         GuildBannerChangedEvent::class.java,
@@ -80,54 +84,90 @@ class GuildEventApiContractTest {
     )
 
     private val payloadContracts = mapOf(
-        GuildBankDepositEvent::class to listOf("guildId" to false, "playerId" to false, "amount" to false),
-        GuildBannerChangedEvent::class to listOf("guildId" to false, "hasActiveBanner" to false),
-        GuildBannerSetEvent::class to listOf("guildId" to false, "playerId" to false),
-        GuildCreatedEvent::class to listOf("guild" to false, "ownerId" to false),
-        GuildDisbandedEvent::class to listOf("guild" to false, "memberIds" to false, "actorId" to false),
-        GuildHomeSetEvent::class to listOf("guildId" to false, "playerId" to false),
+        GuildBankDepositEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("playerId", typeOf<UUID>()),
+            PayloadContract("amount", typeOf<Int>())
+        ),
+        GuildBannerChangedEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("hasActiveBanner", typeOf<Boolean>())
+        ),
+        GuildBannerSetEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("playerId", typeOf<UUID>())
+        ),
+        GuildCreatedEvent::class to listOf(
+            PayloadContract("guild", typeOf<Guild>()),
+            PayloadContract("ownerId", typeOf<UUID>())
+        ),
+        GuildDisbandedEvent::class to listOf(
+            PayloadContract("guild", typeOf<Guild>()),
+            PayloadContract("memberIds", typeOf<Set<UUID>>()),
+            PayloadContract("actorId", typeOf<UUID>())
+        ),
+        GuildHomeSetEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("playerId", typeOf<UUID>())
+        ),
         GuildLeaderboardRankChangeEvent::class to listOf(
-            "guildId" to false,
-            "leaderboardType" to false,
-            "period" to false,
-            "oldRank" to true,
-            "newRank" to false
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("leaderboardType", typeOf<ExtendedLeaderboardType>()),
+            PayloadContract("period", typeOf<LeaderboardPeriod>()),
+            PayloadContract("oldRank", typeOf<Int?>()),
+            PayloadContract("newRank", typeOf<Int>())
         ),
-        GuildLevelUpEvent::class to listOf("guildId" to false, "newLevel" to false),
-        GuildMemberJoinEvent::class to listOf("guildId" to false, "playerId" to false),
+        GuildLevelUpEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("newLevel", typeOf<Int>())
+        ),
+        GuildMemberJoinEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("playerId", typeOf<UUID>())
+        ),
         GuildMemberRemovedEvent::class to listOf(
-            "guildId" to false,
-            "playerId" to false,
-            "actorId" to false,
-            "wasKicked" to false
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("playerId", typeOf<UUID>()),
+            PayloadContract("actorId", typeOf<UUID>()),
+            PayloadContract("wasKicked", typeOf<Boolean>())
         ),
-        GuildOwnershipTransferEvent::class to listOf("guildId" to false, "oldOwnerId" to false, "newOwnerId" to false),
+        GuildOwnershipTransferEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("oldOwnerId", typeOf<UUID>()),
+            PayloadContract("newOwnerId", typeOf<UUID>())
+        ),
         GuildRelationChangeEvent::class to listOf(
-            "guild1" to false,
-            "guild2" to false,
-            "newRelationType" to false,
-            "relation" to false
+            PayloadContract("guild1", typeOf<UUID>()),
+            PayloadContract("guild2", typeOf<UUID>()),
+            PayloadContract("newRelationType", typeOf<RelationType>()),
+            PayloadContract("relation", typeOf<Relation>())
         ),
-        GuildTrackingChangedEvent::class to listOf("guildId" to false, "enabled" to false),
-        GuildVaultPlacedEvent::class to listOf("guildId" to false, "playerId" to false),
+        GuildTrackingChangedEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("enabled", typeOf<Boolean>())
+        ),
+        GuildVaultPlacedEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("playerId", typeOf<UUID>())
+        ),
         GuildWarDeclaredEvent::class to listOf(
-            "declaringGuildId" to false,
-            "defendingGuildId" to false,
-            "actorId" to false
+            PayloadContract("declaringGuildId", typeOf<UUID>()),
+            PayloadContract("defendingGuildId", typeOf<UUID>()),
+            PayloadContract("actorId", typeOf<UUID>())
         ),
         GuildWarEndEvent::class to listOf(
-            "warId" to false,
-            "winnerGuildId" to true,
-            "loserGuildId" to true,
-            "declaringGuildId" to false,
-            "defendingGuildId" to false
+            PayloadContract("warId", typeOf<UUID>()),
+            PayloadContract("winnerGuildId", typeOf<UUID?>()),
+            PayloadContract("loserGuildId", typeOf<UUID?>()),
+            PayloadContract("declaringGuildId", typeOf<UUID>()),
+            PayloadContract("defendingGuildId", typeOf<UUID>())
         ),
         GuildWarKillEvent::class to listOf(
-            "warId" to false,
-            "killerId" to false,
-            "victimId" to false,
-            "killerGuildId" to false,
-            "victimGuildId" to false
+            PayloadContract("warId", typeOf<UUID>()),
+            PayloadContract("killerId", typeOf<UUID>()),
+            PayloadContract("victimId", typeOf<UUID>()),
+            PayloadContract("killerGuildId", typeOf<UUID>()),
+            PayloadContract("victimGuildId", typeOf<UUID>())
         )
     )
 
@@ -163,16 +203,12 @@ class GuildEventApiContractTest {
             val constructor = requireNotNull(eventType.primaryConstructor)
             val properties = eventType.memberProperties.associateBy { it.name }
 
-            assertEquals(expected.map { it.first }, constructor.parameters.map { it.name }, eventType.qualifiedName)
-            expected.forEach { (name, nullable) ->
+            assertEquals(expected.map { it.name }, constructor.parameters.map { it.name }, eventType.qualifiedName)
+            expected.forEach { (name, type) ->
                 val property = requireNotNull(properties[name]) { "${eventType.qualifiedName}.$name" }
                 assertEquals(KVisibility.PUBLIC, property.visibility, "${eventType.qualifiedName}.$name")
-                assertEquals(nullable, property.returnType.isMarkedNullable, "${eventType.qualifiedName}.$name")
-                assertEquals(
-                    constructor.parameters.single { it.name == name }.type,
-                    property.returnType,
-                    "${eventType.qualifiedName}.$name"
-                )
+                assertEquals(type, property.returnType, "${eventType.qualifiedName}.$name")
+                assertEquals(type, constructor.parameters.single { it.name == name }.type, "${eventType.qualifiedName}.$name")
             }
         }
     }
