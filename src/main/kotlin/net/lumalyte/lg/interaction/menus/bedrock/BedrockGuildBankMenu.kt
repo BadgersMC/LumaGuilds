@@ -3,10 +3,12 @@ package net.lumalyte.lg.interaction.menus.bedrock
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.persistence.BankSettingsRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.BankSettings
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
@@ -30,6 +32,7 @@ class BedrockGuildBankMenu(
     private val bankService: BankService by inject()
     private val configService: ConfigService by inject()
     private val physicalCurrencyService: PhysicalCurrencyService by inject()
+    private val bankSettingsRepository: BankSettingsRepository by inject()
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
@@ -40,6 +43,8 @@ class BedrockGuildBankMenu(
             bankService.getPlayerBalance(player.uniqueId)
         }
         val guildBalance = bankService.getBalance(guild.id)
+        val autoDepositEnabled = (bankSettingsRepository.getByGuildId(guild.id) ?: BankSettings(guild.id))
+            .scheduledDepositsEnabled
         val config = getBedrockConfig()
         val bankIcon = BedrockFormUtils.createFormImage(config, config.guildBankIconUrl, config.guildBankIconPath)
 
@@ -73,11 +78,11 @@ class BedrockGuildBankMenu(
             )
             .toggle(
                 lang.bedrock("bedrock.bank.auto_deposit"),
-                false // TODO: Get current auto-deposit setting
+                autoDepositEnabled
             )
             .label(createValidationInfoSection())
             .validResultHandler { response ->
-                handleFormResponse(response, playerBalance, guildBalance)
+                handleFormResponse(response, playerBalance, guildBalance, autoDepositEnabled)
             }
             .closedOrInvalidResultHandler { _, _ ->
                 // Handle form closed without submission
@@ -101,7 +106,8 @@ class BedrockGuildBankMenu(
     private fun handleFormResponse(
         response: org.geysermc.cumulus.response.CustomFormResponse,
         playerBalance: Int,
-        guildBalance: Int
+        guildBalance: Int,
+        currentAutoDepositEnabled: Boolean
     ) {
         try {
             onFormResponseReceived()
@@ -159,13 +165,17 @@ class BedrockGuildBankMenu(
 
             // Check if any transactions to perform
             if (depositAmount == 0 && withdrawAmount == 0) {
-                player.sendMessage(lang.msg("bedrock.bank.feedback.no_transactions"))
+                if (autoDepositEnabled != currentAutoDepositEnabled) {
+                    saveAutoDeposit(autoDepositEnabled)
+                } else {
+                    player.sendMessage(lang.msg("bedrock.bank.feedback.no_transactions"))
+                }
                 navigateBack()
                 return
             }
 
             // Show confirmation for transactions
-            showTransactionConfirmation(depositAmount, withdrawAmount, autoDepositEnabled)
+            showTransactionConfirmation(depositAmount, withdrawAmount, autoDepositEnabled, currentAutoDepositEnabled)
 
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
@@ -203,7 +213,12 @@ class BedrockGuildBankMenu(
         reopen()
     }
 
-    private fun showTransactionConfirmation(depositAmount: Int, withdrawAmount: Int, autoDepositEnabled: Boolean) {
+    private fun showTransactionConfirmation(
+        depositAmount: Int,
+        withdrawAmount: Int,
+        autoDepositEnabled: Boolean,
+        currentAutoDepositEnabled: Boolean
+    ) {
         val config = getBedrockConfig()
 
         if (config.bedrockMenusEnabled) {
@@ -217,7 +232,7 @@ class BedrockGuildBankMenu(
                 .validResultHandler { response ->
                     val confirm = response.next() as? Boolean ?: false
                     if (confirm) {
-                        executeTransactions(depositAmount, withdrawAmount, autoDepositEnabled)
+                        executeTransactions(depositAmount, withdrawAmount, autoDepositEnabled, currentAutoDepositEnabled)
                     } else {
                         navigateBack()
                     }
@@ -237,7 +252,7 @@ class BedrockGuildBankMenu(
             player.sendMessage(lang.msg("bedrock.bank.confirmation.instructions"))
 
             // For message-based confirmation, execute immediately
-            executeTransactions(depositAmount, withdrawAmount, autoDepositEnabled)
+            executeTransactions(depositAmount, withdrawAmount, autoDepositEnabled, currentAutoDepositEnabled)
         }
     }
 
@@ -259,7 +274,12 @@ class BedrockGuildBankMenu(
         return messages.joinToString("\n")
     }
 
-    private fun executeTransactions(depositAmount: Int, withdrawAmount: Int, autoDepositEnabled: Boolean) {
+    private fun executeTransactions(
+        depositAmount: Int,
+        withdrawAmount: Int,
+        autoDepositEnabled: Boolean,
+        currentAutoDepositEnabled: Boolean
+    ) {
         val changes = mutableListOf<String>()
         var allSuccessful = true
 
@@ -285,10 +305,17 @@ class BedrockGuildBankMenu(
             }
         }
 
-        // Handle auto-deposit setting (placeholder)
-        if (autoDepositEnabled) {
-            // TODO: Implement auto-deposit setting
-            changes.add(lang.bedrock("bedrock.bank.success.auto_deposit_enabled"))
+        if (autoDepositEnabled != currentAutoDepositEnabled) {
+            if (BedrockBankSettingsEditor(bankSettingsRepository).saveAutoDeposit(guild.id, autoDepositEnabled)) {
+                if (autoDepositEnabled) {
+                    changes.add(lang.bedrock("bedrock.bank.success.auto_deposit_enabled"))
+                } else {
+                    changes.add(lang.bedrock("bedrock.bank.success.auto_deposit_disabled"))
+                }
+            } else {
+                allSuccessful = false
+                player.sendMessage(lang.msg("bedrock.bank.error.auto_deposit_failed"))
+            }
         }
 
         // Show results
@@ -304,7 +331,19 @@ class BedrockGuildBankMenu(
         navigateBack()
     }
 
-    override fun shouldCacheForm(): Boolean = true
+    private fun saveAutoDeposit(enabled: Boolean) {
+        if (BedrockBankSettingsEditor(bankSettingsRepository).saveAutoDeposit(guild.id, enabled)) {
+            if (enabled) {
+                player.sendMessage(lang.msg("bedrock.bank.success.auto_deposit_enabled"))
+            } else {
+                player.sendMessage(lang.msg("bedrock.bank.success.auto_deposit_disabled"))
+            }
+        } else {
+            player.sendMessage(lang.msg("bedrock.bank.error.auto_deposit_failed"))
+        }
+    }
+
+    override fun shouldCacheForm(): Boolean = false
 
     override fun createCacheKey(): String {
         return "${this::class.simpleName}:${player.uniqueId}:${guild.id}"

@@ -1108,9 +1108,7 @@ class MenuFactory(
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            // TODO: Use Bedrock join requirements menu when implemented
-            // BedrockJoinRequirementsMenu(menuNavigator, player, guild, logger)
-            JoinRequirementsMenu(menuNavigator, player, guild)
+            BedrockJoinRequirementsMenu(menuNavigator, player, guild, logger)
         } else {
             JoinRequirementsMenu(menuNavigator, player, guild)
         }

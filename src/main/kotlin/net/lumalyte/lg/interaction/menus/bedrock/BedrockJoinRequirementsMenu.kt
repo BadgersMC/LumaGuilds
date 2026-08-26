@@ -13,6 +13,7 @@ import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.guild.JoinRequirementsMenu
+import net.lumalyte.lg.interaction.menus.guild.returnToLfgBrowser
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
@@ -61,9 +62,8 @@ class BedrockJoinRequirementsMenu(
                 if (canJoin && buttonId == 0) {
                     processJoin()
                 } else {
-                    // Cancel button or cannot join
                     player.sendMessage(lang.msg("bedrock.join_requirements.feedback.cancelled"))
-                    player.closeInventory()
+                    returnToLfgBrowser(menuNavigator)
                 }
             }
             .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
