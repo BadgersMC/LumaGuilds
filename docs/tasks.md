@@ -309,7 +309,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-10 — Domain purity II (Bukkit-free domain)
 
-- [ ] **LG-1001** Decouple domain events from `org.bukkit.event.Event`; remove `org.bukkit`/`org.koin`/`co.aikar`/`net.kyori` imports from `domain/**`; make the `forbidden:` contract executable (LayerRulesTest external-package assertion + populated list)
+- [~] **LG-1001** Decouple domain events from `org.bukkit.event.Event`; remove `org.bukkit`/`org.koin`/`co.aikar`/`net.kyori` imports from `domain/**`; make the `forbidden:` contract executable (LayerRulesTest external-package assertion + populated list)
   - Tag: `TDD`
   - References: REQ-045
   - Evidence:
