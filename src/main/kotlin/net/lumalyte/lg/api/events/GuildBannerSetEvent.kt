@@ -1,17 +1,15 @@
-package net.lumalyte.lg.domain.events
+package net.lumalyte.lg.api.events
 
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 
 /**
- * Fired when a member is removed from a guild, either by leaving voluntarily or being kicked.
+ * Fired when a guild's banner is set or updated by a member.
  */
-class GuildMemberRemovedEvent(
+class GuildBannerSetEvent(
     val guildId: UUID,
-    val playerId: UUID,
-    val actorId: UUID,
-    val wasKicked: Boolean
+    val playerId: UUID
 ) : Event() {
     companion object {
         @JvmStatic

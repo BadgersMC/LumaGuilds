@@ -2,7 +2,7 @@ package net.lumalyte.lg.infrastructure.listeners
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.PartyService
-import net.lumalyte.lg.domain.events.GuildDisbandedEvent
+import net.lumalyte.lg.api.events.GuildDisbandedEvent
 import net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners
 import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler

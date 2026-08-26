@@ -125,7 +125,7 @@ class LumaGuilds : JavaPlugin() {
         net.lumalyte.lg.application.utilities.GoldBalanceButton.initialize(this, get().get())
 
         // Start vault auto-save service
-        val vaultAutoSaveService = get().get<net.lumalyte.lg.application.services.VaultAutoSaveService>()
+        val vaultAutoSaveService = get().get<net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService>()
         vaultAutoSaveService.start()
 
         // Start vault backup service (auto-backup every 60 minutes by default)
@@ -1259,7 +1259,7 @@ class LumaGuilds : JavaPlugin() {
 
         // Stop vault auto-save service (this will flush all pending writes)
         try {
-            val vaultAutoSaveService = get().get<net.lumalyte.lg.application.services.VaultAutoSaveService>()
+            val vaultAutoSaveService = get().get<net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService>()
             vaultAutoSaveService.stop()
         } catch (e: Exception) {
             // Broad exception handling acceptable - shutdown should be resilient

@@ -1,7 +1,7 @@
 package net.lumalyte.lg.infrastructure.listeners.apollo
 
 import net.lumalyte.lg.application.services.MemberService
-import net.lumalyte.lg.domain.events.GuildTrackingChangedEvent
+import net.lumalyte.lg.api.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService
 import net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService
 import org.bukkit.event.EventHandler

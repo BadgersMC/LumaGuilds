@@ -8,7 +8,7 @@ import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PerkType
 import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.domain.entities.*
-import net.lumalyte.lg.domain.events.GuildLevelUpEvent
+import net.lumalyte.lg.api.events.GuildLevelUpEvent
 import org.bukkit.Bukkit
 import org.bukkit.Sound
 import org.slf4j.LoggerFactory

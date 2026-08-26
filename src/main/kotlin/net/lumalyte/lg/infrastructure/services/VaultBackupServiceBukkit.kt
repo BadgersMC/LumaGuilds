@@ -3,7 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.application.services.VaultBackup
 import net.lumalyte.lg.application.services.VaultBackupService
-import net.lumalyte.lg.application.services.VaultInventoryManager
+import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import org.slf4j.LoggerFactory

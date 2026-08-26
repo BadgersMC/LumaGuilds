@@ -1,6 +1,6 @@
 package net.lumalyte.lg.interaction.inventory
 
-import net.lumalyte.lg.application.services.VaultInventoryManager
+import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import org.bukkit.Bukkit
 import org.bukkit.inventory.Inventory

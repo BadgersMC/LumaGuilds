@@ -1,15 +1,15 @@
-package net.lumalyte.lg.domain.events
+package net.lumalyte.lg.api.events
 
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 
 /**
- * Fired when a guild reaches a new level.
+ * Fired when a guild vault block is placed in the world by a member.
  */
-class GuildLevelUpEvent(
+class GuildVaultPlacedEvent(
     val guildId: UUID,
-    val newLevel: Int
+    val playerId: UUID
 ) : Event() {
     companion object {
         @JvmStatic
