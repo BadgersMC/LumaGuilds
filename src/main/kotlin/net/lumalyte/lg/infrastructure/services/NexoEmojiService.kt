@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import com.nexomc.nexo.NexoPlugin
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.utils.ColorCodeUtils
 import org.bukkit.entity.Player
@@ -11,13 +12,36 @@ private const val DEFAULT_GLYPH_FONT = "nexo:default"
 /** Safe glyph id shape — rejects MiniMessage control characters (e.g. `x><reset>`). */
 private val VALID_GLYPH_ID = Regex("^[a-zA-Z0-9_-]+$")
 
+data class ResolvedNexoGlyph(val character: String, val font: String?)
+
+fun interface NexoGlyphResolver {
+    fun resolve(name: String): ResolvedNexoGlyph?
+}
+
+private object NexoPublicGlyphResolver : NexoGlyphResolver {
+    override fun resolve(name: String): ResolvedNexoGlyph? {
+        val glyph = nexoFontManager()?.glyphFromName(name) ?: return null
+        val character = glyph.chars.firstOrNull()?.toString() ?: return null
+        return ResolvedNexoGlyph(character, glyph.font.asString())
+    }
+}
+
+private fun nexoFontManager() = try {
+    NexoPlugin.instance().fontManager()
+} catch (_: Exception) {
+    null
+} catch (_: LinkageError) {
+    null
+}
+
 /**
  * Service for interacting with Nexo emojis.
  * Handles emoji validation and permission checking for guild emoji system.
  * JFS there is some really nasty shit going on here.
  */
 class NexoEmojiService(
-    private val configService: ConfigService
+    private val configService: ConfigService,
+    private val glyphResolver: NexoGlyphResolver = NexoPublicGlyphResolver
 ) {
 
     private val logger = LoggerFactory.getLogger(NexoEmojiService::class.java)
@@ -132,8 +156,8 @@ class NexoEmojiService(
      * from the glyph's own font in the mandatory resource pack, so no glyph-tag registration
      * is needed. This is the renderable counterpart to `%lumaguilds_guild_emoji_minimessage%`.
      *
-     * Resolves the glyph char + font through Nexo's FontManager (same reflection path as
-     * [hasEmojiPermission]); falls back to the `<glyph:name>` tag when Nexo is absent or the
+     * Resolves the glyph char + font through Nexo's public FontManager API; falls back to
+     * the `<glyph:name>` tag when Nexo is absent or the
      * char/font cannot be read (matching [ColorCodeUtils.emojiToGlyphTag] output).
      *
      * Non-`:name:` values pass through unchanged; null or blank return `""`.
@@ -144,85 +168,10 @@ class NexoEmojiService(
         // Reject glyph ids containing MiniMessage control characters (e.g. ":x><reset>:")
         // so they can never reach the generated tag — isValidEmojiFormat only checks delimiters.
         if (!VALID_GLYPH_ID.matches(emojiName)) return emoji
-        val glyph = resolveGlyphByName(emojiName) ?: return "<glyph:$emojiName>"
-        val char = reflectGlyphChar(glyph)
-        if (char.isNullOrBlank()) return "<glyph:$emojiName>"
-        val font = reflectGlyphFont(glyph) ?: DEFAULT_GLYPH_FONT
-        return "<font:$font>$char</font>"
-    }
-
-    /**
-     * Looks up a Nexo glyph object by name via FontManager reflection.
-     *
-     * @param name glyph id without colons (e.g. `catsmileysmile`).
-     * @return the glyph object, or null if Nexo/FontManager is unavailable or the lookup fails.
-     */
-    private fun resolveGlyphByName(name: String): Any? {
-        val fontManager = getFontManager() ?: return null
-        return try {
-            fontManager.javaClass.getMethod("glyphFromName", String::class.java).invoke(fontManager, name)
-        } catch (e: ReflectiveOperationException) {
-            logger.debug("glyphFromName failed for '$name': ${e.message}")
-            null
-        } catch (e: IllegalArgumentException) {
-            logger.debug("glyphFromName failed for '$name': ${e.message}")
-            null
-        }
-    }
-
-    /**
-     * Reflectively reads the glyph's unicode char. Tries common accessor names in order;
-     * the value may be a String (e.g. "\uE001"), a single Char, a short String form, or a
-     * collection (Nexo's `getChars()` — the first char is the primary rendering char).
-     */
-    private fun reflectGlyphChar(glyph: Any): String? {
-        for (accessor in listOf("getChars", "getChar", "char", "getCharacter", "character", "getGlyphCode", "glyphCode", "getCode", "code")) {
-            val value = invokeNoArgGetter(glyph, accessor) ?: continue
-            when (value) {
-                is String -> if (value.isNotEmpty()) return value
-                is Char -> return value.toString()
-                is Iterable<*> -> value.firstOrNull { it != null }?.let { return it.toString() }
-                is Array<*> -> value.firstOrNull { it != null }?.let { return it.toString() }
-                else -> {
-                    val s = value.toString()
-                    if (s.isNotEmpty() && s.length <= 2) return s
-                }
-            }
-        }
-        return null
-    }
-
-    /**
-     * Reflectively reads the glyph's font key (e.g. `nexo:default`), or null when no
-     * accessor yields a usable value.
-     */
-    private fun reflectGlyphFont(glyph: Any): String? {
-        for (accessor in listOf("getFont", "font", "getFontName", "fontName", "getFontKey", "fontKey")) {
-            val value = invokeNoArgGetter(glyph, accessor)?.toString()?.trim() ?: continue
-            if (value.isBlank() || value == "null" || value == "minecraft") continue
-            return value
-        }
-        return null
-    }
-
-    /** Invokes a zero-arg getter reflectively, trying public then declared methods. */
-    private fun invokeNoArgGetter(target: Any, name: String): Any? {
-        for (publicFirst in listOf(true, false)) {
-            try {
-                val method = if (publicFirst) {
-                    target.javaClass.getMethod(name)
-                } else {
-                    target.javaClass.getDeclaredMethod(name)
-                }
-                method.trySetAccessible()
-                return method.invoke(target)
-            } catch (e: ReflectiveOperationException) {
-                // try the next accessor variant
-            } catch (e: IllegalArgumentException) {
-                // try the next accessor variant
-            }
-        }
-        return null
+        val glyph = glyphResolver.resolve(emojiName) ?: return "<glyph:$emojiName>"
+        if (glyph.character.isBlank()) return "<glyph:$emojiName>"
+        val font = glyph.font?.takeUnless { it.isBlank() || it == "minecraft" } ?: DEFAULT_GLYPH_FONT
+        return "<font:$font>${glyph.character}</font>"
     }
     
     /**
@@ -261,109 +210,14 @@ class NexoEmojiService(
             return true
         }
 
-        // Try to check with Glyph API using FontManager directly
         return try {
-            val fontManager = getFontManager()
-            if (fontManager == null) {
-                logger.debug("FontManager not available for emoji validation")
-                return false
-            }
-
-            // Try glyphFromPlaceholder method first (for placeholder format like :cat:)
-            val glyphFromPlaceholderMethod = fontManager.javaClass.getMethod("glyphFromPlaceholder", String::class.java)
-            val glyph = glyphFromPlaceholderMethod.invoke(fontManager, emoji)
-
-            val exists = glyph != null
-            logger.debug("Emoji '$emoji' validation result: ${if (exists) "FOUND" else "NOT FOUND"}")
-
-            if (exists) {
-                return true
-            }
-
-            // Fallback: try glyphFromName with the emoji name (without colons)
+            val fontManager = nexoFontManager() ?: return false
+            if (fontManager.glyphFromPlaceholder(emoji) != null) return true
             val emojiName = extractEmojiName(emoji) ?: return false
-            val glyphFromNameMethod = fontManager.javaClass.getMethod("glyphFromName", String::class.java)
-            val glyph2 = glyphFromNameMethod.invoke(fontManager, emojiName)
-
-            val exists2 = glyph2 != null
-            logger.debug("Emoji '$emoji' fallback validation result: ${if (exists2) "FOUND" else "NOT FOUND"}")
-
-            exists2
-
-        } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
+            fontManager.glyphFromID(emojiName) != null
+        } catch (e: RuntimeException) {
             logger.warn("Error validating emoji '$emoji': ${e.message}")
             false
-        }
-    }
-
-    /**
-     * Gets the Nexo FontManager using reflection.
-     * Tries multiple approaches to access the FontManager instance.
-     */
-    private fun getFontManager(): Any? {
-        return try {
-
-            // TODO: Refactor to use FontManager API directly instead of reflection
-            // Current implementation uses reflection as a workaround due to compatibility issues.
-            // Ideally, this should use the Nexo API directly for better maintainability.
-            // If you have a cleaner solution, contributions are welcome!
-
-            // First, let's check if the Nexo plugin is even loaded at all
-            val pluginManager = org.bukkit.Bukkit.getPluginManager()
-            val nexoPlugin = pluginManager.getPlugin("Nexo")
-
-            if (nexoPlugin == null) {
-                logger.debug("Nexo plugin not found in plugin manager")
-                return null
-            }
-
-            // Primary approach: Try to access FontManager field directly from plugin
-            // cancer
-            try {
-                val fontManagerField = nexoPlugin.javaClass.getDeclaredField("fontManager")
-                fontManagerField.isAccessible = true
-                val fontManager = fontManagerField.get(nexoPlugin)
-
-                if (fontManager != null) {
-                    return fontManager
-                }
-            } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
-                logger.debug("FontManager field access failed: ${e.message}")
-            }
-
-            // Fallback: Try to find FontManager through plugin's methods
-            // gonna kms
-            try {
-                val methods = nexoPlugin.javaClass.methods
-                for (method in methods) {
-                    if (method.name.lowercase().contains("font") ||
-                        method.name.lowercase().contains("manager") ||
-                        method.returnType.simpleName == "FontManager") {
-                        try {
-                            val result = method.invoke(nexoPlugin)
-                            if (result != null && result.javaClass.simpleName == "FontManager") {
-                                return result
-                            }
-                        } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
-                            // Continue to next method
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
-                logger.debug("FontManager method access failed: ${e.message}")
-            }
-
-            logger.debug("Could not access FontManager from Nexo plugin")
-            null
-
-        } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
-            logger.warn("Error accessing Nexo FontManager: ${e.message}")
-            null
         }
     }
 
@@ -374,45 +228,7 @@ class NexoEmojiService(
      * @return true if Nexo is available, false otherwise.
      */
     fun isNexoAvailable(): Boolean {
-        return try {
-            logger.debug("Testing Nexo availability...")
-
-            // Try to access FontManager through our improved access method
-            val fontManagerAvailable = getFontManager() != null
-            logger.debug("FontManager available: $fontManagerAvailable")
-
-            // Try to access NexoItems as fallback
-            val nexoItemsAvailable = try {
-                Class.forName("com.nexomc.nexo.api.NexoItems")
-                logger.debug("NexoItems class found")
-                true
-            } catch (e: ClassNotFoundException) {
-                logger.debug("NexoItems class not found: ${e.message}")
-                false
-            }
-
-            // Try to access main Nexo plugin class as additional check
-            val nexoPluginAvailable = try {
-                Class.forName("com.nexomc.nexo.Nexo")
-                logger.debug("Main Nexo plugin class found")
-                true
-            } catch (e: ClassNotFoundException) {
-                logger.debug("Main Nexo plugin class not found: ${e.message}")
-                false
-            }
-
-            val available = fontManagerAvailable || nexoItemsAvailable || nexoPluginAvailable
-            logger.debug("Nexo availability test result: ${if (available) "AVAILABLE" else "NOT AVAILABLE"} (FontManager: $fontManagerAvailable, Items: $nexoItemsAvailable, Plugin: $nexoPluginAvailable)")
-
-            available
-        } catch (e: ClassNotFoundException) {
-            logger.debug("Nexo plugin classes not found - running in compatibility mode")
-            false
-        } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
-            logger.debug("Nexo API test failed - running in compatibility mode: ${e.message}")
-            false
-        }
+        return nexoFontManager() != null
     }
 
     /**
@@ -469,82 +285,8 @@ class NexoEmojiService(
      */
     private fun getAvailableEmojisFromNexo(): List<String>? {
         return try {
-            // Get FontManager instance first
-            val fontManager = getFontManager()
-            if (fontManager == null) {
-                logger.debug("FontManager not available for emoji listing")
-                return null
-            }
-
-            // Try to get emojis() method from FontManager
-            val emojisMethod = fontManager.javaClass.getMethod("emojis")
-            val emojis = emojisMethod.invoke(fontManager) as? Collection<*>
-
-            if (emojis != null) {
-                if (emojis.isEmpty()) {
-                    return emptyList()
-                }
-
-                // Extract emoji names from the Glyph objects
-                val emojiNames = emojis.mapNotNull { glyph ->
-                    try {
-                        // Try multiple ways to get the name from glyph
-                        var name: String? = null
-
-                        // Method 1: getName()
-                        try {
-                            val getNameMethod = glyph?.javaClass?.getMethod("getName")
-                            name = getNameMethod?.invoke(glyph) as? String
-                        } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
-                            // Continue to next method
-                        }
-
-                        // Method 2: getId()
-                        if (name == null) {
-                            try {
-                                val getIdMethod = glyph?.javaClass?.getMethod("getId")
-                                name = getIdMethod?.invoke(glyph) as? String
-                            } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
-                                // Continue to next method
-                            }
-                        }
-
-                        // Method 3: Direct field access
-                        if (name == null && glyph != null) {
-                            try {
-                                val fields = glyph.javaClass.declaredFields
-                                for (field in fields) {
-                                    if (field.name.lowercase().contains("name") ||
-                                        field.name.lowercase().contains("id")) {
-                                        field.isAccessible = true
-                                        val value = field.get(glyph) as? String
-                                        if (value != null) {
-                                            name = value
-                                            break
-                                        }
-                                    }
-                                }
-                            } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
-                                // Continue
-                            }
-                        }
-
-                        name
-                    } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
-                        null
-                    }
-                }
-
-                emojiNames
-            } else {
-                emptyList()
-            }
-        } catch (e: Exception) {
-            // Optional integration - catching all exceptions to prevent plugin failure
+            nexoFontManager()?.emojis()?.map { it.id }
+        } catch (e: RuntimeException) {
             logger.warn("Error getting available emojis from FontManager: ${e.message}")
             null
         }

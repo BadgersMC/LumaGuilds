@@ -289,20 +289,20 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-9 — Tech debt sweep
 
-- [ ] **LG-901** Remove `ShopIntegrationService` (dead class, no DI registration, no consumers)
+- [x] **LG-901** Remove `ShopIntegrationService` (dead class, no DI registration, no consumers)
   - Tag: `INFRA`
   - References: REQ-017
-  - Evidence:
+  - Evidence: Removed the unregistered, unconsumed service plus its sole API dependency/JAR. `Pr9TechDebtContractTest` prevents both from being reintroduced.
   - Files: `infrastructure/services/ShopIntegrationService.kt`
-- [ ] **LG-902** NexoEmojiService resolves glyphs without reflection into FontManager
+- [x] **LG-902** NexoEmojiService resolves glyphs without reflection into FontManager
   - Tag: `TDD`
   - References: REQ-025
-  - Evidence:
+  - Evidence: `NexoEmojiService` now calls the pinned Nexo 1.21 public API (`NexoPlugin.instance().fontManager()`, typed `Glyph` accessors) for resolution, validation, availability, and emoji listing. Nexo is declared as a Paper soft dependency for optional runtime classloader visibility. `NexoEmojiServiceFontTagTest` proves typed glyph rendering and absent-plugin fallback; `Pr9TechDebtContractTest` rejects reflection and dependency-metadata regressions.
   - Files: `NexoEmojiService.kt:198`
-- [ ] **LG-903** Discord CSV avatar URL configurable (no hardcoded placeholder)
+- [x] **LG-903** Discord CSV avatar URL configurable (no hardcoded placeholder)
   - Tag: `TDD`
   - References: REQ-028
-  - Evidence:
+  - Evidence: Obsolete and already satisfied by PR #90: REQ-028 is superseded by REQ-023, `DiscordCsvService` no longer exists, and no Discord CSV avatar configuration ships.
   - Files: `DiscordCsvService.kt:255`, discord config section
 
 ---
