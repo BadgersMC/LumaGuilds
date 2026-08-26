@@ -5,8 +5,8 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.QuestProgressContext
 import net.lumalyte.lg.application.services.QuestService
 import net.lumalyte.lg.domain.entities.BlockProvenancePolicy
-import net.lumalyte.lg.domain.events.GuildBankDepositEvent
-import net.lumalyte.lg.domain.events.GuildWarEndEvent
+import net.lumalyte.lg.api.events.GuildBankDepositEvent
+import net.lumalyte.lg.api.events.GuildWarEndEvent
 import net.lumalyte.lg.domain.values.BlockPosition
 import net.lumalyte.lg.domain.values.QuestAction
 import net.lumalyte.lg.infrastructure.services.ProgressionConfigService

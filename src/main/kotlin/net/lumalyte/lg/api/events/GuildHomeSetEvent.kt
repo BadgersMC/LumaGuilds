@@ -1,13 +1,13 @@
-package net.lumalyte.lg.domain.events
+package net.lumalyte.lg.api.events
 
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 
 /**
- * Fired when a guild's banner is set or updated by a member.
+ * Fired when a guild's home location is set or updated by a member.
  */
-class GuildBannerSetEvent(
+class GuildHomeSetEvent(
     val guildId: UUID,
     val playerId: UUID
 ) : Event() {

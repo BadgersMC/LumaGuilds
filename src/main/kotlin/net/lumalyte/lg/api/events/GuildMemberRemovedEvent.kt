@@ -1,27 +1,23 @@
-package net.lumalyte.lg.domain.events
+package net.lumalyte.lg.api.events
 
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 
 /**
- * Event fired when a player kills a rival guild member during an active war.
+ * Fired when a member is removed from a guild, either by leaving voluntarily or being kicked.
  */
-class GuildWarKillEvent(
-    val warId: UUID,
-    val killerId: UUID,
-    val victimId: UUID,
-    val killerGuildId: UUID,
-    val victimGuildId: UUID
+class GuildMemberRemovedEvent(
+    val guildId: UUID,
+    val playerId: UUID,
+    val actorId: UUID,
+    val wasKicked: Boolean
 ) : Event() {
-
     companion object {
         @JvmStatic
         private val handlers = HandlerList()
-
         @JvmStatic
         fun getHandlerList(): HandlerList = handlers
     }
-
     override fun getHandlers(): HandlerList = Companion.handlers
 }

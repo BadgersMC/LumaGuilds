@@ -13,7 +13,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildVaultLocation
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.entities.VaultStatus
-import net.lumalyte.lg.domain.events.GuildVaultPlacedEvent
+import net.lumalyte.lg.api.events.GuildVaultPlacedEvent
 import net.lumalyte.lg.interaction.inventory.VaultInventoryHolder
 import org.bukkit.Bukkit
 import org.bukkit.Location

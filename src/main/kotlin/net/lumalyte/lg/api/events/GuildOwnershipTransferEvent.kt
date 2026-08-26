@@ -1,18 +1,16 @@
-package net.lumalyte.lg.domain.events
+package net.lumalyte.lg.api.events
 
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 
 /**
- * Fired when a guild war ends, either by victory, surrender, or expiration.
+ * Fired when ownership of a guild is transferred from one player to another.
  */
-class GuildWarEndEvent(
-    val warId: UUID,
-    val winnerGuildId: UUID?,
-    val loserGuildId: UUID?,
-    val declaringGuildId: UUID,
-    val defendingGuildId: UUID
+class GuildOwnershipTransferEvent(
+    val guildId: UUID,
+    val oldOwnerId: UUID,
+    val newOwnerId: UUID
 ) : Event() {
     companion object {
         @JvmStatic
