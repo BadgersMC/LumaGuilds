@@ -3,6 +3,7 @@
 ## Overview
 
 Build a Bedrock `.mcpack` resource pack containing:
+
 1. **65 menu icons** adapted from the existing Java Nexo pack icons
 2. **Controller button glyph atlas** for cross-platform button hints in form labels
 3. **Texture registration** via `textures_list.json`
@@ -145,7 +146,7 @@ All icons go under `textures/ui/` with descriptive names matching the `BedrockCo
 
 ### File layout
 
-```
+```text
 LumaGuilds-Bedrock-UI.mcpack/
 ├── manifest.json
 ├── pack_icon.png
@@ -325,6 +326,7 @@ LumaGuilds-Bedrock-UI.mcpack/
 ## Part 4 — Design Guidelines for Codex
 
 ### Icon Style
+
 - **Flat/vector style** — clean silhouettes, minimal shading
 - **White/light fill with transparency** — Bedrock forms work best with clear silhouettes; the game engine handles colour/tint
 - **64×64 pixels** — Bedrock standard for form button icons
@@ -332,12 +334,15 @@ LumaGuilds-Bedrock-UI.mcpack/
 - Avoid fine detail below 4px — form icons are displayed small on mobile screens
 
 ### How to Use the Reference Pack
+
 The Nexo pack at `/opt/data/nexo-config/luma-guilds-nexo-pack-v2.zip` contains 61 Java-side icons. Adapt them to Bedrock:
+
 - Java pack uses `custom_model_data` on Paper items; Bedrock uses direct `textures/ui/*.png` paths
 - Keep the same visual identity but simplify for Bedrock's rendering
 - The Java pack has 5×3 and 8×6 grid backgrounds for GUI — those are NOT needed in Bedrock (forms have their own background)
 
 ### Glyph Atlas Details
+
 - `glyph_E0.png`: 256×16px total = 16 cells × 16px wide each
 - Each cell is a **white vector icon** on full transparency
 - Row 1 (glyph_E0 covers \uE001-\uE010)
@@ -345,9 +350,11 @@ The Nexo pack at `/opt/data/nexo-config/luma-guilds-nexo-pack-v2.zip` contains 6
 - Keep lines 2px thick minimum for visibility on mobile
 
 ### Installation on Server
+
 The .mcpack goes into `Geyser/packs/` directory on the server. Geyser automatically serves it to all Bedrock clients on join. No client-side install needed.
 
 ### Verification Checklist
+
 - [ ] All 65 icons present in `textures/ui/`
 - [ ] Glyph atlas `font/glyph_E0.png` with 16 controller buttons
 - [ ] `font/default.json` and `font/legacy_unicode.json` both reference the glyph atlas

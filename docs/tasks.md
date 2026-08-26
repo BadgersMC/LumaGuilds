@@ -248,12 +248,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-8b — Bedrock & misc UX
 
-- [ ] **LG-811** Remove all `.coming.soon` lang keys from `lang/bedrock/forms.properties`
+- [x] **LG-811** Remove all `.coming.soon` lang keys from `lang/bedrock/forms.properties`
   - Tag: `TDD`
   - References: REQ-037
-  - Evidence:
+  - Evidence: Already satisfied by the Nexus YAML localization migration: the legacy `lang/bedrock/forms.properties` file no longer ships, and obsolete Bedrock placeholder copy is absent from `lang/en_US.yml`; `LocaleContractTest` is GREEN.
   - Files: `lang/bedrock/forms.properties`
-- [ ] **LG-812** Functional Bedrock forms for bank budget/automation/security, claim player/wide permissions, and edit tool
+- [~] **LG-812** Functional Bedrock forms for bank budget/automation/security, claim player/wide permissions, and edit tool
   - Tag: `TDD`
   - References: REQ-038
   - Evidence:
