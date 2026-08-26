@@ -52,4 +52,17 @@ class NexoEmojiServiceFontTagTest {
         assertEquals("<glyph:clown>", service.emojiToFontTag(":clown:"))
         assertEquals("<glyph:fire>", service.emojiToFontTag(":fire:"))
     }
+
+    @Test
+    fun `renders a resolved public API glyph as a font tag`() {
+        val resolvedService = NexoEmojiService(
+            mockk<ConfigService>(),
+            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji") }
+        )
+
+        assertEquals(
+            "<font:nexo:emoji>\uE001</font>",
+            resolvedService.emojiToFontTag(":enthusia:")
+        )
+    }
 }

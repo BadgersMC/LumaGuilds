@@ -105,13 +105,6 @@ dependencies {
     // strike hook — the API must be on the test classpath too.
     testImplementation("com.gitlab.ruany:LiteBansAPI:0.6.1")
 
-    // EnthusiaMarket public API (net.badgersmc.em.api.ShopGuildLookup) for guild-shop
-    // integration. Slim api-only jar (one interface, depends only on Bukkit) — NOT the
-    // full EM jar, to avoid a circular build dependency (EM builds against LumaGuilds).
-    // Committed under libs/ because it's tiny + stable; resolved at runtime from the
-    // EnthusiaMarket plugin via Bukkit's ServicesManager.
-    compileOnly(files("libs/enthusiamarket-api.jar"))
-
     // geyser
     compileOnly("org.geysermc.geyser:api:2.9.4-SNAPSHOT")
     compileOnly("org.geysermc.floodgate:api:2.2.5-SNAPSHOT")
