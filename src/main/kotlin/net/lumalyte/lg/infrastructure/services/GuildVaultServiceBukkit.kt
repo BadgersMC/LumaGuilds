@@ -7,7 +7,7 @@ import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildVaultService
 import net.lumalyte.lg.application.services.RankService
-import net.lumalyte.lg.application.services.VaultInventoryManager
+import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
 import net.lumalyte.lg.application.services.VaultResult
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildVaultLocation

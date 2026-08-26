@@ -1,4 +1,4 @@
-package net.lumalyte.lg.domain.entities
+package net.lumalyte.lg.infrastructure.vault
 
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory

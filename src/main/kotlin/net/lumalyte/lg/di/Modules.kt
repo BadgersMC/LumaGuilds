@@ -616,9 +616,9 @@ fun vaultModule() = module {
     }
 
     // Services
-    single<net.lumalyte.lg.application.services.VaultInventoryManager> {
+    single<net.lumalyte.lg.infrastructure.vault.VaultInventoryManager> {
         val config = get<ConfigService>().loadConfig()
-        net.lumalyte.lg.application.services.VaultInventoryManager(get(), get(), config.vault)
+        net.lumalyte.lg.infrastructure.vault.VaultInventoryManager(get(), get(), config.vault)
     }
     single<net.lumalyte.lg.application.services.GuildVaultService> {
         net.lumalyte.lg.infrastructure.services.GuildVaultServiceBukkit(
@@ -634,9 +634,9 @@ fun vaultModule() = module {
             get()
         )
     }
-    single<net.lumalyte.lg.application.services.VaultAutoSaveService> {
+    single<net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService> {
         val config = get<ConfigService>().loadConfig()
-        net.lumalyte.lg.application.services.VaultAutoSaveService(
+        net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService(
             get<LumaGuilds>(),
             get(),
             get(),

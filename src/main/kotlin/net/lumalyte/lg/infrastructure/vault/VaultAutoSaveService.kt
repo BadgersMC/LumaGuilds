@@ -1,4 +1,4 @@
-package net.lumalyte.lg.application.services
+package net.lumalyte.lg.infrastructure.vault
 
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin

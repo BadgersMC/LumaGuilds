@@ -4,7 +4,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PlatformDetectionService
-import net.lumalyte.lg.application.services.VaultInventoryManager
+import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import net.lumalyte.lg.application.utilities.ValuableItemChecker
 import net.lumalyte.lg.config.VaultConfig
