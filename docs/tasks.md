@@ -309,11 +309,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-10 — Domain purity II (Bukkit-free domain)
 
-- [~] **LG-1001** Decouple domain events from `org.bukkit.event.Event`; remove `org.bukkit`/`org.koin`/`co.aikar`/`net.kyori` imports from `domain/**`; make the `forbidden:` contract executable (LayerRulesTest external-package assertion + populated list)
+- [x] **LG-1001** Decouple domain events from `org.bukkit.event.Event`; remove `org.bukkit`/`org.koin`/`co.aikar`/`net.kyori` imports from `domain/**`; make the `forbidden:` contract executable (LayerRulesTest external-package assertion + populated list)
   - Tag: `TDD`
   - References: REQ-045
-  - Evidence:
-  - Files: `domain/events/*` (21 files, 38 Bukkit imports), `domain/entities/{VaultInventory,ViewerSession,WriteBuffer}.kt`, `LayerRulesTest`, `docs/implementation.md`
+  - Evidence: LayerRulesTest enforces the documented forbidden prefixes; 17 Bukkit events moved one-to-one to api.events with API contract coverage; the Bukkit vault cache subsystem moved to infrastructure.vault while VaultBackupService remains a pure application port. Full architecture and repository test suites are GREEN.
+  - Files: `api/events/*`, `infrastructure/vault/*`, `LayerRulesTest`, `docs/implementation.md`
 
 ---
 
