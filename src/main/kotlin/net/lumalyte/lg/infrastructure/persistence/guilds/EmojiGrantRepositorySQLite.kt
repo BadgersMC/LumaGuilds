@@ -14,6 +14,18 @@ class EmojiGrantRepositorySQLite(
 ) : EmojiGrantRepository {
     private val logger = LoggerFactory.getLogger(EmojiGrantRepositorySQLite::class.java)
     private val grants = mutableMapOf<Pair<UUID, UUID>, EmojiPermissionGrant>()
+    private val upsertSql = if (storage.javaClass.simpleName.contains("MariaDB")) {
+        """
+            INSERT INTO guild_emoji_grants_applied (player_id, guild_id, permission)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE permission = VALUES(permission)
+        """.trimIndent()
+    } else {
+        """
+            INSERT OR REPLACE INTO guild_emoji_grants_applied (player_id, guild_id, permission)
+            VALUES (?, ?, ?)
+        """.trimIndent()
+    }
 
     init {
         createTable()
@@ -29,13 +41,9 @@ class EmojiGrantRepositorySQLite(
         grants[playerId to guildId]
 
     override fun upsert(grant: EmojiPermissionGrant): Boolean {
-        val sql = """
-            INSERT OR REPLACE INTO guild_emoji_grants_applied (player_id, guild_id, permission)
-            VALUES (?, ?, ?)
-        """.trimIndent()
         return try {
             val changed = storage.connection.executeUpdate(
-                sql,
+                upsertSql,
                 grant.playerId.toString(),
                 grant.guildId.toString(),
                 grant.permission,
@@ -62,7 +70,18 @@ class EmojiGrantRepositorySQLite(
 
     private fun createTable() {
         try {
-            storage.connection.executeUpdate(
+            val isMariaDb = storage.javaClass.simpleName.contains("MariaDB")
+            val createSql = if (isMariaDb) {
+                """
+                CREATE TABLE IF NOT EXISTS guild_emoji_grants_applied (
+                    player_id VARCHAR(36) NOT NULL,
+                    guild_id VARCHAR(36) NOT NULL,
+                    permission VARCHAR(255) NOT NULL,
+                    PRIMARY KEY (player_id, guild_id),
+                    INDEX idx_guild_emoji_grants_guild (guild_id)
+                )
+                """.trimIndent()
+            } else {
                 """
                 CREATE TABLE IF NOT EXISTS guild_emoji_grants_applied (
                     player_id TEXT NOT NULL,
@@ -70,11 +89,14 @@ class EmojiGrantRepositorySQLite(
                     permission TEXT NOT NULL,
                     PRIMARY KEY (player_id, guild_id)
                 )
-                """.trimIndent(),
-            )
-            storage.connection.executeUpdate(
-                "CREATE INDEX IF NOT EXISTS idx_guild_emoji_grants_guild ON guild_emoji_grants_applied(guild_id)",
-            )
+                """.trimIndent()
+            }
+            storage.connection.executeUpdate(createSql)
+            if (!isMariaDb) {
+                storage.connection.executeUpdate(
+                    "CREATE INDEX IF NOT EXISTS idx_guild_emoji_grants_guild ON guild_emoji_grants_applied(guild_id)",
+                )
+            }
         } catch (exception: SQLException) {
             throw DatabaseOperationException("Failed to create emoji grant ledger", exception)
         }

@@ -10,6 +10,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.slf4j.LoggerFactory
+import net.lumalyte.lg.application.services.EmojiGrantReconciliationResult
 
 /**
  * Listens for guild membership changes and grants/revokes emoji permissions
@@ -23,46 +24,41 @@ class GuildEmojiGrantListener(
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
-        try {
+        reconcile("member join player=${event.playerId} guild=${event.guildId}") {
             emojiGrantService.reconcileMember(event.playerId, event.guildId)
-        } catch (e: Exception) {
-            logger.warn("Failed to grant emoji permission on join: ${e.message}")
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildMemberRemoved(event: GuildMemberRemovedEvent) {
-        try {
+        reconcile("member removal player=${event.playerId} guild=${event.guildId}") {
             emojiGrantService.removeMember(event.playerId, event.guildId)
-        } catch (e: Exception) {
-            logger.warn("Failed to revoke emoji permission on leave: ${e.message}")
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildCreated(event: GuildCreatedEvent) {
-        reconcile("create") { emojiGrantService.reconcileGuild(event.guild.id) }
+        reconcile("guild create guild=${event.guild.id}") { emojiGrantService.reconcileGuild(event.guild.id) }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildRenamed(event: GuildRenamedEvent) {
-        reconcile("rename") { emojiGrantService.reconcileGuild(event.guild.id) }
+        reconcile("guild rename guild=${event.guild.id}") { emojiGrantService.reconcileGuild(event.guild.id) }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildDisbanded(event: GuildDisbandedEvent) {
-        try {
-            emojiGrantService.removeGuild(event.guild.id)
-        } catch (e: Exception) {
-            logger.warn("Failed to revoke emoji permissions on disband: ${e.message}")
-        }
+        reconcile("guild disband guild=${event.guild.id}") { emojiGrantService.removeGuild(event.guild.id) }
     }
 
-    private fun reconcile(operation: String, action: () -> Unit) {
+    private fun reconcile(operation: String, action: () -> EmojiGrantReconciliationResult) {
         try {
-            action()
+            val result = action()
+            if (!result.successful) {
+                logger.warn("Emoji permission reconciliation failed for $operation: ${result.failed} operation(s) will retry on global reconciliation")
+            }
         } catch (e: Exception) {
-            logger.warn("Failed to reconcile emoji permissions on guild $operation: ${e.message}")
+            logger.warn("Failed to reconcile emoji permissions for $operation: ${e.message}")
         }
     }
 }

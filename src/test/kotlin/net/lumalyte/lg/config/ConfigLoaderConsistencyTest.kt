@@ -93,6 +93,20 @@ class ConfigLoaderConsistencyTest {
     }
 
     @Test
+    fun `config provider is dereferenced for each load`() {
+        var cfg = YamlConfiguration().apply {
+            set("guild.emoji_grants.Badgers", "enthusia.emoji.old")
+        }
+        val service = ConfigServiceBukkit { cfg }
+        assertEquals("enthusia.emoji.old", service.loadConfig().guild.emojiGrants["badgers"])
+
+        cfg = YamlConfiguration().apply {
+            set("guild.emoji_grants.Badgers", "enthusia.emoji.new")
+        }
+        assertEquals("enthusia.emoji.new", service.loadConfig().guild.emojiGrants["badgers"])
+    }
+
+    @Test
     fun `shipped config yml documents all newly-wired keys`() {
         val yml = File("src/main/resources/config.yml").readText()
         listOf(
