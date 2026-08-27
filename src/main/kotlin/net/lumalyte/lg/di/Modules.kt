@@ -504,7 +504,16 @@ fun socialModule() = module {
         net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService> {
-        net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService(get(), get(), get(), get())
+        net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService(get(), get(), get())
+    }
+    single<net.lumalyte.lg.application.persistence.EmojiGrantRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.EmojiGrantRepositorySQLite(get())
+    }
+    single<net.lumalyte.lg.application.services.EmojiPermissionGateway> {
+        net.lumalyte.lg.infrastructure.services.LuckPermsEmojiPermissionGateway(get())
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildEmojiGrantReconciler(get(), get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener(get())
