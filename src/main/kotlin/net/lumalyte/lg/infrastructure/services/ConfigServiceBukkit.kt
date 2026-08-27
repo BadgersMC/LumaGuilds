@@ -3,8 +3,12 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.config.*
 import org.bukkit.configuration.file.FileConfiguration
+import org.slf4j.LoggerFactory
+import java.util.Locale
 
 class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService {
+    private val logger = LoggerFactory.getLogger(ConfigServiceBukkit::class.java)
+
     override fun loadConfig(): MainConfig {
         return MainConfig(
             databaseType = config.getString("database_type", "sqlite") ?: "sqlite",
@@ -145,12 +149,22 @@ class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService 
         val section = config.getConfigurationSection("guild.emoji_grants") ?: return emptyMap()
         val result = mutableMapOf<String, String>()
         for (key in section.getKeys(false)) {
-            val value = section.getString(key) ?: continue
-            if (value.isNotBlank()) {
-                result[key.lowercase()] = value
+            val normalizedKey = key.trim().lowercase(Locale.ROOT)
+            val normalizedValue = section.getString(key)?.trim()?.lowercase(Locale.ROOT) ?: continue
+            if (normalizedKey.isBlank() || normalizedValue.isBlank()) continue
+            if (!PERMISSION_NODE.matches(normalizedValue)) {
+                logger.warn("Ignoring invalid guild emoji permission mapping for '$key'")
+                continue
+            }
+            if (result.put(normalizedKey, normalizedValue) != null) {
+                logger.warn("Duplicate guild emoji mapping after normalization for '$key'; using the last value")
             }
         }
         return result
+    }
+
+    companion object {
+        private val PERMISSION_NODE = Regex("^[a-z0-9][a-z0-9_.-]*$")
     }
     
     private fun loadBankConfig(): BankConfig {
