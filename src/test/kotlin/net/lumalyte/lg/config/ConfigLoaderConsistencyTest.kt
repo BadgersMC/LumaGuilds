@@ -3,6 +3,7 @@ package net.lumalyte.lg.config
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -74,6 +75,21 @@ class ConfigLoaderConsistencyTest {
     fun `banner copy physical cost is loaded`() {
         val cfg = YamlConfiguration().apply { set("guild.banner_copy_physical_cost", 99) }
         assertEquals(99, load(cfg).guild.bannerCopyPhysicalCost)
+    }
+
+    @Test
+    fun `emoji grants normalize safe nodes and reject unsafe values`() {
+        val cfg = YamlConfiguration().apply {
+            set("guild.emoji_grants.Badgers", "  Enthusia.Emoji.Badger  ")
+            set("guild.emoji_grants.Blank", "   ")
+            set("guild.emoji_grants.Injected", "permission true\nlp user attacker permission set * true")
+        }
+
+        val grants = load(cfg).guild.emojiGrants
+
+        assertEquals("enthusia.emoji.badger", grants["badgers"])
+        assertFalse(grants.containsKey("blank"))
+        assertFalse(grants.containsKey("injected"))
     }
 
     @Test
