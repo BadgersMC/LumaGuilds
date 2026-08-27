@@ -30,5 +30,5 @@ class GuildEmojiGrantService(
         guildService.getGuild(guildId)?.let { resolveEmojiGrantByName(it.name) }
 
     fun resolveEmojiGrantByName(guildName: String): String? =
-        configService.loadConfig().guild.emojiGrants[guildName.lowercase(Locale.ROOT)]
+        configService.loadConfig().guild.emojiGrants[guildName.trim().lowercase(Locale.ROOT)]
 }

@@ -1,14 +1,13 @@
 package net.lumalyte.lg.api.events
 
-import net.lumalyte.lg.domain.entities.Guild
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 
 class GuildRenamedEvent(
-    val oldGuild: Guild,
-    val guild: Guild,
-    val actorId: UUID,
+    val guildId: UUID,
+    val oldName: String,
+    val newName: String,
 ) : Event() {
     companion object {
         private val HANDLERS = HandlerList()

@@ -43,6 +43,15 @@ class GuildEmojiGrantReconcilerTest {
     }
 
     @Test
+    fun `guild names with surrounding spaces use normalized mapping`() {
+        every { guildService.getAllGuilds() } returns setOf(guild.copy(name = " Badgers "))
+
+        val result = reconciler.reconcileAll(mapOf("badgers" to "enthusia.emoji.badger"))
+
+        assertEquals(2, result.granted)
+    }
+
+    @Test
     fun `unrecorded matching permission is never revoked`() {
         gateway.externallyOwned += playerOne to "enthusia.emoji.badger"
 

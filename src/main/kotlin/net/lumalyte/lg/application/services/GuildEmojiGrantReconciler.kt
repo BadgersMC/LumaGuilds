@@ -32,7 +32,7 @@ class GuildEmojiGrantReconciler(
     fun reconcileAll(mappings: Map<String, String>): EmojiGrantReconciliationResult = lock.withLock {
         val desired = buildMap<Pair<UUID, UUID>, EmojiPermissionGrant> {
             guildService.getAllGuilds().forEach { guild ->
-                val permission = mappings[guild.name.lowercase(Locale.ROOT)] ?: return@forEach
+                val permission = mappings[guild.name.trim().lowercase(Locale.ROOT)] ?: return@forEach
                 memberService.getGuildMembers(guild.id).forEach { member ->
                     put(member.playerId to guild.id, EmojiPermissionGrant(member.playerId, guild.id, permission))
                 }

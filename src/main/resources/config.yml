@@ -164,8 +164,9 @@ guild:
   # Emoji Grants — map guild names to Nexo emoji permission nodes
   # Members of the listed guild are automatically granted the permission to use
   # the corresponding emoji in chat and guild emoji selection. Guild names are
-  # matched case-insensitively; permission nodes are normalized to lowercase and
-  # must contain only letters, numbers, dots, underscores, and hyphens.
+  # matched case-insensitively; permission nodes are normalized to lowercase,
+  # must begin with a letter or number, and may then contain only letters,
+  # numbers, dots, underscores, or hyphens (maximum 255 characters).
   # One permission may be configured per guild. Changes are applied by
   # /lumaguilds reload, including removal or replacement of old grants.
   # Example:
