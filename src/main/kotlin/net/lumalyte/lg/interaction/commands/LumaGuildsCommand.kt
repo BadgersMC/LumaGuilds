@@ -139,6 +139,13 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             // Reinitialize config and services
             plugin.initConfig()
 
+            val emojiResult = org.koin.core.context.GlobalContext.get()
+                .get<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService>()
+                .reconcileAll()
+            if (!emojiResult.successful) {
+                sender.sendMessage("LumaGuilds emoji permissions reconciled with ${emojiResult.failed} failure(s); check console.")
+            }
+
             // Refresh cached configs in listeners
             plugin.vaultProtectionListener.refreshConfig()
             org.koin.core.context.GlobalContext.get()
