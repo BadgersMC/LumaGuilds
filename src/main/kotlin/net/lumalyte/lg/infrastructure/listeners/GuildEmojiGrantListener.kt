@@ -43,7 +43,7 @@ class GuildEmojiGrantListener(
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildRenamed(event: GuildRenamedEvent) {
-        reconcile("guild rename guild=${event.guild.id}") { emojiGrantService.reconcileGuild(event.guild.id) }
+        reconcile("guild rename guild=${event.guildId}") { emojiGrantService.reconcileGuild(event.guildId) }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

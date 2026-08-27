@@ -4,6 +4,7 @@ import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.EmojiGrantRepository
 import net.lumalyte.lg.domain.entities.EmojiPermissionGrant
+import net.lumalyte.lg.domain.entities.MAX_EMOJI_PERMISSION_LENGTH
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
@@ -76,7 +77,7 @@ class EmojiGrantRepositorySQLite(
                 CREATE TABLE IF NOT EXISTS guild_emoji_grants_applied (
                     player_id VARCHAR(36) NOT NULL,
                     guild_id VARCHAR(36) NOT NULL,
-                    permission VARCHAR(255) NOT NULL,
+                    permission VARCHAR($MAX_EMOJI_PERMISSION_LENGTH) NOT NULL,
                     PRIMARY KEY (player_id, guild_id),
                     INDEX idx_guild_emoji_grants_guild (guild_id)
                 )
@@ -115,6 +116,8 @@ class EmojiGrantRepositorySQLite(
                 grants[grant.playerId to grant.guildId] = grant
             }
         } catch (exception: SQLException) {
+            throw DatabaseOperationException("Failed to preload emoji grant ledger", exception)
+        } catch (exception: IllegalArgumentException) {
             throw DatabaseOperationException("Failed to preload emoji grant ledger", exception)
         }
     }

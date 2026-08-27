@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import net.lumalyte.lg.domain.entities.EmojiPermissionGrant
+import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -12,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.assertFailsWith
 
 class EmojiGrantRepositorySQLiteTest {
     @TempDir
@@ -81,5 +83,15 @@ class EmojiGrantRepositorySQLiteTest {
             listOf(EmojiPermissionGrant(playerId, guildId, "enthusia.emoji.badger")),
             repository.getForGuild(guildId),
         )
+    }
+
+    @Test
+    fun `malformed persisted UUID is reported as database operation failure`() {
+        storage.connection.executeUpdate(
+            "INSERT INTO guild_emoji_grants_applied (player_id, guild_id, permission) VALUES (?, ?, ?)",
+            "not-a-uuid", guildId.toString(), "enthusia.emoji.badger",
+        )
+
+        assertFailsWith<DatabaseOperationException> { EmojiGrantRepositorySQLite(storage) }
     }
 }

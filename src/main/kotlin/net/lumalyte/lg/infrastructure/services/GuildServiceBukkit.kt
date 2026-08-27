@@ -203,7 +203,7 @@ class GuildServiceBukkit(
         val result = guildRepository.update(updatedGuild)
         if (result) {
             logger.info("Guild $guildId renamed to '$newName' by $actorId")
-            Bukkit.getPluginManager().callEvent(GuildRenamedEvent(guild, updatedGuild, actorId))
+            Bukkit.getPluginManager().callEvent(GuildRenamedEvent(guildId, guild.name, newName))
         }
         return result
     }

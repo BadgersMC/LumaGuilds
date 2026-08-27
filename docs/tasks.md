@@ -337,7 +337,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-1104** Custom guild emojis via config — guild-name → Nexo permission grant for all members
   - Tag: `TDD`
   - References: REQ-048
-  - Evidence: SQLite ownership-ledger restart coverage; config normalization/injection rejection; reconciliation tests cover grant, leave, shared-node ownership, disband, rename, config removal, A→B replacement, and partial failures; LuckPerms gateway tests assert exact console commands; event, architecture, Koin graph, and full clean suite GREEN (682 tests).
+  - Evidence: SQLite ownership-ledger restart and malformed-row coverage; config normalization/injection/length rejection; reconciliation tests cover grant, leave, shared-node ownership, disband, rename, config removal, A→B replacement, and partial failures; LuckPerms gateway tests assert exact console commands; event, architecture, Koin graph, and full clean suite GREEN (685 tests).
   - Files: `EmojiPermissionGrant`, `EmojiGrantRepository`, `EmojiGrantRepositorySQLite`, `GuildEmojiGrantReconciler`, `LuckPermsEmojiPermissionGateway`, `GuildEmojiGrantService`, `GuildEmojiGrantListener`, `GuildRenamedEvent`, config loader, startup/reload wiring, `EMOJI_PERMISSIONS.md`
   - Notes: lifecycle reconciliation — revoke on config-removal, guild rename/disband, member leave, and mapping change (A→B revokes A, grants B); tests cover grant, revoke, rename, config-removal, and value replacement
   - Harvest: `CustomEmojiCommand` + `setEmojiAdmin()` from closed PR #7 (superseded) — rebuild admin-command flow against current rank/permission model

@@ -1,6 +1,7 @@
 package net.lumalyte.lg.config
 
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
+import net.lumalyte.lg.domain.entities.MAX_EMOJI_PERMISSION_LENGTH
 import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -90,6 +91,15 @@ class ConfigLoaderConsistencyTest {
         assertEquals("enthusia.emoji.badger", grants["badgers"])
         assertFalse(grants.containsKey("blank"))
         assertFalse(grants.containsKey("injected"))
+    }
+
+    @Test
+    fun `emoji grants reject nodes longer than durable storage limit`() {
+        val cfg = YamlConfiguration().apply {
+            set("guild.emoji_grants.Badgers", "a".repeat(MAX_EMOJI_PERMISSION_LENGTH + 1))
+        }
+
+        assertFalse(load(cfg).guild.emojiGrants.containsKey("badgers"))
     }
 
     @Test

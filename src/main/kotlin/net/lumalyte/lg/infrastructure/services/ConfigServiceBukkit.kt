@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.config.*
+import net.lumalyte.lg.domain.entities.MAX_EMOJI_PERMISSION_LENGTH
 import org.bukkit.configuration.file.FileConfiguration
 import org.slf4j.LoggerFactory
 import java.util.Locale
@@ -155,7 +156,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             val normalizedKey = key.trim().lowercase(Locale.ROOT)
             val normalizedValue = section.getString(key)?.trim()?.lowercase(Locale.ROOT) ?: continue
             if (normalizedKey.isBlank() || normalizedValue.isBlank()) continue
-            if (!PERMISSION_NODE.matches(normalizedValue)) {
+            if (normalizedValue.length > MAX_EMOJI_PERMISSION_LENGTH || !PERMISSION_NODE.matches(normalizedValue)) {
                 logger.warn("Ignoring invalid guild emoji permission mapping for '$key'")
                 continue
             }
