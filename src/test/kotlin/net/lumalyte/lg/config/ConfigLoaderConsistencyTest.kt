@@ -1,8 +1,10 @@
 package net.lumalyte.lg.config
 
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
+import net.lumalyte.lg.domain.entities.MAX_EMOJI_PERMISSION_LENGTH
 import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -74,6 +76,44 @@ class ConfigLoaderConsistencyTest {
     fun `banner copy physical cost is loaded`() {
         val cfg = YamlConfiguration().apply { set("guild.banner_copy_physical_cost", 99) }
         assertEquals(99, load(cfg).guild.bannerCopyPhysicalCost)
+    }
+
+    @Test
+    fun `emoji grants normalize safe nodes and reject unsafe values`() {
+        val cfg = YamlConfiguration().apply {
+            set("guild.emoji_grants.Badgers", "  Enthusia.Emoji.Badger  ")
+            set("guild.emoji_grants.Blank", "   ")
+            set("guild.emoji_grants.Injected", "permission true\nlp user attacker permission set * true")
+        }
+
+        val grants = load(cfg).guild.emojiGrants
+
+        assertEquals("enthusia.emoji.badger", grants["badgers"])
+        assertFalse(grants.containsKey("blank"))
+        assertFalse(grants.containsKey("injected"))
+    }
+
+    @Test
+    fun `emoji grants reject nodes longer than durable storage limit`() {
+        val cfg = YamlConfiguration().apply {
+            set("guild.emoji_grants.Badgers", "a".repeat(MAX_EMOJI_PERMISSION_LENGTH + 1))
+        }
+
+        assertFalse(load(cfg).guild.emojiGrants.containsKey("badgers"))
+    }
+
+    @Test
+    fun `config provider is dereferenced for each load`() {
+        var cfg = YamlConfiguration().apply {
+            set("guild.emoji_grants.Badgers", "enthusia.emoji.old")
+        }
+        val service = ConfigServiceBukkit { cfg }
+        assertEquals("enthusia.emoji.old", service.loadConfig().guild.emojiGrants["badgers"])
+
+        cfg = YamlConfiguration().apply {
+            set("guild.emoji_grants.Badgers", "enthusia.emoji.new")
+        }
+        assertEquals("enthusia.emoji.new", service.loadConfig().guild.emojiGrants["badgers"])
     }
 
     @Test
