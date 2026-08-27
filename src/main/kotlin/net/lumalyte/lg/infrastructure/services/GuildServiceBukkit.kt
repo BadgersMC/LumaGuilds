@@ -18,6 +18,7 @@ import net.lumalyte.lg.api.events.GuildBannerSetEvent
 import net.lumalyte.lg.api.events.GuildBannerChangedEvent
 import net.lumalyte.lg.api.events.GuildCreatedEvent
 import net.lumalyte.lg.api.events.GuildDisbandedEvent
+import net.lumalyte.lg.api.events.GuildRenamedEvent
 import net.lumalyte.lg.api.events.GuildHomeSetEvent
 import net.lumalyte.lg.api.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.utils.serializeToString
@@ -202,6 +203,7 @@ class GuildServiceBukkit(
         val result = guildRepository.update(updatedGuild)
         if (result) {
             logger.info("Guild $guildId renamed to '$newName' by $actorId")
+            Bukkit.getPluginManager().callEvent(GuildRenamedEvent(guildId, guild.name, newName))
         }
         return result
     }

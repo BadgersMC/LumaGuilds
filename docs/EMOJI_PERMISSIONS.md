@@ -42,6 +42,21 @@ Where:
 
 ## Granting Permissions
 
+### Automatic Guild Grants
+
+Map normalized guild names to LuckPerms permission nodes under `guild.emoji_grants`:
+
+```yaml
+guild:
+  emoji_grants:
+    builders: "nexo.emoji.hammer"
+    explorers: "nexo.emoji.compass"
+```
+
+LumaGuilds reconciles these grants at startup, on `/lumaguilds reload`, and when a guild is created, renamed, disbanded, joined, or left. Guild names and permission nodes are normalized to lowercase. Invalid permission nodes are rejected during config loading.
+
+Only grants recorded in LumaGuilds' `guild_emoji_grants_applied` ownership ledger are revoked. Permissions granted manually, through groups, or by another plugin are never removed by this feature. Changing a mapping from permission A to B revokes the recorded A grant before granting B; removing a mapping revokes its recorded grants on the next reconciliation.
+
 ### Grant All Emojis
 ```yaml
 # In your permissions plugin (LuckPerms, etc.)
@@ -175,5 +190,4 @@ chat:
 
 ---
 
-*Last updated: December 15, 2025*
-*Plugin Version: 0.5.3*
+*Last updated: August 27, 2026*

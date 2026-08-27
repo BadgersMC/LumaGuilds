@@ -139,6 +139,13 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             // Reinitialize config and services
             plugin.initConfig()
 
+            val emojiResult = org.koin.core.context.GlobalContext.get()
+                .get<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService>()
+                .reconcileAll()
+            if (!emojiResult.successful) {
+                sender.sendMessage("LumaGuilds emoji permissions reconciled with ${emojiResult.failed} failure(s); check console.")
+            }
+
             // Refresh cached configs in listeners
             plugin.vaultProtectionListener.refreshConfig()
             org.koin.core.context.GlobalContext.get()
@@ -149,8 +156,10 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             // stopping and restarting schedulers, recreating Koin context, etc.
             // For development, config reload should be sufficient.
 
-            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.lumaguilds_configuration_reloaded_successfully"))
-            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.some_changes_may_require_a_full_server"))
+            if (emojiResult.successful) {
+                sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.lumaguilds_configuration_reloaded_successfully"))
+                sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.some_changes_may_require_a_full_server"))
+            }
 
         } catch (e: Exception) {
             // Command handler - catching all exceptions to prevent command crash
