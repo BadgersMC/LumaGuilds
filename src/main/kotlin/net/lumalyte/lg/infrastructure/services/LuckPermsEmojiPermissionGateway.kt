@@ -2,15 +2,10 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.EmojiPermissionGateway
 import org.bukkit.Bukkit
-import org.bukkit.plugin.Plugin
 import org.slf4j.LoggerFactory
 import java.util.UUID
-import java.util.concurrent.Callable
-import java.util.concurrent.TimeUnit
 
-class LuckPermsEmojiPermissionGateway(
-    private val plugin: Plugin,
-) : EmojiPermissionGateway {
+class LuckPermsEmojiPermissionGateway : EmojiPermissionGateway {
     private val logger = LoggerFactory.getLogger(LuckPermsEmojiPermissionGateway::class.java)
 
     override fun grant(playerId: UUID, permission: String): Boolean =
@@ -25,14 +20,12 @@ class LuckPermsEmojiPermissionGateway(
             return false
         }
         val command = "lp user $playerId permission $operation"
+        if (!Bukkit.isPrimaryThread()) {
+            logger.error("Refusing off-thread LuckPerms emoji command for player $playerId; reconciliation must run on the server thread")
+            return false
+        }
         return try {
-            if (Bukkit.isPrimaryThread()) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
-            } else {
-                Bukkit.getScheduler()
-                    .callSyncMethod(plugin, Callable { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command) })
-                    .get(5, TimeUnit.SECONDS)
-            }
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
         } catch (exception: Exception) {
             logger.error("Failed to dispatch managed emoji permission operation for player $playerId", exception)
             false

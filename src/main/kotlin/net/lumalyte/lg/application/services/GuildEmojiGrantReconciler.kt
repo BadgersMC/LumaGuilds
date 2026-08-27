@@ -110,8 +110,15 @@ class GuildEmojiGrantReconciler(
     }
 
     private fun revokeAndDelete(grant: EmojiPermissionGrant): EmojiGrantReconciliationResult {
-        if (!gateway.revoke(grant.playerId, grant.permission)) return EmojiGrantReconciliationResult(failed = 1)
+        val anotherOwnedGrantRequiresPermission = repository.getAll().any {
+            it.playerId == grant.playerId &&
+                it.permission == grant.permission &&
+                it.guildId != grant.guildId
+        }
+        if (!anotherOwnedGrantRequiresPermission && !gateway.revoke(grant.playerId, grant.permission)) {
+            return EmojiGrantReconciliationResult(failed = 1)
+        }
         if (!repository.delete(grant.playerId, grant.guildId)) return EmojiGrantReconciliationResult(failed = 1)
-        return EmojiGrantReconciliationResult(revoked = 1)
+        return EmojiGrantReconciliationResult(revoked = if (anotherOwnedGrantRequiresPermission) 0 else 1)
     }
 }

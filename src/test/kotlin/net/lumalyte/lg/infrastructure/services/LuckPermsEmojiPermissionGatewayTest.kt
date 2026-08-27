@@ -35,7 +35,7 @@ class LuckPermsEmojiPermissionGatewayTest {
     @Test
     fun `valid grant and revoke dispatch exact LuckPerms commands`() {
         val playerId = UUID.randomUUID()
-        val gateway = LuckPermsEmojiPermissionGateway(MockBukkit.createMockPlugin())
+        val gateway = LuckPermsEmojiPermissionGateway()
 
         assertTrue(gateway.grant(playerId, "enthusia.emoji.badger"))
         assertTrue(gateway.revoke(playerId, "enthusia.emoji.badger"))
@@ -51,7 +51,7 @@ class LuckPermsEmojiPermissionGatewayTest {
 
     @Test
     fun `invalid permission dispatches nothing`() {
-        val gateway = LuckPermsEmojiPermissionGateway(MockBukkit.createMockPlugin())
+        val gateway = LuckPermsEmojiPermissionGateway()
 
         assertFalse(gateway.grant(UUID.randomUUID(), "permission true\nlp user attacker permission set * true"))
 

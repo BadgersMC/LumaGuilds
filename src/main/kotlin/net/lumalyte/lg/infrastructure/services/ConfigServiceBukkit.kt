@@ -6,7 +6,10 @@ import org.bukkit.configuration.file.FileConfiguration
 import org.slf4j.LoggerFactory
 import java.util.Locale
 
-class ConfigServiceBukkit(private val config: FileConfiguration): ConfigService {
+class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): ConfigService {
+    constructor(config: FileConfiguration) : this({ config })
+
+    private val config: FileConfiguration get() = configProvider()
     private val logger = LoggerFactory.getLogger(ConfigServiceBukkit::class.java)
 
     override fun loadConfig(): MainConfig {

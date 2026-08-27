@@ -135,6 +135,20 @@ class GuildEmojiGrantReconcilerTest {
     }
 
     @Test
+    fun `member leave preserves permission required by another guild membership`() {
+        val otherGuildId = UUID.randomUUID()
+        val permission = "enthusia.emoji.shared"
+        ledger.upsert(EmojiPermissionGrant(playerOne, guildId, permission))
+        ledger.upsert(EmojiPermissionGrant(playerOne, otherGuildId, permission))
+
+        reconciler.removeMembership(playerOne, guildId)
+
+        assertEquals(emptyList(), gateway.operations)
+        assertNull(ledger.getForPlayerAndGuild(playerOne, guildId))
+        assertEquals(permission, ledger.getForPlayerAndGuild(playerOne, otherGuildId)?.permission)
+    }
+
+    @Test
     fun `guild reconciliation replaces members and removes former member grants`() {
         val formerMember = UUID.randomUUID()
         ledger.upsert(EmojiPermissionGrant(playerOne, guildId, "enthusia.emoji.old"))
