@@ -633,6 +633,7 @@ class ProgressionServiceBukkit(
             ExperienceSource.CLAIM_DESTROYED -> 0
             ExperienceSource.WEEKLY_ACTIVITY -> 0
             ExperienceSource.ADMIN_BONUS -> Int.MAX_VALUE
+            else -> 0
         }
     }
 }
