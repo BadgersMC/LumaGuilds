@@ -63,6 +63,21 @@ class ProgressionServiceBukkitAwardTest {
     }
 
     @Test
+    fun `player activity preserves actor and configured units`() {
+        val awards = RecordingRepository()
+        val service = serviceWith(awards)
+        val guildId = UUID.randomUUID()
+        val actorId = UUID.randomUUID()
+
+        service.awardPlayerActivity(guildId, actorId, 3, ExperienceSource.DIAMOND_ORE)
+
+        assertEquals(actorId, awards.request?.actorId)
+        assertEquals(3, awards.request?.units)
+        assertEquals(60, awards.requestedXp)
+        assertEquals("ORE", awards.policy?.pool)
+    }
+
+    @Test
     fun `system quest award is forced outside source caps`() {
         val awards = RecordingRepository()
         val service = serviceWith(awards)
