@@ -19,10 +19,12 @@ class ProgressionCurve(
     private val baseXp: Double,
     private val exponent: Double,
     private val linearBonusPerLevel: Int,
+    private val maxLevel: Int = 100,
 ) {
 
     /** XP required to go from [currentLevel] to the next level. */
     fun experienceForNextLevel(currentLevel: Int): Int {
+        if (currentLevel >= maxLevel) return 0
         val nextLevel = currentLevel + 1
         return (baseXp * nextLevel.toDouble().pow(exponent) + (nextLevel * linearBonusPerLevel)).toInt()
     }
@@ -37,11 +39,7 @@ class ProgressionCurve(
         return totalXp
     }
 
-    /**
-     * Level for a given total XP. Capped at 101 — the level-up loop's safety cap
-     * (matches the historical behaviour: level 101 is the max, XP keeps
-     * accumulating beyond it as a sink).
-     */
+    /** Level for a given total XP, capped at permanent level 100. */
     fun levelFromExperience(totalExperience: Int): Int {
         if (totalExperience <= 0) return 1
 
@@ -53,15 +51,17 @@ class ProgressionCurve(
             experienceUsed += xpNeeded
             currentLevel++
 
-            // Safety check to prevent infinite loops
-            if (currentLevel > 100) break
+            if (currentLevel >= maxLevel) break
         }
         return currentLevel
     }
 
     /** XP earned within the current level (0 .. threshold-1). */
-    fun experienceInCurrentLevel(totalExperience: Int): Int =
-        totalExperience - totalExperienceForLevel(levelFromExperience(totalExperience))
+    fun experienceInCurrentLevel(totalExperience: Int): Int {
+        val level = levelFromExperience(totalExperience)
+        if (level >= maxLevel) return 0
+        return totalExperience - totalExperienceForLevel(level)
+    }
 
     companion object {
         /**
@@ -70,6 +70,6 @@ class ProgressionCurve(
          * differently in two places.
          */
         fun from(config: ProgressionConfig): ProgressionCurve =
-            ProgressionCurve(config.baseXp, config.levelExponent, config.linearBonusPerLevel)
+            ProgressionCurve(config.baseXp, config.levelExponent, config.linearBonusPerLevel, config.maxLevel)
     }
 }
