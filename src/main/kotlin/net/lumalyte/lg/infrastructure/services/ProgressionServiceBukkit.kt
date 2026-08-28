@@ -5,6 +5,8 @@ import net.kyori.adventure.title.Title
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.domain.values.ExperiencePolicy
+import net.lumalyte.lg.domain.values.CapPeriod
 import net.lumalyte.lg.domain.values.PerkType
 import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.domain.entities.*
@@ -25,6 +27,7 @@ class ProgressionServiceBukkit(
     private val progressionConfigService: ProgressionConfigService,
     private val plugin: org.bukkit.plugin.Plugin,
     private val lang: LangService,
+    private val permanentExperienceService: PermanentExperienceService,
 ) : ProgressionService {
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
@@ -47,72 +50,47 @@ class ProgressionServiceBukkit(
     }
 
     override fun awardExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? {
-        try {
-            // War farming cooldown check removed - this should be handled by the caller
-            // if needed, since it's WarService's responsibility
+        if (experience <= 0) return null
+        val mainConfig = configService.loadConfig()
+        if ((source == ExperienceSource.CLAIM_CREATED || source == ExperienceSource.CLAIM_DESTROYED) &&
+            !mainConfig.claimsEnabled
+        ) return null
 
-            // Check if claims are enabled for claim-related sources
-            val mainConfig = configService.loadConfig()
-            if ((source == ExperienceSource.CLAIM_CREATED || source == ExperienceSource.CLAIM_DESTROYED)
-                && !mainConfig.claimsEnabled) {
-                logger.info("Blocked EXP award for guild $guildId due to claims being disabled (source: $source)")
-                return null // Don't award EXP for claim sources if claims are disabled
-            }
-
-            // Get or create guild progression
-            val progression = progressionRepository.getGuildProgression(guildId)
-                ?: GuildProgression.create(guildId, getExperienceForNextLevel(1))
-
-            val oldLevel = progression.currentLevel
-            val newTotalExperience = progression.totalExperience + experience
-
-            // Calculate new level and experience distribution
-            val newLevel = getLevelFromExperience(newTotalExperience)
-            val newExperienceThisLevel = getExperienceInCurrentLevel(newTotalExperience)
-            val newExperienceForNextLevel = getExperienceForNextLevel(newLevel)
-
-            // Create updated progression
-            val updatedProgression = progression.copy(
-                totalExperience = newTotalExperience,
-                currentLevel = newLevel,
-                experienceThisLevel = newExperienceThisLevel,
-                experienceForNextLevel = newExperienceForNextLevel,
-                lastLevelUp = if (newLevel > oldLevel) Instant.now() else progression.lastLevelUp,
-                totalLevelUps = if (newLevel > oldLevel) progression.totalLevelUps + (newLevel - oldLevel) else progression.totalLevelUps,
-                lastUpdated = Instant.now()
-            )
-
-            // Save progression
-            val saved = progressionRepository.saveGuildProgression(updatedProgression)
-            if (!saved) {
-                logger.error("Failed to save guild progression for guild $guildId")
-                return null
-            }
-
-            // Record experience transaction
-            val transaction = ExperienceTransaction(
+        val configured = mainConfig.progression.sourcePolicies.getValue(source)
+        val rawXpPolicy = configured.copy(awardXp = 1)
+        return when (val result = permanentExperienceService.award(
+            ExperienceAwardRequest(
                 guildId = guildId,
+                actorId = null,
                 source = source,
-                amount = experience,
-                description = "XP from $source"
-            )
-            progressionRepository.recordExperienceTransaction(transaction)
+                units = experience,
+                occurredAt = Instant.now(),
+            ),
+            rawXpPolicy,
+        )) {
+            is ExperienceAwardResult.Awarded -> result.leveledUpTo
+            is ExperienceAwardResult.NoAllowance -> null
+            is ExperienceAwardResult.Rejected -> null
+        }
+    }
 
-            // Process level up if occurred
-            if (newLevel > oldLevel) {
-                logger.info("Guild $guildId leveled up from $oldLevel to $newLevel (gained $experience XP from $source)")
-                syncGuildLevelField(guildId, newLevel)
-                processLevelUp(guildId, newLevel)
-                return newLevel
-            }
-
-            // Debug logging removed - issue is solved
-            return null
-
-        } catch (e: Exception) {
-            // Service operation - catching all exceptions to prevent service failure
-            logger.error("Error awarding experience to guild $guildId", e)
-            return null
+    override fun awardUncappedSystemExperience(
+        guildId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+    ): Int? {
+        require(source == ExperienceSource.WEEKLY_ACTIVITY || source == ExperienceSource.ADMIN_BONUS) {
+            "Only trusted system sources may bypass caps"
+        }
+        if (experience <= 0) return null
+        val policy = ExperiencePolicy(source, source.defaultPool, 1, 0, CapPeriod.UNLIMITED, true)
+        return when (val result = permanentExperienceService.award(
+            ExperienceAwardRequest(guildId, null, source, experience, Instant.now()),
+            policy,
+        )) {
+            is ExperienceAwardResult.Awarded -> result.leveledUpTo
+            is ExperienceAwardResult.NoAllowance -> null
+            is ExperienceAwardResult.Rejected -> null
         }
     }
 

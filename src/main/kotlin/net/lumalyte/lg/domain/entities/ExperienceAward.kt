@@ -25,6 +25,7 @@ sealed interface ExperienceAwardResult {
         val acceptedXp: Int,
         val totalUsedXp: Int,
         val capped: Boolean,
+        val leveledUpTo: Int? = null,
     ) : ExperienceAwardResult
 
     data class Rejected(val reason: AwardRejection) : ExperienceAwardResult
