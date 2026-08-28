@@ -3,7 +3,12 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.config.*
 import net.lumalyte.lg.domain.entities.MAX_EMOJI_PERMISSION_LENGTH
+import net.lumalyte.lg.domain.values.CapPeriod
+import net.lumalyte.lg.domain.values.ExperiencePolicy
+import net.lumalyte.lg.domain.values.ExperienceSource
 import org.bukkit.configuration.file.FileConfiguration
+import org.bukkit.Material
+import org.bukkit.entity.EntityType
 import org.slf4j.LoggerFactory
 import java.util.Locale
 
@@ -337,11 +342,61 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             baseXp = config.getDouble("progression.base_xp", 500.0),
             levelExponent = config.getDouble("progression.level_exponent", 1.15),
             linearBonusPerLevel = config.getInt("progression.linear_bonus_per_level", 150),
+            sourcePolicies = loadExperiencePolicies(),
+            materialPools = loadMaterialPools(),
+            entityPools = loadEntityPools(),
 
             // Experience transaction retention
             transactionRetentionDays = config.getInt("progression.transaction_retention_days", 90),
             transactionCleanupIntervalHours = config.getInt("progression.transaction_cleanup_interval_hours", 24)
         )
+    }
+
+    private fun loadExperiencePolicies(): Map<ExperienceSource, ExperiencePolicy> =
+        ChapterTwoExperiencePolicies.defaults().mapValues { (source, default) ->
+            val path = "progression.sources.${source.name.lowercase(Locale.ROOT)}"
+            val periodName = config.getString("$path.period", default.period.name)
+                ?.uppercase(Locale.ROOT)
+                ?: default.period.name
+            val period = runCatching { CapPeriod.valueOf(periodName) }.getOrElse {
+                throw IllegalArgumentException("Invalid cap period '$periodName' for ${source.name}")
+            }
+            ExperiencePolicy(
+                source = source,
+                pool = config.getString("$path.pool", default.pool)?.trim().orEmpty(),
+                awardXp = config.getInt("$path.award_xp", default.awardXp),
+                capXp = config.getInt("$path.cap_xp", default.capXp),
+                period = period,
+                enabled = config.getBoolean("$path.enabled", default.enabled),
+            )
+        }.toMap()
+
+    private fun loadMaterialPools(): Map<String, Set<String>> =
+        loadTargetPools("progression.targets.materials", ChapterTwoTargetPools.defaultMaterials()) { raw ->
+            Material.matchMaterial(raw)?.name
+                ?: throw IllegalArgumentException("Unknown vanilla material '$raw'")
+        }
+
+    private fun loadEntityPools(): Map<String, Set<String>> =
+        loadTargetPools("progression.targets.entities", ChapterTwoTargetPools.defaultEntities()) { raw ->
+            val enumName = raw.substringAfter(':').uppercase(Locale.ROOT)
+            runCatching { EntityType.valueOf(enumName) }.getOrElse {
+                throw IllegalArgumentException("Unknown vanilla entity '$raw'")
+            }.name
+        }
+
+    private fun loadTargetPools(
+        root: String,
+        defaults: Map<String, Set<String>>,
+        normalize: (String) -> String,
+    ): Map<String, Set<String>> {
+        val configuredKeys = config.getConfigurationSection(root)?.getKeys(false).orEmpty()
+        return (defaults.keys + configuredKeys).associateWith { key ->
+            val path = "$root.$key"
+            val rawValues = if (config.contains(path)) config.getStringList(path) else defaults[key].orEmpty().toList()
+            require(rawValues.isNotEmpty()) { "Target pool '$key' must not be empty" }
+            rawValues.map(normalize).toSet()
+        }
     }
     
     private fun loadUIConfig(): UIConfig {

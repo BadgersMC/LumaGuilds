@@ -1,5 +1,9 @@
 package net.lumalyte.lg.config
 
+import net.lumalyte.lg.domain.values.CapPeriod
+import net.lumalyte.lg.domain.values.ExperiencePolicy
+import net.lumalyte.lg.domain.values.ExperienceSource
+
 data class MainConfig(
     // Database Configuration
     var databaseType: String = "sqlite",
@@ -409,11 +413,81 @@ data class ProgressionConfig(
     var levelExponent: Double = 1.15,
     var linearBonusPerLevel: Int = 150,
 
+    val sourcePolicies: Map<ExperienceSource, ExperiencePolicy> = ChapterTwoExperiencePolicies.defaults(),
+    val materialPools: Map<String, Set<String>> = ChapterTwoTargetPools.defaultMaterials(),
+    val entityPools: Map<String, Set<String>> = ChapterTwoTargetPools.defaultEntities(),
+
     // Experience transaction retention
     // 0 in either field disables the cleanup task entirely.
     var transactionRetentionDays: Int = 90,
     var transactionCleanupIntervalHours: Int = 24
 )
+
+object ChapterTwoExperiencePolicies {
+    fun defaults(): Map<ExperienceSource, ExperiencePolicy> {
+        val policies = ExperienceSource.entries.associateWith { source ->
+            ExperiencePolicy(source, source.defaultPool, 0, 0, CapPeriod.UNLIMITED, false)
+        }.toMutableMap()
+
+        fun enabled(source: ExperienceSource, award: Int, cap: Int, period: CapPeriod, pool: String = source.defaultPool) {
+            policies[source] = ExperiencePolicy(source, pool, award, cap, period, true)
+        }
+
+        enabled(ExperienceSource.BANK_DEPOSIT, 1, 500, CapPeriod.DAILY)
+        enabled(ExperienceSource.QUALIFIED_RECRUIT, 1_000, 5_000, CapPeriod.WEEKLY)
+        enabled(ExperienceSource.PRE_CAP_WAR_WIN, 10_000, 20_000, CapPeriod.WEEKLY)
+        enabled(ExperienceSource.PLAYER_KILL, 100, 6_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.MOB_KILL, 2, 6_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.CROP_BREAK, 5, 12_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.BLOCK_BREAK, 2, 12_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.BLOCK_PLACE, 3, 13_500, CapPeriod.DAILY)
+        enabled(ExperienceSource.SMELTING, 5, 9_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.BREWING, 30, 9_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.FISHING, 25, 11_250, CapPeriod.DAILY)
+        enabled(ExperienceSource.ENCHANTING, 75, 11_250, CapPeriod.DAILY)
+        enabled(ExperienceSource.EXPLORATION_MILESTONE, 50, 11_250, CapPeriod.DAILY)
+
+        enabled(ExperienceSource.COAL_ORE, 5, 18_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.COPPER_ORE, 5, 18_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.IRON_ORE, 8, 18_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.LAPIS_ORE, 8, 18_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.REDSTONE_ORE, 8, 18_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.GOLD_ORE, 10, 18_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.NETHER_QUARTZ_ORE, 10, 18_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.DIAMOND_ORE, 20, 18_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.EMERALD_ORE, 20, 18_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.ANCIENT_DEBRIS, 40, 18_000, CapPeriod.DAILY)
+
+        enabled(ExperienceSource.CRAFT_COMMON, 1, 12_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.CRAFT_UTILITY, 5, 12_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.CRAFT_EQUIPMENT, 10, 12_000, CapPeriod.DAILY)
+        enabled(ExperienceSource.CRAFT_RARE, 20, 12_000, CapPeriod.DAILY)
+
+        enabled(ExperienceSource.ENDER_DRAGON_KILL, 1_200, 12_000, CapPeriod.WEEKLY)
+        enabled(ExperienceSource.WITHER_KILL, 700, 10_500, CapPeriod.WEEKLY)
+        enabled(ExperienceSource.ELDER_GUARDIAN_KILL, 500, 7_500, CapPeriod.WEEKLY)
+        enabled(ExperienceSource.WARDEN_KILL, 600, 6_000, CapPeriod.WEEKLY)
+
+        enabled(ExperienceSource.WEEKLY_ACTIVITY, 1, 0, CapPeriod.UNLIMITED)
+        enabled(ExperienceSource.ADMIN_BONUS, 1, 0, CapPeriod.UNLIMITED)
+        return policies.toMap()
+    }
+}
+
+object ChapterTwoTargetPools {
+    fun defaultMaterials(): Map<String, Set<String>> = mapOf(
+        "common_break" to setOf("GRASS_BLOCK", "DIRT", "STONE", "DEEPSLATE", "NETHERRACK", "SAND", "GRAVEL"),
+        "common_place" to setOf("DIRT", "STONE", "COBBLESTONE", "OAK_PLANKS", "SPRUCE_PLANKS", "BRICKS"),
+        "common_craft" to setOf("STICK", "TORCH", "CHEST", "CRAFTING_TABLE"),
+        "utility_craft" to setOf("BUCKET", "COMPASS", "CLOCK", "FISHING_ROD"),
+        "equipment_craft" to setOf("IRON_PICKAXE", "IRON_SWORD", "DIAMOND_PICKAXE", "DIAMOND_SWORD"),
+        "rare_craft" to setOf("BEACON", "ENDER_CHEST", "ENCHANTING_TABLE"),
+    )
+
+    fun defaultEntities(): Map<String, Set<String>> = mapOf(
+        "normal_mobs" to setOf("ZOMBIE", "SKELETON", "CREEPER", "SPIDER", "ENDERMAN"),
+    )
+}
 
 data class BedrockConfig(
     // Enable/Disable Bedrock menu system
