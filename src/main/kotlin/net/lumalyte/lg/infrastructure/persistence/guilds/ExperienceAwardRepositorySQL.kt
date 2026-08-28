@@ -119,7 +119,12 @@ class ExperienceAwardRepositorySQL(
             )
 
                 connection.commit()
-                return ExperienceAwardResult.Awarded(acceptedXp, totalUsedXp, policy.isCapped)
+                return ExperienceAwardResult.Awarded(
+                    acceptedXp,
+                    totalUsedXp,
+                    policy.isCapped,
+                    leveledUpTo = newLevel.takeIf { it > oldLevel },
+                )
             } catch (error: Exception) {
                 connection.rollback()
                 throw error

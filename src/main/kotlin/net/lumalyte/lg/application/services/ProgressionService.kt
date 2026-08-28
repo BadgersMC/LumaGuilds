@@ -20,6 +20,10 @@ interface ProgressionService {
      */
     fun awardExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int?
 
+    /** Awards trusted system XP that is contractually outside source caps. */
+    fun awardUncappedSystemExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? =
+        awardExperience(guildId, experience, source)
+
     /**
      * Removes experience from a guild (used by Guild Strikes EXP penalties).
      * Never drops total XP below 0. Recalculates level and syncs the guild's

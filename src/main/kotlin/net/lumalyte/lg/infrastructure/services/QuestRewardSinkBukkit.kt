@@ -12,7 +12,9 @@ import java.util.UUID
 
 class QuestRewardSinkBukkit(private val progressionService: ProgressionService) : QuestRewardSink {
     override fun awardExperience(guildId: UUID, amount: Int) {
-        if (amount > 0) progressionService.awardExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)
+        if (amount > 0) {
+            progressionService.awardUncappedSystemExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)
+        }
     }
 
     override fun awardItems(actorId: UUID, rewards: List<QuestItemReward>) {

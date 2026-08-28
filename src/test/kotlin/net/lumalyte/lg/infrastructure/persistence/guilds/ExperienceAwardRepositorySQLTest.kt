@@ -93,7 +93,7 @@ class ExperienceAwardRepositorySQLTest {
             null,
         )
 
-        assertEquals(ExperienceAwardResult.Awarded(25_000, 25_000, false), result)
+        assertEquals(ExperienceAwardResult.Awarded(25_000, 25_000, false, leveledUpTo = 7), result)
         assertEquals(25_000, intValue("SELECT total_experience AS value FROM guild_progression WHERE guild_id = ?", guildId))
         assertEquals(0, rowCount("guild_experience_source_usage"))
     }
