@@ -285,7 +285,7 @@ class ProgressionEventListener : Listener, KoinComponent {
      * Database operations run on virtual threads to avoid blocking main thread.
      */
     private fun awardExperience(player: Player, amount: Int, source: ExperienceSource) {
-        if (playtimeActivityService.isXpBlocked(player)) return
+        if (playtimeActivityService.isXpBlocked(player.uniqueId)) return
         val guildIds = playerGuildCache[player.uniqueId]
         if (guildIds.isNullOrEmpty()) return
         enqueueGuildExperience(guildIds, amount * lunarMultiplier(player), source)
@@ -296,7 +296,7 @@ class ProgressionEventListener : Listener, KoinComponent {
      * Batches XP awards and processes them async on virtual threads.
      */
     private fun awardExperienceWithCooldown(player: Player, amount: Int, source: ExperienceSource) {
-        if (playtimeActivityService.isXpBlocked(player)) return
+        if (playtimeActivityService.isXpBlocked(player.uniqueId)) return
         val guildIds = playerGuildCache[player.uniqueId]
         if (guildIds.isNullOrEmpty()) return
         awardExperienceWithCooldown(player.uniqueId, guildIds, amount, source, lunarMultiplier(player))
