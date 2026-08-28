@@ -846,6 +846,18 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_experience_transactions_guild_id ON experience_transactions(guild_id)")
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_experience_transactions_timestamp ON experience_transactions(timestamp)")
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_experience_transactions_source ON experience_transactions(source)")
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS guild_experience_source_usage (
+                guild_id TEXT NOT NULL,
+                source_pool TEXT NOT NULL,
+                period_start INTEGER NOT NULL,
+                period_end INTEGER NOT NULL,
+                awarded_xp INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, source_pool, period_start),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_xp_usage_period_end ON guild_experience_source_usage(period_end)")
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_activity_metrics_member_count ON guild_activity_metrics(member_count)")
 
         if (sqlCommands.isNotEmpty()) {
