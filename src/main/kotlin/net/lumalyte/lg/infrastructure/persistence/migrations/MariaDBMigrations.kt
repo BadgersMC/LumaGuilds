@@ -346,6 +346,19 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """.trimIndent())
 
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS guild_experience_source_usage (
+                guild_id VARCHAR(36) NOT NULL,
+                source_pool VARCHAR(64) NOT NULL,
+                period_start BIGINT NOT NULL,
+                period_end BIGINT NOT NULL,
+                awarded_xp INT NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, source_pool, period_start),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+                INDEX idx_guild_xp_usage_period_end (period_end)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """.trimIndent())
+
         // Guild activity metrics table
         sqlCommands.add("""
             CREATE TABLE IF NOT EXISTS guild_activity_metrics (
