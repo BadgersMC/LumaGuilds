@@ -38,7 +38,6 @@ import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.enchantment.EnchantItemEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.PlayerDeathEvent
-import org.bukkit.event.inventory.CraftItemEvent
 import org.bukkit.event.inventory.FurnaceExtractEvent
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryType
@@ -54,6 +53,8 @@ import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.CompletableFuture
+import io.papermc.paper.event.inventory.ItemCraftedEvent
 
 /**
  * Efficient event listener for guild progression system.
@@ -88,6 +89,7 @@ class ProgressionEventListener(
     private val playerGuildCache = ConcurrentHashMap<UUID, Set<UUID>>()
     private val pendingGuildXp = ConcurrentHashMap<GuildXpKey, AtomicInteger>()
     private val sourceXpValues = ConcurrentHashMap<ExperienceSource, Int>()
+    private val pendingProvenanceWrites = ConcurrentHashMap<BlockPosition, CompletableFuture<Boolean>>()
     @Volatile private var cachedProgressionConfig: ProgressionConfig = configService.loadConfig().progression
     @Volatile private var classifier = ProgressionActivityClassifier(
         cachedProgressionConfig.materialPools,
@@ -223,8 +225,16 @@ class ProgressionEventListener(
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onCropBreak(event: PlayerHarvestBlockEvent) {
-        if (eligible(event.player)) {
-            requestPlayerActivity(event.player, units = 1, source = ExperienceSource.CROP_BREAK)
+        if (!eligible(event.player)) return
+        val block = event.harvestedBlock
+        val position = BlockPosition(block.world.uid, block.x, block.y, block.z)
+        val material = block.type
+        val data = block.blockData
+        val mature = data is Ageable && data.age >= data.maximumAge
+        resolveProvenance(position, removeAfterRead = false) { playerPlaced ->
+            if (classifier.sourceForBreak(material, playerPlaced, mature) == ExperienceSource.CROP_BREAK) {
+                requestPlayerActivity(event.player, units = 1, source = ExperienceSource.CROP_BREAK)
+            }
         }
     }
 
@@ -235,12 +245,13 @@ class ProgressionEventListener(
         if (guildIds.isNullOrEmpty()) return
         val block = event.block
         val position = BlockPosition(block.world.uid, block.x, block.y, block.z)
-        val playerPlaced = blockProvenanceRepository.wasPlayerPlaced(position)
-        blockProvenanceRepository.remove(position)
         val data = block.blockData
         val matureCrop = data is Ageable && data.age >= data.maximumAge
-        val source = classifier.sourceForBreak(block.type, playerPlaced, matureCrop) ?: return
-        requestPlayerActivity(event.player, guildIds, 1, source)
+        val material = block.type
+        resolveProvenance(position, removeAfterRead = true) { playerPlaced ->
+            val source = classifier.sourceForBreak(material, playerPlaced, matureCrop) ?: return@resolveProvenance
+            requestPlayerActivity(event.player, guildIds, 1, source)
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -248,7 +259,12 @@ class ProgressionEventListener(
         try {
             if (!eligible(event.player)) return
             val block = event.block
-            blockProvenanceRepository.recordPlayerPlaced(BlockPosition(block.world.uid, block.x, block.y, block.z))
+            val position = BlockPosition(block.world.uid, block.x, block.y, block.z)
+            val write = asyncTaskService.runAsync {
+                blockProvenanceRepository.recordPlayerPlaced(position)
+            }
+            pendingProvenanceWrites[position] = write
+            write.whenComplete { _, _ -> pendingProvenanceWrites.remove(position, write) }
             classifier.sourceForPlace(block.type)?.let { source ->
                 requestPlayerActivity(event.player, units = 1, source = source)
             }
@@ -259,18 +275,11 @@ class ProgressionEventListener(
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onCrafting(event: CraftItemEvent) {
-        if (event.whoClicked is Player) {
-            val player = event.whoClicked as Player
-            if (!eligible(player)) return
-            val amount = classifier.producedItemCount(
-                event.recipe.result.amount,
-                event.isShiftClick,
-                event.inventory.matrix.mapNotNull { it?.amount }
-            )
-            classifier.sourceForCraft(event.recipe.result.type)?.let { source ->
-                requestPlayerActivity(player, units = amount, source = source)
-            }
+    fun onCrafting(event: ItemCraftedEvent) {
+        val player = event.player
+        if (!eligible(player)) return
+        classifier.sourceForCraft(event.craftedItem.type)?.let { source ->
+            requestPlayerActivity(player, units = event.craftedItem.amount, source = source)
         }
     }
 
@@ -456,6 +465,24 @@ class ProgressionEventListener(
     private fun cachedXp(source: ExperienceSource): Int = sourceXpValues[source] ?: 0
 
     private fun eligible(player: Player): Boolean = classifier.isEligible(player.gameMode)
+
+    private fun resolveProvenance(
+        position: BlockPosition,
+        removeAfterRead: Boolean,
+        callback: (Boolean) -> Unit,
+    ) {
+        val pendingWrite = if (removeAfterRead) pendingProvenanceWrites.remove(position) else pendingProvenanceWrites[position]
+        asyncTaskService.runAsyncCallback(
+            task = {
+                pendingWrite?.join()
+                val placed = blockProvenanceRepository.wasPlayerPlaced(position)
+                if (removeAfterRead) blockProvenanceRepository.remove(position)
+                placed
+            },
+            onSuccess = callback,
+            onError = { error -> logger.warn("Failed to resolve block provenance at $position", error) },
+        )
+    }
 
     private fun requestPlayerActivity(
         player: Player,

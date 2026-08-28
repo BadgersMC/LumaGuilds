@@ -60,13 +60,6 @@ class ProgressionActivityClassifierTest {
     }
 
     @Test
-    fun `shift crafting counts every produced output item`() {
-        assertEquals(4, classifier.producedItemCount(4, false, listOf(32, 32)))
-        assertEquals(128, classifier.producedItemCount(4, true, listOf(32, 32)))
-        assertEquals(12, classifier.producedItemCount(4, true, listOf(9, 3)))
-    }
-
-    @Test
     fun `brewed potions and vanilla adventure advancements are eligible milestones`() {
         assertTrue(classifier.isBrewedPotion(Material.POTION))
         assertTrue(classifier.isBrewedPotion(Material.SPLASH_POTION))

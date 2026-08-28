@@ -15,6 +15,7 @@ data class ExperienceAwardRequest(
 
 enum class AwardRejection {
     SOURCE_DISABLED,
+    POLICY_MISMATCH,
     INELIGIBLE,
     INVALID_UNITS,
     SUSPICIOUS_OR_AFK,

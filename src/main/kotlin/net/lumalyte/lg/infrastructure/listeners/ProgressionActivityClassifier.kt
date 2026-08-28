@@ -41,12 +41,6 @@ class ProgressionActivityClassifier(
         else -> null
     }
 
-    fun producedItemCount(resultAmount: Int, shiftClick: Boolean, ingredientAmounts: List<Int>): Int {
-        if (!shiftClick) return resultAmount
-        val crafts = ingredientAmounts.filter { it > 0 }.minOrNull() ?: return resultAmount
-        return Math.multiplyExact(resultAmount, crafts)
-    }
-
     fun isBrewedPotion(material: Material): Boolean = material == Material.POTION ||
         material == Material.SPLASH_POTION || material == Material.LINGERING_POTION
 

@@ -42,6 +42,7 @@ class ProgressionCurve(
     /** Level for a given total XP, capped at permanent level 100. */
     fun levelFromExperience(totalExperience: Int): Int {
         if (totalExperience <= 0) return 1
+        if (maxLevel == 1) return 1
 
         var currentLevel = 1
         var experienceUsed = 0

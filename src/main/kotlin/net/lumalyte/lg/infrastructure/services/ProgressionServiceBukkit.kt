@@ -612,25 +612,7 @@ class ProgressionServiceBukkit(
     }
 
     override fun getDailyCap(source: ExperienceSource): Int {
-        return when (source) {
-            ExperienceSource.BANK_DEPOSIT -> 1000
-            ExperienceSource.MEMBER_JOINED -> 200
-            ExperienceSource.WAR_WON -> 500
-            ExperienceSource.WAR_LOST -> 200
-            ExperienceSource.PLAYER_KILL -> 1000
-            ExperienceSource.MOB_KILL -> 800
-            ExperienceSource.CROP_BREAK -> 500
-            ExperienceSource.BLOCK_BREAK -> 600
-            ExperienceSource.BLOCK_PLACE -> 600
-            ExperienceSource.CRAFTING -> 400
-            ExperienceSource.SMELTING -> 400
-            ExperienceSource.FISHING -> 300
-            ExperienceSource.ENCHANTING -> 300
-            ExperienceSource.CLAIM_CREATED -> 500
-            ExperienceSource.CLAIM_DESTROYED -> 0
-            ExperienceSource.WEEKLY_ACTIVITY -> 0
-            ExperienceSource.ADMIN_BONUS -> Int.MAX_VALUE
-            else -> 0
-        }
+        return configService.loadConfig().progression.sourcePolicies.getValue(source)
+            .takeIf { it.isCapped }?.capXp ?: 0
     }
 }

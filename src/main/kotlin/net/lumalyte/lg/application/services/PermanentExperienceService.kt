@@ -14,6 +14,9 @@ class PermanentExperienceService(
         request: ExperienceAwardRequest,
         policy: ExperiencePolicy,
     ): ExperienceAwardResult {
+        if (request.source != policy.source) {
+            return ExperienceAwardResult.Rejected(AwardRejection.POLICY_MISMATCH)
+        }
         if (!policy.enabled) {
             return ExperienceAwardResult.Rejected(AwardRejection.SOURCE_DISABLED)
         }

@@ -80,6 +80,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(26)
                 currentDbVersion = 26
             }
+            if (currentDbVersion < 27) {
+                migrateToVersion27()
+                updateDatabaseVersion(27)
+                currentDbVersion = 27
+            }
 
             connection.commit()
 
@@ -915,5 +920,24 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             )
         }
         componentLogger.info(Component.text("✓ Migration v26 complete: weekly quest provenance added"))
+    }
+
+    private fun migrateToVersion27() {
+        connection.createStatement().use { statement ->
+            statement.execute(
+                """
+                CREATE TABLE IF NOT EXISTS guild_experience_source_usage (
+                    guild_id VARCHAR(36) NOT NULL,
+                    source_pool VARCHAR(64) NOT NULL,
+                    period_start BIGINT NOT NULL,
+                    period_end BIGINT NOT NULL,
+                    awarded_xp INT NOT NULL DEFAULT 0,
+                    PRIMARY KEY (guild_id, source_pool, period_start),
+                    INDEX idx_guild_xp_usage_period_end (period_end)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """.trimIndent()
+            )
+        }
+        componentLogger.info(Component.text("✓ Migration v27 complete: permanent XP source usage added"))
     }
 }

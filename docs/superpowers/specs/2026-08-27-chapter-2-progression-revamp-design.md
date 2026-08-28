@@ -161,7 +161,7 @@ Infrastructure adapters translate Paper events, call EnthusiaPlaytime, persist S
 The schema keeps permanent progression, seasonal ratings, source-cap ledgers, rated-pair history, chapter state, and archived standings separate. Logical keys are:
 
 - permanent progression: `guild_id`;
-- source cap: `(guild_id, source, period_start)`;
+- source cap: `(guild_id, source_pool, period_start)`, where every source sharing a pool consumes the same cap contract;
 - rating: `(chapter_id, guild_id)`;
 - pair guard: `(chapter_id, lower_guild_id, higher_guild_id)`;
 - archive standing: `(chapter_id, guild_id)`;

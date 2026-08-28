@@ -316,7 +316,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
     
     private fun loadProgressionConfig(): ProgressionConfig {
         return ProgressionConfig(
-            maxLevel = config.getInt("progression.max_level", 100),
+            maxLevel = config.getInt("progression.max_level", 100).coerceIn(1, 100),
 
             // Experience values for different activities
             bankDepositXpPer100 = config.getInt("progression.bank_deposit_xp_per_100", 1),
@@ -352,8 +352,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
         )
     }
 
-    private fun loadExperiencePolicies(): Map<ExperienceSource, ExperiencePolicy> =
-        ChapterTwoExperiencePolicies.defaults().mapValues { (source, default) ->
+    private fun loadExperiencePolicies(): Map<ExperienceSource, ExperiencePolicy> {
+        val policies = ChapterTwoExperiencePolicies.defaults().mapValues { (source, default) ->
             val path = "progression.sources.${source.name.lowercase(Locale.ROOT)}"
             val periodName = config.getString("$path.period", default.period.name)
                 ?.uppercase(Locale.ROOT)
@@ -370,6 +370,14 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
                 enabled = config.getBoolean("$path.enabled", default.enabled),
             )
         }.toMap()
+        policies.values.filter { it.enabled && it.isCapped }.groupBy { it.pool }.forEach { (pool, members) ->
+            val contracts = members.map { it.capXp to it.period }.distinct()
+            require(contracts.size == 1) {
+                "Shared XP pool '$pool' must use one cap_xp and period contract"
+            }
+        }
+        return policies
+    }
 
     private fun loadMaterialPools(): Map<String, Set<String>> =
         loadTargetPools("progression.targets.materials", ChapterTwoTargetPools.defaultMaterials()) { raw ->
