@@ -160,6 +160,7 @@ object ConfigValidator {
             maxXpPerBatch = config.maxXpPerBatch.coerceIn(1, 1000), // Reasonable limits
             
             // Leveling curve validation
+            maxLevel = config.maxLevel.coerceIn(1, 100),
             baseXp = config.baseXp.coerceAtLeast(1.0),
             levelExponent = config.levelExponent.coerceIn(1.0, 3.0), // Reasonable range
             linearBonusPerLevel = config.linearBonusPerLevel.coerceAtLeast(0)

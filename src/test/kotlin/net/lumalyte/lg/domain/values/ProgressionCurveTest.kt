@@ -48,8 +48,8 @@ class ProgressionCurveTest {
     }
 
     @Test
-    fun `caps at level 101 like the service loop`() {
-        assertEquals(101, curve.levelFromExperience(17_518_681)) // prod max total XP
-        assertEquals(101, curve.levelFromExperience(Int.MAX_VALUE / 2))
+    fun `caps at permanent level 100`() {
+        assertEquals(100, curve.levelFromExperience(17_518_681)) // prod max total XP
+        assertEquals(100, curve.levelFromExperience(Int.MAX_VALUE / 2))
     }
 }

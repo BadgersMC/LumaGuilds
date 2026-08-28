@@ -382,6 +382,8 @@ data class PartyConfig(
 )
 
 data class ProgressionConfig(
+    var maxLevel: Int = 100,
+
     // Experience values for different activities
     var bankDepositXpPer100: Int = 1,
     var memberJoinedXp: Int = 50,
@@ -403,9 +405,9 @@ data class ProgressionConfig(
     var maxXpPerBatch: Int = 50,
 
     // Leveling curve settings
-    var baseXp: Double = 800.0,
-    var levelExponent: Double = 1.3,
-    var linearBonusPerLevel: Int = 200,
+    var baseXp: Double = 500.0,
+    var levelExponent: Double = 1.15,
+    var linearBonusPerLevel: Int = 150,
 
     // Experience transaction retention
     // 0 in either field disables the cleanup task entirely.

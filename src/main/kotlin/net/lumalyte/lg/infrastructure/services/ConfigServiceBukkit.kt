@@ -311,6 +311,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
     
     private fun loadProgressionConfig(): ProgressionConfig {
         return ProgressionConfig(
+            maxLevel = config.getInt("progression.max_level", 100),
+
             // Experience values for different activities
             bankDepositXpPer100 = config.getInt("progression.bank_deposit_xp_per_100", 1),
             memberJoinedXp = config.getInt("progression.member_joined_xp", 50),
@@ -332,9 +334,9 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             maxXpPerBatch = config.getInt("progression.max_xp_per_batch", 50),
             
             // Leveling curve settings
-            baseXp = config.getDouble("progression.base_xp", 800.0),
-            levelExponent = config.getDouble("progression.level_exponent", 1.3),
-            linearBonusPerLevel = config.getInt("progression.linear_bonus_per_level", 200),
+            baseXp = config.getDouble("progression.base_xp", 500.0),
+            levelExponent = config.getDouble("progression.level_exponent", 1.15),
+            linearBonusPerLevel = config.getInt("progression.linear_bonus_per_level", 150),
 
             // Experience transaction retention
             transactionRetentionDays = config.getInt("progression.transaction_retention_days", 90),

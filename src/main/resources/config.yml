@@ -495,6 +495,8 @@ party:
 # =====================================
 
 progression:
+  max_level: 100                      # Permanent progression cap
+
   # Experience values for different activities
   bank_deposit_xp_per_100: 1         # XP per 100 coins deposited
   member_joined_xp: 50                # XP when a new member joins
@@ -516,9 +518,9 @@ progression:
   max_xp_per_batch: 50                # Maximum XP accumulated before forced processing
 
   # Leveling curve settings (balanced for competitive but fair progression)
-  base_xp: 800.0                      # Base XP requirement
-  level_exponent: 1.3                 # Exponential growth factor (gentler than 1.5)
-  linear_bonus_per_level: 200         # Linear bonus to prevent harsh walls
+  base_xp: 500.0                      # Chapter 2 base XP requirement
+  level_exponent: 1.15                # Chapter 2 growth factor
+  linear_bonus_per_level: 150         # Chapter 2 linear component
 
   # Experience transaction retention
   # Periodically purges rows from the experience_transactions table to keep it small.
