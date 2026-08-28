@@ -74,6 +74,25 @@ class ProgressionServiceBukkit(
         }
     }
 
+    override fun awardPlayerActivity(
+        guildId: UUID,
+        actorId: UUID,
+        units: Int,
+        source: ExperienceSource,
+        eligible: Boolean,
+    ): Int? {
+        if (units <= 0) return null
+        val policy = configService.loadConfig().progression.sourcePolicies.getValue(source)
+        return when (val result = permanentExperienceService.award(
+            ExperienceAwardRequest(guildId, actorId, source, units, Instant.now(), eligible),
+            policy,
+        )) {
+            is ExperienceAwardResult.Awarded -> result.leveledUpTo
+            is ExperienceAwardResult.NoAllowance -> null
+            is ExperienceAwardResult.Rejected -> null
+        }
+    }
+
     override fun awardUncappedSystemExperience(
         guildId: UUID,
         experience: Int,

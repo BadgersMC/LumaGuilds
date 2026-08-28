@@ -595,7 +595,20 @@ fun progressionModule() = module {
     }
 
     // Listeners
-    single<ProgressionEventListener> { ProgressionEventListener() }
+    single<ProgressionEventListener> {
+        ProgressionEventListener(
+            progressionService = get(),
+            memberService = get(),
+            memberRepository = get(),
+            configService = get(),
+            asyncTaskService = get(),
+            leaderboardService = get(),
+            playtimeActivityService = get(),
+            blockProvenanceRepository = get(),
+            plugin = get(),
+            virtualDispatcher = get(named("VirtualDispatcher")),
+        )
+    }
     single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get()) }
 }
 
