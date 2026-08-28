@@ -14,8 +14,10 @@ import java.util.UUID
 
 class ExperienceAwardRepositorySQL(
     private val storage: Storage<Database>,
-    private val curve: ProgressionCurve,
+    private val curveProvider: () -> ProgressionCurve,
 ) : ExperienceAwardRepository {
+
+    constructor(storage: Storage<Database>, curve: ProgressionCurve) : this(storage, { curve })
 
     private val mariaDb = storage.javaClass.simpleName.contains("MariaDB")
 
@@ -30,17 +32,29 @@ class ExperienceAwardRepositorySQL(
         window: PeriodWindow?,
     ): ExperienceAwardResult {
         require(requestedXp > 0) { "Requested XP must be positive" }
+        require(request.source == policy.source) { "Request source must match policy source" }
         require(policy.isCapped == (window != null)) { "Cap window must match policy period" }
+        val curve = curveProvider()
 
         storage.connection.connection.use { connection ->
             val previousAutoCommit = connection.autoCommit
             connection.autoCommit = false
             try {
+            if (mariaDb) {
+                checkNotNull(query(connection,
+                    "SELECT level FROM guilds WHERE id = ? FOR UPDATE",
+                    request.guildId.toString(),
+                ) { it.getInt("level") }) { "Guild ${request.guildId} does not exist" }
+            }
             val usedXp = if (window == null) {
                 0
             } else {
+                execute(connection, usageSeedSql(),
+                    request.guildId.toString(), policy.pool,
+                    window.startInclusive.toEpochMilli(), window.endExclusive.toEpochMilli(),
+                )
                 query(connection,
-                    "SELECT awarded_xp FROM guild_experience_source_usage WHERE guild_id = ? AND source_pool = ? AND period_start = ?",
+                    "SELECT awarded_xp FROM guild_experience_source_usage WHERE guild_id = ? AND source_pool = ? AND period_start = ?${if (mariaDb) " FOR UPDATE" else ""}",
                     request.guildId.toString(),
                     policy.pool,
                     window.startInclusive.toEpochMilli(),
@@ -59,14 +73,12 @@ class ExperienceAwardRepositorySQL(
 
             val totalUsedXp = usedXp + acceptedXp
             if (window != null) {
-                execute(connection,
-                    usageUpsertSql(),
-                    request.guildId.toString(),
-                    policy.pool,
-                    window.startInclusive.toEpochMilli(),
-                    window.endExclusive.toEpochMilli(),
-                    totalUsedXp,
+                val updated = execute(connection,
+                    "UPDATE guild_experience_source_usage SET period_end = ?, awarded_xp = awarded_xp + ? WHERE guild_id = ? AND source_pool = ? AND period_start = ? AND awarded_xp + ? <= ?",
+                    window.endExclusive.toEpochMilli(), acceptedXp, request.guildId.toString(), policy.pool,
+                    window.startInclusive.toEpochMilli(), acceptedXp, policy.capXp,
                 )
+                check(updated == 1) { "Source cap reservation lost its row lock" }
             }
 
             val existing = query(connection,
@@ -201,20 +213,20 @@ class ExperienceAwardRepositorySQL(
         )
     }
 
-    private fun usageUpsertSql(): String = if (mariaDb) {
+    private fun usageSeedSql(): String = if (mariaDb) {
         """
         INSERT INTO guild_experience_source_usage
             (guild_id, source_pool, period_start, period_end, awarded_xp)
-        VALUES (?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE period_end = VALUES(period_end), awarded_xp = VALUES(awarded_xp)
+        VALUES (?, ?, ?, ?, 0)
+        ON DUPLICATE KEY UPDATE period_end = VALUES(period_end)
         """.trimIndent()
     } else {
         """
         INSERT INTO guild_experience_source_usage
             (guild_id, source_pool, period_start, period_end, awarded_xp)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, 0)
         ON CONFLICT(guild_id, source_pool, period_start)
-        DO UPDATE SET period_end = excluded.period_end, awarded_xp = excluded.awarded_xp
+        DO UPDATE SET period_end = excluded.period_end
         """.trimIndent()
     }
 

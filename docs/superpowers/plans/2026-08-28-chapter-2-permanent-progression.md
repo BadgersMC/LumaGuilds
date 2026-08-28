@@ -358,7 +358,7 @@ CREATE TABLE IF NOT EXISTS guild_experience_source_usage (
 )
 ```
 
-Within one database transaction: lock/read the usage row, calculate `accepted = min(requested, cap - used)`, return `NoAllowance` when zero, upsert usage, update/create `guild_progression` using `ProgressionCurve`, insert `experience_transactions`, and synchronize the guild level field. Use SQLite transaction serialization and MariaDB `SELECT ... FOR UPDATE`/upsert syntax through dialect-specific SQL selected once at adapter construction.
+Within one database transaction: seed the usage row idempotently, lock/read it, calculate `accepted = min(requested, cap - used)`, return `NoAllowance` when zero, and conditionally increment usage only when the result remains within the cap. Then update/create `guild_progression` using the current reload-aware `ProgressionCurve`, insert `experience_transactions`, and synchronize the guild level field. Use SQLite transaction serialization and MariaDB `SELECT ... FOR UPDATE` plus conditional increment syntax through dialect-specific SQL selected once at adapter construction.
 
 - [ ] **Step 4: Prove rollback and dialect parity**
 

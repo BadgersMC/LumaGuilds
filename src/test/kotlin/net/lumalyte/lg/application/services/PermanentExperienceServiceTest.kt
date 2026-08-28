@@ -103,6 +103,14 @@ class PermanentExperienceServiceTest {
     }
 
     @Test
+    fun `mismatched request and policy sources never reach repository`() {
+        val result = service.award(request.copy(source = ExperienceSource.DIAMOND_ORE), mobPolicy)
+
+        assertEquals(ExperienceAwardResult.Rejected(AwardRejection.POLICY_MISMATCH), result)
+        assertNull(repository.lastCall)
+    }
+
+    @Test
     fun `overflowing award is rejected before repository`() {
         val result = service.award(request.copy(units = Int.MAX_VALUE), mobPolicy)
 

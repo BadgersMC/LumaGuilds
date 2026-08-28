@@ -536,7 +536,7 @@ fun progressionModule() = module {
     single<net.lumalyte.lg.application.persistence.ExperienceAwardRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL(
             get(),
-            net.lumalyte.lg.domain.values.ProgressionCurve.from(get<ConfigService>().loadConfig().progression),
+            { net.lumalyte.lg.domain.values.ProgressionCurve.from(get<ConfigService>().loadConfig().progression) },
         )
     }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }

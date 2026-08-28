@@ -114,6 +114,36 @@ class ExperienceAwardRepositorySQLTest {
         assertEquals(1, intValue("SELECT level AS value FROM guilds WHERE id = ?", guildId))
     }
 
+    @Test
+    fun `curve provider is evaluated for every award after reload`() {
+        var activeCurve = ProgressionCurve(500.0, 1.15, 150, 1)
+        repository = ExperienceAwardRepositorySQL(storage) { activeCurve }
+
+        repository.awardAtomically(request(), policy, 6_000, policy.windowContaining(instant))
+        assertEquals(1, intValue("SELECT current_level AS value FROM guild_progression WHERE guild_id = ?", guildId))
+
+        val secondGuild = UUID.randomUUID()
+        storage.connection.executeUpdate("INSERT INTO guilds (id, level) VALUES (?, 1)", secondGuild.toString())
+        activeCurve = curve
+        repository.awardAtomically(
+            request().copy(guildId = secondGuild), policy, 6_000, policy.windowContaining(instant),
+        )
+        assertEquals(true, intValue("SELECT current_level AS value FROM guild_progression WHERE guild_id = ?", secondGuild) > 1)
+    }
+
+    @Test
+    fun `repository rejects mismatched request and policy source`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            repository.awardAtomically(
+                request().copy(source = ExperienceSource.DIAMOND_ORE),
+                policy,
+                2,
+                policy.windowContaining(instant),
+            )
+        }
+        assertEquals(0, rowCount("guild_experience_source_usage"))
+    }
+
     private fun request() = ExperienceAwardRequest(
         guildId, actorId, ExperienceSource.MOB_KILL, 1, instant, eligible = true,
     )

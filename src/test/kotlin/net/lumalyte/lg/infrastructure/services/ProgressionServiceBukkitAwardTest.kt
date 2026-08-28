@@ -92,6 +92,13 @@ class ProgressionServiceBukkitAwardTest {
         assertEquals(50_000, awards.requestedXp)
     }
 
+    @Test
+    fun `daily cap reads configured shared-pool source policy`() {
+        val service = serviceWith(RecordingRepository())
+        assertEquals(18_000, service.getDailyCap(ExperienceSource.DIAMOND_ORE))
+        assertEquals(0, service.getDailyCap(ExperienceSource.WEEKLY_ACTIVITY))
+    }
+
     private fun serviceWith(awards: RecordingRepository): ProgressionServiceBukkit {
         val config = MainConfig()
         return ProgressionServiceBukkit(

@@ -62,6 +62,20 @@ class ProgressionSourceConfigTest {
     }
 
     @Test
+    fun `shared pool rejects conflicting cap contracts`() {
+        val yaml = YamlConfiguration().apply {
+            set("progression.sources.diamond_ore.cap_xp", 17_999)
+        }
+        assertThrows(IllegalArgumentException::class.java) { ConfigServiceBukkit(yaml).loadConfig() }
+    }
+
+    @Test
+    fun `configured permanent max level is clamped to contract`() {
+        val yaml = YamlConfiguration().apply { set("progression.max_level", 101) }
+        assertEquals(100, ConfigServiceBukkit(yaml).loadConfig().progression.maxLevel)
+    }
+
+    @Test
     fun `vanilla material and entity target pools are normalized and validated`() {
         val valid = YamlConfiguration().apply {
             set("progression.targets.materials.common_break", listOf("minecraft:stone", "DIRT"))
