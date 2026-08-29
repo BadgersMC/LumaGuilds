@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.title.Title
 import net.lumalyte.lg.application.persistence.ProgressionRepository
+import net.lumalyte.lg.application.persistence.ExperienceAwardRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.ExperiencePolicy
@@ -28,6 +29,7 @@ class ProgressionServiceBukkit(
     private val plugin: org.bukkit.plugin.Plugin,
     private val lang: LangService,
     private val permanentExperienceService: PermanentExperienceService,
+    private val experienceAwardRepository: ExperienceAwardRepository,
 ) : ProgressionService {
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
@@ -453,6 +455,36 @@ class ProgressionServiceBukkit(
         return updated
     }
 
+    override fun getSourceUsage(guildId: UUID, at: Instant): List<SourceUsageView> {
+        val awardedByPool = try {
+            experienceAwardRepository.getAwardedXpByPool(guildId, at)
+        } catch (e: Exception) {
+            logger.error("Failed to read source usage for guild $guildId", e)
+            emptyMap()
+        }
+        val policies = configService.loadConfig().progression.sourcePolicies.values
+            .filter { it.enabled }
+            .groupBy { it.pool }
+        return policies.values.map { sharedPolicies ->
+            val policy = sharedPolicies.first()
+            val window = policy.windowContaining(at)
+            val awarded = if (window == null) {
+                0
+            } else {
+                awardedByPool[policy.pool] ?: 0
+            }
+            SourceUsageView(
+                source = policy.source,
+                pool = policy.pool,
+                period = policy.period,
+                awardedXp = awarded,
+                capXp = policy.capXp.takeIf { policy.isCapped },
+                remainingXp = policy.capXp.minus(awarded).coerceAtLeast(0).takeIf { policy.isCapped },
+                resetsAt = window?.endExclusive,
+            )
+        }
+    }
+
     private fun syncGuildLevelField(guildId: UUID, newLevel: Int) {
         try {
             val guild = guildRepository.getById(guildId) ?: return
@@ -600,20 +632,16 @@ class ProgressionServiceBukkit(
         }
     }
 
+    @Deprecated("Use getSourceUsage")
     override fun getDailySourceXp(guildId: UUID): Map<ExperienceSource, Int> {
-        return try {
-            val todayStart = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.DAYS)
-            val transactions = progressionRepository.getExperienceTransactions(guildId, 1000)
-                .filter { it.timestamp >= todayStart }
-                .groupBy { it.source }
-                .mapValues { (_, txns) -> txns.sumOf { it.amount.coerceAtLeast(0) } }
-            ExperienceSource.entries.associateWith { transactions[it] ?: 0 }
-        } catch (e: Exception) {
-            logger.error("Error calculating daily source XP for guild $guildId", e)
-            emptyMap()
+        val viewsByPool = getSourceUsage(guildId).associateBy { it.pool }
+        val policies = configService.loadConfig().progression.sourcePolicies
+        return ExperienceSource.entries.associateWith { source ->
+            viewsByPool[policies.getValue(source).pool]?.awardedXp ?: 0
         }
     }
 
+    @Deprecated("Use getSourceUsage")
     override fun getDailyCap(source: ExperienceSource): Int {
         return configService.loadConfig().progression.sourcePolicies.getValue(source)
             .takeIf { it.isCapped }?.capXp ?: 0

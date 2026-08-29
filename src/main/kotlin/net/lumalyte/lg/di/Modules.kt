@@ -556,7 +556,7 @@ fun progressionModule() = module {
     single<PlaytimeActivityService> { PlaytimeActivityServiceBukkit() }
     single { net.lumalyte.lg.application.services.PermanentExperienceService(get(), get()) }
     single { net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(get(), get(), get(), get(), get()) }
-    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get()) }
+    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get(), get()) }
     single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {
