@@ -18,6 +18,7 @@ class ChapterTwoGuildAwardService(
     fun awardBankGrowth(
         guildId: UUID,
         actorId: UUID,
+        openingBalance: Long,
         currentBalance: Long,
         occurredAt: Instant = Instant.now(),
     ): ExperienceAwardResult? {
@@ -26,6 +27,7 @@ class ChapterTwoGuildAwardService(
         val window = policy.windowContaining(occurredAt) ?: return null
         val units = bankProgressionRepository.reserveNetNewUnits(
             guildId = guildId,
+            openingBalance = openingBalance,
             currentBalance = currentBalance,
             valuePerUnit = BANK_VALUE_PER_UNIT,
             window = window,
@@ -50,10 +52,11 @@ class ChapterTwoGuildAwardService(
                     source = ExperienceSource.QUALIFIED_RECRUIT,
                     units = 1,
                     occurredAt = occurredAt,
+                    transactionId = stint.id,
                 ),
                 policy,
             )
-            if (result is ExperienceAwardResult.Awarded &&
+            if ((result is ExperienceAwardResult.Awarded || result is ExperienceAwardResult.Duplicate) &&
                 membershipHistoryRepository.markRecruitXpAwarded(stint.id, occurredAt)
             ) {
                 awarded++

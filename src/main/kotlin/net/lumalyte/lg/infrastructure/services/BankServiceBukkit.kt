@@ -294,7 +294,12 @@ class BankServiceBukkit(
 
             // Reserve XP only for this day's net-new bank high-water balance.
             try {
-                chapterTwoGuildAwardService?.awardBankGrowth(guildId, playerId, creditedBalance)
+                chapterTwoGuildAwardService?.awardBankGrowth(
+                    guildId,
+                    playerId,
+                    currentBalance.toLong(),
+                    creditedBalance,
+                )
             } catch (e: Exception) {
                 logger.warn("Failed to award net-new bank progression XP", e)
             }

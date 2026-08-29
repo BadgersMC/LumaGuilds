@@ -29,6 +29,7 @@ class BankProgressionRepositorySQL(
 
     override fun reserveNetNewUnits(
         guildId: UUID,
+        openingBalance: Long,
         currentBalance: Long,
         valuePerUnit: Long,
         window: PeriodWindow,
@@ -42,6 +43,7 @@ class BankProgressionRepositorySQL(
                 guildId.toString(),
                 window.startInclusive.toEpochMilli(),
                 window.endExclusive.toEpochMilli(),
+                openingBalance,
             )
             val previous = connection.prepareStatement(
                 "SELECT high_water_balance FROM guild_bank_xp_high_water WHERE guild_id = ? AND period_start = ?${if (mariaDb) " FOR UPDATE" else ""}"
@@ -84,14 +86,14 @@ class BankProgressionRepositorySQL(
         """
         INSERT INTO guild_bank_xp_high_water
             (guild_id, period_start, period_end, high_water_balance)
-        VALUES (?, ?, ?, 0)
+        VALUES (?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE period_end = VALUES(period_end)
         """.trimIndent()
     } else {
         """
         INSERT INTO guild_bank_xp_high_water
             (guild_id, period_start, period_end, high_water_balance)
-        VALUES (?, ?, ?, 0)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT(guild_id, period_start) DO UPDATE SET period_end = excluded.period_end
         """.trimIndent()
     }

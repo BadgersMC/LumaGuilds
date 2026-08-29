@@ -347,7 +347,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [~] **LG-1201** Chapter 2 permanent progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
   - Tag: `TDD`
   - References: REQ-049, REQ-089
-  - Evidence: PR #138 Tasks 1–7; Task 8 net-new bank/recruit/pre-cap war awards; `./gradlew clean test` — 743 tests passed
+  - Evidence: PR #138 Tasks 1–7; Task 8 net-new bank/recruit/pre-cap war awards; PR #139 review hardening; `./gradlew clean test` — 745 tests passed
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
   - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
   - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
