@@ -539,6 +539,9 @@ fun progressionModule() = module {
             { net.lumalyte.lg.domain.values.ProgressionCurve.from(get<ConfigService>().loadConfig().progression) },
         )
     }
+    single<net.lumalyte.lg.application.persistence.BankProgressionRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.BankProgressionRepositorySQL(get())
+    }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.QuestRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite(get())
@@ -552,8 +555,9 @@ fun progressionModule() = module {
     single<CombatService> { CombatServiceBukkit(get(), get(), get(), get()) }
     single<PlaytimeActivityService> { PlaytimeActivityServiceBukkit() }
     single { net.lumalyte.lg.application.services.PermanentExperienceService(get(), get()) }
+    single { net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(get(), get(), get(), get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get()) }
-    single<WarService> { WarServiceBukkit(get(), get(), get(), get()) }
+    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {
         net.lumalyte.lg.infrastructure.web.handlers.GuildLeaderboardHandler(
@@ -623,7 +627,7 @@ fun economyModule() = module {
     }
 
     // Services
-    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.BankAutomationService> {
         net.lumalyte.lg.application.services.BankAutomationService(get(), get(), get(), get(), get())
     }

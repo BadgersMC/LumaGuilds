@@ -35,7 +35,8 @@ class MembershipHistoryRepositorySQLite(
                 guild_id TEXT NOT NULL,
                 joined_at TEXT NOT NULL,
                 departed_at TEXT,
-                departure_reason TEXT
+                departure_reason TEXT,
+                recruit_xp_awarded_at TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_membership_history_player
                 ON membership_history(player_id);
@@ -92,25 +93,57 @@ class MembershipHistoryRepositorySQLite(
     override fun getByPlayer(playerId: UUID): List<MembershipHistory> {
         ensureInitialized()
         val sql = """
-            SELECT id, player_id, guild_id, joined_at, departed_at, departure_reason
+            SELECT id, player_id, guild_id, joined_at, departed_at, departure_reason, recruit_xp_awarded_at
             FROM membership_history
             WHERE player_id = ?
             ORDER BY joined_at ASC
         """.trimIndent()
         return try {
             storage.connection.getResults(sql, playerId.toString()).map { row ->
-                MembershipHistory(
-                    id = UUID.fromString(row.getString("id")),
-                    playerId = UUID.fromString(row.getString("player_id")),
-                    guildId = UUID.fromString(row.getString("guild_id")),
-                    joinedAt = row.getInstantNotNull("joined_at"),
-                    departedAt = row.getInstant("departed_at"),
-                    departureReason = row.getString("departure_reason")
-                        ?.let { DepartureReason.valueOf(it) }
-                )
+                row.toMembershipHistory()
             }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to fetch membership history for $playerId", e)
         }
     }
+
+    override fun getQualifiedUnawarded(joinedAtOrBefore: Instant): List<MembershipHistory> {
+        ensureInitialized()
+        return try {
+            storage.connection.getResults(
+                """
+                SELECT id, player_id, guild_id, joined_at, departed_at, departure_reason, recruit_xp_awarded_at
+                FROM membership_history
+                WHERE departed_at IS NULL AND recruit_xp_awarded_at IS NULL AND joined_at <= ?
+                ORDER BY joined_at ASC
+                """.trimIndent(),
+                joinedAtOrBefore.toString(),
+            ).map { it.toMembershipHistory() }
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to fetch qualified recruit stints", e)
+        }
+    }
+
+    override fun markRecruitXpAwarded(stintId: UUID, awardedAt: Instant): Boolean {
+        ensureInitialized()
+        return try {
+            storage.connection.executeUpdate(
+                "UPDATE membership_history SET recruit_xp_awarded_at = ? WHERE id = ? AND departed_at IS NULL AND recruit_xp_awarded_at IS NULL",
+                awardedAt.toString(),
+                stintId.toString(),
+            ) > 0
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to mark recruit XP for stint $stintId", e)
+        }
+    }
+
+    private fun co.aikar.idb.DbRow.toMembershipHistory() = MembershipHistory(
+        id = UUID.fromString(getString("id")),
+        playerId = UUID.fromString(getString("player_id")),
+        guildId = UUID.fromString(getString("guild_id")),
+        joinedAt = getInstantNotNull("joined_at"),
+        departedAt = getInstant("departed_at"),
+        departureReason = getString("departure_reason")?.let { DepartureReason.valueOf(it) },
+        recruitXpAwardedAt = getInstant("recruit_xp_awarded_at"),
+    )
 }
