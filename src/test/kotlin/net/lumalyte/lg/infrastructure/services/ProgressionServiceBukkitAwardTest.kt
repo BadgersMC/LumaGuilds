@@ -42,6 +42,7 @@ class ProgressionServiceBukkitAwardTest {
                     override fun isXpBlocked(playerId: UUID): Boolean = false
                 },
             ),
+            experienceAwardRepository = awards,
         )
         val guildId = UUID.fromString("00000000-0000-0000-0000-000000000021")
 
@@ -117,6 +118,7 @@ class ProgressionServiceBukkitAwardTest {
                     override fun isXpBlocked(playerId: UUID): Boolean = false
                 },
             ),
+            experienceAwardRepository = awards,
         )
     }
 

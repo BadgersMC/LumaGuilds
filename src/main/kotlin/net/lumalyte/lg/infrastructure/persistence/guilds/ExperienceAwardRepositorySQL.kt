@@ -154,6 +154,14 @@ class ExperienceAwardRepositorySQL(
         }
     }
 
+    override fun getAwardedXpByPool(guildId: UUID, at: java.time.Instant): Map<String, Int> =
+        storage.connection.getResults(
+            "SELECT source_pool, awarded_xp FROM guild_experience_source_usage WHERE guild_id = ? AND period_start <= ? AND period_end > ?",
+            guildId.toString(),
+            at.toEpochMilli(),
+            at.toEpochMilli(),
+        ).associate { it.getString("source_pool") to it.getInt("awarded_xp") }
+
     private fun execute(connection: Connection, sql: String, vararg parameters: Any?): Int =
         connection.prepareStatement(sql).use { statement ->
             parameters.forEachIndexed { index, value -> statement.setObject(index + 1, value) }

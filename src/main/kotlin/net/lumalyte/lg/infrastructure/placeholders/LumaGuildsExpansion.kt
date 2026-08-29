@@ -69,6 +69,11 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Global:
  * - %lumaguilds_guild_total_count% - Total guild count on the server
+ * - %lumaguilds_permanent_level% - Permanent progression level
+ * - %lumaguilds_permanent_xp% - Total permanent experience
+ * - %lumaguilds_permanent_xp_to_next% - Experience remaining to next level
+ * - %lumaguilds_source_<name>_used% - Current period XP used by source pool
+ * - %lumaguilds_source_<name>_remaining% - Current period XP remaining, empty when unlimited
  *
  * Top-N leaderboard (cached 30s, top 25):
  *   Format: %lumaguilds_top_<category>_<rank>_<field>%
@@ -91,6 +96,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private val warService: WarService by inject()
     private val relationService: RelationService by inject()
     private val progressionRepository: ProgressionRepository by inject()
+    private val progressionService: ProgressionService by inject()
+    private val configService: ConfigService by inject()
     private val leaderboardRepository: LeaderboardRepository by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
     private val questService: QuestService by inject()
@@ -128,6 +135,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         when {
             ident == "guild_total_count" -> return safeGuildCount()
             ident.startsWith("top_") -> return handleTopPlaceholder(ident)
+            ident in PERMANENT_PLACEHOLDERS && player == null -> return "0"
+            ident.startsWith("source_") && player == null -> return if (ident.endsWith("_used")) "0" else ""
             ident.startsWith("guild_weekly_") -> {
                 val guildId = player?.uniqueId?.let { memberService.getPlayerGuilds(it).firstOrNull() }
                 return handleWeeklyQuestPlaceholder(ident, guildId)
@@ -147,6 +156,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
         // Get guild information
         val guild = guildService.getGuild(guildId) ?: return ""
+        if (ident.startsWith("source_")) return sourceUsagePlaceholder(guildId, ident)
 
         return when (identifier.lowercase()) {
             // Basic guild info
@@ -175,6 +185,9 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 val p = safeProgression(guildId)
                 if (p != null) String.format(Locale.ROOT, "%.1f", p.levelProgress * 100.0) else "0.0"
             }
+            "permanent_level" -> safeProgression(guildId)?.currentLevel?.toString() ?: guild.level.toString()
+            "permanent_xp" -> safeProgression(guildId)?.totalExperience?.toString() ?: "0"
+            "permanent_xp_to_next" -> safeProgression(guildId)?.experienceToNextLevel?.toString() ?: "0"
 
             // This player's guild rank within each leaderboard
             "guild_rank_level" -> rankInTop("level", guildId)
@@ -562,6 +575,18 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private fun safeProgression(guildId: UUID) =
         try { progressionRepository.getGuildProgression(guildId) } catch (_: Exception) { null }
 
+    private fun sourceUsagePlaceholder(guildId: UUID, identifier: String): String {
+        return try {
+            sourceUsageValue(
+                identifier,
+                progressionService.getSourceUsage(guildId),
+                configService.loadConfig().progression.sourcePolicies,
+            )
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
     private fun safeBalance(guildId: UUID): Int =
         try { bankService.getBalance(guildId) } catch (_: Exception) { 0 }
 
@@ -634,5 +659,25 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         private const val TOP_CACHE_LIMIT = 25
         private val TOP_CATEGORIES = setOf("level", "balance", "activity", "members", "age")
         private val WEEKLY_QUEST_PATTERN = Regex("guild_weekly_quest_(\\d+)_(.+)")
+        private val SOURCE_USAGE_PATTERN = Regex("source_(.+)_(used|remaining)")
+        private val PERMANENT_PLACEHOLDERS = setOf("permanent_level", "permanent_xp", "permanent_xp_to_next")
+
+        internal fun sourceUsageValue(
+            identifier: String,
+            views: List<SourceUsageView>,
+            policies: Map<net.lumalyte.lg.domain.values.ExperienceSource, net.lumalyte.lg.domain.values.ExperiencePolicy>,
+        ): String {
+            val match = SOURCE_USAGE_PATTERN.matchEntire(identifier) ?: return ""
+            val source = runCatching {
+                net.lumalyte.lg.domain.values.ExperienceSource.valueOf(match.groupValues[1].uppercase())
+            }.getOrNull() ?: return ""
+            val policy = policies[source] ?: return ""
+            val view = views.firstOrNull { it.pool == policy.pool } ?: return "0"
+            return when (match.groupValues[2]) {
+                "used" -> view.awardedXp.toString()
+                "remaining" -> view.remainingXp?.toString() ?: ""
+                else -> ""
+            }
+        }
     }
 }
