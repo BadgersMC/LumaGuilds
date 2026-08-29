@@ -144,6 +144,19 @@ class ExperienceAwardRepositorySQLTest {
         assertEquals(0, rowCount("guild_experience_source_usage"))
     }
 
+    @Test
+    fun `replayed idempotent request grants experience once`() {
+        val request = request().copy(transactionId = UUID.randomUUID())
+
+        val first = repository.awardAtomically(request, policy, 2, policy.windowContaining(instant))
+        val replay = repository.awardAtomically(request, policy, 2, policy.windowContaining(instant))
+
+        assertEquals(ExperienceAwardResult.Awarded(2, 2, true), first)
+        assertEquals(ExperienceAwardResult.Duplicate, replay)
+        assertEquals(2, intValue("SELECT total_experience AS value FROM guild_progression WHERE guild_id = ?", guildId))
+        assertEquals(1, rowCount("experience_transactions"))
+    }
+
     private fun request() = ExperienceAwardRequest(
         guildId, actorId, ExperienceSource.MOB_KILL, 1, instant, eligible = true,
     )

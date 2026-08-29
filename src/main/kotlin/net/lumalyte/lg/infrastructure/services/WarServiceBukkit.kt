@@ -178,26 +178,37 @@ class WarServiceBukkit(
 
     override fun endWar(warId: UUID, winnerGuildId: UUID, peaceTerms: String?, actorId: UUID): Boolean {
         return try {
-            val war = wars[warId] ?: return false
-            val loserGuildId = if (war.declaringGuildId == winnerGuildId) war.defendingGuildId else war.declaringGuildId
-            val endedWar = war.copy(
-                status = WarStatus.ENDED,
-                endedAt = Instant.now(),
-                winner = winnerGuildId,
-                loser = loserGuildId,
-                peaceTerms = peaceTerms
-            )
-            wars[warId] = endedWar
+            var transitionedWar: War? = null
+            wars.computeIfPresent(warId) { _, war ->
+                if (war.status != WarStatus.ACTIVE) {
+                    war
+                } else {
+                    val loserGuildId = if (war.declaringGuildId == winnerGuildId) {
+                        war.defendingGuildId
+                    } else {
+                        war.declaringGuildId
+                    }
+                    war.copy(
+                        status = WarStatus.ENDED,
+                        endedAt = Instant.now(),
+                        winner = winnerGuildId,
+                        loser = loserGuildId,
+                        peaceTerms = peaceTerms,
+                    ).also { transitionedWar = it }
+                }
+            }
+            val endedWar = transitionedWar ?: return false
+            val loserGuildId = checkNotNull(endedWar.loser)
 
             // Apply war farming cooldown to the winner
-            applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, winnerGuildId)
+            applyWarFarmingCooldown(endedWar.declaringGuildId, endedWar.defendingGuildId, winnerGuildId)
 
             // Permanent war XP is a pre-cap win award only. Post-100 wars feed ELO,
             // and losses never create permanent XP.
             awardWarExperience(winnerGuildId)
 
             logger.info("War ended: $warId, winner: $winnerGuildId")
-            Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loserGuildId, war.declaringGuildId, war.defendingGuildId))
+            Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loserGuildId, endedWar.declaringGuildId, endedWar.defendingGuildId))
             true
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation

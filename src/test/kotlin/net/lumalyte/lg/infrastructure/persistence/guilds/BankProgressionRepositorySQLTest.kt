@@ -33,16 +33,16 @@ class BankProgressionRepositorySQLTest {
 
     @Test
     fun `withdraw and redeposit cannot reserve bank units twice`() {
-        assertEquals(100, repository.reserveNetNewUnits(guildId, 10_000, 100, day))
-        assertEquals(0, repository.reserveNetNewUnits(guildId, 0, 100, day))
-        assertEquals(0, repository.reserveNetNewUnits(guildId, 10_000, 100, day))
-        assertEquals(10, repository.reserveNetNewUnits(guildId, 11_000, 100, day))
+        assertEquals(1, repository.reserveNetNewUnits(guildId, 10_000, 10_100, 100, day))
+        assertEquals(0, repository.reserveNetNewUnits(guildId, 10_000, 0, 100, day))
+        assertEquals(0, repository.reserveNetNewUnits(guildId, 10_000, 10_100, 100, day))
+        assertEquals(10, repository.reserveNetNewUnits(guildId, 10_000, 11_100, 100, day))
     }
 
     @Test
-    fun `a new daily period starts from zero`() {
-        assertEquals(100, repository.reserveNetNewUnits(guildId, 10_000, 100, day))
+    fun `a new daily period starts from its opening balance`() {
+        assertEquals(1, repository.reserveNetNewUnits(guildId, 10_000, 10_100, 100, day))
         val tomorrow = PeriodWindow(day.endExclusive, day.endExclusive.plusSeconds(86_400))
-        assertEquals(100, repository.reserveNetNewUnits(guildId, 10_000, 100, tomorrow))
+        assertEquals(2, repository.reserveNetNewUnits(guildId, 10_100, 10_300, 100, tomorrow))
     }
 }

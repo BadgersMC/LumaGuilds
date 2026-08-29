@@ -282,6 +282,7 @@ class WarConfigEnforcementTest {
         val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
 
         service.endWar(war.id, winnerProgression.guildId, actorId = UUID.randomUUID())
+        assertEquals(false, service.endWar(war.id, winnerProgression.guildId, actorId = UUID.randomUUID()))
 
         verify(exactly = 1) { awardService.awardPreCapWarWin(winnerProgression.guildId, 1, any()) }
         verify(exactly = 0) { awardService.awardPreCapWarWin(loserProgression.guildId, any(), any()) }

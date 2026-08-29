@@ -6,6 +6,7 @@ import java.util.UUID
 interface BankProgressionRepository {
     fun reserveNetNewUnits(
         guildId: UUID,
+        openingBalance: Long,
         currentBalance: Long,
         valuePerUnit: Long,
         window: PeriodWindow,

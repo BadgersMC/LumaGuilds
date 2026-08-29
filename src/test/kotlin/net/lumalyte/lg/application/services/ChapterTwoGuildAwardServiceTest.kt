@@ -36,9 +36,9 @@ class ChapterTwoGuildAwardServiceTest {
         val guildId = UUID.randomUUID()
         val actorId = UUID.randomUUID()
 
-        service.awardBankGrowth(guildId, actorId, 10_000, now)
-        service.awardBankGrowth(guildId, actorId, 0, now)
-        service.awardBankGrowth(guildId, actorId, 10_000, now)
+        service.awardBankGrowth(guildId, actorId, 0, 10_000, now)
+        service.awardBankGrowth(guildId, actorId, 10_000, 0, now)
+        service.awardBankGrowth(guildId, actorId, 0, 10_000, now)
 
         assertEquals(listOf(100), awards.calls.map { it.requestedXp })
         assertEquals(ExperienceSource.BANK_DEPOSIT, awards.calls.single().request.source)
@@ -50,9 +50,9 @@ class ChapterTwoGuildAwardServiceTest {
         val actorId = UUID.randomUUID()
         activity.blocked += actorId
 
-        service.awardBankGrowth(guildId, actorId, 10_000, now)
+        service.awardBankGrowth(guildId, actorId, 0, 10_000, now)
         activity.blocked -= actorId
-        service.awardBankGrowth(guildId, actorId, 10_000, now)
+        service.awardBankGrowth(guildId, actorId, 0, 10_000, now)
 
         assertEquals(listOf(100), awards.calls.map { it.requestedXp })
     }
@@ -70,6 +70,20 @@ class ChapterTwoGuildAwardServiceTest {
     }
 
     @Test
+    fun `failed recruit marker retries without granting duplicate experience`() {
+        val stint = MembershipHistory(
+            UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), now.minusSeconds(8 * 86_400L),
+        )
+        history.stints += stint
+        history.failNextMark = true
+
+        assertEquals(0, service.processQualifiedRecruits(now))
+        assertEquals(1, service.processQualifiedRecruits(now))
+        assertEquals(listOf(1_000), awards.calls.map { it.requestedXp })
+        assertEquals(now, history.stints.single().recruitXpAwardedAt)
+    }
+
+    @Test
     fun `war win awards below level one hundred only`() {
         val guildId = UUID.randomUUID()
 
@@ -83,12 +97,14 @@ class ChapterTwoGuildAwardServiceTest {
     private class RecordingAwards : ExperienceAwardRepository {
         data class Call(val request: ExperienceAwardRequest, val requestedXp: Int)
         val calls = mutableListOf<Call>()
+        private val transactionIds = mutableSetOf<UUID>()
         override fun awardAtomically(
             request: ExperienceAwardRequest,
             policy: ExperiencePolicy,
             requestedXp: Int,
             window: PeriodWindow?,
         ): ExperienceAwardResult {
+            if (!transactionIds.add(request.transactionId)) return ExperienceAwardResult.Duplicate
             calls += Call(request, requestedXp)
             return ExperienceAwardResult.Awarded(requestedXp, requestedXp, policy.isCapped)
         }
@@ -103,12 +119,13 @@ class ChapterTwoGuildAwardServiceTest {
         private val highs = mutableMapOf<Pair<UUID, Instant>, Long>()
         override fun reserveNetNewUnits(
             guildId: UUID,
+            openingBalance: Long,
             currentBalance: Long,
             valuePerUnit: Long,
             window: PeriodWindow,
         ): Int {
             val key = guildId to window.startInclusive
-            val previous = highs[key] ?: 0
+            val previous = highs[key] ?: openingBalance
             val units = ChapterTwoGuildAwardRules.netNewBankUnits(previous, currentBalance, valuePerUnit)
             highs[key] = maxOf(previous, currentBalance)
             return units
@@ -117,6 +134,7 @@ class ChapterTwoGuildAwardServiceTest {
 
     private class InMemoryMembershipHistory : MembershipHistoryRepository {
         val stints = mutableListOf<MembershipHistory>()
+        var failNextMark = false
         override fun openStint(playerId: UUID, guildId: UUID) = false
         override fun closeStint(playerId: UUID, guildId: UUID, reason: DepartureReason) = false
         override fun getByPlayer(playerId: UUID) = stints.filter { it.playerId == playerId }
@@ -124,6 +142,10 @@ class ChapterTwoGuildAwardServiceTest {
             it.departedAt == null && it.recruitXpAwardedAt == null && !it.joinedAt.isAfter(joinedAtOrBefore)
         }
         override fun markRecruitXpAwarded(stintId: UUID, awardedAt: Instant): Boolean {
+            if (failNextMark) {
+                failNextMark = false
+                return false
+            }
             val index = stints.indexOfFirst { it.id == stintId && it.recruitXpAwardedAt == null }
             if (index < 0) return false
             stints[index] = stints[index].copy(recruitXpAwardedAt = awardedAt)
