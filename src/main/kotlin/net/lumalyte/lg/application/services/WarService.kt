@@ -224,10 +224,10 @@ interface WarService {
     fun recordWarKillAndCheckFarming(killerId: UUID, victimId: UUID): Boolean
 
     /**
-     * Awards the configured `combat.kill_experience` (REQ-008) to the killer's
-     * guild for a war kill. Best-effort; progression failures are logged.
+     * Awards the configured `combat.kill_experience` (REQ-008) through the
+     * actor-aware PLAYER_KILL pipeline so validation and the shared cap apply.
      */
-    fun awardWarKillExperience(killerGuildId: UUID)
+    fun awardWarKillExperience(killerGuildId: UUID, killerId: UUID)
 
     /**
      * Gets war history for a guild.

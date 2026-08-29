@@ -2,11 +2,13 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.config.CombatConfig
 import net.lumalyte.lg.config.LevelRewardConfig
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.entities.WarStatus
+import net.lumalyte.lg.domain.values.ExperienceSource
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -91,7 +93,8 @@ class WarConfigEnforcementTest {
             configService = configService,
             bankService = mockk(relaxed = true),
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
-            progressionConfigService = mockk(relaxed = true)
+            progressionConfigService = mockk(relaxed = true),
+            progressionService = mockk(relaxed = true),
         )
     }
 
@@ -184,7 +187,8 @@ class WarConfigEnforcementTest {
             configService = configService,
             bankService = mockk(relaxed = true),
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
-            progressionConfigService = mockk(relaxed = true)
+            progressionConfigService = mockk(relaxed = true),
+            progressionService = mockk(relaxed = true),
         )
     }
 
@@ -267,6 +271,7 @@ class WarConfigEnforcementTest {
             progressionRepository = progressionRepo,
             progressionConfigService = mockk(relaxed = true),
             chapterTwoGuildAwardService = awardService,
+            progressionService = mockk(relaxed = true),
         )
         mockBukkitPluginManager()
 
@@ -290,6 +295,33 @@ class WarConfigEnforcementTest {
     }
 
     @Test
+    fun `war kill bonus uses capped player pipeline with killer identity`() {
+        val progressionRepo = mockk<ProgressionRepository>(relaxed = true)
+        val progressionService = mockk<ProgressionService>(relaxed = true)
+        val configService = mockk<ConfigService>()
+        val config = mockk<MainConfig>()
+        every { config.combat } returns CombatConfig(killExperience = 10)
+        every { configService.loadConfig() } returns config
+
+        val service = WarServiceBukkit(
+            configService = configService,
+            bankService = mockk(relaxed = true),
+            progressionRepository = progressionRepo,
+            progressionConfigService = mockk(relaxed = true),
+            progressionService = progressionService,
+        )
+        val guildId = UUID.randomUUID()
+        val killerId = UUID.randomUUID()
+
+        service.awardWarKillExperience(guildId, killerId)
+
+        verify(exactly = 1) {
+            progressionService.awardPlayerExperience(guildId, killerId, 10, ExperienceSource.PLAYER_KILL)
+        }
+        verify(exactly = 0) { progressionRepo.saveGuildProgression(any()) }
+    }
+
+    @Test
     fun `wager is escrowed on acceptance - both guilds deducted`() {
         val bankService = mockk<net.lumalyte.lg.application.services.BankService>(relaxed = true)
         val configService = mockk<ConfigService>()
@@ -301,7 +333,8 @@ class WarConfigEnforcementTest {
             configService = configService,
             bankService = bankService,
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
-            progressionConfigService = mockk(relaxed = true)
+            progressionConfigService = mockk(relaxed = true),
+            progressionService = mockk(relaxed = true),
         )
         mockBukkitPluginManager()
 
@@ -343,7 +376,8 @@ class WarConfigEnforcementTest {
             configService = configService,
             bankService = bankService,
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
-            progressionConfigService = mockk(relaxed = true)
+            progressionConfigService = mockk(relaxed = true),
+            progressionService = mockk(relaxed = true),
         )
         mockBukkitPluginManager()
 
