@@ -322,7 +322,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [ ] **LG-1101** Resolve existing guild bugs
   - Tag: `TDD`
   - References: operator backlog (bugs channel `<#1421662495923372194>`)
-  - Evidence: PR #138 Tasks 1–7; `./gradlew test` — 731 tests passed after review fixes
+  - Evidence:
   - Files: TBD — bug list must be pasted into this doc before tracking
 - [x] **LG-1102** Economy commands fix: `/g balance` + `/g baltop` correct data; `/g balance` tab-completes all guild names
   - Tag: `TDD`
@@ -347,11 +347,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [~] **LG-1201** Chapter 2 permanent progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
   - Tag: `TDD`
   - References: REQ-049, REQ-089
-  - Evidence:
+  - Evidence: PR #138 Tasks 1–7; Task 8 net-new bank/recruit/pre-cap war awards; `./gradlew clean test` — 743 tests passed
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
   - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
   - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
-  - Remaining: net-new bank/recruit/war awards, read models/placeholders, migration closeout, and final acceptance verification (Tasks 8–10)
+  - Remaining: read models/placeholders, migration closeout, and final acceptance verification (Tasks 9–10)
 - [ ] **LG-1202** Comprehensive level 1–100 permanent reward tier list
   - Tag: `DOC`
   - References: REQ-050

@@ -5,6 +5,8 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.BankStats
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
+import net.lumalyte.lg.api.events.GuildBankDepositEvent
 import net.lumalyte.lg.domain.entities.BankAudit
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.MemberContribution
@@ -28,7 +30,8 @@ class BankServiceBukkit(
     private val configService: ConfigService,
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
     private val guildService: net.lumalyte.lg.application.services.GuildService,
-    private val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
+    private val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager,
+    private val chapterTwoGuildAwardService: ChapterTwoGuildAwardService? = null,
 ) : BankService {
 
     companion object {
@@ -289,28 +292,16 @@ class BankServiceBukkit(
 
             logger.info("Player $playerId deposited $amount to guild $guildId (balance: $newBalance)")
 
-            // Award progression XP for bank deposits
+            // Reserve XP only for this day's net-new bank high-water balance.
             try {
-                val config = getConfig()
-                val xpPerHundred = config.progression.bankDepositXpPer100
-                val xpAmount = (amount / 100.0 * xpPerHundred).toInt()
-                if (xpAmount > 0) {
-                    val progression = progressionRepository.getGuildProgression(guildId)
-                    if (progression != null) {
-                        val updatedProgression = progression.copy(
-                            totalExperience = progression.totalExperience + xpAmount
-                        )
-                        progressionRepository.saveGuildProgression(updatedProgression)
-                        logger.info("Awarded $xpAmount XP to guild $guildId for bank deposit of $amount")
-                    }
-                }
-            } catch (e: SQLException) {
-                // Database error awarding XP - log but don't fail deposit
-                logger.warn("Failed to award progression XP for bank deposit (database error)", e)
-            } catch (e: IllegalStateException) {
-                // Service not initialized or invalid state
-                logger.warn("Failed to award progression XP for bank deposit (service error)", e)
+                chapterTwoGuildAwardService?.awardBankGrowth(guildId, playerId, creditedBalance)
+            } catch (e: Exception) {
+                logger.warn("Failed to award net-new bank progression XP", e)
             }
+
+            // This event feeds activity leaderboards and weekly quests; permanent XP
+            // is handled above so listeners must not award it a second time.
+            Bukkit.getPluginManager().callEvent(GuildBankDepositEvent(guildId, playerId, amount))
 
             return transaction
         } catch (e: SQLException) {
