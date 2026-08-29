@@ -41,6 +41,8 @@ class BedrockGuildProgressionInfoMenu(
             .label(lang.bedrock("bedrock.progression.description"))
             .label(createSectionHeader(lang.bedrock("bedrock.progression.header.level")))
             .label(createLevelAndExperienceSection())
+            .label(createSectionHeader(lang.bedrock("bedrock.progression.header.sources")))
+            .label(createSourceUsageSection())
             .label(createSectionHeader(lang.bedrock("bedrock.progression.header.unlocked")))
             .label(createUnlockedPerksSection())
             .label(createSectionHeader(lang.bedrock("bedrock.progression.header.available")))
@@ -123,6 +125,30 @@ class BedrockGuildProgressionInfoMenu(
             lang.bedrock("bedrock.progression.perks.unlocked_row", "perk" to getLocalizedPerkName(it))
         }
         return perkList
+    }
+
+    private fun createSourceUsageSection(): String {
+        val views = progressionService.getSourceUsage(guild.id)
+            .filter { it.source != net.lumalyte.lg.domain.values.ExperienceSource.ADMIN_BONUS }
+        if (views.isEmpty()) return lang.bedrock("bedrock.progression.sources.none")
+        return views.joinToString("\n") { view ->
+            val source = view.pool.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+            if (view.capXp == null) {
+                lang.bedrock(
+                    "bedrock.progression.sources.unlimited",
+                    "source" to source,
+                    "used" to view.awardedXp,
+                )
+            } else {
+                lang.bedrock(
+                    "bedrock.progression.sources.capped",
+                    "source" to source,
+                    "used" to view.awardedXp,
+                    "cap" to view.capXp,
+                    "remaining" to (view.remainingXp ?: 0),
+                )
+            }
+        }
     }
 
     private fun createAvailablePerksSection(): String {

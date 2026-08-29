@@ -1124,6 +1124,7 @@ bedrock:
     header:
       format: '<gold><bold>━━━ <title> ━━━'
       level: Current Level and Experience
+      sources: Experience Sources
       unlocked: Unlocked Perks
       available: Next Level Perks
       benefits: Current Benefits
@@ -1153,6 +1154,10 @@ bedrock:
         <dark_aqua>Experience This Level<gray>: <white><level_experience> <gray>XP
         <yellow>Experience to Next Level<gray>: <white><next_experience> <gray>XP
         <gold>Progress<gray>: <red><progress>%
+    sources:
+      none: '<gray>No experience sources are enabled.'
+      unlimited: '<aqua><source><gray>: <white><used> XP <green>(Unlimited)'
+      capped: '<aqua><source><gray>: <white><used>/<cap> XP <gray>(<remaining> remaining)'
     perks:
       none: '<gray>No perks have been unlocked yet.'
       more: '<gray>No new perks are available at the next level.'
