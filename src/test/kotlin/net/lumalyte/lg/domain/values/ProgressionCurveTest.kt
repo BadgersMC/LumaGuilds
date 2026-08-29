@@ -48,8 +48,14 @@ class ProgressionCurveTest {
     }
 
     @Test
-    fun `caps at level 101 like the service loop`() {
-        assertEquals(101, curve.levelFromExperience(17_518_681)) // prod max total XP
-        assertEquals(101, curve.levelFromExperience(Int.MAX_VALUE / 2))
+    fun `caps at permanent level 100`() {
+        assertEquals(100, curve.levelFromExperience(17_518_681)) // prod max total XP
+        assertEquals(100, curve.levelFromExperience(Int.MAX_VALUE / 2))
+    }
+
+    @Test
+    fun `max level one never increments`() {
+        val capped = ProgressionCurve(500.0, 1.15, 150, maxLevel = 1)
+        assertEquals(1, capped.levelFromExperience(Int.MAX_VALUE))
     }
 }

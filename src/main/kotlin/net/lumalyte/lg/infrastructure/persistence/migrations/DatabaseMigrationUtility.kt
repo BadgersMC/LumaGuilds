@@ -70,6 +70,7 @@ class DatabaseMigrationUtility(
                 "player_party_preferences",
                 "guild_progression",
                 "experience_transactions",
+                "guild_experience_source_usage",
                 "guild_activity_metrics",
                 "guild_vault_items",
                 "audits",

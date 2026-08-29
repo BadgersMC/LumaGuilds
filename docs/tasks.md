@@ -322,7 +322,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [ ] **LG-1101** Resolve existing guild bugs
   - Tag: `TDD`
   - References: operator backlog (bugs channel `<#1421662495923372194>`)
-  - Evidence:
+  - Evidence: PR #138 Tasks 1–7; `./gradlew test` — 731 tests passed after review fixes
   - Files: TBD — bug list must be pasted into this doc before tracking
 - [x] **LG-1102** Economy commands fix: `/g balance` + `/g baltop` correct data; `/g balance` tab-completes all guild names
   - Tag: `TDD`
@@ -344,51 +344,50 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-12 — Backlog: progression & economy (operator, Fain)
 
-- [ ] **LG-1201** Progression revamp — activity-based XP, no AFK farming, lower-level guilds not stunted
+- [~] **LG-1201** Chapter 2 permanent progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
   - Tag: `TDD`
-  - References: REQ-049
+  - References: REQ-049, REQ-089
   - Evidence:
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
-  - Notes: deterministic acceptance tests — per-source caps, no-AFK-farm proof per source, XP/hour flat-or-decreasing across level bands (anti-stunting; must NOT rise with level)
-  - Baseline: guilds are ALREADY at level 100 on the live server — `ProgressionConfig.maxLevel` (default 30) is never read at runtime, so the cap is unenforced; the 100→200 curve is the priority, not 0→100
-  - Harvest: XP formula `500*(L-1)^1.15 + L*150`, rate limiting, source table from closed PR #7 `progression.yml` (rebased 0→200)
-- [ ] **LG-1202** Comprehensive 0–200 reward tier list — documented per-level rewards incl. new level-100+ perks
+  - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
+  - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
+  - Remaining: net-new bank/recruit/war awards, read models/placeholders, migration closeout, and final acceptance verification (Tasks 8–10)
+- [ ] **LG-1202** Comprehensive level 1–100 permanent reward tier list
   - Tag: `DOC`
   - References: REQ-050
   - Evidence:
   - Files: docs + reward config/registry
-  - Baseline: guilds already past level 100 — prioritize 100→200 content (perks, homes at 125/150/175/200) over re-documenting 0→100
-  - Harvest: level-reward table from closed PR #7 `progression.yml` as the 0→100 starting point
-- [ ] **LG-1203** Extended guild home capacity at levels 125, 150, 175, 200 (raises cap; activation still costs gold — see LG-1206)
+  - Notes: levels 101–200 are seasonal Elo presentation, not permanent reward levels
+- [ ] **LG-1203** Seasonal Elo — rated level-100 wars, opponent weighting, rematch guard, and 101–200 display mapping
   - Tag: `TDD`
-  - References: REQ-051
+  - References: REQ-051, REQ-053
   - Evidence:
-  - Files: home limits config, progression hooks
+  - Files: war resolution, seasonal rating service/repository, menus/placeholders
 - [ ] **LG-1204** Dynamic XP rates — operator-hosted "increased XP" days
   - Tag: `TDD`
   - References: REQ-052
   - Evidence:
   - Files: XP multiplier config, scheduler
-- [ ] **LG-1205** XP penalties — guilds lose XP/levels on stake events (e.g. war loss)
+- [ ] **LG-1205** Chapter lifecycle — timer, standings archive, verified backup, rollover, migration, and admin recovery
   - Tag: `TDD`
-  - References: REQ-053
+  - References: REQ-090, REQ-091
   - Evidence:
-  - Files: XP deduction path, war-end hooks (↳ PR-4)
-- [ ] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`), level grants capacity only; level-loss keeps paid homes, blocks new activations until capacity restored
+  - Files: chapter service/repository, scheduler, migration, backup adapter, commands, placeholders
+- [ ] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`); permanent reward tiers grant capacity and seasonal Elo never revokes it
   - Tag: `TDD`
   - References: REQ-054
   - Evidence:
-  - Files: creation flow, home activation flow, gold economy, level-loss reconciliation
+  - Files: creation flow, home activation flow, gold economy, permanent-capacity reconciliation
 - [ ] **LG-1207** Guild-creation cooldown — 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
   - Tag: `TDD`
   - References: REQ-055
   - Evidence:
   - Files: guild creation, deletion timestamps
-- [ ] **LG-1208** Guild prestige system (theorize) — level reset at cap, special emoji, permanent unlocked features; balanced with level rebalance
+- [!] **LG-1208** Guild prestige redesign — superseded level-200 reset proposal requires a new design compatible with permanent level 100 + seasonal Elo
   - Tag: `DOC`
   - References: REQ-056
-  - Evidence: design agreed Aug 12 — `docs/design/prestige.md` (double requirement: L200 + escalating gold; P1 home slot at all levels; P2 alliance slot; P3 +10% XP; P4 war slot; P5 member capacity; P6+ cosmetic; 7-day hold cooldown; +25% re-level XP; Roman-numeral + emoji display, `%lumaguilds_guild_prestige%` placeholder)
-  - Files: design doc first — `docs/design/prestige.md`; implementation later feeds LG-1201/1202 (cap 200), LG-1206 (gold economy), LG-1502/1503 (leaderboard/banners), LG-1104 (emoji grants)
+  - Evidence: blocked by approved Chapter 2 contract; old `docs/design/prestige.md` assumes permanent level 200 and a level reset, both forbidden by REQ-049/REQ-056
+  - Files: future replacement design only; no implementation under the superseded contract
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 

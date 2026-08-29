@@ -495,6 +495,8 @@ party:
 # =====================================
 
 progression:
+  max_level: 100                      # Permanent progression cap
+
   # Experience values for different activities
   bank_deposit_xp_per_100: 1         # XP per 100 coins deposited
   member_joined_xp: 50                # XP when a new member joins
@@ -511,14 +513,63 @@ progression:
   claim_created_xp: 100               # XP for creating a claim (if claims enabled)
   war_won_xp: 500                     # XP for winning a war
 
+  # Chapter 2 guild-wide source policies. Caps are independent per pool;
+  # WEEKLY_ACTIVITY is intentionally unlimited so quests bypass daily caps.
+  sources:
+    bank_deposit: { enabled: true, award_xp: 1, cap_xp: 500, period: DAILY, pool: BANK_DEPOSIT }
+    qualified_recruit: { enabled: true, award_xp: 1000, cap_xp: 5000, period: WEEKLY, pool: QUALIFIED_RECRUIT }
+    pre_cap_war_win: { enabled: true, award_xp: 10000, cap_xp: 20000, period: WEEKLY, pool: PRE_CAP_WAR_WIN }
+    player_kill: { enabled: true, award_xp: 100, cap_xp: 6000, period: DAILY, pool: PLAYER_KILL }
+    mob_kill: { enabled: true, award_xp: 2, cap_xp: 6000, period: DAILY, pool: MOB_KILL }
+    crop_break: { enabled: true, award_xp: 5, cap_xp: 12000, period: DAILY, pool: CROP_BREAK }
+    block_break: { enabled: true, award_xp: 2, cap_xp: 12000, period: DAILY, pool: BLOCK_BREAK }
+    block_place: { enabled: true, award_xp: 3, cap_xp: 13500, period: DAILY, pool: BLOCK_PLACE }
+    smelting: { enabled: true, award_xp: 5, cap_xp: 9000, period: DAILY, pool: SMELTING }
+    brewing: { enabled: true, award_xp: 30, cap_xp: 9000, period: DAILY, pool: BREWING }
+    fishing: { enabled: true, award_xp: 25, cap_xp: 11250, period: DAILY, pool: FISHING }
+    enchanting: { enabled: true, award_xp: 75, cap_xp: 11250, period: DAILY, pool: ENCHANTING }
+    exploration_milestone: { enabled: true, award_xp: 50, cap_xp: 11250, period: DAILY, pool: EXPLORATION_MILESTONE }
+    coal_ore: { enabled: true, award_xp: 5, cap_xp: 18000, period: DAILY, pool: ORE }
+    copper_ore: { enabled: true, award_xp: 5, cap_xp: 18000, period: DAILY, pool: ORE }
+    iron_ore: { enabled: true, award_xp: 8, cap_xp: 18000, period: DAILY, pool: ORE }
+    lapis_ore: { enabled: true, award_xp: 8, cap_xp: 18000, period: DAILY, pool: ORE }
+    redstone_ore: { enabled: true, award_xp: 8, cap_xp: 18000, period: DAILY, pool: ORE }
+    gold_ore: { enabled: true, award_xp: 10, cap_xp: 18000, period: DAILY, pool: ORE }
+    nether_quartz_ore: { enabled: true, award_xp: 10, cap_xp: 18000, period: DAILY, pool: ORE }
+    diamond_ore: { enabled: true, award_xp: 20, cap_xp: 18000, period: DAILY, pool: ORE }
+    emerald_ore: { enabled: true, award_xp: 20, cap_xp: 18000, period: DAILY, pool: ORE }
+    ancient_debris: { enabled: true, award_xp: 40, cap_xp: 18000, period: DAILY, pool: ORE }
+    craft_common: { enabled: true, award_xp: 1, cap_xp: 12000, period: DAILY, pool: CRAFTING }
+    craft_utility: { enabled: true, award_xp: 5, cap_xp: 12000, period: DAILY, pool: CRAFTING }
+    craft_equipment: { enabled: true, award_xp: 10, cap_xp: 12000, period: DAILY, pool: CRAFTING }
+    craft_rare: { enabled: true, award_xp: 20, cap_xp: 12000, period: DAILY, pool: CRAFTING }
+    ender_dragon_kill: { enabled: true, award_xp: 1200, cap_xp: 12000, period: WEEKLY, pool: ENDER_DRAGON_KILL }
+    wither_kill: { enabled: true, award_xp: 700, cap_xp: 10500, period: WEEKLY, pool: WITHER_KILL }
+    elder_guardian_kill: { enabled: true, award_xp: 500, cap_xp: 7500, period: WEEKLY, pool: ELDER_GUARDIAN_KILL }
+    warden_kill: { enabled: true, award_xp: 600, cap_xp: 6000, period: WEEKLY, pool: WARDEN_KILL }
+    weekly_activity: { enabled: true, award_xp: 1, cap_xp: 0, period: UNLIMITED, pool: WEEKLY_ACTIVITY }
+    admin_bonus: { enabled: true, award_xp: 1, cap_xp: 0, period: UNLIMITED, pool: ADMIN_BONUS }
+
+  # Any valid vanilla material/entity identifier may be configured here.
+  targets:
+    materials:
+      common_break: [GRASS_BLOCK, DIRT, STONE, DEEPSLATE, NETHERRACK, SAND, GRAVEL]
+      common_place: [DIRT, STONE, COBBLESTONE, OAK_PLANKS, SPRUCE_PLANKS, BRICKS]
+      common_craft: [STICK, TORCH, CHEST, CRAFTING_TABLE]
+      utility_craft: [BUCKET, COMPASS, CLOCK, FISHING_ROD]
+      equipment_craft: [IRON_PICKAXE, IRON_SWORD, DIAMOND_PICKAXE, DIAMOND_SWORD]
+      rare_craft: [BEACON, ENDER_CHEST, ENCHANTING_TABLE]
+    entities:
+      normal_mobs: [ZOMBIE, SKELETON, CREEPER, SPIDER, ENDERMAN]
+
   # Rate limiting settings (prevents XP farming/spam)
   xp_cooldown_ms: 5000                # Milliseconds between XP awards per source per player
   max_xp_per_batch: 50                # Maximum XP accumulated before forced processing
 
   # Leveling curve settings (balanced for competitive but fair progression)
-  base_xp: 800.0                      # Base XP requirement
-  level_exponent: 1.3                 # Exponential growth factor (gentler than 1.5)
-  linear_bonus_per_level: 200         # Linear bonus to prevent harsh walls
+  base_xp: 500.0                      # Chapter 2 base XP requirement
+  level_exponent: 1.15                # Chapter 2 growth factor
+  linear_bonus_per_level: 150         # Chapter 2 linear component
 
   # Experience transaction retention
   # Periodically purges rows from the experience_transactions table to keep it small.

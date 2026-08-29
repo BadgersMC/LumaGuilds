@@ -149,6 +149,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(26)
                 dbVersion = 26
             }
+            if (dbVersion < 27) {
+                migrateToVersion27()
+                updateDatabaseVersion(27)
+                dbVersion = 27
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -846,6 +851,18 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_experience_transactions_guild_id ON experience_transactions(guild_id)")
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_experience_transactions_timestamp ON experience_transactions(timestamp)")
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_experience_transactions_source ON experience_transactions(source)")
+        sqlCommands.add("""
+            CREATE TABLE IF NOT EXISTS guild_experience_source_usage (
+                guild_id TEXT NOT NULL,
+                source_pool TEXT NOT NULL,
+                period_start INTEGER NOT NULL,
+                period_end INTEGER NOT NULL,
+                awarded_xp INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, source_pool, period_start),
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_xp_usage_period_end ON guild_experience_source_usage(period_end)")
         sqlCommands.add("CREATE INDEX IF NOT EXISTS idx_guild_activity_metrics_member_count ON guild_activity_metrics(member_count)")
 
         if (sqlCommands.isNotEmpty()) {
@@ -1325,7 +1342,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "player_party_preferences", "bank_tx", "kills",
             "audits", "wars", "leaderboards", "guild_invitations",
             "vault_slots", "vault_gold", "vault_transaction_log",
-            "guild_strikes", "guild_penalties"
+            "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
+            "guild_experience_source_usage"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1373,6 +1391,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 migrateToVersion25()
                 componentLogger.info(Component.text("✓ Recreated guild_penalties table"))
             }
+            if ("quest_player_placed_blocks" in missingTables) migrateToVersion26()
+            if ("guild_experience_source_usage" in missingTables) migrateToVersion27()
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
                 migrateToVersion2()
@@ -1681,5 +1701,22 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             """.trimIndent()
         ))
         componentLogger.info(Component.text("✓ Migration v26 complete: weekly quest provenance added"))
+    }
+
+    private fun migrateToVersion27() {
+        executeMigrationCommands(listOf(
+            """
+            CREATE TABLE IF NOT EXISTS guild_experience_source_usage (
+                guild_id TEXT NOT NULL,
+                source_pool TEXT NOT NULL,
+                period_start INTEGER NOT NULL,
+                period_end INTEGER NOT NULL,
+                awarded_xp INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, source_pool, period_start)
+            )
+            """.trimIndent(),
+            "CREATE INDEX IF NOT EXISTS idx_guild_xp_usage_period_end ON guild_experience_source_usage(period_end);"
+        ))
+        componentLogger.info(Component.text("✓ Migration v27 complete: permanent XP source usage added"))
     }
 }
