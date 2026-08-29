@@ -50,6 +50,7 @@ class LumaGuilds : JavaPlugin() {
     lateinit var pluginScope: CoroutineScope
     private lateinit var dailyWarCostsScheduler: DailyWarCostsScheduler
     private lateinit var bankInterestScheduler: net.lumalyte.lg.infrastructure.services.BankInterestScheduler
+    private lateinit var qualifiedRecruitScheduler: net.lumalyte.lg.infrastructure.services.QualifiedRecruitScheduler
     private var experienceTransactionCleanupScheduler: net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     private val componentLogger = getComponentLogger()
@@ -177,6 +178,9 @@ class LumaGuilds : JavaPlugin() {
 
         // Initialize bank interest scheduler (interest accrual + audit pruning)
         initBankInterestScheduler()
+
+        // Award recruit XP only after a member has remained for seven days.
+        initQualifiedRecruitScheduler()
 
         // Initialize experience transaction cleanup scheduler
         initExperienceTransactionCleanupScheduler()
@@ -1115,6 +1119,19 @@ class LumaGuilds : JavaPlugin() {
         }
     }
 
+    private fun initQualifiedRecruitScheduler() {
+        try {
+            qualifiedRecruitScheduler = net.lumalyte.lg.infrastructure.services.QualifiedRecruitScheduler(
+                this,
+                get().get(),
+            )
+            qualifiedRecruitScheduler.start()
+            logColored("✓ Qualified recruit scheduler started")
+        } catch (e: Exception) {
+            logColored("❌ Failed to initialize qualified recruit scheduler: ${e.message}")
+        }
+    }
+
     /**
      * Initializes the daily war costs scheduler.
      */
@@ -1306,6 +1323,10 @@ class LumaGuilds : JavaPlugin() {
         // Stop the bank interest scheduler
         if (::bankInterestScheduler.isInitialized) {
             bankInterestScheduler.stop()
+        }
+
+        if (::qualifiedRecruitScheduler.isInitialized) {
+            qualifiedRecruitScheduler.stop()
         }
 
         // Stop the experience transaction cleanup scheduler

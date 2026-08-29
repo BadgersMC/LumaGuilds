@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.WarService
+import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.api.events.GuildWarDeclaredEvent
 import net.lumalyte.lg.api.events.GuildWarEndEvent
@@ -17,7 +18,8 @@ class WarServiceBukkit(
     private val configService: ConfigService,
     private val bankService: net.lumalyte.lg.application.services.BankService,
     private val progressionRepository: ProgressionRepository,
-    private val progressionConfigService: ProgressionConfigService
+    private val progressionConfigService: ProgressionConfigService,
+    private val chapterTwoGuildAwardService: ChapterTwoGuildAwardService? = null,
 ) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
@@ -176,25 +178,37 @@ class WarServiceBukkit(
 
     override fun endWar(warId: UUID, winnerGuildId: UUID, peaceTerms: String?, actorId: UUID): Boolean {
         return try {
-            val war = wars[warId] ?: return false
-            val loserGuildId = if (war.declaringGuildId == winnerGuildId) war.defendingGuildId else war.declaringGuildId
-            val endedWar = war.copy(
-                status = WarStatus.ENDED,
-                endedAt = Instant.now(),
-                winner = winnerGuildId,
-                loser = loserGuildId,
-                peaceTerms = peaceTerms
-            )
-            wars[warId] = endedWar
+            var transitionedWar: War? = null
+            wars.computeIfPresent(warId) { _, war ->
+                if (war.status != WarStatus.ACTIVE) {
+                    war
+                } else {
+                    val loserGuildId = if (war.declaringGuildId == winnerGuildId) {
+                        war.defendingGuildId
+                    } else {
+                        war.declaringGuildId
+                    }
+                    war.copy(
+                        status = WarStatus.ENDED,
+                        endedAt = Instant.now(),
+                        winner = winnerGuildId,
+                        loser = loserGuildId,
+                        peaceTerms = peaceTerms,
+                    ).also { transitionedWar = it }
+                }
+            }
+            val endedWar = transitionedWar ?: return false
+            val loserGuildId = checkNotNull(endedWar.loser)
 
             // Apply war farming cooldown to the winner
-            applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, winnerGuildId)
+            applyWarFarmingCooldown(endedWar.declaringGuildId, endedWar.defendingGuildId, winnerGuildId)
 
-            // Award configured win/lose XP (REQ-008)
-            awardWarExperience(winnerGuildId, loserGuildId)
+            // Permanent war XP is a pre-cap win award only. Post-100 wars feed ELO,
+            // and losses never create permanent XP.
+            awardWarExperience(winnerGuildId)
 
             logger.info("War ended: $warId, winner: $winnerGuildId")
-            Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loserGuildId, war.declaringGuildId, war.defendingGuildId))
+            Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loserGuildId, endedWar.declaringGuildId, endedWar.defendingGuildId))
             true
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
@@ -325,18 +339,13 @@ class WarServiceBukkit(
         )
     }
 
-    /**
-     * Awards the configured war XP (REQ-008): `war_win_experience` to the
-     * winner, `war_lose_experience` to the loser. Best-effort; progression DB
-     * failures are logged, not thrown.
-     */
-    private fun awardWarExperience(winnerGuildId: UUID?, loserGuildId: UUID?) {
-        val combat = configService.loadConfig().combat
-        if (winnerGuildId != null && combat.warWinExperience > 0) {
-            awardGuildExperience(winnerGuildId, combat.warWinExperience)
-        }
-        if (loserGuildId != null && combat.warLoseExperience > 0) {
-            awardGuildExperience(loserGuildId, combat.warLoseExperience)
+    private fun awardWarExperience(winnerGuildId: UUID?) {
+        if (winnerGuildId == null) return
+        try {
+            val level = progressionRepository.getGuildProgression(winnerGuildId)?.currentLevel ?: return
+            chapterTwoGuildAwardService?.awardPreCapWarWin(winnerGuildId, level)
+        } catch (e: Exception) {
+            logger.error("Failed to award pre-cap war win XP to guild $winnerGuildId", e)
         }
     }
 

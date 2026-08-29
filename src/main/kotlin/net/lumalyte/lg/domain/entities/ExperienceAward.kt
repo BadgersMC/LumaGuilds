@@ -11,6 +11,7 @@ data class ExperienceAwardRequest(
     val units: Int,
     val occurredAt: Instant,
     val eligible: Boolean = true,
+    val transactionId: UUID = UUID.randomUUID(),
 )
 
 enum class AwardRejection {
@@ -22,6 +23,8 @@ enum class AwardRejection {
 }
 
 sealed interface ExperienceAwardResult {
+    data object Duplicate : ExperienceAwardResult
+
     data class Awarded(
         val acceptedXp: Int,
         val totalUsedXp: Int,

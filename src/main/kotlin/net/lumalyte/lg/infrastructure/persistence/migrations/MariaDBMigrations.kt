@@ -85,6 +85,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(27)
                 currentDbVersion = 27
             }
+            if (currentDbVersion < 28) {
+                migrateToVersion28()
+                updateDatabaseVersion(28)
+                currentDbVersion = 28
+            }
 
             connection.commit()
 
@@ -939,5 +944,42 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             )
         }
         componentLogger.info(Component.text("✓ Migration v27 complete: permanent XP source usage added"))
+    }
+
+    private fun migrateToVersion28() {
+        connection.createStatement().use { statement ->
+            statement.execute(
+                """
+                CREATE TABLE IF NOT EXISTS guild_bank_xp_high_water (
+                    guild_id VARCHAR(36) NOT NULL,
+                    period_start BIGINT NOT NULL,
+                    period_end BIGINT NOT NULL,
+                    high_water_balance BIGINT NOT NULL DEFAULT 0,
+                    PRIMARY KEY (guild_id, period_start)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """.trimIndent()
+            )
+            statement.execute(
+                """
+                CREATE TABLE IF NOT EXISTS membership_history (
+                    id VARCHAR(36) PRIMARY KEY,
+                    player_id VARCHAR(36) NOT NULL,
+                    guild_id VARCHAR(36) NOT NULL,
+                    joined_at VARCHAR(64) NOT NULL,
+                    departed_at VARCHAR(64),
+                    departure_reason VARCHAR(64),
+                    recruit_xp_awarded_at VARCHAR(64),
+                    INDEX idx_membership_history_player (player_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """.trimIndent()
+            )
+        }
+        val hasRecruitColumn = connection.metaData.getColumns(null, null, "membership_history", "recruit_xp_awarded_at").use { it.next() }
+        if (!hasRecruitColumn) {
+            connection.createStatement().use {
+                it.execute("ALTER TABLE membership_history ADD COLUMN recruit_xp_awarded_at VARCHAR(64)")
+            }
+        }
+        componentLogger.info(Component.text("✓ Migration v28 complete: guild-wide award qualification added"))
     }
 }
