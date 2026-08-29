@@ -53,6 +53,7 @@ class ExperienceAwardRepositorySQLTest {
         assertEquals(ExperienceAwardResult.Awarded(2, 2, true), result)
         assertEquals(2, intValue("SELECT total_experience AS value FROM guild_progression WHERE guild_id = ?", guildId))
         assertEquals(2, intValue("SELECT awarded_xp AS value FROM guild_experience_source_usage WHERE guild_id = ?", guildId))
+        assertEquals(mapOf("MOB_KILL" to 2), repository.getAwardedXpByPool(guildId, instant))
         assertEquals(2, intValue("SELECT amount AS value FROM experience_transactions WHERE guild_id = ?", guildId))
         assertEquals(1, intValue("SELECT level AS value FROM guilds WHERE id = ?", guildId))
     }

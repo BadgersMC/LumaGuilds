@@ -12,6 +12,7 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.domain.values.CapPeriod
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -59,9 +60,6 @@ class GuildProgressionMenu(
         31, 40, 41, 42, 33, 24, 15, 16, 17, 26, 35, 44
     )
 
-    /** Sources that count toward the daily cap and should appear in the grid. */
-    private val trackableSources = ExperienceSource.entries.filter { it != ExperienceSource.WEEKLY_ACTIVITY && it != ExperienceSource.ADMIN_BONUS && it != ExperienceSource.CLAIM_DESTROYED }
-
     override fun open() {
         val playerId = player.uniqueId
 
@@ -80,7 +78,9 @@ class GuildProgressionMenu(
             return
         }
 
-        val totalPages = (trackableSources.size + itemsPerPage - 1) / itemsPerPage
+        val sourceUsage = progressionService.getSourceUsage(guild.id)
+            .filter { it.source != ExperienceSource.ADMIN_BONUS }
+        val totalPages = ((sourceUsage.size + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
         val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_progression.title", "page" to currentPage + 1, "pages" to totalPages)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { e -> e.isCancelled = true }
@@ -93,7 +93,7 @@ class GuildProgressionMenu(
         gui.addPane(pane)
 
         // ---- Row 0: Guild level header ----
-        addGuildLevelHeader(pane, progression)
+        addGuildLevelHeader(pane, progression, sourceUsage)
 
         // ---- Left sidebar (cols 0, rows 1-4) ----
         addRankInfo(pane, 0, 1)
@@ -110,14 +110,13 @@ class GuildProgressionMenu(
         if (currentPage + 1 < totalPages) addNextPageButton(pane, 8, 5)
 
         // ---- Source grid (paginated) ----
-        val dailyXp = progressionService.getDailySourceXp(guild.id)
-        val pageSources = trackableSources.drop(currentPage * itemsPerPage).take(itemsPerPage)
-        for ((index, source) in pageSources.withIndex()) {
+        val pageSources = sourceUsage.drop(currentPage * itemsPerPage).take(itemsPerPage)
+        for ((index, usage) in pageSources.withIndex()) {
             if (index >= gridSlots.size) break
             val slot = gridSlots[index]
             val x = slot % 9
             val y = slot / 9
-            addSourceItem(pane, x, y, source, dailyXp[source] ?: 0)
+            addSourceItem(pane, x, y, usage)
         }
 
         gui.show(player)
@@ -133,10 +132,10 @@ class GuildProgressionMenu(
         return GuildProgressionDisplay(level, prog.totalExperience, currentXp, neededXp, unlockedPerks.size)
     }
 
-    private fun addGuildLevelHeader(pane: StaticPane, prog: GuildProgressionDisplay) {
+    private fun addGuildLevelHeader(pane: StaticPane, prog: GuildProgressionDisplay, sourceUsage: List<SourceUsageView>) {
         val (_, totalXp, currentXp, neededXp, perksCount) = prog
         val percent = if (neededXp > 0) (currentXp.toDouble() / neededXp.toDouble() * 100).toInt() else 0
-        val totalToday = progressionService.getDailySourceXp(guild.id).values.sum()
+        val totalToday = sourceUsage.filter { it.period == CapPeriod.DAILY }.sumOf { it.awardedXp }
 
         val bars = buildProgressBar(percent, 20)
         val item = NexoItemProvider.getItemStackOrFallback("lg_level") {
@@ -175,13 +174,15 @@ class GuildProgressionMenu(
         }
     }
 
-    private fun addSourceItem(pane: StaticPane, x: Int, y: Int, source: ExperienceSource, todayXp: Int) {
-        val cap = progressionService.getDailyCap(source)
-        val percent = if (cap > 0) (todayXp.toDouble() / cap.toDouble() * 100).toInt().coerceAtMost(100) else 0
+    private fun addSourceItem(pane: StaticPane, x: Int, y: Int, usage: SourceUsageView) {
+        val source = usage.source
+        val cap = usage.capXp
+        val usedXp = usage.awardedXp
+        val percent = if (cap != null && cap > 0) (usedXp.toDouble() / cap.toDouble() * 100).toInt().coerceAtMost(100) else 0
 
         val nexoId = sourceToIconId(source)
         val material = sourceToMaterial(source)
-        val name = sourceToDisplayName(source)
+        val name = sourcePoolDisplayName(usage.pool)
 
         val bars = buildProgressBar(percent, 10)
         val state = when {
@@ -196,7 +197,7 @@ class GuildProgressionMenu(
         }.also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.source.name", "source" to name))
             val lore = mutableListOf<Component>()
-            if (cap > 0) {
+            if (cap != null) {
                 val progress = when (state) {
                     "capped" -> lang.gui("menu.guild_progression.source.progress.capped", "bar" to bars, "percent" to percent)
                     "near_cap" -> lang.gui("menu.guild_progression.source.progress.near_cap", "bar" to bars, "percent" to percent)
@@ -204,9 +205,9 @@ class GuildProgressionMenu(
                     else -> lang.gui("menu.guild_progression.source.progress.available", "bar" to bars, "percent" to percent)
                 }
                 lore.add(progress)
-                lore.add(lang.gui("menu.guild_progression.source.today", "today" to todayXp, "cap" to cap))
+                lore.add(lang.gui("menu.guild_progression.source.today", "today" to usedXp, "cap" to cap))
             } else {
-                lore.add(lang.gui("menu.guild_progression.source.tracked", "xp" to todayXp))
+                lore.add(lang.gui("menu.guild_progression.source.tracked", "xp" to usedXp))
             }
             meta.lore(lore)
         }}
@@ -397,4 +398,7 @@ class GuildProgressionMenu(
         val unlockedPerks: Int
     )
 }
+
+internal fun sourcePoolDisplayName(pool: String): Component =
+    Component.text(pool.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() })
 

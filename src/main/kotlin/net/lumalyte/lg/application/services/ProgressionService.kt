@@ -29,6 +29,15 @@ interface ProgressionService {
         eligible: Boolean = true,
     ): Int? = awardExperience(guildId, units, source)
 
+    /** Awards a raw XP amount from a player action while retaining the actor for validation. */
+    fun awardPlayerExperience(
+        guildId: UUID,
+        actorId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+        eligible: Boolean = true,
+    ): Int?
+
     /** Awards trusted system XP that is contractually outside source caps. */
     fun awardUncappedSystemExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? =
         awardExperience(guildId, experience, source)
@@ -231,15 +240,20 @@ interface ProgressionService {
      */
     fun syncGuildLevels(): Int
 
+    /** Returns one authoritative allowance view per configured source pool. */
+    fun getSourceUsage(guildId: UUID, at: Instant = Instant.now()): List<SourceUsageView>
+
     /**
      * Returns the amount of XP earned per source for a guild today.
      * Used by the progression menu to display daily caps and progress.
      */
+    @Deprecated("Use getSourceUsage")
     fun getDailySourceXp(guildId: UUID): Map<ExperienceSource, Int>
 
     /**
      * Gets the daily XP cap for a given experience source.
      */
+    @Deprecated("Use getSourceUsage")
     fun getDailyCap(source: ExperienceSource): Int
 }
 

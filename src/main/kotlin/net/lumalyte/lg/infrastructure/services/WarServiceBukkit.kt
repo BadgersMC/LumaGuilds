@@ -4,6 +4,8 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
+import net.lumalyte.lg.application.services.ProgressionService
+import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.api.events.GuildWarDeclaredEvent
 import net.lumalyte.lg.api.events.GuildWarEndEvent
@@ -20,6 +22,7 @@ class WarServiceBukkit(
     private val progressionRepository: ProgressionRepository,
     private val progressionConfigService: ProgressionConfigService,
     private val chapterTwoGuildAwardService: ChapterTwoGuildAwardService? = null,
+    private val progressionService: ProgressionService,
 ) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
@@ -349,30 +352,18 @@ class WarServiceBukkit(
         }
     }
 
-    private fun awardGuildExperience(guildId: UUID, amount: Int) {
-        try {
-            val progression = progressionRepository.getGuildProgression(guildId)
-            if (progression == null) {
-                // No progression row yet — cannot award. Log instead of silently
-                // discarding the configured war/kill XP (CodeRabbit: WarServiceBukkit.kt:351).
-                logger.warn("Cannot award $amount XP to guild $guildId — no progression row exists")
-                return
-            }
-            progressionRepository.saveGuildProgression(
-                progression.copy(totalExperience = progression.totalExperience + amount)
-            )
-        } catch (e: Exception) {
-            logger.error("Failed to award $amount XP to guild $guildId", e)
-        }
-    }
-
     /**
      * Awards the configured kill XP (REQ-008) to the killer's guild for a war kill.
      */
-    override fun awardWarKillExperience(killerGuildId: UUID) {
+    override fun awardWarKillExperience(killerGuildId: UUID, killerId: UUID) {
         val killXp = configService.loadConfig().combat.killExperience
         if (killXp > 0) {
-            awardGuildExperience(killerGuildId, killXp)
+            progressionService.awardPlayerExperience(
+                killerGuildId,
+                killerId,
+                killXp,
+                ExperienceSource.PLAYER_KILL,
+            )
         }
     }
 
