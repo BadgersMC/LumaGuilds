@@ -46,6 +46,14 @@ class ExperienceAwardRepositorySQL(
                     request.guildId.toString(),
                 ) { it.getInt("level") }) { "Guild ${request.guildId} does not exist" }
             }
+            val alreadyAwarded = query(connection,
+                "SELECT 1 AS present FROM experience_transactions WHERE id = ?",
+                request.transactionId.toString(),
+            ) { true } ?: false
+            if (alreadyAwarded) {
+                connection.commit()
+                return ExperienceAwardResult.Duplicate
+            }
             val usedXp = if (window == null) {
                 0
             } else {
@@ -121,7 +129,7 @@ class ExperienceAwardRepositorySQL(
             )
             execute(connection,
                 "INSERT INTO experience_transactions (id, guild_id, amount, source, description, actor_id, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID().toString(),
+                request.transactionId.toString(),
                 request.guildId.toString(),
                 acceptedXp,
                 request.source.name,

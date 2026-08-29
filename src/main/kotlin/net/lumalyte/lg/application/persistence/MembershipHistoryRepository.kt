@@ -3,6 +3,7 @@ package net.lumalyte.lg.application.persistence
 import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.MembershipHistory
 import java.util.UUID
+import java.time.Instant
 
 interface MembershipHistoryRepository {
 
@@ -24,4 +25,8 @@ interface MembershipHistoryRepository {
      * (oldest first, so index numbers match "total guilds joined").
      */
     fun getByPlayer(playerId: UUID): List<MembershipHistory>
+
+    fun getQualifiedUnawarded(joinedAtOrBefore: Instant): List<MembershipHistory>
+
+    fun markRecruitXpAwarded(stintId: UUID, awardedAt: Instant): Boolean
 }

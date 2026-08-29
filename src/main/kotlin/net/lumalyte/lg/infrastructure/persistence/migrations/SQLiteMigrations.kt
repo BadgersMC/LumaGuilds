@@ -154,6 +154,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(27)
                 dbVersion = 27
             }
+            if (dbVersion < 28) {
+                migrateToVersion28()
+                updateDatabaseVersion(28)
+                dbVersion = 28
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1343,7 +1348,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "audits", "wars", "leaderboards", "guild_invitations",
             "vault_slots", "vault_gold", "vault_transaction_log",
             "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
-            "guild_experience_source_usage"
+            "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1393,6 +1398,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             }
             if ("quest_player_placed_blocks" in missingTables) migrateToVersion26()
             if ("guild_experience_source_usage" in missingTables) migrateToVersion27()
+            if ("guild_bank_xp_high_water" in missingTables || "membership_history" in missingTables) migrateToVersion28()
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
                 migrateToVersion2()
@@ -1718,5 +1724,37 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "CREATE INDEX IF NOT EXISTS idx_guild_xp_usage_period_end ON guild_experience_source_usage(period_end);"
         ))
         componentLogger.info(Component.text("✓ Migration v27 complete: permanent XP source usage added"))
+    }
+
+    private fun migrateToVersion28() {
+        executeMigrationCommands(listOf(
+            """
+            CREATE TABLE IF NOT EXISTS guild_bank_xp_high_water (
+                guild_id TEXT NOT NULL,
+                period_start INTEGER NOT NULL,
+                period_end INTEGER NOT NULL,
+                high_water_balance INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, period_start)
+            )
+            """.trimIndent(),
+            """
+            CREATE TABLE IF NOT EXISTS membership_history (
+                id TEXT PRIMARY KEY,
+                player_id TEXT NOT NULL,
+                guild_id TEXT NOT NULL,
+                joined_at TEXT NOT NULL,
+                departed_at TEXT,
+                departure_reason TEXT,
+                recruit_xp_awarded_at TEXT
+            )
+            """.trimIndent(),
+            "CREATE INDEX IF NOT EXISTS idx_membership_history_player ON membership_history(player_id);",
+        ))
+        if (!hasColumn("membership_history", "recruit_xp_awarded_at")) {
+            connection.createStatement().use {
+                it.executeUpdate("ALTER TABLE membership_history ADD COLUMN recruit_xp_awarded_at TEXT")
+            }
+        }
+        componentLogger.info(Component.text("✓ Migration v28 complete: guild-wide award qualification added"))
     }
 }

@@ -390,14 +390,9 @@ class ProgressionEventListener(
         asyncTaskService.runAsyncCallback(
             task = {
                 try {
-                    val xpPerHundred = cachedProgressionConfig.bankDepositXpPer100
-                    val xpAmount = (event.amount / 100.0 * xpPerHundred).toInt()
-                    if (xpAmount > 0) {
-                        progressionService.awardExperience(event.guildId, xpAmount, ExperienceSource.BANK_DEPOSIT)
-                    }
                     leaderboardService.recordActivity(event.guildId, ActivityType.BANK_DEPOSIT, event.amount.toInt().coerceAtLeast(1))
                 } catch (e: Exception) {
-                    logger.warn("Failed to award progression XP for bank deposit", e)
+                    logger.warn("Failed to record bank deposit activity", e)
                 }
             },
             onSuccess = {},
@@ -419,11 +414,9 @@ class ProgressionEventListener(
                         return@runAsyncCallback
                     }
 
-                    val memberJoinXp = cachedProgressionConfig.memberJoinedXp
-                    progressionService.awardExperience(event.guildId, memberJoinXp, ExperienceSource.MEMBER_JOINED)
                     leaderboardService.recordActivity(event.guildId, ActivityType.MEMBER_JOINED, 1)
                 } catch (e: Exception) {
-                    logger.warn("Failed to award progression XP for member join", e)
+                    logger.warn("Failed to record member join activity", e)
                 }
             },
             onSuccess = {},

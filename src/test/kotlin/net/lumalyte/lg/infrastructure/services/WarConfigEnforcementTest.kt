@@ -248,8 +248,9 @@ class WarConfigEnforcementTest {
     }
 
     @Test
-    fun `win and lose XP are awarded to both guilds on war end`() {
+    fun `war end delegates pre-cap XP to winner only`() {
         val progressionRepo = mockk<ProgressionRepository>(relaxed = true)
+        val awardService = mockk<net.lumalyte.lg.application.services.ChapterTwoGuildAwardService>(relaxed = true)
         val configService = mockk<ConfigService>()
         val config = mockk<MainConfig>()
         every { config.combat } returns CombatConfig(warWinExperience = 500, warLoseExperience = 100)
@@ -264,7 +265,8 @@ class WarConfigEnforcementTest {
             configService = configService,
             bankService = mockk(relaxed = true),
             progressionRepository = progressionRepo,
-            progressionConfigService = mockk(relaxed = true)
+            progressionConfigService = mockk(relaxed = true),
+            chapterTwoGuildAwardService = awardService,
         )
         mockBukkitPluginManager()
 
@@ -280,12 +282,11 @@ class WarConfigEnforcementTest {
         val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
 
         service.endWar(war.id, winnerProgression.guildId, actorId = UUID.randomUUID())
+        assertEquals(false, service.endWar(war.id, winnerProgression.guildId, actorId = UUID.randomUUID()))
 
-        // 500 to winner, 100 to loser
-        verify { progressionRepo.saveGuildProgression(
-            match { it.guildId == winnerProgression.guildId && it.totalExperience == 500 }) }
-        verify { progressionRepo.saveGuildProgression(
-            match { it.guildId == loserProgression.guildId && it.totalExperience == 100 }) }
+        verify(exactly = 1) { awardService.awardPreCapWarWin(winnerProgression.guildId, 1, any()) }
+        verify(exactly = 0) { awardService.awardPreCapWarWin(loserProgression.guildId, any(), any()) }
+        verify(exactly = 0) { progressionRepo.saveGuildProgression(any()) }
     }
 
     @Test

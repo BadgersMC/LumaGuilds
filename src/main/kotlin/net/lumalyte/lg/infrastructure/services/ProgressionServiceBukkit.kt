@@ -69,6 +69,7 @@ class ProgressionServiceBukkit(
             rawXpPolicy,
         )) {
             is ExperienceAwardResult.Awarded -> result.leveledUpTo
+            ExperienceAwardResult.Duplicate -> null
             is ExperienceAwardResult.NoAllowance -> null
             is ExperienceAwardResult.Rejected -> null
         }
@@ -88,6 +89,7 @@ class ProgressionServiceBukkit(
             policy,
         )) {
             is ExperienceAwardResult.Awarded -> result.leveledUpTo
+            ExperienceAwardResult.Duplicate -> null
             is ExperienceAwardResult.NoAllowance -> null
             is ExperienceAwardResult.Rejected -> null
         }
@@ -108,6 +110,7 @@ class ProgressionServiceBukkit(
             policy,
         )) {
             is ExperienceAwardResult.Awarded -> result.leveledUpTo
+            ExperienceAwardResult.Duplicate -> null
             is ExperienceAwardResult.NoAllowance -> null
             is ExperienceAwardResult.Rejected -> null
         }

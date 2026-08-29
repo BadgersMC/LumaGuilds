@@ -11,7 +11,8 @@ data class MembershipHistory(
     val guildId: UUID,
     val joinedAt: Instant,
     val departedAt: Instant? = null,
-    val departureReason: DepartureReason? = null
+    val departureReason: DepartureReason? = null,
+    val recruitXpAwardedAt: Instant? = null,
 ) {
     val isOpen: Boolean get() = departedAt == null
 }
