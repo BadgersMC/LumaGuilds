@@ -182,7 +182,7 @@ class GuildProgressionMenu(
 
         val nexoId = sourceToIconId(source)
         val material = sourceToMaterial(source)
-        val name = sourceToDisplayName(source)
+        val name = sourcePoolDisplayName(usage.pool)
 
         val bars = buildProgressBar(percent, 10)
         val state = when {
@@ -398,4 +398,7 @@ class GuildProgressionMenu(
         val unlockedPerks: Int
     )
 }
+
+internal fun sourcePoolDisplayName(pool: String): Component =
+    Component.text(pool.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() })
 
