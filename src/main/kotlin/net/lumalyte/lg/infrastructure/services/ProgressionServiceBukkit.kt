@@ -485,6 +485,27 @@ class ProgressionServiceBukkit(
         }
     }
 
+    override fun awardPlayerExperience(
+        guildId: UUID,
+        actorId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+        eligible: Boolean,
+    ): Int? {
+        if (experience <= 0) return null
+        val configured = configService.loadConfig().progression.sourcePolicies.getValue(source)
+        val rawXpPolicy = configured.copy(awardXp = 1)
+        return when (val result = permanentExperienceService.award(
+            ExperienceAwardRequest(guildId, actorId, source, experience, Instant.now(), eligible),
+            rawXpPolicy,
+        )) {
+            is ExperienceAwardResult.Awarded -> result.leveledUpTo
+            ExperienceAwardResult.Duplicate -> null
+            is ExperienceAwardResult.NoAllowance -> null
+            is ExperienceAwardResult.Rejected -> null
+        }
+    }
+
     private fun syncGuildLevelField(guildId: UUID, newLevel: Int) {
         try {
             val guild = guildRepository.getById(guildId) ?: return

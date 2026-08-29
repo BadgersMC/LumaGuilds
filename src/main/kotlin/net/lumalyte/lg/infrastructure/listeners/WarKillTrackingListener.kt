@@ -99,7 +99,7 @@ class WarKillTrackingListener : Listener, KoinComponent {
 
                             // Award configured kill XP to the killer's guild (REQ-008)
                             if (!isFarming) {
-                                warService.awardWarKillExperience(killerGuild)
+                                warService.awardWarKillExperience(killerGuild, killer.uniqueId)
                             }
 
                             // Notify both players

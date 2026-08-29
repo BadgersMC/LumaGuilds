@@ -344,14 +344,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-12 — Backlog: progression & economy (operator, Fain)
 
-- [~] **LG-1201** Chapter 2 permanent progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
+- [x] **LG-1201** Chapter 2 permanent progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
   - Tag: `TDD`
   - References: REQ-049, REQ-089
-  - Evidence: PR #138 Tasks 1–7; Tasks 8–9 guild-wide awards and authoritative source-usage read models; `./gradlew clean test` — 749 tests passed
+  - Evidence: PR #138 Tasks 1–7; Tasks 8–9 guild-wide awards and authoritative source-usage read models; Task 10 verifies weekly quests remain uncapped and routes the final war-kill bonus bypass through actor-aware `PLAYER_KILL` cap accounting; `./gradlew clean test` — GREEN
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
   - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
   - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
-  - Remaining: weekly-quest integration and final acceptance verification (Task 10)
 - [ ] **LG-1202** Comprehensive level 1–100 permanent reward tier list
   - Tag: `DOC`
   - References: REQ-050

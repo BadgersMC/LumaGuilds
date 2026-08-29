@@ -29,6 +29,15 @@ interface ProgressionService {
         eligible: Boolean = true,
     ): Int? = awardExperience(guildId, units, source)
 
+    /** Awards a raw XP amount from a player action while retaining the actor for validation. */
+    fun awardPlayerExperience(
+        guildId: UUID,
+        actorId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+        eligible: Boolean = true,
+    ): Int?
+
     /** Awards trusted system XP that is contractually outside source caps. */
     fun awardUncappedSystemExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? =
         awardExperience(guildId, experience, source)
