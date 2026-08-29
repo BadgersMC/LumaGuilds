@@ -1,6 +1,6 @@
 package net.lumalyte.lg.application.services
 
-import org.bukkit.entity.Player
+import java.util.UUID
 
 /**
  * Gates guild XP earning on the player's live activity state, so players flagged
@@ -12,5 +12,5 @@ interface PlaytimeActivityService {
      * True when the player's current activity state must not earn guild XP.
      * Always false (never blocks) when the underlying plugin is unavailable.
      */
-    fun isXpBlocked(player: Player): Boolean
+    fun isXpBlocked(playerId: UUID): Boolean
 }

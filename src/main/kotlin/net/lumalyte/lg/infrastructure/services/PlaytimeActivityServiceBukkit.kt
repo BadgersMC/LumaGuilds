@@ -2,10 +2,10 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.PlaytimeActivityService
 import org.bukkit.Bukkit
-import org.bukkit.entity.Player
 import org.enthusia.playtime.activity.ActivityState
 import org.enthusia.playtime.api.PlaytimeService
 import org.slf4j.LoggerFactory
+import java.util.UUID
 
 /**
  * Bridges EnthusiaPlaytime's live activity state into LumaGuilds so AFK / suspicious
@@ -20,7 +20,7 @@ class PlaytimeActivityServiceBukkit : PlaytimeActivityService {
 
     private val logger = LoggerFactory.getLogger(PlaytimeActivityServiceBukkit::class.java)
 
-    override fun isXpBlocked(player: Player): Boolean {
+    override fun isXpBlocked(playerId: UUID): Boolean {
         val service = try {
             @Suppress("UNCHECKED_CAST")
             Bukkit.getServicesManager().load(PlaytimeService::class.java) as? PlaytimeService
@@ -29,9 +29,9 @@ class PlaytimeActivityServiceBukkit : PlaytimeActivityService {
         } ?: return false
 
         return try {
-            isBlockedState(service.getLiveState(player.uniqueId))
+            isBlockedState(service.getLiveState(playerId))
         } catch (e: Exception) {
-            logger.debug("Failed to read live activity state for {}: {}", player.uniqueId, e.message)
+            logger.debug("Failed to read live activity state for {}: {}", playerId, e.message)
             false
         }
     }

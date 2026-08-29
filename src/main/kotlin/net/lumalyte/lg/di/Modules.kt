@@ -533,6 +533,12 @@ fun progressionModule() = module {
     // Repositories
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get(), get()) }
+    single<net.lumalyte.lg.application.persistence.ExperienceAwardRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL(
+            get(),
+            { net.lumalyte.lg.domain.values.ProgressionCurve.from(get<ConfigService>().loadConfig().progression) },
+        )
+    }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.QuestRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite(get())
@@ -544,8 +550,9 @@ fun progressionModule() = module {
     // Services
     single<KillService> { KillServiceBukkit(get()) }
     single<CombatService> { CombatServiceBukkit(get(), get(), get(), get()) }
-    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get()) }
     single<PlaytimeActivityService> { PlaytimeActivityServiceBukkit() }
+    single { net.lumalyte.lg.application.services.PermanentExperienceService(get(), get()) }
+    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get()) }
     single<WarService> { WarServiceBukkit(get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {
@@ -588,7 +595,20 @@ fun progressionModule() = module {
     }
 
     // Listeners
-    single<ProgressionEventListener> { ProgressionEventListener() }
+    single<ProgressionEventListener> {
+        ProgressionEventListener(
+            progressionService = get(),
+            memberService = get(),
+            memberRepository = get(),
+            configService = get(),
+            asyncTaskService = get(),
+            leaderboardService = get(),
+            playtimeActivityService = get(),
+            blockProvenanceRepository = get(),
+            plugin = get(),
+            virtualDispatcher = get(named("VirtualDispatcher")),
+        )
+    }
     single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get()) }
 }
 

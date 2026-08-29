@@ -20,6 +20,19 @@ interface ProgressionService {
      */
     fun awardExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int?
 
+    /** Awards configured units of player activity while retaining the actor for AFK validation. */
+    fun awardPlayerActivity(
+        guildId: UUID,
+        actorId: UUID,
+        units: Int,
+        source: ExperienceSource,
+        eligible: Boolean = true,
+    ): Int? = awardExperience(guildId, units, source)
+
+    /** Awards trusted system XP that is contractually outside source caps. */
+    fun awardUncappedSystemExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? =
+        awardExperience(guildId, experience, source)
+
     /**
      * Removes experience from a guild (used by Guild Strikes EXP penalties).
      * Never drops total XP below 0. Recalculates level and syncs the guild's

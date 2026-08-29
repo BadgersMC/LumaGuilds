@@ -58,7 +58,8 @@ class QuestProgressListener(
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    // Read provenance before the progression listener consumes it at MONITOR.
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) = safely("block break") {
         if (!eligible(event.player)) return@safely
         if (!shouldTrackProvenance(event.block.type.name)) {
@@ -69,7 +70,6 @@ class QuestProgressListener(
         }
         val position = event.block.position()
         val playerPlaced = provenance.wasPlayerPlaced(position)
-        provenance.remove(position)
         val data = event.block.blockData
         val action = if (data is Ageable && data.age >= data.maximumAge) QuestAction.HARVEST_CROPS else QuestAction.MINE_BLOCKS
         incrementFor(

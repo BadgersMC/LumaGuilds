@@ -325,6 +325,7 @@ class GuildProgressionMenu(
         ExperienceSource.CLAIM_DESTROYED -> "lg_claiming"
         ExperienceSource.WEEKLY_ACTIVITY -> "lg_reward"
         ExperienceSource.ADMIN_BONUS -> "lg_reward"
+        else -> "lg_reward"
     }
 
     private fun sourceToMaterial(source: ExperienceSource): Material = when (source) {
@@ -345,6 +346,7 @@ class GuildProgressionMenu(
         ExperienceSource.CLAIM_DESTROYED -> Material.GOLDEN_SHOVEL
         ExperienceSource.WEEKLY_ACTIVITY -> Material.NETHER_STAR
         ExperienceSource.ADMIN_BONUS -> Material.NETHER_STAR
+        else -> Material.PAPER
     }
 
     private fun sourceToDisplayName(source: ExperienceSource): Component = when (source) {
@@ -365,6 +367,7 @@ class GuildProgressionMenu(
         ExperienceSource.CLAIM_DESTROYED -> lang.gui("menu.guild_progression.source.names.claim_destroyed")
         ExperienceSource.WEEKLY_ACTIVITY -> lang.gui("menu.guild_progression.source.names.weekly_activity")
         ExperienceSource.ADMIN_BONUS -> lang.gui("menu.guild_progression.source.names.admin_bonus")
+        else -> Component.text(source.name.lowercase().replace('_', ' '))
     }
 
     private fun perkToDisplayName(perk: net.lumalyte.lg.domain.values.PerkType): Component = when (perk) {
