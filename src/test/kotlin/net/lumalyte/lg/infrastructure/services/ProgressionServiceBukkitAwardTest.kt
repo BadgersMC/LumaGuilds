@@ -12,12 +12,15 @@ import net.lumalyte.lg.application.services.PlaytimeActivityService
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.ExperienceAwardRequest
 import net.lumalyte.lg.domain.entities.ExperienceAwardResult
+import net.lumalyte.lg.domain.entities.ExperienceTransaction
 import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PeriodWindow
 import org.bukkit.plugin.Plugin
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class ProgressionServiceBukkitAwardTest {
@@ -93,6 +96,7 @@ class ProgressionServiceBukkitAwardTest {
         assertEquals(50_000, awards.requestedXp)
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `daily cap reads configured shared-pool source policy`() {
         val service = serviceWith(RecordingRepository())
@@ -100,10 +104,30 @@ class ProgressionServiceBukkitAwardTest {
         assertEquals(0, service.getDailyCap(ExperienceSource.WEEKLY_ACTIVITY))
     }
 
-    private fun serviceWith(awards: RecordingRepository): ProgressionServiceBukkit {
+    @Suppress("DEPRECATION")
+    @Test
+    fun `daily source facade reports only transactions from today`() {
+        val guildId = UUID.randomUUID()
+        val today = Instant.now()
+        val progressionRepository = mockk<ProgressionRepository>(relaxed = true)
+        io.mockk.every { progressionRepository.getExperienceTransactions(guildId, 1000) } returns listOf(
+            ExperienceTransaction(guildId = guildId, amount = 125, source = ExperienceSource.ENDER_DRAGON_KILL, timestamp = today),
+            ExperienceTransaction(guildId = guildId, amount = 500, source = ExperienceSource.ENDER_DRAGON_KILL, timestamp = today.minus(2, ChronoUnit.DAYS)),
+        )
+        val service = serviceWith(RecordingRepository(), progressionRepository)
+
+        val daily = service.getDailySourceXp(guildId)
+
+        assertEquals(125, daily[ExperienceSource.ENDER_DRAGON_KILL])
+    }
+
+    private fun serviceWith(
+        awards: RecordingRepository,
+        progressionRepository: ProgressionRepository = mockk(relaxed = true),
+    ): ProgressionServiceBukkit {
         val config = MainConfig()
         return ProgressionServiceBukkit(
-            progressionRepository = mockk<ProgressionRepository>(relaxed = true),
+            progressionRepository = progressionRepository,
             guildRepository = mockk<GuildRepository>(relaxed = true),
             memberRepository = mockk<MemberRepository>(relaxed = true),
             configService = object : ConfigService {

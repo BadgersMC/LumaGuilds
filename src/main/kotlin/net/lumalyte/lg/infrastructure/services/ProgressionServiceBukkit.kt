@@ -655,10 +655,17 @@ class ProgressionServiceBukkit(
 
     @Deprecated("Use getSourceUsage")
     override fun getDailySourceXp(guildId: UUID): Map<ExperienceSource, Int> {
-        val viewsByPool = getSourceUsage(guildId).associateBy { it.pool }
-        val policies = configService.loadConfig().progression.sourcePolicies
-        return ExperienceSource.entries.associateWith { source ->
-            viewsByPool[policies.getValue(source).pool]?.awardedXp ?: 0
+        return try {
+            val todayStart = Instant.now().truncatedTo(ChronoUnit.DAYS)
+            val totals = progressionRepository.getExperienceTransactions(guildId, 1000)
+                .asSequence()
+                .filter { it.timestamp >= todayStart }
+                .groupBy { it.source }
+                .mapValues { (_, transactions) -> transactions.sumOf { it.amount.coerceAtLeast(0) } }
+            ExperienceSource.entries.associateWith { totals[it] ?: 0 }
+        } catch (e: Exception) {
+            logger.error("Error calculating daily source XP for guild $guildId", e)
+            emptyMap()
         }
     }
 
