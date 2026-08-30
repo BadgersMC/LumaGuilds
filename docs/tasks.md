@@ -384,10 +384,10 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-055
   - Evidence:
   - Files: guild creation, deletion timestamps
-- [~] **LG-1208** Guild prestige redesign — bounded level-100 current-run reset, permanent perk/home choice, eligibility, and atomicity
+- [x] **LG-1208** Guild prestige redesign — bounded level-100 current-run reset, permanent perk/home choice, eligibility, and atomicity
   - Tag: `DOC`
   - References: REQ-049, REQ-050, REQ-051, REQ-054, REQ-056, REQ-093
-  - Evidence: replacement design drafted in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`; awaiting operator review
+  - Evidence: operator-approved replacement design in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`
   - Files: requirements + replacement design; runtime implementation remains disabled by default and follows in a later TDD task
 - [ ] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
   - Tag: `TDD`
