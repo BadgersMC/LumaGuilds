@@ -171,6 +171,69 @@ class GuildGoldRepositorySQL(
         }
     }
 
+    override fun rejectPrepared(transactionId: UUID, reason: GuildGoldRejection): Boolean =
+        storage.connection.connection.use { connection ->
+            connection.prepareStatement(
+                "UPDATE guild_gold_operations SET status = ?, rejection_reason = ? WHERE transaction_id = ? AND status = ?"
+            ).use { statement ->
+                statement.setString(1, GuildGoldOperationStatus.REJECTED.name)
+                statement.setString(2, reason.name)
+                statement.setString(3, transactionId.toString())
+                statement.setString(4, GuildGoldOperationStatus.PREPARED.name)
+                statement.executeUpdate() == 1
+            }
+        }
+
+    override fun compensateDebit(
+        originalTransactionId: UUID,
+        compensation: GuildGoldMutation,
+        capacity: Long,
+        periodStartEpochMs: Long,
+        details: String
+    ): GuildGoldResult = guildLock(compensation.guildId).withLock {
+        storage.connection.connection.use { connection ->
+            transaction(connection) {
+                val original = findOperation(connection, originalTransactionId, forUpdate = true)
+                    ?: return@transaction GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+                if (original.status == GuildGoldOperationStatus.COMPENSATED) {
+                    return@transaction findOperation(connection, compensation.transactionId, true)?.toFinalResult()
+                        ?: GuildGoldResult.Failed(originalTransactionId, true)
+                }
+                if (original.status != GuildGoldOperationStatus.APPLIED ||
+                    original.mutation.direction != GuildGoldDirection.DEBIT ||
+                    original.mutation.guildId != compensation.guildId
+                ) {
+                    return@transaction GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+                }
+                val existingCompensation = findOperation(connection, compensation.transactionId, true)
+                if (existingCompensation != null) {
+                    return@transaction existingCompensation.toFinalResult()
+                        ?: GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+                }
+                insertPrepared(connection, compensation)
+                val oldBalance = selectBalance(connection, compensation.guildId, forUpdate = true)
+                val restored = try {
+                    Math.addExact(oldBalance, compensation.amount)
+                } catch (_: ArithmeticException) {
+                    return@transaction GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
+                }
+                if (restored > capacity) {
+                    return@transaction GuildGoldResult.Rejected(GuildGoldRejection.CAPACITY_EXCEEDED)
+                }
+                upsertBalance(connection, compensation.guildId, restored)
+                subtractWithdrawalUsage(
+                    connection,
+                    compensation.guildId,
+                    periodStartEpochMs,
+                    original.mutation.amount
+                )
+                finishApplied(connection, compensation.transactionId, oldBalance, restored)
+                markCompensated(connection, originalTransactionId, details)
+                GuildGoldResult.Applied(compensation.transactionId, oldBalance, restored, 0)
+            }
+        }
+    }
+
     private fun createTables() {
         storage.connection.executeUpdate(
             """
@@ -341,6 +404,34 @@ class GuildGoldRepositorySQL(
             statement.setLong(2, periodStartEpochMs)
             statement.setLong(3, amount)
             statement.executeUpdate()
+        }
+    }
+
+    private fun subtractWithdrawalUsage(
+        connection: Connection,
+        guildId: UUID,
+        periodStartEpochMs: Long,
+        amount: Long
+    ) {
+        connection.prepareStatement(
+            "UPDATE guild_gold_withdrawal_usage SET amount = CASE WHEN amount > ? THEN amount - ? ELSE 0 END WHERE guild_id = ? AND period_start = ?"
+        ).use { statement ->
+            statement.setLong(1, amount)
+            statement.setLong(2, amount)
+            statement.setString(3, guildId.toString())
+            statement.setLong(4, periodStartEpochMs)
+            statement.executeUpdate()
+        }
+    }
+
+    private fun markCompensated(connection: Connection, transactionId: UUID, details: String) {
+        connection.prepareStatement(
+            "UPDATE guild_gold_operations SET status = ?, compensation_details = ? WHERE transaction_id = ?"
+        ).use { statement ->
+            statement.setString(1, GuildGoldOperationStatus.COMPENSATED.name)
+            statement.setString(2, details)
+            statement.setString(3, transactionId.toString())
+            check(statement.executeUpdate() == 1) { "Original debit was not marked compensated" }
         }
     }
 

@@ -15,5 +15,13 @@ interface GuildGoldRepository {
     fun prepare(mutation: GuildGoldMutation): GuildGoldPreparation
     fun findOperation(transactionId: UUID): GuildGoldOperationRecord?
     fun apply(mutation: GuildGoldMutation, capacity: Long, periodStartEpochMs: Long?): GuildGoldResult
+    fun rejectPrepared(transactionId: UUID, reason: net.lumalyte.lg.domain.gold.GuildGoldRejection): Boolean
+    fun compensateDebit(
+        originalTransactionId: UUID,
+        compensation: GuildGoldMutation,
+        capacity: Long,
+        periodStartEpochMs: Long,
+        details: String
+    ): GuildGoldResult
     fun recordCompensation(transactionId: UUID, succeeded: Boolean, details: String): Boolean
 }
