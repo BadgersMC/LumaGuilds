@@ -344,7 +344,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-12 — Backlog: progression & economy (operator, Fain)
 
-- [~] **LG-1201** Chapter 2 permanent progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
+- [~] **LG-1201** Chapter 2 current-run progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
   - Tag: `TDD`
   - References: REQ-049, REQ-089
   - Evidence: PR #138 Tasks 1–7; Tasks 8–9 guild-wide awards and authoritative source-usage read models; Task 10 routes the final war-kill bonus bypass through actor-aware `PLAYER_KILL` cap accounting
@@ -352,7 +352,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
   - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
   - Remaining: Task 10 final weekly-quest acceptance verification
-- [ ] **LG-1202** Comprehensive level 1–100 permanent reward tier list
+- [ ] **LG-1202** Comprehensive level 1–100 run reward tier list with permanent-state classification
   - Tag: `DOC`
   - References: REQ-050
   - Evidence:
@@ -373,6 +373,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-090, REQ-091
   - Evidence:
   - Files: chapter service/repository, scheduler, migration, backup adapter, commands, placeholders
+  - Notes: Chapter 1→2 migration archives standings, resets every guild to run level 1/0 XP, preserves canonical gold/vault/roster/relations, and converts actual saved-home count into permanent capacity; later chapter rollovers preserve run level/XP and reset seasonal state only
 - [ ] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`); permanent reward tiers grant capacity and seasonal Elo never revokes it
   - Tag: `TDD`
   - References: REQ-054
@@ -383,11 +384,17 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-055
   - Evidence:
   - Files: guild creation, deletion timestamps
-- [!] **LG-1208** Guild prestige redesign — superseded level-200 reset proposal requires a new design compatible with permanent level 100 + seasonal Elo
+- [~] **LG-1208** Guild prestige redesign — bounded level-100 current-run reset, permanent perk/home choice, eligibility, and atomicity
   - Tag: `DOC`
-  - References: REQ-056
-  - Evidence: blocked by approved Chapter 2 contract; old `docs/design/prestige.md` assumes permanent level 200 and a level reset, both forbidden by REQ-049/REQ-056
-  - Files: future replacement design only; no implementation under the superseded contract
+  - References: REQ-049, REQ-050, REQ-051, REQ-054, REQ-056, REQ-093
+  - Evidence: replacement design drafted in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`; awaiting operator review
+  - Files: requirements + replacement design; runtime implementation remains disabled by default and follows in a later TDD task
+- [ ] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
+  - Tag: `TDD`
+  - References: REQ-009, REQ-054, REQ-092, REQ-093
+  - Evidence:
+  - Files: guild-gold domain/application service, Vault Economy adapter, physical currency adapter, bank/vault menus and listeners, persistence/audit, config validation
+  - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 
