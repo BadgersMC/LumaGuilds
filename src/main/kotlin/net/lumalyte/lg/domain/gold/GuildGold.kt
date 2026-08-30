@@ -90,6 +90,7 @@ sealed interface GuildGoldResult {
 
 enum class GuildGoldOperationStatus {
     PREPARED,
+    BALANCE_APPLIED,
     APPLIED,
     REJECTED,
     COMPENSATED,

@@ -26,6 +26,7 @@ class GuildGoldService(
     private val capacityProvider: GuildGoldCapacityProvider,
     private val authorization: GuildGoldAuthorizationPort = GuildGoldAuthorizationPort.AllowAll,
     private val personalEconomy: PersonalEconomyPort = PersonalEconomyPort.Unavailable,
+    private val physicalGold: PhysicalGoldPort = PhysicalGoldPort.Unavailable,
     private val periodStartProvider: () -> Long = { 0L }
 ) {
     fun balance(guildId: UUID): Long = repository.getBalance(guildId)
@@ -151,12 +152,79 @@ class GuildGoldService(
         val fee = GuildGoldCalculator.withdrawalFee(policy, request.amount)
         val mutation = personalMutation(request, GuildGoldDirection.DEBIT, fee)
         existingResultOrPrepare(mutation)?.let { return it }
-        val applied = repository.apply(mutation, capacity(request.guildId), periodStart)
+        val applied = repository.applyExternalDebit(mutation, capacity(request.guildId), periodStart)
         if (applied !is GuildGoldResult.Applied) return applied
 
         return when (personalEconomy.credit(request.playerId, request.amount)) {
-            ExternalTransferResult.Applied -> applied
+            ExternalTransferResult.Applied -> {
+                repository.completeExternal(request.transactionId)
+                applied
+            }
             else -> compensatePersonalWithdrawal(request, mutation, applied, periodStart)
+        }
+    }
+
+    fun depositPhysical(request: PhysicalGoldRequest): GuildGoldResult {
+        if (!authorization.canDeposit(request.playerId, request.guildId)) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
+        }
+        val policy = policyProvider.policyFor(request.guildId)
+        validateCommon(request.guildId, request.amount)?.let { return it }
+        if (request.amount < policy.minDeposit || request.amount > policy.maxDeposit) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
+        }
+        suspicious(request.guildId, request.playerId, request.amount, request.description)?.let { return it }
+        if (wouldExceedCapacity(request.guildId, request.amount)) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.CAPACITY_EXCEEDED)
+        }
+        val fee = GuildGoldCalculator.depositFee(policy, request.amount)
+        val reservedValue = exactAdd(request.amount, fee)
+            ?: return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
+        val mutation = physicalMutation(request, GuildGoldDirection.CREDIT, fee)
+        existingResultOrPrepare(mutation)?.let { return it }
+        val reservation = when (val result = physicalGold.reserve(request.playerId, reservedValue)) {
+            is PhysicalReservationResult.Reserved -> result.reservation
+            PhysicalReservationResult.Unavailable -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+            PhysicalReservationResult.Insufficient -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_REJECTED)
+        }
+        return when (val applied = repository.apply(mutation, capacity(request.guildId), null)) {
+            is GuildGoldResult.Applied -> {
+                if (physicalGold.commit(reservation)) applied
+                else GuildGoldResult.Failed(request.transactionId, false)
+            }
+            else -> {
+                val restored = physicalGold.restore(reservation)
+                repository.recordCompensation(request.transactionId, restored, "physical deposit reservation restored")
+                GuildGoldResult.Failed(request.transactionId, restored)
+            }
+        }
+    }
+
+    fun withdrawPhysical(request: PhysicalGoldRequest): GuildGoldResult {
+        if (!authorization.canWithdraw(request.playerId, request.guildId)) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
+        }
+        validateCommon(request.guildId, request.amount)?.let { return it }
+        val policy = policyProvider.policyFor(request.guildId)
+        suspicious(request.guildId, request.playerId, request.amount, request.description)?.let { return it }
+        val periodStart = periodStartProvider()
+        val balance = balance(request.guildId)
+        if (request.amount > (balance.toDouble() * policy.withdrawalPercent).toLong()) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.WITHDRAWAL_PERCENT)
+        }
+        if (request.amount > (policy.dailyWithdrawalLimit - repository.getDailyWithdrawn(request.guildId, periodStart)).coerceAtLeast(0)) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.DAILY_LIMIT)
+        }
+        val mutation = physicalMutation(request, GuildGoldDirection.DEBIT, GuildGoldCalculator.withdrawalFee(policy, request.amount))
+        existingResultOrPrepare(mutation)?.let { return it }
+        val applied = repository.applyExternalDebit(mutation, capacity(request.guildId), periodStart)
+        if (applied !is GuildGoldResult.Applied) return applied
+        return when (physicalGold.deliver(request.playerId, request.amount, request.transactionId)) {
+            ExternalTransferResult.Applied -> {
+                repository.completeExternal(request.transactionId)
+                applied
+            }
+            else -> compensatePhysicalWithdrawal(request, mutation, periodStart)
         }
     }
 
@@ -209,6 +277,37 @@ class GuildGoldService(
         description = request.description
     )
 
+    private fun physicalMutation(request: PhysicalGoldRequest, direction: GuildGoldDirection, fee: Long) =
+        GuildGoldMutation(
+            request.transactionId,
+            request.guildId,
+            request.playerId,
+            GuildGoldRoute.PHYSICAL_ITEM,
+            direction,
+            request.amount,
+            fee,
+            request.description
+        )
+
+    private fun compensatePhysicalWithdrawal(
+        request: PhysicalGoldRequest,
+        mutation: GuildGoldMutation,
+        periodStart: Long
+    ): GuildGoldResult {
+        val total = exactAdd(mutation.amount, mutation.fee)
+            ?: return GuildGoldResult.Failed(request.transactionId, false)
+        val compensation = GuildGoldMutation(
+            compensationId(request.transactionId), request.guildId, request.playerId,
+            GuildGoldRoute.SYSTEM, GuildGoldDirection.CREDIT, total, 0,
+            "Compensate failed physical withdrawal ${request.transactionId}"
+        )
+        val result = repository.compensateDebit(
+            request.transactionId, compensation, capacity(request.guildId), periodStart,
+            "physical withdrawal delivery failed"
+        )
+        return GuildGoldResult.Failed(request.transactionId, result is GuildGoldResult.Applied)
+    }
+
     private fun existingResultOrPrepare(mutation: GuildGoldMutation): GuildGoldResult? =
         when (val preparation = repository.prepare(mutation)) {
             is net.lumalyte.lg.domain.gold.GuildGoldPreparation.New -> null
@@ -233,6 +332,8 @@ class GuildGoldService(
             net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.FAILED_COMPENSATION ->
                 GuildGoldResult.Failed(mutation.transactionId, false)
             net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.PREPARED ->
+                GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+            net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.BALANCE_APPLIED ->
                 GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
         }
 

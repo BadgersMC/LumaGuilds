@@ -119,6 +119,19 @@ class GuildGoldRepositorySQL(
         mutation: GuildGoldMutation,
         capacity: Long,
         periodStartEpochMs: Long?
+    ): GuildGoldResult = applyWithStatus(mutation, capacity, periodStartEpochMs, GuildGoldOperationStatus.APPLIED)
+
+    override fun applyExternalDebit(
+        mutation: GuildGoldMutation,
+        capacity: Long,
+        periodStartEpochMs: Long
+    ): GuildGoldResult = applyWithStatus(mutation, capacity, periodStartEpochMs, GuildGoldOperationStatus.BALANCE_APPLIED)
+
+    private fun applyWithStatus(
+        mutation: GuildGoldMutation,
+        capacity: Long,
+        periodStartEpochMs: Long?,
+        finalStatus: GuildGoldOperationStatus
     ): GuildGoldResult = guildLock(mutation.guildId).withLock {
         storage.connection.connection.use { connection ->
             transaction(connection) {
@@ -141,7 +154,7 @@ class GuildGoldRepositorySQL(
                 if (mutation.direction == GuildGoldDirection.DEBIT && periodStartEpochMs != null) {
                     addWithdrawalUsage(connection, mutation.guildId, periodStartEpochMs, mutation.amount)
                 }
-                finishApplied(connection, mutation.transactionId, oldBalance, newBalance.value)
+                finishApplied(connection, mutation.transactionId, oldBalance, newBalance.value, finalStatus)
                 GuildGoldResult.Applied(
                     transactionId = mutation.transactionId,
                     oldBalance = oldBalance,
@@ -151,6 +164,18 @@ class GuildGoldRepositorySQL(
             }
         }
     }
+
+    override fun completeExternal(transactionId: UUID): Boolean =
+        storage.connection.connection.use { connection ->
+            connection.prepareStatement(
+                "UPDATE guild_gold_operations SET status = ? WHERE transaction_id = ? AND status = ?"
+            ).use { statement ->
+                statement.setString(1, GuildGoldOperationStatus.APPLIED.name)
+                statement.setString(2, transactionId.toString())
+                statement.setString(3, GuildGoldOperationStatus.BALANCE_APPLIED.name)
+                statement.executeUpdate() == 1
+            }
+        }
 
     override fun recordCompensation(
         transactionId: UUID,
@@ -199,7 +224,7 @@ class GuildGoldRepositorySQL(
                     return@transaction findOperation(connection, compensation.transactionId, true)?.toFinalResult()
                         ?: GuildGoldResult.Failed(originalTransactionId, true)
                 }
-                if (original.status != GuildGoldOperationStatus.APPLIED ||
+                if (original.status !in setOf(GuildGoldOperationStatus.APPLIED, GuildGoldOperationStatus.BALANCE_APPLIED) ||
                     original.mutation.direction != GuildGoldDirection.DEBIT ||
                     original.mutation.guildId != compensation.guildId
                 ) {
@@ -314,6 +339,7 @@ class GuildGoldRepositorySQL(
         GuildGoldOperationStatus.REJECTED -> GuildGoldResult.Rejected(requireNotNull(rejection))
         GuildGoldOperationStatus.COMPENSATED -> GuildGoldResult.Failed(mutation.transactionId, true)
         GuildGoldOperationStatus.FAILED_COMPENSATION -> GuildGoldResult.Failed(mutation.transactionId, false)
+        GuildGoldOperationStatus.BALANCE_APPLIED -> null
         GuildGoldOperationStatus.PREPARED -> null
     }
 
@@ -343,12 +369,13 @@ class GuildGoldRepositorySQL(
         connection: Connection,
         transactionId: UUID,
         oldBalance: Long,
-        newBalance: Long
+        newBalance: Long,
+        status: GuildGoldOperationStatus = GuildGoldOperationStatus.APPLIED
     ) {
         connection.prepareStatement(
             "UPDATE guild_gold_operations SET status = ?, old_balance = ?, new_balance = ? WHERE transaction_id = ?"
         ).use { statement ->
-            statement.setString(1, GuildGoldOperationStatus.APPLIED.name)
+            statement.setString(1, status.name)
             statement.setLong(2, oldBalance)
             statement.setLong(3, newBalance)
             statement.setString(4, transactionId.toString())
