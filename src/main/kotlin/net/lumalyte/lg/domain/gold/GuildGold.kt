@@ -99,7 +99,8 @@ data class GuildGoldOperationRecord(
     val mutation: GuildGoldMutation,
     val status: GuildGoldOperationStatus,
     val oldBalance: Long?,
-    val newBalance: Long?
+    val newBalance: Long?,
+    val rejection: GuildGoldRejection? = null
 )
 
 sealed interface GuildGoldPreparation {
