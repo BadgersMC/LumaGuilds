@@ -3062,6 +3062,7 @@ menu:
       insufficient_gold: '<red>You don''t have enough gold! You have <balance>, but need <amount>.'
       insufficient_vault_gold: '<red>Guild vault has insufficient gold! Balance: <balance>, requested: <amount>.'
       vault_withdraw_failed: '<red>Failed to withdraw from guild vault!'
+      withdraw_no_amount: '<red>Nothing to withdraw — the vault balance may have changed since opening the menu. Reopen and try again.'
       deposit_overlay: 'Deposit successful!'
       withdraw_overlay: 'Withdrawal successful!'
     history:
