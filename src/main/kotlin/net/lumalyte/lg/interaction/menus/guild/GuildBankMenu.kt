@@ -400,8 +400,8 @@ class GuildBankMenu(
                 // Get player's current balance from Vault economy
                 bankService.getPlayerBalance(player.uniqueId).toInt()
             } else {
-                // For withdraw all, use guild balance
-                currentBalance.toInt()
+                // For withdraw all, use CURRENT real balance, not stale cache
+                vaultInventoryManager.getGoldBalance(guild.id).toInt()
             }
         } else {
             amount
@@ -541,6 +541,14 @@ class GuildBankMenu(
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.WITHDRAW_FROM_BANK)) {
             val message = lang.gui("menu.bank.feedback.withdraw_permission_denied")
             player.sendMessage(lang.msg("menu.bank.feedback.withdraw_permission_denied"))
+            showErrorFeedback(message)
+            return false
+        }
+
+        // Guard against zero/negative amount (avoids voiding gold via stale cached balance)
+        if (amount <= 0) {
+            val message = lang.gui("menu.bank.feedback.withdraw_no_amount")
+            player.sendMessage(lang.msg("menu.bank.feedback.withdraw_no_amount"))
             showErrorFeedback(message)
             return false
         }
