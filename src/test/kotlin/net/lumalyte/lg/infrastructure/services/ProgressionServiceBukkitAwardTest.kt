@@ -82,16 +82,16 @@ class ProgressionServiceBukkitAwardTest {
     }
 
     @Test
-    fun `system quest award is forced outside source caps`() {
+    fun `weekly quest sink forces reward outside source caps`() {
         val awards = RecordingRepository()
         val service = serviceWith(awards)
 
-        service.awardUncappedSystemExperience(
+        QuestRewardSinkBukkit(service).awardExperience(
             UUID.randomUUID(),
             50_000,
-            ExperienceSource.WEEKLY_ACTIVITY,
         )
 
+        assertEquals(ExperienceSource.WEEKLY_ACTIVITY, awards.request?.source)
         assertEquals(false, awards.policy?.isCapped)
         assertEquals(50_000, awards.requestedXp)
     }

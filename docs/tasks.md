@@ -344,14 +344,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-12 — Backlog: progression & economy (operator, Fain)
 
-- [~] **LG-1201** Chapter 2 permanent progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
+- [x] **LG-1201** Chapter 2 permanent progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
   - Tag: `TDD`
   - References: REQ-049, REQ-089
-  - Evidence: PR #138 Tasks 1–7; Tasks 8–9 guild-wide awards and authoritative source-usage read models; Task 10 routes the final war-kill bonus bypass through actor-aware `PLAYER_KILL` cap accounting
+  - Evidence: PR #138 Tasks 1–7; Tasks 8–9 guild-wide awards and authoritative source-usage read models; Task 10 routes the final war-kill bonus bypass through actor-aware `PLAYER_KILL` cap accounting and verifies the quest sink, claim/full-set idempotency, unlimited SQL award path, rejection-before-cap behavior, and repository payout markers
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
   - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
   - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
-  - Remaining: Task 10 final weekly-quest acceptance verification
 - [ ] **LG-1202** Comprehensive level 1–100 permanent reward tier list
   - Tag: `DOC`
   - References: REQ-050
@@ -492,7 +491,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-16 — Weekly Guild Quests (Chapter 2)
 
-> Part of the Chapter 2 progression overhaul. Builds on the existing XP infrastructure (PR-12/LG-1201) which is already implemented. Quest rewards use `ProgressionService.awardExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)` — this port has NO daily cap check (verified: `awardExperience` only adds XP + records a transaction; caps are display-only in `GuildProgressionMenu.kt`; `getDailyCap(WEEKLY_ACTIVITY)` returns 0/uncapped).
+> Part of the Chapter 2 progression overhaul. Builds on the XP infrastructure in PR-12/LG-1201. Every quest, full-set bonus, and leaderboard Guild EXP payout passes through `QuestRewardSinkBukkit` to `ProgressionService.awardUncappedSystemExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)`. The permanent award repository records progression and audit rows atomically without creating or consuming a source-cap usage row.
 >
 > **Claims-disabled constraint (EnthusiaSMP):** No claim-related quest actions (`CLAIM_CREATED`, `CLAIM_DESTROYED`) are included in the `QuestAction` enum. The progress listener gates claims-adjacent handlers on `claims_enabled`. See REQ-075.
 >
@@ -530,7 +529,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence: `QuestServiceTest` and coordinator integration cover shared weekly rotation, deactivation, guild aggregation, completion, payout-before-cleanup, and retry-safe recipient state.
   - Files: `application/services/QuestService.kt`
 
-- [x] **LG-1606** Quest reward delivery: claim flow awarding Guild EXP via `ProgressionService.awardExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)` + optional item rewards (drop or inventory); claim-once-per-week-per-guild enforcement
+- [x] **LG-1606** Quest reward delivery: claim flow awarding Guild EXP via the uncapped `WEEKLY_ACTIVITY` system pipeline + optional item rewards (drop or inventory); claim-once-per-week-per-guild enforcement
   - Tag: `TDD`
   - References: REQ-077, REQ-078
   - Evidence: Claim-once persistence, claim-gated full-set bonus, weekly activity XP, namespaced item reward round-trip, stack splitting, and inventory overflow drops are implemented and tested.
