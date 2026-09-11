@@ -6,44 +6,65 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class GuildBankWithdrawalTest {
+/** Regression coverage for live withdrawal amounts and validation before transfer. */
+internal class GuildBankWithdrawalTest {
+    /** Withdraw All observes deposits and withdrawals made after the menu action is created. */
     @Test
-    fun `withdraw all uses deposits made after the action was created`() {
+    fun readsLiveBalance() {
         var balance = 0L
         val withdrawal = GuildBankWithdrawal { balance }
-        balance = 1_000L
-        assertEquals(1_000, withdrawal.resolveAmount(-1))
-        balance = 250L
-        assertEquals(250, withdrawal.resolveAmount(-1))
+        balance = DEPOSITED_BALANCE.toLong()
+        assertEquals(DEPOSITED_BALANCE, withdrawal.resolveAmount(-1))
+        balance = REMAINING_BALANCE.toLong()
+        assertEquals(REMAINING_BALANCE, withdrawal.resolveAmount(-1))
     }
 
+    /** Fixed amounts bypass the balance lookup and retain the selected quantity. */
     @Test
-    fun `fixed withdrawal amounts do not become withdraw all`() {
+    fun preservesFixedAmounts() {
         val withdrawal = GuildBankWithdrawal { error("Fixed amount must not read balance") }
-        listOf(100, 1_000, 10_000).forEach { assertEquals(it, withdrawal.resolveAmount(it)) }
+        listOf(SMALL_WITHDRAWAL, DEPOSITED_BALANCE, LARGE_WITHDRAWAL).forEach {
+            assertEquals(it, withdrawal.resolveAmount(it))
+        }
     }
 
+    /** Empty and negative requests reject before invoking the transfer callback. */
     @Test
-    fun `empty vault and negative amounts never execute a transfer`() {
+    fun rejectsNonpositiveAmounts() {
         val withdrawal = GuildBankWithdrawal { 0L }
         var rejections = 0
-        listOf(withdrawal.resolveAmount(-1), -5).forEach { amount ->
-            assertFalse(withdrawal.execute(amount,
-                onEmpty = { rejections++ },
-                transfer = { error("Rejected amount must not debit gold or deliver items") }))
+        listOf(withdrawal.resolveAmount(-1), NEGATIVE_WITHDRAWAL).forEach { amount ->
+            assertFalse(
+                withdrawal.execute(
+                    amount,
+                    onEmpty = { rejections++ },
+                    transfer = { error("Rejected amount must not debit gold or deliver items") },
+                ),
+            )
         }
         assertEquals(2, rejections)
     }
 
+    /** Valid requests invoke one transfer and propagate success or failure. */
     @Test
-    fun `positive amount reaches transfer exactly once and preserves its result`() {
-        val withdrawal = GuildBankWithdrawal { 1_000L }
+    fun propagatesTransferResult() {
+        val withdrawal = GuildBankWithdrawal { DEPOSITED_BALANCE.toLong() }
         val transfers = mutableListOf<Int>()
-        assertTrue(withdrawal.execute(100, { error("Unexpected rejection") }) {
-            transfers += it
-            true
-        })
-        assertEquals(listOf(100), transfers)
-        assertFalse(withdrawal.execute(100, { error("Unexpected rejection") }) { false })
+        assertTrue(
+            withdrawal.execute(SMALL_WITHDRAWAL, { error("Unexpected rejection") }) {
+                transfers += it
+                true
+            },
+        )
+        assertEquals(listOf(SMALL_WITHDRAWAL), transfers)
+        assertFalse(withdrawal.execute(SMALL_WITHDRAWAL, { error("Unexpected rejection") }) { false })
+    }
+
+    private companion object {
+        const val DEPOSITED_BALANCE = 1_000
+        const val REMAINING_BALANCE = 250
+        const val SMALL_WITHDRAWAL = 100
+        const val LARGE_WITHDRAWAL = 10_000
+        const val NEGATIVE_WITHDRAWAL = -5
     }
 }
