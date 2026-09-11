@@ -395,14 +395,10 @@ class GuildBankMenu(
         // Play button click sound
         player.playSound(player.location, BUTTON_CLICK_SOUND, 1.0f, 1.0f)
 
-        val actualAmount: Int = if (amount == -1) {
-            if (isDeposit) {
-                // Get player's current balance from Vault economy
-                bankService.getPlayerBalance(player.uniqueId).toInt()
-            } else {
-                // For withdraw all, use CURRENT real balance, not stale cache
-                vaultInventoryManager.getGoldBalance(guild.id).toInt()
-            }
+        val actualAmount: Int = if (!isDeposit) {
+            withdrawalAction.resolveAmount(amount)
+        } else if (amount == -1) {
+            bankService.getPlayerBalance(player.uniqueId).toInt()
         } else {
             amount
         }
@@ -536,6 +532,10 @@ class GuildBankMenu(
     /**
      * Handle withdrawal operation with physical gold items
      */
+    private val withdrawalAction = GuildBankWithdrawal {
+        vaultInventoryManager.getGoldBalance(guild.id)
+    }
+
     private fun handleWithdrawal(amount: Int): Boolean {
         // Check WITHDRAW_FROM_BANK permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.WITHDRAW_FROM_BANK)) {
@@ -545,14 +545,14 @@ class GuildBankMenu(
             return false
         }
 
-        // Guard against zero/negative amount (avoids voiding gold via stale cached balance)
-        if (amount <= 0) {
+        return withdrawalAction.execute(amount, onEmpty = {
             val message = lang.gui("menu.bank.feedback.withdraw_no_amount")
             player.sendMessage(lang.msg("menu.bank.feedback.withdraw_no_amount"))
             showErrorFeedback(message)
-            return false
-        }
+        }, transfer = ::performWithdrawal)
+    }
 
+    private fun performWithdrawal(amount: Int): Boolean {
         return try {
             // Get vault inventory manager
             val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager by inject()
