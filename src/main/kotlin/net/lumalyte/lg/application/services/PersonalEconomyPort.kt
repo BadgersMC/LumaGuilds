@@ -19,7 +19,9 @@ interface PersonalEconomyPort {
 sealed interface ExternalTransferResult {
     data object Applied : ExternalTransferResult
     data object Unavailable : ExternalTransferResult
+    /** Confirmed no transfer occurred; a prior guild debit can be compensated. */
     data class Rejected(val reason: String) : ExternalTransferResult
+    /** Outcome is unknown. Never issue a speculative compensation or replay. */
     data class Failed(val reason: String) : ExternalTransferResult
 }
 

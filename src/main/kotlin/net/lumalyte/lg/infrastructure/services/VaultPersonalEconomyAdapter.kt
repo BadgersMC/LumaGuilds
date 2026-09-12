@@ -14,20 +14,38 @@ class VaultPersonalEconomyAdapter(
     override fun isAvailable(): Boolean = economyProvider() != null
 
     override fun balance(playerId: UUID): Long? {
-        val economy = economyProvider() ?: return null
-        return exactLong(economy.getBalance(playerLookup(playerId)))
+        return runCatching {
+            val economy = economyProvider() ?: return null
+            exactLong(economy.getBalance(playerLookup(playerId)))
+        }.getOrNull()
     }
 
     override fun debit(playerId: UUID, amount: Long): ExternalTransferResult {
-        val economy = economyProvider() ?: return ExternalTransferResult.Unavailable
-        val vaultAmount = exactDouble(amount) ?: return inexactAmount()
-        return economy.withdrawPlayer(playerLookup(playerId), vaultAmount).toTransferResult()
+        return transfer(playerId, amount) { economy, player, value -> economy.withdrawPlayer(player, value) }
     }
 
     override fun credit(playerId: UUID, amount: Long): ExternalTransferResult {
-        val economy = economyProvider() ?: return ExternalTransferResult.Unavailable
+        return transfer(playerId, amount) { economy, player, value -> economy.depositPlayer(player, value) }
+    }
+
+    private fun transfer(
+        playerId: UUID,
+        amount: Long,
+        action: (Economy, OfflinePlayer, Double) -> EconomyResponse,
+    ): ExternalTransferResult {
+        val economy = runCatching { economyProvider() }.getOrNull() ?: return ExternalTransferResult.Unavailable
         val vaultAmount = exactDouble(amount) ?: return inexactAmount()
-        return economy.depositPlayer(playerLookup(playerId), vaultAmount).toTransferResult()
+        val player = runCatching { playerLookup(playerId) }.getOrNull()
+            ?: return ExternalTransferResult.Rejected("Player lookup failed before transfer")
+        val before = runCatching { exactLong(economy.getBalance(player)) }.getOrNull()
+            ?: return ExternalTransferResult.Rejected("Balance unavailable before transfer")
+        return try {
+            action(economy, player, vaultAmount).toTransferResult()
+        } catch (error: Exception) {
+            val after = runCatching { exactLong(economy.getBalance(player)) }.getOrNull()
+            if (after == before) ExternalTransferResult.Rejected("Provider threw without balance change: ${error.message}")
+            else ExternalTransferResult.Failed("Uncertain provider outcome: ${error.message}")
+        }
     }
 
     private fun EconomyResponse.toTransferResult(): ExternalTransferResult =

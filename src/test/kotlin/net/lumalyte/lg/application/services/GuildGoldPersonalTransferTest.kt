@@ -125,6 +125,53 @@ class GuildGoldPersonalTransferTest {
     }
 
     @Test
+    fun `uncertain payout never refunds or allows a fresh transaction after restart`() {
+        val service = service(sqlRepository)
+        service.creditSystem(UUID.randomUUID(), guildId, playerId, 500, GuildGoldRoute.SYSTEM, "Seed")
+        economy.currentBalance = 0
+        economy.creditThenFail = true
+        val first = request(amount = 100)
+
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPersonal(first))
+        assertEquals(398, service.balance(guildId))
+        assertEquals(100, economy.currentBalance)
+        storage.connection.close(5, TimeUnit.SECONDS)
+        storage = VirtualThreadSQLiteStorage(tempDir.toFile())
+        sqlRepository = GuildGoldRepositorySQL(storage)
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false),
+            service(sqlRepository).withdrawPersonal(request(amount = 100)))
+        assertEquals(398, sqlRepository.getBalance(guildId))
+        assertEquals(100, economy.currentBalance)
+    }
+
+    @Test
+    fun `uncertain personal deposit stays pending without repeat debit`() {
+        val service = service(sqlRepository)
+        economy.debitThenFail = true
+        val first = request(amount = 100)
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.depositPersonal(first))
+        assertEquals(899, economy.currentBalance)
+        assertEquals(0, service.balance(guildId))
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.depositPersonal(request(amount = 100)))
+        assertEquals(899, economy.currentBalance)
+    }
+
+    @Test
+    fun `completion write failure does not report success or pay twice`() {
+        val repository = object : GuildGoldRepository by sqlRepository {
+            override fun completeExternal(transactionId: UUID) = false
+        }
+        val service = service(repository)
+        service.creditSystem(UUID.randomUUID(), guildId, playerId, 500, GuildGoldRoute.SYSTEM, "Seed")
+        economy.currentBalance = 0
+        val first = request(amount = 100)
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPersonal(first))
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPersonal(request(amount = 100)))
+        assertEquals(100, economy.currentBalance)
+        assertEquals(398, service.balance(guildId))
+    }
+
+    @Test
     fun `withdrawal above remaining daily allowance is rejected before payout`() {
         val service = service(sqlRepository)
         service.creditSystem(UUID.randomUUID(), guildId, playerId, 80_000, GuildGoldRoute.SYSTEM, "Seed")
@@ -186,6 +233,8 @@ class GuildGoldPersonalTransferTest {
     ) : PersonalEconomyPort {
         var currentBalance = startingBalance
         var failCredits = false
+        var creditThenFail = false
+        var debitThenFail = false
 
         override fun isAvailable() = available
         override fun balance(playerId: UUID): Long? = if (available) currentBalance else null
@@ -193,13 +242,15 @@ class GuildGoldPersonalTransferTest {
             if (!available) return ExternalTransferResult.Unavailable
             if (currentBalance < amount) return ExternalTransferResult.Rejected("insufficient")
             currentBalance -= amount
+            if (debitThenFail) return ExternalTransferResult.Failed("unknown outcome after debit")
             return ExternalTransferResult.Applied
         }
 
         override fun credit(playerId: UUID, amount: Long): ExternalTransferResult {
             if (!available) return ExternalTransferResult.Unavailable
-            if (failCredits) return ExternalTransferResult.Failed("payout failed")
+            if (failCredits) return ExternalTransferResult.Rejected("payout rejected without credit")
             currentBalance += amount
+            if (creditThenFail) return ExternalTransferResult.Failed("unknown outcome after credit")
             return ExternalTransferResult.Applied
         }
     }

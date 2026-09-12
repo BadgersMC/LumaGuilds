@@ -120,8 +120,8 @@ class GuildGoldService(
                 request.transactionId,
                 GuildGoldRejection.EXTERNAL_UNAVAILABLE
             )
-            is ExternalTransferResult.Rejected,
-            is ExternalTransferResult.Failed -> rejectPrepared(
+            is ExternalTransferResult.Failed -> GuildGoldResult.Failed(request.transactionId, false)
+            is ExternalTransferResult.Rejected -> rejectPrepared(
                 request.transactionId,
                 GuildGoldRejection.EXTERNAL_REJECTED
             )
@@ -151,15 +151,19 @@ class GuildGoldService(
         }
         val fee = GuildGoldCalculator.withdrawalFee(policy, request.amount)
         val mutation = personalMutation(request, GuildGoldDirection.DEBIT, fee)
+        if (runCatching { personalEconomy.balance(request.playerId) }.getOrNull() == null) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+        }
         existingResultOrPrepare(mutation)?.let { return it }
         val applied = repository.applyExternalDebit(mutation, capacity(request.guildId), periodStart)
         if (applied !is GuildGoldResult.Applied) return applied
 
-        return when (personalEconomy.credit(request.playerId, request.amount)) {
+        return when (runCatching { personalEconomy.credit(request.playerId, request.amount) }
+            .getOrElse { ExternalTransferResult.Failed("Provider threw during payout") }) {
             ExternalTransferResult.Applied -> {
-                repository.completeExternal(request.transactionId)
-                applied
+                completeExternal(request.transactionId, applied)
             }
+            is ExternalTransferResult.Failed -> GuildGoldResult.Failed(request.transactionId, false)
             else -> compensatePersonalWithdrawal(request, mutation, applied, periodStart)
         }
     }
@@ -221,9 +225,9 @@ class GuildGoldService(
         if (applied !is GuildGoldResult.Applied) return applied
         return when (physicalGold.deliver(request.playerId, request.amount, request.transactionId)) {
             ExternalTransferResult.Applied -> {
-                repository.completeExternal(request.transactionId)
-                applied
+                completeExternal(request.transactionId, applied)
             }
+            is ExternalTransferResult.Failed -> GuildGoldResult.Failed(request.transactionId, false)
             else -> compensatePhysicalWithdrawal(request, mutation, periodStart)
         }
     }
@@ -310,6 +314,8 @@ class GuildGoldService(
 
     private fun existingResultOrPrepare(mutation: GuildGoldMutation): GuildGoldResult? =
         when (val preparation = repository.prepare(mutation)) {
+            is net.lumalyte.lg.domain.gold.GuildGoldPreparation.Pending ->
+                GuildGoldResult.Failed(preparation.transactionId, false)
             is net.lumalyte.lg.domain.gold.GuildGoldPreparation.New -> null
             net.lumalyte.lg.domain.gold.GuildGoldPreparation.FingerprintMismatch ->
                 GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
@@ -332,10 +338,14 @@ class GuildGoldService(
             net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.FAILED_COMPENSATION ->
                 GuildGoldResult.Failed(mutation.transactionId, false)
             net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.PREPARED ->
-                GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+                GuildGoldResult.Failed(mutation.transactionId, false)
             net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.BALANCE_APPLIED ->
-                GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+                GuildGoldResult.Failed(mutation.transactionId, false)
         }
+
+    private fun completeExternal(transactionId: UUID, applied: GuildGoldResult.Applied): GuildGoldResult =
+        if (runCatching { repository.completeExternal(transactionId) }.getOrDefault(false)) applied
+        else GuildGoldResult.Failed(transactionId, false)
 
     private fun rejectPrepared(transactionId: UUID, reason: GuildGoldRejection): GuildGoldResult {
         repository.rejectPrepared(transactionId, reason)

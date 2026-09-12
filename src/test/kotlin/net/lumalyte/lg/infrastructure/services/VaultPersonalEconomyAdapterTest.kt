@@ -46,6 +46,7 @@ class VaultPersonalEconomyAdapterTest {
     @Test
     fun `successful Vault debit maps to applied`() {
         val economy = mockk<Economy>()
+        every { economy.getBalance(player) } returns 100.0
         every { economy.withdrawPlayer(player, 25.0) } returns EconomyResponse(
             25.0,
             75.0,
@@ -60,6 +61,7 @@ class VaultPersonalEconomyAdapterTest {
     @Test
     fun `failed Vault credit preserves provider error`() {
         val economy = mockk<Economy>()
+        every { economy.getBalance(player) } returns 0.0
         every { economy.depositPlayer(player, 25.0) } returns EconomyResponse(
             0.0,
             0.0,
@@ -72,6 +74,33 @@ class VaultPersonalEconomyAdapterTest {
             ExternalTransferResult.Rejected("account locked"),
             adapter.credit(playerId, 25)
         )
+    }
+
+    @Test
+    fun `payout exception with changed balance is ambiguous`() {
+        val economy = mockk<Economy>()
+        every { economy.getBalance(player) } returnsMany listOf(0.0, 25.0)
+        every { economy.depositPlayer(player, 25.0) } throws IllegalStateException("after credit")
+        val result = VaultPersonalEconomyAdapter({ economy }, { player }).credit(playerId, 25)
+        org.junit.jupiter.api.Assertions.assertTrue(result is ExternalTransferResult.Failed)
+    }
+
+    @Test
+    fun `payout exception with unchanged balance is definitive rejection`() {
+        val economy = mockk<Economy>()
+        every { economy.getBalance(player) } returns 0.0
+        every { economy.depositPlayer(player, 25.0) } throws IllegalStateException("before credit")
+        val result = VaultPersonalEconomyAdapter({ economy }, { player }).credit(playerId, 25)
+        org.junit.jupiter.api.Assertions.assertTrue(result is ExternalTransferResult.Rejected)
+    }
+
+    @Test
+    fun `balance lookup exception prevents payout`() {
+        val economy = mockk<Economy>()
+        every { economy.getBalance(player) } throws UnsupportedOperationException("balance unavailable")
+        val result = VaultPersonalEconomyAdapter({ economy }, { player }).credit(playerId, 25)
+        org.junit.jupiter.api.Assertions.assertTrue(result is ExternalTransferResult.Rejected)
+        io.mockk.verify(exactly = 0) { economy.depositPlayer(player, any<Double>()) }
     }
 
     @Test

@@ -138,7 +138,7 @@ class GuildGoldPhysicalTransferTest {
 
         val result = service.withdrawPhysical(request(transactionId, 100))
 
-        assertEquals(GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING), result)
+        assertEquals(GuildGoldResult.Failed(transactionId, false), result)
         assertTrue(physical.deliveredValues.isEmpty())
         assertEquals(398, service.balance(guildId))
     }
@@ -154,6 +154,19 @@ class GuildGoldPhysicalTransferTest {
         assertTrue(result is GuildGoldResult.Failed && result.compensationSucceeded)
         assertEquals(500, service.balance(guildId))
         assertEquals(0, sqlRepository.getDailyWithdrawn(guildId, periodStart))
+    }
+
+    @Test
+    fun `uncertain physical delivery preserves debit and blocks another delivery`() {
+        val service = service(sqlRepository)
+        service.creditSystem(UUID.randomUUID(), guildId, playerId, 500, GuildGoldRoute.SYSTEM, "Seed")
+        physical.deliverThenFail = true
+        val first = request(amount = 100)
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPhysical(first))
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPhysical(request(amount = 100)))
+        assertEquals(listOf(100L), physical.deliveredValues)
+        assertEquals(398, service.balance(guildId))
+        assertEquals(100, sqlRepository.getDailyWithdrawn(guildId, periodStart))
     }
 
     private fun service(
@@ -195,6 +208,7 @@ class GuildGoldPhysicalTransferTest {
         var commitCount = 0
         var restoreCount = 0
         var failDelivery = false
+        var deliverThenFail = false
 
         override fun reserve(
             playerId: UUID,
@@ -224,8 +238,9 @@ class GuildGoldPhysicalTransferTest {
             value: Long,
             transactionId: UUID
         ): ExternalTransferResult {
-            if (failDelivery) return ExternalTransferResult.Failed("inventory unavailable")
+            if (failDelivery) return ExternalTransferResult.Rejected("inventory unavailable before delivery")
             deliveredValues += value
+            if (deliverThenFail) return ExternalTransferResult.Failed("partial delivery outcome unknown")
             return ExternalTransferResult.Applied
         }
     }

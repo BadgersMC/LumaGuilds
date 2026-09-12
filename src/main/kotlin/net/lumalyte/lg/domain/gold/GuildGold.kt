@@ -108,6 +108,7 @@ data class GuildGoldOperationRecord(
 sealed interface GuildGoldPreparation {
     data class New(val record: GuildGoldOperationRecord) : GuildGoldPreparation
     data class Existing(val record: GuildGoldOperationRecord) : GuildGoldPreparation
+    data class Pending(val transactionId: UUID) : GuildGoldPreparation
     data object FingerprintMismatch : GuildGoldPreparation
 }
 

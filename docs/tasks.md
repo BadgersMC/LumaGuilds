@@ -395,6 +395,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence:
   - Files: guild-gold domain/application service, Vault Economy adapter, physical currency adapter, bank/vault menus and listeners, persistence/audit, config validation
   - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only
+  - Current: Task 6 resumed after merging PRs #141/#142. Canonical payout safety prerequisite covered: uncertain outcomes never refund/replay, completion writes are checked, and pending transfers block new IDs after restart. Full regression: 830/832 pass; the two existing Task 6 ownership tests remain RED until menu/facade routing is completed. Preserve and honor legacy PR #142 pending audit records during the switch.
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 

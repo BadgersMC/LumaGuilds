@@ -99,6 +99,20 @@ class GuildGoldRepositorySQL(
                             GuildGoldPreparation.FingerprintMismatch
                         }
                     }
+                    if (mutation.route == GuildGoldRoute.PERSONAL_ACCOUNT || mutation.route == GuildGoldRoute.PHYSICAL_ITEM) {
+                        connection.prepareStatement(
+                            "SELECT transaction_id FROM guild_gold_operations WHERE guild_id = ? " +
+                                "AND route IN ('PERSONAL_ACCOUNT', 'PHYSICAL_ITEM') " +
+                                "AND status IN ('PREPARED', 'BALANCE_APPLIED', 'FAILED_COMPENSATION') LIMIT 1"
+                        ).use { statement ->
+                            statement.setString(1, mutation.guildId.toString())
+                            statement.executeQuery().use { rows ->
+                                if (rows.next()) return@transaction GuildGoldPreparation.Pending(
+                                    UUID.fromString(rows.getString("transaction_id"))
+                                )
+                            }
+                        }
+                    }
                     insertPrepared(connection, mutation)
                     GuildGoldPreparation.New(
                         GuildGoldOperationRecord(
