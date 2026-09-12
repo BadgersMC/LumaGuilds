@@ -52,6 +52,24 @@ class BankRepositoryAuditPruneTest {
     }
 
     @Test
+    fun `payout journal survives restart and normal audit retention`() {
+        val guildId = UUID.randomUUID()
+        val old = Instant.parse("2026-01-01T00:00:00Z")
+        val entries = listOf(AuditAction.PAYOUT_PENDING, AuditAction.PAYOUT_COMPLETED, AuditAction.PAYOUT_REFUNDED)
+            .map { action ->
+                audit(guildId, UUID.randomUUID(), old).copy(action = action, transactionId = UUID.randomUUID())
+            }
+        entries.forEach { org.junit.jupiter.api.Assertions.assertTrue(repository.recordAudit(it)) }
+        storage.connection.close()
+        storage = VirtualThreadSQLiteStorage(tempDir.toFile())
+        repository = BankRepositorySQLite(storage)
+
+        assertEquals(entries.map { it.id }.toSet(), repository.getAuditForGuild(guildId).map { it.id }.toSet())
+        assertEquals(0, repository.deleteAuditsOlderThan(guildId, old.plusSeconds(60)))
+        assertEquals(entries.map { it.id }.toSet(), repository.getAuditForGuild(guildId).map { it.id }.toSet())
+    }
+
+    @Test
     fun `whole-second audit older than fractional cutoff IS pruned`() {
         val guildId = UUID.randomUUID()
         // Audit lands on a whole second; cutoff carries fractional seconds.

@@ -5,6 +5,7 @@ import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.BankSettingsRepository
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.BankWithdrawalResult
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.domain.entities.Guild
@@ -296,9 +297,12 @@ class BedrockGuildBankMenu(
 
         // Execute withdrawal
         if (withdrawAmount > 0) {
-            val transaction = bankService.withdraw(guild.id, player.uniqueId, withdrawAmount)
-            if (transaction != null) {
+            val outcome = bankService.withdrawOutcome(guild.id, player.uniqueId, withdrawAmount)
+            if (outcome is BankWithdrawalResult.Completed) {
                 changes.add(lang.bedrock("bedrock.bank.success.withdraw", "amount" to withdrawAmount))
+            } else if (outcome is BankWithdrawalResult.Ambiguous) {
+                allSuccessful = false
+                player.sendMessage(lang.msg("menu.bank.feedback.withdraw_pending", "transaction" to outcome.transactionId))
             } else {
                 allSuccessful = false
                 player.sendMessage(lang.msg("bedrock.bank.error.withdraw_failed"))
