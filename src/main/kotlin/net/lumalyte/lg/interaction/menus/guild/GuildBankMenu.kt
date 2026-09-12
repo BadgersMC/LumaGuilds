@@ -12,6 +12,7 @@ import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.Pane.Priority
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.BankWithdrawalResult
 import net.lumalyte.lg.infrastructure.services.BankServiceBukkit
 
 import net.lumalyte.lg.domain.entities.BankTransaction
@@ -556,13 +557,20 @@ class GuildBankMenu(
 
     private fun performWithdrawal(amount: Int): Boolean {
         return try {
-            val transaction = bankService.withdraw(guild.id, player.uniqueId, amount, "Guild bank menu withdrawal")
-            if (transaction == null) {
+            val outcome = bankService.withdrawOutcome(guild.id, player.uniqueId, amount, "Guild bank menu withdrawal")
+            if (outcome is BankWithdrawalResult.Ambiguous) {
+                val message = lang.gui("menu.bank.feedback.withdraw_pending", "transaction" to outcome.transactionId)
+                player.sendMessage(lang.msg("menu.bank.feedback.withdraw_pending", "transaction" to outcome.transactionId))
+                showErrorFeedback(message, retryable = false)
+                return false
+            }
+            if (outcome !is BankWithdrawalResult.Completed) {
                 val message = lang.gui("menu.bank.feedback.vault_withdraw_failed")
                 player.sendMessage(lang.msg("menu.bank.feedback.vault_withdraw_failed"))
                 showErrorFeedback(message)
                 return false
             }
+            val transaction = outcome.transaction
 
             // Reload guild to get updated state
             guild = guildService.getGuild(guild.id) ?: guild
@@ -883,14 +891,14 @@ class GuildBankMenu(
     /**
      * Enhanced error handling with visual feedback
      */
-    private fun showErrorFeedback(message: Component, sound: Sound = ERROR_SOUND) {
+    private fun showErrorFeedback(message: Component, sound: Sound = ERROR_SOUND, retryable: Boolean = true) {
         player.playSound(player.location, sound, 1.0f, 0.8f)
 
         // Flash red overlay on the balance display
         val errorItem = createMenuItem(
             Material.RED_WOOL,
             lang.gui("menu.bank.overlay.error.name"),
-            listOf(message, lang.gui("menu.bank.overlay.error.retry"))
+            if (retryable) listOf(message, lang.gui("menu.bank.overlay.error.retry")) else listOf(message)
         )
 
         mainPane.addItem(GuiItem(errorItem), 1, 0)
@@ -915,10 +923,11 @@ class GuildBankMenu(
         player.world.spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, location, 20, 0.5, 0.5, 0.5, 0.1)
 
         // Show success message with animation
+        val signedAmount = if (amount > 0) "+$amount" else amount.toString()
         val successItem = createMenuItem(
             Material.LIME_WOOL,
             lang.gui("menu.bank.overlay.success.name"),
-            listOf(message, lang.gui("menu.bank.overlay.success.amount", "amount" to amount))
+            listOf(message, lang.gui("menu.bank.overlay.success.amount", "amount" to signedAmount))
         )
 
         mainPane.addItem(GuiItem(successItem), 1, 0)

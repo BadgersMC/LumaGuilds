@@ -57,6 +57,8 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 
 **Event-driven.** WHEN a player withdraws through the guild bank menu THEN THE SYSTEM SHALL credit the player's personal Vault Economy account on the server thread without creating inventory items. Withdraw All SHALL resolve the current affordable amount including configured withdrawal fees. A rejected payout SHALL restore the guild debit including fees. A thrown payout with an unchanged, verified personal balance SHALL also restore the debit; an ambiguous provider outcome SHALL be logged for administrator reconciliation without issuing a speculative refund.
 
+**Event-driven.** BEFORE an external withdrawal payout THE SYSTEM SHALL persist a pending payout journal and confirm the guild debit has been written to the database. Failed debit persistence SHALL prevent payment. Completion or a confirmed persisted refund SHALL resolve the journal. Unresolved payouts SHALL block further withdrawals for that guild across restarts, remain available despite routine audit retention, and display an administrator-review warning with the transaction ID in Java and Bedrock menus. Provider balance lookup failures before debit SHALL reject without moving funds.
+
 > Audit H3 (bank): 6 knobs parsed, never consumed. No interest-accrual task exists in `BankServiceBukkit`.
 
 ### REQ-010

@@ -3061,6 +3061,7 @@ menu:
       insufficient_gold: '<red>You don''t have enough gold! You have <balance>, but need <amount>.'
       vault_withdraw_failed: '<red>Failed to withdraw from guild vault!'
       withdraw_no_amount: '<red>Nothing to withdraw — the vault balance may have changed since opening the menu. Reopen and try again.'
+      withdraw_pending: '<yellow>Withdrawal needs administrator review. Do not retry. Ask an admin to check the bank payout audit/log for transaction <transaction>.'
       deposit_overlay: 'Deposit successful!'
       withdraw_overlay: 'Withdrawal successful!'
     history:
@@ -3183,7 +3184,7 @@ menu:
         retry: Please try again
       success:
         name: '✓ Success!'
-        amount: '+<amount> coins'
+        amount: '<amount> coins'
     quick:
       description:
         deposit_all: Click to deposit all available

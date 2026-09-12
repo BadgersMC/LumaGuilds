@@ -324,7 +324,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: operator backlog (bugs channel `<#1421662495923372194>`)
   - Evidence:
   - Files: TBD — bug list must be pasted into this doc before tracking
-  - [x] PR #142 withdrawal-loss fix (REQ-009): bank-menu payouts credit personal Vault accounts on the server thread; regression tests cover full inventory, payout rejection/exception, fee refunds, ambiguous outcomes, live quick-action balance, and fee-aware Withdraw All. Completed balance mutations survive audit/display failures. Full suite: 765/766 passed before obsolete locale-key cleanup; focused withdrawal/vault/leaderboard/localization rerun GREEN after cleanup.
+  - [x] PR #142 withdrawal-loss fix (REQ-009): personal Vault account payouts, durable payout journal, required debit/refund persistence, restart-safe retry blocking, Java/Bedrock reconciliation warnings, and signed feedback. Full suite GREEN: 777 tests, zero failures/errors. Recovery procedure: `docs/bank-payout-recovery.md`. Production-provider in-game validation remains outstanding.
 - [x] **LG-1102** Economy commands fix: `/g balance` + `/g baltop` correct data; `/g balance` tab-completes all guild names
   - Tag: `TDD`
   - References: REQ-046

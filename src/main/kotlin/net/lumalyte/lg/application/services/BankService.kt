@@ -32,6 +32,11 @@ interface BankService {
      */
     fun withdraw(guildId: UUID, playerId: UUID, amount: Int, description: String? = null): BankTransaction?
 
+    /** Distinguishes definitive rejection from a payout requiring administrator reconciliation. */
+    fun withdrawOutcome(guildId: UUID, playerId: UUID, amount: Int, description: String? = null): BankWithdrawalResult =
+        withdraw(guildId, playerId, amount, description)?.let(BankWithdrawalResult::Completed)
+            ?: BankWithdrawalResult.Rejected
+
     /**
      * Gets the current balance of a guild's bank.
      *
@@ -238,3 +243,10 @@ data class BankStats(
     val totalTransactions: Int,
     val transactionVolume: Int
 )
+
+/** A pending result must never be presented as a safely retryable rejection. */
+sealed interface BankWithdrawalResult {
+    data class Completed(val transaction: BankTransaction) : BankWithdrawalResult
+    data object Rejected : BankWithdrawalResult
+    data class Ambiguous(val transactionId: UUID) : BankWithdrawalResult
+}
