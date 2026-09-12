@@ -3047,10 +3047,9 @@ menu:
       withdraw_description: Enter custom withdrawal amount
     feedback:
       deposit_success: 'Successfully deposited $<amount> to the guild bank!'
-      withdraw_success: 'Successfully withdrew $<amount> from the guild bank!'
+      withdraw_success: 'Credited $<amount> to your personal account from the guild bank (fee: $<fee>).'
       deposit_error: '<red>An error occurred during deposit: <reason>'
       withdraw_error: '<red>An error occurred during withdrawal: <reason>'
-      inventory_full: '<yellow>Your inventory is full! Items dropped at your feet.'
       manual_fee_denied: '<red>Cannot manually enter fees.'
       manual_deduction_denied: '<red>Cannot manually enter deductions.'
       processing_error: '<red>Error processing transaction: <reason>'
@@ -3060,8 +3059,9 @@ menu:
       deposit_permission_denied: '<red>You don''t have permission to deposit to the bank!'
       withdraw_permission_denied: '<red>You don''t have permission to withdraw from the bank!'
       insufficient_gold: '<red>You don''t have enough gold! You have <balance>, but need <amount>.'
-      insufficient_vault_gold: '<red>Guild vault has insufficient gold! Balance: <balance>, requested: <amount>.'
       vault_withdraw_failed: '<red>Failed to withdraw from guild vault!'
+      withdraw_no_amount: '<red>Nothing to withdraw — the vault balance may have changed since opening the menu. Reopen and try again.'
+      withdraw_pending: '<yellow>Withdrawal needs administrator review. Do not retry. Ask an admin to check the bank payout audit/log for transaction <transaction>.'
       deposit_overlay: 'Deposit successful!'
       withdraw_overlay: 'Withdrawal successful!'
     history:
@@ -3184,7 +3184,7 @@ menu:
         retry: Please try again
       success:
         name: '✓ Success!'
-        amount: '+<amount> coins'
+        amount: '<amount> coins'
     quick:
       description:
         deposit_all: Click to deposit all available

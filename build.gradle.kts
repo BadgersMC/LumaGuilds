@@ -44,6 +44,8 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+    // InventoryFramework expects this server-provided library when constructing real GUIs.
+    testRuntimeOnly("commons-lang:commons-lang:2.6")
     testImplementation("io.mockk:mockk:1.13.11")
     testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.107.0")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
