@@ -70,7 +70,7 @@ For a personal-account deposit, the service validates guild capacity and transac
 
 For a physical deposit, the service validates before removing items. It removes only the accepted currency items, credits canonical guild gold, and restores or drops the exact items safely if the credit fails. Concurrent deposits reserve capacity atomically so two individually valid deposits cannot exceed the cap together.
 
-Withdrawals debit canonical guild gold before paying the personal account or creating physical items. Failed payouts restore the guild balance. All system sinks and credits carry a stable transaction ID so retry is idempotent.
+Withdrawals debit canonical guild gold before paying the personal account or creating physical items. Confirmed rejected payouts restore the guild balance. Uncertain external outcomes must not trigger speculative refunds: preserve the pending operation, return an administrator-review outcome with its transaction ID, and block new external transfers for the affected guild until reconciliation. Completion and compensation results are final only when their database records are confirmed saved. These rules preserve the safeguards merged in PR #142. All system sinks and credits carry a stable transaction ID so retry is idempotent.
 
 ### 3.5 Policy enforcement
 
