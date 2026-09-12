@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.persistence.BankRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.BankWithdrawalResult
 import net.lumalyte.lg.application.services.BankStats
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
@@ -318,13 +319,64 @@ class BankServiceBukkit(
         }
     }
 
-    override fun withdraw(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankTransaction? {
+    private val withdrawalLock = Any()
+
+    override fun withdraw(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankTransaction? =
+        (withdrawOutcome(guildId, playerId, amount, description) as? BankWithdrawalResult.Completed)?.transaction
+
+    override fun withdrawOutcome(
+        guildId: UUID,
+        playerId: UUID,
+        amount: Int,
+        description: String?,
+    ): BankWithdrawalResult = synchronized(withdrawalLock) {
+        try {
+            val history = bankRepository.getAuditForGuild(guildId)
+            val resolved = history.filter {
+                it.action == AuditAction.PAYOUT_COMPLETED || it.action == AuditAction.PAYOUT_REFUNDED
+            }.mapNotNull { it.transactionId }.toSet()
+            val pending = history.firstOrNull {
+                it.action == AuditAction.PAYOUT_PENDING && it.transactionId !in resolved
+            }?.transactionId
+            if (pending != null) BankWithdrawalResult.Ambiguous(pending)
+            else performAccountWithdrawal(guildId, playerId, amount, description)
+        } catch (error: Exception) {
+            logger.error("Unable to check pending payouts for guild $guildId", error)
+            BankWithdrawalResult.Rejected
+        }
+    }
+
+    private fun recordPayoutState(transaction: BankTransaction, action: AuditAction, details: String): Boolean = try {
+        bankRepository.recordAudit(BankAudit(
+            transactionId = transaction.id, guildId = transaction.guildId, actorId = transaction.actorId,
+            action = action, details = details,
+        ))
+    } catch (error: Exception) {
+        logger.error("Cannot persist payout state $action for ${transaction.id}", error)
+        false
+    }
+
+    private fun refundAccountWithdrawal(
+        transaction: BankTransaction,
+        totalDebit: Int,
+        reason: String,
+    ): BankWithdrawalResult {
+        vaultInventoryManager.depositGold(transaction.guildId, transaction.actorId, totalDebit.toLong())
+        if (!vaultInventoryManager.flushBuffer(transaction.guildId) ||
+            !recordPayoutState(transaction, AuditAction.PAYOUT_REFUNDED, reason)) {
+            return BankWithdrawalResult.Ambiguous(transaction.id)
+        }
+        return BankWithdrawalResult.Rejected
+    }
+
+    private fun performAccountWithdrawal(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankWithdrawalResult {
+        var pendingId: UUID? = null
         try {
             // Check Vault economy availability
             val economy = getEconomy()
             if (economy == null) {
                 logger.error("Cannot process withdrawal: Vault economy not available")
-                return null
+                return BankWithdrawalResult.Rejected
             }
 
             // Check emergency freeze
@@ -337,14 +389,14 @@ class BankServiceBukkit(
                     action = AuditAction.PERMISSION_DENIED,
                     details = "Withdrawal blocked: emergency bank freeze is active"
                 ))
-                return null
+                return BankWithdrawalResult.Rejected
             }
 
             // Get player
             val player = Bukkit.getPlayer(playerId)
             if (player == null) {
                 logger.warn("Player $playerId not found online for withdrawal")
-                return null
+                return BankWithdrawalResult.Rejected
             }
 
             // Validate permissions
@@ -356,7 +408,7 @@ class BankServiceBukkit(
                     action = AuditAction.PERMISSION_DENIED,
                     details = "Withdrawal permission denied"
                 ))
-                return null
+                return BankWithdrawalResult.Rejected
             }
 
             // Validate amount
@@ -368,7 +420,7 @@ class BankServiceBukkit(
                     action = AuditAction.PERMISSION_DENIED,
                     details = "Invalid withdrawal amount: $amount"
                 ))
-                return null
+                return BankWithdrawalResult.Rejected
             }
 
             // Suspicious-transaction auto-lock (REQ-009): refuse BEFORE any funds
@@ -385,7 +437,7 @@ class BankServiceBukkit(
                     details = "Account auto-locked: suspicious transaction refused (withdrawal of $amount)"
                 ))
                 logger.warn("Guild $guildId auto-locked; suspicious withdrawal of $amount refused")
-                return null
+                return BankWithdrawalResult.Rejected
             }
 
             // Check sufficient funds including fee
@@ -398,7 +450,7 @@ class BankServiceBukkit(
                     action = AuditAction.INSUFFICIENT_FUNDS,
                     details = "Insufficient funds for withdrawal of $amount (+$fee fee)"
                 ))
-                return null
+                return BankWithdrawalResult.Rejected
             }
 
             // Calculate final amount player receives (after fee)
@@ -408,10 +460,27 @@ class BankServiceBukkit(
             // Build the audit/history transaction record up front so it carries a stable id.
             val transaction = BankTransaction.withdraw(guildId, playerId, amount, fee, description)
 
+            // Capture this before the debit so a provider read failure cannot consume guild funds.
+            val personalBalanceBefore = try {
+                economy.getBalance(player)
+            } catch (error: Exception) {
+                logger.error("Failed to read personal balance before guild withdrawal for $playerId", error)
+                return BankWithdrawalResult.Rejected
+            }
+            if (!personalBalanceBefore.isFinite()) return BankWithdrawalResult.Rejected
+            if (!recordPayoutState(transaction, AuditAction.PAYOUT_PENDING,
+                    "Pending payout: amount=$amount, fee=$fee, personalBefore=$personalBalanceBefore")) {
+                return BankWithdrawalResult.Rejected
+            }
+            pendingId = transaction.id
+
             // Debit the unified guild balance (store B: vault gold) FIRST, including the fee.
             // withdrawGold is atomic and returns -1 if funds are insufficient.
             val debitedBalance = vaultInventoryManager.withdrawGold(guildId, playerId, totalDebit.toLong())
             if (debitedBalance == -1L) {
+                if (!recordPayoutState(transaction, AuditAction.PAYOUT_REFUNDED, "No debit: insufficient guild balance")) {
+                    return BankWithdrawalResult.Ambiguous(transaction.id)
+                }
                 logger.warn("Insufficient guild balance for withdrawal of $totalDebit from guild $guildId")
                 recordAudit(BankAudit(
                     transactionId = transaction.id,
@@ -420,23 +489,38 @@ class BankServiceBukkit(
                     action = AuditAction.INSUFFICIENT_FUNDS,
                     details = "Insufficient guild balance for withdrawal of $amount (+$fee fee)"
                 ))
-                return null
+                return BankWithdrawalResult.Rejected
+            }
+
+            // Never make an external payment until the database has accepted the debit.
+            if (!vaultInventoryManager.flushBuffer(guildId)) {
+                return refundAccountWithdrawal(transaction, totalDebit, "Debit persistence failed; no payout attempted")
             }
 
             // Now pay the player from the guild withdrawal.
-            val depositResult = economy.depositPlayer(player, finalAmount.toDouble())
+            val depositResult = try {
+                economy.depositPlayer(player, finalAmount.toDouble())
+            } catch (error: Exception) {
+                val personalBalanceAfter = runCatching { economy.getBalance(player) }.getOrNull()
+                if (personalBalanceBefore.isFinite() && personalBalanceAfter == personalBalanceBefore) {
+                    logger.error("Vault payout threw before credit for transaction ${transaction.id}", error)
+                    return refundAccountWithdrawal(transaction, totalDebit, "Provider exception before credit")
+                } else {
+                    // A provider may credit and then throw. Refunding blindly could duplicate gold.
+                    logger.error(
+                        "Vault payout outcome requires reconciliation: transaction=${transaction.id}, " +
+                            "guild=$guildId, player=$playerId, debit=$totalDebit, " +
+                            "personalBefore=$personalBalanceBefore, personalAfter=$personalBalanceAfter",
+                        error,
+                    )
+                }
+                return BankWithdrawalResult.Ambiguous(transaction.id)
+            }
             if (!depositResult.transactionSuccess()) {
-                logger.error("Failed to deposit $finalAmount to player $playerId - re-crediting guild balance")
-                // Player payout failed AFTER debiting the guild - re-credit to avoid loss.
-                vaultInventoryManager.depositGold(guildId, playerId, totalDebit.toLong())
-                recordAudit(BankAudit(
-                    transactionId = transaction.id,
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Failed to deposit money to player account - withdrawal reverted"
-                ))
-                return null
+                return refundAccountWithdrawal(transaction, totalDebit, "Provider rejected payout")
+            }
+            if (!recordPayoutState(transaction, AuditAction.PAYOUT_COMPLETED, "Database debit and Vault payout completed")) {
+                return BankWithdrawalResult.Ambiguous(transaction.id)
             }
 
             // Record the ledger history (best-effort; balance no longer depends on it).
@@ -478,13 +562,10 @@ class BankServiceBukkit(
 
             logger.info("Player $playerId withdrew $amount from guild $guildId (fee: $fee, balance: $newBalance)")
 
-            return transaction
-        } catch (e: SQLException) {
-            logger.error("Database error processing withdrawal for player $playerId from guild $guildId", e)
-            return null
-        } catch (e: IllegalStateException) {
-            logger.error("Service error processing withdrawal (Vault economy unavailable?)", e)
-            return null
+            return BankWithdrawalResult.Completed(transaction)
+        } catch (error: Exception) {
+            logger.error("Withdrawal failed for guild $guildId and player $playerId; pending=$pendingId", error)
+            return pendingId?.let(BankWithdrawalResult::Ambiguous) ?: BankWithdrawalResult.Rejected
         }
     }
 
@@ -659,7 +740,7 @@ class BankServiceBukkit(
     private fun recordAudit(audit: BankAudit): Boolean {
         return try {
             bankRepository.recordAudit(audit)
-        } catch (e: SQLException) {
+        } catch (e: Exception) {
             logger.error("Database error recording audit entry", e)
             false
         }

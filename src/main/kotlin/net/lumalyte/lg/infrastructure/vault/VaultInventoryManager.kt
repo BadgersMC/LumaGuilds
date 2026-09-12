@@ -356,16 +356,10 @@ class VaultInventoryManager(
         // Buffer the change for database write
         bufferGoldChange(guildId, newBalance)
 
-        // Log transaction immediately (append-only, very fast)
-        transactionLogger?.logGoldTransaction(
-            guildId,
-            playerId,
+        publishGoldChange(
+            guildId, playerId, amount, newBalance,
             net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType.GOLD_DEPOSIT,
-            amount
         )
-
-        // Update Gold Balance Button in shared inventory if it exists
-        updateGoldBalanceButton(guildId, newBalance)
 
         return newBalance
     }
@@ -401,18 +395,32 @@ class VaultInventoryManager(
         // Buffer the change for database write
         bufferGoldChange(guildId, newBalance)
 
-        // Log transaction immediately (append-only, very fast)
-        transactionLogger?.logGoldTransaction(
-            guildId,
-            playerId,
+        publishGoldChange(
+            guildId, playerId, amount, newBalance,
             net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType.GOLD_WITHDRAW,
-            amount
         )
 
-        // Update Gold Balance Button in shared inventory if it exists
-        updateGoldBalanceButton(guildId, newBalance)
-
         return newBalance
+    }
+
+    /** Audit/display failures must not turn a completed balance mutation into an apparent failure. */
+    private fun publishGoldChange(
+        guildId: UUID,
+        playerId: UUID,
+        amount: Long,
+        balance: Long,
+        type: net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType,
+    ) {
+        try {
+            transactionLogger?.logGoldTransaction(guildId, playerId, type, amount)
+        } catch (error: Exception) {
+            logger.error("Gold audit failed after $type: guild=$guildId, player=$playerId, amount=$amount, balance=$balance", error)
+        }
+        try {
+            updateGoldBalanceButton(guildId, balance)
+        } catch (error: Exception) {
+            logger.error("Gold display refresh failed after $type: guild=$guildId, balance=$balance", error)
+        }
     }
 
     /**

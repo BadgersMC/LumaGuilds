@@ -118,6 +118,9 @@ data class BankAudit(
  * Types of audit actions.
  */
 enum class AuditAction {
+    PAYOUT_PENDING,
+    PAYOUT_COMPLETED,
+    PAYOUT_REFUNDED,
     DEPOSIT,
     WITHDRAWAL,
     BALANCE_CHECK,

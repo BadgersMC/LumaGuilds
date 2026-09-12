@@ -296,12 +296,19 @@ class BankRepositorySQLite(private val storage: Storage<Database>) : BankReposit
         val sql = """
             DELETE FROM bank_audit
             WHERE guild_id = ? AND julianday(timestamp) < julianday(?)
+              AND action NOT IN ('PAYOUT_PENDING', 'PAYOUT_COMPLETED', 'PAYOUT_REFUNDED')
         """.trimIndent()
 
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql, guildId.toString(), cutoff.toString())
             if (rowsAffected > 0) {
-                audits.entries.removeAll { it.value.guildId == guildId && it.value.timestamp.isBefore(cutoff) }
+                // Payout journal rows are recovery state, not disposable activity logs.
+                // Keep terminal markers too, otherwise a retained pending row could reopen.
+                val journalActions = setOf(AuditAction.PAYOUT_PENDING, AuditAction.PAYOUT_COMPLETED, AuditAction.PAYOUT_REFUNDED)
+                audits.entries.removeAll {
+                    it.value.guildId == guildId && it.value.timestamp.isBefore(cutoff) &&
+                        it.value.action !in journalActions
+                }
             }
             rowsAffected
         } catch (e: SQLException) {
