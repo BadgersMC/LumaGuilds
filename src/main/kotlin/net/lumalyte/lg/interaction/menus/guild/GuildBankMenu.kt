@@ -409,7 +409,7 @@ class GuildBankMenu(
             else lang.gui("menu.bank.processing.withdrawing")
         )
 
-        // Use async task for transaction processing
+        // Vault providers and inventory operations must run on the server thread.
         object : BukkitRunnable() {
             override fun run() {
                 val success = if (isDeposit) {
@@ -441,7 +441,7 @@ class GuildBankMenu(
                     }
                 }.runTask(net.lumalyte.lg.common.PluginKeys.getPlugin())
             }
-        }.runTaskAsynchronously(net.lumalyte.lg.common.PluginKeys.getPlugin())
+        }.runTask(net.lumalyte.lg.common.PluginKeys.getPlugin())
     }
 
     /**
@@ -530,11 +530,13 @@ class GuildBankMenu(
     }
 
     /**
-     * Handle withdrawal operation with physical gold items
+     * Credit withdrawals to the player's personal Vault Economy account.
      */
-    private val withdrawalAction = GuildBankWithdrawal {
-        vaultInventoryManager.getGoldBalance(guild.id)
-    }
+    private val withdrawalAction = GuildBankWithdrawal(
+        withdrawalFee = { bankService.calculateWithdrawalFee(guild.id, it) },
+        maximumAmount = { bankService.getMaxDepositAmount() },
+        currentBalance = { vaultInventoryManager.getGoldBalance(guild.id) },
+    )
 
     private fun handleWithdrawal(amount: Int): Boolean {
         // Check WITHDRAW_FROM_BANK permission
@@ -554,44 +556,12 @@ class GuildBankMenu(
 
     private fun performWithdrawal(amount: Int): Boolean {
         return try {
-            // Get vault inventory manager
-            val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager by inject()
-
-            // Check if guild has sufficient gold
-            val currentVaultBalance = vaultInventoryManager.getGoldBalance(guild.id)
-            if (currentVaultBalance < amount) {
-                val message = lang.gui("menu.bank.feedback.insufficient_vault_gold", "balance" to currentVaultBalance, "amount" to amount)
-                player.sendMessage(lang.msg("menu.bank.feedback.insufficient_vault_gold", "balance" to currentVaultBalance, "amount" to amount))
-                showErrorFeedback(message)
-                return false
-            }
-
-            // Withdraw from guild vault (deducts from virtual gold balance)
-            val newBalance = vaultInventoryManager.withdrawGold(guild.id, player.uniqueId, amount.toLong())
-            if (newBalance == -1L) {
+            val transaction = bankService.withdraw(guild.id, player.uniqueId, amount, "Guild bank menu withdrawal")
+            if (transaction == null) {
                 val message = lang.gui("menu.bank.feedback.vault_withdraw_failed")
                 player.sendMessage(lang.msg("menu.bank.feedback.vault_withdraw_failed"))
                 showErrorFeedback(message)
                 return false
-            }
-
-            vaultInventoryManager.forceFlush(guild.id)
-
-            // Give physical gold items to player
-            val goldItems = net.lumalyte.lg.application.utilities.GoldBalanceButton.convertToItems(amount.toLong())
-            val leftoverItems = mutableListOf<ItemStack>()
-
-            for (goldItem in goldItems) {
-                val leftover = player.inventory.addItem(goldItem)
-                leftoverItems.addAll(leftover.values)
-            }
-
-            if (leftoverItems.isNotEmpty()) {
-                // Inventory full - drop items at player's feet
-                leftoverItems.forEach { item ->
-                    player.world.dropItemNaturally(player.location, item)
-                }
-                player.sendMessage(lang.msg("menu.bank.feedback.inventory_full"))
             }
 
             // Reload guild to get updated state
@@ -600,9 +570,10 @@ class GuildBankMenu(
             val message = lang.msg(
                 "menu.bank.feedback.withdraw_success",
                 "amount" to amount,
+                "fee" to transaction.fee,
             ).color(NamedTextColor.GREEN)
             player.sendMessage(message)
-            showSuccessFeedback(lang.gui("menu.bank.feedback.withdraw_overlay"), -amount.toLong())
+            showSuccessFeedback(lang.gui("menu.bank.feedback.withdraw_overlay"), -(amount.toLong() + transaction.fee))
             true
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure

@@ -408,6 +408,9 @@ class BankServiceBukkit(
             // Build the audit/history transaction record up front so it carries a stable id.
             val transaction = BankTransaction.withdraw(guildId, playerId, amount, fee, description)
 
+            // Capture this before the debit so a provider read failure cannot consume guild funds.
+            val personalBalanceBefore = economy.getBalance(player)
+
             // Debit the unified guild balance (store B: vault gold) FIRST, including the fee.
             // withdrawGold is atomic and returns -1 if funds are insufficient.
             val debitedBalance = vaultInventoryManager.withdrawGold(guildId, playerId, totalDebit.toLong())
@@ -424,11 +427,30 @@ class BankServiceBukkit(
             }
 
             // Now pay the player from the guild withdrawal.
-            val depositResult = economy.depositPlayer(player, finalAmount.toDouble())
+            val depositResult = try {
+                economy.depositPlayer(player, finalAmount.toDouble())
+            } catch (error: Exception) {
+                val personalBalanceAfter = runCatching { economy.getBalance(player) }.getOrNull()
+                if (personalBalanceBefore.isFinite() && personalBalanceAfter == personalBalanceBefore) {
+                    vaultInventoryManager.depositGold(guildId, playerId, totalDebit.toLong())
+                    vaultInventoryManager.forceFlush(guildId)
+                    logger.error("Vault payout threw before credit; refunded transaction ${transaction.id}", error)
+                } else {
+                    // A provider may credit and then throw. Refunding blindly could duplicate gold.
+                    logger.error(
+                        "Vault payout outcome requires reconciliation: transaction=${transaction.id}, " +
+                            "guild=$guildId, player=$playerId, debit=$totalDebit, " +
+                            "personalBefore=$personalBalanceBefore, personalAfter=$personalBalanceAfter",
+                        error,
+                    )
+                }
+                return null
+            }
             if (!depositResult.transactionSuccess()) {
                 logger.error("Failed to deposit $finalAmount to player $playerId - re-crediting guild balance")
                 // Player payout failed AFTER debiting the guild - re-credit to avoid loss.
                 vaultInventoryManager.depositGold(guildId, playerId, totalDebit.toLong())
+                vaultInventoryManager.forceFlush(guildId)
                 recordAudit(BankAudit(
                     transactionId = transaction.id,
                     guildId = guildId,
@@ -438,6 +460,8 @@ class BankServiceBukkit(
                 ))
                 return null
             }
+
+            vaultInventoryManager.forceFlush(guildId)
 
             // Record the ledger history (best-effort; balance no longer depends on it).
             try {

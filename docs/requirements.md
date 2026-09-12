@@ -55,6 +55,8 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 ### REQ-009
 **Ubiquitous.** THE SYSTEM SHALL enforce the bank configuration — interest accrual per `bank.interest_rate_percent` and `bank.interest_compound_period_hours`, `bank.max_bank_balance`, `bank.audit_log_retention_days`, `bank.suspicious_transaction_threshold`, and `bank.auto_lock_suspicious_accounts`.
 
+**Event-driven.** WHEN a player withdraws through the guild bank menu THEN THE SYSTEM SHALL credit the player's personal Vault Economy account on the server thread without creating inventory items. Withdraw All SHALL resolve the current affordable amount including configured withdrawal fees. A rejected payout SHALL restore the guild debit including fees. A thrown payout with an unchanged, verified personal balance SHALL also restore the debit; an ambiguous provider outcome SHALL be logged for administrator reconciliation without issuing a speculative refund.
+
 > Audit H3 (bank): 6 knobs parsed, never consumed. No interest-accrual task exists in `BankServiceBukkit`.
 
 ### REQ-010

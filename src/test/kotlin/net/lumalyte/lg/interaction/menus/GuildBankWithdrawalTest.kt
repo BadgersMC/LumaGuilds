@@ -60,7 +60,29 @@ internal class GuildBankWithdrawalTest {
         assertFalse(withdrawal.execute(SMALL_WITHDRAWAL, { error("Unexpected rejection") }) { false })
     }
 
+    /** Withdraw All reserves enough gold for the configured fee. */
+    @Test
+    fun includesFeeInAffordableAmount() {
+        val withdrawal = GuildBankWithdrawal(
+            withdrawalFee = { minOf(it / FEE_DIVISOR, MAX_FEE) },
+            currentBalance = { DEPOSITED_BALANCE.toLong() },
+        )
+        assertEquals(DEPOSITED_BALANCE - MAX_FEE, withdrawal.resolveAmount(-1))
+    }
+
+    /** The configured transaction ceiling also applies to Withdraw All. */
+    @Test
+    fun respectsTransactionCeiling() {
+        val withdrawal = GuildBankWithdrawal(
+            maximumAmount = { SMALL_WITHDRAWAL },
+            currentBalance = { Long.MAX_VALUE },
+        )
+        assertEquals(SMALL_WITHDRAWAL, withdrawal.resolveAmount(-1))
+    }
+
     private companion object {
+        const val FEE_DIVISOR = 50
+        const val MAX_FEE = 15
         const val DEPOSITED_BALANCE = 1_000
         const val REMAINING_BALANCE = 250
         const val SMALL_WITHDRAWAL = 100
