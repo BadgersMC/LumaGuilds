@@ -31,6 +31,33 @@ class GuildGoldService(
 ) {
     fun balance(guildId: UUID): Long = repository.getBalance(guildId)
 
+    fun topBalances(limit: Int): List<Pair<UUID, Long>> = repository.getTopBalances(limit)
+
+    /** Largest deposit affordable from physical inventory, including fees and bank headroom. */
+    fun maximumPhysicalDeposit(guildId: UUID, playerId: UUID): Long {
+        val available = physicalGold.availableValue(playerId)?.coerceAtLeast(0) ?: return 0
+        val policy = policyProvider.policyFor(guildId)
+        var low = 0L
+        var high = minOf(available, policy.maxDeposit, (capacity(guildId) - balance(guildId)).coerceAtLeast(0))
+        while (low < high) {
+            val candidate = low + (high - low) / 2 + (high - low) % 2
+            val fee = GuildGoldCalculator.depositFee(policy, candidate)
+            if (fee >= 0 && fee <= available - candidate) low = candidate else high = candidate - 1
+        }
+        return if (low >= policy.minDeposit) low else 0
+    }
+
+    fun withdrawalFee(guildId: UUID, amount: Long): Long =
+        GuildGoldCalculator.withdrawalFee(policyProvider.policyFor(guildId), amount)
+
+    /** Upper bound before affordability including fees; execution rechecks the same live policy. */
+    fun withdrawalLimit(guildId: UUID): Long {
+        val policy = policyProvider.policyFor(guildId)
+        val remaining = (policy.dailyWithdrawalLimit -
+            repository.getDailyWithdrawn(guildId, periodStartProvider())).coerceAtLeast(0)
+        return minOf((balance(guildId).toDouble() * policy.withdrawalPercent).toLong(), remaining)
+    }
+
     fun capacity(guildId: UUID): Long = GuildGoldCalculator.effectiveCapacity(
         policy = policyProvider.policyFor(guildId),
         capacity = capacityProvider.capacityFor(guildId)

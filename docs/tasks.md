@@ -392,10 +392,10 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [~] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
   - Tag: `TDD`
   - References: REQ-009, REQ-054, REQ-092, REQ-093
-  - Evidence:
+  - Evidence: 2026-09-13 full regression: 847 tests, 845 passing; only the two existing Task 6 ownership checks remain RED. Focused bank/menu, physical adapter, and localization tests are GREEN.
   - Files: guild-gold domain/application service, Vault Economy adapter, physical currency adapter, bank/vault menus and listeners, persistence/audit, config validation
   - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only
-  - Current: Task 6 resumed after merging PRs #141/#142. Canonical payout safety prerequisite covered: uncertain outcomes never refund/replay, completion writes are checked, and pending transfers block new IDs after restart. Full regression: 830/832 pass; the two existing Task 6 ownership tests remain RED until menu/facade routing is completed. Preserve and honor legacy PR #142 pending audit records during the switch.
+  - Current: Task 6 is in progress. The bank facade now delegates balance/top reads, personal transfers, physical transfers, and system credits/debits to the canonical service. Main-bank physical deposits, physical withdrawal buttons, and both vault Deposit All routes are migrated; fee/daily-limit previews and physical Deposit All affordability use the canonical policy. Real SQLite/menu regressions preserve PR #142 pending payout gates and uncertainty handling. Remaining: drag-and-drop deposit escrow, vault cache/write-buffer ownership, and final capability/config validation. Do not deploy this intermediate integration while legacy vault balance writers remain.
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 

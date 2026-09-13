@@ -1,5 +1,12 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.PhysicalGoldRequest
+import net.lumalyte.lg.domain.gold.GuildGoldResult
+import net.badgersmc.nexus.i18n.LangService
+
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -32,7 +39,10 @@ class GoldDepositMenu(
     private val guildName: String,
     private val vaultInventoryManager: VaultInventoryManager,
     private val transactionLogger: VaultTransactionLogger
-) : Listener {
+) : Listener, KoinComponent {
+
+    private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     private lateinit var inventory: Inventory
     private var isOpen = false
@@ -111,34 +121,19 @@ class GoldDepositMenu(
      * Deposits all gold items from the player's inventory.
      */
     private fun depositAllGold() {
-        var totalNuggets = 0L
-        val itemsToRemove = mutableListOf<Int>()
-
-        // Scan player inventory for gold items
-        for (i in 0 until player.inventory.size) {
-            val item = player.inventory.getItem(i) ?: continue
-
-            val value = GoldBalanceButton.calculateGoldValue(item)
-            if (value > 0) {
-                totalNuggets += value
-                itemsToRemove.add(i)
-            }
-        }
-
+        val totalNuggets = bankService.getMaxPhysicalDeposit(guildId, player.uniqueId)
         if (totalNuggets > 0) {
-            // Remove gold items from player inventory
-            for (slot in itemsToRemove) {
-                player.inventory.setItem(slot, null)
+            val result = bankService.depositPhysical(PhysicalGoldRequest(
+                java.util.UUID.randomUUID(), guildId, player.uniqueId, totalNuggets, "Guild vault deposit all"))
+            if (result !is GuildGoldResult.Applied) {
+                if (result is GuildGoldResult.Failed && !result.compensationSucceeded) {
+                    player.sendMessage(lang.msg("menu.bank.feedback.deposit_pending", "transaction" to result.transactionId))
+                } else {
+                    player.sendMessage(lang.msg("menu.bank.feedback.deposit_rejected"))
+                }
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return
             }
-
-            // Force inventory update to client
-            player.updateInventory()
-
-            // Add to vault balance atomically (prevents race conditions)
-            val newBalance = vaultInventoryManager.depositGold(guildId, player.uniqueId, totalNuggets)
-
-            // Immediate flush to database (high-value transaction)
-            vaultInventoryManager.forceFlush(guildId)
 
             // Feedback
             player.sendMessage(
