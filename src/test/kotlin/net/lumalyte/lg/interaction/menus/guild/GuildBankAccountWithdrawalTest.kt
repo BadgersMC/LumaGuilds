@@ -101,12 +101,13 @@ internal class GuildBankAccountWithdrawalTest {
             personalGold += secondArg<Double>()
             EconomyResponse(secondArg(), personalGold, EconomyResponse.ResponseType.SUCCESS, null)
         }
+        val physical = net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter(
+            { player }, Material.RAW_GOLD, Material.RAW_GOLD_BLOCK, 9)
         val gold = GuildGoldService(repository,
             GuildGoldPolicyProvider { GuildGoldPolicy(1, 100_000, 1.0, 50_000, depositFeeRate, feeRate, 128, 15, 1_000_000, 50_000, false) },
             GuildGoldCapacityProvider { GuildGoldCapacity(1_000_000, 0) },
             personalEconomy = VaultPersonalEconomyAdapter({ economy }, { player }),
-            physicalGold = net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter(
-                { player }, Material.RAW_GOLD, Material.RAW_GOLD_BLOCK, 9))
+            physicalGold = physical)
         manager = mockk(relaxed = true)
         every { manager.getGoldBalance(any()) } answers { balance }
         history = mockk(relaxed = true)
@@ -129,7 +130,7 @@ internal class GuildBankAccountWithdrawalTest {
         }
         stopKoin()
         startKoin { modules(module {
-            single { manager }; single { lang }; single { members }
+            single { manager }; single { lang }; single { members }; single { physical }
             single<BankService> { bank }; single<GuildService> { mockk(relaxed = true) }
             single<MenuFactory> { mockk(relaxed = true) }
         }) }
@@ -152,7 +153,6 @@ internal class GuildBankAccountWithdrawalTest {
         assertEquals(1_000.0, personalGold)
         assertEquals(contents.toList(), player.inventory.storageContents.toList())
         verify(exactly = 0) { GoldBalanceButton.convertToItems(any()) }
-        verify(exactly = 0) { manager.withdrawGold(any(), any(), any()) }
     }
 
     @Test fun physicalDepositUsesCanonicalBalanceAndDoesNotMutateManager() {
@@ -162,19 +162,17 @@ internal class GuildBankAccountWithdrawalTest {
         assertTrue(result)
         assertEquals(1_040, balance)
         assertEquals(0, player.inventory.storageContents.filterNotNull().filter { it.type == Material.RAW_GOLD }.sumOf { it.amount })
-        verify(exactly = 0) { manager.depositGold(any(), any(), any()) }
     }
 
     @Test fun physicalWithdrawalMenuUsesCanonicalServiceAndDeliversItems() {
         val physicalMenu = GoldWithdrawMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
             manager, mockk(relaxed = true))
-        GoldWithdrawMenu::class.java.getDeclaredMethod("withdrawGold", Long::class.javaPrimitiveType)
+        GoldWithdrawMenu::class.java.getDeclaredMethod("confirmWithdrawal", Long::class.javaPrimitiveType)
             .apply { isAccessible = true }.invoke(physicalMenu, 18L)
         assertEquals(982, balance)
         assertEquals(2, player.inventory.storageContents.filterNotNull()
             .filter { it.type == Material.RAW_GOLD_BLOCK }.sumOf { it.amount })
         assertEquals(0.0, personalGold)
-        verify(exactly = 0) { manager.withdrawGold(any(), any(), any()) }
     }
 
     @Test fun vaultDepositAllMenuUsesCanonicalService() {
@@ -185,7 +183,40 @@ internal class GuildBankAccountWithdrawalTest {
             .apply { isAccessible = true }.invoke(depositMenu)
         assertEquals(1_040, balance)
         assertEquals(0, player.inventory.storageContents.filterNotNull().sumOf { it.amount })
-        verify(exactly = 0) { manager.depositGold(any(), any(), any()) }
+    }
+
+    @Test fun draggedDepositCreditsCanonicalBalanceOnClose() {
+        val depositMenu = GoldDepositMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
+            manager, mockk(relaxed = true))
+        depositMenu.open()
+        player.openInventory.topInventory.setItem(0, ItemStack(Material.RAW_GOLD, 40))
+        player.closeInventory()
+        assertEquals(1_040, balance)
+        assertEquals(0, player.inventory.storageContents.filterNotNull().sumOf { it.amount })
+    }
+
+    @Test fun rejectedDraggedDepositReturnsItems() {
+        legacyAudits += BankAudit(id = UUID.randomUUID(), guildId = guildId,
+            actorId = player.uniqueId, action = AuditAction.PAYOUT_PENDING,
+            transactionId = UUID.randomUUID(), details = "Pending")
+        val depositMenu = GoldDepositMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
+            manager, mockk(relaxed = true))
+        depositMenu.open()
+        player.openInventory.topInventory.setItem(0, ItemStack(Material.RAW_GOLD, 40))
+        player.closeInventory()
+        assertEquals(1_000, balance)
+        assertEquals(40, player.inventory.storageContents.filterNotNull().sumOf { it.amount })
+    }
+
+    @Test fun disconnectReturnsDraggedItemsWithoutCrediting() {
+        val depositMenu = GoldDepositMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
+            manager, mockk(relaxed = true))
+        depositMenu.open()
+        player.openInventory.topInventory.setItem(0, ItemStack(Material.RAW_GOLD, 40))
+        val quitting = player
+        depositMenu.onPlayerQuit(mockk { every { getPlayer() } returns quitting })
+        assertEquals(1_000, balance)
+        assertEquals(40, player.inventory.storageContents.filterNotNull().sumOf { it.amount })
     }
 
     @Test fun vaultShiftDepositUsesCanonicalService() {
@@ -197,7 +228,6 @@ internal class GuildBankAccountWithdrawalTest {
             UUID::class.java, String::class.java).apply { isAccessible = true }.invoke(listener, player, guildId, "Test")
         assertEquals(1_040, balance)
         assertEquals(0, player.inventory.storageContents.filterNotNull().sumOf { it.amount })
-        verify(exactly = 0) { manager.depositGold(any(), any(), any()) }
     }
 
     @Test fun rejectedPayoutRefundsGuild() {

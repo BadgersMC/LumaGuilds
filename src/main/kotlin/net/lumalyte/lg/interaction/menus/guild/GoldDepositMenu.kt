@@ -187,63 +187,41 @@ class GoldDepositMenu(
     fun onInventoryClose(event: InventoryCloseEvent) {
         if (event.player.uniqueId != player.uniqueId) return
         if (event.inventory != inventory) return
+        finishDeposit(confirm = true)
+    }
+
+    private fun finishDeposit(confirm: Boolean) {
         if (!isOpen) return
 
         isOpen = false
 
-        // Calculate total gold value in the inventory
-        var totalNuggets = 0L
-
-        for (i in 0 until inventory.size) {
-            val item = inventory.getItem(i) ?: continue
-            if (item.type == Material.PAPER || item.type == Material.GOLD_BLOCK && i == 22) {
-                continue // Skip instruction and deposit all button
-            }
-
-            val value = GoldBalanceButton.calculateGoldValue(item)
-            totalNuggets += value
-        }
-
-        if (totalNuggets > 0) {
-            // Clear all gold items from the menu inventory
-            for (i in 0 until inventory.size) {
-                val item = inventory.getItem(i) ?: continue
-                if (item.type == Material.PAPER || (item.type == Material.GOLD_BLOCK && i == 22)) {
-                    continue // Skip instruction and deposit all button
-                }
-
-                val value = GoldBalanceButton.calculateGoldValue(item)
-                if (value > 0) {
-                    inventory.setItem(i, null) // Remove gold items
+        val physical: net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter by inject()
+        try {
+            physical.withDepositInventory(player.uniqueId, inventory, setOf(13, 22)) {
+                val amount = if (confirm) bankService.getMaxPhysicalDeposit(guildId, player.uniqueId) else 0
+                if (amount > 0) {
+                    val result = bankService.depositPhysical(PhysicalGoldRequest(
+                        java.util.UUID.randomUUID(), guildId, player.uniqueId, amount, "Guild deposit window"))
+                    when {
+                        result is GuildGoldResult.Applied ->
+                            player.sendMessage(lang.msg("menu.bank.feedback.deposit_success", "amount" to amount))
+                        result is GuildGoldResult.Failed && !result.compensationSucceeded ->
+                            player.sendMessage(lang.msg("menu.bank.feedback.deposit_pending", "transaction" to result.transactionId))
+                        else -> player.sendMessage(lang.msg("menu.bank.feedback.deposit_rejected"))
+                    }
                 }
             }
-
-            // Add to vault balance atomically (prevents race conditions)
-            val newBalance = vaultInventoryManager.depositGold(guildId, player.uniqueId, totalNuggets)
-
-            // Immediate flush to database (high-value transaction)
-            vaultInventoryManager.forceFlush(guildId)
-
-            // Feedback
-            player.sendMessage(
-                Component.text("✓ Deposited ", NamedTextColor.GREEN)
-                    .append(Component.text("$totalNuggets currency", NamedTextColor.GOLD))
-                    .append(Component.text(" into $guildName's vault", NamedTextColor.GREEN))
-            )
-            player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
+        } finally {
+            unregisterListeners()
         }
 
-        // Unregister listener
-        unregisterListeners()
     }
 
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
         if (event.player.uniqueId != player.uniqueId) return
 
-        // Player disconnected - cleanup
-        isOpen = false
-        unregisterListeners()
+        finishDeposit(confirm = false)
     }
 
     private fun unregisterListeners() {

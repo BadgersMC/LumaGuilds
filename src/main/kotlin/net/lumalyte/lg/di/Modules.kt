@@ -677,13 +677,16 @@ fun economyModule() = module {
                 { org.bukkit.Bukkit.getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy::class.java)?.provider },
                 { org.bukkit.Bukkit.getOfflinePlayer(it) },
             ),
-            physicalGold = net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter.fromConfig(
-                { org.bukkit.Bukkit.getPlayer(it) }, config.loadConfig().vault),
+            physicalGold = get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
             periodStartProvider = {
                 java.time.LocalDate.now(java.time.ZoneOffset.UTC)
                     .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
             },
         )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter.fromConfig(
+            { org.bukkit.Bukkit.getPlayer(it) }, get<ConfigService>().loadConfig().vault)
     }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.BankAutomationService> {

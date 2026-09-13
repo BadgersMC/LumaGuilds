@@ -107,7 +107,7 @@ class VaultInventoryManager(
             }
 
             // Ensure Gold Balance Button is in slot 0
-            val goldBalance = vault.getGold()
+            val goldBalance = getGoldBalance(guildId)
             val goldButton = GoldBalanceButton.createItem(goldBalance)
             inventory.setItem(0, goldButton)
 
@@ -283,153 +283,21 @@ class VaultInventoryManager(
         return vault.slots.toMap()
     }
 
-    /**
-     * Gets the gold balance for a vault.
-     * Reads from in-memory cache (zero latency).
-     *
-     * @param guildId The guild ID.
-     * @return The gold balance in nuggets.
-     */
+    /** Canonical balance read. Cached gold is display-only and never queued for persistence. */
     fun getGoldBalance(guildId: UUID): Long {
-        val vault = getOrLoadVault(guildId)
-        return vault.getGold()
+        val balance = vaultRepository.getGoldBalance(guildId)
+        vaultCache[guildId]?.setGold(balance)
+        return balance
     }
 
-    /**
-     * Gets the top guilds ranked by vault gold balance (descending).
-     * Queries the repository directly so it does not force every vault into the cache.
-     *
-     * @param limit The maximum number of guilds to return.
-     * @return A list of (guildId, balance) pairs ordered by balance descending.
-     */
-    fun getTopGoldBalances(limit: Int): List<Pair<UUID, Long>> {
-        if (limit <= 0) return emptyList()
-
-        val loadedBalances = vaultCache.entries.map { (guildId, vault) -> guildId to vault.getGold() }
-        val candidateLimit = (limit.toLong() + loadedBalances.size)
-            .coerceAtMost(Int.MAX_VALUE.toLong())
-            .toInt()
-        val balances = vaultRepository.getTopGoldBalances(candidateLimit).toMap().toMutableMap()
-        loadedBalances.forEach { (guildId, balance) -> balances[guildId] = balance }
-
-        return balances.entries
-            .sortedWith(compareByDescending<Map.Entry<UUID, Long>> { it.value }.thenBy { it.key })
-            .take(limit)
-            .map { it.key to it.value }
+    /** Refresh is display-only; background callers leave UI work to the next server-thread read/open. */
+    fun refreshGoldDisplay(guildId: UUID) {
+        if (!Bukkit.isPrimaryThread()) return
+        updateGoldBalanceButton(guildId, getGoldBalance(guildId))
     }
 
-    /**
-     * Sets the gold balance for a vault.
-     * Updates the in-memory cache immediately and queues database write.
-     *
-     * @param guildId The guild ID.
-     * @param balance The new balance in nuggets.
-     */
-    fun setGoldBalance(guildId: UUID, balance: Long) {
-        val vault = getOrLoadVault(guildId)
-        vault.setGold(balance)
-
-        // Buffer the change for database write
-        bufferGoldChange(guildId, balance)
-    }
-
-    /**
-     * Atomically deposits gold into a vault and logs the transaction.
-     *
-     * **THREAD-SAFE:** Uses AtomicLong internally via `vault.addGold()`. Safe for
-     * concurrent deposits from multiple players/threads without risk of lost updates
-     * or race conditions. This method prevents the classic read-modify-write bug
-     * where concurrent operations could overwrite each other's changes.
-     *
-     * The operation is atomic at the in-memory level. Database writes are buffered
-     * and flushed asynchronously, but the balance is immediately visible to all callers.
-     *
-     * @param guildId The guild ID.
-     * @param playerId The player depositing gold.
-     * @param amount The amount in nuggets to deposit.
-     * @return The new balance after deposit.
-     */
-    fun depositGold(guildId: UUID, playerId: UUID, amount: Long): Long {
-        val vault = getOrLoadVault(guildId)
-        val newBalance = vault.addGold(amount)
-
-        // Buffer the change for database write
-        bufferGoldChange(guildId, newBalance)
-
-        publishGoldChange(
-            guildId, playerId, amount, newBalance,
-            net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType.GOLD_DEPOSIT,
-        )
-
-        return newBalance
-    }
-
-    /**
-     * Atomically withdraws gold from a vault and logs the transaction.
-     *
-     * **THREAD-SAFE:** Uses atomic compare-and-swap loop internally via `vault.subtractGold()`.
-     * Safe for concurrent withdrawals from multiple players/threads. Guarantees the balance
-     * can never go negative, even under high concurrency.
-     *
-     * The operation uses a CAS (compare-and-swap) loop to ensure that:
-     * 1. The withdrawal only succeeds if sufficient funds are available
-     * 2. No other withdrawal can cause the balance to go below zero
-     * 3. Concurrent withdrawals are serialized at the atomic level
-     *
-     * The operation is atomic at the in-memory level. Database writes are buffered
-     * and flushed asynchronously, but the balance is immediately visible to all callers.
-     *
-     * @param guildId The guild ID.
-     * @param playerId The player withdrawing gold.
-     * @param amount The amount in nuggets to withdraw.
-     * @return The new balance after withdrawal, or -1 if insufficient funds.
-     */
-    fun withdrawGold(guildId: UUID, playerId: UUID, amount: Long): Long {
-        val vault = getOrLoadVault(guildId)
-        val newBalance = vault.subtractGold(amount)
-
-        if (newBalance == -1L) {
-            return -1L // Insufficient balance
-        }
-
-        // Buffer the change for database write
-        bufferGoldChange(guildId, newBalance)
-
-        publishGoldChange(
-            guildId, playerId, amount, newBalance,
-            net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType.GOLD_WITHDRAW,
-        )
-
-        return newBalance
-    }
-
-    /** Audit/display failures must not turn a completed balance mutation into an apparent failure. */
-    private fun publishGoldChange(
-        guildId: UUID,
-        playerId: UUID,
-        amount: Long,
-        balance: Long,
-        type: net.lumalyte.lg.infrastructure.persistence.guilds.VaultTransactionType,
-    ) {
-        try {
-            transactionLogger?.logGoldTransaction(guildId, playerId, type, amount)
-        } catch (error: Exception) {
-            logger.error("Gold audit failed after $type: guild=$guildId, player=$playerId, amount=$amount, balance=$balance", error)
-        }
-        try {
-            updateGoldBalanceButton(guildId, balance)
-        } catch (error: Exception) {
-            logger.error("Gold display refresh failed after $type: guild=$guildId, balance=$balance", error)
-        }
-    }
-
-    /**
-     * Updates the Gold Balance Button (slot 0) in the shared vault inventory.
-     * Should be called after any gold deposit or withdrawal operation.
-     *
-     * @param guildId The guild ID.
-     * @param newBalance The new gold balance to display.
-     */
+    fun getTopGoldBalances(limit: Int): List<Pair<UUID, Long>> =
+        if (limit <= 0) emptyList() else vaultRepository.getTopGoldBalances(limit)
     private fun updateGoldBalanceButton(guildId: UUID, newBalance: Long) {
         // Get the shared inventory if it exists
         val sharedInventory = sharedInventories[guildId] ?: return
@@ -512,16 +380,6 @@ class VaultInventoryManager(
         buffer.bufferSlotChange(slot, item)
     }
 
-    /**
-     * Buffers a gold balance change for later database write.
-     *
-     * @param guildId The guild ID.
-     * @param balance The new balance.
-     */
-    private fun bufferGoldChange(guildId: UUID, balance: Long) {
-        val buffer = writeBuffers.computeIfAbsent(guildId) { WriteBuffer(guildId) }
-        buffer.bufferGoldChange(balance)
-    }
 
     /**
      * Flushes the write buffer for a vault to the database.
@@ -553,12 +411,6 @@ class VaultInventoryManager(
             }
         }
 
-        // Flush pending gold balance change
-        buffer.pendingGoldBalance?.let { goldBalance ->
-            if (!saveGoldBalanceWithRetry(guildId, goldBalance)) {
-                success = false
-            }
-        }
 
         if (success) {
             buffer.clear()
@@ -765,16 +617,6 @@ class VaultInventoryManager(
         return previousItem
     }
 
-    /**
-     * Updates gold balance and broadcasts the change to all viewers.
-     *
-     * @param guildId The guild ID.
-     * @param balance The new balance in nuggets.
-     */
-    fun setGoldBalanceWithBroadcast(guildId: UUID, balance: Long) {
-        setGoldBalance(guildId, balance)
-        broadcastGoldUpdate(guildId, balance)
-    }
 
     /**
      * Cleans up idle viewer sessions.
@@ -893,55 +735,6 @@ class VaultInventoryManager(
         return false
     }
 
-    /**
-     * Saves a gold balance with retry logic.
-     * Implements exponential backoff on failures.
-     *
-     * @param guildId The guild ID.
-     * @param balance The balance to save.
-     * @param retries Maximum number of retry attempts (default 3).
-     * @return true if save was successful.
-     */
-    private fun saveGoldBalanceWithRetry(
-        guildId: UUID,
-        balance: Long,
-        retries: Int = 3
-    ): Boolean {
-        var attempt = 0
-        var lastError: Exception? = null
-
-        while (attempt < retries) {
-            try {
-                if (vaultRepository.setGoldBalance(guildId, balance)) {
-                    return true // Success
-                }
-                // If the repository returns false (but doesn't throw), treat as failure
-                attempt++
-            } catch (e: SQLException) {
-                // Database error during save - retry immediately
-                // Note: No Thread.sleep() to avoid blocking main thread
-                // If all retries fail, gold balance will be marked dirty for next auto-save cycle
-                lastError = e
-                attempt++
-                logger.warn("Failed to save gold balance (attempt $attempt/$retries): ${e.message}")
-            }
-        }
-
-        // All retries failed - log critical error
-        logger.error(
-            "CRITICAL: Failed to save gold balance after $retries attempts! " +
-            "Guild: $guildId, Balance: $balance",
-            lastError
-        )
-
-        // Mark vault as dirty so it will be retried on next auto-save cycle
-        val vault = vaultCache[guildId]
-        if (vault != null) {
-            vault.markDirty()
-        }
-
-        return false
-    }
 
     /**
      * Validates that a player's inventory view is synchronized with the cache.
@@ -998,7 +791,7 @@ class VaultInventoryManager(
 
             val vault = vaultCache[guildId]
             if (vault != null) {
-                val goldBalance = vault.getGold()
+                val goldBalance = getGoldBalance(guildId)
                 val newButton = GoldBalanceButton.createItem(goldBalance)
 
                 // Update GUI inventory
