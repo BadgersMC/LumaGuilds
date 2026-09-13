@@ -154,7 +154,7 @@ class GoldWithdrawMenu(
     /**
      * Withdraws a specific amount of gold from the vault.
      */
-    private fun withdrawGold(amount: Long) {
+    private fun confirmWithdrawal(amount: Long) {
         val result = bankService.withdrawPhysical(PhysicalGoldRequest(
             UUID.randomUUID(), guildId, player.uniqueId, amount, "Guild vault withdrawal"))
         if (result !is GuildGoldResult.Applied) {
@@ -196,7 +196,7 @@ class GoldWithdrawMenu(
                 currentBalance = { bankService.getBalance(guildId).toLong() },
             ).resolveAmount(-1).toLong()
             if (currentBalance > 0) {
-                withdrawGold(currentBalance)
+                confirmWithdrawal(currentBalance)
             } else {
                 player.sendMessage(Component.text("Vault has no gold to withdraw", NamedTextColor.RED))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
@@ -213,7 +213,7 @@ class GoldWithdrawMenu(
         val meta = clickedItem.itemMeta
         if (meta != null && meta.persistentDataContainer.has(nuggetValueKey, PersistentDataType.LONG)) {
             val nuggetValue = meta.persistentDataContainer.get(nuggetValueKey, PersistentDataType.LONG) ?: return
-            withdrawGold(nuggetValue)
+            confirmWithdrawal(nuggetValue)
         }
     }
 

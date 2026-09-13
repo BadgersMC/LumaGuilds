@@ -234,6 +234,8 @@ class BankServiceBukkit(
     private fun recordCanonicalHistory(transaction: BankTransaction) {
         runCatching { bankRepository.recordTransaction(transaction) }
             .onFailure { logger.warn("Failed to record compatibility history for ${transaction.id}", it) }
+        runCatching { vaultInventoryManager.refreshGoldDisplay(transaction.guildId) }
+            .onFailure { logger.warn("Failed to refresh gold display for ${transaction.guildId}", it) }
     }
 
     override fun getBalance(guildId: UUID): Int {

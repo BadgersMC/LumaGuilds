@@ -544,6 +544,8 @@ git commit -m "feat(gold): add physical item reservations"
 
 ### Task 6: Replace legacy bank facade mutations and UI bypasses
 
+**Deposit-window adapter detail:** The shared Bukkit physical adapter supports a synchronous, server-thread-only inventory scope for dragged deposits. It excludes UI slots, reserves from that window through the existing application policy, and returns only unspent items on scope exit. Reservations with uncertain outcomes are never returned speculatively. Disconnect cancels the window and returns its contents without initiating a deposit. Gold is no longer part of the ordinary vault-slot write buffer; display/cache refreshes read the canonical balance.
+
 **Files:**
 - Modify: `src/main/kotlin/net/lumalyte/lg/infrastructure/services/BankServiceBukkit.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/application/services/BankService.kt`

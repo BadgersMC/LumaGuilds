@@ -21,10 +21,14 @@ internal class VaultGoldAuditFailureTest {
         every { audit.logGoldTransaction(any(), any(), any(), any()) } throws IllegalStateException("Audit unavailable")
         val manager = VaultInventoryManager(repository, audit, VaultConfig())
         val guild = UUID.randomUUID()
-        val actor = UUID.randomUUID()
-        assertEquals(0L, manager.withdrawGold(guild, actor, INITIAL_BALANCE))
-        assertEquals(INITIAL_BALANCE, manager.depositGold(guild, actor, INITIAL_BALANCE))
+        manager.getOrLoadVault(guild).setGold(2_000L)
         assertEquals(INITIAL_BALANCE, manager.getGoldBalance(guild))
+    }
+
+    @Test
+    fun inventoryManagerCannotMutateCurrency() {
+        val forbidden = setOf("depositGold", "withdrawGold", "setGoldBalance", "setGoldBalanceWithBroadcast")
+        kotlin.test.assertTrue(VaultInventoryManager::class.java.methods.none { it.name in forbidden })
     }
 
     private companion object {

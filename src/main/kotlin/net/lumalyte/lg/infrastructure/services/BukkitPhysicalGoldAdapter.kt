@@ -7,6 +7,7 @@ import net.lumalyte.lg.application.services.PhysicalReservationResult
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.Inventory
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -27,14 +28,47 @@ class BukkitPhysicalGoldAdapter(
 
     private data class ReservationState(
         val public: PhysicalGoldReservation,
-        val stacks: List<ItemStack>
+        val stacks: List<ItemStack>,
+        val source: Inventory?
     )
+
+    private data class DepositWindow(val inventory: Inventory, val excludedSlots: Set<Int>)
+    private val depositWindows = mutableMapOf<UUID, DepositWindow>()
+
+    /** Synchronous server-thread scope: the same reservation policy can consume a deposit window. */
+    fun <T> withDepositInventory(playerId: UUID, inventory: Inventory, excludedSlots: Set<Int>, action: () -> T): T {
+        check(org.bukkit.Bukkit.isPrimaryThread()) { "Physical currency requires the server thread" }
+        check(playerId !in depositWindows) { "A deposit window is already active" }
+        val player = requireNotNull(playerLookup(playerId))
+        depositWindows[playerId] = DepositWindow(inventory, excludedSlots)
+        try {
+            return action()
+        } finally {
+            depositWindows.remove(playerId)
+            // Return only items still present, never a reservation whose outcome is uncertain.
+            for (slot in 0 until inventory.size) {
+                if (slot in excludedSlots) continue
+                val item = inventory.getItem(slot) ?: continue
+                inventory.setItem(slot, null)
+                val overflow = player.inventory.addItem(item).values
+                if (overflow.isNotEmpty()) overflowDelivery(player, overflow)
+            }
+        }
+    }
+
+    private fun contents(playerId: UUID, player: Player): Array<ItemStack?> {
+        val window = depositWindows[playerId] ?: return player.inventory.storageContents
+        return window.inventory.contents.mapIndexed { index, item ->
+            if (index in window.excludedSlots) null else item?.clone()
+        }.toTypedArray()
+    }
 
     private val reservations = ConcurrentHashMap<UUID, ReservationState>()
     private val delivered = ConcurrentHashMap.newKeySet<UUID>()
 
     override fun availableValue(playerId: UUID): Long? {
-        val contents = playerLookup(playerId)?.inventory?.storageContents ?: return null
+        val player = playerLookup(playerId) ?: return null
+        val contents = contents(playerId, player)
         return availableValue(
             contents.filterNotNull().filter { it.type == baseMaterial }.sumOf { it.amount.toLong() },
             contents.filterNotNull().filter { it.type == blockMaterial }.sumOf { it.amount.toLong() },
@@ -43,7 +77,7 @@ class BukkitPhysicalGoldAdapter(
 
     override fun reserve(playerId: UUID, requestedValue: Long): PhysicalReservationResult {
         val player = playerLookup(playerId) ?: return PhysicalReservationResult.Unavailable
-        val contents = player.inventory.storageContents
+        val contents = contents(playerId, player)
         val baseCount = contents.filterNotNull().filter { it.type == baseMaterial }.sumOf { it.amount.toLong() }
         val blockCount = contents.filterNotNull().filter { it.type == blockMaterial }.sumOf { it.amount.toLong() }
         val selection = selectExact(baseCount, blockCount, blockValue, requestedValue)
@@ -51,9 +85,13 @@ class BukkitPhysicalGoldAdapter(
         val removed = mutableListOf<ItemStack>()
         remove(contents, baseMaterial, selection.base, removed)
         blockMaterial?.let { remove(contents, it, selection.blocks, removed) }
-        player.inventory.storageContents = contents
+        val window = depositWindows[playerId]
+        if (window == null) player.inventory.storageContents = contents
+        else contents.forEachIndexed { slot, item ->
+            if (slot !in window.excludedSlots) window.inventory.setItem(slot, item)
+        }
         val reservation = PhysicalGoldReservation(UUID.randomUUID(), playerId, requestedValue)
-        reservations[reservation.id] = ReservationState(reservation, removed)
+        reservations[reservation.id] = ReservationState(reservation, removed, window?.inventory)
         return PhysicalReservationResult.Reserved(reservation)
     }
 
@@ -64,7 +102,7 @@ class BukkitPhysicalGoldAdapter(
         val state = reservations[reservation.id] ?: return false
         if (state.public != reservation) return false
         val player = playerLookup(reservation.playerId) ?: return false
-        val overflow = player.inventory.addItem(*state.stacks.map(ItemStack::clone).toTypedArray()).values
+        val overflow = (state.source ?: player.inventory).addItem(*state.stacks.map(ItemStack::clone).toTypedArray()).values
         if (overflow.isNotEmpty()) overflowDelivery(player, overflow)
         reservations.remove(reservation.id, state)
         return true
