@@ -13,12 +13,18 @@ import java.util.concurrent.ConcurrentHashMap
 class BukkitPhysicalGoldAdapter(
     private val playerLookup: (UUID) -> Player?,
     private val baseMaterial: Material,
-    private val blockMaterial: Material,
+    private val blockMaterial: Material?,
     private val blockValue: Long,
     private val overflowDelivery: (Player, Collection<ItemStack>) -> Unit = { player, items ->
         items.forEach { player.world.dropItemNaturally(player.location, it) }
     }
 ) : PhysicalGoldPort {
+    init {
+        require(baseMaterial.isItem && !baseMaterial.isAir)
+        require(blockMaterial == null || (blockMaterial.isItem && !blockMaterial.isAir && blockMaterial != baseMaterial))
+        require(blockValue > 0)
+    }
+
     private data class ReservationState(
         val public: PhysicalGoldReservation,
         val stacks: List<ItemStack>
@@ -26,6 +32,14 @@ class BukkitPhysicalGoldAdapter(
 
     private val reservations = ConcurrentHashMap<UUID, ReservationState>()
     private val delivered = ConcurrentHashMap.newKeySet<UUID>()
+
+    override fun availableValue(playerId: UUID): Long? {
+        val contents = playerLookup(playerId)?.inventory?.storageContents ?: return null
+        return availableValue(
+            contents.filterNotNull().filter { it.type == baseMaterial }.sumOf { it.amount.toLong() },
+            contents.filterNotNull().filter { it.type == blockMaterial }.sumOf { it.amount.toLong() },
+            blockValue)
+    }
 
     override fun reserve(playerId: UUID, requestedValue: Long): PhysicalReservationResult {
         val player = playerLookup(playerId) ?: return PhysicalReservationResult.Unavailable
@@ -36,7 +50,7 @@ class BukkitPhysicalGoldAdapter(
             ?: return PhysicalReservationResult.Insufficient
         val removed = mutableListOf<ItemStack>()
         remove(contents, baseMaterial, selection.base, removed)
-        remove(contents, blockMaterial, selection.blocks, removed)
+        blockMaterial?.let { remove(contents, it, selection.blocks, removed) }
         player.inventory.storageContents = contents
         val reservation = PhysicalGoldReservation(UUID.randomUUID(), playerId, requestedValue)
         reservations[reservation.id] = ReservationState(reservation, removed)
@@ -62,10 +76,10 @@ class BukkitPhysicalGoldAdapter(
             delivered.remove(transactionId)
             return ExternalTransferResult.Unavailable
         }
-        val blocks = value / blockValue
-        val base = value % blockValue
+        val blocks = if (blockMaterial == null) 0 else value / blockValue
+        val base = if (blockMaterial == null) value else value % blockValue
         val stacks = buildList {
-            addStacks(this, blockMaterial, blocks)
+            blockMaterial?.let { addStacks(this, it, blocks) }
             addStacks(this, baseMaterial, base)
         }
         return try {
@@ -81,6 +95,21 @@ class BukkitPhysicalGoldAdapter(
     data class DenominationSelection(val base: Long, val blocks: Long)
 
     companion object {
+        fun fromConfig(playerLookup: (UUID) -> Player?, config: net.lumalyte.lg.config.VaultConfig): BukkitPhysicalGoldAdapter {
+            val base = requireNotNull(Material.matchMaterial(config.physicalCurrencyMaterial)) {
+                "Unknown physical currency material: ${config.physicalCurrencyMaterial}"
+            }
+            val mappings = config.compressableBlocks.map { it.split(':') }
+                .filter { it.size == 3 && Material.matchMaterial(it[1]) == base }
+            require(mappings.size <= 1) { "Canonical gold supports one compressed denomination per currency" }
+            val mapping = mappings.singleOrNull()
+            val compressed = mapping?.let { requireNotNull(Material.matchMaterial(it[0])) {
+                "Unknown compressed currency material: ${it[0]}"
+            } }
+            val ratio = mapping?.let { requireNotNull(it[2].toLongOrNull()) { "Invalid currency compression ratio" } } ?: 1L
+            return BukkitPhysicalGoldAdapter(playerLookup, base, compressed, ratio)
+        }
+
         fun availableValue(baseCount: Long, blockCount: Long, blockValue: Long): Long? = try {
             Math.addExact(baseCount, Math.multiplyExact(blockCount, blockValue))
         } catch (_: ArithmeticException) {

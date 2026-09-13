@@ -627,7 +627,65 @@ fun economyModule() = module {
     }
 
     // Services
-    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildGoldRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL(get())
+    }
+    single {
+        val config = get<ConfigService>()
+        val progression = get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
+        val rewards = get<net.lumalyte.lg.infrastructure.services.ProgressionConfigService>()
+        val members = get<net.lumalyte.lg.application.persistence.MemberRepository>()
+        val ranks = get<net.lumalyte.lg.application.persistence.RankRepository>()
+        net.lumalyte.lg.application.services.GuildGoldService(
+            repository = get(),
+            policyProvider = net.lumalyte.lg.application.services.GuildGoldPolicyProvider { guildId ->
+                val bank = config.loadConfig().bank
+                val level = progression.getGuildProgression(guildId)?.currentLevel ?: 0
+                val levelRewards = rewards.getProgressionConfig().getActiveLevelRewards()
+                val feeMultiplier = (1..level).fold(1.0) { current, reached ->
+                    minOf(current, levelRewards[reached]?.withdrawalFeeMultiplier ?: 1.0)
+                }
+                net.lumalyte.lg.domain.gold.GuildGoldPolicy(
+                    bank.minDepositAmount.toLong(), bank.maxDepositAmount.toLong(),
+                    bank.maxWithdrawalPercent, bank.dailyWithdrawalLimit.toLong(),
+                    bank.depositFeePercent, bank.withdrawalFeePercent * feeMultiplier,
+                    bank.maxDepositFee.toLong(), bank.maxWithdrawalFee.toLong(),
+                    bank.maxBankBalance.toLong(), bank.suspiciousTransactionThreshold.toLong(),
+                    bank.autoLockSuspiciousAccounts,
+                )
+            },
+            capacityProvider = net.lumalyte.lg.application.services.GuildGoldCapacityProvider { guildId ->
+                val level = progression.getGuildProgression(guildId)?.currentLevel
+                val tier = level?.let { BankServiceBukkit.computeProgressionBankLimit(
+                    rewards.getProgressionConfig().getActiveLevelRewards(), it) }
+                net.lumalyte.lg.domain.gold.GuildGoldCapacity(
+                    (tier ?: config.loadConfig().bank.maxBankBalance).toLong(), 0,
+                )
+            },
+            authorization = object : net.lumalyte.lg.application.services.GuildGoldAuthorizationPort {
+                private fun allowed(playerId: java.util.UUID, guildId: java.util.UUID,
+                    permission: net.lumalyte.lg.domain.entities.RankPermission): Boolean {
+                    val member = members.getByPlayerAndGuild(playerId, guildId) ?: return false
+                    return ranks.getById(member.rankId)?.permissions?.contains(permission) == true
+                }
+                override fun canDeposit(playerId: java.util.UUID, guildId: java.util.UUID) =
+                    allowed(playerId, guildId, net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_BANK)
+                override fun canWithdraw(playerId: java.util.UUID, guildId: java.util.UUID) =
+                    allowed(playerId, guildId, net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK)
+            },
+            personalEconomy = net.lumalyte.lg.infrastructure.services.VaultPersonalEconomyAdapter(
+                { org.bukkit.Bukkit.getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy::class.java)?.provider },
+                { org.bukkit.Bukkit.getOfflinePlayer(it) },
+            ),
+            physicalGold = net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter.fromConfig(
+                { org.bukkit.Bukkit.getPlayer(it) }, config.loadConfig().vault),
+            periodStartProvider = {
+                java.time.LocalDate.now(java.time.ZoneOffset.UTC)
+                    .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+            },
+        )
+    }
+    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.BankAutomationService> {
         net.lumalyte.lg.application.services.BankAutomationService(get(), get(), get(), get(), get())
     }

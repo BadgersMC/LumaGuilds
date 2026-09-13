@@ -1,5 +1,12 @@
 package net.lumalyte.lg.interaction.listeners
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.PhysicalGoldRequest
+import net.lumalyte.lg.domain.gold.GuildGoldResult
+import net.badgersmc.nexus.i18n.LangService
+
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.application.services.MemberService
@@ -41,7 +48,10 @@ class VaultInventoryListener(
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
     private val memberService: MemberService,
     private val platformDetectionService: PlatformDetectionService
-) : Listener {
+) : Listener, KoinComponent {
+
+    private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     private val logger = LoggerFactory.getLogger(VaultInventoryListener::class.java)
 
@@ -144,25 +154,19 @@ class VaultInventoryListener(
      * Deposits all gold items from the player's inventory.
      */
     private fun depositAllGold(player: Player, guildId: java.util.UUID, guildName: String) {
-        var totalNuggets = 0L
-
-        // Scan player inventory for gold items
-        for (i in 0 until player.inventory.size) {
-            val item = player.inventory.getItem(i) ?: continue
-
-            val value = GoldBalanceButton.calculateGoldValue(item)
-            if (value > 0) {
-                totalNuggets += value
-                player.inventory.setItem(i, null)
-            }
-        }
-
+        val totalNuggets = bankService.getMaxPhysicalDeposit(guildId, player.uniqueId)
         if (totalNuggets > 0) {
-            // Add to vault balance atomically (prevents race conditions)
-            val newBalance = vaultInventoryManager.depositGold(guildId, player.uniqueId, totalNuggets)
-
-            // Immediate flush to database
-            vaultInventoryManager.forceFlush(guildId)
+            val result = bankService.depositPhysical(PhysicalGoldRequest(
+                java.util.UUID.randomUUID(), guildId, player.uniqueId, totalNuggets, "Guild vault deposit all"))
+            if (result !is GuildGoldResult.Applied) {
+                if (result is GuildGoldResult.Failed && !result.compensationSucceeded) {
+                    player.sendMessage(lang.msg("menu.bank.feedback.deposit_pending", "transaction" to result.transactionId))
+                } else {
+                    player.sendMessage(lang.msg("menu.bank.feedback.deposit_rejected"))
+                }
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return
+            }
 
             // Update gold button for all viewers
             updateGoldButtonForAllViewers(guildId)

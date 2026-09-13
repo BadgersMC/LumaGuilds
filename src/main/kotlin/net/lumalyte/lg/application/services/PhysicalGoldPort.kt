@@ -19,6 +19,9 @@ sealed interface PhysicalReservationResult {
 }
 
 interface PhysicalGoldPort {
+    /** Read-only value of currency eligible for reservation; null means unavailable. */
+    fun availableValue(playerId: UUID): Long? = null
+
     fun reserve(playerId: UUID, requestedValue: Long): PhysicalReservationResult
     fun commit(reservation: PhysicalGoldReservation): Boolean
     fun restore(reservation: PhysicalGoldReservation): Boolean
