@@ -31,6 +31,10 @@ class GuildGoldService(
 ) {
     fun balance(guildId: UUID): Long = repository.getBalance(guildId)
 
+    /** Recovery reads the journal before retrying an internal transfer under changed live policy. */
+    fun operation(transactionId: UUID): net.lumalyte.lg.domain.gold.GuildGoldOperationRecord? =
+        repository.findOperation(transactionId)
+
     fun depositCost(guildId: UUID, amount: Long): Long? {
         val policy = policyProvider.policyFor(guildId)
         if (amount <= 0 || amount < policy.minDeposit || amount > policy.maxDeposit) return null
