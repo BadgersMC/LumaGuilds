@@ -76,33 +76,28 @@ class BankAutomationService(
         }
 
         val rate = settings.interestRate ?: configService.loadConfig().bank.interestRatePercent
-        val balance = bankService.getBalance(guild.id)
-        val interestPerPeriod = (balance * rate).toInt()
-
+        if (periodHours <= 0 || !rate.isFinite() || rate < 0) return 0
         var cursor = lastAccrual
-        var periods = 0
-        while (periods < maxCatchUpPeriods && !cursor.plus(periodHours, ChronoUnit.HOURS).isAfter(now)) {
-            cursor = cursor.plus(periodHours, ChronoUnit.HOURS)
-            periods++
-        }
-
-        // Persist the advanced marker BEFORE crediting. If the marker write fails,
-        // skip crediting entirely — the next run retries from the old marker, so no
-        // period can be double-credited (money safety). If a credit fails partway,
-        // the marker has already advanced, so at worst one period is skipped —
-        // never duplicated.
-        val updated = settings.copy(lastInterestAccrual = cursor.toEpochMilli())
-        if (!bankSettingsRepository.upsert(updated)) {
-            logger.error("Failed to persist interest accrual marker for guild ${guild.id}; skipping accrual")
-            return 0
-        }
-
         var credited = 0
-        repeat(periods) {
-            if (interestPerPeriod > 0) {
-                bankService.creditToGuildBank(guild.id, interestPerPeriod, "Interest accrual")
-                credited++
+        repeat(maxCatchUpPeriods) {
+            val periodEnd = cursor.plus(periodHours, ChronoUnit.HOURS)
+            if (periodEnd.isAfter(now)) return credited
+            when (val result = bankService.creditInterest(guild.id, periodEnd.toEpochMilli(), rate)) {
+                is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied -> {
+                    if (result.newBalance > result.oldBalance) credited++
+                }
+                is net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected -> {
+                    // A full bank skips this period explicitly; other failures leave it retryable.
+                    if (result.reason != net.lumalyte.lg.domain.gold.GuildGoldRejection.CAPACITY_EXCEEDED) return credited
+                }
+                is net.lumalyte.lg.domain.gold.GuildGoldResult.Failed -> return credited
             }
+            // The period ID is durable, so a failed marker write can safely retry the settled payment.
+            if (!bankSettingsRepository.upsert(settings.copy(lastInterestAccrual = periodEnd.toEpochMilli()))) {
+                logger.error("Failed to persist interest marker for guild ${guild.id}; settlement will be retried")
+                return credited
+            }
+            cursor = periodEnd
         }
         return credited
     }

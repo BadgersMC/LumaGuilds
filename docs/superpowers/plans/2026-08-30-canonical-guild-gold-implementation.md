@@ -643,6 +643,10 @@ git commit -m "refactor(gold): remove mutation bypasses"
 
 ### Task 7: Route interest, admin credits, and system costs
 
+**2026-09-14 scope clarification:** The operator approved including LFG paid admission in this banking PR. Both item and personal-account fees must be collected once by `GuildGoldService`, with admission eligibility replacing member deposit permission. Keep the journal at `BALANCE_APPLIED` until membership is confirmed; ambiguous membership/provider outcomes remain guarded for staff reconciliation. Validate the live recruitment settings, default rank and actual progression membership limit before charging; display the fee-inclusive charge. Java and Bedrock confirmations must not remove items or money independently. Prove rejection, successful payment, duplicate submission, and a pending payment read through a new repository instance.
+
+`BankCreditCommand` is a **personal-account recovery command**, not a guild credit command. Preserve its semantics and exclude it from guild-balance routing. Do not redirect player recovery payments into guild gold.
+
 **Files:**
 - Modify: `src/main/kotlin/net/lumalyte/lg/application/services/BankAutomationService.kt`
 - Modify: `src/main/kotlin/net/lumalyte/lg/interaction/commands/admin/BankCreditCommand.kt`

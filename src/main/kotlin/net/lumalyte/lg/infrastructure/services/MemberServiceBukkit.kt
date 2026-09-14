@@ -28,6 +28,18 @@ class MemberServiceBukkit(
 ) : MemberService {
 
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
+
+    override fun getMemberLimit(guildId: UUID): Int {
+        val progression = progressionRepository.getGuildProgression(guildId)
+        val levelRewards = progressionConfigService.getProgressionConfig().getActiveLevelRewards()
+        var maxMembers = 10
+        if (progression != null) {
+            for (level in 1..progression.currentLevel) {
+                maxMembers = maxOf(maxMembers, levelRewards[level]?.members ?: 10)
+            }
+        }
+        return maxMembers
+    }
     
     override fun addMember(playerId: UUID, guildId: UUID, rankId: UUID): Member? {
         // Check if guild exists
@@ -51,16 +63,7 @@ class MemberServiceBukkit(
 
         // Check guild member limit (progression-based)
         val currentMemberCount = memberRepository.getByGuild(guildId).size
-        val progression = progressionRepository.getGuildProgression(guildId)
-        val progressionConfig = progressionConfigService.getProgressionConfig()
-        val levelRewards = progressionConfig.getActiveLevelRewards()
-        var maxMembers = 10 // Default starting member limit
-        if (progression != null) {
-            for (level in 1..progression.currentLevel) {
-                val members = levelRewards[level]?.members ?: 10
-                if (members > maxMembers) maxMembers = members
-            }
-        }
+        val maxMembers = getMemberLimit(guildId)
         if (currentMemberCount >= maxMembers) {
             logger.warn("Guild $guildId has reached member limit: $currentMemberCount/$maxMembers")
             return null

@@ -9,7 +9,6 @@ import net.lumalyte.lg.domain.entities.Guild
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -54,6 +53,8 @@ class DailyWarCostsServiceBukkit(
                     val currentBalance = bankService.getBalance(guildId)
                     if (currentBalance >= moneyCost) {
                         val success = bankService.deductFromGuildBank(
+                            UUID.nameUUIDFromBytes("daily-war:$guildId:${LocalDate.now(java.time.ZoneOffset.UTC)}"
+                                .toByteArray(java.nio.charset.StandardCharsets.UTF_8)),
                             guildId,
                             moneyCost,
                             "Daily war costs"
@@ -84,8 +85,8 @@ class DailyWarCostsServiceBukkit(
         val lastApplied = lastCostsApplied[guildId]
         if (lastApplied == null) return false
 
-        val lastAppliedDate = lastApplied.atZone(ZoneId.systemDefault()).toLocalDate()
-        val today = LocalDate.now()
+        val lastAppliedDate = lastApplied.atZone(java.time.ZoneOffset.UTC).toLocalDate()
+        val today = LocalDate.now(java.time.ZoneOffset.UTC)
 
         return lastAppliedDate == today
     }

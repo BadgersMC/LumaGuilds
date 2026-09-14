@@ -8,6 +8,9 @@ import java.util.UUID
  * Service interface for managing member operations.
  */
 interface MemberService {
+    /** Same unlocked capacity enforced by addMember; unknown implementations fail closed. */
+    fun getMemberLimit(guildId: UUID): Int = 0
+
     /**
      * Adds a player to a guild.
      *

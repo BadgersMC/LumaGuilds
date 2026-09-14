@@ -9,6 +9,16 @@ import java.util.UUID
  * Service interface for guild bank operations.
  */
 interface BankService {
+    /** Total player charge including the canonical deposit fee; null means unavailable/invalid. */
+    fun quoteJoinFee(guildId: UUID, amount: Int): Int? = null
+
+    /** One journaled payment and membership completion; callers must not debit the player separately. */
+    fun collectJoinFee(request: PersonalGoldRequest, physical: Boolean, admission: PaidGuildAdmission): net.lumalyte.lg.domain.gold.GuildGoldResult =
+        net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+
+    /** Settles a scheduled period using its durable identity, not a new ID on every scheduler retry. */
+    fun creditInterest(guildId: UUID, periodEndEpochMs: Long, rate: Double): net.lumalyte.lg.domain.gold.GuildGoldResult =
+        net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.EXTERNAL_UNAVAILABLE)
     fun getMaxPhysicalDeposit(guildId: UUID, playerId: UUID): Long = 0
 
     /** Physical payout with the same journal, limits, and uncertainty handling as personal transfers. */
