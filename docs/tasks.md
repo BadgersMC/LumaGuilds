@@ -396,6 +396,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Files: guild-gold domain/application service, Vault Economy adapter, physical currency adapter, bank/vault menus and listeners, persistence/audit, config validation
   - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only
   - Current: Task 6 is complete. Task 7 interest, daily war charging, physical system-cost routing, and operator-approved paid admission are implemented and verified. Remaining: war wager/refund retry identities, remaining system callers, and backup-restoration balance ownership; then Task 8 capability/config validation and the final clean-build/PR gate. LG-1209 remains in progress; no deployment or PR yet.
+  - Scope approval (2026-09-14): Operator approved durable war/wager persistence in this PR. Durable aggregate/repository foundation is complete: 8/8 repository tests, including database close/reopen, stale writers, and corrupt payloads; full `gradlew test build` passes 874/874, zero skipped. Payment orchestration and live war-service migration remain in progress. SQLite tested; MariaDB execution not yet verified. See `docs/superpowers/plans/2026-09-14-durable-war-payments.md`.
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 
