@@ -26,7 +26,7 @@ internal object WarRecordCodec {
         val root = JsonParser.parseString(payload).asJsonObject
         check(root.get("version")?.asString == "1") { "Unsupported war record version" }
         val json = root.getAsJsonObject("record")
-        check(json.keySet().containsAll(setOf("id", "revision", "declaration", "war", "stats", "wager",
+        check(json.keySet().containsAll(setOf("id", "revision", "fundingCycle", "declaration", "war", "stats", "wager",
             "paymentPhase", "settlementChosen", "settlementWinner", "paymentAttempts"))) { "Incomplete war record" }
         val raw = gson.fromJson(json, DurableWarRecord::class.java)
         // Gson can bypass Kotlin constructors. Re-enter constructors and enforce identity invariants.

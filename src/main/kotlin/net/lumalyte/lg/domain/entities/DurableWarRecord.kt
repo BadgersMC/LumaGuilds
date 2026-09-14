@@ -6,6 +6,7 @@ import java.util.UUID
 data class DurableWarRecord(
     val id: UUID,
     val revision: Long = 0,
+    val fundingCycle: Int = 1,
     val declaration: WarDeclaration? = null,
     val war: War? = null,
     val stats: WarStats? = null,
@@ -17,6 +18,7 @@ data class DurableWarRecord(
 ) {
     init {
         require(revision >= 0)
+        require(fundingCycle >= 1)
         require(declaration != null || war != null)
         require(declaration == null || declaration.id == id)
         require(war == null || war.id == id)
