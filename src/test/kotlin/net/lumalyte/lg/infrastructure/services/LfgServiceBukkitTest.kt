@@ -12,6 +12,10 @@ import net.lumalyte.lg.application.services.LfgJoinResult
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.application.services.RankService
+import net.lumalyte.lg.application.services.PaidGuildAdmission
+import net.lumalyte.lg.application.services.PersonalGoldRequest
+import net.lumalyte.lg.domain.gold.GuildGoldResult
+import net.lumalyte.lg.domain.gold.GuildGoldRejection
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.config.GuildConfig
@@ -122,6 +126,19 @@ class LfgServiceBukkitTest {
             joinFeeEnabled = true,
             joinFeeAmount = 500
         )
+        every { memberService.getMemberLimit(any()) } returns 50
+        every { bankService.quoteJoinFee(any(), any()) } answers { secondArg<Int>() }
+        every { guildRepository.getById(any()) } answers {
+            listOf(openGuild, closedGuild, fullGuild, openGuildWithFee).find { it.id == firstArg<UUID>() }
+        }
+        every { rankService.getDefaultRank(any()) } answers { defaultRank.copy(guildId = firstArg()) }
+        every { bankService.collectJoinFee(any(), any(), any()) } answers {
+            val request = firstArg<PersonalGoldRequest>()
+            val admission = thirdArg<PaidGuildAdmission>()
+            if (!admission.isEligible()) GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
+            else if (!admission.complete()) GuildGoldResult.Failed(request.transactionId, false)
+            else GuildGoldResult.Applied(request.transactionId, 0, request.amount, 0)
+        }
     }
 
     // ===== getAvailableGuilds Tests =====
@@ -660,7 +677,7 @@ class LfgServiceBukkitTest {
     }
 
     @Test
-    fun `joinGuild should collect physical currency and add to guild vault`() {
+    fun `joinGuild should use one canonical physical admission payment`() {
         // Given: Physical currency config
         val config = MainConfig(
             guild = GuildConfig(maxMembersPerGuild = 50),
@@ -677,14 +694,16 @@ class LfgServiceBukkitTest {
         every { physicalCurrencyService.calculatePlayerInventoryValue(playerId) } returns 600
         every { rankService.getDefaultRank(openGuildWithFee.id) } returns guildDefaultRank
         every { memberService.addMember(playerId, openGuildWithFee.id, guildDefaultRank.id) } returns newMember
-        every { physicalCurrencyService.addCurrency(openGuildWithFee, 500, any()) } returns true
 
         // When: Join the guild with 500 fee
         val result = lfgService.joinGuild(playerId, openGuildWithFee)
 
-        // Then: Should succeed and add currency to vault
+        // The bank owns payment and invokes membership completion only after crediting.
         assertTrue(result is LfgJoinResult.Success)
-        verify { physicalCurrencyService.addCurrency(openGuildWithFee, 500, any()) }
+        verify(exactly = 1) { bankService.collectJoinFee(match {
+            it.guildId == openGuildWithFee.id && it.playerId == playerId && it.amount == 500L
+        }, true, any()) }
+        verify(exactly = 0) { physicalCurrencyService.addCurrency(any(), any(), any()) }
         verify { memberService.addMember(playerId, openGuildWithFee.id, guildDefaultRank.id) }
     }
 
@@ -728,8 +747,6 @@ class LfgServiceBukkitTest {
         every { memberService.getPlayerGuilds(playerId) } returns emptySet()
         every { memberService.getMemberCount(openGuildWithFee.id) } returns 10
         every { bankService.getPlayerBalance(playerId) } returns 1000
-        every { bankService.withdrawPlayer(playerId, 500, any()) } returns true
-        every { bankService.deposit(openGuildWithFee.id, playerId, 500, any()) } returns mockk()
         every { rankService.getDefaultRank(openGuildWithFee.id) } returns guildDefaultRank
         every { memberService.addMember(playerId, openGuildWithFee.id, guildDefaultRank.id) } returns newMember
 
@@ -738,8 +755,11 @@ class LfgServiceBukkitTest {
 
         // Then: Should succeed and transfer currency
         assertTrue(result is LfgJoinResult.Success)
-        verify { bankService.withdrawPlayer(playerId, 500, any()) }
-        verify { bankService.deposit(openGuildWithFee.id, playerId, 500, any()) }
+        verify(exactly = 1) { bankService.collectJoinFee(match {
+            it.guildId == openGuildWithFee.id && it.playerId == playerId && it.amount == 500L
+        }, false, any()) }
+        verify(exactly = 0) { bankService.withdrawPlayer(any(), any(), any()) }
+        verify(exactly = 0) { bankService.deposit(any(), any(), any(), any()) }
         verify { memberService.addMember(playerId, openGuildWithFee.id, guildDefaultRank.id) }
     }
 

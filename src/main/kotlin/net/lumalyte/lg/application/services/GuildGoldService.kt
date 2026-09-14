@@ -31,6 +31,12 @@ class GuildGoldService(
 ) {
     fun balance(guildId: UUID): Long = repository.getBalance(guildId)
 
+    fun depositCost(guildId: UUID, amount: Long): Long? {
+        val policy = policyProvider.policyFor(guildId)
+        if (amount <= 0 || amount < policy.minDeposit || amount > policy.maxDeposit) return null
+        return exactAdd(amount, GuildGoldCalculator.depositFee(policy, amount))
+    }
+
     fun topBalances(limit: Int): List<Pair<UUID, Long>> = repository.getTopBalances(limit)
 
     /** Largest deposit affordable from physical inventory, including fees and bank headroom. */
@@ -93,6 +99,32 @@ class GuildGoldService(
         return repository.apply(mutation, capacity(guildId), periodStartEpochMs = null)
     }
 
+    fun creditInterest(guildId: UUID, periodEndEpochMs: Long, rate: Double): GuildGoldResult {
+        val transactionId = UUID.nameUUIDFromBytes(
+            "interest:$guildId:$periodEndEpochMs".toByteArray(StandardCharsets.UTF_8))
+        // Reuse the recorded result before recomputing from a balance that already includes this interest.
+        repository.findOperation(transactionId)?.let { record ->
+            if (record.mutation.guildId != guildId || record.mutation.route != GuildGoldRoute.INTEREST) {
+                return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
+            }
+            return when (record.status) {
+                net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.APPLIED -> GuildGoldResult.Applied(
+                    transactionId, requireNotNull(record.oldBalance), requireNotNull(record.newBalance), record.mutation.fee)
+                net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.REJECTED ->
+                    GuildGoldResult.Rejected(record.rejection ?: GuildGoldRejection.EXTERNAL_REJECTED)
+                else -> GuildGoldResult.Failed(transactionId, false)
+            }
+        }
+        if (!rate.isFinite() || rate < 0 || periodEndEpochMs <= 0) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
+        }
+        val current = balance(guildId)
+        val amount = (current.toDouble() * rate).toLong()
+        validateCommon(guildId, maxOf(1, amount))?.let { return it }
+        if (amount == 0L) return GuildGoldResult.Applied(transactionId, current, current, 0)
+        return creditSystem(transactionId, guildId, UUID(0, 0), amount, GuildGoldRoute.INTEREST, "Interest accrual")
+    }
+
     fun debitSystem(
         transactionId: UUID,
         guildId: UUID,
@@ -112,6 +144,65 @@ class GuildGoldService(
             description = reason
         )
         return repository.apply(mutation, capacity(guildId), periodStartEpochMs = null)
+    }
+
+    /** Recruitment admission substitutes for member bank permission, without bypassing money policy. */
+    fun collectJoinFee(request: PersonalGoldRequest, physical: Boolean, admission: PaidGuildAdmission): GuildGoldResult {
+        return try {
+            collectAdmissionPayment(request, physical, admission)
+        } catch (_: Exception) {
+            // A provider or membership action may have persisted before throwing. Never retry/refund blindly.
+            GuildGoldResult.Failed(request.transactionId, false)
+        }
+    }
+
+    private fun collectAdmissionPayment(request: PersonalGoldRequest, physical: Boolean, admission: PaidGuildAdmission): GuildGoldResult {
+        if (!admission.isEligible()) return GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
+        if (!physical && !personalEconomy.isAvailable()) return GuildGoldResult.Rejected(GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+        validateCommon(request.guildId, request.amount)?.let { return it }
+        val policy = policyProvider.policyFor(request.guildId)
+        if (request.amount < policy.minDeposit || request.amount > policy.maxDeposit) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
+        }
+        suspicious(request.guildId, request.playerId, request.amount, request.description)?.let { return it }
+        if (wouldExceedCapacity(request.guildId, request.amount)) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.CAPACITY_EXCEEDED)
+        }
+        val fee = GuildGoldCalculator.depositFee(policy, request.amount)
+        val total = exactAdd(request.amount, fee) ?: return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
+        val mutation = personalMutation(request, GuildGoldDirection.CREDIT, fee).copy(
+            route = if (physical) GuildGoldRoute.PHYSICAL_ITEM else GuildGoldRoute.PERSONAL_ACCOUNT)
+        existingResultOrPrepare(mutation)?.let { return it }
+
+        var reservation: PhysicalGoldReservation? = null
+        if (physical) {
+            when (val reserved = physicalGold.reserve(request.playerId, total)) {
+                is PhysicalReservationResult.Reserved -> reservation = reserved.reservation
+                PhysicalReservationResult.Insufficient -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_REJECTED)
+                PhysicalReservationResult.Unavailable -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+            }
+        } else {
+            when (personalEconomy.debit(request.playerId, total)) {
+                ExternalTransferResult.Applied -> Unit
+                ExternalTransferResult.Unavailable -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+                is ExternalTransferResult.Rejected -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_REJECTED)
+                is ExternalTransferResult.Failed -> return GuildGoldResult.Failed(request.transactionId, false)
+            }
+        }
+
+        val applied = repository.applyExternalCredit(mutation, capacity(request.guildId))
+        if (applied is GuildGoldResult.Rejected) {
+            // Only a definitive rejection proves the bank was not credited and permits a refund.
+            repository.recordCompensation(request.transactionId, false, "Admission credit rejected; refund pending")
+            val restored = reservation?.let(physicalGold::restore)
+                ?: (personalEconomy.credit(request.playerId, total) is ExternalTransferResult.Applied)
+            repository.recordCompensation(request.transactionId, restored, "Admission credit rejected; payment refund")
+            return GuildGoldResult.Failed(request.transactionId, restored)
+        }
+        if (applied !is GuildGoldResult.Applied) return GuildGoldResult.Failed(request.transactionId, false)
+        if (reservation != null && !physicalGold.commit(reservation)) return GuildGoldResult.Failed(request.transactionId, false)
+        if (!admission.isEligible() || !admission.complete()) return GuildGoldResult.Failed(request.transactionId, false)
+        return completeExternal(request.transactionId, applied)
     }
 
     fun depositPersonal(request: PersonalGoldRequest): GuildGoldResult {

@@ -392,10 +392,10 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [~] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
   - Tag: `TDD`
   - References: REQ-009, REQ-054, REQ-092, REQ-093
-  - Evidence: 2026-09-13 full regression: 851/851 passing, including both Task 6 ownership checks, dragged-deposit acceptance/rejection/disconnect, canonical cache/leaderboard reads, and the PR #142 payout regressions.
+  - Evidence: 2026-09-14 `gradlew test build`: 866/866 passing, zero skipped. Includes Task 6 ownership/cache/menu checks, PR #142 payout regressions, period-keyed interest, restart-safe daily war charges, and paid LFG admission (physical/personal, membership failure, provider uncertainty, fee-inclusive quote, unlocked capacity). Semgrep still identifies the backup-restoration balance write for remaining Task 7 work.
   - Files: guild-gold domain/application service, Vault Economy adapter, physical currency adapter, bank/vault menus and listeners, persistence/audit, config validation
   - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only
-  - Current: Task 6 menu/facade and vault-cache routing is complete. Dragged deposits reserve through the shared adapter and return unspent items; disconnect cancels safely. Inventory-manager currency mutation APIs and gold write buffering are removed. Next: Task 7 stable system-operation IDs and backup-restoration balance ownership, followed by Task 8 capability/config validation and the final deployment gate. LG-1209 remains in progress; no deployment yet.
+  - Current: Task 6 is complete. Task 7 interest, daily war charging, physical system-cost routing, and operator-approved paid admission are implemented and verified. Remaining: war wager/refund retry identities, remaining system callers, and backup-restoration balance ownership; then Task 8 capability/config validation and the final clean-build/PR gate. LG-1209 remains in progress; no deployment or PR yet.
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 

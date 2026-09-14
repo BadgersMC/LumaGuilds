@@ -10,6 +10,9 @@ import net.lumalyte.lg.application.services.LfgService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.application.services.RankService
+import net.lumalyte.lg.application.services.PaidGuildAdmission
+import net.lumalyte.lg.application.services.PersonalGoldRequest
+import net.lumalyte.lg.domain.gold.GuildGoldResult
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.values.JoinRequirement
 import org.slf4j.LoggerFactory
@@ -40,14 +43,14 @@ class LfgServiceBukkit(
                 // Must be open for recruitment
                 guild.isOpen &&
                 // Must have available slots
-                memberService.getMemberCount(guild.id) < maxMembers
+                memberService.getMemberCount(guild.id) < minOf(maxMembers, memberService.getMemberLimit(guild.id))
             }
             .sortedBy { it.name.lowercase() }
     }
 
     override fun canJoinGuild(playerId: UUID, guild: Guild): LfgJoinResult {
         val config = configService.loadConfig()
-        val maxMembers = config.guild.maxMembersPerGuild
+        val maxMembers = minOf(config.guild.maxMembersPerGuild, memberService.getMemberLimit(guild.id))
 
         // Check if player is already in a guild
         val playerGuilds = memberService.getPlayerGuilds(playerId)
@@ -64,13 +67,15 @@ class LfgServiceBukkit(
         // Check join fee requirements
         if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
             val vaultConfig = config.vault
+            val charge = bankService.quoteJoinFee(guild.id, guild.joinFeeAmount)
+                ?: return LfgJoinResult.Error("Join fee is not supported by the current bank limits")
 
             if (vaultConfig.usePhysicalCurrency) {
                 // Check physical currency
                 val playerCurrency = physicalCurrencyService.calculatePlayerInventoryValue(playerId)
-                if (playerCurrency < guild.joinFeeAmount) {
+                if (playerCurrency < charge) {
                     return LfgJoinResult.InsufficientFunds(
-                        required = guild.joinFeeAmount,
+                        required = charge,
                         current = playerCurrency,
                         currencyType = vaultConfig.physicalCurrencyMaterial
                     )
@@ -78,9 +83,9 @@ class LfgServiceBukkit(
             } else {
                 // Check virtual currency
                 val playerBalance = bankService.getPlayerBalance(playerId)
-                if (playerBalance < guild.joinFeeAmount) {
+                if (playerBalance < charge) {
                     return LfgJoinResult.InsufficientFunds(
-                        required = guild.joinFeeAmount,
+                        required = charge,
                         current = playerBalance,
                         currencyType = "Coins"
                     )
@@ -91,7 +96,16 @@ class LfgServiceBukkit(
         return LfgJoinResult.Success("You can join this guild")
     }
 
+    @Synchronized
     override fun joinGuild(playerId: UUID, guild: Guild): LfgJoinResult {
+        val currentGuild = guildRepository.getById(guild.id)
+            ?: return LfgJoinResult.Error("This guild is no longer available")
+        if (!currentGuild.isOpen || currentGuild.joinFeeEnabled != guild.joinFeeEnabled ||
+            currentGuild.joinFeeAmount != guild.joinFeeAmount) {
+            return LfgJoinResult.Error("Guild recruitment changed. Please reopen the guild browser")
+        }
+        val defaultRank = rankService.getDefaultRank(guild.id)
+            ?: return LfgJoinResult.Error("Guild configuration error: No default rank found")
         // First validate that the player can join
         val canJoinResult = canJoinGuild(playerId, guild)
         if (canJoinResult !is LfgJoinResult.Success) {
@@ -103,50 +117,29 @@ class LfgServiceBukkit(
 
         // Process join fee if applicable
         if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
-            if (vaultConfig.usePhysicalCurrency) {
-                // Add physical currency to guild vault
-                // Note: The player's inventory will be deducted separately when they confirm
-                val success = physicalCurrencyService.addCurrency(
-                    guild = guild,
-                    amount = guild.joinFeeAmount,
-                    reason = "LFG join fee from player"
-                )
-                if (!success) {
-                    logger.warn("Failed to add physical currency to guild vault for join fee")
-                    return LfgJoinResult.Error("Failed to process join fee")
+            val request = PersonalGoldRequest(UUID.randomUUID(), guild.id, playerId,
+                guild.joinFeeAmount.toLong(), "LFG join fee")
+            val result = bankService.collectJoinFee(request, vaultConfig.usePhysicalCurrency, object : PaidGuildAdmission {
+                override fun isEligible(): Boolean {
+                    val latest = guildRepository.getById(guild.id) ?: return false
+                    return latest.isOpen && latest.joinFeeEnabled == guild.joinFeeEnabled &&
+                        latest.joinFeeAmount == guild.joinFeeAmount &&
+                        memberService.getPlayerGuilds(playerId).isEmpty() &&
+                        memberService.getMemberCount(guild.id) < minOf(configService.loadConfig().guild.maxMembersPerGuild,
+                            memberService.getMemberLimit(guild.id)) &&
+                        rankService.getDefaultRank(guild.id)?.id == defaultRank.id
                 }
-            } else {
-                // Virtual currency: withdraw from player and deposit to guild
-                val withdrawSuccess = bankService.withdrawPlayer(
-                    playerId = playerId,
-                    amount = guild.joinFeeAmount,
-                    reason = "LFG join fee for ${guild.name}"
-                )
-                if (!withdrawSuccess) {
-                    logger.warn("Failed to withdraw virtual currency from player for join fee")
-                    return LfgJoinResult.Error("Failed to process join fee")
-                }
-
-                val depositResult = bankService.deposit(
-                    guildId = guild.id,
-                    playerId = playerId,
-                    amount = guild.joinFeeAmount,
-                    description = "LFG join fee"
-                )
-                if (depositResult == null) {
-                    logger.warn("Failed to deposit join fee to guild bank")
-                    // Refund the player
-                    bankService.depositPlayer(playerId, guild.joinFeeAmount, "Refund: Failed guild join")
-                    return LfgJoinResult.Error("Failed to process join fee")
+                override fun complete(): Boolean = memberService.addMember(playerId, guild.id, defaultRank.id) != null
+            })
+            return when (result) {
+                is GuildGoldResult.Applied -> LfgJoinResult.Success("You have joined ${guild.name}!")
+                is GuildGoldResult.Rejected -> LfgJoinResult.Error("Join fee was not accepted (${result.reason})")
+                is GuildGoldResult.Failed -> {
+                    logger.error("Paid guild admission ${result.transactionId} did not complete; compensated=${result.compensationSucceeded}")
+                    LfgJoinResult.Error(if (result.compensationSucceeded) "Join failed; your payment was returned"
+                        else "Join payment requires staff review. Do not pay again. Reference: ${result.transactionId}")
                 }
             }
-        }
-
-        // Get the default rank for new members
-        val defaultRank = rankService.getDefaultRank(guild.id)
-        if (defaultRank == null) {
-            logger.error("No default rank found for guild ${guild.id}")
-            return LfgJoinResult.Error("Guild configuration error: No default rank found")
         }
 
         // Add the player as a member
@@ -171,13 +164,13 @@ class LfgServiceBukkit(
 
         return if (vaultConfig.usePhysicalCurrency) {
             JoinRequirement(
-                amount = guild.joinFeeAmount,
+                amount = bankService.quoteJoinFee(guild.id, guild.joinFeeAmount) ?: guild.joinFeeAmount,
                 isPhysicalCurrency = true,
                 currencyName = vaultConfig.physicalCurrencyMaterial
             )
         } else {
             JoinRequirement(
-                amount = guild.joinFeeAmount,
+                amount = bankService.quoteJoinFee(guild.id, guild.joinFeeAmount) ?: guild.joinFeeAmount,
                 isPhysicalCurrency = false,
                 currencyName = "Coins"
             )

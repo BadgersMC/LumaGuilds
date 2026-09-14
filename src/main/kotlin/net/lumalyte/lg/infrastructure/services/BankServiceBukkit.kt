@@ -134,6 +134,43 @@ class BankServiceBukkit(
         return getEconomy()?.javaClass?.simpleName ?: "None"
     }
 
+    override fun quoteJoinFee(guildId: UUID, amount: Int): Int? =
+        goldService.depositCost(guildId, amount.toLong())?.takeIf { it <= Int.MAX_VALUE }?.toInt()
+
+    override fun collectJoinFee(request: net.lumalyte.lg.application.services.PersonalGoldRequest,
+        physical: Boolean, admission: net.lumalyte.lg.application.services.PaidGuildAdmission): net.lumalyte.lg.domain.gold.GuildGoldResult {
+        return try {
+            if (request.amount <= 0 || request.amount > Int.MAX_VALUE) {
+                return net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.INVALID_AMOUNT)
+            }
+            if (guildRepository.getById(request.guildId)?.bankFrozen == true) {
+                return net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.FROZEN)
+            }
+            legacyPendingPayout(request.guildId)?.let { return net.lumalyte.lg.domain.gold.GuildGoldResult.Failed(it, false) }
+            val result = goldService.collectJoinFee(request, physical, admission)
+            if (result is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied) {
+                recordCanonicalHistory(canonicalTransaction(result, request.guildId, request.playerId,
+                    request.amount.toInt(), request.description, TransactionType.DEPOSIT))
+            }
+            result
+        } catch (error: Exception) {
+            logger.error("Paid admission ${request.transactionId} requires inspection", error)
+            net.lumalyte.lg.domain.gold.GuildGoldResult.Failed(request.transactionId, false)
+        }
+    }
+
+    override fun creditInterest(guildId: UUID, periodEndEpochMs: Long, rate: Double): net.lumalyte.lg.domain.gold.GuildGoldResult {
+        if (guildRepository.getById(guildId)?.bankFrozen == true) {
+            return net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.FROZEN)
+        }
+        val result = goldService.creditInterest(guildId, periodEndEpochMs, rate)
+        if (result is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied && result.newBalance > result.oldBalance) {
+            recordCanonicalHistory(canonicalTransaction(result, guildId, SYSTEM_ACTOR,
+                Math.toIntExact(result.newBalance - result.oldBalance), "Interest accrual", TransactionType.DEPOSIT))
+        }
+        return result
+    }
+
     override fun getMaxPhysicalDeposit(guildId: UUID, playerId: UUID): Long =
         goldService.maximumPhysicalDeposit(guildId, playerId).coerceAtMost(Int.MAX_VALUE.toLong())
 

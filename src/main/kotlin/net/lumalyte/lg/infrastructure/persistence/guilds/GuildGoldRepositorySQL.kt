@@ -141,6 +141,11 @@ class GuildGoldRepositorySQL(
         periodStartEpochMs: Long
     ): GuildGoldResult = applyWithStatus(mutation, capacity, periodStartEpochMs, GuildGoldOperationStatus.BALANCE_APPLIED)
 
+    override fun applyExternalCredit(mutation: GuildGoldMutation, capacity: Long): GuildGoldResult {
+        require(mutation.direction == GuildGoldDirection.CREDIT)
+        return applyWithStatus(mutation, capacity, null, GuildGoldOperationStatus.BALANCE_APPLIED)
+    }
+
     private fun applyWithStatus(
         mutation: GuildGoldMutation,
         capacity: Long,
