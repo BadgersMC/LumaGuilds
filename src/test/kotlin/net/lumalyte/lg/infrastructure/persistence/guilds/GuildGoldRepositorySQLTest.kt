@@ -40,6 +40,24 @@ class GuildGoldRepositorySQLTest {
     }
 
     @Test
+    fun `external debit replay changes balance and usage only once`() {
+        repository.apply(mutation(UUID.randomUUID(), GuildGoldDirection.CREDIT, 600), 1_000, null)
+        val debit = mutation(UUID.randomUUID(), GuildGoldDirection.DEBIT, 100)
+        val first = repository.applyExternalDebit(debit, 1_000, 123L)
+        assertEquals(first, repository.applyExternalDebit(debit, 1_000, 123L))
+        assertEquals(500, repository.getBalance(guildId))
+        assertEquals(100, repository.getDailyWithdrawn(guildId, 123L))
+    }
+
+    @Test
+    fun `external credit replay changes balance only once`() {
+        val credit = mutation(UUID.randomUUID(), GuildGoldDirection.CREDIT, 100)
+        val first = repository.applyExternalCredit(credit, 1_000)
+        assertEquals(first, repository.applyExternalCredit(credit, 1_000))
+        assertEquals(100, repository.getBalance(guildId))
+    }
+
+    @Test
     fun `duplicate transaction id returns original result without applying twice`() {
         val transactionId = UUID.randomUUID()
         val mutation = mutation(transactionId, GuildGoldDirection.CREDIT, 600)

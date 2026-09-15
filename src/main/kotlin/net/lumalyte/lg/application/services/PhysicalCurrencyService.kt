@@ -33,11 +33,11 @@ interface PhysicalCurrencyService {
     fun getItemValue(): Int
 
     /**
-     * Calculates the total physical currency value in a guild's vault.
-     * Counts all items matching the configured currency material.
+     * Returns the canonical guild gold balance used for guild purchases.
+     * Ordinary vault items are independent and are not counted here.
      *
-     * @param guild The guild whose vault to check.
-     * @return Total currency value in the vault.
+     * @param guild The guild whose balance to check.
+     * @return Canonical guild balance in raw-gold-equivalent units.
      */
     fun calculateVaultCurrencyValue(guild: Guild): Int
 

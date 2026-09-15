@@ -207,7 +207,7 @@ SPEAR implementation proceeds requirement by requirement with a failing test fir
 - both-guild-level-100 eligibility and unordered seven-day pair guard;
 - restart-safe chapter transitions and failure recovery at every state;
 - verified-backup requirement and immutable archived standings;
-- migration preservation, clamping, no legacy-XP-to-Elo conversion, dry run, and retry;
+- migration reset of current-run level and XP, preservation of required legacy fields, no legacy-XP-to-Elo conversion, dry run, and retry;
 - SQLite/MariaDB repository parity and architecture boundary tests.
 
 ## 12. Rollout and observability

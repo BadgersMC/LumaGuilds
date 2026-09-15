@@ -36,6 +36,16 @@ data class DurableWarRecord(
             require(it.totalPot.toLong() == it.declaringGuildWager.toLong() + it.defendingGuildWager.toLong())
         }
         require((wager == null) == (paymentPhase == null))
+        if (paymentPhase == WarPaymentPhase.SETTLED) {
+            requireNotNull(wager)
+            require(wager.resolvedAt != null)
+            when (wager.status) {
+                WagerStatus.WON -> require(settlementChosen && settlementWinner != null && wager.winnerGuildId == settlementWinner)
+                WagerStatus.DRAW -> require(settlementChosen && settlementWinner == null && wager.winnerGuildId == null)
+                WagerStatus.CANCELLED -> require(!settlementChosen && settlementWinner == null && wager.winnerGuildId == null)
+                WagerStatus.ESCROWED -> error("Settled war cannot retain an unpaid escrow wager")
+            }
+        }
         require(settlementWinner == null || (settlementChosen && settlementWinner in setOf(first, second)))
         require(paymentAttempts.all { (leg, attempt) -> leg.isNotBlank() && attempt >= 1 })
     }

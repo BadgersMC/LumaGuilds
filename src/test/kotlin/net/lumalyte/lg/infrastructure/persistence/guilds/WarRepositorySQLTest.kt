@@ -91,6 +91,16 @@ class WarRepositorySQLTest {
         assertFailsWith<IllegalStateException> { WarRepositorySQL(storage).getAll() }
     }
 
+    @Test fun `settled phase cannot decode an unpaid escrow wager`() {
+        val original = record()
+        assertTrue(repository.save(original))
+        storage.connection.executeUpdate(
+            "UPDATE guild_war_records SET payload = replace(replace(payload, ?, ?), ?, ?) WHERE war_id = ?",
+            "\"paymentPhase\":\"ESCROWED\"", "\"paymentPhase\":\"SETTLED\"",
+            "\"settlementChosen\":false", "\"settlementChosen\":true", original.id.toString())
+        assertFailsWith<IllegalStateException> { repository.get(original.id) }
+    }
+
     @Test fun `unsupported stored format is rejected`() {
         val original = record()
         assertTrue(repository.save(original))
