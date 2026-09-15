@@ -27,7 +27,8 @@ class GuildGoldService(
     private val authorization: GuildGoldAuthorizationPort = GuildGoldAuthorizationPort.AllowAll,
     private val personalEconomy: PersonalEconomyPort = PersonalEconomyPort.Unavailable,
     private val physicalGold: PhysicalGoldPort = PhysicalGoldPort.Unavailable,
-    private val periodStartProvider: () -> Long = { 0L }
+    private val periodStartProvider: () -> Long = { 0L },
+    private val additionalFrozen: (UUID) -> Boolean = { false }
 ) {
     fun balance(guildId: UUID): Long = repository.getBalance(guildId)
 
@@ -501,7 +502,9 @@ class GuildGoldService(
 
     private fun validateCommon(guildId: UUID, amount: Long): GuildGoldResult.Rejected? {
         if (amount <= 0) return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
-        if (repository.isFrozen(guildId)) return GuildGoldResult.Rejected(GuildGoldRejection.FROZEN)
+        if (repository.isFrozen(guildId) || additionalFrozen(guildId)) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.FROZEN)
+        }
         return null
     }
 }

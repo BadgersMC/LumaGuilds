@@ -49,11 +49,11 @@ API: `fund(recordId: UUID): Boolean`, `settle(recordId: UUID, winnerGuildId: UUI
 - [x] Test that a database marker failure after a successful payment replays the recorded payment and never transfers twice. Audit rows retain complete war ID and operation kind.
 - [x] Focused payment/storage tests and full `gradlew test build` pass. Nine payment tests include lost commit replies, failed funded/settled markers, and recovery through recreated services. Runtime integration remains Task 3.
 
-## Task 3: War-service integration and recovery
+## Task 3: War-service integration and recovery [~]
 
 Files: `infrastructure/services/WarServiceBukkit.kt`, `di/Modules.kt`, `WarConfigEnforcementTest.kt`, new `WarRestartRecoveryTest.kt`, and `docs/tasks.md`.
 
-- [ ] Write a failing declaration→acceptance→restart test using real SQLite; assert identical war ID, active status, statistics and escrow, then settle and restart again without another payout.
+- [x] Write a failing declaration→acceptance→restart test using real SQLite; assert identical war ID, active status, statistics and escrow, then settle and restart again without another payout.
 - [ ] Replace authoritative maps for declarations/wars/statistics/wagers with repository reads and revision-checked updates. Use declaration ID as stable war identity. Preserve completed records for history. Persist the chosen result before scheduling settlement; cancellation records a refund outcome. Keep notifications after durable transitions.
 - [ ] Wire exactly one SQL repository and payment service. Recovery reads unresolved records and resumes only safe journaled work. Corrupt or unavailable storage must fail initialization rather than expose an empty registry. Preserve anti-farming/peace state needed by restored active wars; test these at the integration boundary.
 - [ ] Prove the runtime payment path honors both legacy `Guild.bankFrozen` and canonical freeze state before submitting new money movements, while journal-confirmed replays may finish their state marker. The current BankService facade performs the legacy check; do not bypass it when binding the new payment service.
