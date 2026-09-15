@@ -47,6 +47,17 @@ class GuildGoldServiceTest {
     }
 
     @Test
+    fun `zero interest period remains completed after balance increases and service restarts`() {
+        val first = service.creditInterest(guildId, 123L, 0.01)
+        assertTrue(first is GuildGoldResult.Applied)
+        service.creditSystem(UUID.randomUUID(), guildId, actorId, 600, GuildGoldRoute.SYSTEM, "deposit")
+        val restarted = GuildGoldService(GuildGoldRepositorySQL(storage), GuildGoldPolicyProvider { policy },
+            GuildGoldCapacityProvider { capacity })
+        assertEquals(first, restarted.creditInterest(guildId, 123L, 0.01))
+        assertEquals(600, restarted.balance(guildId))
+    }
+
+    @Test
     fun `system credit changes canonical balance and records its transaction`() {
         val transactionId = UUID.randomUUID()
 

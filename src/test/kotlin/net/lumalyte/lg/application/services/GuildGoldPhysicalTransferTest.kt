@@ -163,6 +163,7 @@ class GuildGoldPhysicalTransferTest {
         physical.deliverThenFail = true
         val first = request(amount = 100)
         assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPhysical(first))
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPhysical(first))
         assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPhysical(request(amount = 100)))
         assertEquals(listOf(100L), physical.deliveredValues)
         assertEquals(398, service.balance(guildId))
