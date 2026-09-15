@@ -36,6 +36,15 @@ data class DurableWarRecord(
             require(it.totalPot.toLong() == it.declaringGuildWager.toLong() + it.defendingGuildWager.toLong())
         }
         require((wager == null) == (paymentPhase == null))
+        when (paymentPhase) {
+            null -> require(!settlementChosen && paymentAttempts.isEmpty())
+            WarPaymentPhase.FUNDING, WarPaymentPhase.ESCROWED, WarPaymentPhase.REFUNDING -> require(!settlementChosen)
+            WarPaymentPhase.SETTLING -> require(settlementChosen)
+            WarPaymentPhase.SETTLED, WarPaymentPhase.REVIEW -> Unit
+        }
+        if (wager != null && paymentPhase != WarPaymentPhase.SETTLED) {
+            require(wager.status == WagerStatus.ESCROWED && wager.resolvedAt == null && wager.winnerGuildId == null)
+        }
         if (paymentPhase == WarPaymentPhase.SETTLED) {
             requireNotNull(wager)
             require(wager.resolvedAt != null)

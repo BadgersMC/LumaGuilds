@@ -24,6 +24,7 @@ class WarPaymentServiceTest {
     private val first = UUID.randomUUID()
     private val second = UUID.randomUUID()
     private var secondCapacity = 2_000L
+    private var secondCreditLimit = 2_000L
 
     @BeforeEach fun setup() {
         storage = VirtualThreadSQLiteStorage(directory.toFile())
@@ -36,7 +37,7 @@ class WarPaymentServiceTest {
     @AfterEach fun cleanup() { storage.connection.close() }
 
     private fun goldService(repository: GuildGoldRepository) = GuildGoldService(repository,
-        GuildGoldPolicyProvider { GuildGoldPolicy(1, 2_000, 1.0, 2_000, 0.0, 0.0, 0, 0, 2_000, 3_000, false) },
+        GuildGoldPolicyProvider { GuildGoldPolicy(1, if (it == second) secondCreditLimit else 2_000, 1.0, 2_000, 0.0, 0.0, 0, 0, 2_000, 3_000, false) },
         GuildGoldCapacityProvider { GuildGoldCapacity(if (it == second) secondCapacity else 2_000, 0) })
 
     private fun seed(guild: UUID, amount: Long) {
@@ -64,6 +65,20 @@ class WarPaymentServiceTest {
         assertTrue(WarPaymentService(WarRepositorySQL(storage), gold).settle(id, first))
         assertEquals(1_100, gold.balance(first))
         assertEquals(900, gold.balance(second))
+    }
+
+    @Test fun `combined pot exceeding either winner credit limit never takes escrow`() {
+        seed(second, 1_000)
+        val id = pending()
+        secondCreditLimit = 150 // Each 100 wager fits, but the 200 winner payout does not.
+        assertFalse(WarPaymentService(wars, gold).fund(id))
+        assertEquals(1_000, gold.balance(first))
+        assertEquals(1_000, gold.balance(second))
+        secondCreditLimit = 200
+        assertTrue(WarPaymentService(wars, gold).fund(id))
+        assertTrue(WarPaymentService(wars, gold).settle(id, second))
+        assertEquals(900, gold.balance(first))
+        assertEquals(1_100, gold.balance(second))
     }
 
     @Test fun `partial draw refund retries only the unpaid guild when capacity becomes available`() {

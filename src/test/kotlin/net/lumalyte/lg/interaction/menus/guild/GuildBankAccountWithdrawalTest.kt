@@ -246,6 +246,17 @@ internal class GuildBankAccountWithdrawalTest {
             UUID::class.java, String::class.java).apply { isAccessible = true }.invoke(listener, player, guildId, "Test")
         assertEquals(1_040, balance)
         assertEquals(0, player.inventory.storageContents.filterNotNull().sumOf { it.amount })
+        verify { lang.msg("menu.bank.feedback.deposit_success", "amount" to 40L) }
+    }
+
+    @Test fun canonicalSystemDebitRemainsAppliedWhenHistoryWriteThrows() {
+        every { history.recordTransaction(any()) } throws IllegalStateException("History unavailable")
+        val transaction = UUID.randomUUID()
+        assertTrue(bank.deductFromGuildBank(transaction, guildId, 100, "System cost"))
+        assertEquals(900, balance)
+        assertTrue(bank.deductFromGuildBank(transaction, guildId, 100, "System cost"))
+        assertEquals(900, balance)
+        verify(atLeast = 1) { history.recordTransaction(any()) }
     }
 
     @Test fun rejectedPayoutRefundsGuild() {

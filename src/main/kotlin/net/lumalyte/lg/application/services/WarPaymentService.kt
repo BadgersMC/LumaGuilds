@@ -28,6 +28,15 @@ class WarPaymentService(private val wars: WarRepository, private val gold: Guild
             WarPaymentPhase.FUNDING -> Unit
             else -> return false
         }
+        // Either guild may win. Validate the combined pot before taking either stake,
+        // not merely the two smaller debits. Changed policy during interrupted funding
+        // cancels that attempt and refunds only journal-confirmed debits.
+        if (!listOf(wager.declaringGuildId, wager.defendingGuildId).all {
+                gold.allowsSystemCreditAmount(it, wager.totalPot.toLong()) }) {
+            val latest = wars.get(id) ?: return false
+            if (saved(latest.copy(paymentPhase = WarPaymentPhase.REFUNDING)) != null) refundFunding(id)
+            return false
+        }
         for ((leg, guild, amount) in fundingLegs(record)) {
             when (transfer(id, leg, guild, amount, credit = false)) {
                 Step.APPLIED -> Unit
