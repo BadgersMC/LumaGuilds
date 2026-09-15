@@ -159,6 +159,10 @@ class GuildGoldRepositorySQL(
                     return@transaction GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
                 }
                 existing?.toFinalResult()?.let { return@transaction it }
+                if (existing?.status == GuildGoldOperationStatus.BALANCE_APPLIED) {
+                    return@transaction GuildGoldResult.Applied(mutation.transactionId,
+                        requireNotNull(existing.oldBalance), requireNotNull(existing.newBalance), mutation.fee)
+                }
                 if (existing == null) insertPrepared(connection, mutation)
 
                 val oldBalance = selectBalance(connection, mutation.guildId, forUpdate = true)

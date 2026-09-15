@@ -16,7 +16,7 @@ class VaultPersonalEconomyAdapter(
     override fun balance(playerId: UUID): Long? {
         return runCatching {
             val economy = economyProvider() ?: return null
-            exactLong(economy.getBalance(playerLookup(playerId)))
+            validBalance(economy.getBalance(playerLookup(playerId)))?.toLong()
         }.getOrNull()
     }
 
@@ -37,12 +37,12 @@ class VaultPersonalEconomyAdapter(
         val vaultAmount = exactDouble(amount) ?: return inexactAmount()
         val player = runCatching { playerLookup(playerId) }.getOrNull()
             ?: return ExternalTransferResult.Rejected("Player lookup failed before transfer")
-        val before = runCatching { exactLong(economy.getBalance(player)) }.getOrNull()
+        val before = runCatching { validBalance(economy.getBalance(player)) }.getOrNull()
             ?: return ExternalTransferResult.Rejected("Balance unavailable before transfer")
         return try {
             action(economy, player, vaultAmount).toTransferResult()
         } catch (error: Exception) {
-            val after = runCatching { exactLong(economy.getBalance(player)) }.getOrNull()
+            val after = runCatching { validBalance(economy.getBalance(player)) }.getOrNull()
             if (after == before) ExternalTransferResult.Rejected("Provider threw without balance change: ${error.message}")
             else ExternalTransferResult.Failed("Uncertain provider outcome: ${error.message}")
         }
@@ -61,10 +61,9 @@ class VaultPersonalEconomyAdapter(
         return if (converted.toLong() == amount) converted else null
     }
 
-    private fun exactLong(amount: Double): Long? {
+    private fun validBalance(amount: Double): Double? {
         if (!amount.isFinite() || amount < 0 || amount > MAX_SAFE_DOUBLE_INTEGER.toDouble()) return null
-        val converted = amount.toLong()
-        return if (converted.toDouble() == amount) converted else null
+        return amount
     }
 
     private fun inexactAmount() = ExternalTransferResult.Rejected(

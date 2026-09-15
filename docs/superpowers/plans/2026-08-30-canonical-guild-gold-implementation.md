@@ -437,7 +437,8 @@ fun depositPersonal(request: PersonalGoldRequest): GuildGoldResult {
         is GuildGoldPreparation.New -> when (personalEconomy.debit(request.playerId, mutation.amount + mutation.fee)) {
             ExternalTransferResult.Applied -> applyOrRefundPersonalDeposit(request, mutation)
             ExternalTransferResult.Unavailable -> rejectPrepared(mutation, GuildGoldRejection.EXTERNAL_UNAVAILABLE)
-            is ExternalTransferResult.Rejected, is ExternalTransferResult.Failed -> rejectPrepared(mutation, GuildGoldRejection.EXTERNAL_REJECTED)
+            is ExternalTransferResult.Rejected -> rejectPrepared(mutation, GuildGoldRejection.EXTERNAL_REJECTED)
+            is ExternalTransferResult.Failed -> GuildGoldResult.Failed(mutation.transactionId, false)
         }
     }
 }

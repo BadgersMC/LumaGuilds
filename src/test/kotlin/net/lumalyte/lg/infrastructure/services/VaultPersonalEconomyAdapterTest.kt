@@ -35,12 +35,23 @@ class VaultPersonalEconomyAdapterTest {
     }
 
     @Test
-    fun `fractional provider balance is rejected`() {
+    fun `fractional provider balance exposes spendable whole units and permits transfers`() {
         val economy = mockk<Economy>()
         every { economy.getBalance(player) } returns 42.5
         val adapter = VaultPersonalEconomyAdapter({ economy }, { player })
 
-        assertNull(adapter.balance(playerId))
+        assertEquals(42, adapter.balance(playerId))
+        every { economy.withdrawPlayer(player, 25.0) } returns EconomyResponse(25.0, 17.5, EconomyResponse.ResponseType.SUCCESS, null)
+        assertEquals(ExternalTransferResult.Applied, adapter.debit(playerId, 25))
+    }
+
+    @Test
+    fun `fractional balance change after provider exception remains uncertain`() {
+        val economy = mockk<Economy>()
+        every { economy.getBalance(player) } returnsMany listOf(42.5, 42.75)
+        every { economy.depositPlayer(player, 25.0) } throws IllegalStateException("unknown result")
+        val result = VaultPersonalEconomyAdapter({ economy }, { player }).credit(playerId, 25)
+        org.junit.jupiter.api.Assertions.assertTrue(result is ExternalTransferResult.Failed)
     }
 
     @Test

@@ -390,6 +390,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence: operator-approved replacement design in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`
   - Files: requirements + replacement design; runtime implementation remains disabled by default and follows in a later TDD task
 - [~] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
+  - PR #143 review (2026-09-15): first remediation batch verified with 892 passing tests and successful build. External balance-leg replay is idempotent, fractional Vault balances are accepted, and contradictory settled escrow records fail closed. Remaining comments are tracked in `docs/superpowers/plans/2026-09-15-pr143-review.md`; PR remains draft.
   - Tag: `TDD`
   - References: REQ-009, REQ-054, REQ-092, REQ-093
   - Evidence: 2026-09-14 `gradlew test build`: 866/866 passing, zero skipped. Includes Task 6 ownership/cache/menu checks, PR #142 payout regressions, period-keyed interest, restart-safe daily war charges, and paid LFG admission (physical/personal, membership failure, provider uncertainty, fee-inclusive quote, unlocked capacity). Semgrep still identifies the backup-restoration balance write for remaining Task 7 work.
