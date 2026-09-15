@@ -557,7 +557,11 @@ fun progressionModule() = module {
     single { net.lumalyte.lg.application.services.PermanentExperienceService(get(), get()) }
     single { net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(get(), get(), get(), get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get(), get()) }
-    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.WarRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.WarRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.WarPaymentService(get(), get()) }
+    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {
         net.lumalyte.lg.infrastructure.web.handlers.GuildLeaderboardHandler(
@@ -636,6 +640,7 @@ fun economyModule() = module {
         val rewards = get<net.lumalyte.lg.infrastructure.services.ProgressionConfigService>()
         val members = get<net.lumalyte.lg.application.persistence.MemberRepository>()
         val ranks = get<net.lumalyte.lg.application.persistence.RankRepository>()
+        val guilds = get<net.lumalyte.lg.application.persistence.GuildRepository>()
         net.lumalyte.lg.application.services.GuildGoldService(
             repository = get(),
             policyProvider = net.lumalyte.lg.application.services.GuildGoldPolicyProvider { guildId ->
@@ -678,6 +683,7 @@ fun economyModule() = module {
                 { org.bukkit.Bukkit.getOfflinePlayer(it) },
             ),
             physicalGold = get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
+            additionalFrozen = { guildId -> guilds.getById(guildId)?.bankFrozen == true },
             periodStartProvider = {
                 java.time.LocalDate.now(java.time.ZoneOffset.UTC)
                     .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()

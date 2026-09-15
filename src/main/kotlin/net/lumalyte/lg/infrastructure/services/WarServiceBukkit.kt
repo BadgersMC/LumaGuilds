@@ -23,16 +23,47 @@ class WarServiceBukkit(
     private val progressionConfigService: ProgressionConfigService,
     private val chapterTwoGuildAwardService: ChapterTwoGuildAwardService? = null,
     private val progressionService: ProgressionService,
+    private val warRepository: net.lumalyte.lg.application.persistence.WarRepository,
+    private val warPayments: net.lumalyte.lg.application.services.WarPaymentService,
 ) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
 
-    // In-memory storage for now - would need database persistence in production
-    // Thread-safe collections for concurrent access from multiple guilds/players
-    private val wars = ConcurrentHashMap<UUID, War>()
-    private val warDeclarations = ConcurrentHashMap<UUID, WarDeclaration>()
-    private val warStats = ConcurrentHashMap<UUID, WarStats>()
-    private val warWagers = ConcurrentHashMap<UUID, WarWager>()
+    // SQL is authoritative. These read-only views retain existing query semantics, never mutable caches.
+    private val wars: Map<UUID, War> get() = warRepository.getAll().mapNotNull { it.war }.associateBy { it.id }
+    private val warDeclarations: Map<UUID, WarDeclaration> get() = warRepository.getAll()
+        .mapNotNull { it.declaration }.filter { !it.accepted && !it.rejected }.associateBy { it.id }
+    private val warStats: Map<UUID, WarStats> get() = warRepository.getAll().mapNotNull { it.stats }.associateBy { it.warId }
+    private val warWagers: Map<UUID, WarWager> get() = warRepository.getAll()
+        .filter { it.paymentPhase in setOf(WarPaymentPhase.ESCROWED, WarPaymentPhase.SETTLING, WarPaymentPhase.SETTLED) }
+        .mapNotNull { it.wager }.associateBy { it.warId }
+
+    init { warRepository.getAll() } // Corrupt/unavailable persistence must fail initialization.
+
+    private fun persist(record: DurableWarRecord) {
+        check(warRepository.save(record)) { "War state changed concurrently: ${record.id}" }
+    }
+
+    private fun saveWar(war: War) {
+        persist(warRepository.get(war.id)?.copy(war = war) ?: DurableWarRecord(war.id, war = war))
+    }
+
+    private fun saveDeclaration(declaration: WarDeclaration) {
+        persist(DurableWarRecord(declaration.id, declaration = declaration))
+    }
+
+    private fun removeDeclaration(id: UUID): WarDeclaration? {
+        val record = warRepository.get(id) ?: return null
+        val declaration = record.declaration?.takeIf { !it.accepted && !it.rejected } ?: return null
+        if (record.paymentPhase in setOf(WarPaymentPhase.FUNDING, WarPaymentPhase.REFUNDING, WarPaymentPhase.REVIEW)) return null
+        val accepted = record.war?.isActive == true
+        persist(record.copy(declaration = declaration.copy(accepted = accepted, rejected = !accepted)))
+        return declaration
+    }
+
+    private fun saveStats(stats: WarStats) {
+        persist(requireNotNull(warRepository.get(stats.warId)).copy(stats = stats))
+    }
 
     // Tracks per-killer kill timestamps per victim, for anti-farming enforcement
     // (REQ-008: kill_cooldown_minutes + same_player_kill_limit).
@@ -90,7 +121,7 @@ class WarServiceBukkit(
                 wagerAmount = wagerAmount
             )
 
-            warDeclarations[declaration.id] = declaration
+            saveDeclaration(declaration)
 
             // Record war declaration for cooldown tracking
             recordWarDeclaration(declaringGuildId)
@@ -104,64 +135,36 @@ class WarServiceBukkit(
         }
     }
 
+    @Synchronized
     override fun acceptWarDeclaration(declarationId: UUID, actorId: UUID): War? {
         return try {
             val declaration = warDeclarations[declarationId] ?: return null
-            if (!declaration.isValid) {
-                logger.warn("Cannot accept expired/already-responded declaration $declarationId")
+            if (!declaration.isValid) return null
+            var record = requireNotNull(warRepository.get(declarationId))
+            if (record.war?.isEnded == true || record.war?.status == WarStatus.CANCELLED) return null
+            if (record.war == null) {
+                val pending = War(id = declarationId, declaringGuildId = declaration.declaringGuildId,
+                    defendingGuildId = declaration.defendingGuildId, duration = declaration.proposedDuration,
+                    objectives = declaration.objectives)
+                persist(record.copy(war = pending, stats = WarStats(declarationId)))
+            }
+            if (declaration.wagerAmount > 0 && createWager(declarationId, declaration.wagerAmount, declaration.wagerAmount) == null) {
                 return null
             }
-
-            // REQ-024: acceptance activates the war — status ACTIVE, startedAt set,
-            // declaration objectives carried over, stats initialized.
-            val war = War.create(
-                declaringGuildId = declaration.declaringGuildId,
-                defendingGuildId = declaration.defendingGuildId,
-                duration = declaration.proposedDuration
-            ).copy(
-                status = WarStatus.ACTIVE,
-                startedAt = Instant.now(),
-                objectives = declaration.objectives
-            )
-
-            // REQ-039: escrow is ATOMIC with acceptance. createWager requires the
-            // war to be registered (it looks up wars[warId] and deducts both guilds,
-            // rolling back the declaring guild if the defending deduction fails).
-            // If escrow fails, the war is rolled back and the declaration stays
-            // pending — a waged declaration can never become an unwagered war.
-            wars[war.id] = war
-            warStats[war.id] = WarStats(warId = war.id)
-
-            if (declaration.wagerAmount > 0) {
-                val wager = createWager(war.id, declaration.wagerAmount, declaration.wagerAmount)
-                if (wager == null) {
-                    // Atomic rollback: remove the war we just registered; the
-                    // declaration remains pending so the defender can retry.
-                    wars.remove(war.id)
-                    warStats.remove(war.id)
-                    logger.warn(
-                        "War declaration $declarationId NOT accepted — wager escrow failed " +
-                            "(${declaration.wagerAmount} each). Declaration remains pending."
-                    )
-                    return null
-                }
-            }
-
-            warDeclarations.remove(declarationId)
-
-            logger.info("War accepted and ACTIVE: ${war.id} (${war.declaringGuildId} vs ${war.defendingGuildId})")
-            Bukkit.getPluginManager().callEvent(GuildWarDeclaredEvent(war.declaringGuildId, war.defendingGuildId, actorId))
-            war
-        } catch (e: Exception) {
-            // In-memory operation - catching runtime exceptions from state validation
-            logger.error("Error accepting war declaration: $declarationId", e)
+            record = requireNotNull(warRepository.get(declarationId))
+            val active = requireNotNull(record.war).copy(status = WarStatus.ACTIVE, startedAt = Instant.now())
+            persist(record.copy(war = active, declaration = declaration.copy(accepted = true)))
+            Bukkit.getPluginManager().callEvent(GuildWarDeclaredEvent(active.declaringGuildId, active.defendingGuildId, actorId))
+            active
+        } catch (error: Exception) {
+            logger.error("Error accepting durable war declaration $declarationId", error)
             null
         }
     }
 
     override fun rejectWarDeclaration(declarationId: UUID, actorId: UUID): Boolean {
         return try {
-            warDeclarations.remove(declarationId) != null
+            removeDeclaration(declarationId) != null
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error rejecting war declaration: $declarationId", e)
@@ -171,7 +174,7 @@ class WarServiceBukkit(
 
     override fun cancelWarDeclaration(declarationId: UUID, actorId: UUID): Boolean {
         return try {
-            warDeclarations.remove(declarationId) != null
+            removeDeclaration(declarationId) != null
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error canceling war declaration: $declarationId", e)
@@ -179,50 +182,31 @@ class WarServiceBukkit(
         }
     }
 
+    @Synchronized
     override fun endWar(warId: UUID, winnerGuildId: UUID, peaceTerms: String?, actorId: UUID): Boolean {
         return try {
-            var transitionedWar: War? = null
-            wars.computeIfPresent(warId) { _, war ->
-                if (war.status != WarStatus.ACTIVE) {
-                    war
-                } else {
-                    val loserGuildId = if (war.declaringGuildId == winnerGuildId) {
-                        war.defendingGuildId
-                    } else {
-                        war.declaringGuildId
-                    }
-                    war.copy(
-                        status = WarStatus.ENDED,
-                        endedAt = Instant.now(),
-                        winner = winnerGuildId,
-                        loser = loserGuildId,
-                        peaceTerms = peaceTerms,
-                    ).also { transitionedWar = it }
-                }
-            }
-            val endedWar = transitionedWar ?: return false
-            val loserGuildId = checkNotNull(endedWar.loser)
-
-            // Apply war farming cooldown to the winner
-            applyWarFarmingCooldown(endedWar.declaringGuildId, endedWar.defendingGuildId, winnerGuildId)
-
-            // Permanent war XP is a pre-cap win award only. Post-100 wars feed ELO,
-            // and losses never create permanent XP.
+            val war = wars[warId] ?: return false
+            if (!war.isActive || winnerGuildId !in setOf(war.declaringGuildId, war.defendingGuildId)) return false
+            val loser = if (winnerGuildId == war.declaringGuildId) war.defendingGuildId else war.declaringGuildId
+            val ended = war.copy(status = WarStatus.ENDED, endedAt = Instant.now(),
+                winner = winnerGuildId, loser = loser, peaceTerms = peaceTerms)
+            saveWar(ended)
+            resolveWager(warId, winnerGuildId)
+            applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, winnerGuildId)
             awardWarExperience(winnerGuildId)
-
-            logger.info("War ended: $warId, winner: $winnerGuildId")
-            Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loserGuildId, endedWar.declaringGuildId, endedWar.defendingGuildId))
+            Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loser, war.declaringGuildId, war.defendingGuildId))
             true
-        } catch (e: Exception) {
-            // In-memory operation - catching runtime exceptions from state validation
-            logger.error("Error ending war: $warId", e)
+        } catch (error: Exception) {
+            logger.error("Error ending durable war $warId", error)
             false
         }
     }
 
+    @Synchronized
     override fun endWarAsDraw(warId: UUID, reason: String?, actorId: UUID): Boolean {
         return try {
             val war = wars[warId] ?: return false
+            if (!war.isActive) return false
             val endedWar = war.copy(
                 status = WarStatus.ENDED,
                 endedAt = Instant.now(),
@@ -230,7 +214,8 @@ class WarServiceBukkit(
                 loser = null,  // No loser in a draw
                 peaceTerms = reason ?: "War ended in a draw"
             )
-            wars[warId] = endedWar
+            saveWar(endedWar)
+            resolveWager(warId, null)
             logger.info("War ended as draw: $warId, reason: $reason")
             true
         } catch (e: Exception) {
@@ -240,11 +225,14 @@ class WarServiceBukkit(
         }
     }
 
+    @Synchronized
     override fun cancelWar(warId: UUID, actorId: UUID): Boolean {
         return try {
             val war = wars[warId] ?: return false
+            if (war.status == WarStatus.ENDED || war.status == WarStatus.CANCELLED) return false
             val canceledWar = war.copy(status = WarStatus.CANCELLED)
-            wars[warId] = canceledWar
+            saveWar(canceledWar)
+            resolveWager(warId, null)
             logger.info("War canceled: $warId")
             true
         } catch (e: Exception) {
@@ -280,7 +268,7 @@ class WarServiceBukkit(
 
     override fun updateWarStats(stats: WarStats): Boolean {
         return try {
-            warStats[stats.warId] = stats
+            saveStats(stats)
             true
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
@@ -455,13 +443,24 @@ class WarServiceBukkit(
         }
     }
 
+    @Synchronized
     override fun processExpiredWars(): Int {
+        // Only resume acceptance already recorded as fully funded. Never start a fresh charge
+        // from a timer or revive expired consent; other incomplete phases remain held.
+        warRepository.getAll().filter {
+            it.war?.status == WarStatus.DECLARED && it.paymentPhase == WarPaymentPhase.ESCROWED &&
+                it.declaration?.isValid == true
+        }.forEach { acceptWarDeclaration(it.id, UUID(0, 0)) }
+        // Retry durable, already-chosen outcomes even when the ended war is no longer active.
+        warRepository.getAll().filter { it.wager != null && (it.war?.isEnded == true || it.war?.status == WarStatus.CANCELLED) &&
+            it.paymentPhase !in setOf(WarPaymentPhase.SETTLED, WarPaymentPhase.REVIEW) }
+            .forEach { resolveWager(it.id, it.war?.winner) }
         val now = Instant.now()
         var processedCount = 0
 
         // Process expired declarations
         val expiredDeclarations = warDeclarations.values.filter { it.expiresAt.isBefore(now) }
-        expiredDeclarations.forEach { warDeclarations.remove(it.id) }
+        expiredDeclarations.forEach { removeDeclaration(it.id) }
         processedCount += expiredDeclarations.size
 
         // Process expired wars with draw logic.
@@ -486,7 +485,7 @@ class WarServiceBukkit(
             } else {
                 // End without winner (shouldn't happen with current logic)
                 val endedWar = war.copy(status = WarStatus.ENDED, endedAt = now)
-                wars[war.id] = endedWar
+                saveWar(endedWar)
             }
             processedCount++
         }
@@ -537,173 +536,39 @@ class WarServiceBukkit(
     }
 
 
+    @Synchronized
     override fun createWager(warId: UUID, declaringGuildWager: Int, defendingGuildWager: Int): WarWager? {
         return try {
-            val war = wars[warId] ?: return null
-
-            // Validate that war is pending/active and doesn't already have a wager
-            if (warWagers.containsKey(warId)) {
-                logger.warn("Cannot create wager - war $warId already has a wager")
-                return null
+            var record = warRepository.get(warId) ?: return null
+            val war = record.war ?: return null
+            if (war.isEnded || war.status == WarStatus.CANCELLED || declaringGuildWager < 0 || defendingGuildWager < 0 ||
+                declaringGuildWager.toLong() + defendingGuildWager > Int.MAX_VALUE) return null
+            val previous = record.wager
+            if (previous != null && (previous.declaringGuildWager != declaringGuildWager ||
+                    previous.defendingGuildWager != defendingGuildWager)) return null
+            if (previous == null) {
+                persist(record.copy(wager = WarWager(warId = warId, declaringGuildId = war.declaringGuildId,
+                    defendingGuildId = war.defendingGuildId, declaringGuildWager = declaringGuildWager,
+                    defendingGuildWager = defendingGuildWager), paymentPhase = WarPaymentPhase.FUNDING))
             }
-
-            // Validate wager amounts are positive
-            if (declaringGuildWager < 0 || defendingGuildWager < 0) {
-                logger.warn("Cannot create wager - negative amounts not allowed")
-                return null
-            }
-
-            // Check if both guilds have sufficient funds (store B: unified guild balance)
-            val declaringBalance = bankService.getBalance(war.declaringGuildId)
-            val defendingBalance = bankService.getBalance(war.defendingGuildId)
-
-            if (declaringBalance < declaringGuildWager) {
-                logger.warn("Declaring guild ${war.declaringGuildId} has insufficient funds for wager: $declaringBalance < $declaringGuildWager")
-                return null
-            }
-
-            if (defendingBalance < defendingGuildWager) {
-                logger.warn("Defending guild ${war.defendingGuildId} has insufficient funds for wager: $defendingBalance < $defendingGuildWager")
-                return null
-            }
-
-            val wagerDesc = "War wager for war ${warId.toString().substring(0, 8)}"
-
-            // Deduct wager from declaring guild
-            val declaringDeductSuccess = if (declaringGuildWager > 0) {
-                bankService.deductFromGuildBank(war.declaringGuildId, declaringGuildWager, wagerDesc)
-            } else true
-
-            if (!declaringDeductSuccess) {
-                logger.error("Failed to deduct wager from declaring guild ${war.declaringGuildId}")
-                return null
-            }
-
-            // Deduct wager from defending guild
-            val defendingDeductSuccess = if (defendingGuildWager > 0) {
-                bankService.deductFromGuildBank(war.defendingGuildId, defendingGuildWager, wagerDesc)
-            } else true
-
-            if (!defendingDeductSuccess) {
-                logger.error("Failed to deduct wager from defending guild ${war.defendingGuildId}")
-                // ROLLBACK: Refund declaring guild
-                if (declaringGuildWager > 0) {
-                    val rollbackSuccess = bankService.creditToGuildBank(
-                        war.declaringGuildId,
-                        declaringGuildWager,
-                        "Wager rollback - defending guild deduction failed"
-                    )
-                    if (!rollbackSuccess) {
-                        logger.error("CRITICAL: Failed to rollback wager for declaring guild ${war.declaringGuildId}! Manual intervention required.")
-                    }
-                }
-                return null
-            }
-
-            // Create wager object
-            val wager = WarWager(
-                warId = warId,
-                declaringGuildId = war.declaringGuildId,
-                defendingGuildId = war.defendingGuildId,
-                declaringGuildWager = declaringGuildWager,
-                defendingGuildWager = defendingGuildWager
-            )
-            warWagers[warId] = wager
-            logger.info("Wager created for war $warId: ${wager.totalPot} coins total (${declaringGuildWager} + ${defendingGuildWager})")
-            wager
-        } catch (e: Exception) {
-            // In-memory operation - catching runtime exceptions from state validation
-            logger.error("Error creating wager for war: $warId", e)
+            if (!warPayments.fund(warId)) return null
+            warRepository.get(warId)?.wager
+        } catch (error: Exception) {
+            logger.error("Error funding durable wager $warId", error)
             null
         }
     }
 
+    @Synchronized
     override fun resolveWager(warId: UUID, winnerGuildId: UUID?): WarWager? {
         return try {
-            val wager = warWagers[warId] ?: return null
-
-            // Prevent resolving already-resolved wagers
-            if (wager.status != WagerStatus.ESCROWED) {
-                logger.warn("Cannot resolve wager - already resolved with status ${wager.status}")
-                return null
-            }
-
-            if (winnerGuildId != null) {
-                // War ended with winner - pay out total pot to winner
-                val totalPot = wager.totalPot
-
-                if (totalPot > 0) {
-                    val depositSuccess = bankService.creditToGuildBank(
-                        winnerGuildId,
-                        totalPot,
-                        "War wager winnings from war ${warId.toString().substring(0, 8)}"
-                    )
-
-                    if (!depositSuccess) {
-                        logger.error("CRITICAL: Failed to deposit wager winnings of $totalPot to winner guild $winnerGuildId! Manual intervention required.")
-                        // Don't mark as resolved if payout failed
-                        return null
-                    }
-
-                    logger.info("Paid out $totalPot coins to winner guild $winnerGuildId from war wager")
-                }
-
-                val resolvedWager = wager.copy(
-                    status = WagerStatus.WON,
-                    resolvedAt = Instant.now(),
-                    winnerGuildId = winnerGuildId
-                )
-                warWagers[warId] = resolvedWager
-                logger.info("Wager resolved for war $warId: Winner $winnerGuildId received ${wager.totalPot} coins")
-                resolvedWager
-            } else {
-                // War ended in draw - refund both guilds
-                var refundSuccess = true
-
-                // Refund declaring guild
-                if (wager.declaringGuildWager > 0) {
-                    if (!bankService.creditToGuildBank(
-                            wager.declaringGuildId,
-                            wager.declaringGuildWager,
-                            "War wager refund (draw) from war ${warId.toString().substring(0, 8)}"
-                    )) {
-                        logger.error("CRITICAL: Failed to refund wager of ${wager.declaringGuildWager} to declaring guild ${wager.declaringGuildId}! Manual intervention required.")
-                        refundSuccess = false
-                    } else {
-                        logger.info("Refunded ${wager.declaringGuildWager} coins to declaring guild ${wager.declaringGuildId}")
-                    }
-                }
-
-                // Refund defending guild
-                if (wager.defendingGuildWager > 0) {
-                    if (!bankService.creditToGuildBank(
-                            wager.defendingGuildId,
-                            wager.defendingGuildWager,
-                            "War wager refund (draw) from war ${warId.toString().substring(0, 8)}"
-                    )) {
-                        logger.error("CRITICAL: Failed to refund wager of ${wager.defendingGuildWager} to defending guild ${wager.defendingGuildId}! Manual intervention required.")
-                        refundSuccess = false
-                    } else {
-                        logger.info("Refunded ${wager.defendingGuildWager} coins to defending guild ${wager.defendingGuildId}")
-                    }
-                }
-
-                if (!refundSuccess) {
-                    // Don't mark as resolved if refunds failed
-                    return null
-                }
-
-                val resolvedWager = wager.copy(
-                    status = WagerStatus.DRAW,
-                    resolvedAt = Instant.now()
-                )
-                warWagers[warId] = resolvedWager
-                logger.info("Wager resolved for war $warId: Draw - both guilds refunded")
-                resolvedWager
-            }
-        } catch (e: Exception) {
-            // In-memory operation - catching runtime exceptions from state validation
-            logger.error("Error resolving wager for war: $warId", e)
+            val record = warRepository.get(warId) ?: return null
+            val war = record.war ?: return null
+            if (war.isEnded && war.winner != winnerGuildId) return null
+            if (!warPayments.settle(warId, winnerGuildId)) return null
+            warRepository.get(warId)?.wager
+        } catch (error: Exception) {
+            logger.error("Error settling durable wager $warId", error)
             null
         }
     }
@@ -772,7 +637,8 @@ class WarServiceBukkit(
                 peaceTerms = agreement.peaceTerms
             )
 
-            wars[war.id] = endedWar
+            saveWar(endedWar)
+            resolveWager(war.id, null)
             peaceAgreements[agreementId] = agreement.copy(accepted = true, acceptedAt = Instant.now())
 
             // Apply war farming cooldown to the winner
