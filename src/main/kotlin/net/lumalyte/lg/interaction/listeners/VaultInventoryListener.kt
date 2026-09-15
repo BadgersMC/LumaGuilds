@@ -172,11 +172,7 @@ class VaultInventoryListener(
             updateGoldButtonForAllViewers(guildId)
 
             // Feedback
-            player.sendMessage(
-                Component.text("✓ Deposited ", NamedTextColor.GREEN)
-                    .append(Component.text("$totalNuggets currency", NamedTextColor.GOLD))
-                    .append(Component.text(" into $guildName's vault", NamedTextColor.GREEN))
-            )
+            player.sendMessage(lang.msg("menu.bank.feedback.deposit_success", "amount" to totalNuggets))
             player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
         } else {
             player.sendMessage(Component.text("You have no gold items to deposit", NamedTextColor.RED))

@@ -390,6 +390,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence: operator-approved replacement design in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`
   - Files: requirements + replacement design; runtime implementation remains disabled by default and follows in a later TDD task
 - [~] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
+  - PR #143 third review batch: combined-pot payout preflight, complete wager-state invariant checks, localized deposit feedback, and real secondary-audit-failure regression verified by full test/build. Draft and remaining recovery gates remain open.
   - PR #143 second review batch: zero-interest journal replay, physical-only bank opening, unsupported join-quote display, mandatory transaction-ID overloads, and same-ID uncertain-transfer regressions addressed. Full test/build succeeds; remaining review findings stay open.
   - PR #143 review (2026-09-15): first remediation batch verified with 892 passing tests and successful build. External balance-leg replay is idempotent, fractional Vault balances are accepted, and contradictory settled escrow records fail closed. Remaining comments are tracked in `docs/superpowers/plans/2026-09-15-pr143-review.md`; PR remains draft.
   - Tag: `TDD`

@@ -32,6 +32,13 @@ class GuildGoldService(
 ) {
     fun balance(guildId: UUID): Long = repository.getBalance(guildId)
 
+    /** Preflight a future system payout; live balance, capacity and freeze are checked at execution. */
+    fun allowsSystemCreditAmount(guildId: UUID, amount: Long): Boolean {
+        val policy = policyProvider.policyFor(guildId)
+        return amount >= 0 && amount <= policy.maxDeposit &&
+            (!policy.autoFreezeSuspicious || amount < policy.suspiciousThreshold)
+    }
+
     /** Recovery reads the journal before retrying an internal transfer under changed live policy. */
     fun operation(transactionId: UUID): net.lumalyte.lg.domain.gold.GuildGoldOperationRecord? =
         repository.findOperation(transactionId)
