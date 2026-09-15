@@ -114,8 +114,7 @@ interface BankService {
      */
     fun deductFromGuildBank(guildId: UUID, amount: Int, reason: String? = null): Boolean
 
-    fun deductFromGuildBank(transactionId: UUID, guildId: UUID, amount: Int, reason: String?): Boolean =
-        deductFromGuildBank(guildId, amount, reason)
+    fun deductFromGuildBank(transactionId: UUID, guildId: UUID, amount: Int, reason: String?): Boolean
 
     /**
      * Credits money into a guild's bank without taking it from any player (system credit).
@@ -128,8 +127,7 @@ interface BankService {
      */
     fun creditToGuildBank(guildId: UUID, amount: Int, reason: String? = null): Boolean
 
-    fun creditToGuildBank(transactionId: UUID, guildId: UUID, amount: Int, reason: String?): Boolean =
-        creditToGuildBank(guildId, amount, reason)
+    fun creditToGuildBank(transactionId: UUID, guildId: UUID, amount: Int, reason: String?): Boolean
 
     /**
      * Checks if a player can withdraw from a guild's bank.

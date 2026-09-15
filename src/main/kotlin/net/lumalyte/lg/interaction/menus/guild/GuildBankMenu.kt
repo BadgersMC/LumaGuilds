@@ -94,7 +94,7 @@ class GuildBankMenu(
     override fun open() {
         // Check Vault availability on menu open
         if (!isEconomyAvailable()) {
-            // Show error message and don't open the menu
+            // Personal transfers are unavailable; physical deposits must remain accessible.
             player.sendMessage(lang.msg("menu.bank.unavailable.title"))
             player.sendMessage(lang.msg("menu.bank.unavailable.economy"))
             player.sendMessage(lang.msg("menu.bank.unavailable.install"))
@@ -102,7 +102,6 @@ class GuildBankMenu(
 
             // Play error sound
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
-            return
         }
 
         refreshBalance()

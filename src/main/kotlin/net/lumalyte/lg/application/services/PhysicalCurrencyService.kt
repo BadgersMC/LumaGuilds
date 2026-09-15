@@ -69,8 +69,7 @@ interface PhysicalCurrencyService {
      */
     fun deductCurrency(guild: Guild, amount: Int, reason: String? = null): Boolean
 
-    fun deductCurrency(transactionId: UUID, guild: Guild, amount: Int, reason: String?): Boolean =
-        deductCurrency(guild, amount, reason)
+    fun deductCurrency(transactionId: UUID, guild: Guild, amount: Int, reason: String?): Boolean
 
     /**
      * Adds physical currency items to a guild's vault.
@@ -83,8 +82,7 @@ interface PhysicalCurrencyService {
      */
     fun addCurrency(guild: Guild, amount: Int, reason: String? = null): Boolean
 
-    fun addCurrency(transactionId: UUID, guild: Guild, amount: Int, reason: String?): Boolean =
-        addCurrency(guild, amount, reason)
+    fun addCurrency(transactionId: UUID, guild: Guild, amount: Int, reason: String?): Boolean
 
     /**
      * Gets the withdrawal fee amount for physical currency.

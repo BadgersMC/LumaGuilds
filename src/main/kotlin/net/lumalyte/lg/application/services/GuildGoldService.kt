@@ -126,7 +126,13 @@ class GuildGoldService(
         val current = balance(guildId)
         val amount = (current.toDouble() * rate).toLong()
         validateCommon(guildId, maxOf(1, amount))?.let { return it }
-        if (amount == 0L) return GuildGoldResult.Applied(transactionId, current, current, 0)
+        if (amount == 0L) {
+            // Journal a completed period even when rounding yields no award. No balance growth
+            // occurs, so an already-over-cap guild may still record this zero-value marker.
+            return repository.apply(GuildGoldMutation(transactionId, guildId, UUID(0, 0),
+                GuildGoldRoute.INTEREST, GuildGoldDirection.CREDIT, 0, 0, "Interest accrual"),
+                Long.MAX_VALUE, periodStartEpochMs = null)
+        }
         return creditSystem(transactionId, guildId, UUID(0, 0), amount, GuildGoldRoute.INTEREST, "Interest accrual")
     }
 

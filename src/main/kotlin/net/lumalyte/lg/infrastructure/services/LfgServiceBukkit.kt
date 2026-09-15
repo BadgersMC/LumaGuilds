@@ -161,16 +161,17 @@ class LfgServiceBukkit(
 
         val config = configService.loadConfig()
         val vaultConfig = config.vault
+        val quote = bankService.quoteJoinFee(guild.id, guild.joinFeeAmount) ?: return null
 
         return if (vaultConfig.usePhysicalCurrency) {
             JoinRequirement(
-                amount = bankService.quoteJoinFee(guild.id, guild.joinFeeAmount) ?: guild.joinFeeAmount,
+                amount = quote,
                 isPhysicalCurrency = true,
                 currencyName = vaultConfig.physicalCurrencyMaterial
             )
         } else {
             JoinRequirement(
-                amount = bankService.quoteJoinFee(guild.id, guild.joinFeeAmount) ?: guild.joinFeeAmount,
+                amount = quote,
                 isPhysicalCurrency = false,
                 currencyName = "Coins"
             )

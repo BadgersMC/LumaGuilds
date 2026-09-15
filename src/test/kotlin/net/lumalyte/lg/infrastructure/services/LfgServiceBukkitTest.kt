@@ -33,6 +33,12 @@ import java.util.UUID
  */
 class LfgServiceBukkitTest {
 
+    @Test
+    fun `unavailable join quote does not advertise a payable fee`() {
+        every { bankService.quoteJoinFee(openGuildWithFee.id, openGuildWithFee.joinFeeAmount) } returns null
+        assertNull(lfgService.getJoinRequirement(openGuildWithFee))
+    }
+
     private lateinit var guildRepository: GuildRepository
     private lateinit var guildService: GuildService
     private lateinit var memberService: MemberService

@@ -155,6 +155,24 @@ internal class GuildBankAccountWithdrawalTest {
         verify(exactly = 0) { GoldBalanceButton.convertToItems(any()) }
     }
 
+    @Test fun physicalOnlyBankMenuOpensWithoutEconomyProvider() {
+        server.servicesManager.unregisterAll(PluginKeys.getPlugin())
+        val unavailableBank = BankServiceBukkit(history, mockk(relaxed = true), mockk(relaxed = true),
+            mockk(relaxed = true), mockk(relaxed = true), mockk { every { loadConfig() } returns MainConfig() },
+            mockk(relaxed = true), mockk(relaxed = true), manager,
+            goldService = GuildGoldService(sql,
+                GuildGoldPolicyProvider { GuildGoldPolicy(1, 100_000, 1.0, 50_000, 0.0, 0.0, 128, 15, 1_000_000, 50_000, false) },
+                GuildGoldCapacityProvider { GuildGoldCapacity(1_000_000, 0) }))
+        assertFalse(unavailableBank.isEconomyAvailable())
+        org.koin.core.context.loadKoinModules(module { single<BankService> { unavailableBank } })
+        menu = GuildBankMenu(mockk(relaxed = true), player, Guild(guildId, "Physical only", createdAt = Instant.EPOCH))
+        menu.open()
+        assertEquals(54, player.openInventory?.topInventory?.size, "Physical-only bank must open")
+        assertFalse(withdraw())
+        assertEquals(1_000, balance)
+        assertEquals(0.0, personalGold)
+    }
+
     @Test fun physicalDepositUsesCanonicalBalanceAndDoesNotMutateManager() {
         player.inventory.addItem(ItemStack(Material.RAW_GOLD, 40))
         val result = GuildBankMenu::class.java.getDeclaredMethod("handleDeposit", Int::class.javaPrimitiveType)

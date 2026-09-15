@@ -139,6 +139,8 @@ class GuildGoldPersonalTransferTest {
         storage = VirtualThreadSQLiteStorage(tempDir.toFile())
         sqlRepository = GuildGoldRepositorySQL(storage)
         assertEquals(GuildGoldResult.Failed(first.transactionId, false),
+            service(sqlRepository).withdrawPersonal(first))
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false),
             service(sqlRepository).withdrawPersonal(request(amount = 100)))
         assertEquals(398, sqlRepository.getBalance(guildId))
         assertEquals(100, economy.currentBalance)
@@ -152,6 +154,7 @@ class GuildGoldPersonalTransferTest {
         assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.depositPersonal(first))
         assertEquals(899, economy.currentBalance)
         assertEquals(0, service.balance(guildId))
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.depositPersonal(first))
         assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.depositPersonal(request(amount = 100)))
         assertEquals(899, economy.currentBalance)
     }
@@ -165,6 +168,7 @@ class GuildGoldPersonalTransferTest {
         service.creditSystem(UUID.randomUUID(), guildId, playerId, 500, GuildGoldRoute.SYSTEM, "Seed")
         economy.currentBalance = 0
         val first = request(amount = 100)
+        assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPersonal(first))
         assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPersonal(first))
         assertEquals(GuildGoldResult.Failed(first.transactionId, false), service.withdrawPersonal(request(amount = 100)))
         assertEquals(100, economy.currentBalance)
