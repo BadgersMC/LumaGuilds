@@ -557,7 +557,11 @@ fun progressionModule() = module {
     single { net.lumalyte.lg.application.services.PermanentExperienceService(get(), get()) }
     single { net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(get(), get(), get(), get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get(), get()) }
-    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.WarRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.WarRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.WarPaymentService(get(), get()) }
+    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {
         net.lumalyte.lg.infrastructure.web.handlers.GuildLeaderboardHandler(
@@ -627,7 +631,48 @@ fun economyModule() = module {
     }
 
     // Services
-    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildGoldRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL(get())
+    }
+    single {
+        val config = get<ConfigService>()
+        val progression = get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
+        val rewards = get<net.lumalyte.lg.infrastructure.services.ProgressionConfigService>()
+        val members = get<net.lumalyte.lg.application.persistence.MemberRepository>()
+        val ranks = get<net.lumalyte.lg.application.persistence.RankRepository>()
+        val guilds = get<net.lumalyte.lg.application.persistence.GuildRepository>()
+        net.lumalyte.lg.application.services.GuildGoldService(
+            repository = get(),
+            settingsProvider = net.lumalyte.lg.infrastructure.services.ConfiguredGuildGoldSettings(
+                config, progression, rewards),
+            authorization = object : net.lumalyte.lg.application.services.GuildGoldAuthorizationPort {
+                private fun allowed(playerId: java.util.UUID, guildId: java.util.UUID,
+                    permission: net.lumalyte.lg.domain.entities.RankPermission): Boolean {
+                    val member = members.getByPlayerAndGuild(playerId, guildId) ?: return false
+                    return ranks.getById(member.rankId)?.permissions?.contains(permission) == true
+                }
+                override fun canDeposit(playerId: java.util.UUID, guildId: java.util.UUID) =
+                    allowed(playerId, guildId, net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_BANK)
+                override fun canWithdraw(playerId: java.util.UUID, guildId: java.util.UUID) =
+                    allowed(playerId, guildId, net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK)
+            },
+            personalEconomy = net.lumalyte.lg.infrastructure.services.VaultPersonalEconomyAdapter(
+                { org.bukkit.Bukkit.getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy::class.java)?.provider },
+                { org.bukkit.Bukkit.getOfflinePlayer(it) },
+            ),
+            physicalGold = get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
+            additionalFrozen = { guildId -> guilds.getById(guildId)?.bankFrozen == true },
+            periodStartProvider = {
+                java.time.LocalDate.now(java.time.ZoneOffset.UTC)
+                    .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+            },
+        )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter.fromConfig(
+            { org.bukkit.Bukkit.getPlayer(it) }, get<ConfigService>().loadConfig().vault)
+    }
+    single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.BankAutomationService> {
         net.lumalyte.lg.application.services.BankAutomationService(get(), get(), get(), get(), get())
     }

@@ -22,6 +22,12 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.PhysicalGoldRequest
+import net.lumalyte.lg.domain.gold.GuildGoldResult
+import net.badgersmc.nexus.i18n.LangService
 
 /**
  * Menu for withdrawing gold from the guild vault.
@@ -34,7 +40,10 @@ class GoldWithdrawMenu(
     private val guildName: String,
     private val vaultInventoryManager: VaultInventoryManager,
     private val transactionLogger: VaultTransactionLogger
-) : Listener {
+) : Listener, KoinComponent {
+
+    private val bankService: BankService by inject()
+    private val lang: LangService by inject()
 
     private lateinit var inventory: Inventory
     private var isOpen = false
@@ -53,7 +62,7 @@ class GoldWithdrawMenu(
     private fun createInventory() {
         inventory = Bukkit.createInventory(null, 27, Component.text("Withdraw Gold"))
 
-        val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
+        val currentBalance = bankService.getBalance(guildId).toLong()
 
         // Add current balance display
         val balanceItem = ItemStack.of(Material.RAW_GOLD).apply {
@@ -145,38 +154,17 @@ class GoldWithdrawMenu(
     /**
      * Withdraws a specific amount of gold from the vault.
      */
-    private fun withdrawGold(amount: Long) {
-        // Attempt atomic withdrawal (prevents race conditions)
-        val newBalance = vaultInventoryManager.withdrawGold(guildId, player.uniqueId, amount)
-
-        if (newBalance == -1L) {
-            player.sendMessage(
-                Component.text("Insufficient gold in vault", NamedTextColor.RED)
-            )
+    private fun confirmWithdrawal(amount: Long) {
+        val result = bankService.withdrawPhysical(PhysicalGoldRequest(
+            UUID.randomUUID(), guildId, player.uniqueId, amount, "Guild vault withdrawal"))
+        if (result !is GuildGoldResult.Applied) {
+            if (result is GuildGoldResult.Failed && !result.compensationSucceeded) {
+                player.sendMessage(lang.msg("menu.bank.feedback.withdraw_pending", "transaction" to result.transactionId))
+            } else {
+                player.sendMessage(lang.msg("menu.bank.feedback.vault_withdraw_failed"))
+            }
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
             return
-        }
-
-        // Immediate flush to database (high-value transaction)
-        vaultInventoryManager.forceFlush(guildId)
-
-        // Give items to player in optimal form
-        val items = GoldBalanceButton.convertToItems(amount)
-        val leftoverItems = mutableListOf<ItemStack>()
-
-        for (item in items) {
-            val leftovers = player.inventory.addItem(item)
-            leftoverItems.addAll(leftovers.values)
-        }
-
-        // Drop items that didn't fit in inventory
-        if (leftoverItems.isNotEmpty()) {
-            for (item in leftoverItems) {
-                player.world.dropItemNaturally(player.location, item)
-            }
-            player.sendMessage(
-                Component.text("Some items were dropped at your feet (inventory full)", NamedTextColor.YELLOW)
-            )
         }
 
         // Feedback
@@ -202,9 +190,13 @@ class GoldWithdrawMenu(
 
         // Handle withdraw all button
         if (event.slot == 22 && clickedItem.type == Material.RAW_GOLD) {
-            val currentBalance = vaultInventoryManager.getGoldBalance(guildId)
+            val currentBalance = GuildBankWithdrawal(
+                withdrawalFee = { bankService.calculateWithdrawalFee(guildId, it) },
+                maximumAmount = { bankService.getMaxWithdrawalAmount(guildId, player.uniqueId) },
+                currentBalance = { bankService.getBalance(guildId).toLong() },
+            ).resolveAmount(-1).toLong()
             if (currentBalance > 0) {
-                withdrawGold(currentBalance)
+                confirmWithdrawal(currentBalance)
             } else {
                 player.sendMessage(Component.text("Vault has no gold to withdraw", NamedTextColor.RED))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
@@ -221,7 +213,7 @@ class GoldWithdrawMenu(
         val meta = clickedItem.itemMeta
         if (meta != null && meta.persistentDataContainer.has(nuggetValueKey, PersistentDataType.LONG)) {
             val nuggetValue = meta.persistentDataContainer.get(nuggetValueKey, PersistentDataType.LONG) ?: return
-            withdrawGold(nuggetValue)
+            confirmWithdrawal(nuggetValue)
         }
     }
 

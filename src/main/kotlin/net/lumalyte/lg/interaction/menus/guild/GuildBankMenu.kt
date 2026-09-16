@@ -94,7 +94,7 @@ class GuildBankMenu(
     override fun open() {
         // Check Vault availability on menu open
         if (!isEconomyAvailable()) {
-            // Show error message and don't open the menu
+            // Personal transfers are unavailable; physical deposits must remain accessible.
             player.sendMessage(lang.msg("menu.bank.unavailable.title"))
             player.sendMessage(lang.msg("menu.bank.unavailable.economy"))
             player.sendMessage(lang.msg("menu.bank.unavailable.install"))
@@ -102,7 +102,6 @@ class GuildBankMenu(
 
             // Play error sound
             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
-            return
         }
 
         refreshBalance()
@@ -380,7 +379,7 @@ class GuildBankMenu(
      */
     private fun handleQuickAction(amount: Int, isDeposit: Boolean) {
         // Check if Vault economy is available
-        if (!isEconomyAvailable()) {
+        if (!isDeposit && !isEconomyAvailable()) {
             showErrorFeedback(lang.gui("menu.bank.feedback.vault_unavailable"))
             return
         }
@@ -399,7 +398,7 @@ class GuildBankMenu(
         val actualAmount: Int = if (!isDeposit) {
             withdrawalAction.resolveAmount(amount)
         } else if (amount == -1) {
-            bankService.getPlayerBalance(player.uniqueId).toInt()
+            bankService.getMaxPhysicalDeposit(guild.id, player.uniqueId).toInt()
         } else {
             amount
         }
@@ -426,7 +425,7 @@ class GuildBankMenu(
 
                         if (success) {
                             // Animate balance change
-                            animateBalanceChange(currentBalance, vaultInventoryManager.getGoldBalance(guild.id))
+                            animateBalanceChange(currentBalance, bankService.getBalance(guild.id).toLong())
 
                             // Play success sound and visual feedback
                             player.playSound(player.location, SUCCESS_SOUND, 1.0f, 1.5f)
@@ -458,58 +457,20 @@ class GuildBankMenu(
         }
 
         return try {
-            // Count available gold in player inventory
-            var totalNuggets = 0L
-            val goldItems = mutableListOf<Pair<Int, Int>>() // slot, value pairs
-
-            for (i in 0 until player.inventory.size) {
-                val item = player.inventory.getItem(i) ?: continue
-                val value = net.lumalyte.lg.application.utilities.GoldBalanceButton.calculateGoldValue(item)
-                if (value > 0) {
-                    totalNuggets += value
-                    goldItems.add(Pair(i, value.toInt()))
-                }
+            val outcome = bankService.depositPhysical(net.lumalyte.lg.application.services.PhysicalGoldRequest(
+                java.util.UUID.randomUUID(), guild.id, player.uniqueId, amount.toLong(), "Guild bank menu deposit"))
+            if (outcome is net.lumalyte.lg.domain.gold.GuildGoldResult.Failed && !outcome.compensationSucceeded) {
+                val message = lang.gui("menu.bank.feedback.deposit_pending", "transaction" to outcome.transactionId)
+                player.sendMessage(lang.msg("menu.bank.feedback.deposit_pending", "transaction" to outcome.transactionId))
+                showErrorFeedback(message, retryable = false)
+                return false
             }
-
-            if (totalNuggets < amount) {
-                val message = lang.gui("menu.bank.feedback.insufficient_gold", "balance" to totalNuggets, "amount" to amount)
-                player.sendMessage(lang.msg("menu.bank.feedback.insufficient_gold", "balance" to totalNuggets, "amount" to amount))
+            if (outcome !is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied) {
+                val message = lang.gui("menu.bank.feedback.deposit_rejected")
+                player.sendMessage(lang.msg("menu.bank.feedback.deposit_rejected"))
                 showErrorFeedback(message)
                 return false
             }
-
-            // Remove gold items from player inventory
-            var remaining = amount
-            for ((slot, value) in goldItems) {
-                if (remaining <= 0) break
-
-                val toRemove = minOf(remaining, value)
-                val item = player.inventory.getItem(slot) ?: continue
-
-                if (toRemove >= value) {
-                    // Remove entire stack
-                    player.inventory.setItem(slot, null)
-                    remaining -= value
-                } else {
-                    // Partially remove - need to break down the item
-                    player.inventory.setItem(slot, null)
-                    remaining -= value
-
-                    // Give back change if needed
-                    if (value > toRemove) {
-                        val change = value - toRemove
-                        val changeItems = net.lumalyte.lg.application.utilities.GoldBalanceButton.convertToItems(change.toLong())
-                        for (changeItem in changeItems) {
-                            player.inventory.addItem(changeItem)
-                        }
-                    }
-                }
-            }
-
-            // Deposit to guild vault (adds to virtual gold balance)
-            val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager by inject()
-            val newBalance = vaultInventoryManager.depositGold(guild.id, player.uniqueId, amount.toLong())
-            vaultInventoryManager.forceFlush(guild.id)
 
             // Reload guild to get updated state
             guild = guildService.getGuild(guild.id) ?: guild
@@ -535,8 +496,8 @@ class GuildBankMenu(
      */
     private val withdrawalAction = GuildBankWithdrawal(
         withdrawalFee = { bankService.calculateWithdrawalFee(guild.id, it) },
-        maximumAmount = { bankService.getMaxDepositAmount() },
-        currentBalance = { vaultInventoryManager.getGoldBalance(guild.id) },
+        maximumAmount = { bankService.getMaxWithdrawalAmount(guild.id, player.uniqueId) },
+        currentBalance = { bankService.getBalance(guild.id).toLong() },
     )
 
     private fun handleWithdrawal(amount: Int): Boolean {
@@ -661,7 +622,7 @@ class GuildBankMenu(
      * Load current balance from vault gold balance
      */
     private fun loadBalance() {
-        currentBalance = vaultInventoryManager.getGoldBalance(guild.id)
+        currentBalance = bankService.getBalance(guild.id).toLong()
     }
 
     /**

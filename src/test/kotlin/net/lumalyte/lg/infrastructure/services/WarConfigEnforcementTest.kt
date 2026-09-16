@@ -35,6 +35,18 @@ import java.util.UUID
  */
 class WarConfigEnforcementTest {
 
+    private val records = mutableMapOf<UUID, net.lumalyte.lg.domain.entities.DurableWarRecord>()
+    private val repository = mockk<net.lumalyte.lg.application.persistence.WarRepository> {
+        every { getAll() } answers { records.values.toList() }
+        every { this@mockk.get(any<UUID>()) } answers { records[firstArg<UUID>()] }
+        every { save(any()) } answers {
+            val record = firstArg<net.lumalyte.lg.domain.entities.DurableWarRecord>()
+            if ((records[record.id]?.revision ?: 0L) != record.revision) false
+            else { records[record.id] = record.copy(revision = record.revision + 1); true }
+        }
+    }
+    private val payments = mockk<net.lumalyte.lg.application.services.WarPaymentService>(relaxed = true)
+
     // ---------- pure decision helpers (no Bukkit) ----------
 
     @Test
@@ -90,6 +102,8 @@ class WarConfigEnforcementTest {
         every { config.combat } returns CombatConfig()
         every { configService.loadConfig() } returns config
         return WarServiceBukkit(
+            warRepository = repository,
+            warPayments = payments,
             configService = configService,
             bankService = mockk(relaxed = true),
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
@@ -184,6 +198,8 @@ class WarConfigEnforcementTest {
         every { config.combat } returns combat
         every { configService.loadConfig() } returns config
         return WarServiceBukkit(
+            warRepository = repository,
+            warPayments = payments,
             configService = configService,
             bankService = mockk(relaxed = true),
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
@@ -266,6 +282,8 @@ class WarConfigEnforcementTest {
         every { progressionRepo.getGuildProgression(loserProgression.guildId) } returns loserProgression
 
         val service = WarServiceBukkit(
+            warRepository = repository,
+            warPayments = payments,
             configService = configService,
             bankService = mockk(relaxed = true),
             progressionRepository = progressionRepo,
@@ -304,6 +322,8 @@ class WarConfigEnforcementTest {
         every { configService.loadConfig() } returns config
 
         val service = WarServiceBukkit(
+            warRepository = repository,
+            warPayments = payments,
             configService = configService,
             bankService = mockk(relaxed = true),
             progressionRepository = progressionRepo,
@@ -330,6 +350,8 @@ class WarConfigEnforcementTest {
         every { configService.loadConfig() } returns config
 
         val service = WarServiceBukkit(
+            warRepository = repository,
+            warPayments = payments,
             configService = configService,
             bankService = bankService,
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
@@ -344,7 +366,10 @@ class WarConfigEnforcementTest {
         // Relaxed mock would return false for Boolean — stubbing success so the
         // escrow deduction path proceeds.
         every { bankService.deductFromGuildBank(any(), any(), any()) } returns true
-        every { bankService.creditToGuildBank(any(), any(), any()) } returns true
+        every { payments.fund(any()) } answers {
+            val record = records[firstArg<UUID>()]!!
+            repository.save(record.copy(paymentPhase = net.lumalyte.lg.domain.entities.WarPaymentPhase.ESCROWED))
+        }
 
         val declaration = service.createWarDeclaration(
             declaringGuildId = declaring,
@@ -360,8 +385,8 @@ class WarConfigEnforcementTest {
         val wager = service.getWager(war.id)
         assertNotNull(wager, "wager must be created on acceptance (REQ-039)")
         assertEquals(1_000, wager!!.totalPot)
-        verify { bankService.deductFromGuildBank(declaring, 500, any()) }
-        verify { bankService.deductFromGuildBank(defending, 500, any()) }
+        verify(exactly = 1) { payments.fund(war.id) }
+        verify(exactly = 0) { bankService.deductFromGuildBank(any(), any(), any()) }
     }
 
     @Test
@@ -373,6 +398,8 @@ class WarConfigEnforcementTest {
         every { configService.loadConfig() } returns config
 
         val service = WarServiceBukkit(
+            warRepository = repository,
+            warPayments = payments,
             configService = configService,
             bankService = bankService,
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),

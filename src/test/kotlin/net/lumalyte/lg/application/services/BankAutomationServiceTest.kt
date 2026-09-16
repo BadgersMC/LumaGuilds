@@ -31,6 +31,14 @@ class BankAutomationServiceTest {
     private val bankService = mockk<BankService>(relaxed = true)
     private val configService = mockk<ConfigService>(relaxed = true)
 
+    @org.junit.jupiter.api.BeforeEach
+    fun settlementPort() {
+        every { bankService.creditInterest(any(), any(), any()) } answers {
+            net.lumalyte.lg.domain.gold.GuildGoldResult.Applied(UUID.randomUUID(), 1000,
+                1000 + (1000 * thirdArg<Double>()).toLong(), 0)
+        }
+    }
+
     private fun service() = BankAutomationService(
         bankRepository, settingsRepository, guildRepository, bankService, configService
     )
@@ -63,7 +71,7 @@ class BankAutomationServiceTest {
         val credited = service().accrueInterest()
 
         assertEquals(1, credited)
-        verify(exactly = 1) { bankService.creditToGuildBank(guildId, 5, "Interest accrual") }
+        verify(exactly = 1) { bankService.creditInterest(guildId, any(), 0.005) }
     }
 
     @Test
@@ -83,7 +91,7 @@ class BankAutomationServiceTest {
 
         service().accrueInterest()
 
-        verify(exactly = 1) { bankService.creditToGuildBank(guildId, 100, "Interest accrual") }
+        verify(exactly = 1) { bankService.creditInterest(guildId, any(), 0.10) }
     }
 
     @Test
@@ -102,7 +110,7 @@ class BankAutomationServiceTest {
         val credited = service().accrueInterest()
 
         assertEquals(0, credited)
-        verify(exactly = 0) { bankService.creditToGuildBank(any(), any(), any()) }
+        verify(exactly = 0) { bankService.creditInterest(any(), any(), any()) }
     }
 
     @Test
@@ -123,7 +131,7 @@ class BankAutomationServiceTest {
         val credited = service().accrueInterest()
 
         assertEquals(3, credited)
-        verify(exactly = 3) { bankService.creditToGuildBank(guildId, 5, "Interest accrual") }
+        verify(exactly = 3) { bankService.creditInterest(guildId, any(), 0.005) }
     }
 
     @Test
@@ -145,7 +153,7 @@ class BankAutomationServiceTest {
         val credited = service().accrueInterest()
 
         assertEquals(30, credited)
-        verify(exactly = 30) { bankService.creditToGuildBank(guildId, 5, "Interest accrual") }
+        verify(exactly = 30) { bankService.creditInterest(guildId, any(), 0.005) }
     }
 
     @Test
@@ -161,7 +169,7 @@ class BankAutomationServiceTest {
         val credited = service().accrueInterest()
 
         assertEquals(0, credited)
-        verify(exactly = 0) { bankService.creditToGuildBank(any(), any(), any()) }
+        verify(exactly = 0) { bankService.creditInterest(any(), any(), any()) }
         // The initial clock must be persisted so the next run sees it initialized.
         val savedSettings = io.mockk.slot<BankSettings>()
         verify(exactly = 1) { settingsRepository.upsert(capture(savedSettings)) }
@@ -183,11 +191,11 @@ class BankAutomationServiceTest {
         val credited = service().accrueInterest()
 
         assertEquals(0, credited)
-        verify(exactly = 0) { bankService.creditToGuildBank(any(), any(), any()) }
+        verify(exactly = 0) { bankService.creditInterest(any(), any(), any()) }
     }
 
     @Test
-    fun `upsert failure skips crediting so no period can be double-credited`() {
+    fun `upsert failure stops after settling one retryable period`() {
         val guildId = UUID.randomUUID()
         val guild = Guild(id = guildId, name = "Guild", createdAt = Instant.now().minus(100, ChronoUnit.HOURS))
         val settings = BankSettings(
@@ -203,8 +211,8 @@ class BankAutomationServiceTest {
 
         val credited = service().accrueInterest()
 
-        assertEquals(0, credited)
-        verify(exactly = 0) { bankService.creditToGuildBank(any(), any(), any()) }
+        assertEquals(1, credited)
+        verify(exactly = 1) { bankService.creditInterest(any(), any(), any()) }
     }
 
     @Test

@@ -4,13 +4,13 @@ Date: 2026-08-27
 
 Status: Proposed for implementation
 
-Tasks: LG-1201, LG-1202, LG-1203, LG-1205
+Tasks: LG-1201, LG-1202, LG-1203, LG-1205, LG-1208, LG-1209
 
-Requirements: REQ-049, REQ-050, REQ-051, REQ-053, REQ-089, REQ-090, REQ-091
+Requirements: REQ-049, REQ-050, REQ-051, REQ-053, REQ-089, REQ-090, REQ-091, REQ-092, REQ-093
 
 ## 1. Purpose
 
-Chapter 2 separates durable guild growth from seasonal competition. Ordinary Minecraft activity and weekly guild quests advance a permanent level from 1 through 100. Once a guild reaches level 100, rated guild wars drive a separate seasonal Elo rating presented as levels 101 through 200. This preserves months of legitimate progress while making the post-cap leaderboard competitive and reversible.
+Chapter 2 separates repeatable guild growth from seasonal competition. Ordinary Minecraft activity and weekly guild quests advance the current progression run from level 1 through 100. Once a guild reaches level 100, rated guild wars drive a separate seasonal Elo rating presented as levels 101 through 200. A bounded, operator-disabled-by-default prestige option may reset only the current progression run in exchange for one permanent perk and one permanent home; seasonal Elo and chapter rollover remain separate.
 
 The model rewards broad, active play. It rejects AFK or suspicious input before rewards or caps are touched, prevents placed-block mining loops, and limits every repeatable source independently. It deliberately has no per-player cap and no combined guild cap: more recruited active members can work on more sources and finish shared quests sooner, so larger coordinated guilds retain a natural advantage without receiving a hidden multiplier.
 
@@ -19,25 +19,25 @@ The model rewards broad, active play. It rejects AFK or suspicious input before 
 - No claim-based XP or quest activity; EnthusiaSMP does not use claims.
 - No conversion of legacy excess XP into seasonal Elo.
 - No permanent perks attached to seasonal levels 101–200 in this change.
-- No prestige reset. The old permanent-level-200 prestige proposal is superseded.
+- No unbounded or level-200 prestige system. The only supported reset is the bounded level-100 contract in the companion prestige/gold design.
 - No location rules for mob kills. Intrinsic targets such as the Ender Dragon need no redundant dimension condition.
 - No single combined daily cap and no per-player source caps.
 
 ## 3. Player-facing model
 
-### 3.1 Permanent progression
+### 3.1 Current-run progression
 
-Permanent levels run from 1 to 100. XP needed to reach target level `L` from `L - 1` is:
+Each progression run spans levels 1 to 100. XP needed to reach target level `L` from `L - 1` is:
 
 ```text
 floor(500 * L^1.15 + L * 150)
 ```
 
-The floor operation is used consistently in calculation, migration, UI, and tests. The cumulative target from level 1 through level 100 is exactly 5,446,893 XP. Permanent XP never falls because of a war, seasonal reset, or chapter rollover.
+The floor operation is used consistently in calculation, migration, UI, and tests. The cumulative target from level 1 through level 100 is exactly 5,446,893 XP. Current-run XP never falls because of a war, seasonal reset, or chapter rollover; only an explicitly confirmed successful prestige resets it.
 
 ### 3.2 Seasonal Elo and displayed levels
 
-Only guilds at permanent level 100 can participate in rated wars. Each eligible guild begins a chapter at 1000 Elo and cannot fall below 1000. After a rated result:
+Only guilds at current-run level 100 can participate in rated wars. Each eligible guild begins a chapter at 1000 Elo and cannot fall below 1000. After a rated result:
 
 ```text
 expected = 1 / (1 + 10 ^ ((opponentRating - rating) / 400))
@@ -67,7 +67,7 @@ SCHEDULED -> FROZEN -> BACKED_UP -> ARCHIVED -> RESET -> PRUNED -> COMPLETE
 - `PRUNED`: remove only configured seasonal/transient records, including expired opponent-pair guards.
 - `COMPLETE`: publish the new active chapter and unfreeze rating changes.
 
-Each transition is transactional or restart-idempotent. Failure leaves the current state recorded and rated changes frozen when necessary. Admin controls provide status, postpone, retry, and an explicitly confirmed force operation. Force never skips the verified backup requirement unless a future requirement explicitly authorizes an emergency bypass.
+Each transition is transactional or restart-idempotent. Failure leaves the current state recorded and rated changes frozen when necessary. Admin controls provide status, postpone, retry, and an explicitly confirmed force operation. Force never skips the verified backup requirement unless a future requirement explicitly authorizes an emergency bypass. Rollover does not reset current-run level/XP, prestige state, permanent homes, or permanent perks.
 
 ## 4. XP sources and shipped defaults
 
@@ -136,64 +136,68 @@ A rejected event awards zero and consumes zero cap. Player block placement is pe
 
 ### Domain
 
-Pure domain types own `ProgressionLevel`, `ExperienceSource`, `SourceCap`, `CapPeriod`, `SeasonRating`, `RatedWarResult`, `OpponentPair`, `Chapter`, `ChapterState`, and the XP/Elo calculations. Domain imports no Bukkit, database, scheduling, PlaceholderAPI, or EnthusiaPlaytime types.
+Pure domain types own `ProgressionLevel`, `PrestigeState`, `ExperienceSource`, `SourceCap`, `CapPeriod`, `GuildGoldBalance`, `SeasonRating`, `RatedWarResult`, `OpponentPair`, `Chapter`, `ChapterState`, and the XP/Elo/capacity calculations. Domain imports no Bukkit, database, scheduling, PlaceholderAPI, Vault Economy, or EnthusiaPlaytime types.
 
 ### Application
 
 Application services orchestrate:
 
-- activity validation and permanent-XP award;
+- activity validation and current-run XP award;
 - atomic cap reservation;
-- permanent level calculation;
+- current-run level calculation;
+- atomic guild-gold transfers, purchases, and prestige eligibility;
+- bounded prestige transition;
 - rated-war eligibility and Elo update;
 - opponent-pair rematch policy;
 - chapter state transitions, archive creation, and migration;
 - read models for menus and placeholders.
 
-Ports cover guild lookup, progression persistence, cap ledger, rating persistence, war history, chapter archive, verified backup, clock, suspicious-input classification, and transaction boundaries.
+Ports cover guild lookup, progression/prestige persistence, canonical guild-gold persistence, personal Vault Economy transfers, physical-item exchange, cap ledger, rating persistence, war history, chapter archive, verified backup, clock, suspicious-input classification, and transaction boundaries.
 
 ### Infrastructure and interaction
 
-Infrastructure adapters translate Paper events, call EnthusiaPlaytime, persist SQLite/MariaDB data, schedule reset catch-up, create/verify backups, and expose PlaceholderAPI values. Interaction code renders commands and menus from application read models and does not calculate XP, Elo, or rollover transitions.
+Infrastructure adapters translate Paper events, call EnthusiaPlaytime, bridge the Vault Economy provider, exchange physical raw-gold items, persist SQLite/MariaDB data, schedule reset catch-up, create/verify backups, and expose PlaceholderAPI values. Interaction code renders commands and menus from application read models and does not calculate XP, gold capacity, prestige eligibility, Elo, or rollover transitions.
 
 ## 8. Persistence and atomicity
 
-The schema keeps permanent progression, seasonal ratings, source-cap ledgers, rated-pair history, chapter state, and archived standings separate. Logical keys are:
+The schema keeps current-run progression, prestige/permanent rewards, canonical guild gold, seasonal ratings, source-cap ledgers, rated-pair history, chapter state, and archived standings separate. Logical keys are:
 
-- permanent progression: `guild_id`;
+- current-run progression: `guild_id`;
+- prestige/permanent reward state: `(guild_id, reward_id)` plus guild prestige count;
+- canonical guild gold: `guild_id` in `vault_gold`;
 - source cap: `(guild_id, source_pool, period_start)`, where every source sharing a pool consumes the same cap contract;
 - rating: `(chapter_id, guild_id)`;
 - pair guard: `(chapter_id, lower_guild_id, higher_guild_id)`;
 - archive standing: `(chapter_id, guild_id)`;
 - rollover: `chapter_id` with current state and transition metadata.
 
-An XP award and its cap reservation commit together. A rated war result, both rating changes, and pair-guard record commit together. Rollover archives before reset and cannot prune permanent tables. SQLite and MariaDB implementations must satisfy the same repository contract tests.
+An XP award and its cap reservation commit together. A guild-gold mutation and its audit record commit together, with external personal currency or physical items compensated when the database mutation fails. Prestige fee, permanent rewards, temporary-perk reset, level/XP reset, and audit record commit as one transition. A rated war result, both rating changes, and pair-guard record commit together. Rollover archives before reset and cannot prune prestige or other permanent tables. SQLite and MariaDB implementations must satisfy the same repository contract tests.
 
 ## 9. Migration
 
-Before migration, the system creates and verifies a backup. For every guild:
+Before the one-time Chapter 1 to Chapter 2 migration, the system creates and verifies a backup and archives final Chapter 1 standings. For every guild:
 
-- preserve its achieved legacy level, capped at permanent level 100;
-- preserve at least the permanent XP floor required for that level;
-- clamp any legacy level above 100 to permanent level 100;
-- discard no guild identity, membership, rank, bank, home, or other permanent record;
-- initialize seasonal Elo to 1000 when the guild is eligible;
-- never convert historical excess XP to Elo.
+- reset current-run level to 1 and current-run XP to 0 because Chapter 1 used materially different and AFK-abusable earning rules;
+- preserve guild identity, membership, ranks, relations, canonical `vault_gold` balance, ordinary vault contents, and every saved guild-home location;
+- initialize permanent home capacity to the number of canonical saved homes, with a minimum of one;
+- initialize prestige count to zero and no permanent prestige perk selections;
+- initialize seasonal Elo to 1000;
+- never convert historical XP into Elo, prestige, perks, raw gold, or other economic value.
 
-Migration uses a version marker and transactional batches so restart retries are safe. A dry-run report lists counts, clamps, calculated XP floors, and backup path without modifying data.
+Migration uses a version marker and transactional batches so restart retries are safe. A dry-run report lists archived standings, reset counts, preserved-home counts, canonical balances, and backup path without modifying data. Rollback restores the verified pre-migration backup.
 
 ## 10. Configuration and placeholders
 
-Configuration groups permanent progression, source awards/caps, eligibility target pools, seasonal Elo, chapter schedule, rollover retention, integration policy, and presentation. Any vanilla material or entity may be configured where its source supports that target. Bosses include Ender Dragon, Wither, Elder Guardian, and Warden by default.
+Configuration groups current-run progression, permanent prestige/home state, source awards/caps, eligibility target pools, seasonal Elo, chapter schedule, rollover retention, integration policy, and presentation. Any vanilla material or entity may be configured where its source supports that target. Bosses include Ender Dragon, Wither, Elder Guardian, and Warden by default.
 
-Read-only placeholders include permanent level/XP/progress, seasonal Elo/display level/rank, chapter ID/name/start/end/time remaining, rating eligibility, and source cap used/remaining. Missing player, guild, chapter, or integration context returns documented safe fallback text and never mutates state.
+Read-only placeholders include current-run level/XP/progress, prestige count, seasonal Elo/display level/rank, chapter ID/name/start/end/time remaining, rating eligibility, canonical guild-gold balance/capacity, and source cap used/remaining. Missing player, guild, chapter, or integration context returns documented safe fallback text and never mutates state.
 
 ## 11. Verification strategy
 
 SPEAR implementation proceeds requirement by requirement with a failing test first. Minimum acceptance coverage includes:
 
 - formula boundaries and consistent rounding for levels 1, 99, and 100;
-- permanent XP never decreases;
+- current-run XP never decreases except through one successful REQ-093 prestige transition;
 - every shipped source award and cap, including shared ore/craft pools;
 - no cross-source or combined-cap interference;
 - no per-player cap behavior;
@@ -203,11 +207,11 @@ SPEAR implementation proceeds requirement by requirement with a failing test fir
 - both-guild-level-100 eligibility and unordered seven-day pair guard;
 - restart-safe chapter transitions and failure recovery at every state;
 - verified-backup requirement and immutable archived standings;
-- migration preservation, clamping, no legacy-XP-to-Elo conversion, dry run, and retry;
+- migration reset of current-run level and XP, preservation of required legacy fields, no legacy-XP-to-Elo conversion, dry run, and retry;
 - SQLite/MariaDB repository parity and architecture boundary tests.
 
 ## 12. Rollout and observability
 
-Rollout order is migration dry run, verified backup, schema migration, permanent-source activation, seasonal-rating activation, then chapter scheduler activation. Operators receive structured logs and status output for rejected XP reasons, source cap exhaustion, integration health, rating changes, pair-guard decisions, chapter state, backup verification, and migration counts. No player-facing award is silently dropped: expected cap/eligibility rejection is observable at debug level and operational failures are surfaced at warning/error level.
+Rollout order is migration dry run, verified backup, schema migration, current-run source activation, seasonal-rating activation, then chapter scheduler activation. Operators receive structured logs and status output for rejected XP reasons, source cap exhaustion, integration health, rating changes, pair-guard decisions, chapter state, backup verification, and migration counts. No player-facing award is silently dropped: expected cap/eligibility rejection is observable at debug level and operational failures are surfaced at warning/error level.
 
 The balance defaults are an initial Chapter 2 model, not immutable game design. Operators may tune values through validated configuration after observing live source mix, completion rates, and time-to-level-100, without a code change or data migration.

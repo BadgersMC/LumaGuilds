@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 
 class VaultLeaderboardConsistencyTest {
     @Test
-    fun `leaderboard overlays buffered in-memory balances before ranking`() {
+    fun `leaderboard ignores stale cached balances`() {
         val changedGuild = UUID.randomUUID()
         val persistedLeader = UUID.randomUUID()
         val repository = mockk<GuildVaultRepository>(relaxed = true)
@@ -22,16 +22,16 @@ class VaultLeaderboardConsistencyTest {
         )
         val manager = VaultInventoryManager(repository, vaultConfig = mockk<VaultConfig>(relaxed = true))
 
-        manager.setGoldBalance(changedGuild, 1_000L)
+        manager.getOrLoadVault(changedGuild).setGold(1_000L)
 
         assertEquals(
-            listOf(changedGuild to 1_000L, persistedLeader to 500L),
+            listOf(persistedLeader to 500L, changedGuild to 100L),
             manager.getTopGoldBalances(10)
         )
     }
 
     @Test
-    fun `leaderboard backfills persisted candidates when a loaded balance falls`() {
+    fun `leaderboard does not demote a guild based on a stale cached balance`() {
         val changedGuild = UUID.randomUUID()
         val secondGuild = UUID.randomUUID()
         val thirdGuild = UUID.randomUUID()
@@ -46,10 +46,10 @@ class VaultLeaderboardConsistencyTest {
         every { repository.getTopGoldBalances(any()) } answers { persisted.take(firstArg()) }
         val manager = VaultInventoryManager(repository, vaultConfig = mockk<VaultConfig>(relaxed = true))
 
-        manager.setGoldBalance(changedGuild, 100L)
+        manager.getOrLoadVault(changedGuild).setGold(100L)
 
         assertEquals(
-            listOf(secondGuild to 900L, thirdGuild to 800L),
+            listOf(changedGuild to 1_000L, secondGuild to 900L),
             manager.getTopGoldBalances(2)
         )
     }
@@ -69,7 +69,7 @@ class VaultLeaderboardConsistencyTest {
         every { repository.getGoldBalance(concurrentlyLoadedGuild) } returns 1_000L
         lateinit var manager: VaultInventoryManager
         every { repository.getTopGoldBalances(any()) } answers {
-            manager.setGoldBalance(concurrentlyLoadedGuild, 100L)
+            manager.getOrLoadVault(concurrentlyLoadedGuild).setGold(100L)
             persisted.take(firstArg())
         }
         manager = VaultInventoryManager(repository, vaultConfig = mockk<VaultConfig>(relaxed = true))

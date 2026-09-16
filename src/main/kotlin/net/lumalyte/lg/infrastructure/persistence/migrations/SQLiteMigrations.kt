@@ -159,6 +159,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(28)
                 dbVersion = 28
             }
+            if (dbVersion < 29) {
+                migrateToVersion29()
+                updateDatabaseVersion(29)
+                dbVersion = 29
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1348,7 +1353,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "audits", "wars", "leaderboards", "guild_invitations",
             "vault_slots", "vault_gold", "vault_transaction_log",
             "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
-            "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history"
+            "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history",
+            "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1399,6 +1405,9 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("quest_player_placed_blocks" in missingTables) migrateToVersion26()
             if ("guild_experience_source_usage" in missingTables) migrateToVersion27()
             if ("guild_bank_xp_high_water" in missingTables || "membership_history" in missingTables) migrateToVersion28()
+            if (missingTables.any { it in setOf("guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security") }) {
+                migrateToVersion29()
+            }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
                 migrateToVersion2()
@@ -1756,5 +1765,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             }
         }
         componentLogger.info(Component.text("✓ Migration v28 complete: guild-wide award qualification added"))
+    }
+
+    private fun migrateToVersion29() {
+        GuildGoldSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("✓ Migration v29 complete: canonical guild-gold operations added"))
     }
 }
