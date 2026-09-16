@@ -643,30 +643,8 @@ fun economyModule() = module {
         val guilds = get<net.lumalyte.lg.application.persistence.GuildRepository>()
         net.lumalyte.lg.application.services.GuildGoldService(
             repository = get(),
-            policyProvider = net.lumalyte.lg.application.services.GuildGoldPolicyProvider { guildId ->
-                val bank = config.loadConfig().bank
-                val level = progression.getGuildProgression(guildId)?.currentLevel ?: 0
-                val levelRewards = rewards.getProgressionConfig().getActiveLevelRewards()
-                val feeMultiplier = (1..level).fold(1.0) { current, reached ->
-                    minOf(current, levelRewards[reached]?.withdrawalFeeMultiplier ?: 1.0)
-                }
-                net.lumalyte.lg.domain.gold.GuildGoldPolicy(
-                    bank.minDepositAmount.toLong(), bank.maxDepositAmount.toLong(),
-                    bank.maxWithdrawalPercent, bank.dailyWithdrawalLimit.toLong(),
-                    bank.depositFeePercent, bank.withdrawalFeePercent * feeMultiplier,
-                    bank.maxDepositFee.toLong(), bank.maxWithdrawalFee.toLong(),
-                    bank.maxBankBalance.toLong(), bank.suspiciousTransactionThreshold.toLong(),
-                    bank.autoLockSuspiciousAccounts,
-                )
-            },
-            capacityProvider = net.lumalyte.lg.application.services.GuildGoldCapacityProvider { guildId ->
-                val level = progression.getGuildProgression(guildId)?.currentLevel
-                val tier = level?.let { BankServiceBukkit.computeProgressionBankLimit(
-                    rewards.getProgressionConfig().getActiveLevelRewards(), it) }
-                net.lumalyte.lg.domain.gold.GuildGoldCapacity(
-                    (tier ?: config.loadConfig().bank.maxBankBalance).toLong(), 0,
-                )
-            },
+            settingsProvider = net.lumalyte.lg.infrastructure.services.ConfiguredGuildGoldSettings(
+                config, progression, rewards),
             authorization = object : net.lumalyte.lg.application.services.GuildGoldAuthorizationPort {
                 private fun allowed(playerId: java.util.UUID, guildId: java.util.UUID,
                     permission: net.lumalyte.lg.domain.entities.RankPermission): Boolean {

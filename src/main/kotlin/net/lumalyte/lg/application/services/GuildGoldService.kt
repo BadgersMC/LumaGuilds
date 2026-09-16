@@ -20,21 +20,42 @@ fun interface GuildGoldCapacityProvider {
     fun capacityFor(guildId: UUID): GuildGoldCapacity
 }
 
+data class GuildGoldSettings(val policy: GuildGoldPolicy, val capacity: GuildGoldCapacity) {
+    val effectiveCapacity: Long get() = GuildGoldCalculator.effectiveCapacity(policy, capacity)
+}
+
+fun interface GuildGoldSettingsProvider {
+    fun settingsFor(guildId: UUID): GuildGoldSettings
+}
+
 class GuildGoldService(
     private val repository: GuildGoldRepository,
-    private val policyProvider: GuildGoldPolicyProvider,
-    private val capacityProvider: GuildGoldCapacityProvider,
+    private val settingsProvider: GuildGoldSettingsProvider,
     private val authorization: GuildGoldAuthorizationPort = GuildGoldAuthorizationPort.AllowAll,
     private val personalEconomy: PersonalEconomyPort = PersonalEconomyPort.Unavailable,
     private val physicalGold: PhysicalGoldPort = PhysicalGoldPort.Unavailable,
     private val periodStartProvider: () -> Long = { 0L },
     private val additionalFrozen: (UUID) -> Boolean = { false }
 ) {
+    constructor(
+        repository: GuildGoldRepository,
+        policyProvider: GuildGoldPolicyProvider,
+        capacityProvider: GuildGoldCapacityProvider,
+        authorization: GuildGoldAuthorizationPort = GuildGoldAuthorizationPort.AllowAll,
+        personalEconomy: PersonalEconomyPort = PersonalEconomyPort.Unavailable,
+        physicalGold: PhysicalGoldPort = PhysicalGoldPort.Unavailable,
+        periodStartProvider: () -> Long = { 0L },
+        additionalFrozen: (UUID) -> Boolean = { false }
+    ) : this(repository, GuildGoldSettingsProvider { guildId ->
+        GuildGoldSettings(policyProvider.policyFor(guildId), capacityProvider.capacityFor(guildId))
+    }, authorization, personalEconomy, physicalGold, periodStartProvider, additionalFrozen)
+
     fun balance(guildId: UUID): Long = repository.getBalance(guildId)
 
     /** Preflight a future system payout; live balance, capacity and freeze are checked at execution. */
     fun allowsSystemCreditAmount(guildId: UUID, amount: Long): Boolean {
-        val policy = policyProvider.policyFor(guildId)
+        val settings = settingsProvider.settingsFor(guildId)
+        val policy = settings.policy
         return amount >= 0 && amount <= policy.maxDeposit &&
             (!policy.autoFreezeSuspicious || amount < policy.suspiciousThreshold)
     }
@@ -44,7 +65,8 @@ class GuildGoldService(
         repository.findOperation(transactionId)
 
     fun depositCost(guildId: UUID, amount: Long): Long? {
-        val policy = policyProvider.policyFor(guildId)
+        val settings = settingsProvider.settingsFor(guildId)
+        val policy = settings.policy
         if (amount <= 0 || amount < policy.minDeposit || amount > policy.maxDeposit) return null
         return exactAdd(amount, GuildGoldCalculator.depositFee(policy, amount))
     }
@@ -54,9 +76,10 @@ class GuildGoldService(
     /** Largest deposit affordable from physical inventory, including fees and bank headroom. */
     fun maximumPhysicalDeposit(guildId: UUID, playerId: UUID): Long {
         val available = physicalGold.availableValue(playerId)?.coerceAtLeast(0) ?: return 0
-        val policy = policyProvider.policyFor(guildId)
+        val settings = settingsProvider.settingsFor(guildId)
+        val policy = settings.policy
         var low = 0L
-        var high = minOf(available, policy.maxDeposit, (capacity(guildId) - balance(guildId)).coerceAtLeast(0))
+        var high = minOf(available, policy.maxDeposit, (settings.effectiveCapacity - balance(guildId)).coerceAtLeast(0))
         while (low < high) {
             val candidate = low + (high - low) / 2 + (high - low) % 2
             val fee = GuildGoldCalculator.depositFee(policy, candidate)
@@ -66,20 +89,18 @@ class GuildGoldService(
     }
 
     fun withdrawalFee(guildId: UUID, amount: Long): Long =
-        GuildGoldCalculator.withdrawalFee(policyProvider.policyFor(guildId), amount)
+        GuildGoldCalculator.withdrawalFee(settingsProvider.settingsFor(guildId).policy, amount)
 
     /** Upper bound before affordability including fees; execution rechecks the same live policy. */
     fun withdrawalLimit(guildId: UUID): Long {
-        val policy = policyProvider.policyFor(guildId)
+        val settings = settingsProvider.settingsFor(guildId)
+        val policy = settings.policy
         val remaining = (policy.dailyWithdrawalLimit -
             repository.getDailyWithdrawn(guildId, periodStartProvider())).coerceAtLeast(0)
         return minOf((balance(guildId).toDouble() * policy.withdrawalPercent).toLong(), remaining)
     }
 
-    fun capacity(guildId: UUID): Long = GuildGoldCalculator.effectiveCapacity(
-        policy = policyProvider.policyFor(guildId),
-        capacity = capacityProvider.capacityFor(guildId)
-    )
+    fun capacity(guildId: UUID): Long = settingsProvider.settingsFor(guildId).effectiveCapacity
 
     fun creditSystem(
         transactionId: UUID,
@@ -89,7 +110,8 @@ class GuildGoldService(
         route: GuildGoldRoute,
         reason: String
     ): GuildGoldResult {
-        val policy = policyProvider.policyFor(guildId)
+        val settings = settingsProvider.settingsFor(guildId)
+        val policy = settings.policy
         validateCommon(guildId, amount)?.let { return it }
         if (amount > policy.maxDeposit) {
             return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
@@ -108,7 +130,7 @@ class GuildGoldService(
             fee = 0,
             description = reason
         )
-        return repository.apply(mutation, capacity(guildId), periodStartEpochMs = null)
+        return repository.apply(mutation, settings.effectiveCapacity, periodStartEpochMs = null)
     }
 
     fun creditInterest(guildId: UUID, periodEndEpochMs: Long, rate: Double): GuildGoldResult {
@@ -178,12 +200,13 @@ class GuildGoldService(
         if (!admission.isEligible()) return GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
         if (!physical && !personalEconomy.isAvailable()) return GuildGoldResult.Rejected(GuildGoldRejection.EXTERNAL_UNAVAILABLE)
         validateCommon(request.guildId, request.amount)?.let { return it }
-        val policy = policyProvider.policyFor(request.guildId)
+        val settings = settingsProvider.settingsFor(request.guildId)
+        val policy = settings.policy
         if (request.amount < policy.minDeposit || request.amount > policy.maxDeposit) {
             return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
         }
-        suspicious(request.guildId, request.playerId, request.amount, request.description)?.let { return it }
-        if (wouldExceedCapacity(request.guildId, request.amount)) {
+        suspicious(request.guildId, request.playerId, request.amount, request.description, policy)?.let { return it }
+        if (wouldExceedCapacity(request.guildId, request.amount, settings.effectiveCapacity)) {
             return GuildGoldResult.Rejected(GuildGoldRejection.CAPACITY_EXCEEDED)
         }
         val fee = GuildGoldCalculator.depositFee(policy, request.amount)
@@ -208,7 +231,7 @@ class GuildGoldService(
             }
         }
 
-        val applied = repository.applyExternalCredit(mutation, capacity(request.guildId))
+        val applied = repository.applyExternalCredit(mutation, settings.effectiveCapacity)
         if (applied is GuildGoldResult.Rejected) {
             // Only a definitive rejection proves the bank was not credited and permits a refund.
             repository.recordCompensation(request.transactionId, false, "Admission credit rejected; refund pending")
@@ -230,13 +253,14 @@ class GuildGoldService(
         if (!authorization.canDeposit(request.playerId, request.guildId)) {
             return GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
         }
-        val policy = policyProvider.policyFor(request.guildId)
+        val settings = settingsProvider.settingsFor(request.guildId)
+        val policy = settings.policy
         validateCommon(request.guildId, request.amount)?.let { return it }
         if (request.amount < policy.minDeposit || request.amount > policy.maxDeposit) {
             return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
         }
-        suspicious(request.guildId, request.playerId, request.amount, request.description)?.let { return it }
-        if (wouldExceedCapacity(request.guildId, request.amount)) {
+        suspicious(request.guildId, request.playerId, request.amount, request.description, policy)?.let { return it }
+        if (wouldExceedCapacity(request.guildId, request.amount, settings.effectiveCapacity)) {
             return GuildGoldResult.Rejected(GuildGoldRejection.CAPACITY_EXCEEDED)
         }
         val fee = GuildGoldCalculator.depositFee(policy, request.amount)
@@ -247,7 +271,7 @@ class GuildGoldService(
 
         return when (personalEconomy.debit(request.playerId, externalDebit)) {
             ExternalTransferResult.Applied -> {
-                when (val applied = repository.apply(mutation, capacity(request.guildId), null)) {
+                when (val applied = repository.apply(mutation, settings.effectiveCapacity, null)) {
                     is GuildGoldResult.Applied -> applied
                     else -> compensatePersonalDeposit(request, externalDebit)
                 }
@@ -272,8 +296,9 @@ class GuildGoldService(
             return GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
         }
         validateCommon(request.guildId, request.amount)?.let { return it }
-        val policy = policyProvider.policyFor(request.guildId)
-        suspicious(request.guildId, request.playerId, request.amount, request.description)?.let { return it }
+        val settings = settingsProvider.settingsFor(request.guildId)
+        val policy = settings.policy
+        suspicious(request.guildId, request.playerId, request.amount, request.description, policy)?.let { return it }
         val periodStart = periodStartProvider()
         val withdrawnToday = repository.getDailyWithdrawn(request.guildId, periodStart)
         val balance = balance(request.guildId)
@@ -291,7 +316,7 @@ class GuildGoldService(
             return GuildGoldResult.Rejected(GuildGoldRejection.EXTERNAL_UNAVAILABLE)
         }
         existingResultOrPrepare(mutation)?.let { return it }
-        val applied = repository.applyExternalDebit(mutation, capacity(request.guildId), periodStart)
+        val applied = repository.applyExternalDebit(mutation, settings.effectiveCapacity, periodStart)
         if (applied !is GuildGoldResult.Applied) return applied
 
         return when (runCatching { personalEconomy.credit(request.playerId, request.amount) }
@@ -300,7 +325,7 @@ class GuildGoldService(
                 completeExternal(request.transactionId, applied)
             }
             is ExternalTransferResult.Failed -> GuildGoldResult.Failed(request.transactionId, false)
-            else -> compensatePersonalWithdrawal(request, mutation, applied, periodStart)
+            else -> compensatePersonalWithdrawal(request, mutation, applied, periodStart, settings.effectiveCapacity)
         }
     }
 
@@ -308,13 +333,14 @@ class GuildGoldService(
         if (!authorization.canDeposit(request.playerId, request.guildId)) {
             return GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
         }
-        val policy = policyProvider.policyFor(request.guildId)
+        val settings = settingsProvider.settingsFor(request.guildId)
+        val policy = settings.policy
         validateCommon(request.guildId, request.amount)?.let { return it }
         if (request.amount < policy.minDeposit || request.amount > policy.maxDeposit) {
             return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
         }
-        suspicious(request.guildId, request.playerId, request.amount, request.description)?.let { return it }
-        if (wouldExceedCapacity(request.guildId, request.amount)) {
+        suspicious(request.guildId, request.playerId, request.amount, request.description, policy)?.let { return it }
+        if (wouldExceedCapacity(request.guildId, request.amount, settings.effectiveCapacity)) {
             return GuildGoldResult.Rejected(GuildGoldRejection.CAPACITY_EXCEEDED)
         }
         val fee = GuildGoldCalculator.depositFee(policy, request.amount)
@@ -327,7 +353,7 @@ class GuildGoldService(
             PhysicalReservationResult.Unavailable -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_UNAVAILABLE)
             PhysicalReservationResult.Insufficient -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_REJECTED)
         }
-        return when (val applied = repository.apply(mutation, capacity(request.guildId), null)) {
+        return when (val applied = repository.apply(mutation, settings.effectiveCapacity, null)) {
             is GuildGoldResult.Applied -> {
                 if (physicalGold.commit(reservation)) applied
                 else GuildGoldResult.Failed(request.transactionId, false)
@@ -345,8 +371,9 @@ class GuildGoldService(
             return GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
         }
         validateCommon(request.guildId, request.amount)?.let { return it }
-        val policy = policyProvider.policyFor(request.guildId)
-        suspicious(request.guildId, request.playerId, request.amount, request.description)?.let { return it }
+        val settings = settingsProvider.settingsFor(request.guildId)
+        val policy = settings.policy
+        suspicious(request.guildId, request.playerId, request.amount, request.description, policy)?.let { return it }
         val periodStart = periodStartProvider()
         val balance = balance(request.guildId)
         if (request.amount > (balance.toDouble() * policy.withdrawalPercent).toLong()) {
@@ -357,14 +384,14 @@ class GuildGoldService(
         }
         val mutation = physicalMutation(request, GuildGoldDirection.DEBIT, GuildGoldCalculator.withdrawalFee(policy, request.amount))
         existingResultOrPrepare(mutation)?.let { return it }
-        val applied = repository.applyExternalDebit(mutation, capacity(request.guildId), periodStart)
+        val applied = repository.applyExternalDebit(mutation, settings.effectiveCapacity, periodStart)
         if (applied !is GuildGoldResult.Applied) return applied
         return when (physicalGold.deliver(request.playerId, request.amount, request.transactionId)) {
             ExternalTransferResult.Applied -> {
                 completeExternal(request.transactionId, applied)
             }
             is ExternalTransferResult.Failed -> GuildGoldResult.Failed(request.transactionId, false)
-            else -> compensatePhysicalWithdrawal(request, mutation, periodStart)
+            else -> compensatePhysicalWithdrawal(request, mutation, periodStart, settings.effectiveCapacity)
         }
     }
 
@@ -378,7 +405,8 @@ class GuildGoldService(
         request: PersonalGoldRequest,
         mutation: GuildGoldMutation,
         applied: GuildGoldResult.Applied,
-        periodStart: Long
+        periodStart: Long,
+        capacity: Long
     ): GuildGoldResult {
         val total = exactAdd(mutation.amount, mutation.fee)
             ?: return GuildGoldResult.Failed(request.transactionId, false)
@@ -395,7 +423,7 @@ class GuildGoldService(
         val result = repository.compensateDebit(
             request.transactionId,
             compensation,
-            capacity(request.guildId),
+            capacity,
             periodStart,
             "personal withdrawal payout failed"
         )
@@ -432,7 +460,8 @@ class GuildGoldService(
     private fun compensatePhysicalWithdrawal(
         request: PhysicalGoldRequest,
         mutation: GuildGoldMutation,
-        periodStart: Long
+        periodStart: Long,
+        capacity: Long
     ): GuildGoldResult {
         val total = exactAdd(mutation.amount, mutation.fee)
             ?: return GuildGoldResult.Failed(request.transactionId, false)
@@ -442,7 +471,7 @@ class GuildGoldService(
             "Compensate failed physical withdrawal ${request.transactionId}"
         )
         val result = repository.compensateDebit(
-            request.transactionId, compensation, capacity(request.guildId), periodStart,
+            request.transactionId, compensation, capacity, periodStart,
             "physical withdrawal delivery failed"
         )
         return GuildGoldResult.Failed(request.transactionId, result is GuildGoldResult.Applied)
@@ -492,16 +521,16 @@ class GuildGoldService(
         guildId: UUID,
         actorId: UUID,
         amount: Long,
-        description: String
+        description: String,
+        policy: GuildGoldPolicy
     ): GuildGoldResult.Rejected? {
-        val policy = policyProvider.policyFor(guildId)
         if (!policy.autoFreezeSuspicious || amount < policy.suspiciousThreshold) return null
         repository.setFrozen(guildId, true, actorId, "Suspicious transaction: $description")
         return GuildGoldResult.Rejected(GuildGoldRejection.SUSPICIOUS_FROZEN)
     }
 
-    private fun wouldExceedCapacity(guildId: UUID, amount: Long): Boolean =
-        exactAdd(balance(guildId), amount)?.let { it > capacity(guildId) } ?: true
+    private fun wouldExceedCapacity(guildId: UUID, amount: Long, capacity: Long): Boolean =
+        exactAdd(balance(guildId), amount)?.let { it > capacity } ?: true
 
     private fun exactAdd(left: Long, right: Long): Long? = try {
         Math.addExact(left, right)

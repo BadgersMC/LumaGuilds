@@ -47,6 +47,27 @@ class GuildGoldServiceTest {
     }
 
     @Test
+    fun `credit reads policy once and refreshes it for the next operation`() {
+        var policyReads = 0
+        var capacityReads = 0
+        val subject = GuildGoldService(repository,
+            GuildGoldPolicyProvider { policyReads++; policy },
+            GuildGoldCapacityProvider { capacityReads++; capacity })
+        assertTrue(subject.creditSystem(UUID.randomUUID(), guildId, actorId, 600,
+            GuildGoldRoute.SYSTEM, "first") is GuildGoldResult.Applied)
+        assertEquals(1, policyReads)
+        assertEquals(1, capacityReads)
+
+        capacity = GuildGoldCapacity(650, 0)
+        assertEquals(GuildGoldResult.Rejected(GuildGoldRejection.CAPACITY_EXCEEDED),
+            subject.creditSystem(UUID.randomUUID(), guildId, actorId, 100,
+                GuildGoldRoute.SYSTEM, "second"))
+        assertEquals(2, policyReads)
+        assertEquals(2, capacityReads)
+        assertEquals(600, subject.balance(guildId))
+    }
+
+    @Test
     fun `zero interest period remains completed after balance increases and service restarts`() {
         val first = service.creditInterest(guildId, 123L, 0.01)
         assertTrue(first is GuildGoldResult.Applied)
