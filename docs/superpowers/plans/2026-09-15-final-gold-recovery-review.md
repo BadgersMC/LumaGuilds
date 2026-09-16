@@ -14,7 +14,7 @@
 - [x] Physical commit: replace Boolean with Committed/NotConsumed/Unknown. Persist reservation identity and exact stacks before removal, then removal/restore/commit phases. Use BALANCE_APPLIED until consumption is confirmed. Roll back the canonical credit before returning items only for proven nonconsumption; interrupted restoration remains held. Test crash/restart and same-ID retries.
 - [x] Banner purchase: persist one active purchase per player/guild; reuse its transaction ID and immutable amount/banner on retry. Record delivery intent before inventory mutation; never redeliver an uncertain attempt. Route guild-bank payment through the canonical service and remove ID-less physical mutation overloads. Test restart between debit and purchase marker, and delivery uncertainty.
 - [x] Full test/build (920 passing, zero skipped) and ownership scan. The backup-restoration balance write remains a separate LG-1209 gate; no live MariaDB verification claim.
-- [ ] Push verified changes, reply individually to CodeRabbit with @coderabbitai, and resolve the three verified findings.
+- [x] Pushed f1bf074, replied individually to CodeRabbit with @coderabbitai, and resolved the three verified original findings. PR remains draft for the separately tracked release gates.
 
 ## Safety invariants
 
