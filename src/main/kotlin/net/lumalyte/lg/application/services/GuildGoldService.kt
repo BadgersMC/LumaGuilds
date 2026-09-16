@@ -52,6 +52,31 @@ class GuildGoldService(
 
     fun balance(guildId: UUID): Long = repository.getBalance(guildId)
 
+    /** Only durable evidence permits recovery; a timeout never proves a started effect failed. */
+    fun reconcilePending(createdBeforeEpochMs: Long): Int {
+        var resolved = repository.reconcileUnstarted(createdBeforeEpochMs)
+        for (record in repository.pendingPhysicalCredits()) {
+            val mutation = record.mutation
+            if (repository.isFrozen(mutation.guildId) || additionalFrozen(mutation.guildId)) continue
+            val receipt = physicalGold.reservation(mutation.transactionId) ?: continue
+            if (receipt.playerId != mutation.actorId || receipt.value != exactAdd(mutation.amount, mutation.fee)) continue
+            if (record.status == net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.FAILED_COMPENSATION) {
+                if (repository.reverseExternalCredit(mutation.transactionId) && physicalGold.restore(receipt)) {
+                    repository.recordCompensation(mutation.transactionId, true, "Recovery: physical reservation restored after credit reversal")
+                    resolved++
+                }
+            } else if (physicalGold.commit(receipt) == PhysicalCommitResult.Committed) {
+                repository.recordExternalOutcome(mutation.transactionId, true)
+            }
+        }
+        for (record in repository.confirmedCredits()) {
+            val guildId = record.mutation.guildId
+            if (repository.isFrozen(guildId) || additionalFrozen(guildId)) continue
+            if (repository.recoverConfirmedCredit(record.mutation.transactionId, capacity(guildId)) is GuildGoldResult.Applied) resolved++
+        }
+        return resolved
+    }
+
     /** Preflight a future system payout; live balance, capacity and freeze are checked at execution. */
     fun allowsSystemCreditAmount(guildId: UUID, amount: Long): Boolean {
         val settings = settingsProvider.settingsFor(guildId)
@@ -215,15 +240,17 @@ class GuildGoldService(
             route = if (physical) GuildGoldRoute.PHYSICAL_ITEM else GuildGoldRoute.PERSONAL_ACCOUNT)
         existingResultOrPrepare(mutation)?.let { return it }
 
+        if (!repository.beginExternal(request.transactionId, "ADMISSION")) return GuildGoldResult.Failed(request.transactionId, false)
         var reservation: PhysicalGoldReservation? = null
         if (physical) {
-            when (val reserved = physicalGold.reserve(request.playerId, total)) {
+            when (val reserved = physicalGold.reserve(request.transactionId, request.playerId, total)) {
+                PhysicalReservationResult.Unknown -> return GuildGoldResult.Failed(request.transactionId, false)
                 is PhysicalReservationResult.Reserved -> reservation = reserved.reservation
                 PhysicalReservationResult.Insufficient -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_REJECTED)
                 PhysicalReservationResult.Unavailable -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_UNAVAILABLE)
             }
         } else {
-            when (personalEconomy.debit(request.playerId, total)) {
+            when (externalEffect(request.transactionId) { personalEconomy.debit(request.playerId, total) }) {
                 ExternalTransferResult.Applied -> Unit
                 ExternalTransferResult.Unavailable -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_UNAVAILABLE)
                 is ExternalTransferResult.Rejected -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_REJECTED)
@@ -241,7 +268,10 @@ class GuildGoldService(
             return GuildGoldResult.Failed(request.transactionId, restored)
         }
         if (applied !is GuildGoldResult.Applied) return GuildGoldResult.Failed(request.transactionId, false)
-        if (reservation != null && !physicalGold.commit(reservation)) return GuildGoldResult.Failed(request.transactionId, false)
+        if (reservation != null) {
+            val consumed = commitPhysical(request.transactionId, reservation, applied, complete = false)
+            if (consumed !is GuildGoldResult.Applied) return consumed
+        }
         if (!admission.isEligible() || !admission.complete()) return GuildGoldResult.Failed(request.transactionId, false)
         return completeExternal(request.transactionId, applied)
     }
@@ -269,11 +299,13 @@ class GuildGoldService(
         val mutation = personalMutation(request, GuildGoldDirection.CREDIT, fee)
         existingResultOrPrepare(mutation)?.let { return it }
 
-        return when (personalEconomy.debit(request.playerId, externalDebit)) {
+        if (!repository.beginExternal(request.transactionId, "DEPOSIT")) return GuildGoldResult.Failed(request.transactionId, false)
+        return when (externalEffect(request.transactionId) { personalEconomy.debit(request.playerId, externalDebit) }) {
             ExternalTransferResult.Applied -> {
                 when (val applied = repository.apply(mutation, settings.effectiveCapacity, null)) {
                     is GuildGoldResult.Applied -> applied
-                    else -> compensatePersonalDeposit(request, externalDebit)
+                    is GuildGoldResult.Rejected -> compensatePersonalDeposit(request, externalDebit)
+                    else -> GuildGoldResult.Failed(request.transactionId, false)
                 }
             }
             ExternalTransferResult.Unavailable -> rejectPrepared(
@@ -319,8 +351,8 @@ class GuildGoldService(
         val applied = repository.applyExternalDebit(mutation, settings.effectiveCapacity, periodStart)
         if (applied !is GuildGoldResult.Applied) return applied
 
-        return when (runCatching { personalEconomy.credit(request.playerId, request.amount) }
-            .getOrElse { ExternalTransferResult.Failed("Provider threw during payout") }) {
+        if (!repository.beginExternal(request.transactionId, "WITHDRAWAL")) return GuildGoldResult.Failed(request.transactionId, false)
+        return when (externalEffect(request.transactionId) { personalEconomy.credit(request.playerId, request.amount) }) {
             ExternalTransferResult.Applied -> {
                 completeExternal(request.transactionId, applied)
             }
@@ -348,23 +380,44 @@ class GuildGoldService(
             ?: return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
         val mutation = physicalMutation(request, GuildGoldDirection.CREDIT, fee)
         existingResultOrPrepare(mutation)?.let { return it }
-        val reservation = when (val result = physicalGold.reserve(request.playerId, reservedValue)) {
+        if (!repository.beginExternal(request.transactionId, "DEPOSIT")) return GuildGoldResult.Failed(request.transactionId, false)
+        val reservation = when (val result = physicalGold.reserve(request.transactionId, request.playerId, reservedValue)) {
+            PhysicalReservationResult.Unknown -> return GuildGoldResult.Failed(request.transactionId, false)
             is PhysicalReservationResult.Reserved -> result.reservation
             PhysicalReservationResult.Unavailable -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_UNAVAILABLE)
             PhysicalReservationResult.Insufficient -> return rejectPrepared(request.transactionId, GuildGoldRejection.EXTERNAL_REJECTED)
         }
-        return when (val applied = repository.apply(mutation, settings.effectiveCapacity, null)) {
+        return when (val applied = repository.applyExternalCredit(mutation, settings.effectiveCapacity)) {
             is GuildGoldResult.Applied -> {
-                if (physicalGold.commit(reservation)) applied
-                else GuildGoldResult.Failed(request.transactionId, false)
+                commitPhysical(request.transactionId, reservation, applied)
             }
-            else -> {
+            is GuildGoldResult.Rejected -> {
+                repository.recordCompensation(request.transactionId, false, "Physical credit rejected; reservation restoration pending")
                 val restored = physicalGold.restore(reservation)
                 repository.recordCompensation(request.transactionId, restored, "physical deposit reservation restored")
                 GuildGoldResult.Failed(request.transactionId, restored)
             }
+            else -> GuildGoldResult.Failed(request.transactionId, false)
         }
     }
+
+    private fun commitPhysical(transactionId: UUID, reservation: PhysicalGoldReservation,
+        applied: GuildGoldResult.Applied, complete: Boolean = true): GuildGoldResult =
+        when (runCatching { physicalGold.commit(reservation) }.getOrDefault(PhysicalCommitResult.Unknown)) {
+            PhysicalCommitResult.Committed -> {
+                if (!repository.recordExternalOutcome(transactionId, true)) GuildGoldResult.Failed(transactionId, false)
+                else if (complete) completeExternal(transactionId, applied) else applied
+            }
+            PhysicalCommitResult.NotConsumed -> {
+                if (!repository.reverseExternalCredit(transactionId)) GuildGoldResult.Failed(transactionId, false)
+                else {
+                    val restored = runCatching { physicalGold.restore(reservation) }.getOrDefault(false)
+                    repository.recordCompensation(transactionId, restored, "Physical commit rejected; credit reversed before restoration")
+                    GuildGoldResult.Failed(transactionId, restored)
+                }
+            }
+            PhysicalCommitResult.Unknown -> GuildGoldResult.Failed(transactionId, false)
+        }
 
     fun withdrawPhysical(request: PhysicalGoldRequest): GuildGoldResult {
         if (!authorization.canWithdraw(request.playerId, request.guildId)) {
@@ -386,7 +439,8 @@ class GuildGoldService(
         existingResultOrPrepare(mutation)?.let { return it }
         val applied = repository.applyExternalDebit(mutation, settings.effectiveCapacity, periodStart)
         if (applied !is GuildGoldResult.Applied) return applied
-        return when (physicalGold.deliver(request.playerId, request.amount, request.transactionId)) {
+        if (!repository.beginExternal(request.transactionId, "WITHDRAWAL")) return GuildGoldResult.Failed(request.transactionId, false)
+        return when (externalEffect(request.transactionId) { physicalGold.deliver(request.playerId, request.amount, request.transactionId) }) {
             ExternalTransferResult.Applied -> {
                 completeExternal(request.transactionId, applied)
             }
@@ -396,6 +450,7 @@ class GuildGoldService(
     }
 
     private fun compensatePersonalDeposit(request: PersonalGoldRequest, amount: Long): GuildGoldResult {
+        repository.recordCompensation(request.transactionId, false, "Personal deposit rejected; refund pending")
         val refunded = personalEconomy.credit(request.playerId, amount) is ExternalTransferResult.Applied
         repository.recordCompensation(request.transactionId, refunded, "personal deposit refund")
         return GuildGoldResult.Failed(request.transactionId, refunded)
@@ -511,6 +566,15 @@ class GuildGoldService(
     private fun completeExternal(transactionId: UUID, applied: GuildGoldResult.Applied): GuildGoldResult =
         if (runCatching { repository.completeExternal(transactionId) }.getOrDefault(false)) applied
         else GuildGoldResult.Failed(transactionId, false)
+
+    private fun externalEffect(transactionId: UUID, action: () -> ExternalTransferResult): ExternalTransferResult {
+        val result = runCatching(action).getOrElse { ExternalTransferResult.Failed("External effect threw; outcome unknown") }
+        if (result !is ExternalTransferResult.Failed) {
+            if (!repository.recordExternalOutcome(transactionId, result is ExternalTransferResult.Applied))
+                return ExternalTransferResult.Failed("External outcome could not be recorded")
+        }
+        return result
+    }
 
     private fun rejectPrepared(transactionId: UUID, reason: GuildGoldRejection): GuildGoldResult {
         repository.rejectPrepared(transactionId, reason)

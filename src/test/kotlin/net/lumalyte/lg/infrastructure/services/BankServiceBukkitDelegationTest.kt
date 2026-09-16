@@ -60,12 +60,12 @@ class BankServiceBukkitDelegationTest {
             },
             physicalGold = object : PhysicalGoldPort {
                 override fun availableValue(playerId: UUID) = physicalBalance
-                override fun reserve(playerId: UUID, requestedValue: Long): PhysicalReservationResult {
+                override fun reserve(transactionId: UUID, playerId: UUID, requestedValue: Long): PhysicalReservationResult {
                     if (requestedValue > physicalBalance) return PhysicalReservationResult.Insufficient
                     physicalBalance -= requestedValue
-                    return PhysicalReservationResult.Reserved(PhysicalGoldReservation(UUID.randomUUID(), playerId, requestedValue))
+                    return PhysicalReservationResult.Reserved(PhysicalGoldReservation(transactionId, playerId, requestedValue))
                 }
-                override fun commit(reservation: PhysicalGoldReservation) = true
+                override fun commit(reservation: PhysicalGoldReservation) = net.lumalyte.lg.application.services.PhysicalCommitResult.Committed
                 override fun restore(reservation: PhysicalGoldReservation): Boolean {
                     physicalBalance += reservation.value
                     return true
@@ -106,9 +106,6 @@ class BankServiceBukkitDelegationTest {
             mockk { every { getById(guildId) } returns guild }, mockk(relaxed = true), members,
             mockk {
                 every { calculatePlayerInventoryValue(actorId) } answers { physicalBalance.toInt() }
-                every { addCurrency(guild, any(), any()) } answers {
-                    bank.creditToGuildBank(guildId, secondArg(), thirdArg())
-                }
             },
             mockk { every { loadConfig() } returns config }, mockk(relaxed = true), bankFacade,
             mockk { every { getDefaultRank(guildId) } returns if (rankAvailable) rank else null })
@@ -261,10 +258,10 @@ class BankServiceBukkitDelegationTest {
         val currency = PhysicalCurrencyServiceBukkit(
             mockk { every { loadConfig() } returns config }, bank)
         val guild = net.lumalyte.lg.domain.entities.Guild(guildId, "Cost test", createdAt = java.time.Instant.EPOCH)
-        assertTrue(currency.deductCurrency(guild, 100, "Cost"))
+        assertTrue(currency.deductCurrency(UUID.randomUUID(), guild, 100, "Cost"))
         assertEquals(300, gold.balance(guildId))
         assertEquals(300, currency.calculateVaultCurrencyValue(guild))
-        assertFalse(currency.addCurrency(guild, 300, "Over capacity"))
+        assertFalse(currency.addCurrency(UUID.randomUUID(), guild, 300, "Over capacity"))
         assertEquals(300, gold.balance(guildId))
     }
 

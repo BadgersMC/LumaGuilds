@@ -43,6 +43,23 @@ class GuildGoldPersonalTransferTest {
     }
 
     @Test
+    fun `confirmed personal debit recovers after credit write throws without charging again`() {
+        val broken = object : GuildGoldRepository by sqlRepository {
+            override fun apply(mutation: GuildGoldMutation, capacity: Long, periodStartEpochMs: Long?): GuildGoldResult =
+                error("credit transaction unavailable")
+        }
+        val original = request(amount = 100)
+        runCatching { service(broken).depositPersonal(original) }
+        assertEquals(899, economy.currentBalance)
+        val restarted = service(GuildGoldRepositorySQL(storage))
+        restarted.reconcilePending(System.currentTimeMillis())
+        assertEquals(100, restarted.balance(guildId))
+        restarted.reconcilePending(System.currentTimeMillis())
+        assertEquals(100, restarted.balance(guildId))
+        assertEquals(899, economy.currentBalance)
+    }
+
+    @Test
     fun `unavailable economy rejects without changing either balance`() {
         economy.available = false
         val service = service(sqlRepository)

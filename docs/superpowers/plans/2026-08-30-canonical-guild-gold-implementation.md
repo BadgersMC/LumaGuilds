@@ -511,24 +511,9 @@ Expected: compilation fails for the missing physical port/adapter.
 
 - [ ] **Step 3: Implement reservation and compensation**
 
-Store reserved `ItemStack` snapshots only inside the infrastructure adapter. The application layer receives the opaque reservation and numeric value. Validate policy/capacity before `reserve`; after reservation, apply the canonical credit then commit the reservation. On failure, restore to inventory and drop only overflow at the player location. Physical withdrawals debit canonical gold before delivery and issue an idempotent compensating credit if delivery fails.
+Store exact serialized `ItemStack` snapshots durably in the infrastructure reservation journal before inventory removal. The application receives the transaction-keyed opaque reservation and numeric value. Validate policy/capacity before reservation; use BALANCE_APPLIED until commit is confirmed. Commit returns Committed, NotConsumed, or Unknown. Only proven nonconsumption permits an idempotent canonical-credit reversal before restoration; an ambiguous outcome retains the credit guard and receipt. REMOVING/RESTORING phases are never automatically replayed. Physical withdrawals compensate only a confirmed rejected delivery, not an unknown result.
 
-```kotlin
-fun depositPhysical(request: PhysicalGoldRequest): GuildGoldResult {
-    val mutation = validatedPhysicalDeposit(request) ?: return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
-    val prepared = repository.prepare(mutation)
-    if (prepared !is GuildGoldPreparation.New) return prepared.toExistingResult()
-    val reservation = when (val reserved = physicalGold.reserve(request.playerId, mutation.amount + mutation.fee)) {
-        is PhysicalReservationResult.Reserved -> reserved.value
-        PhysicalReservationResult.Insufficient -> return rejectPrepared(mutation, GuildGoldRejection.EXTERNAL_REJECTED)
-    }
-    val applied = repository.apply(mutation, capacity(request.guildId), null)
-    if (applied is GuildGoldResult.Applied && physicalGold.commit(reservation)) return applied
-    val restored = physicalGold.restore(reservation)
-    repository.recordCompensation(request.transactionId, restored, "physical deposit restoration")
-    return GuildGoldResult.Failed(request.transactionId, restored)
-}
-```
+The implemented state machine is in `GuildGoldService.depositPhysical`, `commitPhysical`, and `reconcilePending`. The SQL reservation receipt is managed by `PhysicalGoldJournal`; `BukkitPhysicalGoldAdapter` flushes player inventory before recording a completed removal/restoration. The operation journal must authorize beginning the external effect before `reserve` is invoked. Never restore an ambiguous reservation or return a completed credit before commit.
 
 - [ ] **Step 4: Run physical and vault synchronization tests**
 

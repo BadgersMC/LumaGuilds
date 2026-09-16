@@ -62,6 +62,63 @@ class GuildGoldRepositorySQLTest {
     }
 
     @Test
+    fun `recovery abandons only unstarted or confirmed no-effect preparations`() {
+        val ready = mutation(UUID.randomUUID(), GuildGoldDirection.CREDIT, 100).copy(route = GuildGoldRoute.PERSONAL_ACCOUNT)
+        repository.prepare(ready)
+        val restarted = GuildGoldRepositorySQL(storage)
+        assertEquals(1, restarted.reconcileUnstarted(Long.MAX_VALUE))
+        assertTrue(!restarted.beginExternal(ready.transactionId, "DEPOSIT"))
+        val started = ready.copy(transactionId = UUID.randomUUID())
+        restarted.prepare(started)
+        assertTrue(restarted.beginExternal(started.transactionId, "DEPOSIT"))
+        assertEquals(0, restarted.reconcileUnstarted(Long.MAX_VALUE))
+        assertTrue(restarted.recordExternalOutcome(started.transactionId, false))
+        assertEquals(1, restarted.reconcileUnstarted(Long.MAX_VALUE))
+        assertEquals(0, restarted.getBalance(guildId))
+    }
+
+    @Test
+    fun `confirmed deposit recovers once but admission retains completion guard`() {
+        val deposit = mutation(UUID.randomUUID(), GuildGoldDirection.CREDIT, 100).copy(route = GuildGoldRoute.PERSONAL_ACCOUNT)
+        repository.prepare(deposit)
+        repository.beginExternal(deposit.transactionId, "DEPOSIT")
+        repository.recordExternalOutcome(deposit.transactionId, true)
+        val restarted = GuildGoldRepositorySQL(storage)
+        assertTrue(restarted.recoverConfirmedCredit(deposit.transactionId, 1_000) is GuildGoldResult.Applied)
+        restarted.recoverConfirmedCredit(deposit.transactionId, 1_000)
+        assertEquals(100, restarted.getBalance(guildId))
+        val admission = deposit.copy(transactionId = UUID.randomUUID())
+        restarted.prepare(admission)
+        restarted.beginExternal(admission.transactionId, "ADMISSION")
+        restarted.recordExternalOutcome(admission.transactionId, true)
+        restarted.recoverConfirmedCredit(admission.transactionId, 1_000)
+        assertEquals(net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.BALANCE_APPLIED,
+            restarted.findOperation(admission.transactionId)?.status)
+        assertEquals(200, restarted.getBalance(guildId))
+    }
+
+    @Test
+    fun `legacy preparation without external evidence remains held`() {
+        val legacy = mutation(UUID.randomUUID(), GuildGoldDirection.CREDIT, 100).copy(route = GuildGoldRoute.PERSONAL_ACCOUNT)
+        repository.prepare(legacy)
+        storage.connection.executeUpdate("DELETE FROM guild_gold_external_attempts")
+        assertEquals(0, GuildGoldRepositorySQL(storage).reconcileUnstarted(Long.MAX_VALUE))
+        assertEquals(net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.PREPARED, repository.findOperation(legacy.transactionId)?.status)
+    }
+
+    @Test
+    fun `confirmed recovery exceeding capacity stays held until capacity is available`() {
+        val deposit = mutation(UUID.randomUUID(), GuildGoldDirection.CREDIT, 100).copy(route = GuildGoldRoute.PERSONAL_ACCOUNT)
+        repository.prepare(deposit); repository.beginExternal(deposit.transactionId, "DEPOSIT")
+        repository.recordExternalOutcome(deposit.transactionId, true)
+        assertTrue(repository.recoverConfirmedCredit(deposit.transactionId, 50) is GuildGoldResult.Failed)
+        assertEquals(0, repository.getBalance(guildId))
+        assertEquals(net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.PREPARED, repository.findOperation(deposit.transactionId)?.status)
+        assertTrue(repository.recoverConfirmedCredit(deposit.transactionId, 100) is GuildGoldResult.Applied)
+        assertEquals(100, repository.getBalance(guildId))
+    }
+
+    @Test
     fun `external debit replay changes balance and usage only once`() {
         repository.apply(mutation(UUID.randomUUID(), GuildGoldDirection.CREDIT, 600), 1_000, null)
         val debit = mutation(UUID.randomUUID(), GuildGoldDirection.DEBIT, 100)

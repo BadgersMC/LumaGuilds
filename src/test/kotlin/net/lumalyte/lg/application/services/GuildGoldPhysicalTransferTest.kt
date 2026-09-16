@@ -43,6 +43,33 @@ class GuildGoldPhysicalTransferTest {
     }
 
     @Test
+    fun `unknown commit retains unfinished credit and never restores or repeats reservation`() {
+        physical.commitResult = PhysicalCommitResult.Unknown
+        val subject = service(sqlRepository)
+        val original = request(amount = 100)
+        assertEquals(GuildGoldResult.Failed(original.transactionId, false), subject.depositPhysical(original))
+        assertEquals(net.lumalyte.lg.domain.gold.GuildGoldOperationStatus.BALANCE_APPLIED,
+            sqlRepository.findOperation(original.transactionId)?.status)
+        assertEquals(GuildGoldResult.Failed(original.transactionId, false), subject.depositPhysical(original))
+        assertEquals(100, subject.balance(guildId))
+        assertEquals(1, physical.reservedValues.size)
+        assertEquals(0, physical.restoreCount)
+    }
+
+    @Test
+    fun `proven nonconsumption reverses credit before restoring items`() {
+        physical.commitResult = PhysicalCommitResult.NotConsumed
+        physical.beforeRestore = { assertEquals(0, sqlRepository.getBalance(guildId)) }
+        val subject = service(sqlRepository)
+        val original = request(amount = 100)
+        assertEquals(GuildGoldResult.Failed(original.transactionId, true), subject.depositPhysical(original))
+        assertEquals(0, subject.balance(guildId))
+        assertEquals(1, physical.restoreCount)
+        subject.depositPhysical(original)
+        assertEquals(1, physical.restoreCount)
+    }
+
+    @Test
     fun `physical deposit reserves amount plus fee and commits after canonical credit`() {
         val service = service(sqlRepository)
         val transactionId = UUID.randomUUID()
@@ -210,8 +237,11 @@ class GuildGoldPhysicalTransferTest {
         var restoreCount = 0
         var failDelivery = false
         var deliverThenFail = false
+        var commitResult: PhysicalCommitResult = PhysicalCommitResult.Committed
+        var beforeRestore: () -> Unit = {}
 
         override fun reserve(
+            transactionId: UUID,
             playerId: UUID,
             requestedValue: Long
         ): PhysicalReservationResult {
@@ -219,16 +249,17 @@ class GuildGoldPhysicalTransferTest {
             availableValue -= requestedValue
             reservedValues += requestedValue
             return PhysicalReservationResult.Reserved(
-                PhysicalGoldReservation(UUID.randomUUID(), playerId, requestedValue)
+                PhysicalGoldReservation(transactionId, playerId, requestedValue)
             )
         }
 
-        override fun commit(reservation: PhysicalGoldReservation): Boolean {
+        override fun commit(reservation: PhysicalGoldReservation): PhysicalCommitResult {
             commitCount++
-            return true
+            return commitResult
         }
 
         override fun restore(reservation: PhysicalGoldReservation): Boolean {
+            beforeRestore()
             restoreCount++
             availableValue += reservation.value
             return true
@@ -250,6 +281,7 @@ class GuildGoldPhysicalTransferTest {
         private val delegate: GuildGoldRepository,
         private val rejection: GuildGoldRejection
     ) : GuildGoldRepository by delegate {
+        override fun applyExternalCredit(mutation: GuildGoldMutation, capacity: Long): GuildGoldResult = GuildGoldResult.Rejected(rejection)
         override fun apply(
             mutation: GuildGoldMutation,
             capacity: Long,

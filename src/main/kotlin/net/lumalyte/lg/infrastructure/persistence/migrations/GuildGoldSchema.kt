@@ -6,6 +6,13 @@ object GuildGoldSchema {
     fun create(connection: Connection, mariaDb: Boolean) {
         val engine = if (mariaDb) " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" else ""
         connection.createStatement().use { statement ->
+            statement.execute("""
+                CREATE TABLE IF NOT EXISTS guild_gold_external_attempts (
+                    transaction_id VARCHAR(36) PRIMARY KEY,
+                    phase VARCHAR(24) NOT NULL,
+                    purpose VARCHAR(24) NULL
+                )$engine
+            """.trimIndent())
             statement.execute(
                 """
                 CREATE TABLE IF NOT EXISTS guild_gold_operations (

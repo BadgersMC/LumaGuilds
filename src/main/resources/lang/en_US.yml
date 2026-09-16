@@ -5918,14 +5918,12 @@ menu:
       insufficient_items: "<red>❌ You don't have enough items! (Need: <gold><amount> x <material><red>)"
       paid_items: "<green>✅ Paid <gold><amount> x <material> <green>for banner copy!"
       invalid_material: "<red>❌ Invalid item material configured for banner cost!"
-      insufficient_vault: "<red>❌ Guild vault has insufficient physical currency! (Need: <gold><need><red>, Have: <gold><have><red>)"
-      vault_deduct_failed: "<red>❌ Failed to deduct physical currency from guild vault!"
-      insufficient_bank: "<red>❌ Guild bank has insufficient funds! (Need: <gold><need><red>, Have: <gold><have><red>)"
       insufficient_coins: "<red>❌ You don't have enough coins! (Need: <gold><need><red>, Have: <gold><have><red>)"
       payment_failed: "<red>❌ Failed to process payment!"
       free_copy: "<green>✅ Free banner copy received!"
       copy_received: "<green>✅ Banner copy received!"
       copy_purchased: "<green>✅ Banner copy purchased for <gold><amount> <green>coins!"
+      purchase_pending: "<yellow>Your banner purchase needs review. Do not pay again. Reference: <reference>"
       added: "<gray>💡 The banner has been added to your inventory"
 
   guild_relations:

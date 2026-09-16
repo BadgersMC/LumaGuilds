@@ -75,15 +75,9 @@ class PhysicalCurrencyServiceBukkit(
         return currentValue >= amount
     }
 
-    override fun deductCurrency(guild: Guild, amount: Int, reason: String?): Boolean =
-        deductCurrency(UUID.randomUUID(), guild, amount, reason)
-
     override fun deductCurrency(transactionId: UUID, guild: Guild, amount: Int, reason: String?): Boolean =
         isPhysicalCurrencyEnabled() && amount > 0 &&
             bankService.deductFromGuildBank(transactionId, guild.id, amount, reason)
-
-    override fun addCurrency(guild: Guild, amount: Int, reason: String?): Boolean =
-        addCurrency(UUID.randomUUID(), guild, amount, reason)
 
     override fun addCurrency(transactionId: UUID, guild: Guild, amount: Int, reason: String?): Boolean =
         isPhysicalCurrencyEnabled() && amount > 0 &&

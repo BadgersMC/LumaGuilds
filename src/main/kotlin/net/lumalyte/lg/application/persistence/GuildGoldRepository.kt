@@ -7,6 +7,15 @@ import net.lumalyte.lg.domain.gold.GuildGoldResult
 import java.util.UUID
 
 interface GuildGoldRepository {
+    /** Persist permission to start an external effect; false means do not call the provider. */
+    fun beginExternal(transactionId: UUID, purpose: String): Boolean
+    fun recordExternalOutcome(transactionId: UUID, applied: Boolean): Boolean
+    fun reconcileUnstarted(createdBeforeEpochMs: Long): Int
+    fun confirmedCredits(): List<GuildGoldOperationRecord>
+    fun pendingPhysicalCredits(): List<GuildGoldOperationRecord>
+    fun recoverConfirmedCredit(transactionId: UUID, capacity: Long): GuildGoldResult
+    /** Reverse only a held external credit; retain the guard until item restoration is confirmed. */
+    fun reverseExternalCredit(transactionId: UUID): Boolean
     fun getBalance(guildId: UUID): Long
     fun getTopBalances(limit: Int): List<Pair<UUID, Long>>
     fun getDailyWithdrawn(guildId: UUID, periodStartEpochMs: Long): Long
