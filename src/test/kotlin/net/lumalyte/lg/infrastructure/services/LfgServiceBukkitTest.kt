@@ -32,6 +32,51 @@ import java.util.UUID
  * Tests for LfgServiceBukkit implementation.
  */
 class LfgServiceBukkitTest {
+    @org.junit.jupiter.api.io.TempDir lateinit var directory: java.nio.file.Path
+
+    @Test fun `real payment rechecks recruitment after canonical credit before admitting member`() {
+        val storage = net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage(directory.toFile())
+        try {
+            val sql = net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL(storage)
+            var open = true
+            var personal = 1_000L
+            val repository = object : net.lumalyte.lg.application.persistence.GuildGoldRepository by sql {
+                override fun applyExternalCredit(mutation: net.lumalyte.lg.domain.gold.GuildGoldMutation, capacity: Long): GuildGoldResult {
+                    val result = sql.applyExternalCredit(mutation, capacity)
+                    open = false
+                    return result
+                }
+            }
+            val economy = object : net.lumalyte.lg.application.services.PersonalEconomyPort {
+                override fun isAvailable() = true
+                override fun balance(playerId: UUID) = personal
+                override fun debit(playerId: UUID, amount: Long): net.lumalyte.lg.application.services.ExternalTransferResult {
+                    personal -= amount
+                    return net.lumalyte.lg.application.services.ExternalTransferResult.Applied
+                }
+                override fun credit(playerId: UUID, amount: Long): net.lumalyte.lg.application.services.ExternalTransferResult {
+                    personal += amount
+                    return net.lumalyte.lg.application.services.ExternalTransferResult.Applied
+                }
+            }
+            val gold = net.lumalyte.lg.application.services.GuildGoldService(repository,
+                net.lumalyte.lg.application.services.GuildGoldPolicyProvider {
+                    net.lumalyte.lg.domain.gold.GuildGoldPolicy(1, 10_000, 1.0, 10_000, 0.0, 0.0, 0, 0, 10_000, 20_000, false)
+                }, net.lumalyte.lg.application.services.GuildGoldCapacityProvider {
+                    net.lumalyte.lg.domain.gold.GuildGoldCapacity(10_000, 0)
+                }, personalEconomy = economy)
+            every { configService.loadConfig() } returns MainConfig(vault = VaultConfig(usePhysicalCurrency = false))
+            every { guildRepository.getById(openGuildWithFee.id) } answers { openGuildWithFee.copy(isOpen = open) }
+            every { bankService.getPlayerBalance(any()) } returns 1_000
+            every { bankService.collectJoinFee(any(), any(), any()) } answers {
+                gold.collectJoinFee(firstArg(), secondArg(), thirdArg())
+            }
+            assertTrue(lfgService.joinGuild(UUID.randomUUID(), openGuildWithFee) is LfgJoinResult.Error)
+            assertEquals(500L, personal)
+            assertEquals(500L, sql.getBalance(openGuildWithFee.id))
+            verify(exactly = 0) { memberService.addMember(any(), any(), any()) }
+        } finally { storage.connection.close() }
+    }
 
     @Test
     fun `unavailable join quote does not advertise a payable fee`() {
@@ -62,6 +107,9 @@ class LfgServiceBukkitTest {
         guildRepository = mockk(relaxed = true)
         guildService = mockk(relaxed = true)
         memberService = mockk(relaxed = true)
+        every { memberService.getMemberLimits(any()) } answers {
+            firstArg<Set<UUID>>().associateWith { memberService.getMemberLimit(it) }
+        }
         physicalCurrencyService = mockk(relaxed = true)
         configService = mockk(relaxed = true)
         vaultService = mockk(relaxed = true)

@@ -10,7 +10,7 @@ import java.util.UUID
 /** Additive storage; single-statement revision checks prevent stale service instances overwriting state. */
 class WarRepositorySQL(private val storage: Storage<Database>) : WarRepository {
     init {
-        val payloadType = if (storage.javaClass.simpleName.contains("MariaDB", ignoreCase = true)) "LONGTEXT" else "TEXT"
+        val payloadType = if (storage.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB) "LONGTEXT" else "TEXT"
         storage.connection.executeUpdate("CREATE TABLE IF NOT EXISTS guild_war_records (" +
             "war_id VARCHAR(36) PRIMARY KEY, revision BIGINT NOT NULL, payload $payloadType NOT NULL)")
     }
@@ -39,7 +39,15 @@ class WarRepositorySQL(private val storage: Storage<Database>) : WarRepository {
                     statement.setLong(2, next.revision)
                     statement.setString(3, payload)
                     statement.setString(4, record.id.toString())
-                    statement.executeUpdate() == 1
+                    try {
+                        statement.executeUpdate() == 1
+                    } catch (error: java.sql.SQLException) {
+                        val duplicateId = (error.errorCode == 1062 && error.sqlState == "23000" &&
+                            error.message?.contains("PRIMARY", ignoreCase = true) == true) ||
+                            (error.errorCode in setOf(19, 1555) &&
+                                error.message?.contains("guild_war_records.war_id") == true)
+                        if (duplicateId) false else throw error
+                    }
                 }
             } else {
                 connection.prepareStatement("UPDATE guild_war_records SET revision = ?, payload = ? WHERE war_id = ? AND revision = ?").use { statement ->

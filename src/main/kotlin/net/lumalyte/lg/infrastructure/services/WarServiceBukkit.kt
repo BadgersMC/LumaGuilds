@@ -33,10 +33,6 @@ class WarServiceBukkit(
     private val wars: Map<UUID, War> get() = warRepository.getAll().mapNotNull { it.war }.associateBy { it.id }
     private val warDeclarations: Map<UUID, WarDeclaration> get() = warRepository.getAll()
         .mapNotNull { it.declaration }.filter { !it.accepted && !it.rejected }.associateBy { it.id }
-    private val warStats: Map<UUID, WarStats> get() = warRepository.getAll().mapNotNull { it.stats }.associateBy { it.warId }
-    private val warWagers: Map<UUID, WarWager> get() = warRepository.getAll()
-        .filter { it.paymentPhase in setOf(WarPaymentPhase.ESCROWED, WarPaymentPhase.SETTLING, WarPaymentPhase.SETTLED) }
-        .mapNotNull { it.wager }.associateBy { it.warId }
 
     init { warRepository.getAll() } // Corrupt/unavailable persistence must fail initialization.
 
@@ -86,14 +82,17 @@ class WarServiceBukkit(
     ): WarDeclaration? {
         return try {
             // Check if war already exists between these guilds
-            val existingWar = getCurrentWarBetweenGuilds(declaringGuildId, defendingGuildId)
+            val snapshot = warRepository.getAll()
+            val knownWars = snapshot.mapNotNull { it.war }
+            val existingWar = knownWars.find { it.isActive &&
+                setOf(it.declaringGuildId, it.defendingGuildId) == setOf(declaringGuildId, defendingGuildId) }
             if (existingWar != null) {
                 logger.warn("Cannot create war declaration - active war already exists between guilds $declaringGuildId and $defendingGuildId")
                 return null
             }
 
             // Check if pending declaration already exists
-            val existingDeclaration = warDeclarations.values.find {
+            val existingDeclaration = snapshot.mapNotNull { it.declaration }.filter { !it.accepted && !it.rejected }.find {
                 (it.declaringGuildId == declaringGuildId && it.defendingGuildId == defendingGuildId) ||
                 (it.declaringGuildId == defendingGuildId && it.defendingGuildId == declaringGuildId)
             }
@@ -103,7 +102,7 @@ class WarServiceBukkit(
             }
 
             // Check war slot limit (REQ-008): config max, refined upward by progression
-            val currentWars = getWarsForGuild(declaringGuildId).filter { it.isActive }
+            val currentWars = knownWars.filter { it.isActive && declaringGuildId in setOf(it.declaringGuildId, it.defendingGuildId) }
             val config = configService.loadConfig()
             val maxWars = maxWarsForGuild(declaringGuildId, config.combat.maxSimultaneousWars)
 
@@ -138,7 +137,7 @@ class WarServiceBukkit(
     @Synchronized
     override fun acceptWarDeclaration(declarationId: UUID, actorId: UUID): War? {
         return try {
-            val declaration = warDeclarations[declarationId] ?: return null
+            val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return null
             if (!declaration.isValid) return null
             var record = requireNotNull(warRepository.get(declarationId))
             if (record.war?.isEnded == true || record.war?.status == WarStatus.CANCELLED) return null
@@ -185,7 +184,7 @@ class WarServiceBukkit(
     @Synchronized
     override fun endWar(warId: UUID, winnerGuildId: UUID, peaceTerms: String?, actorId: UUID): Boolean {
         return try {
-            val war = wars[warId] ?: return false
+            val war = getWar(warId) ?: return false
             if (!war.isActive || winnerGuildId !in setOf(war.declaringGuildId, war.defendingGuildId)) return false
             val loser = if (winnerGuildId == war.declaringGuildId) war.defendingGuildId else war.declaringGuildId
             val ended = war.copy(status = WarStatus.ENDED, endedAt = Instant.now(),
@@ -205,7 +204,7 @@ class WarServiceBukkit(
     @Synchronized
     override fun endWarAsDraw(warId: UUID, reason: String?, actorId: UUID): Boolean {
         return try {
-            val war = wars[warId] ?: return false
+            val war = getWar(warId) ?: return false
             if (!war.isActive) return false
             val endedWar = war.copy(
                 status = WarStatus.ENDED,
@@ -228,7 +227,7 @@ class WarServiceBukkit(
     @Synchronized
     override fun cancelWar(warId: UUID, actorId: UUID): Boolean {
         return try {
-            val war = wars[warId] ?: return false
+            val war = getWar(warId) ?: return false
             if (war.status == WarStatus.ENDED || war.status == WarStatus.CANCELLED) return false
             val canceledWar = war.copy(status = WarStatus.CANCELLED)
             saveWar(canceledWar)
@@ -243,7 +242,7 @@ class WarServiceBukkit(
     }
 
     override fun getWar(warId: UUID): War? {
-        return wars[warId]
+        return warRepository.get(warId)?.war
     }
 
     override fun getActiveWars(): List<War> {
@@ -263,7 +262,7 @@ class WarServiceBukkit(
     }
 
     override fun getWarStats(warId: UUID): WarStats {
-        return warStats[warId] ?: WarStats(warId)
+        return warRepository.get(warId)?.stats ?: WarStats(warId)
     }
 
     override fun updateWarStats(stats: WarStats): Boolean {
@@ -445,21 +444,28 @@ class WarServiceBukkit(
 
     @Synchronized
     override fun processExpiredWars(): Int {
+        val snapshot = warRepository.getAll().associateBy { it.id }.toMutableMap()
         // Only resume acceptance already recorded as fully funded. Never start a fresh charge
         // from a timer or revive expired consent; other incomplete phases remain held.
-        warRepository.getAll().filter {
+        snapshot.values.toList().filter {
             it.war?.status == WarStatus.DECLARED && it.paymentPhase == WarPaymentPhase.ESCROWED &&
                 it.declaration?.isValid == true
-        }.forEach { acceptWarDeclaration(it.id, UUID(0, 0)) }
+        }.forEach {
+            acceptWarDeclaration(it.id, UUID(0, 0))
+            warRepository.get(it.id)?.let { updated -> snapshot[it.id] = updated }
+        }
         // Retry durable, already-chosen outcomes even when the ended war is no longer active.
-        warRepository.getAll().filter { it.wager != null && (it.war?.isEnded == true || it.war?.status == WarStatus.CANCELLED) &&
+        snapshot.values.toList().filter { it.wager != null && (it.war?.isEnded == true || it.war?.status == WarStatus.CANCELLED) &&
             it.paymentPhase !in setOf(WarPaymentPhase.SETTLED, WarPaymentPhase.REVIEW) }
-            .forEach { resolveWager(it.id, it.war?.winner) }
+            .forEach {
+                resolveWager(it.id, it.war?.winner)
+                warRepository.get(it.id)?.let { updated -> snapshot[it.id] = updated }
+            }
         val now = Instant.now()
         var processedCount = 0
 
         // Process expired declarations
-        val expiredDeclarations = warDeclarations.values.filter { it.expiresAt.isBefore(now) }
+        val expiredDeclarations = snapshot.values.mapNotNull { it.declaration }.filter { !it.accepted && !it.rejected && it.expiresAt.isBefore(now) }
         expiredDeclarations.forEach { removeDeclaration(it.id) }
         processedCount += expiredDeclarations.size
 
@@ -467,12 +473,12 @@ class WarServiceBukkit(
         // REQ-008: honour `war_end_grace_period_minutes` — a war is not force-ended
         // until duration + grace period have both elapsed.
         val graceSeconds = configService.loadConfig().combat.warEndGracePeriodMinutes * 60L
-        val expiredWars = wars.values.filter { war ->
+        val expiredWars = snapshot.values.mapNotNull { it.war }.filter { war ->
             war.isActive && war.startedAt != null &&
                 war.startedAt!!.plus(war.duration).plusSeconds(graceSeconds).isBefore(now)
         }
         for (war in expiredWars) {
-            if (checkForDrawCondition(war.id)) {
+            if (checkForDrawCondition(snapshot.getValue(war.id))) {
                 // End as draw and handle wager refunds
                 endWarAsDraw(
                     warId = war.id,
@@ -509,9 +515,12 @@ class WarServiceBukkit(
      * Checks if a war should end in a draw based on kill objectives.
      * Returns true if it's a draw situation.
      */
-    fun checkForDrawCondition(warId: UUID): Boolean {
-        val war = wars[warId] ?: return false
-        val stats = warStats[warId] ?: return false
+    fun checkForDrawCondition(warId: UUID): Boolean =
+        warRepository.get(warId)?.let(::checkForDrawCondition) ?: false
+
+    private fun checkForDrawCondition(record: DurableWarRecord): Boolean {
+        val war = record.war ?: return false
+        val stats = record.stats ?: return false
         
         // Check if war has expired
         if (war.isExpired) {
@@ -574,7 +583,9 @@ class WarServiceBukkit(
     }
 
     override fun getWager(warId: UUID): WarWager? {
-        return warWagers[warId]
+        return warRepository.get(warId)?.takeIf {
+            it.paymentPhase in setOf(WarPaymentPhase.ESCROWED, WarPaymentPhase.SETTLING, WarPaymentPhase.SETTLED)
+        }?.wager
     }
 
     // Peace Agreement Methods
@@ -585,7 +596,7 @@ class WarServiceBukkit(
         offering: PeaceOffering?
     ): PeaceAgreement? {
         return try {
-            val war = wars[warId]
+            val war = getWar(warId)
             if (war == null || !war.isActive) {
                 logger.warn("Cannot propose peace for inactive or non-existent war $warId")
                 return null
@@ -624,7 +635,7 @@ class WarServiceBukkit(
                 return null
             }
 
-            val war = wars[agreement.warId]
+            val war = getWar(agreement.warId)
             if (war == null || !war.isActive) {
                 logger.warn("Cannot accept peace for inactive war ${agreement.warId}")
                 return null

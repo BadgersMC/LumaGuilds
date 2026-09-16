@@ -16,6 +16,7 @@ import java.io.File
  */
 class VirtualThreadSQLiteStorage(dataFolder: File) : Storage<Database> {
     override val connection: Database
+    override val dialect = SqlDialect.SQLITE
 
     init {
         val dbPath = "$dataFolder/lumaguilds.db"

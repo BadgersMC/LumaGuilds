@@ -48,5 +48,13 @@ object GuildGoldSchema {
                 """.trimIndent()
             )
         }
+        val indexed = connection.metaData.getIndexInfo(connection.catalog, null, "guild_gold_operations", false, false).use { rows ->
+            var found = false
+            while (rows.next()) if (rows.getString("INDEX_NAME").equals("idx_guild_gold_pending", ignoreCase = true)) found = true
+            found
+        }
+        if (!indexed) connection.createStatement().use { statement ->
+            statement.execute("CREATE INDEX idx_guild_gold_pending ON guild_gold_operations (guild_id, route, status)")
+        }
     }
 }

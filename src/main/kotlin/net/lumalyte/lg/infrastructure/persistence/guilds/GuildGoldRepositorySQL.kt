@@ -22,7 +22,7 @@ import kotlin.concurrent.withLock
 class GuildGoldRepositorySQL(
     private val storage: Storage<Database>
 ) : GuildGoldRepository {
-    private val mariaDb = storage.javaClass.simpleName.contains("MariaDB", ignoreCase = true)
+    private val mariaDb = storage.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB
     private val guildLocks = ConcurrentHashMap<UUID, ReentrantLock>()
 
     init {
