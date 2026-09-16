@@ -713,7 +713,7 @@ fun vaultModule() = module {
             get(),
             get(),
             get(),
-            get(),
+            getOrNull<GetClaimAtPosition>(),
             get()
         )
     }

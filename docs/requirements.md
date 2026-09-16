@@ -87,6 +87,8 @@ Legend: **Ubiquitous.** / **Event-driven.** / **State-driven.** / **Unwanted.**
 > Audit H8: `CombatServiceBukkit.kt:119-129` — inert placeholders; any combat/relation logic sees nothing.
 
 ### REQ-015
+WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated fee and total guild deduction; WHEN it succeeds THEN THE SYSTEM SHALL report the amount delivered, destination, actual charged fee and total deduction.
+
 **Event-driven.** WHEN a player places a guild vault THEN THE SYSTEM SHALL validate the placement against claims whenever claims are enabled.
 
 > Audit H9: `GuildVaultServiceBukkit.kt:273-276` — `// TODO: Add claim validation when claims are enabled`; vaults place anywhere.

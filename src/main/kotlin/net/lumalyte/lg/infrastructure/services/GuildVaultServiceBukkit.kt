@@ -41,7 +41,7 @@ class GuildVaultServiceBukkit(
     private val vaultInventoryManager: VaultInventoryManager,
     private val hologramService: VaultHologramService,
     private val rankService: RankService,
-    private val getClaimAtPosition: net.lumalyte.lg.application.actions.claim.GetClaimAtPosition,
+    private val getClaimAtPosition: net.lumalyte.lg.application.actions.claim.GetClaimAtPosition?,
     private val lang: LangService,
 ) : GuildVaultService {
 
@@ -275,7 +275,7 @@ class GuildVaultServiceBukkit(
 
         // REQ-015: when claims are enabled, the vault must be placed inside the
         // guild's own claim (same rule as guild homes — see GuildCommand).
-        val claimResult = getClaimAtPosition.execute(
+        val claimResult = getClaimAtPosition?.execute(
             world.uid,
             net.lumalyte.lg.domain.values.Position2D(location.blockX, location.blockZ)
         )

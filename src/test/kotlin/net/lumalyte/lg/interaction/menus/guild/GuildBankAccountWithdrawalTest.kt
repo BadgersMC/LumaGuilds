@@ -195,6 +195,24 @@ internal class GuildBankAccountWithdrawalTest {
         assertEquals(0.0, personalGold)
     }
 
+    @Test fun physicalWithdrawalShowsCappedFeeBeforeAndAfterTransfer() {
+        feeRate = 0.02
+        val plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+        every { lang.msg("menu.bank.feedback.withdraw_preview", *anyVararg()) } answers {
+            Component.text((args[1] as Array<*>).joinToString())
+        }
+        val physicalMenu = GoldWithdrawMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
+            manager, mockk(relaxed = true))
+        physicalMenu.open()
+        val lore = player.openInventory.topInventory.getItem(22)!!.itemMeta.lore()!!
+        assertTrue(lore.any { plain.serialize(it).contains("985") && plain.serialize(it).contains("15") && plain.serialize(it).contains("1000") })
+        GoldWithdrawMenu::class.java.getDeclaredMethod("confirmWithdrawal", Long::class.javaPrimitiveType)
+            .apply { isAccessible = true }.invoke(physicalMenu, 985L)
+        assertEquals(0, balance)
+        verify { lang.msg("menu.bank.feedback.physical_withdraw_success", "amount" to 985L,
+            "fee" to 15L, "total" to 1000L, "guild" to "Test") }
+    }
+
     @Test fun vaultDepositAllMenuUsesCanonicalService() {
         player.inventory.addItem(ItemStack(Material.RAW_GOLD, 40))
         val depositMenu = GoldDepositMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",

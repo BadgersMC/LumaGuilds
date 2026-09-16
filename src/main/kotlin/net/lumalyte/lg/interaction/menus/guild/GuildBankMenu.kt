@@ -367,7 +367,13 @@ class GuildBankMenu(
             )
         }
 
-        val itemStack = createMenuItem(material, displayName, lore)
+        val preview = if (isDeposit) emptyList() else {
+            val payout = withdrawalAction.resolveAmount(amount)
+            val fee = bankService.calculateWithdrawalFee(guild.id, payout)
+            listOf(lang.gui("menu.bank.feedback.withdraw_preview", "amount" to payout,
+                "fee" to fee, "total" to (payout.toLong() + fee)))
+        }
+        val itemStack = createMenuItem(material, displayName, lore + preview)
         return GuiItem(itemStack) { event ->
             event.isCancelled = true
             handleQuickAction(amount, isDeposit)
@@ -494,7 +500,7 @@ class GuildBankMenu(
     /**
      * Credit withdrawals to the player's personal Vault Economy account.
      */
-    private val withdrawalAction = GuildBankWithdrawal(
+    private val withdrawalAction get() = GuildBankWithdrawal(
         withdrawalFee = { bankService.calculateWithdrawalFee(guild.id, it) },
         maximumAmount = { bankService.getMaxWithdrawalAmount(guild.id, player.uniqueId) },
         currentBalance = { bankService.getBalance(guild.id).toLong() },
@@ -540,6 +546,7 @@ class GuildBankMenu(
                 "menu.bank.feedback.withdraw_success",
                 "amount" to amount,
                 "fee" to transaction.fee,
+                "total" to (transaction.amount.toLong() + transaction.fee),
             ).color(NamedTextColor.GREEN)
             player.sendMessage(message)
             showSuccessFeedback(lang.gui("menu.bank.feedback.withdraw_overlay"), -(amount.toLong() + transaction.fee))

@@ -3047,7 +3047,9 @@ menu:
       withdraw_description: Enter custom withdrawal amount
     feedback:
       deposit_success: 'Successfully deposited $<amount> to the guild bank!'
-      withdraw_success: 'Credited $<amount> to your personal account from the guild bank (fee: $<fee>).'
+      withdraw_success: '<green>Credited <gold><amount> gold</gold> to your personal account. Fee: <gold><fee> gold</gold>. Total removed from the guild bank: <gold><total> gold</gold>.'
+      physical_withdraw_success: '<green>Withdrew <gold><amount> gold</gold> as items from the vault of <guild>. Fee: <gold><fee> gold</gold>. Total removed from the guild bank: <gold><total> gold</gold>.'
+      withdraw_preview: '<gray>You receive: <gold><amount> gold</gold> | Fee: <gold><fee> gold</gold> | Bank deduction: <gold><total> gold</gold>'
       deposit_error: '<red>An error occurred during deposit: <reason>'
       deposit_pending: '<yellow>Deposit needs administrator review. Do not retry. Ask an admin to check transaction <transaction>.'
       deposit_rejected: '<red>Deposit was not accepted. Check your available gold, fees, permissions, and bank capacity.'

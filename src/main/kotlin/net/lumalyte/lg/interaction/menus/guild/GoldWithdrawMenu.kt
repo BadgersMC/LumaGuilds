@@ -105,7 +105,8 @@ class GoldWithdrawMenu(
                         Component.text("Click to withdraw all gold", NamedTextColor.GRAY)
                             .decoration(TextDecoration.ITALIC, false),
                         Component.text("from the vault in optimal form", NamedTextColor.GRAY)
-                            .decoration(TextDecoration.ITALIC, false)
+                            .decoration(TextDecoration.ITALIC, false),
+                        withdrawalPreview(maximumWithdrawal())
                     )
                 )
             }
@@ -132,7 +133,8 @@ class GoldWithdrawMenu(
                     listOf(
                         Component.empty(),
                         Component.text("Click to withdraw", NamedTextColor.GRAY)
-                            .decoration(TextDecoration.ITALIC, false)
+                            .decoration(TextDecoration.ITALIC, false),
+                        withdrawalPreview(amount)
                     )
                 )
                 // Store currency amount in item's persistent data container for reference
@@ -149,6 +151,18 @@ class GoldWithdrawMenu(
     fun open() {
         player.openInventory(inventory)
         isOpen = true
+    }
+
+    private fun maximumWithdrawal(): Long = GuildBankWithdrawal(
+        withdrawalFee = { bankService.calculateWithdrawalFee(guildId, it) },
+        maximumAmount = { bankService.getMaxWithdrawalAmount(guildId, player.uniqueId) },
+        currentBalance = { bankService.getBalance(guildId).toLong() },
+    ).resolveAmount(-1).toLong()
+
+    private fun withdrawalPreview(amount: Long): Component {
+        val fee = bankService.calculateWithdrawalFee(guildId, amount.toInt())
+        return lang.msg("menu.bank.feedback.withdraw_preview", "amount" to amount,
+            "fee" to fee, "total" to (amount + fee)).decoration(TextDecoration.ITALIC, false)
     }
 
     /**
@@ -169,9 +183,8 @@ class GoldWithdrawMenu(
 
         // Feedback
         player.sendMessage(
-            Component.text("✓ Withdrew ", NamedTextColor.GREEN)
-                .append(Component.text("$amount currency", NamedTextColor.GOLD))
-                .append(Component.text(" from $guildName's vault", NamedTextColor.GREEN))
+            lang.msg("menu.bank.feedback.physical_withdraw_success", "amount" to amount,
+                "fee" to result.fee, "total" to (result.oldBalance - result.newBalance), "guild" to guildName)
         )
         player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
 
@@ -190,11 +203,7 @@ class GoldWithdrawMenu(
 
         // Handle withdraw all button
         if (event.slot == 22 && clickedItem.type == Material.RAW_GOLD) {
-            val currentBalance = GuildBankWithdrawal(
-                withdrawalFee = { bankService.calculateWithdrawalFee(guildId, it) },
-                maximumAmount = { bankService.getMaxWithdrawalAmount(guildId, player.uniqueId) },
-                currentBalance = { bankService.getBalance(guildId).toLong() },
-            ).resolveAmount(-1).toLong()
+            val currentBalance = maximumWithdrawal()
             if (currentBalance > 0) {
                 confirmWithdrawal(currentBalance)
             } else {
