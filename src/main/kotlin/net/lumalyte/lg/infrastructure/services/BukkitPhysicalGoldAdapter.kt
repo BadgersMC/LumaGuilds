@@ -16,6 +16,7 @@ class BukkitPhysicalGoldAdapter(
     private val baseMaterial: Material,
     private val blockMaterial: Material?,
     private val blockValue: Long,
+    private val journal: PhysicalGoldJournal,
     private val overflowDelivery: (Player, Collection<ItemStack>) -> Unit = { player, items ->
         items.forEach { player.world.dropItemNaturally(player.location, it) }
     }
@@ -25,12 +26,6 @@ class BukkitPhysicalGoldAdapter(
         require(blockMaterial == null || (blockMaterial.isItem && !blockMaterial.isAir && blockMaterial != baseMaterial))
         require(blockValue > 0)
     }
-
-    private data class ReservationState(
-        val public: PhysicalGoldReservation,
-        val stacks: List<ItemStack>,
-        val source: Inventory?
-    )
 
     private data class DepositWindow(val inventory: Inventory, val excludedSlots: Set<Int>)
     private val depositWindows = mutableMapOf<UUID, DepositWindow>()
@@ -57,13 +52,12 @@ class BukkitPhysicalGoldAdapter(
     }
 
     private fun contents(playerId: UUID, player: Player): Array<ItemStack?> {
-        val window = depositWindows[playerId] ?: return player.inventory.storageContents
+        val window = depositWindows[playerId] ?: return player.inventory.storageContents.map { it?.clone() }.toTypedArray()
         return window.inventory.contents.mapIndexed { index, item ->
             if (index in window.excludedSlots) null else item?.clone()
         }.toTypedArray()
     }
 
-    private val reservations = ConcurrentHashMap<UUID, ReservationState>()
     private val delivered = ConcurrentHashMap.newKeySet<UUID>()
 
     override fun availableValue(playerId: UUID): Long? {
@@ -75,7 +69,15 @@ class BukkitPhysicalGoldAdapter(
             blockValue)
     }
 
-    override fun reserve(playerId: UUID, requestedValue: Long): PhysicalReservationResult {
+    override fun reservation(transactionId: UUID): PhysicalGoldReservation? = journal.get(transactionId)?.reservation
+
+    override fun reserve(transactionId: UUID, playerId: UUID, requestedValue: Long): PhysicalReservationResult {
+        check(org.bukkit.Bukkit.isPrimaryThread())
+        val reservation = PhysicalGoldReservation(transactionId, playerId, requestedValue)
+        journal.get(transactionId)?.let { existing ->
+            return if (existing.reservation == reservation && existing.phase == "RESERVED") PhysicalReservationResult.Reserved(reservation)
+            else PhysicalReservationResult.Unknown
+        }
         val player = playerLookup(playerId) ?: return PhysicalReservationResult.Unavailable
         val contents = contents(playerId, player)
         val baseCount = contents.filterNotNull().filter { it.type == baseMaterial }.sumOf { it.amount.toLong() }
@@ -85,27 +87,40 @@ class BukkitPhysicalGoldAdapter(
         val removed = mutableListOf<ItemStack>()
         remove(contents, baseMaterial, selection.base, removed)
         blockMaterial?.let { remove(contents, it, selection.blocks, removed) }
+        val payload = removed.joinToString("\n") { java.util.Base64.getEncoder().encodeToString(it.serializeAsBytes()) }
+        journal.insert(reservation, payload)
         val window = depositWindows[playerId]
         if (window == null) player.inventory.storageContents = contents
         else contents.forEachIndexed { slot, item ->
             if (slot !in window.excludedSlots) window.inventory.setItem(slot, item)
         }
-        val reservation = PhysicalGoldReservation(UUID.randomUUID(), playerId, requestedValue)
-        reservations[reservation.id] = ReservationState(reservation, removed, window?.inventory)
+        player.saveData()
+        if (!journal.transition(transactionId, "REMOVING", "RESERVED")) return PhysicalReservationResult.Unknown
         return PhysicalReservationResult.Reserved(reservation)
     }
 
-    override fun commit(reservation: PhysicalGoldReservation): Boolean =
-        reservations.remove(reservation.id)?.public == reservation
+    override fun commit(reservation: PhysicalGoldReservation): net.lumalyte.lg.application.services.PhysicalCommitResult {
+        val state = journal.get(reservation.id)
+        if (state?.reservation != reservation) return net.lumalyte.lg.application.services.PhysicalCommitResult.Unknown
+        return if (state.phase == "COMMITTED" || (state.phase == "RESERVED" && journal.transition(reservation.id, "RESERVED", "COMMITTED")))
+            net.lumalyte.lg.application.services.PhysicalCommitResult.Committed
+        else net.lumalyte.lg.application.services.PhysicalCommitResult.Unknown
+    }
 
     override fun restore(reservation: PhysicalGoldReservation): Boolean {
-        val state = reservations[reservation.id] ?: return false
-        if (state.public != reservation) return false
+        check(org.bukkit.Bukkit.isPrimaryThread())
+        val state = journal.get(reservation.id) ?: return false
+        if (state.reservation != reservation) return false
+        if (state.phase == "RESTORED") return true
+        if (state.phase != "RESERVED") return false
         val player = playerLookup(reservation.playerId) ?: return false
-        val overflow = (state.source ?: player.inventory).addItem(*state.stacks.map(ItemStack::clone).toTypedArray()).values
+        val stacks = state.payload.split('\n').map { ItemStack.deserializeBytes(java.util.Base64.getDecoder().decode(it)) }
+        if (!journal.transition(reservation.id, "RESERVED", "RESTORING")) return false
+        // Always restore to the persisted player inventory, not an ephemeral menu inventory.
+        val overflow = player.inventory.addItem(*stacks.toTypedArray()).values
         if (overflow.isNotEmpty()) overflowDelivery(player, overflow)
-        reservations.remove(reservation.id, state)
-        return true
+        player.saveData()
+        return journal.transition(reservation.id, "RESTORING", "RESTORED")
     }
 
     override fun deliver(playerId: UUID, value: Long, transactionId: UUID): ExternalTransferResult {
@@ -133,7 +148,7 @@ class BukkitPhysicalGoldAdapter(
     data class DenominationSelection(val base: Long, val blocks: Long)
 
     companion object {
-        fun fromConfig(playerLookup: (UUID) -> Player?, config: net.lumalyte.lg.config.VaultConfig): BukkitPhysicalGoldAdapter {
+        fun fromConfig(playerLookup: (UUID) -> Player?, config: net.lumalyte.lg.config.VaultConfig, journal: PhysicalGoldJournal): BukkitPhysicalGoldAdapter {
             val base = requireNotNull(Material.matchMaterial(config.physicalCurrencyMaterial)) {
                 "Unknown physical currency material: ${config.physicalCurrencyMaterial}"
             }
@@ -145,7 +160,7 @@ class BukkitPhysicalGoldAdapter(
                 "Unknown compressed currency material: ${it[0]}"
             } }
             val ratio = mapping?.let { requireNotNull(it[2].toLongOrNull()) { "Invalid currency compression ratio" } } ?: 1L
-            return BukkitPhysicalGoldAdapter(playerLookup, base, compressed, ratio)
+            return BukkitPhysicalGoldAdapter(playerLookup, base, compressed, ratio, journal)
         }
 
         fun availableValue(baseCount: Long, blockCount: Long, blockValue: Long): Long? = try {

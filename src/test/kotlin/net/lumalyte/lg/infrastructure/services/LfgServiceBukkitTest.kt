@@ -757,7 +757,7 @@ class LfgServiceBukkitTest {
         verify(exactly = 1) { bankService.collectJoinFee(match {
             it.guildId == openGuildWithFee.id && it.playerId == playerId && it.amount == 500L
         }, true, any()) }
-        verify(exactly = 0) { physicalCurrencyService.addCurrency(any(), any(), any()) }
+        verify(exactly = 0) { physicalCurrencyService.addCurrency(any(), any(), any(), any()) }
         verify { memberService.addMember(playerId, openGuildWithFee.id, guildDefaultRank.id) }
     }
 

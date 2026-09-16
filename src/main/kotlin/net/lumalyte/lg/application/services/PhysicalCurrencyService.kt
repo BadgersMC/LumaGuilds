@@ -67,8 +67,6 @@ interface PhysicalCurrencyService {
      * @param reason Optional reason for the transaction.
      * @return true if successful, false if insufficient funds or error.
      */
-    fun deductCurrency(guild: Guild, amount: Int, reason: String? = null): Boolean
-
     fun deductCurrency(transactionId: UUID, guild: Guild, amount: Int, reason: String?): Boolean
 
     /**
@@ -80,8 +78,6 @@ interface PhysicalCurrencyService {
      * @param reason Optional reason for the transaction.
      * @return true if successful, false if vault full or error.
      */
-    fun addCurrency(guild: Guild, amount: Int, reason: String? = null): Boolean
-
     fun addCurrency(transactionId: UUID, guild: Guild, amount: Int, reason: String?): Boolean
 
     /**

@@ -624,6 +624,10 @@ fun progressionModule() = module {
  * Economy module - Bank and physical currency
  */
 fun economyModule() = module {
+    single<net.lumalyte.lg.application.persistence.BannerPurchaseRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.BannerPurchaseRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.BannerPurchaseService(get(), get()) }
     // Repositories
     single<BankRepository> { BankRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.BankSettingsRepository> {
@@ -670,7 +674,8 @@ fun economyModule() = module {
     }
     single {
         net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter.fromConfig(
-            { org.bukkit.Bukkit.getPlayer(it) }, get<ConfigService>().loadConfig().vault)
+            { org.bukkit.Bukkit.getPlayer(it) }, get<ConfigService>().loadConfig().vault,
+            net.lumalyte.lg.infrastructure.services.PhysicalGoldJournal(get()))
     }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.BankAutomationService> {

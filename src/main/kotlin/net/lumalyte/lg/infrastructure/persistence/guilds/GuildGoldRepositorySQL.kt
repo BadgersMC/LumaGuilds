@@ -129,11 +129,131 @@ class GuildGoldRepositorySQL(
     override fun findOperation(transactionId: UUID): GuildGoldOperationRecord? =
         storage.connection.connection.use { connection -> findOperation(connection, transactionId, false) }
 
+    override fun beginExternal(transactionId: UUID, purpose: String): Boolean {
+        require(purpose in setOf("DEPOSIT", "ADMISSION", "WITHDRAWAL"))
+        return storage.connection.connection.use { connection -> transaction(connection) {
+            val operation = findOperation(connection, transactionId, true) ?: return@transaction false
+            if (operation.status !in setOf(GuildGoldOperationStatus.PREPARED, GuildGoldOperationStatus.BALANCE_APPLIED)) return@transaction false
+            connection.prepareStatement("UPDATE guild_gold_external_attempts SET phase = 'STARTED', purpose = ? " +
+                "WHERE transaction_id = ? AND phase = 'READY'").use { statement ->
+                statement.setString(1, purpose)
+                statement.setString(2, transactionId.toString())
+                statement.executeUpdate() == 1
+            }
+        } }
+    }
+
+    override fun recordExternalOutcome(transactionId: UUID, applied: Boolean): Boolean =
+        storage.connection.connection.use { connection ->
+            connection.prepareStatement("UPDATE guild_gold_external_attempts SET phase = ? WHERE transaction_id = ? AND phase = 'STARTED'").use { statement ->
+                statement.setString(1, if (applied) "CONFIRMED" else "NO_EFFECT")
+                statement.setString(2, transactionId.toString())
+                statement.executeUpdate() == 1
+            }
+        }
+
+    override fun reconcileUnstarted(createdBeforeEpochMs: Long): Int = storage.connection.connection.use { connection ->
+        transaction(connection) {
+            val candidates = connection.prepareStatement("SELECT transaction_id FROM guild_gold_operations WHERE status = 'PREPARED' AND created_at <= ?").use {
+                it.setLong(1, createdBeforeEpochMs)
+                it.executeQuery().use { rows -> buildList { while (rows.next()) add(UUID.fromString(rows.getString(1))) } }
+            }
+            var resolved = 0
+            for (id in candidates) {
+                // Same lock order as beginExternal: operation first, then receipt. Re-read under
+                // lock rather than treating an earlier READY snapshot as proof of no effect.
+                val record = findOperation(connection, id, true) ?: continue
+                if (record.status != GuildGoldOperationStatus.PREPARED) continue
+                val suffix = if (mariaDb) " FOR UPDATE" else ""
+                val phase = connection.prepareStatement("SELECT phase FROM guild_gold_external_attempts WHERE transaction_id = ?$suffix").use {
+                    it.setString(1, id.toString())
+                    it.executeQuery().use { rows -> if (rows.next()) rows.getString(1) else null }
+                }
+                if (phase !in setOf("READY", "NO_EFFECT")) continue // includes legacy rows without evidence
+                finishRejected(connection, id, selectBalance(connection, record.mutation.guildId, false), GuildGoldRejection.EXTERNAL_REJECTED)
+                resolved++
+            }
+            resolved
+        }
+    }
+
+    override fun confirmedCredits(): List<GuildGoldOperationRecord> = storage.connection.connection.use { connection ->
+        connection.createStatement().use { statement ->
+            statement.executeQuery("SELECT o.* FROM guild_gold_operations o JOIN guild_gold_external_attempts e " +
+                "ON e.transaction_id = o.transaction_id WHERE o.direction = 'CREDIT' " +
+                "AND (o.status = 'PREPARED' OR (o.status = 'BALANCE_APPLIED' AND e.purpose = 'DEPOSIT')) AND e.phase = 'CONFIRMED' " +
+                "AND e.purpose IN ('DEPOSIT', 'ADMISSION')").use { rows ->
+                buildList { while (rows.next()) add(rows.toOperation()) }
+            }
+        }
+    }
+
+    override fun recoverConfirmedCredit(transactionId: UUID, capacity: Long): GuildGoldResult =
+        storage.connection.connection.use { connection -> transaction(connection) {
+            val record = findOperation(connection, transactionId, true)
+                ?: return@transaction GuildGoldResult.Failed(transactionId, false)
+            record.toFinalResult()?.let { return@transaction it }
+            val purpose = connection.prepareStatement("SELECT purpose FROM guild_gold_external_attempts WHERE transaction_id = ? AND phase = 'CONFIRMED'").use { statement ->
+                statement.setString(1, transactionId.toString())
+                statement.executeQuery().use { rows -> if (rows.next()) rows.getString(1) else null }
+            }
+            if (record.mutation.direction != GuildGoldDirection.CREDIT || purpose !in setOf("DEPOSIT", "ADMISSION"))
+                return@transaction GuildGoldResult.Failed(transactionId, false)
+            if (record.status == GuildGoldOperationStatus.BALANCE_APPLIED) {
+                if (purpose == "DEPOSIT") finishApplied(connection, transactionId, requireNotNull(record.oldBalance), requireNotNull(record.newBalance))
+                return@transaction GuildGoldResult.Applied(transactionId, requireNotNull(record.oldBalance), requireNotNull(record.newBalance), record.mutation.fee)
+            }
+            if (record.status != GuildGoldOperationStatus.PREPARED) return@transaction GuildGoldResult.Failed(transactionId, false)
+            val old = selectBalance(connection, record.mutation.guildId, true)
+            val next = calculateNewBalance(record.mutation, old, capacity)
+            // Capacity may have changed since the confirmed external debit. Hold, never discard it.
+            if (next !is BalanceCalculation.Accepted) return@transaction GuildGoldResult.Failed(transactionId, false)
+            upsertBalance(connection, record.mutation.guildId, next.value)
+            finishApplied(connection, transactionId, old, next.value,
+                if (purpose == "ADMISSION") GuildGoldOperationStatus.BALANCE_APPLIED else GuildGoldOperationStatus.APPLIED)
+            GuildGoldResult.Applied(transactionId, old, next.value, record.mutation.fee)
+        } }
+
+    override fun pendingPhysicalCredits(): List<GuildGoldOperationRecord> = storage.connection.connection.use { connection ->
+        connection.createStatement().use { statement ->
+            statement.executeQuery("SELECT * FROM guild_gold_operations WHERE route = 'PHYSICAL_ITEM' AND direction = 'CREDIT' " +
+                "AND status IN ('PREPARED', 'BALANCE_APPLIED', 'FAILED_COMPENSATION')").use { rows ->
+                buildList { while (rows.next()) add(rows.toOperation()) }
+            }
+        }
+    }
+
     override fun apply(
         mutation: GuildGoldMutation,
         capacity: Long,
         periodStartEpochMs: Long?
     ): GuildGoldResult = applyWithStatus(mutation, capacity, periodStartEpochMs, GuildGoldOperationStatus.APPLIED)
+
+    override fun reverseExternalCredit(transactionId: UUID): Boolean = storage.connection.connection.use { connection ->
+        transaction(connection) {
+            val original = findOperation(connection, transactionId, true) ?: return@transaction false
+            val reversalId = UUID.nameUUIDFromBytes("physical-credit-reversal:$transactionId".toByteArray(Charsets.UTF_8))
+            val reversal = original.mutation.copy(transactionId = reversalId, route = GuildGoldRoute.SYSTEM,
+                direction = GuildGoldDirection.DEBIT, fee = 0, description = "Reverse physical credit $transactionId")
+            val existing = findOperation(connection, reversalId, true)
+            if (existing != null) return@transaction existing.mutation == reversal && existing.status == GuildGoldOperationStatus.APPLIED
+            if (original.status == GuildGoldOperationStatus.FAILED_COMPENSATION && original.oldBalance != null &&
+                original.oldBalance == original.newBalance && original.mutation.direction == GuildGoldDirection.CREDIT &&
+                original.mutation.route == GuildGoldRoute.PHYSICAL_ITEM) return@transaction true
+            if (original.status != GuildGoldOperationStatus.BALANCE_APPLIED || original.mutation.direction != GuildGoldDirection.CREDIT ||
+                original.mutation.route != GuildGoldRoute.PHYSICAL_ITEM) return@transaction false
+            val balance = selectBalance(connection, original.mutation.guildId, true)
+            if (balance < original.mutation.amount) return@transaction false
+            insertPrepared(connection, reversal)
+            upsertBalance(connection, original.mutation.guildId, balance - original.mutation.amount)
+            finishApplied(connection, reversalId, balance, balance - original.mutation.amount)
+            connection.prepareStatement("UPDATE guild_gold_operations SET status = 'FAILED_COMPENSATION', " +
+                "compensation_details = 'Credit reversed; physical reservation restoration pending' WHERE transaction_id = ?").use {
+                it.setString(1, transactionId.toString()); it.executeUpdate()
+            }
+            true
+        }
+    }
 
     override fun applyExternalDebit(
         mutation: GuildGoldMutation,
@@ -385,6 +505,12 @@ class GuildGoldRepositorySQL(
             statement.setString(9, mutation.description)
             statement.setLong(10, System.currentTimeMillis())
             statement.executeUpdate()
+        }
+        if (mutation.route in setOf(GuildGoldRoute.PERSONAL_ACCOUNT, GuildGoldRoute.PHYSICAL_ITEM)) {
+            connection.prepareStatement("INSERT INTO guild_gold_external_attempts (transaction_id, phase) VALUES (?, 'READY')").use { statement ->
+                statement.setString(1, mutation.transactionId.toString())
+                statement.executeUpdate()
+            }
         }
     }
 

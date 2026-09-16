@@ -66,7 +66,8 @@ internal class GuildBankAccountWithdrawalTest {
     @BeforeEach fun setup() {
         server = MockBukkit.mock()
         val plugin = MockBukkit.createMockPlugin("Vault")
-        player = server.addPlayer()
+        player = spyk(server.addPlayer())
+        every { player.saveData() } just Runs // MockBukkit does not implement player-file writes.
         mockkStatic(JavaPlugin::class)
         every { JavaPlugin.getProvidingPlugin(any()) } returns plugin
         mockkObject(PluginKeys)
@@ -102,7 +103,8 @@ internal class GuildBankAccountWithdrawalTest {
             EconomyResponse(secondArg(), personalGold, EconomyResponse.ResponseType.SUCCESS, null)
         }
         val physical = net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter(
-            { player }, Material.RAW_GOLD, Material.RAW_GOLD_BLOCK, 9)
+            { player }, Material.RAW_GOLD, Material.RAW_GOLD_BLOCK, 9,
+            net.lumalyte.lg.infrastructure.services.PhysicalGoldJournal(storage))
         val gold = GuildGoldService(repository,
             GuildGoldPolicyProvider { GuildGoldPolicy(1, 100_000, 1.0, 50_000, depositFeeRate, feeRate, 128, 15, 1_000_000, 50_000, false) },
             GuildGoldCapacityProvider { GuildGoldCapacity(1_000_000, 0) },

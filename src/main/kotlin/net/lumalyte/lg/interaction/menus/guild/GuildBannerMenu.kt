@@ -36,6 +36,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
     private val guildService: GuildService by inject()
     private val bankService: BankService by inject()
+    private val bannerPurchases: net.lumalyte.lg.application.services.BannerPurchaseService by inject()
     private val physicalCurrencyService: PhysicalCurrencyService by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
@@ -316,6 +317,27 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 return@GuiItem
             }
 
+            if (!bannerCopyFree && !useItemCost && chargeGuildBank) {
+                val cost = if (physicalCurrencyService.isPhysicalCurrencyEnabled()) config.bannerCopyPhysicalCost.toLong()
+                    else bannerCopyCost.toLong() + bankService.calculateWithdrawalFee(guild.id, bannerCopyCost).toLong()
+                if (cost <= 0) {
+                    player.sendMessage(lang.msg("menu.guild_banner.feedback.payment_failed"))
+                    return@GuiItem
+                }
+                when (val result = bannerPurchases.purchase(guild.id, player.uniqueId, cost, bannerData) { saved ->
+                    giveBanner(requireNotNull(saved.deserializeToItemStack()) { "Saved banner cannot be decoded" })
+                    player.saveData()
+                }) {
+                    is net.lumalyte.lg.application.services.BannerPurchaseResult.Completed ->
+                        player.sendMessage(lang.msg("menu.guild_banner.feedback.copy_purchased", "amount" to result.amount))
+                    is net.lumalyte.lg.application.services.BannerPurchaseResult.Pending ->
+                        player.sendMessage(lang.msg("menu.guild_banner.feedback.purchase_pending", "reference" to result.transactionId))
+                    net.lumalyte.lg.application.services.BannerPurchaseResult.Rejected ->
+                        player.sendMessage(lang.msg("menu.guild_banner.feedback.payment_failed"))
+                }
+                return@GuiItem
+            }
+
             val success = if (bannerCopyFree) {
                 // Free banner copy - no payment needed
                 true
@@ -353,39 +375,6 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                     player.sendMessage(lang.msg("menu.guild_banner.feedback.invalid_material"))
                     false
                 }
-            } else if (chargeGuildBank) {
-                // Coin-based payment from guild bank or physical currency
-                if (physicalCurrencyService.isPhysicalCurrencyEnabled()) {
-                    // Use physical currency
-                    val physicalCost = configService.loadConfig().guild.bannerCopyPhysicalCost
-                    val currentBalance = physicalCurrencyService.calculateVaultCurrencyValue(guild)
-
-                    if (currentBalance < physicalCost) {
-                        player.sendMessage(lang.msg("menu.guild_banner.feedback.insufficient_vault", "need" to physicalCost, "have" to currentBalance))
-                        return@GuiItem
-                    }
-
-                    val deductSuccess = physicalCurrencyService.deductCurrency(guild, physicalCost, "Banner copy purchase")
-                    if (!deductSuccess) {
-                        player.sendMessage(lang.msg("menu.guild_banner.feedback.vault_deduct_failed"))
-                        return@GuiItem
-                    }
-
-                    true
-                } else {
-                    // Use virtual economy
-                    val cost = bannerCopyCost
-                    val guildBalance = bankService.getBalance(guild.id)
-                    val fee = bankService.calculateWithdrawalFee(guild.id, cost)
-                    val totalCost = cost + fee
-
-                    if (guildBalance < totalCost) {
-                        player.sendMessage(lang.msg("menu.guild_banner.feedback.insufficient_bank", "need" to totalCost, "have" to guildBalance))
-                        return@GuiItem
-                    }
-
-                    bankService.deductFromGuildBank(guild.id, totalCost, "Banner copy purchase")
-                }
             } else {
                 // Coin-based payment from player balance
                 val cost = bannerCopyCost
@@ -402,27 +391,7 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
                 return@GuiItem
             }
 
-            // Give the banner to player
-            val bannerCopy = bannerItem.clone()
-
-            // Mark the banner with persistent data to prevent furnace fuel usage
-            val meta = bannerCopy.itemMeta
-            if (meta != null) {
-                meta.persistentDataContainer.set(
-                    PluginKeys.GUILD_BANNER_MARKER,
-                    PersistentDataType.BYTE,
-                    1.toByte()
-                )
-                bannerCopy.itemMeta = meta
-            }
-
-            val remaining = player.inventory.addItem(bannerCopy)
-
-            if (remaining.isNotEmpty()) {
-                // Inventory full, drop at feet
-                player.world.dropItem(player.location, bannerCopy)
-                player.sendMessage(lang.msg("menu.guild_banner.feedback.dropped"))
-            }
+            giveBanner(bannerItem)
 
             if (bannerCopyFree) {
                 player.sendMessage(lang.msg("menu.guild_banner.feedback.free_copy"))
@@ -441,6 +410,18 @@ class GuildBannerMenu(private val menuNavigator: MenuNavigator, private val play
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
+    }
+
+    private fun giveBanner(item: ItemStack) {
+        val copy = item.clone().also { it.amount = 1 }
+        copy.itemMeta = copy.itemMeta?.also {
+            it.persistentDataContainer.set(PluginKeys.GUILD_BANNER_MARKER, PersistentDataType.BYTE, 1.toByte())
+        }
+        val remaining = player.inventory.addItem(copy)
+        if (remaining.isNotEmpty()) {
+            remaining.values.forEach { player.world.dropItem(player.location, it) }
+            player.sendMessage(lang.msg("menu.guild_banner.feedback.dropped"))
+        }
     }
 }
 
