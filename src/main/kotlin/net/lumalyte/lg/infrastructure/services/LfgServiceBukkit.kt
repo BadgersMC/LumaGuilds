@@ -38,12 +38,14 @@ class LfgServiceBukkit(
         val config = configService.loadConfig()
         val maxMembers = config.guild.maxMembersPerGuild
 
-        return guildRepository.getAll()
+        val guilds = guildRepository.getAll().filter { it.isOpen }
+        val limits = memberService.getMemberLimits(guilds.map { it.id }.toSet())
+        return guilds
             .filter { guild ->
                 // Must be open for recruitment
                 guild.isOpen &&
                 // Must have available slots
-                memberService.getMemberCount(guild.id) < minOf(maxMembers, memberService.getMemberLimit(guild.id))
+                memberService.getMemberCount(guild.id) < minOf(maxMembers, limits[guild.id] ?: 0)
             }
             .sortedBy { it.name.lowercase() }
     }

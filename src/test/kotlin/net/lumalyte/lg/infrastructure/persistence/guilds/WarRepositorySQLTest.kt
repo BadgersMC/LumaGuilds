@@ -18,6 +18,24 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class WarRepositorySQLTest {
+    @Test fun `duplicate-key insert races return conflict but other SQL failures propagate`() {
+        val jdbc = io.mockk.mockk<java.sql.Connection>(relaxed = true)
+        val statement = io.mockk.mockk<java.sql.PreparedStatement>(relaxed = true)
+        val database = io.mockk.mockk<co.aikar.idb.Database>(relaxed = true)
+        io.mockk.every { database.connection } returns jdbc
+        io.mockk.every { jdbc.prepareStatement(any<String>()) } returns statement
+        val wrapped = object : net.lumalyte.lg.infrastructure.persistence.storage.Storage<co.aikar.idb.Database> {
+            override val connection = database
+            override val dialect = net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB
+        }
+        val target = WarRepositorySQL(wrapped)
+        io.mockk.every { statement.executeUpdate() } throws java.sql.SQLException("Duplicate entry for key PRIMARY", "23000", 1062)
+        assertFalse(target.save(record()))
+        io.mockk.every { statement.executeUpdate() } throws java.sql.SQLException("UNIQUE constraint failed: guild_war_records.war_id", null, 19)
+        assertFalse(target.save(record()))
+        io.mockk.every { statement.executeUpdate() } throws java.sql.SQLException("connection lost", "08006", 0)
+        assertFailsWith<java.sql.SQLException> { target.save(record()) }
+    }
     @TempDir lateinit var directory: Path
     private lateinit var storage: VirtualThreadSQLiteStorage
     private lateinit var repository: WarRepositorySQL

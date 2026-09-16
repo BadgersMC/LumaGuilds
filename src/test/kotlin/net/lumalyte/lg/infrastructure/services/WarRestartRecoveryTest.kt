@@ -122,4 +122,26 @@ class WarRestartRecoveryTest {
         assertTrue(wars.rejectWarDeclaration(declaration.id, UUID.randomUUID()))
         assertTrue(service().getPendingDeclarationsForGuild(second).isEmpty())
     }
+
+    @Test fun `single record queries avoid full history and operations load one snapshot`() {
+        val sql = WarRepositorySQL(storage)
+        var scans = 0
+        val counted = object : net.lumalyte.lg.application.persistence.WarRepository by sql {
+            override fun getAll(): List<DurableWarRecord> { scans++; return sql.getAll() }
+        }
+        val wars = service(counted)
+        scans = 0
+        val declaration = assertNotNull(wars.createWarDeclaration(first, second, Duration.ofDays(1), emptySet(),
+            actorId = UUID.randomUUID()))
+        assertEquals(1, scans, "Declaration must reuse its history snapshot")
+        val active = assertNotNull(wars.acceptWarDeclaration(declaration.id, UUID.randomUUID()))
+        scans = 0
+        assertEquals(active, wars.getWar(active.id))
+        wars.getWarStats(active.id)
+        wars.getWager(active.id)
+        wars.checkForDrawCondition(active.id)
+        assertEquals(0, scans, "Single-record queries must not scan history")
+        wars.processExpiredWars()
+        assertEquals(1, scans, "Expiry pass must reuse one history snapshot")
+    }
 }

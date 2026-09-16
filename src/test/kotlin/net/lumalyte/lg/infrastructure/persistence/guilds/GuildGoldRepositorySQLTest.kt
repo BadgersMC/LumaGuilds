@@ -20,6 +20,28 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class GuildGoldRepositorySQLTest {
+    private class MariaDBNamedWrapper(delegate: net.lumalyte.lg.infrastructure.persistence.storage.Storage<co.aikar.idb.Database>) :
+        net.lumalyte.lg.infrastructure.persistence.storage.Storage<co.aikar.idb.Database> by delegate
+
+    @Test fun `storage wrapper name cannot change SQL dialect`() {
+        val wrapped = GuildGoldRepositorySQL(MariaDBNamedWrapper(storage))
+        assertTrue(wrapped.apply(mutation(UUID.randomUUID(), GuildGoldDirection.CREDIT, 100), 1_000, null) is GuildGoldResult.Applied)
+        assertEquals(100, wrapped.getBalance(guildId))
+    }
+
+    @Test fun `pending guard uses an index after repeated schema initialization`() {
+        GuildGoldRepositorySQL(storage)
+        storage.connection.connection.use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeQuery("EXPLAIN QUERY PLAN SELECT transaction_id FROM guild_gold_operations " +
+                    "WHERE guild_id = 'test' AND route IN ('PERSONAL_ACCOUNT', 'PHYSICAL_ITEM') " +
+                    "AND status IN ('PREPARED', 'BALANCE_APPLIED')").use { rows ->
+                    val plans = buildList { while (rows.next()) add(rows.getString("detail")) }
+                    assertTrue(plans.any { it.contains("idx_guild_gold_pending") }, plans.toString())
+                }
+            }
+        }
+    }
     @TempDir
     lateinit var tempDir: Path
 

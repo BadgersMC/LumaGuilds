@@ -31,6 +31,7 @@ class MariaDBStorage(
     maxLifetime: Long = 1800000
 ) : Storage<Database> {
     override val connection: Database
+    override val dialect = SqlDialect.MARIADB
 
     init {
         // Build DSN without jdbc: prefix (IDB adds it automatically)

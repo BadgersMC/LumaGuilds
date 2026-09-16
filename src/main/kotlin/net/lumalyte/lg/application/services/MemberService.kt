@@ -10,6 +10,7 @@ import java.util.UUID
 interface MemberService {
     /** Same unlocked capacity enforced by addMember; unknown implementations fail closed. */
     fun getMemberLimit(guildId: UUID): Int = 0
+    fun getMemberLimits(guildIds: Set<UUID>): Map<UUID, Int> = guildIds.associateWith(::getMemberLimit)
 
     /**
      * Adds a player to a guild.

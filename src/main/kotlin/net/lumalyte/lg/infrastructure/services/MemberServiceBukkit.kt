@@ -30,15 +30,22 @@ class MemberServiceBukkit(
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
 
     override fun getMemberLimit(guildId: UUID): Int {
-        val progression = progressionRepository.getGuildProgression(guildId)
+        return getMemberLimits(setOf(guildId)).getValue(guildId)
+    }
+
+    override fun getMemberLimits(guildIds: Set<UUID>): Map<UUID, Int> {
+        if (guildIds.isEmpty()) return emptyMap()
         val levelRewards = progressionConfigService.getProgressionConfig().getActiveLevelRewards()
-        var maxMembers = 10
-        if (progression != null) {
-            for (level in 1..progression.currentLevel) {
-                maxMembers = maxOf(maxMembers, levelRewards[level]?.members ?: 10)
+        return guildIds.associateWith { guildId ->
+            val progression = progressionRepository.getGuildProgression(guildId)
+            var maxMembers = 10
+            if (progression != null) {
+                for (level in 1..progression.currentLevel) {
+                    maxMembers = maxOf(maxMembers, levelRewards[level]?.members ?: 10)
+                }
             }
+            maxMembers
         }
-        return maxMembers
     }
     
     override fun addMember(playerId: UUID, guildId: UUID, rankId: UUID): Member? {
