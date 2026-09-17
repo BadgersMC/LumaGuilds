@@ -3047,8 +3047,12 @@ menu:
       withdraw_description: Enter custom withdrawal amount
     feedback:
       deposit_success: 'Successfully deposited $<amount> to the guild bank!'
-      withdraw_success: 'Credited $<amount> to your personal account from the guild bank (fee: $<fee>).'
+      withdraw_success: '<green>Credited <gold><amount> gold</gold> to your personal account. Fee: <gold><fee> gold</gold>. Total removed from the guild bank: <gold><total> gold</gold>.'
+      physical_withdraw_success: '<green>Withdrew <gold><amount> gold</gold> as items from the vault of <guild>. Fee: <gold><fee> gold</gold>. Total removed from the guild bank: <gold><total> gold</gold>.'
+      withdraw_preview: '<gray>You receive: <gold><amount> gold</gold> | Fee: <gold><fee> gold</gold> | Bank deduction: <gold><total> gold</gold>'
       deposit_error: '<red>An error occurred during deposit: <reason>'
+      deposit_pending: '<yellow>Deposit needs administrator review. Do not retry. Ask an admin to check transaction <transaction>.'
+      deposit_rejected: '<red>Deposit was not accepted. Check your available gold, fees, permissions, and bank capacity.'
       withdraw_error: '<red>An error occurred during withdrawal: <reason>'
       manual_fee_denied: '<red>Cannot manually enter fees.'
       manual_deduction_denied: '<red>Cannot manually enter deductions.'
@@ -3058,7 +3062,6 @@ menu:
       vault_unavailable: 'Vault economy not available! Guild Bank requires Vault and an economy plugin (Essentials, iConomy, etc.)'
       deposit_permission_denied: '<red>You don''t have permission to deposit to the bank!'
       withdraw_permission_denied: '<red>You don''t have permission to withdraw from the bank!'
-      insufficient_gold: '<red>You don''t have enough gold! You have <balance>, but need <amount>.'
       vault_withdraw_failed: '<red>Failed to withdraw from guild vault!'
       withdraw_no_amount: '<red>Nothing to withdraw — the vault balance may have changed since opening the menu. Reopen and try again.'
       withdraw_pending: '<yellow>Withdrawal needs administrator review. Do not retry. Ask an admin to check the bank payout audit/log for transaction <transaction>.'
@@ -5917,14 +5920,12 @@ menu:
       insufficient_items: "<red>❌ You don't have enough items! (Need: <gold><amount> x <material><red>)"
       paid_items: "<green>✅ Paid <gold><amount> x <material> <green>for banner copy!"
       invalid_material: "<red>❌ Invalid item material configured for banner cost!"
-      insufficient_vault: "<red>❌ Guild vault has insufficient physical currency! (Need: <gold><need><red>, Have: <gold><have><red>)"
-      vault_deduct_failed: "<red>❌ Failed to deduct physical currency from guild vault!"
-      insufficient_bank: "<red>❌ Guild bank has insufficient funds! (Need: <gold><need><red>, Have: <gold><have><red>)"
       insufficient_coins: "<red>❌ You don't have enough coins! (Need: <gold><need><red>, Have: <gold><have><red>)"
       payment_failed: "<red>❌ Failed to process payment!"
       free_copy: "<green>✅ Free banner copy received!"
       copy_received: "<green>✅ Banner copy received!"
       copy_purchased: "<green>✅ Banner copy purchased for <gold><amount> <green>coins!"
+      purchase_pending: "<yellow>Your banner purchase needs review. Do not pay again. Reference: <reference>"
       added: "<gray>💡 The banner has been added to your inventory"
 
   guild_relations:

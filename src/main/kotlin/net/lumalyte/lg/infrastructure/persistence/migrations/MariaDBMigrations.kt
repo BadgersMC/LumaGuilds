@@ -90,6 +90,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(28)
                 currentDbVersion = 28
             }
+            if (currentDbVersion < 29) {
+                migrateToVersion29()
+                updateDatabaseVersion(29)
+                currentDbVersion = 29
+            }
 
             connection.commit()
 
@@ -981,5 +986,10 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             }
         }
         componentLogger.info(Component.text("✓ Migration v28 complete: guild-wide award qualification added"))
+    }
+
+    private fun migrateToVersion29() {
+        GuildGoldSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("✓ Migration v29 complete: canonical guild-gold operations added"))
     }
 }

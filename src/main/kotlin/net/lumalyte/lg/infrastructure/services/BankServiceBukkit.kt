@@ -33,6 +33,7 @@ class BankServiceBukkit(
     private val guildService: net.lumalyte.lg.application.services.GuildService,
     private val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager,
     private val chapterTwoGuildAwardService: ChapterTwoGuildAwardService? = null,
+    private val goldService: net.lumalyte.lg.application.services.GuildGoldService,
 ) : BankService {
 
     companion object {
@@ -133,452 +134,157 @@ class BankServiceBukkit(
         return getEconomy()?.javaClass?.simpleName ?: "None"
     }
 
-    override fun deposit(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankTransaction? {
-        try {
-            // Check Vault economy availability
-            val economy = getEconomy()
-            if (economy == null) {
-                logger.error("Cannot process deposit: Vault economy not available")
-                return null
+    override fun quoteJoinFee(guildId: UUID, amount: Int): Int? =
+        goldService.depositCost(guildId, amount.toLong())?.takeIf { it <= Int.MAX_VALUE }?.toInt()
+
+    override fun collectJoinFee(request: net.lumalyte.lg.application.services.PersonalGoldRequest,
+        physical: Boolean, admission: net.lumalyte.lg.application.services.PaidGuildAdmission): net.lumalyte.lg.domain.gold.GuildGoldResult {
+        return try {
+            if (request.amount <= 0 || request.amount > Int.MAX_VALUE) {
+                return net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.INVALID_AMOUNT)
             }
-
-            // Check emergency freeze
-            val guild = guildRepository.getById(guildId)
-            if (guild?.bankFrozen == true) {
-                logger.warn("Deposit blocked for guild $guildId: emergency freeze is active")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Deposit blocked: emergency bank freeze is active"
-                ))
-                return null
+            if (guildRepository.getById(request.guildId)?.bankFrozen == true) {
+                return net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.FROZEN)
             }
-
-            // Get player
-            val player = Bukkit.getPlayer(playerId)
-            if (player == null) {
-                logger.warn("Player $playerId not found online for deposit")
-                return null
+            legacyPendingPayout(request.guildId)?.let { return net.lumalyte.lg.domain.gold.GuildGoldResult.Failed(it, false) }
+            val result = goldService.collectJoinFee(request, physical, admission)
+            if (result is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied) {
+                recordCanonicalHistory(canonicalTransaction(result, request.guildId, request.playerId,
+                    request.amount.toInt(), request.description, TransactionType.DEPOSIT))
             }
-
-            // Validate permissions
-            if (!canDeposit(playerId, guildId)) {
-                logger.warn("Player $playerId cannot deposit to guild $guildId")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Deposit permission denied"
-                ))
-                return null
-            }
-
-            // Validate amount
-            if (!isValidAmount(amount)) {
-                logger.warn("Invalid deposit amount: $amount by player $playerId")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Invalid deposit amount: $amount"
-                ))
-                return null
-            }
-
-            // Suspicious-transaction auto-lock (REQ-009): refuse BEFORE any funds
-            // move and freeze the account, so a qualifying transaction can never
-            // succeed. (Previously this ran after the transfer, so the suspicious
-            // deposit always landed and the freeze only blocked the next one.)
-            val bankConfig = getConfig().bank
-            if (shouldAutoLock(amount, bankConfig.suspiciousTransactionThreshold, bankConfig.autoLockSuspiciousAccounts)) {
-                guildService.setBankFrozen(guildId, true, SYSTEM_ACTOR)
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = SYSTEM_ACTOR,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Account auto-locked: suspicious transaction refused (deposit of $amount)"
-                ))
-                logger.warn("Guild $guildId auto-locked; suspicious deposit of $amount refused")
-                return null
-            }
-
-            // Check guild bank balance limit: progression-derived, capped by the config ceiling (REQ-009)
-            val currentBalance = getBalance(guildId)
-            val progression = progressionRepository.getGuildProgression(guildId)
-            val progressionConfig = progressionConfigService.getProgressionConfig()
-            val levelRewards = progressionConfig.getActiveLevelRewards()
-            val progressionLimit = if (progression != null) {
-                computeProgressionBankLimit(levelRewards, progression.currentLevel)
-            } else {
-                null
-            }
-            val maxBalance = effectiveMaxBalance(getConfig().bank.maxBankBalance, progressionLimit)
-            if (currentBalance + amount > maxBalance) {
-                logger.warn("Deposit would exceed guild bank limit: $currentBalance + $amount > $maxBalance")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Deposit would exceed bank balance limit ($maxBalance)"
-                ))
-                return null
-            }
-
-            // Check if player has sufficient funds
-            if (!economy.has(player, amount.toDouble())) {
-                logger.warn("Player $playerId has insufficient funds for deposit of $amount")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.INSUFFICIENT_FUNDS,
-                    details = "Player has insufficient funds: $amount required"
-                ))
-                return null
-            }
-
-            // Build the audit/history transaction record up front so it carries a stable id.
-            val transaction = BankTransaction.deposit(guildId, playerId, amount, description)
-
-            // Take money from the player's economy account FIRST.
-            val withdrawResult = economy.withdrawPlayer(player, amount.toDouble())
-            if (!withdrawResult.transactionSuccess()) {
-                logger.warn("Failed to withdraw $amount from player $playerId - aborting deposit")
-                recordAudit(BankAudit(
-                    transactionId = transaction.id,
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.INSUFFICIENT_FUNDS,
-                    details = "Failed to withdraw money from player account"
-                ))
-                return null
-            }
-
-            // Credit the unified guild balance (store B: vault gold). This is atomic and the
-            // balance is immediately visible to all readers via VaultInventoryManager.
-            val creditedBalance = try {
-                vaultInventoryManager.depositGold(guildId, playerId, amount.toLong())
-            } catch (e: Exception) {
-                // Credit failed AFTER taking the player's money - refund to avoid loss.
-                logger.error("Failed to credit guild balance for guild $guildId - refunding player $playerId", e)
-                economy.depositPlayer(player, amount.toDouble())
-                recordAudit(BankAudit(
-                    transactionId = transaction.id,
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Failed to credit guild balance - player refunded"
-                ))
-                return null
-            }
-
-            // Record the transaction in the ledger as audit/history (best-effort; the balance
-            // no longer depends on it, so a failure here does not corrupt funds).
-            try {
-                bankRepository.recordTransaction(transaction)
-            } catch (e: Exception) {
-                logger.warn("Failed to record deposit transaction history for ${transaction.id} (balance already updated)", e)
-            }
-
-            // SUCCESS: player debited and guild balance credited
-            val newBalance = creditedBalance.toInt()
-            recordAudit(BankAudit(
-                transactionId = transaction.id,
-                guildId = guildId,
-                actorId = playerId,
-                action = AuditAction.DEPOSIT,
-                details = "Deposit of $amount",
-                newBalance = newBalance
-            ))
-
-            logger.info("Player $playerId deposited $amount to guild $guildId (balance: $newBalance)")
-
-            // Reserve XP only for this day's net-new bank high-water balance.
-            try {
-                chapterTwoGuildAwardService?.awardBankGrowth(
-                    guildId,
-                    playerId,
-                    currentBalance.toLong(),
-                    creditedBalance,
-                )
-            } catch (e: Exception) {
-                logger.warn("Failed to award net-new bank progression XP", e)
-            }
-
-            // This event feeds activity leaderboards and weekly quests; permanent XP
-            // is handled above so listeners must not award it a second time.
-            Bukkit.getPluginManager().callEvent(GuildBankDepositEvent(guildId, playerId, amount))
-
-            return transaction
-        } catch (e: SQLException) {
-            logger.error("Database error processing deposit for player $playerId to guild $guildId", e)
-            return null
-        } catch (e: IllegalStateException) {
-            logger.error("Service error processing deposit (Vault economy unavailable?)", e)
-            return null
+            result
+        } catch (error: Exception) {
+            logger.error("Paid admission ${request.transactionId} requires inspection", error)
+            net.lumalyte.lg.domain.gold.GuildGoldResult.Failed(request.transactionId, false)
         }
     }
 
-    private val withdrawalLock = Any()
+    override fun creditInterest(guildId: UUID, periodEndEpochMs: Long, rate: Double): net.lumalyte.lg.domain.gold.GuildGoldResult {
+        if (guildRepository.getById(guildId)?.bankFrozen == true) {
+            return net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.FROZEN)
+        }
+        val result = goldService.creditInterest(guildId, periodEndEpochMs, rate)
+        if (result is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied && result.newBalance > result.oldBalance) {
+            recordCanonicalHistory(canonicalTransaction(result, guildId, SYSTEM_ACTOR,
+                Math.toIntExact(result.newBalance - result.oldBalance), "Interest accrual", TransactionType.DEPOSIT))
+        }
+        return result
+    }
+
+    override fun getMaxPhysicalDeposit(guildId: UUID, playerId: UUID): Long =
+        goldService.maximumPhysicalDeposit(guildId, playerId).coerceAtMost(Int.MAX_VALUE.toLong())
+
+    override fun depositPhysical(request: net.lumalyte.lg.application.services.PhysicalGoldRequest) =
+        transferPhysical(request, withdrawal = false)
+
+    override fun withdrawPhysical(request: net.lumalyte.lg.application.services.PhysicalGoldRequest) =
+        transferPhysical(request, withdrawal = true)
+
+    private fun transferPhysical(request: net.lumalyte.lg.application.services.PhysicalGoldRequest,
+        withdrawal: Boolean): net.lumalyte.lg.domain.gold.GuildGoldResult {
+        if (request.amount <= 0 || request.amount > Int.MAX_VALUE) {
+            return net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.INVALID_AMOUNT)
+        }
+        return try {
+            if (guildRepository.getById(request.guildId)?.bankFrozen == true) {
+                return net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.FROZEN)
+            }
+            legacyPendingPayout(request.guildId)?.let {
+                return net.lumalyte.lg.domain.gold.GuildGoldResult.Failed(it, false)
+            }
+            val result = if (withdrawal) goldService.withdrawPhysical(request) else goldService.depositPhysical(request)
+            if (result is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied) {
+                recordCanonicalHistory(canonicalTransaction(result, request.guildId, request.playerId,
+                    request.amount.toInt(), request.description,
+                    if (withdrawal) TransactionType.WITHDRAWAL else TransactionType.DEPOSIT))
+            }
+            result
+        } catch (error: Exception) {
+            logger.error("Canonical physical transfer ${request.transactionId} requires inspection", error)
+            net.lumalyte.lg.domain.gold.GuildGoldResult.Failed(request.transactionId, false)
+        }
+    }
+
+    override fun deposit(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankTransaction? {
+        if (amount <= 0 || guildRepository.getById(guildId)?.bankFrozen == true) return null
+        val transactionId = UUID.randomUUID()
+        return try {
+            if (legacyPendingPayout(guildId) != null) return null
+            val result = goldService.depositPersonal(net.lumalyte.lg.application.services.PersonalGoldRequest(
+                transactionId, guildId, playerId, amount.toLong(), description ?: "Guild bank deposit"))
+            if (result !is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied) return null
+            val transaction = canonicalTransaction(result, guildId, playerId, amount, description, TransactionType.DEPOSIT)
+            recordCanonicalHistory(transaction)
+            runCatching {
+                chapterTwoGuildAwardService?.awardBankGrowth(guildId, playerId, result.oldBalance, result.newBalance)
+                Bukkit.getPluginManager().callEvent(GuildBankDepositEvent(guildId, playerId, amount))
+            }.onFailure { logger.warn("Post-deposit notification failed for $transactionId", it) }
+            transaction
+        } catch (error: Exception) {
+            logger.error("Canonical deposit $transactionId requires inspection", error)
+            null
+        }
+    }
 
     override fun withdraw(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankTransaction? =
         (withdrawOutcome(guildId, playerId, amount, description) as? BankWithdrawalResult.Completed)?.transaction
 
-    override fun withdrawOutcome(
-        guildId: UUID,
-        playerId: UUID,
-        amount: Int,
-        description: String?,
-    ): BankWithdrawalResult = synchronized(withdrawalLock) {
-        try {
-            val history = bankRepository.getAuditForGuild(guildId)
-            val resolved = history.filter {
-                it.action == AuditAction.PAYOUT_COMPLETED || it.action == AuditAction.PAYOUT_REFUNDED
-            }.mapNotNull { it.transactionId }.toSet()
-            val pending = history.firstOrNull {
-                it.action == AuditAction.PAYOUT_PENDING && it.transactionId !in resolved
-            }?.transactionId
-            if (pending != null) BankWithdrawalResult.Ambiguous(pending)
-            else performAccountWithdrawal(guildId, playerId, amount, description)
+    override fun withdrawOutcome(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankWithdrawalResult {
+        if (amount <= 0 || guildRepository.getById(guildId)?.bankFrozen == true) return BankWithdrawalResult.Rejected
+        val transactionId = UUID.randomUUID()
+        return try {
+            legacyPendingPayout(guildId)?.let { return BankWithdrawalResult.Ambiguous(it) }
+            when (val result = goldService.withdrawPersonal(net.lumalyte.lg.application.services.PersonalGoldRequest(
+                transactionId, guildId, playerId, amount.toLong(), description ?: "Guild bank withdrawal"))) {
+                is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied -> {
+                    val transaction = canonicalTransaction(result, guildId, playerId, amount, description, TransactionType.WITHDRAWAL)
+                    recordCanonicalHistory(transaction)
+                    BankWithdrawalResult.Completed(transaction)
+                }
+                is net.lumalyte.lg.domain.gold.GuildGoldResult.Failed ->
+                    if (result.compensationSucceeded) BankWithdrawalResult.Rejected
+                    else BankWithdrawalResult.Ambiguous(result.transactionId)
+                is net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected -> BankWithdrawalResult.Rejected
+            }
         } catch (error: Exception) {
-            logger.error("Unable to check pending payouts for guild $guildId", error)
-            BankWithdrawalResult.Rejected
+            logger.error("Canonical withdrawal $transactionId requires inspection", error)
+            BankWithdrawalResult.Ambiguous(transactionId)
         }
     }
 
-    private fun recordPayoutState(transaction: BankTransaction, action: AuditAction, details: String): Boolean = try {
-        bankRepository.recordAudit(BankAudit(
-            transactionId = transaction.id, guildId = transaction.guildId, actorId = transaction.actorId,
-            action = action, details = details,
-        ))
-    } catch (error: Exception) {
-        logger.error("Cannot persist payout state $action for ${transaction.id}", error)
-        false
+    /** Keep PR #142 recovery gates effective while its existing journal is retained. */
+    private fun legacyPendingPayout(guildId: UUID): UUID? {
+        val history = bankRepository.getAuditForGuild(guildId)
+        val resolved = history.filter {
+            it.action == AuditAction.PAYOUT_COMPLETED || it.action == AuditAction.PAYOUT_REFUNDED
+        }.mapNotNull { it.transactionId }.toSet()
+        return history.firstOrNull {
+            it.action == AuditAction.PAYOUT_PENDING && it.transactionId !in resolved
+        }?.transactionId
     }
 
-    private fun refundAccountWithdrawal(
-        transaction: BankTransaction,
-        totalDebit: Int,
-        reason: String,
-    ): BankWithdrawalResult {
-        vaultInventoryManager.depositGold(transaction.guildId, transaction.actorId, totalDebit.toLong())
-        if (!vaultInventoryManager.flushBuffer(transaction.guildId) ||
-            !recordPayoutState(transaction, AuditAction.PAYOUT_REFUNDED, reason)) {
-            return BankWithdrawalResult.Ambiguous(transaction.id)
-        }
-        return BankWithdrawalResult.Rejected
-    }
+    private fun canonicalTransaction(result: net.lumalyte.lg.domain.gold.GuildGoldResult.Applied,
+        guildId: UUID, playerId: UUID, amount: Int, description: String?, type: TransactionType) =
+        BankTransaction(id = result.transactionId, guildId = guildId, actorId = playerId, type = type,
+            amount = amount, fee = Math.toIntExact(result.fee), description = description)
 
-    private fun performAccountWithdrawal(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankWithdrawalResult {
-        var pendingId: UUID? = null
-        try {
-            // Check Vault economy availability
-            val economy = getEconomy()
-            if (economy == null) {
-                logger.error("Cannot process withdrawal: Vault economy not available")
-                return BankWithdrawalResult.Rejected
-            }
-
-            // Check emergency freeze
-            val guild = guildRepository.getById(guildId)
-            if (guild?.bankFrozen == true) {
-                logger.warn("Withdrawal blocked for guild $guildId: emergency freeze is active")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Withdrawal blocked: emergency bank freeze is active"
-                ))
-                return BankWithdrawalResult.Rejected
-            }
-
-            // Get player
-            val player = Bukkit.getPlayer(playerId)
-            if (player == null) {
-                logger.warn("Player $playerId not found online for withdrawal")
-                return BankWithdrawalResult.Rejected
-            }
-
-            // Validate permissions
-            if (!canWithdraw(playerId, guildId)) {
-                logger.warn("Player $playerId cannot withdraw from guild $guildId")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Withdrawal permission denied"
-                ))
-                return BankWithdrawalResult.Rejected
-            }
-
-            // Validate amount
-            if (!isValidAmount(amount)) {
-                logger.warn("Invalid withdrawal amount: $amount by player $playerId")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Invalid withdrawal amount: $amount"
-                ))
-                return BankWithdrawalResult.Rejected
-            }
-
-            // Suspicious-transaction auto-lock (REQ-009): refuse BEFORE any funds
-            // move and freeze the account, so a qualifying transaction can never
-            // succeed. (Previously this ran after the transfer, so the suspicious
-            // withdrawal always landed and the freeze only blocked the next one.)
-            val bankConfig = getConfig().bank
-            if (shouldAutoLock(amount, bankConfig.suspiciousTransactionThreshold, bankConfig.autoLockSuspiciousAccounts)) {
-                guildService.setBankFrozen(guildId, true, SYSTEM_ACTOR)
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = SYSTEM_ACTOR,
-                    action = AuditAction.PERMISSION_DENIED,
-                    details = "Account auto-locked: suspicious transaction refused (withdrawal of $amount)"
-                ))
-                logger.warn("Guild $guildId auto-locked; suspicious withdrawal of $amount refused")
-                return BankWithdrawalResult.Rejected
-            }
-
-            // Check sufficient funds including fee
-            val fee = calculateWithdrawalFee(guildId, amount)
-            if (!hasSufficientFunds(guildId, amount, true)) {
-                logger.warn("Insufficient funds for withdrawal of $amount (+$fee fee) from guild $guildId")
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.INSUFFICIENT_FUNDS,
-                    details = "Insufficient funds for withdrawal of $amount (+$fee fee)"
-                ))
-                return BankWithdrawalResult.Rejected
-            }
-
-            // Calculate final amount player receives (after fee)
-            val finalAmount = amount
-            val totalDebit = amount + fee
-
-            // Build the audit/history transaction record up front so it carries a stable id.
-            val transaction = BankTransaction.withdraw(guildId, playerId, amount, fee, description)
-
-            // Capture this before the debit so a provider read failure cannot consume guild funds.
-            val personalBalanceBefore = try {
-                economy.getBalance(player)
-            } catch (error: Exception) {
-                logger.error("Failed to read personal balance before guild withdrawal for $playerId", error)
-                return BankWithdrawalResult.Rejected
-            }
-            if (!personalBalanceBefore.isFinite()) return BankWithdrawalResult.Rejected
-            if (!recordPayoutState(transaction, AuditAction.PAYOUT_PENDING,
-                    "Pending payout: amount=$amount, fee=$fee, personalBefore=$personalBalanceBefore")) {
-                return BankWithdrawalResult.Rejected
-            }
-            pendingId = transaction.id
-
-            // Debit the unified guild balance (store B: vault gold) FIRST, including the fee.
-            // withdrawGold is atomic and returns -1 if funds are insufficient.
-            val debitedBalance = vaultInventoryManager.withdrawGold(guildId, playerId, totalDebit.toLong())
-            if (debitedBalance == -1L) {
-                if (!recordPayoutState(transaction, AuditAction.PAYOUT_REFUNDED, "No debit: insufficient guild balance")) {
-                    return BankWithdrawalResult.Ambiguous(transaction.id)
-                }
-                logger.warn("Insufficient guild balance for withdrawal of $totalDebit from guild $guildId")
-                recordAudit(BankAudit(
-                    transactionId = transaction.id,
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.INSUFFICIENT_FUNDS,
-                    details = "Insufficient guild balance for withdrawal of $amount (+$fee fee)"
-                ))
-                return BankWithdrawalResult.Rejected
-            }
-
-            // Never make an external payment until the database has accepted the debit.
-            if (!vaultInventoryManager.flushBuffer(guildId)) {
-                return refundAccountWithdrawal(transaction, totalDebit, "Debit persistence failed; no payout attempted")
-            }
-
-            // Now pay the player from the guild withdrawal.
-            val depositResult = try {
-                economy.depositPlayer(player, finalAmount.toDouble())
-            } catch (error: Exception) {
-                val personalBalanceAfter = runCatching { economy.getBalance(player) }.getOrNull()
-                if (personalBalanceBefore.isFinite() && personalBalanceAfter == personalBalanceBefore) {
-                    logger.error("Vault payout threw before credit for transaction ${transaction.id}", error)
-                    return refundAccountWithdrawal(transaction, totalDebit, "Provider exception before credit")
-                } else {
-                    // A provider may credit and then throw. Refunding blindly could duplicate gold.
-                    logger.error(
-                        "Vault payout outcome requires reconciliation: transaction=${transaction.id}, " +
-                            "guild=$guildId, player=$playerId, debit=$totalDebit, " +
-                            "personalBefore=$personalBalanceBefore, personalAfter=$personalBalanceAfter",
-                        error,
-                    )
-                }
-                return BankWithdrawalResult.Ambiguous(transaction.id)
-            }
-            if (!depositResult.transactionSuccess()) {
-                return refundAccountWithdrawal(transaction, totalDebit, "Provider rejected payout")
-            }
-            if (!recordPayoutState(transaction, AuditAction.PAYOUT_COMPLETED, "Database debit and Vault payout completed")) {
-                return BankWithdrawalResult.Ambiguous(transaction.id)
-            }
-
-            // Record the ledger history (best-effort; balance no longer depends on it).
-            try {
-                bankRepository.recordTransaction(transaction)
-                if (fee > 0) {
-                    bankRepository.recordTransaction(BankTransaction(
-                        guildId = guildId,
-                        actorId = playerId,
-                        type = TransactionType.FEE,
-                        amount = fee,
-                        description = "Withdrawal fee"
-                    ))
-                }
-            } catch (e: Exception) {
-                logger.warn("Failed to record withdrawal transaction history for ${transaction.id} (balance already updated)", e)
-            }
-
-            // SUCCESS: guild balance debited and player paid
-            val newBalance = debitedBalance.toInt()
-            recordAudit(BankAudit(
-                transactionId = transaction.id,
-                guildId = guildId,
-                actorId = playerId,
-                action = AuditAction.WITHDRAWAL,
-                details = "Withdrawal of $amount (fee: $fee)",
-                newBalance = newBalance
-            ))
-
-            if (fee > 0) {
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = playerId,
-                    action = AuditAction.FEE_CHARGED,
-                    details = "Fee charged: $fee",
-                    newBalance = newBalance
-                ))
-            }
-
-            logger.info("Player $playerId withdrew $amount from guild $guildId (fee: $fee, balance: $newBalance)")
-
-            return BankWithdrawalResult.Completed(transaction)
-        } catch (error: Exception) {
-            logger.error("Withdrawal failed for guild $guildId and player $playerId; pending=$pendingId", error)
-            return pendingId?.let(BankWithdrawalResult::Ambiguous) ?: BankWithdrawalResult.Rejected
-        }
+    private fun recordCanonicalHistory(transaction: BankTransaction) {
+        runCatching { bankRepository.recordTransaction(transaction) }
+            .onFailure { logger.warn("Failed to record compatibility history for ${transaction.id}", it) }
+        runCatching { vaultInventoryManager.refreshGoldDisplay(transaction.guildId) }
+            .onFailure { logger.warn("Failed to refresh gold display for ${transaction.guildId}", it) }
     }
 
     override fun getBalance(guildId: UUID): Int {
         // Store B (guild vault gold balance) is the single source of truth for guild funds.
         // The bank_transactions ledger is retained only as an audit/history trail.
-        return vaultInventoryManager.getGoldBalance(guildId).toInt()
+        return Math.toIntExact(goldService.balance(guildId))
     }
 
     override fun getTopBalances(limit: Int): List<Pair<UUID, Int>> {
         if (limit <= 0) return emptyList()
-        return vaultInventoryManager.getTopGoldBalances(limit)
-            .map { (id, balance) -> id to balance.toInt() }
+        return goldService.topBalances(limit)
+            .map { (id, balance) -> id to Math.toIntExact(balance) }
     }
 
     override fun getPlayerBalance(playerId: UUID): Int {
@@ -658,37 +364,11 @@ class BankServiceBukkit(
         return bankRepository.getPlayerTotalWithdrawals(playerId, guildId)
     }
 
-    override fun calculateWithdrawalFee(guildId: UUID, amount: Int): Int {
-        val config = getConfig()
-        val feePercent = config.bank.withdrawalFeePercent
-        val maxFee = config.bank.maxWithdrawalFee
+    override fun calculateWithdrawalFee(guildId: UUID, amount: Int): Int =
+        Math.toIntExact(goldService.withdrawalFee(guildId, amount.toLong()))
 
-        // Apply progression-based fee multiplier
-        val progression = progressionRepository.getGuildProgression(guildId)
-        val progressionConfig = progressionConfigService.getProgressionConfig()
-        val levelRewards = progressionConfig.getActiveLevelRewards()
-        var feeMultiplier = 1.0
-        if (progression != null) {
-            for (level in 1..progression.currentLevel) {
-                val multiplier = levelRewards[level]?.withdrawalFeeMultiplier ?: 1.0
-                if (multiplier < feeMultiplier) feeMultiplier = multiplier
-            }
-        }
-
-        val calculatedFee = (amount * feePercent * feeMultiplier).toInt()
-        return min(calculatedFee, maxFee)
-    }
-
-    override fun getMaxWithdrawalAmount(guildId: UUID, playerId: UUID): Int {
-        val config = getConfig()
-        val balance = getBalance(guildId)
-        val maxPercent = config.bank.maxWithdrawalPercent
-        val maxAmount = (balance * maxPercent).toInt()
-
-        // Also respect daily withdrawal limits
-        val dailyLimit = config.bank.dailyWithdrawalLimit
-        return min(maxAmount, dailyLimit)
-    }
+    override fun getMaxWithdrawalAmount(guildId: UUID, playerId: UUID): Int =
+        goldService.withdrawalLimit(guildId).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
 
     override fun getMinDepositAmount(): Int {
         return getConfig().bank.minDepositAmount
@@ -774,72 +454,36 @@ class BankServiceBukkit(
         }
     }
 
-    override fun deductFromGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean {
-        try {
-            // System-initiated deductions use the stable SYSTEM_ACTOR so the audit
-            // trail can be filtered by system actor (interest, war costs, etc.).
-            val systemActor = SYSTEM_ACTOR
+    override fun deductFromGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean =
+        deductFromGuildBank(UUID.randomUUID(), guildId, amount, reason)
 
-            // Debit the unified guild balance (store B). Atomic; -1 if insufficient.
-            val debitedBalance = vaultInventoryManager.withdrawGold(guildId, systemActor, amount.toLong())
-            if (debitedBalance == -1L) {
-                logger.warn("Guild $guildId has insufficient funds for deduction of $amount")
-                return false
-            }
+    override fun deductFromGuildBank(transactionId: UUID, guildId: UUID, amount: Int, reason: String?): Boolean =
+        applySystemGold(transactionId, guildId, amount, reason, credit = false)
 
-            // Record the deduction in the ledger as audit/history (best-effort).
-            try {
-                bankRepository.recordTransaction(BankTransaction(
-                    guildId = guildId,
-                    actorId = systemActor,
-                    type = TransactionType.DEDUCTION,
-                    amount = amount,
-                    description = reason ?: "Guild bank deduction"
-                ))
-            } catch (e: Exception) {
-                logger.warn("Failed to record deduction history for guild $guildId (balance already updated)", e)
-            }
+    override fun creditToGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean =
+        creditToGuildBank(UUID.randomUUID(), guildId, amount, reason)
 
-            return true
-        } catch (e: SQLException) {
-            logger.error("Database error processing guild bank deduction for guild $guildId", e)
-            return false
-        }
-    }
+    override fun creditToGuildBank(transactionId: UUID, guildId: UUID, amount: Int, reason: String?): Boolean =
+        applySystemGold(transactionId, guildId, amount, reason, credit = true)
 
-    override fun creditToGuildBank(guildId: UUID, amount: Int, reason: String?): Boolean {
-        if (amount <= 0) return false
-        try {
-            // System-initiated credits use the stable SYSTEM_ACTOR (interest accrual,
-            // admin credits) so the audit trail can be filtered by system actor.
-            val systemActor = SYSTEM_ACTOR
-
-            // Credit the unified guild balance (store B). Atomic and immediately visible.
-            val newBalance = try {
-                vaultInventoryManager.depositGold(guildId, systemActor, amount.toLong())
-            } catch (e: Exception) {
-                logger.error("Failed to credit guild balance for guild $guildId", e)
-                return false
-            }
-
-            // Record in the ledger as audit/history (best-effort).
-            try {
-                bankRepository.recordTransaction(BankTransaction.deposit(guildId, systemActor, amount, reason))
-                recordAudit(BankAudit(
-                    guildId = guildId,
-                    actorId = systemActor,
-                    action = AuditAction.DEPOSIT,
-                    details = reason ?: "Guild bank credit",
-                    newBalance = newBalance.toInt()
-                ))
-            } catch (e: Exception) {
-                logger.warn("Failed to record credit history for guild $guildId (balance already updated)", e)
-            }
-
-            return true
-        } catch (e: SQLException) {
-            logger.error("Database error processing guild bank credit for guild $guildId", e)
-            return false
+    private fun applySystemGold(transactionId: UUID, guildId: UUID, amount: Int, reason: String?, credit: Boolean): Boolean {
+        if (amount <= 0 || guildRepository.getById(guildId)?.bankFrozen == true) return false
+        return try {
+            val description = reason ?: if (credit) "Guild bank credit" else "Guild bank deduction"
+            val result = if (credit) goldService.creditSystem(transactionId, guildId, SYSTEM_ACTOR,
+                amount.toLong(), net.lumalyte.lg.domain.gold.GuildGoldRoute.SYSTEM, description)
+            else goldService.debitSystem(transactionId, guildId, SYSTEM_ACTOR, amount.toLong(), description)
+            if (result !is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied) return false
+            // Compatibility history is secondary; the canonical transaction owns the balance.
+            runCatching {
+                bankRepository.recordTransaction(BankTransaction(id = transactionId, guildId = guildId,
+                    actorId = SYSTEM_ACTOR, amount = amount, description = description,
+                    type = if (credit) TransactionType.DEPOSIT else TransactionType.DEDUCTION))
+            }.onFailure { logger.warn("Failed to record compatibility history for $transactionId", it) }
+            true
+        } catch (error: Exception) {
+            logger.error("Canonical guild gold operation $transactionId failed", error)
+            false
         }
     }
 

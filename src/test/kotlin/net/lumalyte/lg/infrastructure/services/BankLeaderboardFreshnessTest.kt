@@ -25,7 +25,7 @@ class BankLeaderboardFreshnessTest {
     fun tearDown() = unmockkStatic(Bukkit::class)
 
     @Test
-    fun `leaderboard reads the manager on every request`() {
+    fun `leaderboard reads canonical service on every request`() {
         mockkStatic(Bukkit::class)
         val server = mockk<Server>()
         val pluginManager = mockk<PluginManager>()
@@ -36,7 +36,8 @@ class BankLeaderboardFreshnessTest {
         val firstGuild = UUID.randomUUID()
         val secondGuild = UUID.randomUUID()
         val vaultManager = mockk<VaultInventoryManager>()
-        every { vaultManager.getTopGoldBalances(any()) } returnsMany listOf(
+        val gold = mockk<net.lumalyte.lg.application.services.GuildGoldService>()
+        every { gold.topBalances(any()) } returnsMany listOf(
             listOf(firstGuild to 1_000L, secondGuild to 500L),
             listOf(secondGuild to 1_500L, firstGuild to 1_000L)
         )
@@ -49,7 +50,8 @@ class BankLeaderboardFreshnessTest {
             mockk<ConfigService>(relaxed = true),
             mockk<GuildRepository>(relaxed = true),
             mockk<GuildService>(relaxed = true),
-            vaultManager
+            vaultManager,
+            goldService = gold,
         )
 
         assertEquals(listOf(firstGuild to 1_000, secondGuild to 500), service.getTopBalances(2))

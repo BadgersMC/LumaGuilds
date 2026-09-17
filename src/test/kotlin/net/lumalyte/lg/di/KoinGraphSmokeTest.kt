@@ -12,7 +12,8 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.koin.core.annotation.KoinInternalApi
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
@@ -60,11 +61,14 @@ internal class KoinGraphSmokeTest {
         MockBukkit.unmock()
     }
 
-    @Test
-    fun `every definition in the real koin graph resolves`() {
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun `every definition in the real koin graph resolves`(claimsEnabled: Boolean) {
         val plugin = mockk<LumaGuilds>(relaxed = true)
         every { plugin.dataFolder } returns tempDir.toFile()
-        every { plugin.config } returns YamlConfiguration()
+        every { plugin.config } returns YamlConfiguration().apply {
+            set("claims_enabled", claimsEnabled)
+        }
         every { plugin.logger } returns Logger.getLogger("LumaGuilds-GraphTest")
         every { plugin.pluginScope } returns CoroutineScope(Dispatchers.IO)
 
@@ -75,12 +79,12 @@ internal class KoinGraphSmokeTest {
         // time and need the schema to exist.
         every { plugin.getComponentLogger() } returns ComponentLogger.logger("LumaGuilds-GraphTest")
         storage.connection.getConnection().use { conn ->
-            SQLiteMigrations(plugin, conn, claimsEnabled = true).migrate()
+            SQLiteMigrations(plugin, conn, claimsEnabled = claimsEnabled).migrate()
         }
 
         try {
             startKoin {
-                modules(appModule(plugin, storage, claimsEnabled = true))
+                modules(appModule(plugin, storage, claimsEnabled = claimsEnabled))
             }
 
             val koin = GlobalContext.get()

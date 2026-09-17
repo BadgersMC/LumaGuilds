@@ -24,11 +24,6 @@ class WriteBuffer(
     val pendingDeletions: MutableSet<Int> = mutableSetOf(),
 
     /**
-     * Pending gold balance write, or null if no gold write is pending.
-     */
-    var pendingGoldBalance: Long? = null,
-
-    /**
      * Timestamp when the first change was buffered.
      * Used to trigger flush after a time threshold.
      */
@@ -58,18 +53,10 @@ class WriteBuffer(
     }
 
     /**
-     * Adds a gold balance change to the buffer.
-     */
-    fun bufferGoldChange(newBalance: Long) {
-        pendingGoldBalance = newBalance
-        lastChangeTimestamp = System.currentTimeMillis()
-    }
-
-    /**
      * Checks if the buffer has any pending changes.
      */
     fun hasPendingChanges(): Boolean {
-        return pendingSlots.isNotEmpty() || pendingDeletions.isNotEmpty() || pendingGoldBalance != null
+        return pendingSlots.isNotEmpty() || pendingDeletions.isNotEmpty()
     }
 
     /**
@@ -95,7 +82,6 @@ class WriteBuffer(
     fun clear() {
         pendingSlots.clear()
         pendingDeletions.clear()
-        pendingGoldBalance = null
         firstChangeTimestamp = System.currentTimeMillis()
         lastChangeTimestamp = System.currentTimeMillis()
     }

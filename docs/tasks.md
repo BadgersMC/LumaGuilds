@@ -345,14 +345,14 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-12 — Backlog: progression & economy (operator, Fain)
 
-- [x] **LG-1201** Chapter 2 permanent progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
+- [x] **LG-1201** Chapter 2 current-run progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
   - Tag: `TDD`
   - References: REQ-049, REQ-089
   - Evidence: PR #138 Tasks 1–7; Tasks 8–9 guild-wide awards and authoritative source-usage read models; Task 10 routes the final war-kill bonus bypass through actor-aware `PLAYER_KILL` cap accounting and verifies the quest sink, claim/full-set idempotency, unlimited SQL award path, rejection-before-cap behavior, and repository payout markers
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
   - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
   - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
-- [ ] **LG-1202** Comprehensive level 1–100 permanent reward tier list
+- [ ] **LG-1202** Comprehensive level 1–100 run reward tier list with permanent-state classification
   - Tag: `DOC`
   - References: REQ-050
   - Evidence:
@@ -373,6 +373,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-090, REQ-091
   - Evidence:
   - Files: chapter service/repository, scheduler, migration, backup adapter, commands, placeholders
+  - Notes: Chapter 1→2 migration archives standings, resets every guild to run level 1/0 XP, preserves canonical gold/vault/roster/relations, and converts actual saved-home count into permanent capacity; later chapter rollovers preserve run level/XP and reset seasonal state only
 - [ ] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`); permanent reward tiers grant capacity and seasonal Elo never revokes it
   - Tag: `TDD`
   - References: REQ-054
@@ -383,11 +384,27 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-055
   - Evidence:
   - Files: guild creation, deletion timestamps
-- [!] **LG-1208** Guild prestige redesign — superseded level-200 reset proposal requires a new design compatible with permanent level 100 + seasonal Elo
+- [x] **LG-1208** Guild prestige redesign — bounded level-100 current-run reset, permanent perk/home choice, eligibility, and atomicity
   - Tag: `DOC`
-  - References: REQ-056
-  - Evidence: blocked by approved Chapter 2 contract; old `docs/design/prestige.md` assumes permanent level 200 and a level reset, both forbidden by REQ-049/REQ-056
-  - Files: future replacement design only; no implementation under the superseded contract
+  - References: REQ-049, REQ-050, REQ-051, REQ-054, REQ-056, REQ-093
+  - Evidence: operator-approved replacement design in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`
+  - Files: requirements + replacement design; runtime implementation remains disabled by default and follows in a later TDD task
+- [~] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
+  - Final three original PR #143 review findings implemented and verified (2026-09-16): durable external evidence/recovery, exact-item physical reservation receipts, and persisted banner purchase/payment/delivery identity. Full test/build: 920 passing, zero skipped. See `docs/superpowers/plans/2026-09-15-final-gold-recovery-review.md`. Other LG-1209 release gates remain open; no deployment authorized.
+  - PR #143 policy-snapshot checkpoint: config/progression/rewards resolved once per operation; no cross-operation cache. Full test/build passes; physical recovery, stale PREPARED reconciliation, and banner retry identity remain open. Semgrep still finds the backup-restoration balance bypass.
+  - PR #143 fourth review batch: explicit storage dialect, duplicate-insert conflict handling, pending-operation index, batched member limits, targeted war lookups/snapshots, and real post-credit eligibility coverage pass the full test/build gate. Physical reconciliation, policy snapshots, and banner retry identity remain open; PR stays draft.
+  - PR #143 third review batch: combined-pot payout preflight, complete wager-state invariant checks, localized deposit feedback, and real secondary-audit-failure regression verified by full test/build. Draft and remaining recovery gates remain open.
+  - PR #143 second review batch: zero-interest journal replay, physical-only bank opening, unsupported join-quote display, mandatory transaction-ID overloads, and same-ID uncertain-transfer regressions addressed. Full test/build succeeds; remaining review findings stay open.
+  - PR #143 review (2026-09-15): first remediation batch verified with 892 passing tests and successful build. External balance-leg replay is idempotent, fractional Vault balances are accepted, and contradictory settled escrow records fail closed. Remaining comments are tracked in `docs/superpowers/plans/2026-09-15-pr143-review.md`; PR remains draft.
+  - Tag: `TDD`
+  - References: REQ-009, REQ-054, REQ-092, REQ-093
+  - Evidence: 2026-09-14 `gradlew test build`: 866/866 passing, zero skipped. Includes Task 6 ownership/cache/menu checks, PR #142 payout regressions, period-keyed interest, restart-safe daily war charges, and paid LFG admission (physical/personal, membership failure, provider uncertainty, fee-inclusive quote, unlocked capacity). Semgrep still identifies the backup-restoration balance write for remaining Task 7 work.
+  - Runtime checkpoint (2026-09-15): WarServiceBukkit now uses SQL records and canonical journaled payments; stable declaration/war identity, statistics, single settlement, immutable completed outcomes, legacy freeze enforcement, and funded-acceptance recovery are integration-tested. Full `gradlew test build` passes. Task 3 remains in progress: persist anti-farming/peace state and safely recover interrupted/expired funding before deployment. Backup/config tasks and final PR gate remain open.
+  - Files: guild-gold domain/application service, Vault Economy adapter, physical currency adapter, bank/vault menus and listeners, persistence/audit, config validation
+  - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only
+  - Current: Task 6 is complete. Task 7 interest, daily war charging, physical system-cost routing, and operator-approved paid admission are implemented and verified. Remaining: war wager/refund retry identities, remaining system callers, and backup-restoration balance ownership; then Task 8 capability/config validation and the final clean-build/PR gate. LG-1209 remains in progress; no deployment or PR yet.
+  - Scope approval (2026-09-14): Operator approved durable war/wager persistence in this PR. Durable aggregate/repository foundation is complete: 8/8 repository tests, including database close/reopen, stale writers, and corrupt payloads; full `gradlew test build` passes 874/874, zero skipped. Payment orchestration and live war-service migration remain in progress. SQLite tested; MariaDB execution not yet verified. See `docs/superpowers/plans/2026-09-14-durable-war-payments.md`.
+  - Payment checkpoint (2026-09-14): WarPaymentService is implemented with persisted funding cycles/attempt IDs, typed gold results, immutable settlement decisions, journal replay, capacity-retry handling and REVIEW holds. Nine payment regressions pass; full suite 883/883 with successful build. Next: bind/migrate WarServiceBukkit and preserve legacy freeze checks at that boundary. This layer is not yet used by the live war service and is not a deployment-ready claim.
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 
@@ -548,3 +565,5 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence: Quest menu and feedback strings use `LangService`; `MenuLocalizationTest`, `LocaleContractTest`, and the full clean suite (625 tests before merge) are GREEN.
   - Files: `lang/en_US.yml` (quest section)
 
+- [x] **Claims-disabled vault startup regression (REQ-015):** Vault claim lookup is optional; claims-enabled placement remains fail-closed. Both real startup graphs pass, and the full test suite plus shadowJar build pass.
+- [x] **Withdrawal fee messaging (REQ-015):** Quick withdrawal buttons preview actual capped fees and total deduction; successful physical and personal-account withdrawals report destination, fee and total. Regression test and full suite pass; shadowJar rebuilt.
