@@ -352,12 +352,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
   - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
   - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
-- [~] **LG-1202** Comprehensive level 1–100 run reward tier list with permanent-state classification
-  - Handoff: `docs/plans/2026-09-17-lg-1202-developer-handoff.md`. Preparation started; reward values and implementation pending.
+- [x] **LG-1202** Comprehensive level 1–100 run reward tier list with permanent-state classification
+  - Handoff: `docs/plans/2026-09-17-lg-1202-developer-handoff.md`. Catalog and decisions 1–6 approved by the operator on 2026-09-17; DOC deliverable complete, runtime implementation remains separate.
   - Tag: `DOC`
   - References: REQ-050
-  - Evidence:
-  - Files: docs + reward config/registry
+  - Evidence: 2026-09-17 source inventory and approved 100-row catalog in `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`, grounded in REQ-049/050/054/056/090–093 and the approved 2026-08-30 prestige/gold design. Read-only arithmetic checks passed: 100 ordered unique levels, 20 numeric plus 10 major purchases, 30 unique IDs, all capacity values and positive affordable prices, 48,500 total gold and nine permanent home slots. DOC scope; runtime tests/build not run, no deployed behavior claimed. Operator explicitly accepted the six decisions and complete table on 2026-09-17.
+  - Files: `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`, handoff and tasks; no reward config/registry changes
   - Notes: levels 101–200 are seasonal Elo presentation, not permanent reward levels
 - [ ] **LG-1203** Seasonal Elo — rated level-100 wars, opponent weighting, rematch guard, and 101–200 display mapping
   - Tag: `TDD`
