@@ -9,6 +9,27 @@ import java.util.UUID
  * Service interface for guild bank operations.
  */
 interface BankService {
+    /** Total player charge including the canonical deposit fee; null means unavailable/invalid. */
+    fun quoteJoinFee(guildId: UUID, amount: Int): Int? = null
+
+    /** One journaled payment and membership completion; callers must not debit the player separately. */
+    fun collectJoinFee(request: PersonalGoldRequest, physical: Boolean, admission: PaidGuildAdmission): net.lumalyte.lg.domain.gold.GuildGoldResult =
+        net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+
+    /** Settles a scheduled period using its durable identity, not a new ID on every scheduler retry. */
+    fun creditInterest(guildId: UUID, periodEndEpochMs: Long, rate: Double): net.lumalyte.lg.domain.gold.GuildGoldResult =
+        net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+    fun getMaxPhysicalDeposit(guildId: UUID, playerId: UUID): Long = 0
+
+    /** Physical payout with the same journal, limits, and uncertainty handling as personal transfers. */
+    fun withdrawPhysical(request: PhysicalGoldRequest): net.lumalyte.lg.domain.gold.GuildGoldResult =
+        net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(
+            net.lumalyte.lg.domain.gold.GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+
+    /** Reserve physical currency through the canonical service; callers must not remove items themselves. */
+    fun depositPhysical(request: PhysicalGoldRequest): net.lumalyte.lg.domain.gold.GuildGoldResult =
+        net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(
+            net.lumalyte.lg.domain.gold.GuildGoldRejection.EXTERNAL_UNAVAILABLE)
 
     /**
      * Deposits money into a guild's bank.
@@ -93,6 +114,8 @@ interface BankService {
      */
     fun deductFromGuildBank(guildId: UUID, amount: Int, reason: String? = null): Boolean
 
+    fun deductFromGuildBank(transactionId: UUID, guildId: UUID, amount: Int, reason: String?): Boolean
+
     /**
      * Credits money into a guild's bank without taking it from any player (system credit).
      * Used for system-driven income such as war wager payouts/refunds.
@@ -103,6 +126,8 @@ interface BankService {
      * @return true if successful, false otherwise.
      */
     fun creditToGuildBank(guildId: UUID, amount: Int, reason: String? = null): Boolean
+
+    fun creditToGuildBank(transactionId: UUID, guildId: UUID, amount: Int, reason: String?): Boolean
 
     /**
      * Checks if a player can withdraw from a guild's bank.

@@ -1112,6 +1112,14 @@ class LumaGuilds : JavaPlugin() {
             val bankAutomationService = get().get<net.lumalyte.lg.application.services.BankAutomationService>()
             bankInterestScheduler = net.lumalyte.lg.infrastructure.services.BankInterestScheduler(this, bankAutomationService)
             bankInterestScheduler.start()
+            val gold = get().get<net.lumalyte.lg.application.services.GuildGoldService>()
+            server.scheduler.runTaskTimer(this, Runnable {
+                try {
+                    gold.reconcilePending(System.currentTimeMillis() - 300_000L)
+                } catch (error: Exception) {
+                    logger.severe("Guild gold recovery failed; unfinished transfers remain held: ${error.message}")
+                }
+            }, 1L, 1_200L)
             logColored("✓ Bank interest scheduler started")
         } catch (e: Exception) {
             // Broad exception handling acceptable - scheduler failure shouldn't prevent plugin load
