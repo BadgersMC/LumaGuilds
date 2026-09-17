@@ -41,7 +41,11 @@ Result: **BUILD SUCCESSFUL**, 946 tests, zero failures, errors or skips;
 `build/libs/LumaGuilds-2.1.0.jar` built successfully. Counts were read from all
 JUnit XML reports after the final run, not from a historical baseline.
 
-## Remaining gates
+## Gates at the foundation checkpoint
+
+The MariaDB and atomic purchase gates below were subsequently completed; see
+[atomic purchase verification](2026-09-17-atomic-reward-verification.md). The
+946-test result above describes the earlier foundation commit.
 
 - Execute the SQL contract against MariaDB; SQLite results are not MariaDB proof.
 - Implement one atomic gold payment/ownership transaction with durable retry

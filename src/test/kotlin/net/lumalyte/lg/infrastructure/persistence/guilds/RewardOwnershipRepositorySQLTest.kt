@@ -1,31 +1,22 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import net.lumalyte.lg.domain.rewards.*
-import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
-import org.junit.jupiter.api.AfterEach
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import co.aikar.idb.Database
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.test.*
 
-class RewardOwnershipRepositorySQLTest {
-    @TempDir lateinit var directory: Path
-    private val storages = mutableListOf<VirtualThreadSQLiteStorage>()
+class RewardOwnershipRepositorySQLTest : RewardSqlTestFixture() {
     private val guildId = UUID.randomUUID()
     private val catalog = RewardCatalog.chapterTwo()
 
-    private fun open(): Pair<VirtualThreadSQLiteStorage, RewardOwnershipRepositorySQL> {
-        val storage = VirtualThreadSQLiteStorage(directory.toFile())
-        storages += storage
+    private fun open(): Pair<Storage<Database>, RewardOwnershipRepositorySQL> {
+        val storage = openStorage()
         return storage to RewardOwnershipRepositorySQL(storage, catalog)
     }
-
-    @AfterEach
-    fun close() { storages.forEach { it.connection.close(5, TimeUnit.SECONDS) } }
-
     @Test
     fun `missing state is explicit and initialization cannot replace migrated home capacity`() {
         val (_, repository) = open()
@@ -43,8 +34,7 @@ class RewardOwnershipRepositorySQLTest {
         repository.initialize(guildId, 6)
         val next = RewardOwnership(currentRun = setOf("bank-1", "cooldown-5"), permanent = setOf("home-1", "home-9"), initialHomeCapacity = 6)
         assertIs<RewardOwnershipWrite.Saved>(repository.save(guildId, 0, next))
-        storage.connection.close(5, TimeUnit.SECONDS)
-        storages.remove(storage)
+        closeStorage(storage)
         val (_, reopened) = open()
         val snapshot = assertIs<RewardOwnershipRead.Found>(reopened.read(guildId)).snapshot
         assertEquals(1L, snapshot.version)
@@ -96,8 +86,7 @@ class RewardOwnershipRepositorySQLTest {
         val (storage, repository) = open()
         repository.initialize(guildId, 1)
         // Real database failure after the account update, before the new ownership is stored.
-        storage.connection.executeUpdate("""CREATE TRIGGER reject_reward_insert BEFORE INSERT ON guild_reward_ownership
-            BEGIN SELECT RAISE(ABORT, 'injected write failure'); END""")
+        rejectInserts(storage, "guild_reward_ownership")
         assertIs<RewardOwnershipWrite.Failed>(repository.save(guildId, 0, RewardOwnership(currentRun = setOf("bank-1"))))
         val snapshot = assertIs<RewardOwnershipRead.Found>(repository.read(guildId)).snapshot
         assertEquals(0L, snapshot.version)

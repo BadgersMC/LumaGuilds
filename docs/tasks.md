@@ -409,15 +409,15 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-050, REQ-054, REQ-056, REQ-093
   - Evidence: Approved LG-1202 table semantics and retention rules; `docs/plans/2026-09-17-chapter2-reward-implementation.md` describes dependency order. Complete: ownership-derived offers, bounded effects, immutable snapshots, retention choices and transition guards are verified. All 24 reward tests and the full 946-test build pass; evidence in `docs/plans/2026-09-17-reward-verification.md`. Durable payment integration remains LG-1213.
   - Files: domain reward ownership/entitlement model and contract tests
-- [~] **LG-1212** Durable guild reward ownership snapshots
+- [x] **LG-1212** Durable guild reward ownership snapshots
   - Tag: `TDD`
   - References: REQ-050, REQ-054, REQ-056, REQ-093
-  - Evidence: Approved LG-1202 permanent-state rules and `docs/implementation.md` require guild-scoped persistent ownership. SQLite implementation and eight storage tests pass: reopen, stale writers, corrupt/orphan reads, rollback and permanent-asset preservation. Full test/shadowJar: 946 passing. MariaDB execution remains an open gate, so this task remains in progress; separate payment integration is LG-1213.
+  - Evidence: Eight identical ownership contracts pass on SQLite and disposable MariaDB 11.4.5: reopen, stale writers, corrupt/orphan reads, rollback and permanent-asset preservation. Full test/shadowJar: 959 passing; MariaDB: 21 passing including purchases. See `docs/plans/2026-09-17-atomic-reward-verification.md`.
   - Files: reward repository port, SQL adapter and persistence contract tests
-- [ ] **LG-1213** Atomic reward purchase and canonical gold payment
+- [x] **LG-1213** Atomic reward purchase and canonical gold payment
   - Tag: `TDD`
   - References: REQ-050, REQ-092, REQ-093
-  - Evidence: Approved LG-1202 unlock/ownership contract and 2026-08-30 prestige/gold design require one durable purchase/payment operation. Depends on LG-1210–1212; `RewardOwnershipRepository.save` is not a purchase operation and must never follow a separate debit without atomicity/recovery.
+  - Evidence: `GuildGoldService.purchaseReward` commits the canonical debit/journal, ownership and durable receipt on one SQL connection. Thirteen purchase contracts pass on SQLite and MariaDB, including replay, concurrency and injected rollback. Full suite: 959 passing, plus 21 MariaDB contracts; Shadow JAR built. See `docs/plans/2026-09-17-atomic-reward-verification.md`. Live wiring remains LG-1214; raw ownership snapshot saves are not paid purchases.
   - Files: application purchase service, shared SQL transaction boundary, canonical gold journal integration, failure/concurrency tests
 - [ ] **LG-1214** Chapter 2 reward integration and consistent player read models
   - Tag: `TDD`
