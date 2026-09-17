@@ -495,6 +495,17 @@ party:
 # =====================================
 
 progression:
+  # Keep false until Chapter 2 migration and player interfaces are ready.
+  # This switch never migrates guilds; missing reward accounts block benefit reads.
+  chapter_two_rewards_enabled: false
+  # Scheduled increased XP. Source caps stay fixed; UTC end is exclusive.
+  # Omit sources to include all non-admin sources (including weekly quests).
+  xp_boost:
+    enabled: false
+    multiplier: 2.0
+    starts_at: '2026-09-18T00:00:00Z'
+    ends_at: '2026-09-21T00:00:00Z'
+    # sources: [MOB_KILL, PLAYER_KILL, COAL_ORE]
   max_level: 100                      # Permanent progression cap
 
   # Experience values for different activities

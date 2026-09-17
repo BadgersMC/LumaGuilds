@@ -49,6 +49,10 @@ disposable instance. Ordinary `test` continues to use temporary SQLite databases
 
 ## Remaining Chapter 2 work
 
+Subsequent read-model and XP boost work is recorded in
+[integration verification](2026-09-17-chapter2-integration-verification.md).
+The list below describes the atomic purchase checkpoint.
+
 LG-1214 must wire the validated read model and purchase adapter into configuration,
 gold policy, home/member checks, menus and placeholders with migration readiness.
 Paid home activation, actual prestige, migration and seasonal lifecycle retain

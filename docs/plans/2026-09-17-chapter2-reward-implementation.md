@@ -4,7 +4,9 @@ Source: REQ-050/054/056/093 and the operator-approved
 [LG-1202 catalog](2026-09-17-lg-1202-reward-catalog-proposal.md).
 
 The DOC catalog and prestige design are complete. Steps 1–4 below are implemented
-and verified on the operator's fork; live integration in step 5 remains open.
+and verified on the operator's fork. Step 5 now has gated read-model consumers,
+read-only reward views and placeholders; purchase actions and migration readiness
+remain open. LG-1204 scheduled increased-XP periods are implemented separately.
 See [atomic purchase verification](2026-09-17-atomic-reward-verification.md).
 Do not enable Chapter 2
 or migrate existing guilds merely by changing the legacy reward YAML.

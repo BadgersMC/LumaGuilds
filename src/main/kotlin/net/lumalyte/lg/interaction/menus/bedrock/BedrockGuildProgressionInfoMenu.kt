@@ -1,11 +1,13 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.lumalyte.lg.infrastructure.i18n.bedrock
+import net.lumalyte.lg.infrastructure.i18n.rewardStatusText
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.rewards.GuildRewardRead
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
@@ -32,6 +34,33 @@ class BedrockGuildProgressionInfoMenu(
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
+        when (val rewards = progressionService.getRewardState(guild.id)) {
+            GuildRewardRead.Unavailable -> return CustomForm.builder()
+                .title(lang.bedrock("chapter_two_rewards.title"))
+                .label(lang.bedrock("chapter_two_rewards.unavailable")).build()
+            is GuildRewardRead.Available -> return CustomForm.builder()
+                .title(lang.bedrock("chapter_two_rewards.title"))
+                .label(createLevelAndExperienceSection())
+                .label(createSourceUsageSection())
+                .label(lang.bedrock("chapter_two_rewards.explanation"))
+                .label(lang.bedrock("chapter_two_rewards.capacity_bank", "capacity" to rewards.entitlements.bankCapacity))
+                .label(lang.bedrock("chapter_two_rewards.capacity_home_member", "homes" to rewards.entitlements.homeCapacity, "members" to rewards.entitlements.memberCapacity))
+                .label(lang.bedrock("chapter_two_rewards.multipliers", "cooldown" to rewards.entitlements.homeCooldownMultiplier, "fee" to rewards.entitlements.withdrawalFeeMultiplier))
+                .apply {
+                    rewards.entitlements.offers.forEach { offer ->
+                        label(listOf(
+                            lang.bedrock("chapter_two_rewards.name", "reward" to offer.reward.name),
+                            lang.bedrock("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price),
+                            lang.rewardStatusText(offer.status)
+                        ).joinToString("\n"))
+                    }
+                }
+                .label(lang.bedrock("chapter_two_rewards.read_only"))
+                .validResultHandler { bedrockNavigator.goBack() }
+                .closedOrInvalidResultHandler { _, _ -> bedrockNavigator.goBack() }
+                .build()
+            GuildRewardRead.Disabled -> Unit
+        }
         val config = getBedrockConfig()
         val progressionIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 

@@ -46,7 +46,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             party = loadPartyConfig(),
             bedrock = loadBedrockConfig(),
             webApi = loadWebApiConfig(),
-            strikes = loadStrikesConfig()
+            strikes = loadStrikesConfig(),
+            chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", false)
         )
     }
 
@@ -314,6 +315,18 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
         )
     }
     
+    private fun loadExperienceBoost(): net.lumalyte.lg.domain.values.ExperienceBoost? {
+        if (!config.getBoolean("progression.xp_boost.enabled", false)) return null
+        val prefix = "progression.xp_boost"
+        val sources = if (config.contains("$prefix.sources")) config.getStringList("$prefix.sources").map {
+            ExperienceSource.valueOf(it.uppercase(Locale.ROOT))
+        }.toSet() else ExperienceSource.entries.filterNot { it == ExperienceSource.ADMIN_BONUS }.toSet()
+        return net.lumalyte.lg.domain.values.ExperienceBoost(
+            java.time.Instant.parse(requireNotNull(config.getString("$prefix.starts_at")) { "XP boost starts_at is required" }),
+            java.time.Instant.parse(requireNotNull(config.getString("$prefix.ends_at")) { "XP boost ends_at is required" }),
+            config.getDouble("$prefix.multiplier", 2.0), sources)
+    }
+
     private fun loadProgressionConfig(): ProgressionConfig {
         return ProgressionConfig(
             maxLevel = config.getInt("progression.max_level", 100).coerceIn(1, 100),
@@ -343,6 +356,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             levelExponent = config.getDouble("progression.level_exponent", 1.15),
             linearBonusPerLevel = config.getInt("progression.linear_bonus_per_level", 150),
             sourcePolicies = loadExperiencePolicies(),
+            xpBoost = loadExperienceBoost(),
             materialPools = loadMaterialPools(),
             entityPools = loadEntityPools(),
 

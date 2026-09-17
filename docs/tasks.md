@@ -364,10 +364,10 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-051, REQ-053
   - Evidence:
   - Files: war resolution, seasonal rating service/repository, menus/placeholders
-- [ ] **LG-1204** Dynamic XP rates — operator-hosted "increased XP" days
+- [x] **LG-1204** Dynamic XP rates — operator-hosted "increased XP" days
   - Tag: `TDD`
   - References: REQ-052
-  - Evidence:
+  - Evidence: `PermanentExperienceService.award` applies immutable scheduled boosts after eligibility/anti-AFK and before cap reservation. UTC boundaries, rounding, source selection, invalid configuration, reload, overflow, fixed-cap partial awards, uncapped quests and durable replay are verified. Final JDK 21 test/shadowJar: 977 passing; disposable MariaDB: 26 passing. See `docs/plans/2026-09-17-xp-boost.md` and `docs/plans/2026-09-17-chapter2-integration-verification.md`. Activation/expiry evaluate the trusted event timestamp, so no mutable timer is needed; defaults disabled.
   - Files: XP multiplier config, scheduler
 - [ ] **LG-1205** Chapter lifecycle — timer, standings archive, verified backup, rollover, migration, and admin recovery
   - Tag: `TDD`
@@ -419,10 +419,10 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-050, REQ-092, REQ-093
   - Evidence: `GuildGoldService.purchaseReward` commits the canonical debit/journal, ownership and durable receipt on one SQL connection. Thirteen purchase contracts pass on SQLite and MariaDB, including replay, concurrency and injected rollback. Full suite: 959 passing, plus 21 MariaDB contracts; Shadow JAR built. See `docs/plans/2026-09-17-atomic-reward-verification.md`. Live wiring remains LG-1214; raw ownership snapshot saves are not paid purchases.
   - Files: application purchase service, shared SQL transaction boundary, canonical gold journal integration, failure/concurrency tests
-- [ ] **LG-1214** Chapter 2 reward integration and consistent player read models
+- [~] **LG-1214** Chapter 2 reward integration and consistent player read models
   - Tag: `TDD`
   - References: REQ-050, REQ-054, REQ-056, REQ-093
-  - Evidence: LG-1202 inventory identifies separate hardcoded perk, bank-floor, home-slot and member-limit consumers. Replace these through one entitlement resolver only after LG-1213 and migration readiness; preserve live state during rollout.
+  - Evidence: `docs/plans/2026-09-17-reward-read-model.md` defines a gated, consistent SQL read model and unavailable-state handling. Gold, progression/home/member consumers, read-only Java/Bedrock views and placeholders share ownership resolution; Chapter 2 level-up notifications no longer advertise unpurchased legacy perks. Full regression: 977 passing; MariaDB: 26 passing, zero failures/errors/skips; Shadow JAR built. See `docs/plans/2026-09-17-chapter2-integration-verification.md`. Purchase actions, migration readiness and live UI validation remain open; rollout defaults disabled.
   - Files: config, gold settings, progression/home/member services, Java/Bedrock menus and placeholders
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
