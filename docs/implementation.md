@@ -66,6 +66,17 @@ One `WeeklyQuestSet` is shared server-wide for a stable reset-period ID. `GuildQ
 
 ## Chapter 2 Progression (PR-12)
 
+### Reward foundation
+
+`domain/rewards/RewardCatalog` is the executable operator-approved 100-level
+catalog. `RewardEntitlementResolver` derives effects and offers from purchased and
+permanent IDs, and validates ownership transitions. Neither leveling nor resolving
+an offer grants a purchase. `RewardOwnershipRepositorySQL` provides versioned,
+transactional ownership storage with explicit corrupt/missing/failed reads; it is
+not registered at startup. Its snapshot writes are not purchase or prestige use
+cases: ownership and canonical gold payment must share an atomic operation before
+player actions are connected. See LG-1210–1214 and the 2026-09-17 reward plan.
+
 Current-run progression, permanent guild rewards/prestige, canonical guild gold, and seasonal competition are separate aggregates. The domain owns the level curve, typed XP sources/cap periods, guild-gold capacity, perk/prestige state, Elo calculation, rated-pair identity, and chapter transition rules. Application services validate activity, atomically reserve a source allowance and award run XP, process every guild-gold transfer/purchase, execute bounded prestige, resolve rated wars, and advance rollover states through ports. Infrastructure translates Paper events, integrates EnthusiaPlaytime suspicious-input checks, bridges Vault Economy and physical raw-gold items, persists progression/prestige/gold/provenance/cap/rating/chapter records for SQLite and MariaDB, schedules catch-up, and verifies backups. Interaction and PlaceholderAPI adapters consume read models only.
 
 Current-run progression is keyed by `guild_id`; permanent perks by `(guild_id, reward_id)` plus guild prestige count; canonical guild gold by `guild_id` in `vault_gold`; source usage by `(guild_id, source_pool, period_start)`; ratings and standings by `(chapter_id, guild_id)`; and rematch guards by an unordered guild pair within a chapter. XP award plus cap reservation is one transaction. A guild-gold mutation plus audit is one transaction with compensation for failed external Vault/item legs. Prestige fee, permanent rewards, temporary-perk reset, level/XP reset, and audit commit together. A rated result plus both Elo updates plus its pair guard is one transaction. Rollover follows `SCHEDULED -> FROZEN -> BACKED_UP -> ARCHIVED -> RESET -> PRUNED -> COMPLETE`; no reset or prune transition may run before a verified backup and archived standings exist.
