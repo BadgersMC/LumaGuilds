@@ -3,8 +3,10 @@
 Source: REQ-050/054/056/093 and the operator-approved
 [LG-1202 catalog](2026-09-17-lg-1202-reward-catalog-proposal.md).
 
-The DOC catalog and prestige design are complete; executable reward ownership is
-not. Implement in dependency order on the operator's fork. Do not enable Chapter 2
+The DOC catalog and prestige design are complete. Steps 1–4 below are implemented
+and verified on the operator's fork; live integration in step 5 remains open.
+See [atomic purchase verification](2026-09-17-atomic-reward-verification.md).
+Do not enable Chapter 2
 or migrate existing guilds merely by changing the legacy reward YAML.
 
 1. LG-1210 (TDD): validated typed catalog containing all 100 levels and 30 purchases.

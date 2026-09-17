@@ -143,6 +143,25 @@ tasks.test {
     useJUnitPlatform()
 }
 
+// Explicit opt-in: the same ownership contract runs against a disposable loopback
+// MariaDB instance. Ordinary test runs remain self-contained SQLite tests.
+tasks.register<Test>("mariaDbRewardTest") {
+    group = "verification"
+    description = "Run reward ownership contracts against a disposable local MariaDB instance"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform()
+    filter { includeTestsMatching("*Reward*RepositorySQLTest") }
+    doFirst {
+        val port = providers.gradleProperty("mariaDbTestPort").orNull
+            ?: error("Supply -PmariaDbTestPort for a disposable local MariaDB instance")
+        require(port.toInt() in 1024..65535 && port.toInt() != 3306)
+        systemProperty("lg.test.mariadb.port", port)
+    }
+    outputs.upToDateWhen { false }
+    shouldRunAfter(tasks.test)
+}
+
 tasks.shadowJar {
     archiveBaseName.set("LumaGuilds")
     archiveClassifier.set("")

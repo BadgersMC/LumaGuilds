@@ -74,8 +74,13 @@ permanent IDs, and validates ownership transitions. Neither leveling nor resolvi
 an offer grants a purchase. `RewardOwnershipRepositorySQL` provides versioned,
 transactional ownership storage with explicit corrupt/missing/failed reads; it is
 not registered at startup. Its snapshot writes are not purchase or prestige use
-cases: ownership and canonical gold payment must share an atomic operation before
-player actions are connected. See LG-1210–1214 and the 2026-09-17 reward plan.
+cases. `GuildGoldService.purchaseReward` delegates to `RewardPurchaseRepositorySQL`
+to commit canonical gold, ownership and an immutable retry receipt on one connection.
+Matching receipt replay precedes guards; new requests revalidate authorization, price,
+level, version, frozen/pending gold state and eligibility under the account lock.
+The service defaults to unavailable without a purchase adapter and authorization
+defaults to deny. Live wiring and read-model migration remain LG-1214. See the
+2026-09-17 atomic reward purchase specification and verification evidence.
 
 Current-run progression, permanent guild rewards/prestige, canonical guild gold, and seasonal competition are separate aggregates. The domain owns the level curve, typed XP sources/cap periods, guild-gold capacity, perk/prestige state, Elo calculation, rated-pair identity, and chapter transition rules. Application services validate activity, atomically reserve a source allowance and award run XP, process every guild-gold transfer/purchase, execute bounded prestige, resolve rated wars, and advance rollover states through ports. Infrastructure translates Paper events, integrates EnthusiaPlaytime suspicious-input checks, bridges Vault Economy and physical raw-gold items, persists progression/prestige/gold/provenance/cap/rating/chapter records for SQLite and MariaDB, schedules catch-up, and verifies backups. Interaction and PlaceholderAPI adapters consume read models only.
 

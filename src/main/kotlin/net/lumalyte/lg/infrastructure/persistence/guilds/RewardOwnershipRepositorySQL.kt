@@ -68,47 +68,53 @@ class RewardOwnershipRepositorySQL(
     }
 
     override fun save(guildId: UUID, expectedVersion: Long, ownership: RewardOwnership): RewardOwnershipWrite = try {
-        require(expectedVersion >= 0)
-        val version = Math.addExact(expectedVersion, 1)
-        resolver.resolve(100, ownership)
         storage.connection.connection.use { connection -> transaction(connection) {
-            // Acquire the database write/row lock before reading. No read-to-write lock upgrade.
-            val changed = connection.prepareStatement("UPDATE guild_reward_accounts SET version = ? WHERE guild_id = ? AND version = ?").use {
-                it.setLong(1, version)
-                it.setString(2, guildId.toString())
-                it.setLong(3, expectedVersion)
-                it.executeUpdate()
-            }
-            if (changed != 1) return@transaction RewardOwnershipWrite.Conflict
-            val old = requireNotNull(readSnapshot(connection, guildId)).ownership
-            resolver.validateTransition(old, ownership)
-            connection.prepareStatement("UPDATE guild_reward_accounts SET prestige_count = ? WHERE guild_id = ?").use {
-                it.setInt(1, ownership.prestigeCount)
-                it.setString(2, guildId.toString())
-                check(it.executeUpdate() == 1)
-            }
-            connection.prepareStatement("DELETE FROM guild_reward_ownership WHERE guild_id = ?").use {
-                it.setString(1, guildId.toString())
-                it.executeUpdate()
-            }
-            connection.prepareStatement("INSERT INTO guild_reward_ownership (guild_id, reward_id, permanent) VALUES (?, ?, ?)").use { statement ->
-                (ownership.currentRun + ownership.permanent).sorted().forEach { id ->
-                    statement.setString(1, guildId.toString())
-                    statement.setString(2, id)
-                    statement.setBoolean(3, id in ownership.permanent)
-                    statement.addBatch()
-                }
-                statement.executeBatch()
-            }
-            // Permanent status is canonical when an ID appeared in both input sets.
-            RewardOwnershipWrite.Saved(RewardOwnershipSnapshot(version,
-                ownership.copy(currentRun = ownership.currentRun - ownership.permanent)))
+            saveInTransaction(connection, guildId, expectedVersion, ownership)
         } }
     } catch (error: Exception) {
         RewardOwnershipWrite.Failed(error.message ?: error.javaClass.simpleName)
     }
 
-    private fun readSnapshot(connection: Connection, guildId: UUID): RewardOwnershipSnapshot? {
+    internal fun saveInTransaction(connection: Connection, guildId: UUID, expectedVersion: Long,
+        ownership: RewardOwnership): RewardOwnershipWrite {
+        check(!connection.autoCommit)
+        require(expectedVersion >= 0)
+        val version = Math.addExact(expectedVersion, 1)
+        resolver.resolve(100, ownership)
+        // Acquire the database write/row lock before reading. No read-to-write lock upgrade.
+        val changed = connection.prepareStatement("UPDATE guild_reward_accounts SET version = ? WHERE guild_id = ? AND version = ?").use {
+            it.setLong(1, version)
+            it.setString(2, guildId.toString())
+            it.setLong(3, expectedVersion)
+            it.executeUpdate()
+        }
+        if (changed != 1) return RewardOwnershipWrite.Conflict
+        val old = requireNotNull(readSnapshot(connection, guildId)).ownership
+        resolver.validateTransition(old, ownership)
+        connection.prepareStatement("UPDATE guild_reward_accounts SET prestige_count = ? WHERE guild_id = ?").use {
+            it.setInt(1, ownership.prestigeCount)
+            it.setString(2, guildId.toString())
+            check(it.executeUpdate() == 1)
+        }
+        connection.prepareStatement("DELETE FROM guild_reward_ownership WHERE guild_id = ?").use {
+            it.setString(1, guildId.toString())
+            it.executeUpdate()
+        }
+        connection.prepareStatement("INSERT INTO guild_reward_ownership (guild_id, reward_id, permanent) VALUES (?, ?, ?)").use { statement ->
+            (ownership.currentRun + ownership.permanent).sorted().forEach { id ->
+                statement.setString(1, guildId.toString())
+                statement.setString(2, id)
+                statement.setBoolean(3, id in ownership.permanent)
+                statement.addBatch()
+            }
+            statement.executeBatch()
+        }
+        // Permanent status is canonical when an ID appeared in both input sets.
+        return RewardOwnershipWrite.Saved(RewardOwnershipSnapshot(version,
+            ownership.copy(currentRun = ownership.currentRun - ownership.permanent)))
+    }
+
+    internal fun readSnapshot(connection: Connection, guildId: UUID): RewardOwnershipSnapshot? {
         val account = connection.prepareStatement("SELECT version, initial_home_capacity, prestige_count FROM guild_reward_accounts WHERE guild_id = ?").use {
             it.setString(1, guildId.toString())
             it.executeQuery().use { rows ->

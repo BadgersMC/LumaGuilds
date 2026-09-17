@@ -273,41 +273,43 @@ class GuildGoldRepositorySQL(
         finalStatus: GuildGoldOperationStatus
     ): GuildGoldResult = guildLock(mutation.guildId).withLock {
         storage.connection.connection.use { connection ->
-            transaction(connection) {
-                val existing = findOperation(connection, mutation.transactionId, forUpdate = true)
-                if (existing != null && existing.mutation != mutation) {
-                    return@transaction GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
-                }
-                existing?.toFinalResult()?.let { return@transaction it }
-                if (existing?.status == GuildGoldOperationStatus.BALANCE_APPLIED) {
-                    return@transaction GuildGoldResult.Applied(mutation.transactionId,
-                        requireNotNull(existing.oldBalance), requireNotNull(existing.newBalance), mutation.fee)
-                }
-                if (existing == null) insertPrepared(connection, mutation)
-
-                val oldBalance = selectBalance(connection, mutation.guildId, forUpdate = true)
-                val newBalance = calculateNewBalance(mutation, oldBalance, capacity)
-                if (newBalance is BalanceCalculation.Rejected) {
-                    finishRejected(connection, mutation.transactionId, oldBalance, newBalance.reason)
-                    return@transaction GuildGoldResult.Rejected(newBalance.reason)
-                }
-
-                newBalance as BalanceCalculation.Accepted
-                upsertBalance(connection, mutation.guildId, newBalance.value)
-                if (mutation.direction == GuildGoldDirection.DEBIT && periodStartEpochMs != null) {
-                    addWithdrawalUsage(connection, mutation.guildId, periodStartEpochMs, mutation.amount)
-                }
-                finishApplied(connection, mutation.transactionId, oldBalance, newBalance.value, finalStatus)
-                GuildGoldResult.Applied(
-                    transactionId = mutation.transactionId,
-                    oldBalance = oldBalance,
-                    newBalance = newBalance.value,
-                    fee = mutation.fee
-                )
-            }
+            transaction(connection) { applyInTransaction(connection, mutation, capacity, periodStartEpochMs, finalStatus) }
         }
     }
 
+    /** Shared canonical mutation, on the caller's transaction; never commits independently. */
+    internal fun applyInTransaction(
+        connection: Connection,
+        mutation: GuildGoldMutation,
+        capacity: Long,
+        periodStartEpochMs: Long?,
+        finalStatus: GuildGoldOperationStatus = GuildGoldOperationStatus.APPLIED
+    ): GuildGoldResult {
+        check(!connection.autoCommit) { "Canonical mutation requires an active transaction" }
+        val existing = findOperation(connection, mutation.transactionId, forUpdate = true)
+        if (existing != null && existing.mutation != mutation) {
+            return GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+        }
+        existing?.toFinalResult()?.let { return it }
+        if (existing?.status == GuildGoldOperationStatus.BALANCE_APPLIED) {
+            return GuildGoldResult.Applied(mutation.transactionId,
+                requireNotNull(existing.oldBalance), requireNotNull(existing.newBalance), mutation.fee)
+        }
+        if (existing == null) insertPrepared(connection, mutation)
+        val oldBalance = selectBalance(connection, mutation.guildId, forUpdate = true)
+        val newBalance = calculateNewBalance(mutation, oldBalance, capacity)
+        if (newBalance is BalanceCalculation.Rejected) {
+            finishRejected(connection, mutation.transactionId, oldBalance, newBalance.reason)
+            return GuildGoldResult.Rejected(newBalance.reason)
+        }
+        newBalance as BalanceCalculation.Accepted
+        upsertBalance(connection, mutation.guildId, newBalance.value)
+        if (mutation.direction == GuildGoldDirection.DEBIT && periodStartEpochMs != null) {
+            addWithdrawalUsage(connection, mutation.guildId, periodStartEpochMs, mutation.amount)
+        }
+        finishApplied(connection, mutation.transactionId, oldBalance, newBalance.value, finalStatus)
+        return GuildGoldResult.Applied(mutation.transactionId, oldBalance, newBalance.value, mutation.fee)
+    }
     override fun completeExternal(transactionId: UUID): Boolean =
         storage.connection.connection.use { connection ->
             connection.prepareStatement(
@@ -436,7 +438,7 @@ class GuildGoldRepositorySQL(
         BalanceCalculation.Rejected(GuildGoldRejection.INVALID_AMOUNT)
     }
 
-    private fun findOperation(
+    internal fun findOperation(
         connection: Connection,
         transactionId: UUID,
         forUpdate: Boolean
