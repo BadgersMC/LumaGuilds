@@ -72,15 +72,33 @@ One `WeeklyQuestSet` is shared server-wide for a stable reset-period ID. `GuildQ
 catalog. `RewardEntitlementResolver` derives effects and offers from purchased and
 permanent IDs, and validates ownership transitions. Neither leveling nor resolving
 an offer grants a purchase. `RewardOwnershipRepositorySQL` provides versioned,
-transactional ownership storage with explicit corrupt/missing/failed reads; it is
-not registered at startup. Its snapshot writes are not purchase or prestige use
+transactional ownership storage with explicit corrupt/missing/failed reads. It is
+registered lazily behind the Chapter 2 reward read gate. Its snapshot writes are not purchase or prestige use
 cases. `GuildGoldService.purchaseReward` delegates to `RewardPurchaseRepositorySQL`
 to commit canonical gold, ownership and an immutable retry receipt on one connection.
 Matching receipt replay precedes guards; new requests revalidate authorization, price,
 level, version, frozen/pending gold state and eligibility under the account lock.
-The service defaults to unavailable without a purchase adapter and authorization
-defaults to deny. Live wiring and read-model migration remain LG-1214. See the
+The purchase service defaults to unavailable without an adapter and authorization
+defaults to deny. Purchase actions and read-model migration remain LG-1214. See the
 2026-09-17 atomic reward purchase specification and verification evidence.
+
+`GuildRewardService` reads one transactionally consistent level/ownership snapshot
+through `RewardStateRepositorySQL`, then resolves all entitlements. The reloadable
+`progression.chapter_two_rewards_enabled` switch defaults false. Disabled reads do
+not access reward storage; missing, failed or invalid state is explicitly unavailable
+and never falls back to legacy grants. No read initializes an account. Gold settings,
+progression/home benefits and member limits share this resolver. Java and Bedrock
+catalog views distinguish locked, available, purchased, permanent and dominated
+offers; they remain read-only. `guild_reward_*` placeholders report unavailable
+numeric values as blank and expose state separately. Migration and purchase actions
+must be ready before the switch is enabled for a server.
+
+`ExperienceBoost` defines an immutable UTC interval and source selection for
+`progression.xp_boost`. `PermanentExperienceService` applies it after eligibility and
+anti-AFK validation but before atomic source-cap reservation. The complete XP award
+is multiplied and rounded down; the source policy and cap are unchanged. Evaluating
+the event timestamp implements scheduled activation/expiration across restarts and
+reloads without a separate mutable timer. See `docs/plans/2026-09-17-xp-boost.md`.
 
 Current-run progression, permanent guild rewards/prestige, canonical guild gold, and seasonal competition are separate aggregates. The domain owns the level curve, typed XP sources/cap periods, guild-gold capacity, perk/prestige state, Elo calculation, rated-pair identity, and chapter transition rules. Application services validate activity, atomically reserve a source allowance and award run XP, process every guild-gold transfer/purchase, execute bounded prestige, resolve rated wars, and advance rollover states through ports. Infrastructure translates Paper events, integrates EnthusiaPlaytime suspicious-input checks, bridges Vault Economy and physical raw-gold items, persists progression/prestige/gold/provenance/cap/rating/chapter records for SQLite and MariaDB, schedules catch-up, and verifies backups. Interaction and PlaceholderAPI adapters consume read models only.
 

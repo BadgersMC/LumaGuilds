@@ -147,11 +147,14 @@ tasks.test {
 // MariaDB instance. Ordinary test runs remain self-contained SQLite tests.
 tasks.register<Test>("mariaDbRewardTest") {
     group = "verification"
-    description = "Run reward ownership contracts against a disposable local MariaDB instance"
+    description = "Run Chapter 2 reward and XP boost contracts against a disposable local MariaDB instance"
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
     useJUnitPlatform()
-    filter { includeTestsMatching("*Reward*RepositorySQLTest") }
+    filter {
+        includeTestsMatching("*Reward*RepositorySQLTest")
+        includeTestsMatching("*ExperienceBoostRepositorySQLTest")
+    }
     doFirst {
         val port = providers.gradleProperty("mariaDbTestPort").orNull
             ?: error("Supply -PmariaDbTestPort for a disposable local MariaDB instance")

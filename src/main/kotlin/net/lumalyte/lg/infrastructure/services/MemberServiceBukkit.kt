@@ -24,7 +24,8 @@ class MemberServiceBukkit(
     private val progressionRepository: net.lumalyte.lg.application.persistence.ProgressionRepository,
     private val progressionConfigService: ProgressionConfigService,
     private val historyRepository: MembershipHistoryRepository,
-    private val adminOverrideService: AdminOverrideService
+    private val adminOverrideService: AdminOverrideService,
+    private val guildRewards: net.lumalyte.lg.application.services.GuildRewardService? = null
 ) : MemberService {
 
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
@@ -35,8 +36,9 @@ class MemberServiceBukkit(
 
     override fun getMemberLimits(guildIds: Set<UUID>): Map<UUID, Int> {
         if (guildIds.isEmpty()) return emptyMap()
-        val levelRewards = progressionConfigService.getProgressionConfig().getActiveLevelRewards()
+        val levelRewards by lazy { progressionConfigService.getProgressionConfig().getActiveLevelRewards() }
         return guildIds.associateWith { guildId ->
+            guildRewards?.entitlementsIfEnabled(guildId)?.let { return@associateWith it.memberCapacity }
             val progression = progressionRepository.getGuildProgression(guildId)
             var maxMembers = 10
             if (progression != null) {
