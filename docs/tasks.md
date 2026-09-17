@@ -399,6 +399,32 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only.
   - Historical implementation/review details: `docs/superpowers/plans/2026-09-15-pr143-review.md`, `docs/superpowers/plans/2026-09-15-final-gold-recovery-review.md`, and `docs/superpowers/plans/2026-09-14-durable-war-payments.md`.
 
+- [x] **LG-1210** Executable approved level 1–100 reward catalog
+  - Tag: `TDD`
+  - References: REQ-050, REQ-054, REQ-093
+  - Evidence: Operator-approved `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`; source inventory identifies legacy YAML/hardcoded divergence. SPEAR plan: `docs/plans/2026-09-17-chapter2-reward-implementation.md`. Complete: executable catalog and approved-table parity tests pass. Final JDK 21 `gradlew test shadowJar`: 946 tests, zero failures/errors/skips; Shadow JAR built. See `docs/plans/2026-09-17-reward-verification.md`.
+  - Files: domain reward catalog and contract tests
+- [x] **LG-1211** Purchased and permanent reward entitlement resolution
+  - Tag: `TDD`
+  - References: REQ-050, REQ-054, REQ-056, REQ-093
+  - Evidence: Approved LG-1202 table semantics and retention rules; `docs/plans/2026-09-17-chapter2-reward-implementation.md` describes dependency order. Complete: ownership-derived offers, bounded effects, immutable snapshots, retention choices and transition guards are verified. All 24 reward tests and the full 946-test build pass; evidence in `docs/plans/2026-09-17-reward-verification.md`. Durable payment integration remains LG-1213.
+  - Files: domain reward ownership/entitlement model and contract tests
+- [~] **LG-1212** Durable guild reward ownership snapshots
+  - Tag: `TDD`
+  - References: REQ-050, REQ-054, REQ-056, REQ-093
+  - Evidence: Approved LG-1202 permanent-state rules and `docs/implementation.md` require guild-scoped persistent ownership. SQLite implementation and eight storage tests pass: reopen, stale writers, corrupt/orphan reads, rollback and permanent-asset preservation. Full test/shadowJar: 946 passing. MariaDB execution remains an open gate, so this task remains in progress; separate payment integration is LG-1213.
+  - Files: reward repository port, SQL adapter and persistence contract tests
+- [ ] **LG-1213** Atomic reward purchase and canonical gold payment
+  - Tag: `TDD`
+  - References: REQ-050, REQ-092, REQ-093
+  - Evidence: Approved LG-1202 unlock/ownership contract and 2026-08-30 prestige/gold design require one durable purchase/payment operation. Depends on LG-1210–1212; `RewardOwnershipRepository.save` is not a purchase operation and must never follow a separate debit without atomicity/recovery.
+  - Files: application purchase service, shared SQL transaction boundary, canonical gold journal integration, failure/concurrency tests
+- [ ] **LG-1214** Chapter 2 reward integration and consistent player read models
+  - Tag: `TDD`
+  - References: REQ-050, REQ-054, REQ-056, REQ-093
+  - Evidence: LG-1202 inventory identifies separate hardcoded perk, bank-floor, home-slot and member-limit consumers. Replace these through one entitlement resolver only after LG-1213 and migration readiness; preserve live state during rollout.
+  - Files: config, gold settings, progression/home/member services, Java/Bedrock menus and placeholders
+
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 
 - [ ] **LG-1301** War system overhaul — accurate kill tracking with measurable gameplay impact: per-guild war kill counter (opposing-guild kills only, persisted, reset on war end) driving resolution at `war_kill_win_target` (default 25), surfaced in `/g info` + war menus
