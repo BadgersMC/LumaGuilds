@@ -13,6 +13,26 @@ internal object ChapterLifecycleSchema {
         connection.createStatement().use { statement ->
             statement.execute(
                 """
+                CREATE TABLE IF NOT EXISTS guild_reward_accounts (
+                    guild_id $shortText PRIMARY KEY,
+                    version $integer NOT NULL DEFAULT 0,
+                    initial_home_capacity INTEGER NOT NULL,
+                    prestige_count INTEGER NOT NULL DEFAULT 0
+                )$engine
+                """.trimIndent()
+            )
+            statement.execute(
+                """
+                CREATE TABLE IF NOT EXISTS guild_reward_ownership (
+                    guild_id $shortText NOT NULL,
+                    reward_id $shortText NOT NULL,
+                    permanent $bool NOT NULL,
+                    PRIMARY KEY (guild_id, reward_id)
+                )$engine
+                """.trimIndent()
+            )
+            statement.execute(
+                """
                 CREATE TABLE IF NOT EXISTS chapter_lifecycle (
                     chapter_id $shortText PRIMARY KEY,
                     chapter_name $text NOT NULL,
@@ -74,6 +94,17 @@ internal object ChapterLifecycleSchema {
                     applied_at $integer,
                     error TEXT,
                     PRIMARY KEY (migration_id, guild_id)
+                )$engine
+                """.trimIndent()
+            )
+            statement.execute(
+                """
+                CREATE TABLE IF NOT EXISTS chapter_seasonal_ratings (
+                    chapter_id $shortText NOT NULL,
+                    guild_id $shortText NOT NULL,
+                    elo INTEGER NOT NULL DEFAULT 1000,
+                    updated_at $integer NOT NULL,
+                    PRIMARY KEY (chapter_id, guild_id)
                 )$engine
                 """.trimIndent()
             )
