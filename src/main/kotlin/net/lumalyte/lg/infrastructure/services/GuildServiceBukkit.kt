@@ -8,7 +8,6 @@ import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
-import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
@@ -133,48 +132,40 @@ class GuildServiceBukkit(
 
         val deletionPolicy = configService.loadConfig().guild.creationCooldown
 
-        // Clean up vault chest and hologram if exists
-        val vaultLocation = vaultService.getVaultLocation(guild)
-        if (vaultLocation != null) {
-            // Remove hologram first
-            hologramService.removeHologram(vaultLocation)
-            logger.info("Removed vault hologram for disbanded guild ${guild.name}")
-
-            // Remove vault chest and data (with items dropped)
-            when (val removeResult = vaultService.removeVaultChest(guild, dropItems = true)) {
-                is net.lumalyte.lg.application.services.VaultResult.Success -> {
-                    logger.info("Removed vault chest for disbanded guild ${guild.name}")
-                }
-                is net.lumalyte.lg.application.services.VaultResult.Failure -> {
-                    logger.warn("Failed to remove vault chest during disbandment: ${removeResult.message}")
-                }
-            }
-        }
-
         // Capture member IDs before removal so the disbandment event carries them
         val memberIds = memberService.getGuildMembers(guildId).map { it.playerId }.toSet()
-
-        // Remove all members
-        memberRepository.removeByGuild(guildId)
-
-        // Close membership history stints for all members (guild disbanded)
-        memberIds.forEach { memberId ->
-            historyRepository.closeStint(memberId, guildId, DepartureReason.DISBANDED)
-        }
-
-        // Remove all ranks
-        rankRepository.removeByGuild(guildId)
-
-        // Remove all relations to prevent stale entries in other guilds' ally/enemy lists
-        val removedRelations = relationRepository.removeByGuild(guildId)
-        if (removedRelations > 0) {
-            logger.info("Removed $removedRelations relation(s) for disbanded guild $guildId")
+        val vaultLocation = vaultService.getVaultLocation(guild)
+        val vaultCleanup = try {
+            if (vaultLocation != null) vaultService.prepareDisband(guild) else null
+        } catch (error: Exception) {
+            logger.warn("Failed to prepare vault cleanup for guild $guildId", error)
+            return false
         }
 
         // Remove guild
         val result = guildRepository.removeWithCreationCooldown(guildId,
             deletionPolicy, Instant.now())
         if (result) {
+            memberRepository.evictGuild(guildId)
+            rankRepository.evictGuild(guildId)
+            relationRepository.evictGuild(guildId)
+            // Clean up vault chest and hologram if exists
+            if (vaultLocation != null && vaultCleanup != null) {
+                // Remove hologram first
+                hologramService.removeHologram(vaultLocation)
+                logger.info("Removed vault hologram for disbanded guild ${guild.name}")
+
+                // Remove vault chest and data (with items dropped)
+                when (val removeResult = vaultCleanup()) {
+                    is net.lumalyte.lg.application.services.VaultResult.Success -> {
+                        logger.info("Removed vault chest for disbanded guild ${guild.name}")
+                    }
+                    is net.lumalyte.lg.application.services.VaultResult.Failure -> {
+                        logger.warn("Failed to remove vault chest during disbandment: ${removeResult.message}")
+                    }
+                }
+            }
+
             logger.info("Guild $guildId disbanded by $actorId")
             Bukkit.getPluginManager().callEvent(GuildDisbandedEvent(guild, memberIds, actorId))
         }

@@ -9,6 +9,9 @@ import java.util.UUID
  * Repository interface for managing guild relations persistence.
  */
 interface RelationRepository {
+    /** Forget cached state after a committed guild disband transaction. */
+    fun evictGuild(guildId: UUID) {}
+
     
     /**
      * Adds a new relation to the repository.

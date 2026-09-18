@@ -6,6 +6,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
+## PR-144 — Review corrections
+
+- [x] **PR-144 review corrections** — REQ-050/055/092: Throwable rollback, shared purchase/gold locking and durable deposit recovery, atomic disband cleanup, unavailable reward controls, and production-schema purchase fixtures.
+  - Tag: `TDD`
+  - References: REQ-050/055/092; `docs/implementation.md` §Creation cooldown
+  - Evidence: `GuildCreationHistorySQLTest`, `GuildDisbandAtomicityTest`, `GuildVaultDisbandTest`, `GuildGoldPersonalTransferTest`, `RewardPurchaseRepositorySQLTest`, and `GuildRewardCatalogControlsTest` cover rollback, failure preservation, post-commit vault drops, canonical locking/recovery, migrated fixtures, and unavailable controls. Final `test shadowJar --offline`: 1,008 tests, zero failures/errors/skips; deployable JAR built. Semgrep Kotlin rules: zero findings; independent review and `git diff --check` clean. MariaDB was not rerun (no running local engine).
+
 ## PR-0 — SPEAR bootstrap (foundation, no code review)
 
 - [x] **LG-000** Bootstrap SPEAR docs + Konsist architecture guard

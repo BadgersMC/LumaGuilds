@@ -587,6 +587,23 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun removeWithCreationCooldown(guildId: UUID,
         policy: net.lumalyte.lg.domain.values.GuildCreationCooldown, deletedAt: Instant): Boolean = try {
         val removed = creationHistory.delete(guildId, policy, deletedAt) { connection ->
+            // These writes share the cooldown transaction; caches/world change only after commit.
+            connection.prepareStatement("UPDATE membership_history SET departed_at = ?, departure_reason = 'DISBANDED' WHERE guild_id = ? AND departed_at IS NULL").use {
+                it.setString(1, deletedAt.toString())
+                it.setString(2, guildId.toString())
+                it.executeUpdate()
+            }
+            for (table in listOf("members", "ranks", "guild_homes")) {
+                connection.prepareStatement("DELETE FROM $table WHERE guild_id = ?").use {
+                    it.setString(1, guildId.toString())
+                    it.executeUpdate()
+                }
+            }
+            connection.prepareStatement("DELETE FROM relations WHERE guild_a = ? OR guild_b = ?").use {
+                it.setString(1, guildId.toString())
+                it.setString(2, guildId.toString())
+                it.executeUpdate()
+            }
             connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                 it.setString(1, guildId.toString())
                 it.executeUpdate() == 1

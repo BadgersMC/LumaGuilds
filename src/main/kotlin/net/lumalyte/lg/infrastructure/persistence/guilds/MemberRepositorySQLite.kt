@@ -162,4 +162,7 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
         getByPlayerAndGuild(playerId, guildId) != null
     
     override fun getTotalCount(): Int = members.size
+    override fun evictGuild(guildId: UUID) {
+        members.entries.removeIf { it.value.guildId == guildId }
+    }
 }

@@ -71,7 +71,9 @@ One `WeeklyQuestSet` is shared server-wide for a stable reset-period ID. `GuildQ
 New guild creation records an immutable original creator in `guild_creators`.
 `GuildCreationHistorySQL` serializes admission and deletion on the creator's SQL
 row. Guild insertion and creator history commit together; guild deletion and its
-cooldown receipt also commit together. Cache changes follow successful commits.
+cooldown receipt also commit together, including member/rank/relation/home removal
+and closing membership stints. Cache eviction and vault/hologram removal follow
+successful commits. Failed SQL leaves dependent rows, caches, and world state intact.
 `GuildServiceBukkit` uses these paths, while failed setup uses ordinary removal
 without a cooldown. The command shows a localized UTC expiry and rejects an
 unavailable cooldown lookup; SQL admission rechecks the current deadline.

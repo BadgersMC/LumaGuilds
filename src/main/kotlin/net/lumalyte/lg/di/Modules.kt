@@ -531,7 +531,7 @@ fun socialModule() = module {
  */
 fun progressionModule() = module {
     single { net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo() }
-    single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(get(), get()) }
+    single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(get(), get(), get()) }
     single { net.lumalyte.lg.application.services.GuildRewardPurchaseAccess(get(), get()) }
     single {
         val config = get<ConfigService>()
@@ -662,8 +662,9 @@ fun economyModule() = module {
     }
 
     // Services
+    single { net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL(get()) }
     single<net.lumalyte.lg.application.persistence.GuildGoldRepository> {
-        net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL(get())
+        get<net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL>()
     }
     single {
         val config = get<ConfigService>()

@@ -24,19 +24,21 @@ class RewardPurchaseRepositorySQLTest : RewardSqlTestFixture() {
 
     private fun open(seed: Boolean = true): Subject {
         val storage = openStorage()
+        migrateProductionSchema(storage)
         val owners = RewardOwnershipRepositorySQL(storage, catalog)
         val gold = GuildGoldRepositorySQL(storage)
-        storage.connection.executeUpdate("CREATE TABLE IF NOT EXISTS guild_progression (guild_id VARCHAR(36) PRIMARY KEY, current_level INTEGER NOT NULL)")
         if (seed) {
+            GuildRepositorySQLite(storage).add(net.lumalyte.lg.domain.entities.Guild(guildId, "Purchase", createdAt = java.time.Instant.now()))
             owners.initialize(guildId, 6)
-            storage.connection.executeUpdate("INSERT INTO guild_progression (guild_id, current_level) VALUES (?, 100)", guildId.toString())
+            storage.connection.executeUpdate("INSERT INTO guild_progression (guild_id, current_level, created_at, last_updated) VALUES (?, 100, ?, ?)",
+                guildId.toString(), "2026-09-17 00:00:00", "2026-09-17 00:00:00")
             gold.apply(GuildGoldMutation(UUID.randomUUID(), guildId, actorId, GuildGoldRoute.SYSTEM,
                 GuildGoldDirection.CREDIT, 20_000, 0, "test seed"), 100_000, null)
         }
         val service = GuildGoldService(gold, GuildGoldSettingsProvider {
             GuildGoldSettings(GuildGoldPolicy(1, 100_000, 1.0, 100_000, 0.0, 0.0, 0, 0, 100_000, 100_000, false),
                 GuildGoldCapacity(100_000, 0))
-        }, additionalFrozen = { extraFrozen }, rewardPurchases = RewardPurchaseRepositorySQL(storage, catalog),
+        }, additionalFrozen = { extraFrozen }, rewardPurchases = RewardPurchaseRepositorySQL(storage, catalog, gold),
             rewardPurchaseAuthorization = { actor, guild -> allowed && actor == actorId && guild == guildId },
             rewardPurchasesEnabled = { purchasesEnabled })
         return Subject(storage, owners, gold, service)
@@ -46,6 +48,30 @@ class RewardPurchaseRepositorySQLTest : RewardSqlTestFixture() {
         UUID.randomUUID(), guildId, actorId, id, requireNotNull(catalog.find(id)).price, version)
 
     private fun Subject.snapshot() = assertIs<RewardOwnershipRead.Found>(owners.read(guildId)).snapshot
+
+    @Test fun `purchase waits for the canonical gold repository lock before starting SQL`() {
+        val subject = open()
+        val method = GuildGoldRepositorySQL::class.java.getDeclaredMethod("guildLock", UUID::class.java)
+        method.isAccessible = true
+        val lock = method.invoke(subject.gold, guildId) as java.util.concurrent.locks.ReentrantLock
+        val started = java.util.concurrent.CountDownLatch(1)
+        val pool = Executors.newSingleThreadExecutor()
+        lock.lock()
+        try {
+            val purchase = pool.submit<RewardPurchaseResult> {
+                started.countDown()
+                subject.service.purchaseReward(request())
+            }
+            assertTrue(started.await(5, TimeUnit.SECONDS))
+            assertFailsWith<java.util.concurrent.TimeoutException> { purchase.get(300, TimeUnit.MILLISECONDS) }
+            assertEquals(20_000L, subject.gold.getBalance(guildId))
+            lock.unlock()
+            assertIs<RewardPurchaseResult.Applied>(purchase.get(10, TimeUnit.SECONDS))
+        } finally {
+            if (lock.isHeldByCurrentThread) lock.unlock()
+            pool.shutdownNow()
+        }
+    }
 
     @Test fun `confirmation gate reload blocks writes and reopening permits identical request`() {
         val subject = open()
@@ -220,7 +246,7 @@ class RewardPurchaseRepositorySQLTest : RewardSqlTestFixture() {
         val disabled = GuildGoldService(subject.gold, settings)
         assertEquals(RewardPurchaseResult.Rejected(RewardPurchaseRejection.UNAVAILABLE), disabled.purchaseReward(request()))
         val unauthorized = GuildGoldService(subject.gold, settings,
-            rewardPurchases = RewardPurchaseRepositorySQL(subject.storage, catalog))
+            rewardPurchases = RewardPurchaseRepositorySQL(subject.storage, catalog, subject.gold))
         assertEquals(RewardPurchaseResult.Rejected(RewardPurchaseRejection.UNAUTHORIZED), unauthorized.purchaseReward(request()))
         assertEquals(20_000L, subject.gold.getBalance(guildId))
     }

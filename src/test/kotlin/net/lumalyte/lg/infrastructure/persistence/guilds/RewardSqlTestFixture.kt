@@ -37,6 +37,17 @@ open class RewardSqlTestFixture {
         storages.remove(storage)
     }
 
+    protected fun migrateProductionSchema(storage: Storage<Database>) {
+        val plugin = io.mockk.mockk<org.bukkit.plugin.java.JavaPlugin>(relaxed = true)
+        io.mockk.every { plugin.getComponentLogger() } returns
+            net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger("RewardSchemaTest")
+        storage.connection.connection.use { connection ->
+            if (storage.dialect == SqlDialect.MARIADB)
+                net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations(plugin, connection).migrate()
+            else net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        }
+    }
+
     protected fun rejectInserts(storage: Storage<Database>, table: String) {
         require(table in setOf("guild_reward_ownership", "guild_reward_purchases", "guild_reward_accounts"))
         val body = if (storage.dialect == SqlDialect.MARIADB)

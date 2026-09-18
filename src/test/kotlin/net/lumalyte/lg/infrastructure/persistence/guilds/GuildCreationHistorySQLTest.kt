@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import net.lumalyte.lg.domain.values.GuildCreationCooldown
+import io.mockk.*
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
@@ -10,6 +11,45 @@ class GuildCreationHistorySQLTest : RewardSqlTestFixture() {
     private val created = Instant.parse("2026-09-17T00:00:00Z")
     private val creator = UUID.randomUUID()
     private val guild = UUID.randomUUID()
+
+    @Test fun `rollback failure is suppressed and never enables auto commit on partial writes`() {
+        val connection = mockk<java.sql.Connection>(relaxed = true)
+        every { connection.autoCommit } returns true
+        every { connection.prepareStatement(any()).executeQuery().next() } returns false
+        val rollback = java.sql.SQLException("rollback failed")
+        every { connection.rollback() } throws rollback
+        val database = mockk<co.aikar.idb.Database>(relaxed = true)
+        every { database.connection } returns connection
+        val storage = mockk<net.lumalyte.lg.infrastructure.persistence.storage.Storage<co.aikar.idb.Database>>()
+        every { storage.connection } returns database
+        every { storage.dialect } returns net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.SQLITE
+        val history = GuildCreationHistorySQL(storage)
+        val failure = AssertionError("callback failed")
+        assertSame(failure, assertFailsWith<AssertionError> {
+            history.create(guild, creator, created) { throw failure }
+        })
+        assertEquals(listOf(rollback), failure.suppressed.toList())
+        verify(exactly = 0) { connection.autoCommit = true }
+        verify(exactly = 1) { connection.close() }
+    }
+
+    @Test fun `callback Error rolls back writes before auto commit is restored`() {
+        val storage = openStorage()
+        val history = GuildCreationHistorySQL(storage)
+        val failure = AssertionError("injected callback failure")
+        val thrown = assertFailsWith<AssertionError> {
+            history.create(guild, creator, created) { connection ->
+                connection.prepareStatement("UPDATE guild_creation_cooldowns SET blocked_until = 123 WHERE player_id = ?").use {
+                    it.setString(1, creator.toString())
+                    it.executeUpdate()
+                }
+                throw failure
+            }
+        }
+        assertSame(failure, thrown)
+        assertNull(history.cooldownUntil(creator))
+        assertEquals(0, storage.connection.getFirstRow("SELECT COUNT(*) AS n FROM guild_creation_cooldowns")!!.getInt("n"))
+    }
 
     @Test fun `concurrent deletion retries settle one cooldown only`() {
         val history = GuildCreationHistorySQL(openStorage())

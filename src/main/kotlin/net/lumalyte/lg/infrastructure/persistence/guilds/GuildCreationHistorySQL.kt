@@ -90,13 +90,30 @@ class GuildCreationHistorySQL(private val storage: Storage<Database>) {
     private fun transaction(action: (Connection) -> Boolean): Boolean = storage.connection.connection.use { connection ->
         val autoCommit = connection.autoCommit
         connection.autoCommit = false
+        var failure: Throwable? = null
+        var rolledBack = false
         try {
             val changed = action(connection)
             if (changed) connection.commit() else connection.rollback()
             changed
-        } catch (error: Exception) {
-            connection.rollback()
+        } catch (error: Throwable) {
+            failure = error
+            try {
+                connection.rollback()
+                rolledBack = true
+            } catch (rollback: Throwable) {
+                if (rollback !== error) error.addSuppressed(rollback)
+            }
             throw error
-        } finally { connection.autoCommit = autoCommit }
+        } finally {
+            // Switching auto-commit on after a failed rollback can commit partial writes.
+            if (failure == null || rolledBack) {
+                try { connection.autoCommit = autoCommit }
+                catch (restore: Throwable) {
+                    if (failure == null) throw restore
+                    if (restore !== failure) failure.addSuppressed(restore)
+                }
+            }
+        }
     }
 }
