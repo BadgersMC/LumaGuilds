@@ -125,7 +125,11 @@ guild:
   max_name_length: 32
   min_name_length: 1
   max_guild_count: 1000
+  # Chapter 2 raw-gold costs. These must be positive before enabling chapter_two_gold_costs_enabled.
+  # Numeric values are intentionally operator-selected; the approved design defines behavior, not prices.
   create_guild_cost: 0
+  home_activation_base_cost: 0
+  home_activation_scale: 2.0
   disband_refund_percent: 0.5
   
   # Mode Switching (Peaceful/Hostile)
@@ -516,6 +520,8 @@ progression:
   # Keep false until Chapter 2 migration and player interfaces are ready.
   # This switch never migrates guilds; missing reward accounts block benefit reads.
   chapter_two_rewards_enabled: false
+  # Independent from reward purchasing; enables physical creation cost and guild-gold home activation charges.
+  chapter_two_gold_costs_enabled: false
   # Scheduled increased XP. Source caps stay fixed; UTC end is exclusive.
   # Omit sources to include all non-admin sources (including weekly quests).
   xp_boost:

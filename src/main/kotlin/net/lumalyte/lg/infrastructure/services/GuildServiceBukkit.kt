@@ -50,6 +50,7 @@ class GuildServiceBukkit(
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
 
     private val configService: ConfigService by inject()
+    private val rewardService: net.lumalyte.lg.application.services.GuildRewardService by inject()
 
     companion object {
         // Allow only alphanumerics and spaces. Blocks color codes (&r, etc.),
@@ -396,26 +397,32 @@ class GuildServiceBukkit(
     }
 
     override fun getAvailableHomeSlots(guildId: UUID): Int {
-        try {
-            val guild = guildRepository.getById(guildId) ?: return 1 // Default to 1 slot if guild not found
-
-            // Get progression service to check for ADDITIONAL_HOMES perk
-            // For now, use a simple calculation based on guild level
-            // This can be enhanced later to use the actual perk system
-            val baseSlots = 1
-            val additionalSlots = when {
-                guild.level >= 30 -> 5  // Level 30: 5 additional homes
-                guild.level >= 20 -> 3  // Level 20: 3 additional homes
-                guild.level >= 15 -> 2  // Level 15: 2 additional homes
-                guild.level >= 7 -> 1   // Level 7: 1 additional home
-                else -> 0
+        return try {
+            val guild = guildRepository.getById(guildId) ?: return 0
+            if (configService.loadConfig().chapterTwoRewardsEnabled) {
+                when (val state = rewardService.read(guildId)) {
+                    is net.lumalyte.lg.domain.rewards.GuildRewardRead.Available -> state.entitlements.homeCapacity
+                    net.lumalyte.lg.domain.rewards.GuildRewardRead.Disabled -> legacyHomeSlots(guild.level)
+                    net.lumalyte.lg.domain.rewards.GuildRewardRead.Unavailable -> 0
+                }
+            } else {
+                legacyHomeSlots(guild.level)
             }
-            return baseSlots + additionalSlots
         } catch (e: Exception) {
-            // Non-critical operation - catching all exceptions to prevent service failure
             logger.error("Error calculating available home slots for guild $guildId", e)
-            return 1 // Default fallback
+            0
         }
+    }
+
+    private fun legacyHomeSlots(level: Int): Int {
+        val additionalSlots = when {
+            level >= 30 -> 5
+            level >= 20 -> 3
+            level >= 15 -> 2
+            level >= 7 -> 1
+            else -> 0
+        }
+        return 1 + additionalSlots
     }
 
     override fun removeHome(guildId: UUID, homeName: String, actorId: UUID): Boolean {

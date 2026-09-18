@@ -712,6 +712,13 @@ fun economyModule() = module {
             { org.bukkit.Bukkit.getPlayer(it) }, get<ConfigService>().loadConfig().vault,
             net.lumalyte.lg.infrastructure.services.PhysicalGoldJournal(get()))
     }
+    single {
+        net.lumalyte.lg.application.services.GuildCostService(
+            { get<ConfigService>().loadConfig() },
+            get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
+            get<net.lumalyte.lg.application.services.GuildGoldService>(),
+        )
+    }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.BankAutomationService> {
         net.lumalyte.lg.application.services.BankAutomationService(get(), get(), get(), get(), get())
