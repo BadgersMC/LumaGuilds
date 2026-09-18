@@ -380,11 +380,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-054
   - Evidence:
   - Files: creation flow, home activation flow, gold economy, permanent-capacity reconciliation
-- [ ] **LG-1207** Guild-creation cooldown — 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
+- [x] **LG-1207** Guild-creation cooldown — 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
   - Tag: `TDD`
   - References: REQ-055
-  - Evidence:
-  - Files: guild creation, deletion timestamps
+  - Evidence: `GuildCreationHistorySQL` and `GuildRepositorySQLite.addCreated/removeWithCreationCooldown` serialize admission/deletion and commit guild rows with immutable creator history. Service, config and localized command preflight are wired. Ten new contracts plus full regression (987) and MariaDB contracts (35) pass. SPEAR specification and environment-qualified verification: `docs/plans/2026-09-17-creation-cooldown.md`, `docs/plans/2026-09-17-creation-cooldown-verification.md`. Legacy guilds without original creator records receive no inferred penalty.
+  - Files: `GuildCreationCooldown.kt`, `GuildCreationHistorySQL.kt`, `GuildRepositorySQLite.kt`, `GuildServiceBukkit.kt`, `GuildCommand.kt`, guild config and SQL/config tests
 - [x] **LG-1208** Guild prestige redesign — bounded level-100 current-run reset, permanent perk/home choice, eligibility, and atomicity
   - Tag: `DOC`
   - References: REQ-049, REQ-050, REQ-051, REQ-054, REQ-056, REQ-093

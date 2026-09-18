@@ -156,6 +156,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
+        try {
+            val until = guildRepository.creationCooldownUntil(playerId)
+            if (until != null && java.time.Instant.now() < until) {
+                player.sendMessage(lang.msg("guild_creation_cooldown.active", "until" to until.toString()))
+                return
+            }
+        } catch (_: Exception) {
+            player.sendMessage(lang.msg("guild_creation_cooldown.unavailable"))
+            return
+        }
         val guild = guildService.createGuild(name, playerId, banner)
         if (guild != null) {
             player.sendMessage(lang.msg("command.migrated.guild.create.guild_created_successfully", "name" to name))

@@ -7093,3 +7093,7 @@ chapter_two_rewards:
     purchased: '<green>Purchased this run'
     permanent: '<aqua>Permanently owned'
     no_improvement: '<gray>Already have an equal or stronger benefit'
+
+guild_creation_cooldown:
+  active: '<red>You can create another guild after <until> (UTC).'
+  unavailable: '<red>Guild creation is temporarily unavailable. Please try again later.'
