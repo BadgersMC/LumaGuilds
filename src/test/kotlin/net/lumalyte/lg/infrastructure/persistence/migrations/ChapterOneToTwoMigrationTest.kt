@@ -72,6 +72,67 @@ class ChapterOneToTwoMigrationTest {
     }
 
     @Test
+    fun `zero guild migration records completion and replays successfully`() {
+        connection.createStatement().use {
+            it.execute("DELETE FROM guilds")
+        }
+        val migration = ChapterOneToTwoMigrationSQL(connection, mariaDb = false, curve)
+
+        val first = migration.apply("empty-cutover", "chapter-1", "chapter-2", 1_800_000_000_000)
+        assertEquals(0, first.migratedGuilds)
+        assertTrue(!first.replayed)
+        assertEquals(1, int("SELECT COUNT(*) FROM chapter_migrations WHERE migration_id='empty-cutover' AND source_chapter_id='chapter-1' AND target_chapter_id='chapter-2' AND status='COMPLETED'"))
+        assertEquals(0, int("SELECT COUNT(*) FROM chapter_migration_receipts WHERE migration_id='empty-cutover'"))
+
+        val replay = migration.apply("empty-cutover", "chapter-1", "chapter-2", 1_800_000_000_001)
+        assertEquals(0, replay.migratedGuilds)
+        assertTrue(replay.replayed)
+    }
+
+    @Test
+    fun `completed replay ignores later guild population changes`() {
+        val migration = ChapterOneToTwoMigrationSQL(connection, mariaDb = false, curve)
+        migration.apply("population-cutover", "chapter-1", "chapter-2", 1_800_000_000_000)
+
+        connection.createStatement().use {
+            it.execute("DELETE FROM guilds WHERE id='g2'")
+            it.execute("INSERT INTO guilds VALUES ('g3','Gamma',1)")
+            it.execute("INSERT INTO guild_progression VALUES ('g3',0,1,0,500,NULL,0,'[]',1,2)")
+        }
+
+        val replay = migration.apply("population-cutover", "chapter-1", "chapter-2", 1_800_000_000_001)
+        assertEquals(0, replay.migratedGuilds)
+        assertTrue(replay.replayed)
+    }
+
+    @Test
+    fun `same migration id with different target is not treated as replay`() {
+        val migration = ChapterOneToTwoMigrationSQL(connection, mariaDb = false, curve)
+        migration.apply("identity-cutover", "chapter-1", "chapter-2", 1_800_000_000_000)
+
+        assertThrows(IllegalStateException::class.java) {
+            migration.apply("identity-cutover", "chapter-1", "chapter-3", 1_800_000_000_001)
+        }
+        assertEquals(0, int("SELECT COUNT(*) FROM chapter_migrations WHERE migration_id='identity-cutover' AND target_chapter_id='chapter-3'"))
+    }
+
+    @Test
+    fun `migration preserves bigint historical experience in archive and receipt`() {
+        val historicalExperience = 3_000_000_000L
+        connection.createStatement().use {
+            it.execute("UPDATE guild_progression SET total_experience=$historicalExperience WHERE guild_id='g1'")
+        }
+        val migration = ChapterOneToTwoMigrationSQL(connection, mariaDb = false, curve)
+
+        val preview = migration.preview("big-xp-cutover", "chapter-1", "chapter-2")
+        assertEquals(historicalExperience, preview.guilds.first { it.guildId == "g1" }.beforeExperience)
+
+        migration.apply("big-xp-cutover", "chapter-1", "chapter-2", 1_800_000_000_000)
+        assertEquals(historicalExperience, long("SELECT run_experience FROM chapter_standings_archive WHERE chapter_id='chapter-1' AND guild_id='g1'"))
+        assertEquals(historicalExperience, long("SELECT before_experience FROM chapter_migration_receipts WHERE migration_id='big-xp-cutover' AND guild_id='g1'"))
+    }
+
+    @Test
     fun `apply refuses to reset anything without a verified restorable backup`() {
         connection.createStatement().use {
             it.execute("UPDATE chapter_backup_evidence SET restore_verified_at = NULL WHERE backup_id='backup-1'")
@@ -145,6 +206,10 @@ class ChapterOneToTwoMigrationTest {
 
     private fun int(sql: String): Int = connection.createStatement().use { s ->
         s.executeQuery(sql).use { r -> check(r.next()); r.getInt(1) }
+    }
+
+    private fun long(sql: String): Long = connection.createStatement().use { s ->
+        s.executeQuery(sql).use { r -> check(r.next()); r.getLong(1) }
     }
 
     private fun text(sql: String): String = connection.createStatement().use { s ->

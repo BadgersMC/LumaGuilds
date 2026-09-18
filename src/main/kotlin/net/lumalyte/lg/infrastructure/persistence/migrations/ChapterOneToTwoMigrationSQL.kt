@@ -8,7 +8,7 @@ data class ChapterOneToTwoGuildPlan(
     val guildId: String,
     val guildName: String,
     val beforeLevel: Int,
-    val beforeExperience: Int,
+    val beforeExperience: Long,
     val canonicalGold: Long,
     val homeCount: Int,
     val initialHomeCapacity: Int,
@@ -57,16 +57,16 @@ class ChapterOneToTwoMigrationSQL(
         connection.autoCommit = false
         return try {
             lockLifecycle(sourceChapterId)
-            lockLiveGuilds()
-            val preview = buildPreview()
-            val existingReceipts = receiptCount(migrationId)
-            if (existingReceipts > 0) {
-                check(existingReceipts == preview.guilds.size) {
-                    "Partial migration receipt set requires recovery"
-                }
+            if (migrationCompleted(migrationId, sourceChapterId, targetChapterId)) {
                 connection.rollback()
                 ChapterOneToTwoMigrationResult(0, replayed = true)
             } else {
+                lockLiveGuilds()
+                val preview = buildPreview()
+                val existingReceipts = receiptCount(migrationId, sourceChapterId, targetChapterId)
+                check(existingReceipts == 0) {
+                    "Partial migration receipt set requires recovery"
+                }
                 requireVerifiedBackup(sourceChapterId)
                 requireLifecyclePhase(sourceChapterId, "BACKED_UP")
                 requireNoExistingRewardAccounts(preview)
@@ -75,9 +75,10 @@ class ChapterOneToTwoMigrationSQL(
                     resetProgression(guild, now)
                     initializeRewardAccount(guild)
                     initializeSeasonalRating(targetChapterId, guild.guildId, now)
-                    recordReceipt(migrationId, guild, now)
+                    recordReceipt(migrationId, sourceChapterId, targetChapterId, guild, now)
                 }
                 updateLifecycle(sourceChapterId, "RESET", now)
+                recordMigrationCompletion(migrationId, sourceChapterId, targetChapterId, now)
                 connection.commit()
                 ChapterOneToTwoMigrationResult(preview.guilds.size, replayed = false)
             }
@@ -113,7 +114,7 @@ class ChapterOneToTwoMigrationSQL(
                         guildId = result.getString("id"),
                         guildName = result.getString("name"),
                         beforeLevel = result.getInt("current_level"),
-                        beforeExperience = result.getInt("total_experience"),
+                        beforeExperience = result.getLong("total_experience"),
                         canonicalGold = result.getLong("canonical_gold"),
                         homeCount = homeCount,
                         initialHomeCapacity = maxOf(1, homeCount),
@@ -178,11 +179,42 @@ class ChapterOneToTwoMigrationSQL(
         }
     }
 
-    private fun receiptCount(migrationId: String): Int =
-        queryInt(
-            "SELECT COUNT(*) FROM chapter_migration_receipts WHERE migration_id = ?",
-            migrationId,
-        )
+    private fun migrationCompleted(
+        migrationId: String,
+        sourceChapterId: String,
+        targetChapterId: String,
+    ): Boolean = connection.prepareStatement("""
+        SELECT 1 FROM chapter_migrations
+        WHERE migration_id = ?
+          AND source_chapter_id = ?
+          AND target_chapter_id = ?
+          AND status = 'COMPLETED'
+        LIMIT 1
+    """.trimIndent()).use { statement ->
+        statement.setString(1, migrationId)
+        statement.setString(2, sourceChapterId)
+        statement.setString(3, targetChapterId)
+        statement.executeQuery().use(ResultSet::next)
+    }
+
+    private fun receiptCount(
+        migrationId: String,
+        sourceChapterId: String,
+        targetChapterId: String,
+    ): Int = connection.prepareStatement("""
+        SELECT COUNT(*) FROM chapter_migration_receipts
+        WHERE migration_id = ?
+          AND source_chapter_id = ?
+          AND target_chapter_id = ?
+    """.trimIndent()).use { statement ->
+        statement.setString(1, migrationId)
+        statement.setString(2, sourceChapterId)
+        statement.setString(3, targetChapterId)
+        statement.executeQuery().use { rows ->
+            check(rows.next())
+            rows.getInt(1)
+        }
+    }
     private fun requireVerifiedBackup(sourceChapterId: String) {
         val verified = connection.prepareStatement("""
             SELECT 1
@@ -223,7 +255,7 @@ class ChapterOneToTwoMigrationSQL(
                 guild.guildId,
             )
             check(count == 0) {
-                "Guild \${guild.guildId} already has a Chapter 2 reward account"
+                "Guild ${guild.guildId} already has a Chapter 2 reward account"
             }
         }
     }
@@ -244,7 +276,7 @@ class ChapterOneToTwoMigrationSQL(
                 statement.setString(2, guild.guildId)
                 statement.setInt(3, guild.placement)
                 statement.setInt(4, guild.beforeLevel)
-                statement.setInt(5, guild.beforeExperience)
+                statement.setLong(5, guild.beforeExperience)
                 statement.setLong(6, guild.canonicalGold)
                 statement.setLong(7, now)
                 statement.addBatch()
@@ -268,7 +300,7 @@ class ChapterOneToTwoMigrationSQL(
             statement.setLong(2, now)
             statement.setString(3, guild.guildId)
             check(statement.executeUpdate() == 1) {
-                "Progression row disappeared for \${guild.guildId}"
+                "Progression row disappeared for ${guild.guildId}"
             }
         }
         connection.prepareStatement(
@@ -276,7 +308,7 @@ class ChapterOneToTwoMigrationSQL(
         ).use { statement ->
             statement.setString(1, guild.guildId)
             check(statement.executeUpdate() == 1) {
-                "Guild row disappeared for \${guild.guildId}"
+                "Guild row disappeared for ${guild.guildId}"
             }
         }
     }
@@ -311,23 +343,47 @@ class ChapterOneToTwoMigrationSQL(
     }
     private fun recordReceipt(
         migrationId: String,
+        sourceChapterId: String,
+        targetChapterId: String,
         guild: ChapterOneToTwoGuildPlan,
         now: Long,
     ) {
         connection.prepareStatement("""
             INSERT INTO chapter_migration_receipts
-            (migration_id, guild_id, migration_kind, dry_run, status,
-             before_level, before_experience, home_count,
-             initial_home_capacity, applied_at)
-            VALUES (?, ?, 'CHAPTER_1_TO_2', 0, 'APPLIED', ?, ?, ?, ?, ?)
+            (migration_id, source_chapter_id, target_chapter_id, guild_id,
+             migration_kind, dry_run, status, before_level, before_experience,
+             home_count, initial_home_capacity, applied_at)
+            VALUES (?, ?, ?, ?, 'CHAPTER_1_TO_2', 0, 'APPLIED', ?, ?, ?, ?, ?)
         """.trimIndent()).use { statement ->
             statement.setString(1, migrationId)
-            statement.setString(2, guild.guildId)
-            statement.setInt(3, guild.beforeLevel)
-            statement.setInt(4, guild.beforeExperience)
-            statement.setInt(5, guild.homeCount)
-            statement.setInt(6, guild.initialHomeCapacity)
-            statement.setLong(7, now)
+            statement.setString(2, sourceChapterId)
+            statement.setString(3, targetChapterId)
+            statement.setString(4, guild.guildId)
+            statement.setInt(5, guild.beforeLevel)
+            statement.setLong(6, guild.beforeExperience)
+            statement.setInt(7, guild.homeCount)
+            statement.setInt(8, guild.initialHomeCapacity)
+            statement.setLong(9, now)
+            check(statement.executeUpdate() == 1)
+        }
+    }
+
+    private fun recordMigrationCompletion(
+        migrationId: String,
+        sourceChapterId: String,
+        targetChapterId: String,
+        now: Long,
+    ) {
+        connection.prepareStatement("""
+            INSERT INTO chapter_migrations
+            (migration_id, source_chapter_id, target_chapter_id,
+             migration_kind, status, completed_at)
+            VALUES (?, ?, ?, 'CHAPTER_1_TO_2', 'COMPLETED', ?)
+        """.trimIndent()).use { statement ->
+            statement.setString(1, migrationId)
+            statement.setString(2, sourceChapterId)
+            statement.setString(3, targetChapterId)
+            statement.setLong(4, now)
             check(statement.executeUpdate() == 1)
         }
     }
