@@ -81,8 +81,23 @@ internal object ChapterLifecycleSchema {
             )
             statement.execute(
                 """
+                CREATE TABLE IF NOT EXISTS chapter_migrations (
+                    migration_id $shortText NOT NULL,
+                    source_chapter_id $shortText NOT NULL,
+                    target_chapter_id $shortText NOT NULL,
+                    migration_kind $shortText NOT NULL,
+                    status $shortText NOT NULL,
+                    completed_at $integer NOT NULL,
+                    PRIMARY KEY (migration_id, source_chapter_id, target_chapter_id)
+                )$engine
+                """.trimIndent()
+            )
+            statement.execute(
+                """
                 CREATE TABLE IF NOT EXISTS chapter_migration_receipts (
                     migration_id $shortText NOT NULL,
+                    source_chapter_id $shortText NOT NULL,
+                    target_chapter_id $shortText NOT NULL,
                     guild_id $shortText NOT NULL,
                     migration_kind $shortText NOT NULL,
                     dry_run $bool NOT NULL DEFAULT 0,
@@ -93,7 +108,7 @@ internal object ChapterLifecycleSchema {
                     initial_home_capacity INTEGER,
                     applied_at $integer,
                     error TEXT,
-                    PRIMARY KEY (migration_id, guild_id)
+                    PRIMARY KEY (migration_id, source_chapter_id, target_chapter_id, guild_id)
                 )$engine
                 """.trimIndent()
             )

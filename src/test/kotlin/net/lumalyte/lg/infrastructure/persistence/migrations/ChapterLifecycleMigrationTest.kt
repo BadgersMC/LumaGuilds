@@ -62,6 +62,7 @@ class ChapterLifecycleMigrationTest {
         assertTrue(tableExists("chapter_lifecycle"))
         assertTrue(tableExists("chapter_standings_archive"))
         assertTrue(tableExists("chapter_backup_evidence"))
+        assertTrue(tableExists("chapter_migrations"))
         assertTrue(tableExists("chapter_migration_receipts"))
         assertEquals(30, databaseVersion())
     }
