@@ -431,6 +431,26 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-050, REQ-054, REQ-056, REQ-093
   - Evidence: Gold, progression/home/member consumers, Java/Bedrock views and placeholders share the gated consistent read model. Purchase actions now use immutable server quotes, separate confirmation screens, live membership/rank checks and the atomic gold/ownership transaction; uncertain retries retain their transaction ID. Focused contracts: 48 passing. Full regression: 998 passing; MariaDB: 36 passing, zero failures/errors/skips; Shadow JAR built. SPEAR: `docs/plans/2026-09-17-reward-purchase-ui.md` and `docs/plans/2026-09-17-reward-purchase-ui-verification.md`. Migration readiness and live UI validation remain open; rollout defaults disabled.
   - Files: config, gold settings, progression/home/member services, Java/Bedrock menus and placeholders
+- [x] **LG-1215** Chapter lifecycle persistence foundation — durable lifecycle state, standings archive metadata, backup evidence, and migration receipts
+  - Tag: `TDD`
+  - References: REQ-090, REQ-091; `docs/implementation.md` §Chapter 2 Progression
+  - Evidence: Schema v30 now creates `chapter_lifecycle`, `chapter_standings_archive`, `chapter_backup_evidence`, and `chapter_migration_receipts` through one dialect-aware infrastructure helper used by both `SQLiteMigrations.kt` and `MariaDBMigrations.kt`. `ChapterLifecycleMigrationTest` proved the missing-v30 state red before implementation and green afterward using the established `GuildGoldMigrationTest.kt` pattern (`io.mockk`, `net.kyori.adventure.text.logger.slf4j`, `org.bukkit`, `org.junit.jupiter.api`, `java.nio.file`, `java.sql`). Final offline `test shadowJar`: 1,009 tests, zero failures; Shadow JAR built. REQ-090/091 lifecycle/backup/migration execution remains split into LG-1216..1218.
+  - Files: migration v30 schema and SQLite persistence contract
+- [ ] **LG-1216** Chapter 1→2 migration transaction — archive standings, initialize Chapter 2 progression/rewards/Elo/home capacity, preserve permanent guild assets
+  - Tag: `TDD`
+  - References: REQ-091; `docs/implementation.md` §Chapter 2 Progression
+  - Evidence: `guild_progression`, `guild_homes`, canonical `vault_gold`, and reward ownership persistence are the existing authorities; REQ-091 defines exact reset/preservation semantics and forbids historical XP conversion.
+  - Files: migration service/repository transaction, dry-run planner, rollback/retry tests
+- [ ] **LG-1217** Verified backup and admin recovery — backup adapter, status/postpone/retry/force controls, recovery evidence
+  - Tag: `TDD`
+  - References: REQ-090, REQ-091
+  - Evidence: REQ-090 forbids reset/prune before a verified restorable backup and requires operator recovery controls; existing database migration code already fails closed on SQL errors.
+  - Files: backup port/adapters, admin commands, verification/recovery tests
+- [ ] **LG-1218** Chapter scheduler, rollover, and placeholders — timed transition, seasonal reset/prune, chapter name/time remaining
+  - Tag: `TDD`
+  - References: REQ-090
+  - Evidence: REQ-090 defines idempotent lifecycle states, preserved non-seasonal data, fixed-time rollover, and read-only placeholders.
+  - Files: scheduler, rollover orchestration, placeholders, restart/catch-up tests
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 
