@@ -422,7 +422,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [~] **LG-1214** Chapter 2 reward integration and consistent player read models
   - Tag: `TDD`
   - References: REQ-050, REQ-054, REQ-056, REQ-093
-  - Evidence: `docs/plans/2026-09-17-reward-read-model.md` defines a gated, consistent SQL read model and unavailable-state handling. Gold, progression/home/member consumers, read-only Java/Bedrock views and placeholders share ownership resolution; Chapter 2 level-up notifications no longer advertise unpurchased legacy perks. Full regression: 977 passing; MariaDB: 26 passing, zero failures/errors/skips; Shadow JAR built. See `docs/plans/2026-09-17-chapter2-integration-verification.md`. Purchase actions, migration readiness and live UI validation remain open; rollout defaults disabled.
+  - Evidence: Gold, progression/home/member consumers, Java/Bedrock views and placeholders share the gated consistent read model. Purchase actions now use immutable server quotes, separate confirmation screens, live membership/rank checks and the atomic gold/ownership transaction; uncertain retries retain their transaction ID. Focused contracts: 48 passing. Full regression: 998 passing; MariaDB: 36 passing, zero failures/errors/skips; Shadow JAR built. SPEAR: `docs/plans/2026-09-17-reward-purchase-ui.md` and `docs/plans/2026-09-17-reward-purchase-ui-verification.md`. Migration readiness and live UI validation remain open; rollout defaults disabled.
   - Files: config, gold settings, progression/home/member services, Java/Bedrock menus and placeholders
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)

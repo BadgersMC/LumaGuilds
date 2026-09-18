@@ -531,6 +531,14 @@ fun socialModule() = module {
  */
 fun progressionModule() = module {
     single { net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo() }
+    single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(get(), get()) }
+    single { net.lumalyte.lg.application.services.GuildRewardPurchaseAccess(get(), get()) }
+    single {
+        val config = get<ConfigService>()
+        val access = get<net.lumalyte.lg.application.services.GuildRewardPurchaseAccess>()
+        net.lumalyte.lg.application.services.GuildRewardPurchaseService(get(), get(),
+            { config.loadConfig().chapterTwoRewardsEnabled }, access::allowed)
+    }
     single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL(get(), get()) }
     single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardStateRepositorySQL(get(), get()) }
     single {
@@ -685,6 +693,13 @@ fun economyModule() = module {
             ),
             physicalGold = get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
             additionalFrozen = { guildId -> guilds.getById(guildId)?.bankFrozen == true },
+            rewardPurchases = object : net.lumalyte.lg.application.persistence.RewardPurchaseRepository {
+                override fun purchase(request: net.lumalyte.lg.domain.rewards.RewardPurchaseRequest,
+                    guard: () -> net.lumalyte.lg.domain.rewards.RewardPurchaseRejection?) =
+                    get<net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL>().purchase(request, guard)
+            },
+            rewardPurchaseAuthorization = get<net.lumalyte.lg.application.services.GuildRewardPurchaseAccess>()::allowed,
+            rewardPurchasesEnabled = { config.loadConfig().chapterTwoRewardsEnabled },
             periodStartProvider = {
                 java.time.LocalDate.now(java.time.ZoneOffset.UTC)
                     .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()

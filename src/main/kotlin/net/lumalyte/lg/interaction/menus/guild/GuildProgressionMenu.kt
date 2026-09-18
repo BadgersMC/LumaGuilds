@@ -52,6 +52,7 @@ class GuildProgressionMenu(
 ) : Menu, KoinComponent {
 
     private val lang: LangService by inject()
+    private val rewardPurchases: GuildRewardPurchaseService by inject()
 
     private var currentPage = 0
     private var rewardState: GuildRewardRead = GuildRewardRead.Disabled
@@ -303,9 +304,14 @@ class GuildProgressionMenu(
                 meta.lore(listOf(
                     lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price),
                     lang.rewardStatus(offer.status),
-                    lang.gui("chapter_two_rewards.read_only")))
+                    lang.gui("chapter_two_rewards.purchase.select")))
             } }
-            pane.addItem(GuiItem(item) { it.isCancelled = true }, index % 9, index / 9)
+            pane.addItem(GuiItem(item) {
+                it.isCancelled = true
+                val quote = rewardPurchases.quote(player.uniqueId, guild.id, offer.reward.id)
+                if (quote == null) player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote"))
+                else GuildRewardPurchaseMenu(player, quote, offer.reward.name, ::openRewardCatalog).open()
+            }, index % 9, index / 9)
         }
         val benefits = state.entitlements
         val summary = ItemStack.of(Material.GOLD_INGOT).also { it.editMeta { meta ->

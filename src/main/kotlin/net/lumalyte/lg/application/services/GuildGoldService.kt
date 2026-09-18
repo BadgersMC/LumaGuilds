@@ -41,7 +41,8 @@ class GuildGoldService(
     private val periodStartProvider: () -> Long = { 0L },
     private val additionalFrozen: (UUID) -> Boolean = { false },
     private val rewardPurchases: RewardPurchaseRepository? = null,
-    private val rewardPurchaseAuthorization: (UUID, UUID) -> Boolean = { _, _ -> false }
+    private val rewardPurchaseAuthorization: (UUID, UUID) -> Boolean = { _, _ -> false },
+    private val rewardPurchasesEnabled: () -> Boolean = { true }
 ) {
     constructor(
         repository: GuildGoldRepository,
@@ -63,6 +64,7 @@ class GuildGoldService(
         val purchases = rewardPurchases
             ?: return RewardPurchaseResult.Rejected(RewardPurchaseRejection.UNAVAILABLE)
         return try {
+            if (!rewardPurchasesEnabled()) return RewardPurchaseResult.Rejected(RewardPurchaseRejection.UNAVAILABLE)
             purchases.purchase(request) {
                 when {
                     !rewardPurchaseAuthorization(request.actorId, request.guildId) -> RewardPurchaseRejection.UNAUTHORIZED
