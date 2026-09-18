@@ -108,9 +108,7 @@ experience_sources:
 # =====================================
 levels_claims:
   1:
-    perks:
-      - CUSTOM_BANNER_COLORS
-      - ANIMATED_EMOJIS
+    perks: []
     claim_blocks: 0
     claim_count: 0
     bank_limit: 50000
@@ -219,9 +217,7 @@ levels_claims:
 # =====================================
 levels_no_claims:
   1:
-    perks:
-      - CUSTOM_BANNER_COLORS
-      - ANIMATED_EMOJIS
+    perks: []
     bank_limit: 50000
     interest_rate: 0.0
     homes: 1
