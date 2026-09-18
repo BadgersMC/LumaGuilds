@@ -1,6 +1,10 @@
 package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.application.persistence.GuildGoldRepository
+import net.lumalyte.lg.application.persistence.RewardPurchaseRepository
+import net.lumalyte.lg.domain.rewards.RewardPurchaseRequest
+import net.lumalyte.lg.domain.rewards.RewardPurchaseResult
+import net.lumalyte.lg.domain.rewards.RewardPurchaseRejection
 import net.lumalyte.lg.domain.gold.GuildGoldCalculator
 import net.lumalyte.lg.domain.gold.GuildGoldCapacity
 import net.lumalyte.lg.domain.gold.GuildGoldDirection
@@ -35,7 +39,10 @@ class GuildGoldService(
     private val personalEconomy: PersonalEconomyPort = PersonalEconomyPort.Unavailable,
     private val physicalGold: PhysicalGoldPort = PhysicalGoldPort.Unavailable,
     private val periodStartProvider: () -> Long = { 0L },
-    private val additionalFrozen: (UUID) -> Boolean = { false }
+    private val additionalFrozen: (UUID) -> Boolean = { false },
+    private val rewardPurchases: RewardPurchaseRepository? = null,
+    private val rewardPurchaseAuthorization: (UUID, UUID) -> Boolean = { _, _ -> false },
+    private val rewardPurchasesEnabled: () -> Boolean = { true }
 ) {
     constructor(
         repository: GuildGoldRepository,
@@ -51,6 +58,24 @@ class GuildGoldService(
     }, authorization, personalEconomy, physicalGold, periodStartProvider, additionalFrozen)
 
     fun balance(guildId: UUID): Long = repository.getBalance(guildId)
+
+    /** Chapter 2 purchases are unavailable until their atomic storage and authority are wired. */
+    fun purchaseReward(request: RewardPurchaseRequest): RewardPurchaseResult {
+        val purchases = rewardPurchases
+            ?: return RewardPurchaseResult.Rejected(RewardPurchaseRejection.UNAVAILABLE)
+        return try {
+            if (!rewardPurchasesEnabled()) return RewardPurchaseResult.Rejected(RewardPurchaseRejection.UNAVAILABLE)
+            purchases.purchase(request) {
+                when {
+                    !rewardPurchaseAuthorization(request.actorId, request.guildId) -> RewardPurchaseRejection.UNAUTHORIZED
+                    additionalFrozen(request.guildId) -> RewardPurchaseRejection.FROZEN
+                    else -> null
+                }
+            }
+        } catch (_: Exception) {
+            RewardPurchaseResult.Failed(request.transactionId)
+        }
+    }
 
     /** Only durable evidence permits recovery; a timeout never proves a started effect failed. */
     fun reconcilePending(createdBeforeEpochMs: Long): Int {
@@ -302,7 +327,14 @@ class GuildGoldService(
         if (!repository.beginExternal(request.transactionId, "DEPOSIT")) return GuildGoldResult.Failed(request.transactionId, false)
         return when (externalEffect(request.transactionId) { personalEconomy.debit(request.playerId, externalDebit) }) {
             ExternalTransferResult.Applied -> {
-                when (val applied = repository.apply(mutation, settings.effectiveCapacity, null)) {
+                val applied = try {
+                    repository.apply(mutation, settings.effectiveCapacity, null)
+                } catch (_: Exception) {
+                    // The confirmed external receipt remains durable. Reconcile after SQL
+                    // recovers; an uncertain commit must never trigger a speculative refund.
+                    return GuildGoldResult.Failed(request.transactionId, false)
+                }
+                when (applied) {
                     is GuildGoldResult.Applied -> applied
                     is GuildGoldResult.Rejected -> compensatePersonalDeposit(request, externalDebit)
                     else -> GuildGoldResult.Failed(request.transactionId, false)

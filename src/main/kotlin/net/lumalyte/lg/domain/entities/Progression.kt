@@ -56,7 +56,7 @@ data class GuildProgression(
             return GuildProgression(
                 guildId = guildId,
                 experienceForNextLevel = experienceForNextLevel,
-                unlockedPerks = setOf(PerkType.CUSTOM_BANNER_COLORS, PerkType.ANIMATED_EMOJIS) // Always unlocked
+                unlockedPerks = emptySet()
             )
         }
     }
@@ -99,7 +99,7 @@ data class LevelPerkConfig(
             return if (claimsEnabled) {
                 // Default configs with claim perks
                 mapOf(
-                    1 to LevelPerkConfig(1, setOf(PerkType.CUSTOM_BANNER_COLORS, PerkType.ANIMATED_EMOJIS), bankBalanceLimit = 50000), // Always unlocked
+                    1 to LevelPerkConfig(1, emptySet(), bankBalanceLimit = 50000),
                     2 to LevelPerkConfig(2, setOf(PerkType.INCREASED_CLAIM_BLOCKS), claimBlockBonus = 100, bankBalanceLimit = 75000),
                     3 to LevelPerkConfig(3, setOf(PerkType.FASTER_CLAIM_REGEN), claimBlockBonus = 200, bankBalanceLimit = 100000),
                     5 to LevelPerkConfig(5, setOf(PerkType.BANK_INTEREST, PerkType.ANNOUNCEMENT_SOUND_EFFECTS), claimBlockBonus = 500, bankInterestRate = 0.01, bankBalanceLimit = 150000),
@@ -114,7 +114,7 @@ data class LevelPerkConfig(
             } else {
                 // Alternative configs when claims are disabled - focus on bank, homes, and other features
                 mapOf(
-                    1 to LevelPerkConfig(1, setOf(PerkType.CUSTOM_BANNER_COLORS, PerkType.ANIMATED_EMOJIS), bankBalanceLimit = 50000), // Always unlocked
+                    1 to LevelPerkConfig(1, emptySet(), bankBalanceLimit = 50000),
                     2 to LevelPerkConfig(2, setOf(PerkType.HIGHER_BANK_BALANCE), bankBalanceLimit = 100000, bankInterestRate = 0.005), // Increased bank instead of claim blocks
                     3 to LevelPerkConfig(3, setOf(PerkType.BANK_INTEREST), bankBalanceLimit = 150000, bankInterestRate = 0.01), // Earlier bank interest
                     5 to LevelPerkConfig(5, setOf(PerkType.ANNOUNCEMENT_SOUND_EFFECTS, PerkType.SPECIAL_PARTICLES), bankBalanceLimit = 250000, bankInterestRate = 0.015), // Extra visual perks

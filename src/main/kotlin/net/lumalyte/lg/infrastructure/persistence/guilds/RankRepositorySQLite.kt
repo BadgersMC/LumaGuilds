@@ -257,4 +257,7 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
             false
         }
     }
+    override fun evictGuild(guildId: UUID) {
+        ranks.entries.removeIf { it.value.guildId == guildId }
+    }
 }

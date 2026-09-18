@@ -404,7 +404,7 @@ fun guildsModule() = module {
     // Services
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
-    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get(), get(), get()) }
+    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }
     single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<GuildBannerService> { GuildBannerServiceBukkit() }
@@ -530,6 +530,28 @@ fun socialModule() = module {
  * Progression module - Combat, kills, wars, and guild progression
  */
 fun progressionModule() = module {
+    single { net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo() }
+    single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(get(), get(), get()) }
+    single { net.lumalyte.lg.application.services.GuildRewardPurchaseAccess(get(), get()) }
+    single {
+        val config = get<ConfigService>()
+        val access = get<net.lumalyte.lg.application.services.GuildRewardPurchaseAccess>()
+        net.lumalyte.lg.application.services.GuildRewardPurchaseService(get(), get(),
+            { config.loadConfig().chapterTwoRewardsEnabled }, access::allowed)
+    }
+    single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL(get(), get()) }
+    single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardStateRepositorySQL(get(), get()) }
+    single {
+        val config = get<ConfigService>()
+        net.lumalyte.lg.application.services.GuildRewardService(
+            net.lumalyte.lg.application.persistence.RewardStateRepository { guildId ->
+                get<net.lumalyte.lg.infrastructure.persistence.guilds.RewardStateRepositorySQL>().read(guildId)
+            }, get(), {
+                val current = config.loadConfig()
+                net.lumalyte.lg.domain.rewards.RewardReadSettings(current.chapterTwoRewardsEnabled,
+                    current.bank.maxBankBalance.toLong(), current.guild.maxMembersPerGuild)
+            })
+    }
     // Repositories
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get(), get()) }
@@ -554,9 +576,14 @@ fun progressionModule() = module {
     single<KillService> { KillServiceBukkit(get()) }
     single<CombatService> { CombatServiceBukkit(get(), get(), get(), get()) }
     single<PlaytimeActivityService> { PlaytimeActivityServiceBukkit() }
-    single { net.lumalyte.lg.application.services.PermanentExperienceService(get(), get()) }
+    single {
+        val config = get<ConfigService>()
+        net.lumalyte.lg.application.services.PermanentExperienceService(get(), get()) {
+            config.loadConfig().progression.xpBoost
+        }
+    }
     single { net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(get(), get(), get(), get(), get()) }
-    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get(), get()) }
+    single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.persistence.WarRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.WarRepositorySQL(get())
     }
@@ -635,8 +662,9 @@ fun economyModule() = module {
     }
 
     // Services
+    single { net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL(get()) }
     single<net.lumalyte.lg.application.persistence.GuildGoldRepository> {
-        net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL(get())
+        get<net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL>()
     }
     single {
         val config = get<ConfigService>()
@@ -648,7 +676,7 @@ fun economyModule() = module {
         net.lumalyte.lg.application.services.GuildGoldService(
             repository = get(),
             settingsProvider = net.lumalyte.lg.infrastructure.services.ConfiguredGuildGoldSettings(
-                config, progression, rewards),
+                config, progression, rewards, get()),
             authorization = object : net.lumalyte.lg.application.services.GuildGoldAuthorizationPort {
                 private fun allowed(playerId: java.util.UUID, guildId: java.util.UUID,
                     permission: net.lumalyte.lg.domain.entities.RankPermission): Boolean {
@@ -666,6 +694,13 @@ fun economyModule() = module {
             ),
             physicalGold = get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
             additionalFrozen = { guildId -> guilds.getById(guildId)?.bankFrozen == true },
+            rewardPurchases = object : net.lumalyte.lg.application.persistence.RewardPurchaseRepository {
+                override fun purchase(request: net.lumalyte.lg.domain.rewards.RewardPurchaseRequest,
+                    guard: () -> net.lumalyte.lg.domain.rewards.RewardPurchaseRejection?) =
+                    get<net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL>().purchase(request, guard)
+            },
+            rewardPurchaseAuthorization = get<net.lumalyte.lg.application.services.GuildRewardPurchaseAccess>()::allowed,
+            rewardPurchasesEnabled = { config.loadConfig().chapterTwoRewardsEnabled },
             periodStartProvider = {
                 java.time.LocalDate.now(java.time.ZoneOffset.UTC)
                     .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()

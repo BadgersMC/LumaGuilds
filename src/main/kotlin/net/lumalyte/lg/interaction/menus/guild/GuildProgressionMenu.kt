@@ -5,12 +5,15 @@ import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.i18n.rewardStatus
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.rewards.GuildRewardRead
+import net.lumalyte.lg.domain.rewards.RewardOfferStatus
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.CapPeriod
 import net.lumalyte.lg.interaction.menus.Menu
@@ -50,8 +53,10 @@ class GuildProgressionMenu(
 ) : Menu, KoinComponent {
 
     private val lang: LangService by inject()
+    private val rewardPurchases: GuildRewardPurchaseService by inject()
 
     private var currentPage = 0
+    private var rewardState: GuildRewardRead = GuildRewardRead.Disabled
     private val itemsPerPage = 24
 
     /** Source grid slots (AuraSkills track pattern). */
@@ -65,6 +70,13 @@ class GuildProgressionMenu(
 
         if (memberService.getMember(playerId, guild.id) == null) {
             player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access"))
+            menuNavigator.goBack()
+            return
+        }
+
+        rewardState = progressionService.getRewardState(guild.id)
+        if (rewardState == GuildRewardRead.Unavailable) {
+            player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
             menuNavigator.goBack()
             return
         }
@@ -127,9 +139,13 @@ class GuildProgressionMenu(
             .get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
         val prog = repo.getGuildProgression(guild.id) ?: return null
         val (currentXp, neededXp) = progressionService.getLevelProgress(prog.totalExperience)
-        val level = progressionService.getLevelFromExperience(prog.totalExperience)
-        val unlockedPerks = progressionService.getUnlockedPerks(guild.id)
-        return GuildProgressionDisplay(level, prog.totalExperience, currentXp, neededXp, unlockedPerks.size)
+        val chapterTwo = rewardState as? GuildRewardRead.Available
+        val level = chapterTwo?.level ?: progressionService.getLevelFromExperience(prog.totalExperience)
+        val purchasedCount = chapterTwo?.entitlements?.offers?.count {
+            it.status == net.lumalyte.lg.domain.rewards.RewardOfferStatus.PURCHASED ||
+                it.status == net.lumalyte.lg.domain.rewards.RewardOfferStatus.PERMANENT
+        } ?: progressionService.getUnlockedPerks(guild.id).size
+        return GuildProgressionDisplay(level, prog.totalExperience, currentXp, neededXp, purchasedCount)
     }
 
     private fun addGuildLevelHeader(pane: StaticPane, prog: GuildProgressionDisplay, sourceUsage: List<SourceUsageView>) {
@@ -245,6 +261,15 @@ class GuildProgressionMenu(
     }
 
     private fun addPerksInfo(pane: StaticPane, x: Int, y: Int) {
+        val chapterTwo = rewardState as? GuildRewardRead.Available
+        if (chapterTwo != null) {
+            val item = ItemStack.of(Material.DIAMOND).also { it.editMeta { meta ->
+                meta.displayName(lang.gui("chapter_two_rewards.title"))
+                meta.lore(listOf(lang.gui("chapter_two_rewards.explanation"), lang.gui("chapter_two_rewards.view")))
+            } }
+            pane.addItem(GuiItem(item) { event -> event.isCancelled = true; openRewardCatalog() }, x, y)
+            return
+        }
         val perks = progressionService.getUnlockedPerks(guild.id)
         val item = NexoItemProvider.getItemStackOrFallback("lg_reward") {
             ItemStack.of(Material.DIAMOND)
@@ -262,6 +287,49 @@ class GuildProgressionMenu(
             meta.lore(lore)
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
+    }
+
+    private fun openRewardCatalog() {
+        if (memberService.getMember(player.uniqueId, guild.id) == null) return
+        val state = progressionService.getRewardState(guild.id) as? GuildRewardRead.Available
+        if (state == null) {
+            player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
+            return
+        }
+        val gui = ChestGui(6, lang.guiTitle("chapter_two_rewards.title"))
+        val pane = StaticPane(0, 0, 9, 6)
+        gui.setOnGlobalClick { it.isCancelled = true }
+        state.entitlements.offers.forEachIndexed { index, offer ->
+            val item = ItemStack.of(Material.BOOK).also { it.editMeta { meta ->
+                meta.displayName(lang.gui("chapter_two_rewards.name", "reward" to offer.reward.name))
+                meta.lore(buildList {
+                    add(lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price))
+                    add(lang.rewardStatus(offer.status))
+                    if (offer.status == RewardOfferStatus.AVAILABLE)
+                        add(lang.gui("chapter_two_rewards.purchase.select"))
+                })
+            } }
+            pane.addItem(GuiItem(item) {
+                it.isCancelled = true
+                if (offer.status != RewardOfferStatus.AVAILABLE) return@GuiItem
+                val quote = rewardPurchases.quote(player.uniqueId, guild.id, offer.reward.id)
+                if (quote == null) player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote"))
+                else GuildRewardPurchaseMenu(player, quote, offer.reward.name, ::openRewardCatalog).open()
+            }, index % 9, index / 9)
+        }
+        val benefits = state.entitlements
+        val summary = ItemStack.of(Material.GOLD_INGOT).also { it.editMeta { meta ->
+            meta.displayName(lang.gui("chapter_two_rewards.title"))
+            meta.lore(listOf(
+                lang.gui("chapter_two_rewards.capacity_bank", "capacity" to benefits.bankCapacity),
+                lang.gui("chapter_two_rewards.capacity_home_member", "homes" to benefits.homeCapacity, "members" to benefits.memberCapacity),
+                lang.gui("chapter_two_rewards.multipliers", "cooldown" to benefits.homeCooldownMultiplier, "fee" to benefits.withdrawalFeeMultiplier)))
+        } }
+        pane.addItem(GuiItem(summary) { it.isCancelled = true }, 4, 5)
+        val back = ItemStack.of(Material.ARROW).name(lang.gui("chapter_two_rewards.back"))
+        pane.addItem(GuiItem(back) { it.isCancelled = true; open() }, 8, 5)
+        gui.addPane(pane)
+        gui.show(player)
     }
 
     private fun addPrestigeInfo(pane: StaticPane, x: Int, y: Int) {
@@ -385,8 +453,6 @@ class GuildProgressionMenu(
         net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_BLOCKS -> lang.gui("menu.guild_progression.perks.names.increased_claim_blocks")
         net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_COUNT -> lang.gui("menu.guild_progression.perks.names.increased_claim_count")
         net.lumalyte.lg.domain.values.PerkType.FASTER_CLAIM_REGEN -> lang.gui("menu.guild_progression.perks.names.faster_claim_regen")
-        net.lumalyte.lg.domain.values.PerkType.CUSTOM_BANNER_COLORS -> lang.gui("menu.guild_progression.perks.names.custom_banner_colors")
-        net.lumalyte.lg.domain.values.PerkType.ANIMATED_EMOJIS -> lang.gui("menu.guild_progression.perks.names.animated_emojis")
         net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS -> lang.gui("menu.guild_progression.perks.names.ally_home_access")
     }
 

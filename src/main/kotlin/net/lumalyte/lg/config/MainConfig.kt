@@ -38,7 +38,9 @@ data class MainConfig(
     var party: PartyConfig = PartyConfig(),
     var bedrock: BedrockConfig = BedrockConfig(),
     var webApi: WebApiConfig = WebApiConfig(),
-    var strikes: StrikesConfig = StrikesConfig()
+    var strikes: StrikesConfig = StrikesConfig(),
+    // Rollout gate only; enabling never initializes or migrates guild reward accounts.
+    var chapterTwoRewardsEnabled: Boolean = false
 )
 
 /**
@@ -153,7 +155,9 @@ data class GuildConfig(
     // NOTE: Physical currency war costs are configured in vault.physical_daily_war_cost
 
     // Emoji Grants — map guild names to emoji permission nodes
-    var emojiGrants: Map<String, String> = emptyMap()
+    var emojiGrants: Map<String, String> = emptyMap(),
+    val creationCooldown: net.lumalyte.lg.domain.values.GuildCreationCooldown =
+        net.lumalyte.lg.domain.values.GuildCreationCooldown()
 )
 
 data class BankConfig(
@@ -420,7 +424,8 @@ data class ProgressionConfig(
     // Experience transaction retention
     // 0 in either field disables the cleanup task entirely.
     var transactionRetentionDays: Int = 90,
-    var transactionCleanupIntervalHours: Int = 24
+    var transactionCleanupIntervalHours: Int = 24,
+    val xpBoost: net.lumalyte.lg.domain.values.ExperienceBoost? = null
 )
 
 object ChapterTwoExperiencePolicies {

@@ -9,6 +9,8 @@ import java.util.UUID
  * Service interface for guild progression and leveling.
  */
 interface ProgressionService {
+    fun getRewardState(guildId: UUID): net.lumalyte.lg.domain.rewards.GuildRewardRead =
+        net.lumalyte.lg.domain.rewards.GuildRewardRead.Disabled
 
     /**
      * Awards experience to a guild.

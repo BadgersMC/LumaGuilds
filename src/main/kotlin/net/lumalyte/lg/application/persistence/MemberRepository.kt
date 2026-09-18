@@ -7,6 +7,9 @@ import java.util.UUID
  * A repository that handles the persistence of Members.
  */
 interface MemberRepository {
+    /** Forget cached state after a committed guild disband transaction. */
+    fun evictGuild(guildId: UUID) {}
+
     /**
      * Gets all members that exist.
      *

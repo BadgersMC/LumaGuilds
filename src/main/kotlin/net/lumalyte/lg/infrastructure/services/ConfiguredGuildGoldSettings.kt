@@ -12,10 +12,21 @@ import java.util.UUID
 class ConfiguredGuildGoldSettings(
     private val config: ConfigService,
     private val progression: ProgressionRepository,
-    private val rewards: ProgressionConfigService
+    private val rewards: ProgressionConfigService,
+    private val guildRewards: net.lumalyte.lg.application.services.GuildRewardService? = null
 ) : GuildGoldSettingsProvider {
     override fun settingsFor(guildId: UUID): GuildGoldSettings {
         val bank = config.loadConfig().bank
+        val entitlements = guildRewards?.entitlementsIfEnabled(guildId)
+        if (entitlements != null) return GuildGoldSettings(
+            GuildGoldPolicy(
+                bank.minDepositAmount.toLong(), bank.maxDepositAmount.toLong(),
+                bank.maxWithdrawalPercent, bank.dailyWithdrawalLimit.toLong(),
+                bank.depositFeePercent, bank.withdrawalFeePercent * entitlements.withdrawalFeeMultiplier,
+                bank.maxDepositFee.toLong(), bank.maxWithdrawalFee.toLong(),
+                bank.maxBankBalance.toLong(), bank.suspiciousTransactionThreshold.toLong(),
+                bank.autoLockSuspiciousAccounts
+            ), GuildGoldCapacity(entitlements.currentRunBankCapacity, entitlements.permanentBankCapacity))
         val level = progression.getGuildProgression(guildId)?.currentLevel
         val levelRewards = rewards.getProgressionConfig().getActiveLevelRewards()
         val feeMultiplier = (1..(level ?: 0)).fold(1.0) { current, reached ->

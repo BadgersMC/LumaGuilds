@@ -156,6 +156,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
         // Get guild information
         val guild = guildService.getGuild(guildId) ?: return ""
+        if (ident.startsWith("guild_reward_")) return RewardPlaceholder.value(ident, progressionService.getRewardState(guildId))
         if (ident.startsWith("source_")) return sourceUsagePlaceholder(guildId, ident)
 
         return when (identifier.lowercase()) {

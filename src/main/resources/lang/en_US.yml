@@ -1187,8 +1187,6 @@ bedrock:
       additional_homes: Additional Homes
       teleport_cooldown_reduction: Teleport Cooldown Reduction
       home_teleport_sound_effects: Home Teleport Sound Effects
-      custom_banner_colors: Custom Banner Colors
-      animated_emojis: Animated Emojis
       special_particles: Special Particles
       announcement_sound_effects: Announcement Sound Effects
       war_declaration_sound_effects: War Declaration Sound Effects
@@ -5846,8 +5844,6 @@ menu:
         increased_claim_blocks: "More Claim Blocks"
         increased_claim_count: "More Claims"
         faster_claim_regen: "Faster Claim Regen"
-        custom_banner_colors: "Custom Banner Colors"
-        animated_emojis: "Animated Emojis"
         ally_home_access: "Ally Home Access"
     prestige:
       name: "<light_purple>Prestige"
@@ -7074,3 +7070,39 @@ notification:
       destroyed: '<red><bold>VAULT DESTROYED</bold> <gray>» <white>Your guild''s vault chest was destroyed by an explosion!'
       items_dropped: '<red><bold>ALL ITEMS DROPPED</bold> <gray>» <white>All items and currency scattered at the vault location!'
       hurry: '<red><bold>ACT FAST</bold> <gray>» <white>Items will despawn if not picked up!'
+
+chapter_two_rewards:
+  title: '<gold>Chapter 2 Rewards'
+  capacity_bank: '<gray>Bank capacity: <white><capacity>'
+  capacity_home_member: '<gray>Home slots: <white><homes> <gray>· Members: <white><members>'
+  multipliers: '<gray>Home cooldown ×<cooldown>; withdrawal fee ×<fee>'
+  unavailable: '<red>Guild rewards are temporarily unavailable. Please try again later.'
+  explanation: '<gray>Reaching a level unlocks an offer. Benefits require a purchase.'
+  view: '<yellow>View all reward offers'
+  name: '<white><reward>'
+  level_price: '<gray>Level <level> · <price> guild gold'
+  purchase:
+    title: '<gold>Confirm Reward Purchase'
+    select: '<yellow>Select an available offer to review its purchase.'
+    quote: '<yellow>Purchase <reward> for <price> guild gold?'
+    confirm: '<green>Confirm purchase / retry'
+    cancel: '<red>Cancel'
+    applied: '<green>Reward purchase confirmed for <price> guild gold.'
+    retry: '<yellow>Purchase outcome is not confirmed. Retry this confirmation safely. Reference: <transaction>'
+    unauthorized: '<red>You need guild-settings and bank-withdrawal permissions to buy rewards.'
+    no_quote: '<red>This offer is unavailable or you lack purchase permission. Refresh and check your guild rank.'
+    insufficient: '<red>Your guild does not have enough gold for this reward.'
+    bank_unavailable: '<red>The guild bank is frozen or has a pending transfer. Resolve it before purchasing.'
+    changed: '<yellow>The offer changed. Review the refreshed catalog before purchasing.'
+    ineligible: '<yellow>This reward is locked, already owned, or provides no additional benefit.'
+  back: '<yellow>Back'
+  status:
+    locked: '<dark_gray>Locked'
+    available: '<yellow>Available to purchase'
+    purchased: '<green>Purchased this run'
+    permanent: '<aqua>Permanently owned'
+    no_improvement: '<gray>Already have an equal or stronger benefit'
+
+guild_creation_cooldown:
+  active: '<red>You can create another guild after <until> (UTC).'
+  unavailable: '<red>Guild creation is temporarily unavailable. Please try again later.'

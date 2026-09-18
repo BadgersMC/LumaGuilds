@@ -5,6 +5,21 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.lumalyte.lg.domain.rewards.RewardOfferStatus
+
+fun LangService.rewardStatus(status: RewardOfferStatus): Component {
+    val lang = this
+    return when (status) {
+        RewardOfferStatus.LOCKED -> lang.gui("chapter_two_rewards.status.locked")
+        RewardOfferStatus.AVAILABLE -> lang.gui("chapter_two_rewards.status.available")
+        RewardOfferStatus.PURCHASED -> lang.gui("chapter_two_rewards.status.purchased")
+        RewardOfferStatus.PERMANENT -> lang.gui("chapter_two_rewards.status.permanent")
+        RewardOfferStatus.NO_IMPROVEMENT -> lang.gui("chapter_two_rewards.status.no_improvement")
+    }
+}
+
+fun LangService.rewardStatusText(status: RewardOfferStatus): String =
+    PlainTextComponentSerializer.plainText().serialize(rewardStatus(status))
 
 fun LangService.gui(
     key: String,
