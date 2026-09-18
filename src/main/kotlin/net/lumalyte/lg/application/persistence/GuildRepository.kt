@@ -7,6 +7,11 @@ import java.util.UUID
  * A repository that handles the persistence of Guilds.
  */
 interface GuildRepository {
+    /** New guild admission with durable creator attribution; adapters must opt in. */
+    fun addCreated(guild: Guild, creatorId: UUID): Boolean = false
+    fun creationCooldownUntil(playerId: UUID): java.time.Instant? = null
+    fun removeWithCreationCooldown(guildId: UUID, policy: net.lumalyte.lg.domain.values.GuildCreationCooldown,
+        deletedAt: java.time.Instant): Boolean = false
     /**
      * Gets all guilds that exist.
      *

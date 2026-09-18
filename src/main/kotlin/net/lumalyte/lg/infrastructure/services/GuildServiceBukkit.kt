@@ -93,7 +93,7 @@ class GuildServiceBukkit(
             createdAt = Instant.now()
         )
         
-        if (guildRepository.add(guild)) {
+        if (guildRepository.addCreated(guild, ownerId)) {
             // Create default ranks
             if (rankService.createDefaultRanks(guildId, ownerId)) {
                 // Add owner as member with highest rank
@@ -130,6 +130,8 @@ class GuildServiceBukkit(
             logger.warn("Player $actorId attempted to disband guild $guildId without permission")
             return false
         }
+
+        val deletionPolicy = configService.loadConfig().guild.creationCooldown
 
         // Clean up vault chest and hologram if exists
         val vaultLocation = vaultService.getVaultLocation(guild)
@@ -170,7 +172,8 @@ class GuildServiceBukkit(
         }
 
         // Remove guild
-        val result = guildRepository.remove(guildId)
+        val result = guildRepository.removeWithCreationCooldown(guildId,
+            deletionPolicy, Instant.now())
         if (result) {
             logger.info("Guild $guildId disbanded by $actorId")
             Bukkit.getPluginManager().callEvent(GuildDisbandedEvent(guild, memberIds, actorId))

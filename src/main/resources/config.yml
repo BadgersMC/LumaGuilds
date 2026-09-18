@@ -117,6 +117,10 @@ web_api:
 # =====================================
 
 guild:
+  # Original creators who disband a young guild must wait before creating another.
+  # The age window is exclusive; zero in either field disables new cooldowns.
+  create_then_delete_window_days: 7
+  creation_cooldown_days: 15
   # Guild Creation and Management
   max_name_length: 32
   min_name_length: 1

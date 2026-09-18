@@ -105,6 +105,9 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             minNameLength = config.getInt("guild.min_name_length", 1),
             maxGuildCount = config.getInt("guild.max_guild_count", 1000),
             createGuildCost = config.getInt("guild.create_guild_cost", 0),
+            creationCooldown = net.lumalyte.lg.domain.values.GuildCreationCooldown(
+                config.getInt("guild.create_then_delete_window_days", 7),
+                config.getInt("guild.creation_cooldown_days", 15)),
             disbandRefundPercent = config.getDouble("guild.disband_refund_percent", 0.5),
             peacefulModeEnabled = config.getBoolean("guild.peaceful_mode_enabled", true),
             modeSwitchingEnabled = config.getBoolean("guild.mode_switching_enabled", true),

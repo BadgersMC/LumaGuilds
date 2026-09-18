@@ -66,6 +66,29 @@ One `WeeklyQuestSet` is shared server-wide for a stable reset-period ID. `GuildQ
 
 ## Chapter 2 Progression (PR-12)
 
+### Creation cooldown
+
+New guild creation records an immutable original creator in `guild_creators`.
+`GuildCreationHistorySQL` serializes admission and deletion on the creator's SQL
+row. Guild insertion and creator history commit together; guild deletion and its
+cooldown receipt also commit together. Cache changes follow successful commits.
+`GuildServiceBukkit` uses these paths, while failed setup uses ordinary removal
+without a cooldown. The command shows a localized UTC expiry and rejects an
+unavailable cooldown lookup; SQL admission rechecks the current deadline.
+
+`guild.create_then_delete_window_days` defaults to 7 and
+`guild.creation_cooldown_days` defaults to 15. Deletion strictly before the first
+window ends blocks creation until the deletion timestamp plus the second window.
+Negative values are invalid; zero disables new penalties. Existing deadlines are
+never shortened by configuration changes or another deletion. Creator attribution
+survives ownership transfers. Legacy guilds without an original creator record are
+not attributed to their current owner or administrator and receive no retroactive
+penalty. This is forward-only tracking, not a historical creator migration.
+
+The transaction covers the guild row and cooldown history. Existing disband-time
+vault/member cleanup precedes it and is not made transactional by this change.
+See `docs/plans/2026-09-17-creation-cooldown.md` for the SPEAR specification.
+
 ### Reward foundation
 
 `domain/rewards/RewardCatalog` is the executable operator-approved 100-level

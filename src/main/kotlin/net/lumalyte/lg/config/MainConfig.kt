@@ -155,7 +155,9 @@ data class GuildConfig(
     // NOTE: Physical currency war costs are configured in vault.physical_daily_war_cost
 
     // Emoji Grants — map guild names to emoji permission nodes
-    var emojiGrants: Map<String, String> = emptyMap()
+    var emojiGrants: Map<String, String> = emptyMap(),
+    val creationCooldown: net.lumalyte.lg.domain.values.GuildCreationCooldown =
+        net.lumalyte.lg.domain.values.GuildCreationCooldown()
 )
 
 data class BankConfig(
