@@ -495,6 +495,20 @@ party:
   default_to_all_members: true
 
 # =====================================
+# Chapter Lifecycle
+# =====================================
+# Keep disabled until the maintenance-window cutover has been rehearsed.
+# Times are UTC ISO-8601. Later chapters derive from this persisted schedule.
+chapter:
+  enabled: false
+  id: 'chapter-2'
+  name: 'Chapter 2'
+  starts_at: '2026-10-01T00:00:00Z'
+  ends_at: '2027-01-01T00:00:00Z'
+  duration_months: 3
+  check_interval_seconds: 60
+
+# =====================================
 # Guild Progression System Configuration
 # =====================================
 
