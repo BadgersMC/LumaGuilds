@@ -102,7 +102,7 @@ to commit canonical gold, ownership and an immutable retry receipt on one connec
 Matching receipt replay precedes guards; new requests revalidate authorization, price,
 level, version, frozen/pending gold state and eligibility under the account lock.
 The purchase service defaults to unavailable without an adapter and authorization
-defaults to deny. Purchase actions and read-model migration remain LG-1214. See the
+defaults to deny. Read-model migration remains LG-1214. See the
 2026-09-17 atomic reward purchase specification and verification evidence.
 
 `GuildRewardService` reads one transactionally consistent level/ownership snapshot
@@ -112,9 +112,19 @@ not access reward storage; missing, failed or invalid state is explicitly unavai
 and never falls back to legacy grants. No read initializes an account. Gold settings,
 progression/home benefits and member limits share this resolver. Java and Bedrock
 catalog views distinguish locked, available, purchased, permanent and dominated
-offers; they remain read-only. `guild_reward_*` placeholders report unavailable
-numeric values as blank and expose state separately. Migration and purchase actions
-must be ready before the switch is enabled for a server.
+offers. Selecting an offer creates a fresh immutable quote through
+`GuildRewardPurchaseService`; separate Java/Bedrock confirmation screens are the
+only menu path into the atomic purchase use case. Membership and both
+`MANAGE_GUILD_SETTINGS` and `WITHDRAW_FROM_BANK` are required, using a rank belonging
+to this guild. The gold service rechecks authority during execution and checks the
+reloadable rollout gate before accessing purchase storage. Uncertain results keep
+the identical quote/transaction ID for retry; definitive outcomes refresh the
+catalog. Bedrock callbacks dispatch onto the server thread and ignore disconnected
+players. Cancelling or viewing never spends gold.
+
+`guild_reward_*` placeholders report unavailable numeric values as blank and expose
+state separately. Migration and live UI validation must be ready before the switch
+is enabled for a server. See `docs/plans/2026-09-17-reward-purchase-ui.md`.
 
 `ExperienceBoost` defines an immutable UTC interval and source selection for
 `progression.xp_boost`. `PermanentExperienceService` applies it after eligibility and

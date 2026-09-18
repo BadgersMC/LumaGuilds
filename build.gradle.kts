@@ -111,6 +111,8 @@ dependencies {
     compileOnly("org.geysermc.geyser:api:2.9.4-SNAPSHOT")
     compileOnly("org.geysermc.floodgate:api:2.2.5-SNAPSHOT")
     compileOnly("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
+    // Exercise actual Bedrock form responses in the reward confirmation contracts.
+    testImplementation("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
 
     //adventure
     compileOnly("net.kyori:adventure-api:4.17.0")

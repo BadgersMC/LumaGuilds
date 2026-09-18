@@ -17,6 +17,7 @@ class RewardPurchaseRepositorySQLTest : RewardSqlTestFixture() {
     private val catalog = RewardCatalog.chapterTwo()
     private var allowed = true
     private var extraFrozen = false
+    private var purchasesEnabled = true
 
     private data class Subject(val storage: Storage<Database>, val owners: RewardOwnershipRepositorySQL,
         val gold: GuildGoldRepositorySQL, val service: GuildGoldService)
@@ -36,7 +37,8 @@ class RewardPurchaseRepositorySQLTest : RewardSqlTestFixture() {
             GuildGoldSettings(GuildGoldPolicy(1, 100_000, 1.0, 100_000, 0.0, 0.0, 0, 0, 100_000, 100_000, false),
                 GuildGoldCapacity(100_000, 0))
         }, additionalFrozen = { extraFrozen }, rewardPurchases = RewardPurchaseRepositorySQL(storage, catalog),
-            rewardPurchaseAuthorization = { actor, guild -> allowed && actor == actorId && guild == guildId })
+            rewardPurchaseAuthorization = { actor, guild -> allowed && actor == actorId && guild == guildId },
+            rewardPurchasesEnabled = { purchasesEnabled })
         return Subject(storage, owners, gold, service)
     }
 
@@ -44,6 +46,19 @@ class RewardPurchaseRepositorySQLTest : RewardSqlTestFixture() {
         UUID.randomUUID(), guildId, actorId, id, requireNotNull(catalog.find(id)).price, version)
 
     private fun Subject.snapshot() = assertIs<RewardOwnershipRead.Found>(owners.read(guildId)).snapshot
+
+    @Test fun `confirmation gate reload blocks writes and reopening permits identical request`() {
+        val subject = open()
+        val quote = request()
+        purchasesEnabled = false
+        assertEquals(RewardPurchaseResult.Rejected(RewardPurchaseRejection.UNAVAILABLE), subject.service.purchaseReward(quote))
+        assertEquals(20_000L, subject.gold.getBalance(guildId))
+        assertEquals(0L, subject.snapshot().version)
+        assertEquals(0, subject.storage.connection.getFirstRow("SELECT COUNT(*) AS n FROM guild_reward_purchases")!!.getInt("n"))
+        purchasesEnabled = true
+        assertIs<RewardPurchaseResult.Applied>(subject.service.purchaseReward(quote))
+        assertEquals(19_900L, subject.gold.getBalance(guildId))
+    }
 
     @Test
     fun `bank purchase debits canonical gold and saves ownership and receipt once across restart`() {
