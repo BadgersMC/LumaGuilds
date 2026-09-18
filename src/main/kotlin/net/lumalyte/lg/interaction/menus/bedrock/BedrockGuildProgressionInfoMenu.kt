@@ -10,6 +10,7 @@ import net.lumalyte.lg.application.services.GuildRewardPurchaseService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.rewards.GuildRewardRead
+import net.lumalyte.lg.domain.rewards.RewardOfferStatus
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
@@ -91,10 +92,12 @@ class BedrockGuildProgressionInfoMenu(
                 lang.bedrock("chapter_two_rewards.capacity_home_member", "homes" to rewards.entitlements.homeCapacity, "members" to rewards.entitlements.memberCapacity),
                 lang.bedrock("chapter_two_rewards.multipliers", "cooldown" to rewards.entitlements.homeCooldownMultiplier, "fee" to rewards.entitlements.withdrawalFeeMultiplier)
             ).joinToString("\n"))
-            .apply { offers.forEach { offer -> button(listOf(
+            .apply { offers.forEach { offer -> button((listOf(
                 lang.bedrock("chapter_two_rewards.name", "reward" to offer.reward.name),
                 lang.bedrock("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price),
-                lang.rewardStatusText(offer.status)).joinToString("\n")) } }
+                lang.rewardStatusText(offer.status)) +
+                if (offer.status == RewardOfferStatus.AVAILABLE) listOf(lang.bedrock("chapter_two_rewards.purchase.select"))
+                else emptyList()).joinToString("\n")) } }
             .button(lang.bedrock("chapter_two_rewards.back"))
             .validResultHandler { response ->
                 val index = response.clickedButtonId()
@@ -103,6 +106,7 @@ class BedrockGuildProgressionInfoMenu(
                     if (!player.isOnline) return@Runnable
                     val offer = offers.getOrNull(index)
                     if (offer == null) { bedrockNavigator.goBack(); return@Runnable }
+                    if (offer.status != RewardOfferStatus.AVAILABLE) return@Runnable
                     val quote = purchases.quote(player.uniqueId, guild.id, offer.reward.id)
                     if (quote == null) {
                         player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote")); open()

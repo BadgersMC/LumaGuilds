@@ -49,7 +49,7 @@ class GuildGoldPersonalTransferTest {
                 error("credit transaction unavailable")
         }
         val original = request(amount = 100)
-        runCatching { service(broken).depositPersonal(original) }
+        assertEquals(GuildGoldResult.Failed(original.transactionId, false), service(broken).depositPersonal(original))
         assertEquals(899, economy.currentBalance)
         val restarted = service(GuildGoldRepositorySQL(storage))
         restarted.reconcilePending(System.currentTimeMillis())

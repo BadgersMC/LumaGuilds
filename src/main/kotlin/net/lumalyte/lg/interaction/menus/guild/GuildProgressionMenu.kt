@@ -13,6 +13,7 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.rewards.GuildRewardRead
+import net.lumalyte.lg.domain.rewards.RewardOfferStatus
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.CapPeriod
 import net.lumalyte.lg.interaction.menus.Menu
@@ -301,13 +302,16 @@ class GuildProgressionMenu(
         state.entitlements.offers.forEachIndexed { index, offer ->
             val item = ItemStack.of(Material.BOOK).also { it.editMeta { meta ->
                 meta.displayName(lang.gui("chapter_two_rewards.name", "reward" to offer.reward.name))
-                meta.lore(listOf(
-                    lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price),
-                    lang.rewardStatus(offer.status),
-                    lang.gui("chapter_two_rewards.purchase.select")))
+                meta.lore(buildList {
+                    add(lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price))
+                    add(lang.rewardStatus(offer.status))
+                    if (offer.status == RewardOfferStatus.AVAILABLE)
+                        add(lang.gui("chapter_two_rewards.purchase.select"))
+                })
             } }
             pane.addItem(GuiItem(item) {
                 it.isCancelled = true
+                if (offer.status != RewardOfferStatus.AVAILABLE) return@GuiItem
                 val quote = rewardPurchases.quote(player.uniqueId, guild.id, offer.reward.id)
                 if (quote == null) player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote"))
                 else GuildRewardPurchaseMenu(player, quote, offer.reward.name, ::openRewardCatalog).open()

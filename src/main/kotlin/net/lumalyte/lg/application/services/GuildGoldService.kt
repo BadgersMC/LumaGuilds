@@ -327,7 +327,14 @@ class GuildGoldService(
         if (!repository.beginExternal(request.transactionId, "DEPOSIT")) return GuildGoldResult.Failed(request.transactionId, false)
         return when (externalEffect(request.transactionId) { personalEconomy.debit(request.playerId, externalDebit) }) {
             ExternalTransferResult.Applied -> {
-                when (val applied = repository.apply(mutation, settings.effectiveCapacity, null)) {
+                val applied = try {
+                    repository.apply(mutation, settings.effectiveCapacity, null)
+                } catch (_: Exception) {
+                    // The confirmed external receipt remains durable. Reconcile after SQL
+                    // recovers; an uncertain commit must never trigger a speculative refund.
+                    return GuildGoldResult.Failed(request.transactionId, false)
+                }
+                when (applied) {
                     is GuildGoldResult.Applied -> applied
                     is GuildGoldResult.Rejected -> compensatePersonalDeposit(request, externalDebit)
                     else -> GuildGoldResult.Failed(request.transactionId, false)

@@ -21,13 +21,7 @@ class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
     }
 
     private fun repository(storage: net.lumalyte.lg.infrastructure.persistence.storage.Storage<co.aikar.idb.Database>): GuildRepositorySQLite {
-        if (storage.dialect == SqlDialect.MARIADB) {
-            val plugin = io.mockk.mockk<org.bukkit.plugin.java.JavaPlugin>(relaxed = true)
-            io.mockk.every { plugin.getComponentLogger() } returns net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger("CreationMigrationTest")
-            storage.connection.connection.use {
-                net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations(plugin, it).migrate()
-            }
-        }
+        migrateProductionSchema(storage)
         return GuildRepositorySQLite(storage)
     }
     @Test fun `real guild admission and deletion persist cooldown atomically`() {

@@ -120,6 +120,38 @@ class GuildVaultServiceBukkit(
         }
     }
 
+    override fun prepareDisband(guild: Guild): () -> VaultResult<Guild> {
+        val location = getVaultLocation(guild)
+            ?: return { VaultResult.Failure("Vault location not found") }
+        val world = location.world ?: return { VaultResult.Failure("World not found") }
+        // Capture before guild deletion can cascade to vault rows. Preparation changes no state.
+        val items = vaultInventoryManager.getOrLoadVault(guild.id).slots
+            .filterKeys { it != 0 }.values.filterNotNull().map { it.clone() }
+        val balance = vaultRepository.getGoldBalance(guild.id)
+        val gold = if (balance > 0) net.lumalyte.lg.application.utilities.GoldBalanceButton.convertToItems(balance)
+            else emptyList()
+        return {
+            vaultInventoryManager.markVaultAsBeingRemoved(guild.id)
+            try {
+                vaultInventoryManager.getViewersForVault(guild.id).forEach { session ->
+                    Bukkit.getPlayer(session.playerId)?.takeIf { it.isOnline }?.closeInventory()
+                }
+                vaultInventoryManager.clearCache(guild.id)
+                // Buffers are gone, so eviction cannot flush rows for the deleted guild.
+                vaultInventoryManager.evictSharedInventory(guild.id)
+                vaultRepository.clearVault(guild.id)
+                (items + gold).forEach { world.dropItemNaturally(location, it) }
+                if (location.block.type == Material.CHEST) location.block.type = Material.AIR
+                hologramService.removeHologram(location)
+                vaultLocationCache.remove(locationKey(location))
+                // The guild no longer exists: never flush pending writes or update its status.
+                VaultResult.Success(guild)
+            } finally {
+                vaultInventoryManager.unmarkVaultAsBeingRemoved(guild.id)
+            }
+        }
+    }
+
     override fun removeVaultChest(guild: Guild, dropItems: Boolean): VaultResult<Guild> {
         if (guild.vaultChestLocation == null) {
             return VaultResult.Failure("Guild does not have a vault placed")
