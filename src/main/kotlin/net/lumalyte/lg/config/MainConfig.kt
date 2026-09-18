@@ -39,8 +39,9 @@ data class MainConfig(
     var bedrock: BedrockConfig = BedrockConfig(),
     var webApi: WebApiConfig = WebApiConfig(),
     var strikes: StrikesConfig = StrikesConfig(),
-    // Rollout gate only; enabling never initializes or migrates guild reward accounts.
-    var chapterTwoRewardsEnabled: Boolean = false
+    // Independent rollout gates; neither performs migration or state initialization.
+    var chapterTwoRewardsEnabled: Boolean = false,
+    var chapterTwoGoldCostsEnabled: Boolean = false
 )
 
 /**
@@ -106,6 +107,8 @@ data class GuildConfig(
     var minNameLength: Int = 1,
     var maxGuildCount: Int = 1000,
     var createGuildCost: Int = 0,
+    var homeActivationBaseCost: Int = 0,
+    var homeActivationScale: Double = 2.0,
     var disbandRefundPercent: Double = 0.5,
     
     // Name filtering (profanity / inappropriate content)

@@ -382,11 +382,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence:
   - Files: chapter service/repository, scheduler, migration, backup adapter, commands, placeholders
   - Notes: Chapter 1→2 migration archives standings, resets every guild to run level 1/0 XP, preserves canonical gold/vault/roster/relations, and converts actual saved-home count into permanent capacity; later chapter rollovers preserve run level/XP and reset seasonal state only
-- [ ] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`); permanent reward tiers grant capacity and seasonal Elo never revokes it
+- [x] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`); permanent reward tiers grant capacity and seasonal Elo never revokes it
   - Tag: `TDD`
   - References: REQ-054
-  - Evidence:
-  - Files: creation flow, home activation flow, gold economy, permanent-capacity reconciliation
+  - Evidence: `GuildCostService` implements the Chapter 2 cost boundary without changing Chapter 1 behavior while the independent `chapter_two_gold_costs_enabled` rollout gate is disabled; reward purchasing and gold charges can therefore be enabled/validated separately. Guild creation reserves exact configured physical raw-gold value from the founder before creation, restores the reservation on definitive creation failure, commits after successful creation, and surfaces uncertain finalization instead of claiming/refunding blindly. New home activation debits canonical guild gold via `GuildGoldService.debitSystem`; a persistence failure attempts a deterministic canonical-gold compensation credit. Existing named-home relocation is never charged again. Home #1..N uses configurable `baseCost * scale^(n-1)` with ceiling-to-whole-gold arithmetic; because the approved design supplies no numeric prices, non-positive Chapter 2 prices fail closed rather than inventing gameplay values. `GuildServiceBukkit.getAvailableHomeSlots` now consumes `GuildRewardService` entitlement capacity when Chapter 2 is enabled, preserves legacy level slots only while disabled, and returns zero on unavailable Chapter 2 state instead of granting legacy fallback. Command/localization wiring reports insufficient, unavailable, rejected, compensated, and uncertain payment outcomes. Focused cost/command/locale contracts pass; final offline `test shadowJar`: 1,028 tests, zero failures/errors/skips; Shadow JAR built.
+  - Files: `GuildCostService.kt`, `GuildServiceBukkit.kt`, `GuildCommand.kt`, DI/config/localization, cost contracts
 - [x] **LG-1207** Guild-creation cooldown — 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
   - Tag: `TDD`
   - References: REQ-055
