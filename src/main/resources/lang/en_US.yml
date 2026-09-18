@@ -1187,8 +1187,6 @@ bedrock:
       additional_homes: Additional Homes
       teleport_cooldown_reduction: Teleport Cooldown Reduction
       home_teleport_sound_effects: Home Teleport Sound Effects
-      custom_banner_colors: Custom Banner Colors
-      animated_emojis: Animated Emojis
       special_particles: Special Particles
       announcement_sound_effects: Announcement Sound Effects
       war_declaration_sound_effects: War Declaration Sound Effects
@@ -5846,8 +5844,6 @@ menu:
         increased_claim_blocks: "More Claim Blocks"
         increased_claim_count: "More Claims"
         faster_claim_regen: "Faster Claim Regen"
-        custom_banner_colors: "Custom Banner Colors"
-        animated_emojis: "Animated Emojis"
         ally_home_access: "Ally Home Access"
     prestige:
       name: "<light_purple>Prestige"

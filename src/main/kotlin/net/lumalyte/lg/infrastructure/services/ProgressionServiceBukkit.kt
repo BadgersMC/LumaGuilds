@@ -238,8 +238,6 @@ class ProgressionServiceBukkit(
     override fun getUnlockedPerks(guildId: UUID): List<PerkType> {
         guildRewards?.entitlementsIfEnabled(guildId)?.let { rewards ->
             return buildList {
-                add(PerkType.CUSTOM_BANNER_COLORS)
-                add(PerkType.ANIMATED_EMOJIS)
                 add(PerkType.HIGHER_BANK_BALANCE)
                 add(PerkType.INCREASED_BANK_LIMIT)
                 if (rewards.homeCapacity > 1) add(PerkType.ADDITIONAL_HOMES)
@@ -671,8 +669,6 @@ class ProgressionServiceBukkit(
             PerkType.INCREASED_CLAIM_BLOCKS -> "More Claim Blocks"
             PerkType.INCREASED_CLAIM_COUNT -> "More Claims"
             PerkType.FASTER_CLAIM_REGEN -> "Faster Claim Regeneration"
-            PerkType.CUSTOM_BANNER_COLORS -> "Custom Banner Colors"
-            PerkType.ANIMATED_EMOJIS -> "Animated Emojis"
             PerkType.ALLY_HOME_ACCESS -> "Ally Home Teleportation"
         }
     }

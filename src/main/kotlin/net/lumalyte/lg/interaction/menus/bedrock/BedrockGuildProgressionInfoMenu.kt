@@ -273,8 +273,6 @@ class BedrockGuildProgressionInfoMenu(
             net.lumalyte.lg.domain.values.PerkType.HOME_TELEPORT_SOUND_EFFECTS -> lang.bedrock("bedrock.progression.perk.home_teleport_sound_effects")
 
             // Audio/Visual perks
-            net.lumalyte.lg.domain.values.PerkType.CUSTOM_BANNER_COLORS -> lang.bedrock("bedrock.progression.perk.custom_banner_colors")
-            net.lumalyte.lg.domain.values.PerkType.ANIMATED_EMOJIS -> lang.bedrock("bedrock.progression.perk.animated_emojis")
             net.lumalyte.lg.domain.values.PerkType.SPECIAL_PARTICLES -> lang.bedrock("bedrock.progression.perk.special_particles")
             net.lumalyte.lg.domain.values.PerkType.ANNOUNCEMENT_SOUND_EFFECTS -> lang.bedrock("bedrock.progression.perk.announcement_sound_effects")
             net.lumalyte.lg.domain.values.PerkType.WAR_DECLARATION_SOUND_EFFECTS -> lang.bedrock("bedrock.progression.perk.war_declaration_sound_effects")

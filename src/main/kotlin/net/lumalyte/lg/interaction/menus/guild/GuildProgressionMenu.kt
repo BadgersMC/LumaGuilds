@@ -449,8 +449,6 @@ class GuildProgressionMenu(
         net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_BLOCKS -> lang.gui("menu.guild_progression.perks.names.increased_claim_blocks")
         net.lumalyte.lg.domain.values.PerkType.INCREASED_CLAIM_COUNT -> lang.gui("menu.guild_progression.perks.names.increased_claim_count")
         net.lumalyte.lg.domain.values.PerkType.FASTER_CLAIM_REGEN -> lang.gui("menu.guild_progression.perks.names.faster_claim_regen")
-        net.lumalyte.lg.domain.values.PerkType.CUSTOM_BANNER_COLORS -> lang.gui("menu.guild_progression.perks.names.custom_banner_colors")
-        net.lumalyte.lg.domain.values.PerkType.ANIMATED_EMOJIS -> lang.gui("menu.guild_progression.perks.names.animated_emojis")
         net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS -> lang.gui("menu.guild_progression.perks.names.ally_home_access")
     }
 

@@ -21,9 +21,7 @@ enum class PerkType {
     HOME_TELEPORT_SOUND_EFFECTS,
     ALLY_HOME_ACCESS,
 
-    // Audio/Visual perks (always unlocked)
-    CUSTOM_BANNER_COLORS,
-    ANIMATED_EMOJIS,
+    // Audio/Visual perks
     SPECIAL_PARTICLES,
     ANNOUNCEMENT_SOUND_EFFECTS,
     WAR_DECLARATION_SOUND_EFFECTS,
