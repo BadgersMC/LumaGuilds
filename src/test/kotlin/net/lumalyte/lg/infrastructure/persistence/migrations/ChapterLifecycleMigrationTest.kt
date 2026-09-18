@@ -16,7 +16,7 @@ import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
 
-class GuildGoldMigrationTest {
+class ChapterLifecycleMigrationTest {
     @TempDir
     lateinit var tempDir: Path
 
@@ -25,9 +25,9 @@ class GuildGoldMigrationTest {
 
     @BeforeEach
     fun setUp() {
-        connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("migration.db")}")
+        connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("chapter-lifecycle.db")}")
         connection.createStatement().use { statement ->
-            statement.execute("PRAGMA user_version = 28")
+            statement.execute("PRAGMA user_version = 29")
             statement.execute("CREATE TABLE guilds (id TEXT PRIMARY KEY, ally_home_allowed_guilds TEXT)")
             statement.execute("CREATE TABLE guild_homes (id TEXT PRIMARY KEY, allowed_ranks TEXT)")
             listOf(
@@ -35,7 +35,8 @@ class GuildGoldMigrationTest {
                 "bank_tx", "kills", "audits", "wars", "leaderboards", "guild_invitations",
                 "vault_slots", "vault_gold", "vault_transaction_log", "guild_strikes",
                 "guild_penalties", "quest_player_placed_blocks", "guild_experience_source_usage",
-                "guild_bank_xp_high_water", "membership_history"
+                "guild_bank_xp_high_water", "membership_history", "guild_gold_operations",
+                "guild_gold_withdrawal_usage", "guild_gold_security"
             ).forEach { table ->
                 statement.execute("CREATE TABLE $table (id TEXT PRIMARY KEY)")
             }
@@ -54,14 +55,14 @@ class GuildGoldMigrationTest {
     fun tearDown() {
         connection.close()
     }
-
     @Test
-    fun `version 29 creates canonical guild gold operation tables`() {
+    fun `version 30 creates durable chapter lifecycle tables`() {
         SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
 
-        assertTrue(tableExists("guild_gold_operations"))
-        assertTrue(tableExists("guild_gold_withdrawal_usage"))
-        assertTrue(tableExists("guild_gold_security"))
+        assertTrue(tableExists("chapter_lifecycle"))
+        assertTrue(tableExists("chapter_standings_archive"))
+        assertTrue(tableExists("chapter_backup_evidence"))
+        assertTrue(tableExists("chapter_migration_receipts"))
         assertEquals(30, databaseVersion())
     }
 

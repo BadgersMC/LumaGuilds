@@ -164,6 +164,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(29)
                 dbVersion = 29
             }
+            if (dbVersion < 30) {
+                migrateToVersion30()
+                updateDatabaseVersion(30)
+                dbVersion = 30
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1770,5 +1775,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun migrateToVersion29() {
         GuildGoldSchema.create(connection, mariaDb = false)
         componentLogger.info(Component.text("✓ Migration v29 complete: canonical guild-gold operations added"))
+    }
+
+    private fun migrateToVersion30() {
+        ChapterLifecycleSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("✓ Migration v30 complete: chapter lifecycle persistence added"))
     }
 }
