@@ -7,6 +7,9 @@ import java.util.UUID
  * A repository that handles the persistence of Ranks.
  */
 interface RankRepository {
+    /** Forget cached state after a committed guild disband transaction. */
+    fun evictGuild(guildId: UUID) {}
+
     /**
      * Gets all ranks that exist.
      *

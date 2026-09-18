@@ -6,6 +6,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
+## PR-144 — Review corrections
+
+- [x] **PR-144 review corrections** — REQ-050/055/092: Throwable rollback, shared purchase/gold locking and durable deposit recovery, atomic disband cleanup, unavailable reward controls, and production-schema purchase fixtures.
+  - Tag: `TDD`
+  - References: REQ-050/055/092; `docs/implementation.md` §Creation cooldown
+  - Evidence: `GuildCreationHistorySQLTest`, `GuildDisbandAtomicityTest`, `GuildVaultDisbandTest`, `GuildGoldPersonalTransferTest`, `RewardPurchaseRepositorySQLTest`, and `GuildRewardCatalogControlsTest` cover rollback, failure preservation, post-commit vault drops, canonical locking/recovery, migrated fixtures, and unavailable controls. Final `test shadowJar --offline`: 1,008 tests, zero failures/errors/skips; deployable JAR built. Semgrep Kotlin rules: zero findings; independent review and `git diff --check` clean. MariaDB was not rerun (no running local engine).
+
 ## PR-0 — SPEAR bootstrap (foundation, no code review)
 
 - [x] **LG-000** Bootstrap SPEAR docs + Konsist architecture guard
@@ -352,21 +359,22 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
   - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
   - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
-- [ ] **LG-1202** Comprehensive level 1–100 run reward tier list with permanent-state classification
+- [x] **LG-1202** Comprehensive level 1–100 run reward tier list with permanent-state classification
+  - Handoff: `docs/plans/2026-09-17-lg-1202-developer-handoff.md`. Catalog and decisions 1–6 approved by the operator on 2026-09-17; DOC deliverable complete, runtime implementation remains separate.
   - Tag: `DOC`
   - References: REQ-050
-  - Evidence:
-  - Files: docs + reward config/registry
+  - Evidence: 2026-09-17 source inventory and approved 100-row catalog in `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`, grounded in REQ-049/050/054/056/090–093 and the approved 2026-08-30 prestige/gold design. Read-only arithmetic checks passed: 100 ordered unique levels, 20 numeric plus 10 major purchases, 30 unique IDs, all capacity values and positive affordable prices, 48,500 total gold and nine permanent home slots. DOC scope; runtime tests/build not run, no deployed behavior claimed. Operator explicitly accepted the six decisions and complete table on 2026-09-17.
+  - Files: `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`, handoff and tasks; no reward config/registry changes
   - Notes: levels 101–200 are seasonal Elo presentation, not permanent reward levels
 - [ ] **LG-1203** Seasonal Elo — rated level-100 wars, opponent weighting, rematch guard, and 101–200 display mapping
   - Tag: `TDD`
   - References: REQ-051, REQ-053
   - Evidence:
   - Files: war resolution, seasonal rating service/repository, menus/placeholders
-- [ ] **LG-1204** Dynamic XP rates — operator-hosted "increased XP" days
+- [x] **LG-1204** Dynamic XP rates — operator-hosted "increased XP" days
   - Tag: `TDD`
   - References: REQ-052
-  - Evidence:
+  - Evidence: `PermanentExperienceService.award` applies immutable scheduled boosts after eligibility/anti-AFK and before cap reservation. UTC boundaries, rounding, source selection, invalid configuration, reload, overflow, fixed-cap partial awards, uncapped quests and durable replay are verified. Final JDK 21 test/shadowJar: 977 passing; disposable MariaDB: 26 passing. See `docs/plans/2026-09-17-xp-boost.md` and `docs/plans/2026-09-17-chapter2-integration-verification.md`. Activation/expiry evaluate the trusted event timestamp, so no mutable timer is needed; defaults disabled.
   - Files: XP multiplier config, scheduler
 - [ ] **LG-1205** Chapter lifecycle — timer, standings archive, verified backup, rollover, migration, and admin recovery
   - Tag: `TDD`
@@ -379,32 +387,50 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-054
   - Evidence:
   - Files: creation flow, home activation flow, gold economy, permanent-capacity reconciliation
-- [ ] **LG-1207** Guild-creation cooldown — 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
+- [x] **LG-1207** Guild-creation cooldown — 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
   - Tag: `TDD`
   - References: REQ-055
-  - Evidence:
-  - Files: guild creation, deletion timestamps
+  - Evidence: `GuildCreationHistorySQL` and `GuildRepositorySQLite.addCreated/removeWithCreationCooldown` serialize admission/deletion and commit guild rows with immutable creator history. Service, config and localized command preflight are wired. Ten new contracts plus full regression (987) and MariaDB contracts (35) pass. SPEAR specification and environment-qualified verification: `docs/plans/2026-09-17-creation-cooldown.md`, `docs/plans/2026-09-17-creation-cooldown-verification.md`. Legacy guilds without original creator records receive no inferred penalty.
+  - Files: `GuildCreationCooldown.kt`, `GuildCreationHistorySQL.kt`, `GuildRepositorySQLite.kt`, `GuildServiceBukkit.kt`, `GuildCommand.kt`, guild config and SQL/config tests
 - [x] **LG-1208** Guild prestige redesign — bounded level-100 current-run reset, permanent perk/home choice, eligibility, and atomicity
   - Tag: `DOC`
   - References: REQ-049, REQ-050, REQ-051, REQ-054, REQ-056, REQ-093
   - Evidence: operator-approved replacement design in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`
   - Files: requirements + replacement design; runtime implementation remains disabled by default and follows in a later TDD task
-- [~] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
-  - Final three original PR #143 review findings implemented and verified (2026-09-16): durable external evidence/recovery, exact-item physical reservation receipts, and persisted banner purchase/payment/delivery identity. Full test/build: 920 passing, zero skipped. See `docs/superpowers/plans/2026-09-15-final-gold-recovery-review.md`. Other LG-1209 release gates remain open; no deployment authorized.
-  - PR #143 policy-snapshot checkpoint: config/progression/rewards resolved once per operation; no cross-operation cache. Full test/build passes; physical recovery, stale PREPARED reconciliation, and banner retry identity remain open. Semgrep still finds the backup-restoration balance bypass.
-  - PR #143 fourth review batch: explicit storage dialect, duplicate-insert conflict handling, pending-operation index, batched member limits, targeted war lookups/snapshots, and real post-credit eligibility coverage pass the full test/build gate. Physical reconciliation, policy snapshots, and banner retry identity remain open; PR stays draft.
-  - PR #143 third review batch: combined-pot payout preflight, complete wager-state invariant checks, localized deposit feedback, and real secondary-audit-failure regression verified by full test/build. Draft and remaining recovery gates remain open.
-  - PR #143 second review batch: zero-interest journal replay, physical-only bank opening, unsupported join-quote display, mandatory transaction-ID overloads, and same-ID uncertain-transfer regressions addressed. Full test/build succeeds; remaining review findings stay open.
-  - PR #143 review (2026-09-15): first remediation batch verified with 892 passing tests and successful build. External balance-leg replay is idempotent, fractional Vault balances are accepted, and contradictory settled escrow records fail closed. Remaining comments are tracked in `docs/superpowers/plans/2026-09-15-pr143-review.md`; PR remains draft.
+- [x] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
+  - Completion: Operator confirmed this task is done on 2026-09-17; supersedes the earlier in-progress checkpoints.
   - Tag: `TDD`
   - References: REQ-009, REQ-054, REQ-092, REQ-093
-  - Evidence: 2026-09-14 `gradlew test build`: 866/866 passing, zero skipped. Includes Task 6 ownership/cache/menu checks, PR #142 payout regressions, period-keyed interest, restart-safe daily war charges, and paid LFG admission (physical/personal, membership failure, provider uncertainty, fee-inclusive quote, unlocked capacity). Semgrep still identifies the backup-restoration balance write for remaining Task 7 work.
-  - Runtime checkpoint (2026-09-15): WarServiceBukkit now uses SQL records and canonical journaled payments; stable declaration/war identity, statistics, single settlement, immutable completed outcomes, legacy freeze enforcement, and funded-acceptance recovery are integration-tested. Full `gradlew test build` passes. Task 3 remains in progress: persist anti-farming/peace state and safely recover interrupted/expired funding before deployment. Backup/config tasks and final PR gate remain open.
+  - Evidence: PR #143 work includes canonical gold transfers, durable recovery, physical reservation receipts, paid admission and banner purchase identity. Latest local verification (2026-09-16): 922 tests passed, zero failures or skipped tests; shadowJar built successfully. Claims-disabled startup and withdrawal fee messaging fixes committed as `1ca24a1`.
   - Files: guild-gold domain/application service, Vault Economy adapter, physical currency adapter, bank/vault menus and listeners, persistence/audit, config validation
-  - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only
-  - Current: Task 6 is complete. Task 7 interest, daily war charging, physical system-cost routing, and operator-approved paid admission are implemented and verified. Remaining: war wager/refund retry identities, remaining system callers, and backup-restoration balance ownership; then Task 8 capability/config validation and the final clean-build/PR gate. LG-1209 remains in progress; no deployment or PR yet.
-  - Scope approval (2026-09-14): Operator approved durable war/wager persistence in this PR. Durable aggregate/repository foundation is complete: 8/8 repository tests, including database close/reopen, stale writers, and corrupt payloads; full `gradlew test build` passes 874/874, zero skipped. Payment orchestration and live war-service migration remain in progress. SQLite tested; MariaDB execution not yet verified. See `docs/superpowers/plans/2026-09-14-durable-war-payments.md`.
-  - Payment checkpoint (2026-09-14): WarPaymentService is implemented with persisted funding cycles/attempt IDs, typed gold results, immutable settlement decisions, journal replay, capacity-retry handling and REVIEW holds. Nine payment regressions pass; full suite 883/883 with successful build. Next: bind/migrate WarServiceBukkit and preserve legacy freeze checks at that boundary. This layer is not yet used by the live war service and is not a deployment-ready claim.
+  - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only.
+  - Historical implementation/review details: `docs/superpowers/plans/2026-09-15-pr143-review.md`, `docs/superpowers/plans/2026-09-15-final-gold-recovery-review.md`, and `docs/superpowers/plans/2026-09-14-durable-war-payments.md`.
+
+- [x] **LG-1210** Executable approved level 1–100 reward catalog
+  - Tag: `TDD`
+  - References: REQ-050, REQ-054, REQ-093
+  - Evidence: Operator-approved `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`; source inventory identifies legacy YAML/hardcoded divergence. SPEAR plan: `docs/plans/2026-09-17-chapter2-reward-implementation.md`. Complete: executable catalog and approved-table parity tests pass. Final JDK 21 `gradlew test shadowJar`: 946 tests, zero failures/errors/skips; Shadow JAR built. See `docs/plans/2026-09-17-reward-verification.md`.
+  - Files: domain reward catalog and contract tests
+- [x] **LG-1211** Purchased and permanent reward entitlement resolution
+  - Tag: `TDD`
+  - References: REQ-050, REQ-054, REQ-056, REQ-093
+  - Evidence: Approved LG-1202 table semantics and retention rules; `docs/plans/2026-09-17-chapter2-reward-implementation.md` describes dependency order. Complete: ownership-derived offers, bounded effects, immutable snapshots, retention choices and transition guards are verified. All 24 reward tests and the full 946-test build pass; evidence in `docs/plans/2026-09-17-reward-verification.md`. Durable payment integration remains LG-1213.
+  - Files: domain reward ownership/entitlement model and contract tests
+- [x] **LG-1212** Durable guild reward ownership snapshots
+  - Tag: `TDD`
+  - References: REQ-050, REQ-054, REQ-056, REQ-093
+  - Evidence: Eight identical ownership contracts pass on SQLite and disposable MariaDB 11.4.5: reopen, stale writers, corrupt/orphan reads, rollback and permanent-asset preservation. Full test/shadowJar: 959 passing; MariaDB: 21 passing including purchases. See `docs/plans/2026-09-17-atomic-reward-verification.md`.
+  - Files: reward repository port, SQL adapter and persistence contract tests
+- [x] **LG-1213** Atomic reward purchase and canonical gold payment
+  - Tag: `TDD`
+  - References: REQ-050, REQ-092, REQ-093
+  - Evidence: `GuildGoldService.purchaseReward` commits the canonical debit/journal, ownership and durable receipt on one SQL connection. Thirteen purchase contracts pass on SQLite and MariaDB, including replay, concurrency and injected rollback. Full suite: 959 passing, plus 21 MariaDB contracts; Shadow JAR built. See `docs/plans/2026-09-17-atomic-reward-verification.md`. Live wiring remains LG-1214; raw ownership snapshot saves are not paid purchases.
+  - Files: application purchase service, shared SQL transaction boundary, canonical gold journal integration, failure/concurrency tests
+- [~] **LG-1214** Chapter 2 reward integration and consistent player read models
+  - Tag: `TDD`
+  - References: REQ-050, REQ-054, REQ-056, REQ-093
+  - Evidence: Gold, progression/home/member consumers, Java/Bedrock views and placeholders share the gated consistent read model. Purchase actions now use immutable server quotes, separate confirmation screens, live membership/rank checks and the atomic gold/ownership transaction; uncertain retries retain their transaction ID. Focused contracts: 48 passing. Full regression: 998 passing; MariaDB: 36 passing, zero failures/errors/skips; Shadow JAR built. SPEAR: `docs/plans/2026-09-17-reward-purchase-ui.md` and `docs/plans/2026-09-17-reward-purchase-ui-verification.md`. Migration readiness and live UI validation remain open; rollout defaults disabled.
+  - Files: config, gold settings, progression/home/member services, Java/Bedrock menus and placeholders
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 

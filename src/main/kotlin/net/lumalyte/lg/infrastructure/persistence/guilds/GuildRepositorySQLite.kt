@@ -560,7 +560,62 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         }
     }
     
-    override fun add(guild: Guild): Boolean {
+    private fun interface GuildSqlWriter {
+        fun executeUpdate(sql: String, vararg args: Any?): Int
+    }
+
+    private val creationHistory by lazy { GuildCreationHistorySQL(storage) }
+
+    override fun creationCooldownUntil(playerId: UUID) = creationHistory.cooldownUntil(playerId)
+
+    @Synchronized
+    override fun addCreated(guild: Guild, creatorId: UUID): Boolean = try {
+        require(guild.homes.homes.isEmpty()) { "New guild must not contain activated homes" }
+        val added = creationHistory.create(guild.id, creatorId, guild.createdAt) { connection ->
+            insertGuild(guild, GuildSqlWriter { sql, args ->
+                connection.prepareStatement(sql).use { statement ->
+                    args.forEachIndexed { index, value -> statement.setObject(index + 1, value) }
+                    statement.executeUpdate()
+                }
+            }, false)
+        }
+        if (added) guilds[guild.id] = guild
+        added
+    } catch (_: Exception) { false }
+
+    @Synchronized
+    override fun removeWithCreationCooldown(guildId: UUID,
+        policy: net.lumalyte.lg.domain.values.GuildCreationCooldown, deletedAt: Instant): Boolean = try {
+        val removed = creationHistory.delete(guildId, policy, deletedAt) { connection ->
+            // These writes share the cooldown transaction; caches/world change only after commit.
+            connection.prepareStatement("UPDATE membership_history SET departed_at = ?, departure_reason = 'DISBANDED' WHERE guild_id = ? AND departed_at IS NULL").use {
+                it.setString(1, deletedAt.toString())
+                it.setString(2, guildId.toString())
+                it.executeUpdate()
+            }
+            for (table in listOf("members", "ranks", "guild_homes")) {
+                connection.prepareStatement("DELETE FROM $table WHERE guild_id = ?").use {
+                    it.setString(1, guildId.toString())
+                    it.executeUpdate()
+                }
+            }
+            connection.prepareStatement("DELETE FROM relations WHERE guild_a = ? OR guild_b = ?").use {
+                it.setString(1, guildId.toString())
+                it.setString(2, guildId.toString())
+                it.executeUpdate()
+            }
+            connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
+                it.setString(1, guildId.toString())
+                it.executeUpdate() == 1
+            }
+        }
+        if (removed) guilds.remove(guildId)
+        removed
+    } catch (_: Exception) { false }
+
+    override fun add(guild: Guild): Boolean = insertGuild(guild,
+        GuildSqlWriter { sql, args -> storage.connection.executeUpdate(sql, *args) }, true)
+    private fun insertGuild(guild: Guild, writer: GuildSqlWriter, publish: Boolean): Boolean {
         // Use cached column existence check
         val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
             """
@@ -594,7 +649,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             val mainHome = guild.homes.defaultHome
 
             val rowsAffected = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
-                storage.connection.executeUpdate(sql,
+                writer.executeUpdate(sql,
                     guild.id.toString(),
                     guild.name,
                     guild.banner,
@@ -623,7 +678,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             } else if (hasLfgColumns && hasTrackingColumn) {
-                storage.connection.executeUpdate(sql,
+                writer.executeUpdate(sql,
                     guild.id.toString(),
                     guild.name,
                     guild.banner,
@@ -651,7 +706,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             } else if (hasLfgColumns) {
-                storage.connection.executeUpdate(sql,
+                writer.executeUpdate(sql,
                     guild.id.toString(),
                     guild.name,
                     guild.banner,
@@ -678,7 +733,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             } else if (hasTrackingColumn) {
-                storage.connection.executeUpdate(sql,
+                writer.executeUpdate(sql,
                     guild.id.toString(),
                     guild.name,
                     guild.banner,
@@ -702,7 +757,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             } else {
-                storage.connection.executeUpdate(sql,
+                writer.executeUpdate(sql,
                     guild.id.toString(),
                     guild.name,
                     guild.banner,
@@ -724,7 +779,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
                 )
             }
-            if (rowsAffected > 0) {
+            if (rowsAffected > 0 && publish) {
                 // Persist the full named-home map; legacy home_* columns above only cover the default home.
                 writeGuildHomes(guild)
                 guilds[guild.id] = guild

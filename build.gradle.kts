@@ -111,6 +111,8 @@ dependencies {
     compileOnly("org.geysermc.geyser:api:2.9.4-SNAPSHOT")
     compileOnly("org.geysermc.floodgate:api:2.2.5-SNAPSHOT")
     compileOnly("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
+    // Exercise actual Bedrock form responses in the reward confirmation contracts.
+    testImplementation("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
 
     //adventure
     compileOnly("net.kyori:adventure-api:4.17.0")
@@ -141,6 +143,29 @@ idea {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// Explicit opt-in: the same ownership contract runs against a disposable loopback
+// MariaDB instance. Ordinary test runs remain self-contained SQLite tests.
+tasks.register<Test>("mariaDbRewardTest") {
+    group = "verification"
+    description = "Run Chapter 2 reward and XP boost contracts against a disposable local MariaDB instance"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching("*Reward*RepositorySQLTest")
+        includeTestsMatching("*ExperienceBoostRepositorySQLTest")
+        includeTestsMatching("*GuildCreation*SQLTest")
+    }
+    doFirst {
+        val port = providers.gradleProperty("mariaDbTestPort").orNull
+            ?: error("Supply -PmariaDbTestPort for a disposable local MariaDB instance")
+        require(port.toInt() in 1024..65535 && port.toInt() != 3306)
+        systemProperty("lg.test.mariadb.port", port)
+    }
+    outputs.upToDateWhen { false }
+    shouldRunAfter(tasks.test)
 }
 
 tasks.shadowJar {

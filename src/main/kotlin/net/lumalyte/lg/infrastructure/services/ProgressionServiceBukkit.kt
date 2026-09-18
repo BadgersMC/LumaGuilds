@@ -30,9 +30,13 @@ class ProgressionServiceBukkit(
     private val lang: LangService,
     private val permanentExperienceService: PermanentExperienceService,
     private val experienceAwardRepository: ExperienceAwardRepository,
+    private val guildRewards: GuildRewardService? = null,
 ) : ProgressionService {
 
     private val logger = LoggerFactory.getLogger(ProgressionServiceBukkit::class.java)
+
+    override fun getRewardState(guildId: UUID) = guildRewards?.read(guildId)
+        ?: net.lumalyte.lg.domain.rewards.GuildRewardRead.Disabled
 
     // Memoized curve, invalidated when the config values change (reload-safe).
     private var curveCacheKey: String? = null
@@ -220,16 +224,28 @@ class ProgressionServiceBukkit(
         curve().experienceInCurrentLevel(totalExperience)
 
     override fun getPerksForLevel(level: Int): List<PerkType> {
-        val configs = LevelPerkConfig.getDefaultConfigs(configService.loadConfig().claimsEnabled)
+        val config = configService.loadConfig()
+        // Chapter 2 checkpoints unlock offers, not perks. The catalog renders their availability.
+        if (config.chapterTwoRewardsEnabled) return emptyList()
+        val configs = LevelPerkConfig.getDefaultConfigs(config.claimsEnabled)
         return configs[level]?.unlockedPerks?.toList() ?: emptyList()
     }
 
     override fun hasPerkUnlocked(guildId: UUID, perkType: PerkType): Boolean {
-        val progression = progressionRepository.getGuildProgression(guildId) ?: return false
         return getUnlockedPerks(guildId).contains(perkType)
     }
 
     override fun getUnlockedPerks(guildId: UUID): List<PerkType> {
+        guildRewards?.entitlementsIfEnabled(guildId)?.let { rewards ->
+            return buildList {
+                add(PerkType.HIGHER_BANK_BALANCE)
+                add(PerkType.INCREASED_BANK_LIMIT)
+                if (rewards.homeCapacity > 1) add(PerkType.ADDITIONAL_HOMES)
+                if (rewards.homeCooldownMultiplier < 1.0) add(PerkType.TELEPORT_COOLDOWN_REDUCTION)
+                if (rewards.withdrawalFeeMultiplier < 1.0) add(PerkType.REDUCED_WITHDRAWAL_FEES)
+                if (rewards.allyHomes) add(PerkType.ALLY_HOME_ACCESS)
+            }
+        }
         val progression = progressionRepository.getGuildProgression(guildId) ?: return emptyList()
         
         val allPerks = mutableListOf<PerkType>()
@@ -265,6 +281,7 @@ class ProgressionServiceBukkit(
     }
 
     override fun getBankInterestRate(guildId: UUID): Double {
+        if (guildRewards?.entitlementsIfEnabled(guildId) != null) return 0.0
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 0.0
         val progressionConfig = progressionConfigService.getProgressionConfig()
         val levelRewards = progressionConfig.getActiveLevelRewards()
@@ -338,6 +355,7 @@ class ProgressionServiceBukkit(
     }
 
     override fun getMaxHomes(guildId: UUID): Int {
+        guildRewards?.entitlementsIfEnabled(guildId)?.let { return it.homeCapacity }
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 1
         val progressionConfig = progressionConfigService.getProgressionConfig()
         val levelRewards = progressionConfig.getActiveLevelRewards()
@@ -352,6 +370,7 @@ class ProgressionServiceBukkit(
     }
 
     override fun getMaxBankBalance(guildId: UUID): Int {
+        guildRewards?.entitlementsIfEnabled(guildId)?.let { return Math.toIntExact(it.bankCapacity) }
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 50000 // Default
         val progressionConfig = progressionConfigService.getProgressionConfig()
         val levelRewards = progressionConfig.getActiveLevelRewards()
@@ -366,6 +385,7 @@ class ProgressionServiceBukkit(
     }
 
     override fun getMaxMembers(guildId: UUID): Int {
+        guildRewards?.entitlementsIfEnabled(guildId)?.let { return it.memberCapacity }
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 10 // Default
         val progressionConfig = progressionConfigService.getProgressionConfig()
         val levelRewards = progressionConfig.getActiveLevelRewards()
@@ -380,6 +400,7 @@ class ProgressionServiceBukkit(
     }
 
     override fun getWithdrawalFeeMultiplier(guildId: UUID): Double {
+        guildRewards?.entitlementsIfEnabled(guildId)?.let { return it.withdrawalFeeMultiplier }
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 1.0 // Default (no reduction)
         val progressionConfig = progressionConfigService.getProgressionConfig()
         val levelRewards = progressionConfig.getActiveLevelRewards()
@@ -394,6 +415,7 @@ class ProgressionServiceBukkit(
     }
 
     override fun getHomeCooldownMultiplier(guildId: UUID): Double {
+        guildRewards?.entitlementsIfEnabled(guildId)?.let { return it.homeCooldownMultiplier }
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 1.0 // Default (no reduction)
         val progressionConfig = progressionConfigService.getProgressionConfig()
         val levelRewards = progressionConfig.getActiveLevelRewards()
@@ -647,8 +669,6 @@ class ProgressionServiceBukkit(
             PerkType.INCREASED_CLAIM_BLOCKS -> "More Claim Blocks"
             PerkType.INCREASED_CLAIM_COUNT -> "More Claims"
             PerkType.FASTER_CLAIM_REGEN -> "Faster Claim Regeneration"
-            PerkType.CUSTOM_BANNER_COLORS -> "Custom Banner Colors"
-            PerkType.ANIMATED_EMOJIS -> "Animated Emojis"
             PerkType.ALLY_HOME_ACCESS -> "Ally Home Teleportation"
         }
     }

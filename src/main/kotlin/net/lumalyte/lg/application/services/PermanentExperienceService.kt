@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.values.ExperiencePolicy
 class PermanentExperienceService(
     private val repository: ExperienceAwardRepository,
     private val activityService: PlaytimeActivityService,
+    private val boostProvider: () -> net.lumalyte.lg.domain.values.ExperienceBoost? = { null },
 ) {
     fun award(
         request: ExperienceAwardRequest,
@@ -31,7 +32,8 @@ class PermanentExperienceService(
         }
 
         val requestedXp = try {
-            Math.multiplyExact(policy.awardXp, request.units)
+            val base = Math.multiplyExact(policy.awardXp, request.units)
+            boostProvider()?.apply(base, request.source, request.occurredAt) ?: base
         } catch (_: ArithmeticException) {
             return ExperienceAwardResult.Rejected(AwardRejection.INVALID_UNITS)
         }
