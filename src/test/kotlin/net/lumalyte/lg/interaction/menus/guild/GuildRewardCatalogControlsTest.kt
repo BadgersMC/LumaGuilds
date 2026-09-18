@@ -105,4 +105,3 @@ class GuildRewardCatalogControlsTest {
         verify(exactly = 0) { purchases.quote(any(), any(), any()) }
     }
 }
-
