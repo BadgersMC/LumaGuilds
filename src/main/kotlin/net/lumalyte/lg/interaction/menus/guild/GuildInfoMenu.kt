@@ -41,6 +41,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private val rankService: RankService by inject()
     private val relationService: RelationService by inject()
     private val bankService: net.lumalyte.lg.application.services.BankService by inject()
+    private val warService: net.lumalyte.lg.application.services.WarService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
 
@@ -222,6 +223,24 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             .name(lang.gui("menu.guild_info.statistics.name"))
             .lore(lang.gui("menu.guild_info.statistics.balance", "balance" to bankService.getBalance(guild.id)))
             .lore(lang.gui("menu.guild_info.statistics.level", "level" to guild.level))
+
+        val killTarget = warService.getWarKillWinTarget()
+        warService.getWarsForGuild(guild.id).filter { it.isActive }.forEach { war ->
+            val opponentId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
+            val opponent = guildService.getGuild(opponentId)?.name ?: opponentId.toString().take(8)
+            val warStats = warService.getWarStats(war.id)
+            val kills = if (war.declaringGuildId == guild.id) {
+                warStats.declaringGuildKills
+            } else {
+                warStats.defendingGuildKills
+            }
+            statsItem.lore(lang.gui(
+                "menu.guild_info.statistics.war_kills",
+                "opponent" to opponent,
+                "kills" to kills,
+                "target" to killTarget,
+            ))
+        }
 
         if (guild.home != null) {
             statsItem.lore(lang.gui("menu.guild_info.statistics.home.present"))

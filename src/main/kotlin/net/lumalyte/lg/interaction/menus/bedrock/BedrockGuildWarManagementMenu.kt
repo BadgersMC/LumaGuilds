@@ -434,6 +434,10 @@ class BedrockGuildWarManagementMenu(
         val opponentGuild = guildService.getGuild(opponentGuildId)
         val opponentName = opponentGuild?.name ?: lang.bedrock("bedrock.war_management.management_unknown_guild")
         val isWinner = war.winner == guild.id
+        val stats = warService.getWarStats(war.id)
+        val kills = if (war.declaringGuildId == guild.id) stats.declaringGuildKills else stats.defendingGuildKills
+        val enemyKills = if (war.declaringGuildId == guild.id) stats.defendingGuildKills else stats.declaringGuildKills
+        val killTarget = warService.getWarKillWinTarget()
 
         val status = when {
             war.winner != null -> if (isWinner) lang.bedrock("bedrock.war_management.management_won") else lang.bedrock("bedrock.war_management.management_lost")
@@ -450,6 +454,8 @@ class BedrockGuildWarManagementMenu(
                 |${lang.bedrock("bedrock.war_management.management_result")}: $status
                 |${lang.bedrock("bedrock.war_management.management_duration")}: ${war.duration.toDays()} days
                 |${lang.bedrock("bedrock.war_management.management_rating")}: ${if (war.isRated) "RATED" else "UNRATED"}
+                |${lang.bedrock("bedrock.war_management.management_kill_progress")}: $kills/$killTarget
+                |${lang.bedrock("bedrock.war_management.management_enemy_kill_progress")}: $enemyKills/$killTarget
             """.trimMargin())
             .addButtonWithImage(
                 getBedrockConfig(),

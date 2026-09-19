@@ -15,7 +15,6 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
-import java.time.Instant
 
 /**
  * Tracks PvP kills during guild wars and updates war statistics.
@@ -68,48 +67,34 @@ class WarKillTrackingListener : Listener, KoinComponent {
                     val war = warService.getCurrentWarBetweenGuilds(killerGuild, victimGuild)
 
                     if (war != null && war.isActive) {
-                        // Found an active war - update stats
-                        val currentStats = warService.getWarStats(war.id)
+                        val counter = warService.recordOpposingGuildKill(
+                            warId = war.id,
+                            killerGuildId = killerGuild,
+                            victimGuildId = victimGuild,
+                        ) ?: continue
 
-                        // Determine which guild is the killer's and update stats
-                        val updatedStats = if (war.declaringGuildId == killerGuild) {
-                            // Declaring guild got a kill
-                            currentStats.copy(
-                                declaringGuildKills = currentStats.declaringGuildKills + 1,
-                                defendingGuildDeaths = currentStats.defendingGuildDeaths + 1,
-                                lastUpdated = Instant.now()
-                            )
-                        } else {
-                            // Defending guild got a kill
-                            currentStats.copy(
-                                defendingGuildKills = currentStats.defendingGuildKills + 1,
-                                declaringGuildDeaths = currentStats.declaringGuildDeaths + 1,
-                                lastUpdated = Instant.now()
-                            )
+                        // Anti-farming suppresses XP only; the real opposing-guild kill
+                        // still counts toward the persisted war-resolution target.
+                        val isFarming = warService.recordWarKillAndCheckFarming(killer.uniqueId, victim.uniqueId)
+
+                        Bukkit.getPluginManager().callEvent(
+                            GuildWarKillEvent(war.id, killer.uniqueId, victim.uniqueId, killerGuild, victimGuild)
+                        )
+                        logger.info(
+                            "War kill recorded: ${killer.name} (guild $killerGuild) killed " +
+                                "${victim.name} (guild $victimGuild) in war ${war.id}"
+                        )
+
+                        if (!isFarming) {
+                            warService.awardWarKillExperience(killerGuild, killer.uniqueId)
                         }
 
-                        // Update the war stats
-                        if (warService.updateWarStats(updatedStats)) {
-                            // Anti-farming: suppress XP when the same killer exceeds
-                            // the per-victim kill limit within the cooldown (REQ-008)
-                            val isFarming = warService.recordWarKillAndCheckFarming(killer.uniqueId, victim.uniqueId)
+                        killer.sendMessage(lang.msg("notification.war.kill.killer", "victim" to victim.name))
+                        victim.sendMessage(lang.msg("notification.war.kill.victim", "killer" to killer.name))
 
-                            Bukkit.getPluginManager().callEvent(GuildWarKillEvent(war.id, killer.uniqueId, victim.uniqueId, killerGuild, victimGuild))
-                            logger.info("War kill recorded: ${killer.name} (guild $killerGuild) killed ${victim.name} (guild $victimGuild) in war ${war.id}")
-
-                            // Award configured kill XP to the killer's guild (REQ-008)
-                            if (!isFarming) {
-                                warService.awardWarKillExperience(killerGuild, killer.uniqueId)
-                            }
-
-                            // Notify both players
-                            killer.sendMessage(lang.msg("notification.war.kill.killer", "victim" to victim.name))
-                            victim.sendMessage(lang.msg("notification.war.kill.victim", "killer" to killer.name))
-
-                            // Check if any kill objectives are met
-                            checkAndCompleteKillObjectives(war.id, updatedStats)
-                        } else {
-                            logger.error("Failed to update war stats for war ${war.id}")
+                        // The global kill target may already have ended the war.
+                        if (counter.winnerGuildId == null) {
+                            checkAndCompleteKillObjectives(war.id, counter.stats)
                         }
 
                         // Only count the kill once (for the first matching war found)
