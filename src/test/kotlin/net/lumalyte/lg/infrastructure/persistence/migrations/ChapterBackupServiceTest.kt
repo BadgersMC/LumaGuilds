@@ -12,6 +12,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class ChapterBackupServiceTest {
     @TempDir
@@ -96,6 +99,40 @@ class ChapterBackupServiceTest {
 
         assertEquals(first.sha256, second.sha256)
         assertEquals(1, scalarInt("SELECT COUNT(*) FROM chapter_backup_evidence"))
+    }
+
+    @Test
+    fun `concurrent service instances serialize the same backup id`() {
+        val backups = tempDir.resolve("backups")
+        val ready = CountDownLatch(2)
+        val start = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(2)
+
+        try {
+            val futures = (1..2).map { index ->
+                executor.submit<ChapterBackupEvidence> {
+                    DriverManager.getConnection("jdbc:sqlite:$databaseFile").use { worker ->
+                        ready.countDown()
+                        check(start.await(5, TimeUnit.SECONDS))
+                        SQLiteChapterBackupService(worker, backups)
+                            .createVerifiedBackup("chapter-1", "shared-backup", 1000L + index)
+                    }
+                }
+            }
+
+            assertTrue(ready.await(5, TimeUnit.SECONDS))
+            start.countDown()
+
+            val results = futures.map { it.get(15, TimeUnit.SECONDS) }
+            assertEquals(results[0].sha256, results[1].sha256)
+            assertTrue(Files.isRegularFile(backups.resolve("shared-backup.db")))
+            assertEquals(1, scalarInt("SELECT COUNT(*) FROM chapter_backup_evidence WHERE backup_id='shared-backup'"))
+            assertEquals("BACKED_UP", scalarString(
+                "SELECT phase FROM chapter_lifecycle WHERE chapter_id='chapter-1'"
+            ))
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     private fun scalarInt(sql: String): Int = connection.createStatement().use { s ->
