@@ -50,6 +50,19 @@ class WarConfigEnforcementTest {
     // ---------- pure decision helpers (no Bukkit) ----------
 
     @Test
+    fun `war kill win target defaults to twenty five`() {
+        assertEquals(25, CombatConfig().warKillWinTarget)
+    }
+
+    @Test
+    fun `nonpositive war kill target fails closed`() {
+        val service = newService(mockk(), combatConfig = CombatConfig(warKillWinTarget = 0))
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException::class.java) {
+            service.getWarKillWinTarget()
+        }
+    }
+
+    @Test
     fun `requested duration below config cap is kept`() {
         assertEquals(
             Duration.ofDays(3),
@@ -101,9 +114,10 @@ class WarConfigEnforcementTest {
         configService: ConfigService,
         progressionRepository: ProgressionRepository = mockk(relaxed = true),
         seasonalElo: SeasonalEloCoordinator? = null,
+        combatConfig: CombatConfig = CombatConfig(),
     ): WarServiceBukkit {
         val config = mockk<MainConfig>()
-        every { config.combat } returns CombatConfig()
+        every { config.combat } returns combatConfig
         every { configService.loadConfig() } returns config
         return WarServiceBukkit(
             warRepository = repository,
@@ -175,6 +189,98 @@ class WarConfigEnforcementTest {
         assertEquals(WarStatus.ACTIVE, war!!.status)
         assertNotNull(war.startedAt)
         assertTrue(service.getCurrentWarBetweenGuilds(declaring, defending)?.id == war.id)
+    }
+
+    @Test
+    fun `opposing guild kill increments persisted counter for the correct side`() {
+        mockBukkitPluginManager()
+        val service = newService(mockk(), combatConfig = CombatConfig(warKillWinTarget = 25))
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val declaration = service.createWarDeclaration(
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = Duration.ofDays(7),
+            objectives = emptySet(),
+            actorId = UUID.randomUUID(),
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+
+        val first = service.recordOpposingGuildKill(war.id, declaring, defending)
+        val second = service.recordOpposingGuildKill(war.id, defending, declaring)
+
+        assertNotNull(first)
+        assertNotNull(second)
+        assertEquals(1, second!!.stats.declaringGuildKills)
+        assertEquals(1, second.stats.defendingGuildKills)
+        assertEquals(1, second.stats.declaringGuildDeaths)
+        assertEquals(1, second.stats.defendingGuildDeaths)
+        assertNull(second.winnerGuildId)
+        assertEquals(25, second.killTarget)
+        assertEquals(second.stats, service.getWarStats(war.id))
+    }
+
+    @Test
+    fun `kill counter ignores non opposing guilds and inactive wars`() {
+        mockBukkitPluginManager()
+        val service = newService(mockk(), combatConfig = CombatConfig(warKillWinTarget = 25))
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val outsider = UUID.randomUUID()
+        val declaration = service.createWarDeclaration(
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = Duration.ofDays(7),
+            objectives = emptySet(),
+            actorId = UUID.randomUUID(),
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+
+        assertNull(service.recordOpposingGuildKill(war.id, declaring, outsider))
+        assertEquals(0, service.getWarStats(war.id).declaringGuildKills)
+
+        assertTrue(service.endWar(war.id, declaring, actorId = UUID.randomUUID()))
+        assertNull(service.recordOpposingGuildKill(war.id, defending, declaring))
+        assertEquals(0, service.getActiveWars().size)
+    }
+
+    @Test
+    fun `global kill target automatically resolves war and next war starts at zero`() {
+        mockBukkitPluginManager()
+        val combat = CombatConfig(warKillWinTarget = 3)
+        val service = newService(mockk(), combatConfig = combat)
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+
+        val firstDeclaration = service.createWarDeclaration(
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = Duration.ofDays(7),
+            objectives = emptySet(),
+            actorId = UUID.randomUUID(),
+        )!!
+        val firstWar = service.acceptWarDeclaration(firstDeclaration.id, UUID.randomUUID())!!
+
+        assertNull(service.recordOpposingGuildKill(firstWar.id, declaring, defending)!!.winnerGuildId)
+        assertNull(service.recordOpposingGuildKill(firstWar.id, declaring, defending)!!.winnerGuildId)
+        val winning = service.recordOpposingGuildKill(firstWar.id, declaring, defending)!!
+
+        assertEquals(declaring, winning.winnerGuildId)
+        assertEquals(3, winning.stats.declaringGuildKills)
+        assertEquals(WarStatus.ENDED, service.getWar(firstWar.id)!!.status)
+        assertEquals(declaring, service.getWar(firstWar.id)!!.winner)
+        assertNull(service.recordOpposingGuildKill(firstWar.id, declaring, defending))
+
+        val secondDeclaration = service.createWarDeclaration(
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = Duration.ofDays(7),
+            objectives = emptySet(),
+            actorId = UUID.randomUUID(),
+        )!!
+        val secondWar = service.acceptWarDeclaration(secondDeclaration.id, UUID.randomUUID())!!
+        assertEquals(0, service.getWarStats(secondWar.id).declaringGuildKills)
+        assertEquals(0, service.getWarStats(secondWar.id).defendingGuildKills)
     }
 
     @Test
