@@ -109,6 +109,15 @@ class GuildWarAcceptanceMenu(
         val detailsItem = ItemStack.of(Material.WRITTEN_BOOK)
             .name(lang.gui("menu.war_acceptance.details.name"))
             .lore(lang.gui("menu.war_acceptance.details.duration", "days" to warDeclaration.proposedDuration.toDays()))
+            .also { item ->
+                item.lore(
+                    if (warDeclaration.isRated) {
+                        lang.gui("menu.war_acceptance.details.rated")
+                    } else {
+                        lang.gui("menu.war_acceptance.details.unrated")
+                    }
+                )
+            }
             .lore(lang.gui("menu.war_acceptance.details.objectives", "count" to warDeclaration.objectives.size))
             if (warDeclaration.objectives.isNotEmpty()) {
                 warDeclaration.objectives.forEach { objective ->

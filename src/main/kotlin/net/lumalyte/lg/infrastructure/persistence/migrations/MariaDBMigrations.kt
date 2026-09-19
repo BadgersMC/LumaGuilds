@@ -100,6 +100,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(30)
                 currentDbVersion = 30
             }
+            if (currentDbVersion < 31) {
+                migrateToVersion31()
+                updateDatabaseVersion(31)
+                currentDbVersion = 31
+            }
 
             connection.commit()
 
@@ -1001,5 +1006,10 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
     private fun migrateToVersion30() {
         ChapterLifecycleSchema.create(connection, mariaDb = true)
         componentLogger.info(Component.text("✓ Migration v30 complete: chapter lifecycle persistence added"))
+    }
+
+    private fun migrateToVersion31() {
+        SeasonalEloSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("✓ Migration v31 complete: seasonal Elo pair/result persistence added"))
     }
 }

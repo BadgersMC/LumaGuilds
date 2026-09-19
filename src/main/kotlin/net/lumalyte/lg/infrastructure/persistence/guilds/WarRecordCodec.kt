@@ -18,16 +18,34 @@ internal object WarRecordCodec {
         .create()
 
     fun encode(record: DurableWarRecord): String = gson.toJson(JsonObject().apply {
-        addProperty("version", 1)
+        addProperty("version", 2)
         add("record", gson.toJsonTree(record))
     })
 
     fun decode(payload: String): DurableWarRecord = try {
         val root = JsonParser.parseString(payload).asJsonObject
-        check(root.get("version")?.asString == "1") { "Unsupported war record version" }
-        val json = root.getAsJsonObject("record")
+        val version = root.get("version")?.asInt
+        check(version == 1 || version == 2) { "Unsupported war record version" }
+        val json = root.getAsJsonObject("record").deepCopy()
         check(json.keySet().containsAll(setOf("id", "revision", "fundingCycle", "declaration", "war", "stats", "wager",
             "paymentPhase", "settlementChosen", "settlementWinner", "paymentAttempts"))) { "Incomplete war record" }
+
+        // v1 predates explicit rated-war identity. Existing persisted wars must remain
+        // unrated rather than being rejected or silently attached to a current chapter.
+        if (version == 1) {
+            json.get("declaration")?.takeUnless { it.isJsonNull }?.asJsonObject
+                ?.add("ratedChapterId", com.google.gson.JsonNull.INSTANCE)
+            json.get("war")?.takeUnless { it.isJsonNull }?.asJsonObject
+                ?.add("ratedChapterId", com.google.gson.JsonNull.INSTANCE)
+        } else {
+            json.get("declaration")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                check(it.has("ratedChapterId")) { "Incomplete war declaration rating identity" }
+            }
+            json.get("war")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                check(it.has("ratedChapterId")) { "Incomplete war rating identity" }
+            }
+        }
+
         val raw = gson.fromJson(json, DurableWarRecord::class.java)
         // Gson can bypass Kotlin constructors. Re-enter constructors and enforce identity invariants.
         val checked = raw.copy(
