@@ -95,6 +95,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(29)
                 currentDbVersion = 29
             }
+            if (currentDbVersion < 30) {
+                migrateToVersion30()
+                updateDatabaseVersion(30)
+                currentDbVersion = 30
+            }
 
             connection.commit()
 
@@ -991,5 +996,10 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
     private fun migrateToVersion29() {
         GuildGoldSchema.create(connection, mariaDb = true)
         componentLogger.info(Component.text("✓ Migration v29 complete: canonical guild-gold operations added"))
+    }
+
+    private fun migrateToVersion30() {
+        ChapterLifecycleSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("✓ Migration v30 complete: chapter lifecycle persistence added"))
     }
 }
