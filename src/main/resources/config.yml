@@ -435,7 +435,8 @@ combat:
   war_duration_hours: 168                # 1 week war duration
   war_end_grace_period_minutes: 30       # Grace period after war ends
   max_simultaneous_wars: 3               # Max wars a guild can be in
-  
+  war_kill_win_target: 25                 # Opposing-guild kills required to automatically win
+
   # Experience and Rewards
   kill_experience: 10           # XP gained for kills
   war_win_experience: 500       # XP gained for winning a war

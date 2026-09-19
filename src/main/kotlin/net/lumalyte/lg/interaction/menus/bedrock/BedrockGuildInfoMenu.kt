@@ -29,6 +29,7 @@ class BedrockGuildInfoMenu(
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val warService: net.lumalyte.lg.application.services.WarService by inject()
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
@@ -45,6 +46,8 @@ class BedrockGuildInfoMenu(
             .label(createMembersSection())
             .label(createSectionHeader(lang.bedrock("bedrock.info.header.relations")))
             .label(createRelationsSection())
+            .label(createSectionHeader(lang.bedrock("bedrock.info.header.wars")))
+            .label(createWarSection())
             .validResultHandler { response ->
                 // Read-only menu, just close
                 bedrockNavigator.goBack()
@@ -109,6 +112,24 @@ class BedrockGuildInfoMenu(
         // Placeholder for relations - would need RelationService integration
         val none = lang.bedrock("bedrock.info.value.no_relations")
         return lang.bedrock("bedrock.info.relations", "allies" to none, "enemies" to none)
+    }
+
+    private fun createWarSection(): String {
+        val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
+        if (activeWars.isEmpty()) return lang.bedrock("bedrock.info.wars.none")
+        val target = warService.getWarKillWinTarget()
+        return activeWars.joinToString("\n") { war ->
+            val opponentId = if (war.declaringGuildId == guild.id) war.defendingGuildId else war.declaringGuildId
+            val opponent = guildService.getGuild(opponentId)?.name ?: opponentId.toString().take(8)
+            val stats = warService.getWarStats(war.id)
+            val kills = if (war.declaringGuildId == guild.id) stats.declaringGuildKills else stats.defendingGuildKills
+            lang.bedrock(
+                "bedrock.info.wars.entry",
+                "opponent" to opponent,
+                "kills" to kills,
+                "target" to target,
+            )
+        }
     }
 
     override fun handleResponse(player: Player, response: Any?) {

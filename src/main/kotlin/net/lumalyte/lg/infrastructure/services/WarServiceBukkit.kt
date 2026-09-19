@@ -297,6 +297,11 @@ class WarServiceBukkit(
         return warRepository.get(warId)?.stats ?: WarStats(warId)
     }
 
+    override fun getWarKillWinTarget(): Int =
+        configService.loadConfig().combat.warKillWinTarget.also {
+            check(it > 0) { "combat.war_kill_win_target must be positive" }
+        }
+
     override fun updateWarStats(stats: WarStats): Boolean {
         return try {
             saveStats(stats)
@@ -306,6 +311,52 @@ class WarServiceBukkit(
             logger.error("Error updating war stats for war: ${stats.warId}", e)
             false
         }
+    }
+
+    @Synchronized
+    override fun recordOpposingGuildKill(
+        warId: UUID,
+        killerGuildId: UUID,
+        victimGuildId: UUID,
+    ): net.lumalyte.lg.application.services.WarKillCounterUpdate? {
+        val record = warRepository.get(warId) ?: return null
+        val war = record.war ?: return null
+        if (!war.isActive || killerGuildId == victimGuildId) return null
+
+        val declaringKill = killerGuildId == war.declaringGuildId &&
+            victimGuildId == war.defendingGuildId
+        val defendingKill = killerGuildId == war.defendingGuildId &&
+            victimGuildId == war.declaringGuildId
+        if (!declaringKill && !defendingKill) return null
+
+        val current = record.stats ?: WarStats(warId)
+        val updated = if (declaringKill) {
+            current.copy(
+                declaringGuildKills = Math.addExact(current.declaringGuildKills, 1),
+                defendingGuildDeaths = Math.addExact(current.defendingGuildDeaths, 1),
+                lastUpdated = Instant.now(),
+            )
+        } else {
+            current.copy(
+                defendingGuildKills = Math.addExact(current.defendingGuildKills, 1),
+                declaringGuildDeaths = Math.addExact(current.declaringGuildDeaths, 1),
+                lastUpdated = Instant.now(),
+            )
+        }
+        persist(record.copy(stats = updated))
+
+        val target = getWarKillWinTarget()
+        val killerKills = if (declaringKill) updated.declaringGuildKills else updated.defendingGuildKills
+        val winner = killerGuildId.takeIf { killerKills >= target }
+        if (winner != null) {
+            check(endWar(
+                warId = warId,
+                winnerGuildId = winner,
+                peaceTerms = "Victory achieved by reaching the global war kill target ($killerKills/$target)",
+                actorId = SYSTEM_ACTOR,
+            )) { "Failed to end war after kill target was reached" }
+        }
+        return net.lumalyte.lg.application.services.WarKillCounterUpdate(updated, target, winner)
     }
 
 
@@ -847,6 +898,8 @@ class WarServiceBukkit(
     }
 
     companion object {
+        private val SYSTEM_ACTOR = UUID(0, 0)
+
         /** Anti-farming tracking bound: prune once this many killers are tracked. */
         private const val MAX_TRACKED_KILLERS = 10_000
 
