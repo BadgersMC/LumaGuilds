@@ -8,6 +8,12 @@ import java.util.UUID
 /**
  * Service interface for managing wars between guilds.
  */
+data class WarKillCounterUpdate(
+    val stats: WarStats,
+    val killTarget: Int,
+    val winnerGuildId: UUID? = null,
+)
+
 interface WarService {
 
     /**
@@ -131,6 +137,9 @@ interface WarService {
      */
     fun getWarStats(warId: UUID): WarStats
 
+    /** Configured opposing-guild kill count that automatically wins an active war. */
+    fun getWarKillWinTarget(): Int
+
     /**
      * Updates war statistics.
      *
@@ -138,6 +147,18 @@ interface WarService {
      * @return true if successful, false otherwise.
      */
     fun updateWarStats(stats: WarStats): Boolean
+
+    /**
+     * Atomically validates and records one opposing-guild kill for an active war.
+     * Returns null when the war is inactive or the supplied guilds are not the
+     * exact opposing pair for that war. A non-null winner means the configured
+     * global kill target ended the war.
+     */
+    fun recordOpposingGuildKill(
+        warId: UUID,
+        killerGuildId: UUID,
+        victimGuildId: UUID,
+    ): WarKillCounterUpdate?
 
     /**
      * Adds progress to a war objective.

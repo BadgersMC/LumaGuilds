@@ -189,6 +189,8 @@ bedrock:
     management_remaining_days: 'Remaining days: <days>'
     management_result: 'Result'
     management_rating: 'Seasonal Rating'
+    management_kill_progress: 'Your Kill Progress'
+    management_enemy_kill_progress: 'Enemy Kill Progress'
     management_select_declaration: 'Select a declaration to manage'
     management_select_war: 'Select a war to view details'
     management_started: 'Started'
@@ -542,6 +544,7 @@ bedrock:
       overview: Guild Overview
       members: Members
       relations: Relations
+      wars: Active War Kill Progress
     value:
       no_description: No description set
       no_tag: No tag set
@@ -570,6 +573,9 @@ bedrock:
     relations: |-
       <green>Allies<gray>: <gray><allies>
       <red>Enemies<gray>: <gray><enemies>
+    wars:
+      none: '<gray>No active wars'
+      entry: '<red>vs <opponent><gray>: <green><kills><gray>/<yellow><target> kills'
   rank_list:
     title: 'Guild Ranks - <guild>'
     no_ranks: No ranks have been created
@@ -5125,6 +5131,7 @@ menu:
       name: "<yellow>Statistics"
       balance: "<gray>Bank Balance: <gold>$<balance>"
       level: "<gray>Level: <yellow><level>"
+      war_kills: "<red>War vs <opponent><gray>: <green><kills><gray>/<yellow><target> kills"
       home:
         present: "<gray>Has Guild Home: <green>Yes"
         missing: "<gray>Has Guild Home: <red>No"
@@ -5513,9 +5520,9 @@ menu:
         entry: "<gray><type>: <white><current>/<target>"
         completed: "<green>✔ <type>: <white><current>/<target>"
       stats:
-        your_kills: "<green>Your Kills: <white><kills>"
+        your_kills: "<green>Your Kills: <white><kills><gray>/<yellow><target>"
         your_deaths: "<red>Your Deaths: <white><deaths>"
-        enemy_kills: "<green><enemy> Kills: <white><kills>"
+        enemy_kills: "<green><enemy> Kills: <white><kills><gray>/<yellow><target>"
         enemy_deaths: "<red><enemy> Deaths: <white><deaths>"
         your_kdr: "<gray>Your KDR: <yellow><ratio>"
         enemy_kdr: "<gray><enemy> KDR: <yellow><ratio>"
@@ -5535,7 +5542,7 @@ menu:
         name: "<red>⚔ vs <enemy>"
         lore:
           duration: "<gray>Duration: <white><days> days"
-          kills: "<gray>Kills: <yellow><kills>"
+          kills: "<gray>Kills: <yellow><kills><gray>/<yellow><target>"
           deaths: "<red>Deaths: <red><deaths>"
           click: "<gray>Click for details"
       empty:
