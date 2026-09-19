@@ -6,6 +6,9 @@ import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.sql.Connection
 import java.sql.DriverManager
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 data class ChapterBackupEvidence(
     val backupId: String,
@@ -23,6 +26,9 @@ class SQLiteChapterBackupService(
     private val connection: Connection,
     private val backupDirectory: Path,
 ) {
+    companion object {
+        private val backupLocks = ConcurrentHashMap<String, ReentrantLock>()
+    }
     fun createVerifiedBackup(
         chapterId: String,
         backupId: String,
@@ -36,44 +42,51 @@ class SQLiteChapterBackupService(
             "SQLite chapter backup must run outside an active transaction"
         }
 
-        existingEvidence(backupId)?.let { evidence ->
-            check(evidence.chapterId == chapterId) {
-                "Backup id already belongs to another chapter"
-            }
-            verifyExistingEvidence(evidence)
-            return evidence
-        }
-
-        requireLifecyclePhase(chapterId, "FROZEN")
-        Files.createDirectories(backupDirectory)
         val backupPath = backupDirectory.resolve("$backupId.db").toAbsolutePath().normalize()
-        check(!Files.exists(backupPath)) {
-            "Backup file already exists without recorded evidence"
-        }
-        try {
-            createSnapshot(backupPath)
-            val sha256 = sha256(backupPath)
-            val sizeBytes = Files.size(backupPath)
-            check(sizeBytes > 0) { "Backup file is empty" }
-            verifyRestorableCopy(backupPath, backupId)
+        val lock = backupLocks.computeIfAbsent(backupPath.toString()) { ReentrantLock() }
+        return lock.withLock {
+            existingEvidence(backupId)?.let { evidence ->
+                check(evidence.chapterId == chapterId) {
+                    "Backup id already belongs to another chapter"
+                }
+                verifyExistingEvidence(evidence)
+                return@withLock evidence
+            }
 
-            val evidence = ChapterBackupEvidence(
-                backupId = backupId,
-                chapterId = chapterId,
-                storageRef = backupPath.toString(),
-                sha256 = sha256,
-                sizeBytes = sizeBytes,
-                createdAt = now,
-                verifiedAt = now,
-                verificationStatus = "VERIFIED",
-                restoreVerifiedAt = now,
-            )
-            persistVerifiedEvidence(evidence)
-            return evidence
-        } catch (error: Exception) {
-            runCatching { Files.deleteIfExists(backupPath) }
-            throw if (error is IllegalStateException || error is IllegalArgumentException) error
-            else IllegalStateException("Failed to create verified SQLite chapter backup", error)
+            requireLifecyclePhase(chapterId, "FROZEN")
+            Files.createDirectories(backupDirectory)
+            check(!Files.exists(backupPath)) {
+                "Backup file already exists without recorded evidence"
+            }
+            try {
+                createSnapshot(backupPath)
+                val sha256 = sha256(backupPath)
+                val sizeBytes = Files.size(backupPath)
+                check(sizeBytes > 0) { "Backup file is empty" }
+                verifyRestorableCopy(backupPath, backupId)
+
+                val evidence = ChapterBackupEvidence(
+                    backupId = backupId,
+                    chapterId = chapterId,
+                    storageRef = backupPath.toString(),
+                    sha256 = sha256,
+                    sizeBytes = sizeBytes,
+                    createdAt = now,
+                    verifiedAt = now,
+                    verificationStatus = "VERIFIED",
+                    restoreVerifiedAt = now,
+                )
+                persistVerifiedEvidence(evidence)
+                evidence
+            } catch (error: Exception) {
+                try {
+                    Files.deleteIfExists(backupPath)
+                } catch (cleanup: Exception) {
+                    error.addSuppressed(cleanup)
+                }
+                throw if (error is IllegalStateException || error is IllegalArgumentException) error
+                else IllegalStateException("Failed to create verified SQLite chapter backup", error)
+            }
         }
     }
 
@@ -87,6 +100,7 @@ class SQLiteChapterBackupService(
     private fun verifyRestorableCopy(backupPath: Path, backupId: String) {
         val restorePath = backupDirectory.resolve(".$backupId.restore-verify.db")
         Files.deleteIfExists(restorePath)
+        var verificationError: Exception? = null
         try {
             Files.copy(backupPath, restorePath, StandardCopyOption.REPLACE_EXISTING)
             DriverManager.getConnection("jdbc:sqlite:$restorePath").use { restored ->
@@ -103,8 +117,19 @@ class SQLiteChapterBackupService(
                 requireTable(restored, "guild_progression")
                 requireTable(restored, "chapter_lifecycle")
             }
+        } catch (error: Exception) {
+            verificationError = error
+            throw error
         } finally {
-            Files.deleteIfExists(restorePath)
+            try {
+                Files.deleteIfExists(restorePath)
+            } catch (cleanup: Exception) {
+                if (verificationError != null) {
+                    verificationError.addSuppressed(cleanup)
+                } else {
+                    throw cleanup
+                }
+            }
         }
     }
     private fun requireTable(restored: Connection, table: String) {

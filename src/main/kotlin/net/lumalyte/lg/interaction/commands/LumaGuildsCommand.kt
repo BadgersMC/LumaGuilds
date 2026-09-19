@@ -442,10 +442,26 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                     Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
                         val result = runCatching {
                             storage.connection.connection.use { connection ->
-                                SQLiteChapterBackupService(
-                                    connection,
-                                    plugin.dataFolder.toPath().resolve("chapter-backups"),
-                                ).createVerifiedBackup(chapterId, backupId, System.currentTimeMillis())
+                                try {
+                                    SQLiteChapterBackupService(
+                                        connection,
+                                        plugin.dataFolder.toPath().resolve("chapter-backups"),
+                                    ).createVerifiedBackup(chapterId, backupId, System.currentTimeMillis())
+                                } catch (error: Exception) {
+                                    runCatching {
+                                        ChapterAdminRecoverySQL(connection).recordFailure(
+                                            chapterId = chapterId,
+                                            error = error.message ?: error.javaClass.simpleName,
+                                            transitionToken = backupId,
+                                            now = System.currentTimeMillis(),
+                                        )
+                                    }.onFailure { recoveryError ->
+                                        plugin.logger.severe(
+                                            "Failed to persist chapter backup failure for $chapterId: ${recoveryError.message}"
+                                        )
+                                    }
+                                    throw error
+                                }
                             }
                         }
                         Bukkit.getScheduler().runTask(plugin, Runnable {

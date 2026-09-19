@@ -46,6 +46,18 @@ class ChapterAdminRecoveryTest {
     }
 
     @Test
+    fun `postpone rejects a future end that would shorten the current schedule`() {
+        val admin = ChapterAdminRecoverySQL(connection)
+
+        assertThrows(IllegalStateException::class.java) {
+            admin.postpone("chapter-2", newEndAt = 600, now = 500)
+        }
+
+        assertEquals(1000, admin.status("chapter-2").endsAt)
+        assertEquals(0, admin.status("chapter-2").version)
+    }
+
+    @Test
     fun `retry clears failure metadata without skipping lifecycle state`() {
         connection.createStatement().use {
             it.execute("""UPDATE chapter_lifecycle
@@ -80,6 +92,23 @@ class ChapterAdminRecoveryTest {
         assertEquals("FROZEN", frozen.phase)
         assertEquals(null, frozen.lastError)
         assertFalse(frozen.phase == "BACKED_UP")
+    }
+
+    @Test
+    fun `record failure persists durable recovery metadata`() {
+        val admin = ChapterAdminRecoverySQL(connection)
+
+        val status = admin.recordFailure(
+            chapterId = "chapter-2",
+            error = "backup exploded",
+            transitionToken = "backup-42",
+            now = 650,
+        )
+
+        assertEquals("backup exploded", status.lastError)
+        assertEquals("backup-42", status.transitionToken)
+        assertEquals(650, status.updatedAt)
+        assertEquals(1, status.version)
     }
 
     @Test
