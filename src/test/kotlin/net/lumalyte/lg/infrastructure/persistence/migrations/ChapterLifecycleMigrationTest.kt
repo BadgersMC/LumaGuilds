@@ -64,7 +64,9 @@ class ChapterLifecycleMigrationTest {
         assertTrue(tableExists("chapter_backup_evidence"))
         assertTrue(tableExists("chapter_migrations"))
         assertTrue(tableExists("chapter_migration_receipts"))
-        assertEquals(30, databaseVersion())
+        assertTrue(tableExists("chapter_rated_pair_guards"))
+        assertTrue(tableExists("chapter_rated_war_results"))
+        assertEquals(31, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

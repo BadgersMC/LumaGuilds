@@ -75,6 +75,44 @@ class WarRepositorySQLTest {
         assertEquals(listOf(original.copy(revision = 1)), reopened.getAll())
     }
 
+    @Test fun `rated chapter identity survives a new repository`() {
+        val base = record()
+        val original = base.copy(
+            declaration = base.declaration!!.copy(ratedChapterId = "chapter-2"),
+            war = base.war!!.copy(ratedChapterId = "chapter-2"),
+        )
+        assertTrue(repository.save(original))
+        storage.connection.close()
+        storage = VirtualThreadSQLiteStorage(directory.toFile())
+        val reopened = WarRepositorySQL(storage)
+
+        val restored = reopened.get(original.id)!!
+        assertTrue(restored.declaration!!.isRated)
+        assertTrue(restored.war!!.isRated)
+        assertEquals("chapter-2", restored.war!!.ratedChapterId)
+    }
+
+    @Test fun `legacy version one war payload decodes as explicitly unrated`() {
+        val original = record().copy(revision = 1)
+        val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
+        json.addProperty("version", 1)
+        json.getAsJsonObject("record").getAsJsonObject("declaration").remove("ratedChapterId")
+        json.getAsJsonObject("record").getAsJsonObject("war").remove("ratedChapterId")
+
+        val decoded = WarRecordCodec.decode(json.toString())
+
+        assertFalse(decoded.declaration!!.isRated)
+        assertFalse(decoded.war!!.isRated)
+        assertEquals(null, decoded.declaration!!.ratedChapterId)
+        assertEquals(null, decoded.war!!.ratedChapterId)
+    }
+
+    @Test fun `version two payload cannot omit rated war identity`() {
+        val json = JsonParser.parseString(WarRecordCodec.encode(record())).asJsonObject
+        json.getAsJsonObject("record").getAsJsonObject("war").remove("ratedChapterId")
+        assertFailsWith<IllegalStateException> { WarRecordCodec.decode(json.toString()) }
+    }
+
     @Test fun `stale writer cannot overwrite a newer settlement decision`() {
         val original = record()
         assertTrue(repository.save(original))

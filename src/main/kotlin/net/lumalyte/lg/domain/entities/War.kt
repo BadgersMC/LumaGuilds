@@ -19,11 +19,16 @@ data class War(
     val objectives: Set<WarObjective> = emptySet(),
     val winner: UUID? = null,
     val loser: UUID? = null,
-    val peaceTerms: String? = null
+    val peaceTerms: String? = null,
+    val ratedChapterId: String? = null,
 ) {
     init {
         require(declaringGuildId != defendingGuildId) { "Guild cannot declare war on itself" }
+        require(ratedChapterId == null || ratedChapterId.isNotBlank()) { "Rated chapter id cannot be blank" }
     }
+
+    val isRated: Boolean
+        get() = ratedChapterId != null
 
     /**
      * Checks if the war is currently active.
@@ -167,9 +172,17 @@ data class WarDeclaration(
     val wagerAmount: Int = 0, // Amount wagered by declaring guild (escrowed)
     val declaredAt: Instant = Instant.now(),
     val expiresAt: Instant = Instant.now().plus(Duration.ofHours(24)), // 24 hour expiration
+    val ratedChapterId: String? = null,
     val accepted: Boolean = false,
     val rejected: Boolean = false
 ) {
+    init {
+        require(ratedChapterId == null || ratedChapterId.isNotBlank()) { "Rated chapter id cannot be blank" }
+    }
+
+    val isRated: Boolean
+        get() = ratedChapterId != null
+
     /**
      * Checks if the declaration is still valid (not expired and not responded to).
      */

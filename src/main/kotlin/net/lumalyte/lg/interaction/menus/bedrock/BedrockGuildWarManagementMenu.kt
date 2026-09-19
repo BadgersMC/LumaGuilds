@@ -36,6 +36,7 @@ class BedrockGuildWarManagementMenu(
     private val guildService: GuildService by inject()
     private val bankService: BankService by inject()
     private val memberService: MemberService by inject()
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
@@ -390,6 +391,13 @@ class BedrockGuildWarManagementMenu(
         val warHistory = warService.getWarHistory(guild.id, 50)
         val wins = warHistory.count { it.winner == guild.id }
         val losses = warHistory.size - wins
+        val seasonal = seasonalElo.view(guild.id)
+        val seasonalText = seasonal?.let {
+            "\n${lang.bedrock("bedrock.war_management.management_seasonal_elo")}: ${it.rating}" +
+                "\n${lang.bedrock("bedrock.war_management.management_seasonal_level")}: ${it.displayLevel}" +
+                "\n${lang.bedrock("bedrock.war_management.management_seasonal_rank")}: ${it.rank ?: "-"}" +
+                "\n${lang.bedrock("bedrock.war_management.management_rating_eligible")}: ${it.eligible}"
+        } ?: ""
 
         val form = SimpleForm.builder()
             .title(lang.bedrock("bedrock.war_management.management_war_statistics"))
@@ -397,7 +405,7 @@ class BedrockGuildWarManagementMenu(
                 |${lang.bedrock("bedrock.war_management.management_statistics_wars_won")}: $wins
                 |${lang.bedrock("bedrock.war_management.management_statistics_wars_lost")}: $losses
                 |${lang.bedrock("bedrock.war_management.management_statistics_win_rate")}: ${String.format("%.1f", winLossRatio * 100)}%
-                |${lang.bedrock("bedrock.war_management.management_statistics_total_wars")}: ${warHistory.size}
+                |${lang.bedrock("bedrock.war_management.management_statistics_total_wars")}: ${warHistory.size}$seasonalText
             """.trimMargin())
             .addButtonWithImage(
                 getBedrockConfig(),
@@ -441,6 +449,7 @@ class BedrockGuildWarManagementMenu(
                 |${lang.bedrock("bedrock.war_management.management_ended")}: ${war.endedAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")) ?: lang.bedrock("bedrock.war_management.management_ongoing")}
                 |${lang.bedrock("bedrock.war_management.management_result")}: $status
                 |${lang.bedrock("bedrock.war_management.management_duration")}: ${war.duration.toDays()} days
+                |${lang.bedrock("bedrock.war_management.management_rating")}: ${if (war.isRated) "RATED" else "UNRATED"}
             """.trimMargin())
             .addButtonWithImage(
                 getBedrockConfig(),
@@ -576,6 +585,13 @@ class BedrockGuildWarManagementMenu(
         contentBuilder.append(lang.bedrock("bedrock.war_management.management_declaration_action_description"))
         contentBuilder.append("\n\n")
         contentBuilder.append(lang.bedrock("bedrock.war_management.declaration_duration", "days" to warDeclaration.proposedDuration.toDays()) + "\n")
+        contentBuilder.append(
+            if (warDeclaration.isRated) {
+                lang.bedrock("bedrock.war_management.declaration_rated")
+            } else {
+                lang.bedrock("bedrock.war_management.declaration_unrated")
+            }
+        ).append("\n")
         contentBuilder.append(lang.bedrock("bedrock.war_management.declaration_objectives", "count" to warDeclaration.objectives.size) + "\n")
 
         if (warDeclaration.wagerAmount > 0) {
