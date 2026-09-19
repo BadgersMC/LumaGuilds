@@ -516,6 +516,14 @@ chapter:
 # Guild Progression System Configuration
 # =====================================
 
+seasonal_elo:
+  # Keep disabled until Chapter 2 migration and live war validation are complete.
+  enabled: false
+  # Starting and floor Elo are fixed by the Chapter 2 contract at 1000.
+  k_factor: 40
+  upper_display_rating: 1600
+  rematch_window_days: 7
+
 progression:
   # Keep false until Chapter 2 migration and player interfaces are ready.
   # This switch never migrates guilds; missing reward accounts block benefit reads.

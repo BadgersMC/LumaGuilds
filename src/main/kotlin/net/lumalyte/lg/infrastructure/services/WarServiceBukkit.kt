@@ -25,6 +25,7 @@ class WarServiceBukkit(
     private val progressionService: ProgressionService,
     private val warRepository: net.lumalyte.lg.application.persistence.WarRepository,
     private val warPayments: net.lumalyte.lg.application.services.WarPaymentService,
+    private val seasonalElo: SeasonalEloCoordinator? = null,
 ) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
@@ -78,7 +79,8 @@ class WarServiceBukkit(
         objectives: Set<WarObjective>,
         wagerAmount: Int,
         terms: String?,
-        actorId: UUID
+        actorId: UUID,
+        rated: Boolean,
     ): WarDeclaration? {
         return try {
             // Check if war already exists between these guilds
@@ -104,6 +106,20 @@ class WarServiceBukkit(
             // Check war slot limit (REQ-008): config max, refined upward by progression
             val currentWars = knownWars.filter { it.isActive && declaringGuildId in setOf(it.declaringGuildId, it.defendingGuildId) }
             val config = configService.loadConfig()
+            val ratedChapterId = if (rated) {
+                if (progressionRepository.getGuildProgression(declaringGuildId)?.currentLevel != 100 ||
+                    progressionRepository.getGuildProgression(defendingGuildId)?.currentLevel != 100
+                ) {
+                    logger.debug("Rated war declaration rejected because both guilds are not current-run level 100")
+                    return null
+                }
+                seasonalElo?.currentRatedChapterId() ?: run {
+                    logger.debug("Rated war declaration rejected because seasonal Elo is not active in a scheduled chapter")
+                    return null
+                }
+            } else {
+                null
+            }
             val maxWars = maxWarsForGuild(declaringGuildId, config.combat.maxSimultaneousWars)
 
             if (currentWars.size >= maxWars) {
@@ -117,7 +133,8 @@ class WarServiceBukkit(
                 proposedDuration = effectiveWarDuration(duration),
                 objectives = objectives,
                 terms = terms,
-                wagerAmount = wagerAmount
+                wagerAmount = wagerAmount,
+                ratedChapterId = ratedChapterId,
             )
 
             saveDeclaration(declaration)
@@ -139,12 +156,22 @@ class WarServiceBukkit(
         return try {
             val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return null
             if (!declaration.isValid) return null
+            if (declaration.isRated) {
+                val currentRatedChapter = seasonalElo?.currentRatedChapterId()
+                if (currentRatedChapter != declaration.ratedChapterId ||
+                    progressionRepository.getGuildProgression(declaration.declaringGuildId)?.currentLevel != 100 ||
+                    progressionRepository.getGuildProgression(declaration.defendingGuildId)?.currentLevel != 100
+                ) {
+                    logger.debug("Rated war acceptance rejected because chapter or level-100 eligibility changed")
+                    return null
+                }
+            }
             var record = requireNotNull(warRepository.get(declarationId))
             if (record.war?.isEnded == true || record.war?.status == WarStatus.CANCELLED) return null
             if (record.war == null) {
                 val pending = War(id = declarationId, declaringGuildId = declaration.declaringGuildId,
                     defendingGuildId = declaration.defendingGuildId, duration = declaration.proposedDuration,
-                    objectives = declaration.objectives)
+                    objectives = declaration.objectives, ratedChapterId = declaration.ratedChapterId)
                 persist(record.copy(war = pending, stats = WarStats(declarationId)))
             }
             if (declaration.wagerAmount > 0 && createWager(declarationId, declaration.wagerAmount, declaration.wagerAmount) == null) {
@@ -190,9 +217,12 @@ class WarServiceBukkit(
             val ended = war.copy(status = WarStatus.ENDED, endedAt = Instant.now(),
                 winner = winnerGuildId, loser = loser, peaceTerms = peaceTerms)
             saveWar(ended)
+            rateResolvedWar(ended)
             resolveWager(warId, winnerGuildId)
             applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, winnerGuildId)
-            awardWarExperience(winnerGuildId)
+            if (!ended.isRated) {
+                awardWarExperience(winnerGuildId)
+            }
             Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loser, war.declaringGuildId, war.defendingGuildId))
             true
         } catch (error: Exception) {
@@ -214,6 +244,7 @@ class WarServiceBukkit(
                 peaceTerms = reason ?: "War ended in a draw"
             )
             saveWar(endedWar)
+            rateResolvedWar(endedWar)
             resolveWager(warId, null)
             logger.info("War ended as draw: $warId, reason: $reason")
             true
@@ -454,6 +485,12 @@ class WarServiceBukkit(
             acceptWarDeclaration(it.id, UUID(0, 0))
             warRepository.get(it.id)?.let { updated -> snapshot[it.id] = updated }
         }
+        // Retry seasonal rating for durable completed outcomes. The Elo repository's war-id receipt
+        // makes this idempotent, so a transient database failure cannot permanently lose a rated result.
+        snapshot.values.mapNotNull { it.war }
+            .filter { it.isEnded && it.isRated }
+            .forEach(::rateResolvedWar)
+
         // Retry durable, already-chosen outcomes even when the ended war is no longer active.
         snapshot.values.toList().filter { it.wager != null && (it.war?.isEnded == true || it.war?.status == WarStatus.CANCELLED) &&
             it.paymentPhase !in setOf(WarPaymentPhase.SETTLED, WarPaymentPhase.REVIEW) }
@@ -688,6 +725,45 @@ class WarServiceBukkit(
 
     override fun getPendingPeaceAgreementsForGuild(guildId: UUID): List<PeaceAgreement> {
         return peaceAgreements.values.filter { it.targetGuildId == guildId && it.isValid }
+    }
+
+    private fun rateResolvedWar(war: War) {
+        val chapterId = war.ratedChapterId ?: return
+        val coordinator = seasonalElo ?: return
+        try {
+            val draw = war.winner == null
+            val firstScore = when {
+                draw -> 0.5
+                war.winner == war.declaringGuildId -> 1.0
+                else -> 0.0
+            }
+            val secondScore = when {
+                draw -> 0.5
+                war.winner == war.defendingGuildId -> 1.0
+                else -> 0.0
+            }
+            when (val result = coordinator.rateWar(
+                war.id,
+                chapterId,
+                war.declaringGuildId,
+                war.defendingGuildId,
+                firstScore,
+                secondScore,
+                war.endedAt?.toEpochMilli() ?: System.currentTimeMillis(),
+            )) {
+                is net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.Rated ->
+                    logger.info("Rated war ${war.id}: ${result.firstBefore}->${result.firstAfter}, ${result.secondBefore}->${result.secondAfter}")
+                net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.RematchGuarded ->
+                    logger.debug("War ${war.id} completed inside seasonal Elo rematch window; unrated")
+                net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.Ineligible ->
+                    logger.debug("War ${war.id} is not eligible for seasonal Elo")
+                net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.Frozen ->
+                    logger.debug("War ${war.id} seasonal Elo is frozen by chapter state")
+                net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.Replayed -> Unit
+            }
+        } catch (error: Exception) {
+            logger.warn("Seasonal Elo update failed for resolved war ${war.id}; reconciliation will retry", error)
+        }
     }
 
     // Daily War Costs

@@ -105,6 +105,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private val nexoEmojiService: NexoEmojiService by inject()
     private val questService: QuestService by inject()
     private val storage: Storage<Database> by inject()
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
 
     private val miniMessage = MiniMessage.miniMessage()
     private val plainSerializer = PlainTextComponentSerializer.plainText()
@@ -175,6 +176,10 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "guild_emoji_minimessage" -> ColorCodeUtils.emojiToGlyphTag(guild.emoji)
             "guild_emoji_font" -> nexoEmojiService.emojiToFontTag(guild.emoji)
             "guild_level" -> guild.level.toString()
+            "guild_seasonal_elo" -> seasonalElo.view(guildId)?.rating?.toString() ?: ""
+            "guild_seasonal_level" -> seasonalElo.view(guildId)?.displayLevel?.toString() ?: ""
+            "guild_seasonal_rank" -> seasonalElo.view(guildId)?.rank?.toString() ?: ""
+            "guild_rating_eligible" -> (seasonalElo.view(guildId)?.eligible ?: false).toString()
             // BankService.getBalance resolves to the unified guild balance (store B: vault gold),
             // the single source of truth shared by /g bal, /g baltop, /g menu -> Bank and the vault.
             "guild_balance" -> safeBalance(guildId).toString()

@@ -37,6 +37,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     private val warService: WarService by inject()
     private val guildService: GuildService by inject()
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
 
@@ -192,6 +193,14 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
             .lore(lang.gui("menu.guild_war_management.quick_stats.total", "count" to totalWars))
             .lore(lang.gui("menu.guild_war_management.quick_stats.ratio", "ratio" to String.format("%.2f", winLossRatio)))
             .lore(lang.gui("menu.guild_war_management.quick_stats.active", "count" to warService.getWarsForGuild(guild.id).count { it.isActive }))
+        seasonalElo.view(guild.id)?.let { seasonal ->
+            statsItem.lore(lang.gui("menu.guild_war_management.quick_stats.elo", "rating" to seasonal.rating))
+            statsItem.lore(lang.gui("menu.guild_war_management.quick_stats.seasonal_level", "level" to seasonal.displayLevel))
+            statsItem.lore(lang.gui(
+                "menu.guild_war_management.quick_stats.seasonal_rank",
+                "rank" to (seasonal.rank?.toString() ?: "-"),
+            ))
+        }
 
         val statsGuiItem = GuiItem(statsItem) {
             openDetailedStatsMenu()
@@ -247,6 +256,11 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
                         WarStatus.CANCELLED -> "menu.guild_war_management.war_details.info.status_cancelled"
                     }
                 ))
+        if (war.isRated) {
+            infoItem.lore(lang.gui("menu.guild_war_management.war_details.info.rated"))
+        } else {
+            infoItem.lore(lang.gui("menu.guild_war_management.war_details.info.unrated"))
+        }
         pane.addItem(GuiItem(infoItem), 0, 0)
 
         // Row 0-1: Objective progress bars
@@ -864,6 +878,23 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val activeItem = ItemStack.of(Material.REDSTONE_TORCH)
             .name(lang.gui("menu.guild_war_management.war_stats.active", "count" to activeCount))
         pane.addItem(GuiItem(activeItem) { }, 6, 0)
+
+        seasonalElo.view(guild.id)?.let { seasonal ->
+            val seasonalItem = ItemStack.of(Material.NETHER_STAR)
+                .name(lang.gui("menu.guild_war_management.war_stats.seasonal.name"))
+                .lore(lang.gui("menu.guild_war_management.war_stats.seasonal.elo", "rating" to seasonal.rating))
+                .lore(lang.gui("menu.guild_war_management.war_stats.seasonal.level", "level" to seasonal.displayLevel))
+                .lore(lang.gui(
+                    "menu.guild_war_management.war_stats.seasonal.rank",
+                    "rank" to (seasonal.rank?.toString() ?: "-"),
+                ))
+            if (seasonal.eligible) {
+                seasonalItem.lore(lang.gui("menu.guild_war_management.war_stats.seasonal.eligible"))
+            } else {
+                seasonalItem.lore(lang.gui("menu.guild_war_management.war_stats.seasonal.ineligible"))
+            }
+            pane.addItem(GuiItem(seasonalItem) { }, 8, 0)
+        }
 
         // Win rate centrepiece
         val winRate = if (total > 0) wins.toDouble() / total.toDouble() * 100.0 else 0.0

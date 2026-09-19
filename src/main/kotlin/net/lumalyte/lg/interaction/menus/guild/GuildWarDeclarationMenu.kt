@@ -54,6 +54,7 @@ class GuildWarDeclarationMenu(
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
     private val configService: ConfigService by inject()
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
@@ -64,6 +65,7 @@ class GuildWarDeclarationMenu(
     private var warTerms: String? = null
     private var inputMode: String? = null // Track what input mode we're in ("war_terms")
     private var wagerAmount: Int = 0 // War pot amount
+    private var selectedRated: Boolean = false
 
     override fun open() {
         // Check permissions first
@@ -218,6 +220,9 @@ class GuildWarDeclarationMenu(
 
         // Duration selection
         addDurationSelection(pane)
+
+        // Seasonal rating selection
+        addRatedSelection(pane, target)
         
         // War wager selection
         addWarWagerSection(pane)
@@ -249,6 +254,50 @@ class GuildWarDeclarationMenu(
             open() // Refresh menu
         }
         pane.addItem(guiItem, 3, 1)
+    }
+
+    private fun addRatedSelection(pane: StaticPane, target: Guild) {
+        val ownView = seasonalElo.view(guild.id)
+        val targetView = seasonalElo.view(target.id)
+        val available = ownView?.eligible == true &&
+            targetView?.eligible == true &&
+            ownView.chapterId == targetView.chapterId
+
+        if (!available) selectedRated = false
+
+        val item = when {
+            !available -> ItemStack.of(Material.BARRIER)
+                .name(lang.gui("menu.war_declaration.item.rated.name.unavailable"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.unavailable"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.requirements"))
+            selectedRated -> ItemStack.of(Material.NETHER_STAR)
+                .name(lang.gui("menu.war_declaration.item.rated.name.enabled"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.enabled"))
+                .lore(lang.gui(
+                    "menu.war_declaration.item.rated.lore.chapter",
+                    "chapter" to ownView!!.chapterId,
+                ))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.toggle"))
+            else -> ItemStack.of(Material.IRON_SWORD)
+                .name(lang.gui("menu.war_declaration.item.rated.name.disabled"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.disabled"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.toggle"))
+        }
+
+        pane.addItem(GuiItem(item) {
+            if (!available) {
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.rated_unavailable"))
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return@GuiItem
+            }
+            selectedRated = !selectedRated
+            if (selectedRated) {
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.rated_enabled"))
+            } else {
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.rated_disabled"))
+            }
+            open()
+        }, 4, 1)
     }
 
     private fun addWarWagerSection(pane: StaticPane) {
@@ -474,6 +523,15 @@ class GuildWarDeclarationMenu(
                 } else {
                     lang.gui("menu.war_declaration.item.declare.lore.no_wager")
                 })
+                .also { item ->
+                    item.lore(
+                        if (selectedRated) {
+                            lang.gui("menu.war_declaration.item.declare.lore.rated")
+                        } else {
+                            lang.gui("menu.war_declaration.item.declare.lore.unrated")
+                        }
+                    )
+                }
                 .lore(lang.gui("menu.common.blank"))
                 .lore(lang.gui("menu.war_declaration.item.declare.lore.notify_1"))
                 .lore(lang.gui("menu.war_declaration.item.declare.lore.notify_2"))
@@ -538,12 +596,18 @@ class GuildWarDeclarationMenu(
                 objectives = selectedObjectives,
                 wagerAmount = wagerAmount,
                 terms = warTerms,
-                actorId = player.uniqueId
+                actorId = player.uniqueId,
+                rated = selectedRated,
             )
 
             if (declaration != null) {
                 player.sendMessage(lang.msg("menu.war_declaration.feedback.sent", "guild" to target.name))
                 player.sendMessage(lang.msg("menu.war_declaration.feedback.duration", "days" to selectedDuration.toDays()))
+                if (declaration.isRated) {
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.rated_created"))
+                } else {
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.unrated_created"))
+                }
                 if (selectedObjectives.isNotEmpty()) {
                     player.sendMessage(lang.msg("menu.war_declaration.feedback.objectives", "count" to selectedObjectives.size))
                 }
