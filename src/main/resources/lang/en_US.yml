@@ -148,6 +148,8 @@ bedrock:
   war_management:
     unknown_error: 'Unknown error'
     declaration_duration: '<gray>Duration: <white><days> days'
+    declaration_rated: '<aqua>Seasonal rating: <white>RATED'
+    declaration_unrated: '<gray>Seasonal rating: UNRATED'
     declaration_objectives: '<gray>Objectives: <white><count>'
     declaration_terms: '<gray>Terms: <white><terms>'
     accepted: '<green>⚔ War accepted! Battle begins now!'
@@ -198,6 +200,7 @@ bedrock:
     management_outgoing_declarations: 'Outgoing Declarations'
     management_remaining_days: 'Remaining days: <days>'
     management_result: 'Result'
+    management_rating: 'Seasonal Rating'
     management_select_declaration: 'Select a declaration to manage'
     management_select_war: 'Select a war to view details'
     management_started: 'Started'
@@ -205,6 +208,10 @@ bedrock:
     management_statistics_wars_lost: 'Wars Lost'
     management_statistics_wars_won: 'Wars Won'
     management_statistics_win_rate: 'Win Rate'
+    management_seasonal_elo: 'Seasonal Elo'
+    management_seasonal_level: 'Displayed Level'
+    management_seasonal_rank: 'Seasonal Rank'
+    management_rating_eligible: 'Rated Eligible'
     management_title: 'War Management'
     management_to: 'To'
     management_unknown_guild: 'Unknown Guild'
@@ -382,6 +389,8 @@ bedrock:
       seven_days: 7 days
       fourteen_days: 14 days
       thirty_days: 30 days
+    rated:
+      label: Rated Seasonal War (requires both guilds at level 100)
     terms:
       label: War Terms
       placeholder: Enter optional terms
@@ -408,6 +417,9 @@ bedrock:
       objectives: '<gray>Objectives configured: <white><count>'
       wager: '<gray>Wager: <gold><amount>'
       awaiting: '<yellow>The defending guild must accept or decline the declaration.'
+      rated_unavailable: '<red>Rated wars require both guilds at current-run level 100 during an active chapter.'
+      rated_created: '<aqua>Seasonal rating: <white>RATED'
+      unrated_created: '<gray>Seasonal rating: UNRATED'
       failed: '<red>Failed to create the war declaration.'
   peace_agreement:
     title: 'Propose Peace - <guild>'
@@ -3741,6 +3753,8 @@ menu:
     details:
       name: '<yellow>📋 War Details'
       duration: '<gray>Duration: <white><days> days'
+      rated: '<aqua>Seasonal rating: <white>RATED'
+      unrated: '<gray>Seasonal rating: UNRATED'
       objectives: '<gray>Objectives: <white><count>'
       objective: '<gray>• <white><objective>'
       wager: '<gold>💰 Wager: <white><amount> gold'
@@ -3837,6 +3851,11 @@ menu:
       terms_retry: '<gray>Please try again or type ''cancel'' to skip:'
       terms_set: '<green>✅ War terms set: <white>"<terms>"'
       terms_too_long: '<red>❌ War terms too long! Maximum <maximum> characters.'
+      rated_enabled: '<aqua>Seasonal rating enabled for this declaration.'
+      rated_disabled: '<gray>Seasonal rating disabled for this declaration.'
+      rated_unavailable: '<red>Rated wars require both guilds at level 100 and an active scheduled chapter.'
+      rated_created: '<aqua>Seasonal rating: <white>RATED'
+      unrated_created: '<gray>Seasonal rating: UNRATED'
       wager_added: '<green>✅ Added <gold><amount> coins <green>to wager'
       wager_removed: '<gray>🗑 Removed <gold><amount> coins <gray>from wager'
       wager_escrow: '<gray>Wager: <gold><amount> coins <gray>(escrowed on acceptance)'
@@ -3856,6 +3875,8 @@ menu:
           duration: '<gray>Duration: <white><days> days'
           escrow: '<red>⚠︎ Funds will be held in escrow!'
           no_wager: '<gray>Wager: <gray>None (honor only)'
+          rated: '<aqua>Seasonal rating: <white>RATED'
+          unrated: '<gray>Seasonal rating: UNRATED'
           notify_1: '<red>⚠︎ This will notify all members'
           notify_2: '<red>⚠︎ of both guilds!'
           objectives: '<gray>Objectives: <white><count>'
@@ -3909,6 +3930,18 @@ menu:
           description: '<gray>First guild to complete any objective wins!'
           row: '<gray><icon> <white><type>: <yellow><target>'
         name: '<red>⚔ War Objectives (<count>)'
+      rated:
+        name:
+          enabled: '<aqua>★ Rated Seasonal War'
+          disabled: '<gray>☆ Unrated War'
+          unavailable: '<red>Rated War Unavailable'
+        lore:
+          enabled: '<aqua>This result will update seasonal Elo.'
+          disabled: '<gray>This war will not affect seasonal Elo.'
+          unavailable: '<red>Both guilds must be level 100 in an active chapter.'
+          requirements: '<gray>Prestige or chapter rollover can make a pending rated declaration ineligible.'
+          chapter: '<gray>Chapter: <white><chapter>'
+          toggle: '<yellow>Click to toggle rated/unrated.'
       remove_wager:
         lore:
           current: '<gray>Current: <gold><amount> coins'
@@ -5464,6 +5497,9 @@ menu:
       total: "<gray>Total Wars: <white><count>"
       ratio: "<gray>Win/Loss Ratio: <white><ratio>"
       active: "<gray>Active Wars: <white><count>"
+      elo: "<aqua>Seasonal Elo: <white><rating>"
+      seasonal_level: "<aqua>Displayed Level: <white><level>"
+      seasonal_rank: "<aqua>Seasonal Rank: <white>#<rank>"
     back:
       name: "<yellow>Back to Control Panel"
       description: "<gray>Return to guild management"
@@ -5477,6 +5513,8 @@ menu:
         status_ended: "<gray>Status: <dark_gray>ENDED"
         status_declared: "<gray>Status: <yellow>DECLARED"
         status_cancelled: "<gray>Status: <dark_gray>CANCELLED"
+        rated: "<aqua>Seasonal rating: <white>RATED"
+        unrated: "<gray>Seasonal rating: UNRATED"
       objectives:
         title: "<dark_aqua>Objectives"
         entry: "<gray><type>: <white><current>/<target>"
@@ -5587,6 +5625,13 @@ menu:
       objectives: "<gray>Objectives Completed: <white><count>"
       claims_captured: "<gray>Claims Captured: <white><count>"
       claims_lost: "<gray>Claims Lost: <red><count>"
+      seasonal:
+        name: "<aqua>Seasonal Rating"
+        elo: "<gray>Elo: <white><rating>"
+        level: "<gray>Displayed Level: <white><level>"
+        rank: "<gray>Rank: <white>#<rank>"
+        eligible: "<green>Eligible for rated wars"
+        ineligible: "<red>Not currently eligible for rated wars"
       back:
         name: "<yellow>Back to War Management"
         lore: "<gray>Return to war management"

@@ -39,7 +39,8 @@ data class MainConfig(
     var bedrock: BedrockConfig = BedrockConfig(),
     var webApi: WebApiConfig = WebApiConfig(),
     var strikes: StrikesConfig = StrikesConfig(),
-    // Independent rollout gates; neither performs migration or state initialization.
+    var seasonalElo: SeasonalEloConfig = SeasonalEloConfig(),
+    // Independent rollout gates; none performs migration or state initialization.
     var chapterTwoRewardsEnabled: Boolean = false,
     var chapterTwoGoldCostsEnabled: Boolean = false
 )
@@ -47,6 +48,19 @@ data class MainConfig(
 /**
  * Guild Strikes — LiteBans punishments attributed to guilds.
  */
+data class SeasonalEloConfig(
+    var enabled: Boolean = false,
+    var kFactor: Int = 40,
+    var upperDisplayRating: Int = 1600,
+    var rematchWindowDays: Int = 7,
+) {
+    fun settings() = net.lumalyte.lg.domain.values.SeasonalEloSettings(
+        kFactor = kFactor,
+        upperDisplayRating = upperDisplayRating,
+        rematchWindowMillis = Math.multiplyExact(rematchWindowDays.toLong(), 86_400_000L),
+    )
+}
+
 data class StrikesConfig(
     /** Master switch: if false, no punishments are recorded and /g strikes is disabled. */
     var enabled: Boolean = true,

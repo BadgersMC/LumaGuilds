@@ -366,11 +366,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence: 2026-09-17 source inventory and approved 100-row catalog in `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`, grounded in REQ-049/050/054/056/090–093 and the approved 2026-08-30 prestige/gold design. Read-only arithmetic checks passed: 100 ordered unique levels, 20 numeric plus 10 major purchases, 30 unique IDs, all capacity values and positive affordable prices, 48,500 total gold and nine permanent home slots. DOC scope; runtime tests/build not run, no deployed behavior claimed. Operator explicitly accepted the six decisions and complete table on 2026-09-17.
   - Files: `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`, handoff and tasks; no reward config/registry changes
   - Notes: levels 101–200 are seasonal Elo presentation, not permanent reward levels
-- [ ] **LG-1203** Seasonal Elo — rated level-100 wars, opponent weighting, rematch guard, and 101–200 display mapping
+- [x] **LG-1203** Seasonal Elo — rated level-100 wars, opponent weighting, rematch guard, and 101–200 display mapping
   - Tag: `TDD`
   - References: REQ-051, REQ-053
-  - Evidence:
-  - Files: war resolution, seasonal rating service/repository, menus/placeholders
+  - Evidence: Explicit rated declarations require both guilds at current-run level 100 and bind the accepted war to the exact scheduled chapter; acceptance rechecks eligibility/chapter identity, while legacy and explicitly unrated wars carry no rating identity. Rated resolution uses opponent-weighted Elo from one pre-result snapshot with K=40, fixed start/floor 1000, configurable 1600 display ceiling and seven-day unordered-pair guard; the pair guard, both rating writes and durable war-result receipt commit atomically, and replay is idempotent. Rated results do not award current-run war-win XP; unrated wars retain the legacy progression path. Persisted war records use backward-compatible v2 rating identity (v1 decodes unrated), v31 adds pair/result persistence for SQLite and MariaDB, rollover prunes old pair guards while retaining result receipts, and the rollout gate defaults disabled. Java/Bedrock declaration, acceptance and war-stat UI plus seasonal Elo/level/rank/eligibility placeholders consume the gated read model. Focused Elo/war/locale/migration contracts pass; final offline `test shadowJar`: 1,054 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
+  - Files: `SeasonalElo.kt`, `SeasonalEloRepositorySQL.kt`, `SeasonalEloCoordinator.kt`, war domain/service/persistence, v31 migrations, Java/Bedrock menus, placeholders/config/localization and regression contracts
 - [x] **LG-1204** Dynamic XP rates — operator-hosted "increased XP" days
   - Tag: `TDD`
   - References: REQ-052
