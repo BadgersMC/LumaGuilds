@@ -63,9 +63,10 @@ class ChapterAdminRecoverySQL(
             SET ends_at=?, updated_at=?, version=version+1,
                 last_error=NULL, transition_token=NULL
             WHERE chapter_id=? AND phase='SCHEDULED'
+              AND (ends_at IS NULL OR ends_at < ?)
             """.trimIndent(),
-            newEndAt, now, chapterId,
-            failure = "Only a scheduled chapter can be postponed",
+            newEndAt, now, chapterId, newEndAt,
+            failure = "Only a scheduled chapter can be postponed to a later end time",
         )
         return status(chapterId)
     }
