@@ -184,30 +184,250 @@ Each network objective must declare a reward strategy, for example:
 - **CONTRIBUTION_WEIGHTED** — distribute a defined reward according to contribution.
 
 The exact reward catalogue is future design work. The architectural requirement is that the strategy is explicit and auditable.
-## 7. Federation lifecycle
+## 7. Federation creation, migration, and lifecycle
 
-Federation is optional and deliberate.
+Federation is optional and deliberate. Existing local guilds do **not** convert into network guilds and do not receive replacement UUIDs.
 
-Creating a local guild does not automatically create a network guild.
+Creating a local guild does not automatically create a network guild. Joining a local guild does not automatically change any federation membership.
 
-Joining a local guild does not automatically change any federation membership.
+### 7.1 Existing-guild migration is additive, not transformative
 
-A future federation flow should support:
+When federation support is introduced, every existing guild remains exactly where it is with the same local guild UUID and all existing local state intact.
+
+No migration may rewrite or copy:
+- membership or ownership;
+- ranks or rank permissions;
+- guild level or XP;
+- guild gold or vault contents;
+- homes;
+- claims;
+- wars or Elo;
+- local weekly quest progress;
+- local statistics/history.
+
+A local guild becomes globally addressable by pairing the instance/realm identity with its existing local UUID:
+
+```text
+enthusia:smp / <existing-local-guild-uuid>
+```
+
+The federation layer stores links to that identity rather than replacing it.
+A newly deployed federation system therefore sees existing guilds as:
+
+```text
+Local Guild: Badgers
+Local level: 100
+Federation: NOT LINKED
+```
+
+The guild continues operating normally until authorized leadership explicitly creates or joins a federation.
+
+### 7.2 Creating a network guild
+
+An authorized local-guild leader may create a new network guild from an existing local guild.
+
+Conceptually:
+
+```text
+/g federation create
+```
+
+Creation:
+1. creates a new immutable network-guild UUID;
+2. records the creating local guild as the **founding guild**;
+3. immediately links that local guild to the new network guild;
+4. derives the initial network display name/banner from the founding guild unless explicitly changed;
+5. assigns the initiating authorized player the initial network-owner authority.
+
+The founding guild's gameplay state is not copied into network progression.
+
+Example:
+
+```text
+Network Guild: Badgers
+  Founding local guild:
+    Enthusia SMP -> Badgers (level 100)
+```
+### 7.3 Linking a guild from another gamemode
+
+A federation may invite an existing local guild from another gamemode through a short-lived, single-use invitation/link token or equivalent authenticated flow.
+
+Conceptually:
+
+```text
+/g federation invite
+-> BGR-7K4M
+
+# executed by authorized leadership of the target local guild
+/g federation link BGR-7K4M
+```
+
+The link operation must verify:
+- the invitation exists, is unexpired, and has not already been consumed;
+- the actor has local authority to federate the target guild;
+- the target local guild is not already linked to another network guild;
+- the network guild still permits the invitation;
+- the target realm slot is available.
+
+The initial model permits **at most one local guild per gamemode/realm in a network guild**.
+
+This distinguishes federation from alliance mechanics and prevents a network guild from multiplying one gamemode's contributions by enrolling several local guilds from the same server.
+
+Conceptually the persistence invariant is:
+
+```text
+UNIQUE(network_guild_id, realm_id)
+UNIQUE(realm_id, local_guild_id)
+```
+Local names do not need to match the network-guild name.
+
+Example:
+
+```text
+Badgers Federation
+  SMP       -> Badgers
+  Kingdoms  -> Badgers Kingdom
+```
+
+The rosters may overlap completely, partially, or not at all.
+
+### 7.4 Player membership remains local
+
+Federating two local guilds never federates their individual players.
+
+A player may legitimately have:
+
+```text
+SMP:
+  Badgers -> Badgers Federation
+
+Kingdoms:
+  Mercury -> Mercury Federation
+```
+
+This is not a conflict. Network attribution always follows the player's local guild on the gamemode where the activity occurred.
+
+No federation operation may auto-join, auto-leave, or reserve membership for a player on another gamemode.
+
+### 7.5 Network leadership is separate from local ranks
+
+Network authority must not be inferred continuously from a local guild's current rank structure.
+At federation creation, the authorized creator may become the initial network owner. After that, network administration is its own authority boundary.
+
+Changing ownership of the founding SMP guild does not automatically transfer ownership of the entire network federation.
+
+Likewise, becoming owner of a linked local guild does not automatically grant network-owner authority.
+
+Future network roles may include owner/admin or another minimal permission model, but those roles remain separate from local guild ranks.
+
+### 7.6 Existing-name reservation during rollout
+
+Initial federation rollout must protect established local guild identities from trivial network-name squatting.
+
+Before or at launch, existing active local guild names may be registered as **network-name reservations** owned by the corresponding local guild identity.
+
+A reservation:
+- is not itself an active network guild;
+- grants the established local guild first claim on the corresponding network display name;
+- must not alter local guild naming;
+- may eventually expire under a separately approved inactivity policy.
+
+Example:
+
+```text
+Reserved network name: Badgers
+Reserved for: enthusia:smp / <Badgers local UUID>
+```
+
+This prevents a newly created guild on another gamemode from claiming an established SMP identity before the existing guild has had a reasonable opportunity to federate.
+
+Exact reservation duration and inactivity rules remain deployment-policy decisions.
+
+### 7.7 Unlinking does not delete either side
+
+Unlinking a local guild:
+- removes only the federation link;
+- stops future network attribution through that link;
+- preserves all local guild state;
+- preserves the network guild and its other linked guilds;
+- preserves accepted historical network contributions and audit records.
+
+A local guild may later join another federation subject to cooldown/security policy and active-event restrictions.
+
+### 7.8 Local-guild disband does not automatically destroy the network guild
+
+If a linked local guild disbands, its realm slot becomes vacant after durable disband reconciliation.
+
+Example before:
+
+```text
+Badgers Federation
+  SMP       -> Badgers
+  Kingdoms  -> Badgers Kingdom
+```
+
+After the SMP guild disbands:
+
+```text
+Badgers Federation
+  SMP       -> [vacant]
+  Kingdoms  -> Badgers Kingdom
+```
+
+The network guild survives as long as its own deletion policy permits.
+
+A replacement local guild may later be approved for the vacant realm slot without inheriting the deleted guild's local progression.
+
+### 7.9 Historical network contribution ownership is immutable
+
+Network-event contribution is bound to the network guild that owned the federation link **when the contribution was accepted**.
+
+Example:
+
+```text
+Monday:
+  Guild A -> Federation Red
+  Guild A contributes 5,000 points
+
+Thursday:
+  Guild A unlinks and later joins Federation Blue
+```
+
+The already accepted 5,000 points remain attributed to Federation Red.
+
+Historical scores must never be recomputed from the guild's current federation link.
+
+This prevents federation switching from becoming a way to transfer accumulated event progress.
+
+Competitive network events may additionally lock federation changes or delay link changes until event completion, but immutable historical attribution is required regardless.
+
+### 7.10 Federation link audit and recovery
+
+The federation service must durably record:
+- federation creation;
+- founding local guild;
+- link invitations;
+- accepted/rejected/expired invitations;
+- link and unlink operations;
+- network ownership/administration changes;
+- local-guild disband reconciliation;
+- network-guild deletion/recovery;
+- actor identities and timestamps.
+
+Retrying a completed link/unlink operation must be idempotent.
+
+Federation should be designed as a separate service/boundary rather than placing shared federation tables directly inside every local LumaGuilds database.
+
+A future federation flow therefore supports:
 - create a network guild identity;
 - invite/link an existing local guild;
-- prove authorization from the local guild leadership;
-- accept the link from the network organization side when appropriate;
+- prove authorization from local leadership;
 - unlink without deleting either guild;
-- transfer or recover federation administration;
-- audit link/unlink history.
-
-Unlinking a local guild stops future network attribution from that guild. It must not delete local quest progress, local progression, local history, or the network guild itself.
-
-Historical network contributions already accepted remain historical records unless an explicit administrative correction is performed.
+- transfer/recover federation administration;
+- audit the complete federation lifecycle.
 
 Network naming, banner, Discord identity, and other presentation may be independent from local guild presentation. Automatic rename propagation is not assumed.
 
-Federation should be designed as a separate service/boundary rather than placing shared tables directly inside every local LumaGuilds database.
 ## 8. Quest-engine consequences
 
 PR-16 remains a **local weekly quest engine** for the current SMP. Future federation must not be required for PR-16 to function.
@@ -348,8 +568,7 @@ No federation failure may silently grant local guild progression.
 
 The following are not decided by this design:
 - the physical transport/service used for federation;
-- whether a network guild may link multiple local guilds from the same gamemode;
-- network guild naming/creation UX;
+- exact command/menu UX for federation creation and link invitations;
 - federation leadership and voting rules;
 - whether network guilds have their own ranks;
 - network-wide economy, if any;
