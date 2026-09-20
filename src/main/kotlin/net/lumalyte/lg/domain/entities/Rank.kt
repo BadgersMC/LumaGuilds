@@ -43,6 +43,7 @@ enum class RankPermission {
     // Relations & Diplomacy
     MANAGE_RELATIONS,
     DECLARE_WAR,
+    PLACE_WAR_BANNER,
     ACCEPT_ALLIANCES,
     MANAGE_PARTIES,
     SEND_PARTY_REQUESTS,

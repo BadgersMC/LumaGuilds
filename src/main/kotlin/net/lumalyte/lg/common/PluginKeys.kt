@@ -38,6 +38,21 @@ object PluginKeys {
         NamespacedKey(pluginInstance, "guild_banner")
     }
 
+    /** Marker for deployable tactical war-banner items. */
+    val WAR_BANNER_ITEM: NamespacedKey by lazy {
+        NamespacedKey(pluginInstance, "war_banner_item")
+    }
+
+    /** Guild owner encoded on a deployable war-banner item or placed banner tile. */
+    val WAR_BANNER_GUILD_ID: NamespacedKey by lazy {
+        NamespacedKey(pluginInstance, "war_banner_guild_id")
+    }
+
+    /** Unique active war-banner deployment id stored on the placed banner tile. */
+    val WAR_BANNER_ID: NamespacedKey by lazy {
+        NamespacedKey(pluginInstance, "war_banner_id")
+    }
+
     /**
      * Returns the plugin instance for use in scheduler tasks and event registration.
      */

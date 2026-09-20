@@ -238,6 +238,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             ),
             "Diplomacy" to listOf(
                 RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
+                RankPermission.PLACE_WAR_BANNER,
                 RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,
                 RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES
             )
@@ -421,6 +422,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                 RankPermission.MANAGE_MODE, RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"
                 
                 RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
+                RankPermission.PLACE_WAR_BANNER,
                 RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,
                 RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES,
                 RankPermission.USE_ALLY_HOMES -> "Diplomacy"
