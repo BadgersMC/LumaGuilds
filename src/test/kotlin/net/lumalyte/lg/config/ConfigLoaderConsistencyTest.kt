@@ -73,6 +73,24 @@ class ConfigLoaderConsistencyTest {
     }
 
     @Test
+    fun `war banner defaults to one stack of raw gold and fifteen minute cooldown`() {
+        val warBanner = load(YamlConfiguration()).warBanner
+        assertEquals(64, warBanner.rawGoldCost)
+        assertEquals(15, warBanner.cooldownMinutes)
+    }
+
+    @Test
+    fun `war banner settings are loaded`() {
+        val cfg = YamlConfiguration().apply {
+            set("war_banner.raw_gold_cost", 64)
+            set("war_banner.cooldown_minutes", 22)
+        }
+        val warBanner = load(cfg).warBanner
+        assertEquals(64, warBanner.rawGoldCost)
+        assertEquals(22, warBanner.cooldownMinutes)
+    }
+
+    @Test
     fun `banner copy physical cost is loaded`() {
         val cfg = YamlConfiguration().apply { set("guild.banner_copy_physical_cost", 99) }
         assertEquals(99, load(cfg).guild.bannerCopyPhysicalCost)
@@ -122,6 +140,7 @@ class ConfigLoaderConsistencyTest {
         listOf(
             "parties_enabled", "brewing_xp", "mode_switching_enabled",
             "name_filter:", "banner_copy_physical_cost",
+            "war_banner:", "raw_gold_cost:", "cooldown_minutes:",
         ).forEach { key ->
             assertTrue(yml.contains(key), "config.yml must document '$key'")
         }

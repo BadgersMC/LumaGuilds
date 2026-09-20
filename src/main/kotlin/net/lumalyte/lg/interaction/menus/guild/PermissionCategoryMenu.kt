@@ -324,6 +324,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             // Diplomacy
             RankPermission.MANAGE_RELATIONS -> lang.gui("menu.permission_category.description.manage_relations")
             RankPermission.DECLARE_WAR -> lang.gui("menu.permission_category.description.declare_war")
+            RankPermission.PLACE_WAR_BANNER -> lang.gui("menu.permission_category.description.place_war_banner")
             RankPermission.ACCEPT_ALLIANCES -> lang.gui("menu.permission_category.description.accept_alliances")
             RankPermission.MANAGE_PARTIES -> lang.gui("menu.permission_category.description.manage_parties")
             RankPermission.SEND_PARTY_REQUESTS -> lang.gui("menu.permission_category.description.send_party_requests")

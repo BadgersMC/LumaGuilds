@@ -174,6 +174,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(31)
                 dbVersion = 31
             }
+            if (dbVersion < 32) {
+                migrateToVersion32()
+                updateDatabaseVersion(32)
+                dbVersion = 32
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1364,7 +1369,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "vault_slots", "vault_gold", "vault_transaction_log",
             "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
             "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history",
-            "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security"
+            "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security",
+            "war_banners"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1417,6 +1423,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("guild_bank_xp_high_water" in missingTables || "membership_history" in missingTables) migrateToVersion28()
             if (missingTables.any { it in setOf("guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security") }) {
                 migrateToVersion29()
+            }
+            if ("war_banners" in missingTables) {
+                migrateToVersion32()
+                componentLogger.info(Component.text("✓ Recreated tactical war-banner table"))
             }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
@@ -1790,5 +1800,14 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun migrateToVersion31() {
         SeasonalEloSchema.create(connection, mariaDb = false)
         componentLogger.info(Component.text("✓ Migration v31 complete: seasonal Elo pair/result persistence added"))
+    }
+
+    private fun migrateToVersion32() {
+        WarBannerSchema.create(connection, mariaDb = false)
+        val updatedRanks = WarBannerSchema.backfillRankPermission(connection)
+        componentLogger.info(Component.text(
+            "✓ Migration v32 complete: tactical war-banner state added; " +
+                "$updatedRanks existing war-management rank(s) granted PLACE_WAR_BANNER"
+        ))
     }
 }

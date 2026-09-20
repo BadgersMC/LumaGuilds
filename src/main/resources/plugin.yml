@@ -82,6 +82,7 @@ permissions:
       lumaguilds.guild.tag: true
       lumaguilds.guild.description: true
       lumaguilds.guild.war: true
+      lumaguilds.guild.warbanner: true
       lumaguilds.guild.info: true
       lumaguilds.guild.history: true
       lumaguilds.guild.chat: true
@@ -153,6 +154,9 @@ permissions:
     default: true
   lumaguilds.guild.war:
     description: Declare war on other guilds
+    default: true
+  lumaguilds.guild.warbanner:
+    description: Deploy and teleport to tactical guild war banners
     default: true
   lumaguilds.guild.info:
     description: View guild information

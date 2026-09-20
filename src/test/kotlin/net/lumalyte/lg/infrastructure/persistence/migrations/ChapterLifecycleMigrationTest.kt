@@ -8,6 +8,7 @@ import org.bukkit.plugin.PluginManager
 import org.bukkit.plugin.java.JavaPlugin
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -66,7 +67,22 @@ class ChapterLifecycleMigrationTest {
         assertTrue(tableExists("chapter_migration_receipts"))
         assertTrue(tableExists("chapter_rated_pair_guards"))
         assertTrue(tableExists("chapter_rated_war_results"))
-        assertEquals(31, databaseVersion())
+        assertTrue(tableExists("war_banners"))
+        assertEquals(32, databaseVersion())
+    }
+
+    @Test
+    fun `version 32 repairs a missing war banner table without version rollback`() {
+        val migrations = SQLiteMigrations(plugin, connection, claimsEnabled = false)
+        migrations.migrate()
+        connection.createStatement().use { it.execute("DROP TABLE war_banners") }
+        assertFalse(tableExists("war_banners"))
+        assertEquals(32, databaseVersion())
+
+        migrations.migrate()
+
+        assertTrue(tableExists("war_banners"))
+        assertEquals(32, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(
