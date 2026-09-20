@@ -41,6 +41,7 @@ data class MainConfig(
     var strikes: StrikesConfig = StrikesConfig(),
     var seasonalElo: SeasonalEloConfig = SeasonalEloConfig(),
     var warBanner: WarBannerConfig = WarBannerConfig(),
+    var discordGuildRoles: DiscordGuildRolesConfig = DiscordGuildRolesConfig(),
     // Independent rollout gates; none performs migration or state initialization.
     var chapterTwoRewardsEnabled: Boolean = false,
     var chapterTwoGoldCostsEnabled: Boolean = false
@@ -55,6 +56,18 @@ data class WarBannerConfig(
     // Re-deploy cooldown begins at placement. Default matches the 15-minute lifetime.
     var cooldownMinutes: Int = 15,
 )
+
+data class DiscordGuildRolesConfig(
+    var enabled: Boolean = true,
+    var roleNameFormat: String = "Guild • <guild>",
+) {
+    init {
+        require(roleNameFormat.isNotBlank()) { "discord.guild_roles.role_name_format cannot be blank" }
+        require("<guild>" in roleNameFormat) {
+            "discord.guild_roles.role_name_format must contain <guild>"
+        }
+    }
+}
 
 data class SeasonalEloConfig(
     var enabled: Boolean = false,

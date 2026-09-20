@@ -91,6 +91,39 @@ class ConfigLoaderConsistencyTest {
     }
 
     @Test
+    fun `discord guild roles default enabled from guild creation`() {
+        val discord = load(YamlConfiguration()).discordGuildRoles
+
+        assertTrue(discord.enabled)
+        assertEquals("Guild • <guild>", discord.roleNameFormat)
+    }
+
+    @Test
+    fun `discord guild role settings are loaded when explicitly configured`() {
+        val cfg = YamlConfiguration().apply {
+            set("discord.guild_roles.enabled", false)
+            set("discord.guild_roles.role_name_format", "[Guild] <guild>")
+        }
+
+        val discord = load(cfg).discordGuildRoles
+
+        assertFalse(discord.enabled)
+        assertEquals("[Guild] <guild>", discord.roleNameFormat)
+    }
+
+    @Test
+    fun `discord guild role format must retain the guild placeholder`() {
+        val cfg = YamlConfiguration().apply {
+            set("discord.guild_roles.enabled", true)
+            set("discord.guild_roles.role_name_format", "Guild Member")
+        }
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) {
+            load(cfg)
+        }
+    }
+
+    @Test
     fun `banner copy physical cost is loaded`() {
         val cfg = YamlConfiguration().apply { set("guild.banner_copy_physical_cost", 99) }
         assertEquals(99, load(cfg).guild.bannerCopyPhysicalCost)
@@ -141,6 +174,7 @@ class ConfigLoaderConsistencyTest {
             "parties_enabled", "brewing_xp", "mode_switching_enabled",
             "name_filter:", "banner_copy_physical_cost",
             "war_banner:", "raw_gold_cost:", "cooldown_minutes:",
+            "discord:", "guild_roles:", "role_name_format:",
         ).forEach { key ->
             assertTrue(yml.contains(key), "config.yml must document '$key'")
         }
