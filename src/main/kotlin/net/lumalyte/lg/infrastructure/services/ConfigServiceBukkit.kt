@@ -49,6 +49,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             strikes = loadStrikesConfig(),
             seasonalElo = loadSeasonalEloConfig(),
             warBanner = loadWarBannerConfig(),
+            discordGuildRoles = loadDiscordGuildRolesConfig(),
             chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", false),
             chapterTwoGoldCostsEnabled = config.getBoolean("progression.chapter_two_gold_costs_enabled", false)
         )
@@ -58,6 +59,13 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
         return WarBannerConfig(
             rawGoldCost = config.getInt("war_banner.raw_gold_cost", 64),
             cooldownMinutes = config.getInt("war_banner.cooldown_minutes", 15),
+        )
+    }
+
+    private fun loadDiscordGuildRolesConfig(): DiscordGuildRolesConfig {
+        return DiscordGuildRolesConfig(
+            enabled = config.getBoolean("discord.guild_roles.enabled", true),
+            roleNameFormat = string("discord.guild_roles.role_name_format", "Guild • <guild>"),
         )
     }
 

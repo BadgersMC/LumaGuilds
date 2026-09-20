@@ -120,6 +120,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(34)
                 currentDbVersion = 34
             }
+            if (currentDbVersion < 35) {
+                migrateToVersion35()
+                updateDatabaseVersion(35)
+                currentDbVersion = 35
+            }
 
             connection.commit()
 
@@ -1048,6 +1053,13 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
         PlayerNotificationPreferenceSchema.create(connection, mariaDb = true)
         componentLogger.info(Component.text(
             "✓ Migration v34 complete: player notification preferences added"
+        ))
+    }
+
+    private fun migrateToVersion35() {
+        GuildDiscordRoleSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text(
+            "✓ Migration v35 complete: durable guild Discord-role links added"
         ))
     }
 }

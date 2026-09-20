@@ -341,7 +341,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Event-driven.** WHEN a player clicks the Enemy/Ally sections of `/g info` THEN THE SYSTEM SHALL expand to the full guild list (currently only top 3, no way to view the rest).
 
 ### REQ-071
-**Conditional.** GIVEN a guild reaches a Discord-role level perk, THEN THE SYSTEM SHALL create/link a Discord role that dynamically grants/removes itself as players join/leave the guild in-game.
+**Event-driven.** WHEN a guild is created, THEN THE SYSTEM SHALL create/link a Discord role immediately and dynamically grant/remove it for Discord-linked players as they join/leave the guild or link/unlink their Discord account.
 
 ### REQ-072
 **Event-driven.** WHEN a guild edits its description THEN THE SYSTEM SHALL allow embedding a Discord invite link for recruitment.

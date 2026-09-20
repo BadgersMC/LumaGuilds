@@ -16,6 +16,7 @@ repositories {
     maven("https://repo.codemc.io/repository/maven-snapshots/")
     maven("https://repo.codemc.io/repository/maven-releases/")
     maven("https://repo.opencollab.dev/main/")
+    maven("https://nexus.scarsz.me/content/groups/public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven {
         name = "artillex-studios"
@@ -60,6 +61,7 @@ dependencies {
 
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("com.github.retrooper:packetevents-spigot:2.11.2")
+    compileOnly("com.discordsrv:discordsrv:1.28.0")
     shadow("org.jetbrains.kotlin:kotlin-stdlib")
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
