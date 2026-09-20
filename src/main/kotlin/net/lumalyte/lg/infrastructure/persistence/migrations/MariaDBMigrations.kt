@@ -115,6 +115,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(33)
                 currentDbVersion = 33
             }
+            if (currentDbVersion < 34) {
+                migrateToVersion34()
+                updateDatabaseVersion(34)
+                currentDbVersion = 34
+            }
 
             connection.commit()
 
@@ -1036,6 +1041,13 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
         WarNotificationSchema.create(connection, mariaDb = true)
         componentLogger.info(Component.text(
             "✓ Migration v33 complete: durable war-notification queue added"
+        ))
+    }
+
+    private fun migrateToVersion34() {
+        PlayerNotificationPreferenceSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text(
+            "✓ Migration v34 complete: player notification preferences added"
         ))
     }
 }

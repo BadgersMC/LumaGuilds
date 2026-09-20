@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.listeners
 import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
 import net.lumalyte.lg.infrastructure.services.TeleportationService
 import net.lumalyte.lg.infrastructure.services.VaultHologramService
+import net.lumalyte.lg.application.services.GuildLoginNotificationService
 import net.lumalyte.lg.application.services.WarNotificationService
 import net.lumalyte.lg.interaction.listeners.GuildChatListener
 import org.bukkit.event.EventHandler
@@ -22,10 +23,13 @@ class PlayerSessionListener : Listener, KoinComponent {
     private val vaultInventoryManager: VaultInventoryManager by inject()
     private val guildChatListener: GuildChatListener by inject()
     private val warNotificationService: WarNotificationService by inject()
+    private val guildLoginNotificationService: GuildLoginNotificationService by inject()
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
-        warNotificationService.deliverUnread(event.player.uniqueId)
+        val playerId = event.player.uniqueId
+        warNotificationService.deliverUnread(playerId)
+        guildLoginNotificationService.onPlayerJoin(playerId)
     }
 
     @EventHandler

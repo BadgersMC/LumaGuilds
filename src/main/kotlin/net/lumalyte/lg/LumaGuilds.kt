@@ -54,10 +54,14 @@ class LumaGuilds : JavaPlugin() {
     private var experienceTransactionCleanupScheduler: net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler? = null
     private var chapterRolloverScheduler: net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
+    internal var enabledAtMillis: Long = 0L
+        private set
     private val componentLogger = getComponentLogger()
 
 
     override fun onEnable() {
+        enabledAtMillis = System.currentTimeMillis()
+
         // Initialize PluginKeys with plugin instance (must be first)
         net.lumalyte.lg.common.PluginKeys.initialize(this)
 
