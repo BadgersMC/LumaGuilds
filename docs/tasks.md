@@ -555,6 +555,8 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-16 — Weekly Guild Quests (Chapter 2)
 
+> **Future network architecture:** `docs/plans/2026-09-20-network-guild-federation-design.md` records the approved direction for separate per-gamemode LumaGuilds instances, local player membership/progression, optional network-guild federation, namespaced Nexo/AuraSkills-capable quest providers, and explicitly network-scoped quests/events. Federation itself is future scope and is not required to complete PR-16.
+
 > Part of the Chapter 2 progression overhaul. Builds on the XP infrastructure in PR-12/LG-1201. Every quest, full-set bonus, and leaderboard Guild EXP payout passes through `QuestRewardSinkBukkit` to `ProgressionService.awardUncappedSystemExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)`. The permanent award repository records progression and audit rows atomically without creating or consuming a source-cap usage row.
 >
 > **Claims-disabled constraint (EnthusiaSMP):** No claim-related quest actions (`CLAIM_CREATED`, `CLAIM_DESTROYED`) are included in the `QuestAction` enum. The progress listener gates claims-adjacent handlers on `claims_enabled`. See REQ-075.
