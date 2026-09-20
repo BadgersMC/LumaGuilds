@@ -60,6 +60,19 @@ class LocaleContractTest {
         "menu.guild_war_management.war_details.info.status_cancelled",
     )
     private val helpTopicDynamicKeys = HelpTopics.all.flatMap { listOf(it.menuKey, it.pageKey) }.toSet()
+    private val warNotificationDynamicKeys = setOf(
+        "declaration_received",
+        "declaration_sent",
+        "war_accepted",
+        "victory",
+        "defeat",
+    ).flatMap { kind ->
+        listOf(
+            "notification.war.lifecycle.toast.$kind.title",
+            "notification.war.lifecycle.toast.$kind.description",
+            "notification.war.lifecycle.chat.$kind",
+        )
+    }.toSet()
     private val localizedHelperKeys = setOf(
         "menu.guild_mode.cooldown.expired",
         "menu.guild_mode.cooldown.hostile",
@@ -91,7 +104,7 @@ class LocaleContractTest {
     )
     private val declaredDynamicKeys =
         claimPermissionDynamicKeys + flagDynamicKeys + rankPermissionDynamicKeys + finiteMenuStateKeys +
-            helpTopicDynamicKeys + localizedHelperKeys
+            helpTopicDynamicKeys + warNotificationDynamicKeys + localizedHelperKeys
 
     @Test
     fun `locale values use exclusively MiniMessage without legacy formatting codes`() {
@@ -216,7 +229,8 @@ class LocaleContractTest {
             .toSet()
 
         assertEquals(
-            permissionKeys + flagKeys + rankPermissionKeys + expectedMenuStateKeys + expectedHelpTopicKeys + localizedHelperKeys,
+            permissionKeys + flagKeys + rankPermissionKeys + expectedMenuStateKeys + expectedHelpTopicKeys +
+                warNotificationDynamicKeys + localizedHelperKeys,
             declaredDynamicKeys,
         )
     }
@@ -380,7 +394,7 @@ class LocaleContractTest {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
         const val BASELINE_UNUSED_KEYS = 0
-        const val BASELINE_DYNAMIC_CALLS = 39
+        const val BASELINE_DYNAMIC_CALLS = 42
         const val BASELINE_HARDCODED_PLAYER_TEXT = 0
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }

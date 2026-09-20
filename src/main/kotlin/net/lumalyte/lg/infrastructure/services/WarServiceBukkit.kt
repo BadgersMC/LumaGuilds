@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.WarService
+import net.lumalyte.lg.application.services.WarNotificationService
 import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.domain.values.ExperienceSource
@@ -26,6 +27,7 @@ class WarServiceBukkit(
     private val warRepository: net.lumalyte.lg.application.persistence.WarRepository,
     private val warPayments: net.lumalyte.lg.application.services.WarPaymentService,
     private val seasonalElo: SeasonalEloCoordinator? = null,
+    private val warNotifications: WarNotificationService? = null,
 ) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
@@ -141,6 +143,8 @@ class WarServiceBukkit(
 
             // Record war declaration for cooldown tracking
             recordWarDeclaration(declaringGuildId)
+            runCatching { warNotifications?.declarationCreated(declaration) }
+                .onFailure { logger.error("Failed to publish war declaration notifications ${declaration.id}", it) }
 
             logger.info("War declaration created by guild $declaringGuildId against guild $defendingGuildId with wager $wagerAmount")
             declaration
@@ -182,6 +186,8 @@ class WarServiceBukkit(
             val active = requireNotNull(record.war).copy(status = WarStatus.ACTIVE, startedAt = Instant.now())
             persist(record.copy(war = active, declaration = declaration.copy(accepted = true)))
             Bukkit.getPluginManager().callEvent(GuildWarDeclaredEvent(active.declaringGuildId, active.defendingGuildId, actorId))
+            runCatching { warNotifications?.warAccepted(active) }
+                .onFailure { logger.error("Failed to publish war acceptance notifications ${active.id}", it) }
             active
         } catch (error: Exception) {
             logger.error("Error accepting durable war declaration $declarationId", error)
@@ -225,6 +231,8 @@ class WarServiceBukkit(
                 awardWarExperience(winnerGuildId)
             }
             Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loser, war.declaringGuildId, war.defendingGuildId))
+            runCatching { warNotifications?.warEnded(ended) }
+                .onFailure { logger.error("Failed to publish war resolution notifications $warId", it) }
             true
         } catch (error: Exception) {
             logger.error("Error ending durable war $warId", error)

@@ -3796,22 +3796,6 @@ menu:
       reject_failed: '<red>❌ Failed to reject war declaration!'
       reject_error: '<red>❌ Error rejecting war: <error>'
     notification:
-      enemy: '<gray>Enemy Guild: <white><guild>'
-      duration: '<gray>Duration: <white><days> days'
-      target: '<gray>Target: <white><objective>'
-      no_objectives: 'No objectives'
-      accepted:
-        title: '<green>⚔ WAR ACCEPTED! ⚔'
-        subtitle: '<gray><guild> accepted - BATTLE BEGINS!'
-        border: '<green>═══════════════════════════════════'
-        header: '<green>⚔ WAR DECLARATION ACCEPTED!'
-        begun: '<red>⚔ THE BATTLE HAS BEGUN! ⚔'
-      defending:
-        title: '<red>⚔ WAR BEGINS! ⚔'
-        subtitle: '<gray>War against <guild> - FIGHT!'
-        border: '<red>═══════════════════════════════════'
-        header: '<red>⚔ WAR HAS BEEN DECLARED!'
-        challenge: '<green>⚔ YOUR GUILD ACCEPTED THE CHALLENGE!'
       rejected:
         title: '<red>⚔ WAR REJECTED ⚔'
         subtitle: '<gray><guild> declined your declaration'
@@ -3835,7 +3819,6 @@ menu:
       need_have: '<gray>Need: <gold><need> coins, Have: <gold><have> coins'
       no_permission: '<red>❌ You don''t have permission to declare war for your guild!'
       no_funds: '<red>❌ No funds available to wager!'
-      notify_failed: '<red>❌ Failed to notify defending guild of war declaration!'
       objectives: '<gray>Objectives: <white><count> set'
       pending: '<red>❌ You already have a pending war declaration with <guild>!'
       peaceful: '<red>❌ Peaceful guilds cannot declare war!'
@@ -4001,22 +3984,6 @@ menu:
         kills: Kills
         other: Objective
         time: Time Survival
-    notification:
-      ally_sent: '<gold>⚔ War declaration sent to <guild>!'
-      ally_wager: '<gray>Wager: <gold><amount> coins'
-      awaiting: '<gray>Awaiting their response...'
-      divider: '<red>═══════════════════════════════════'
-      duration: '<gray>Duration: <white><days> days'
-      expires: '<gray>Expires: <white><hours>h'
-      from: '<gray>From: <white><guild>'
-      match: '<gray>You must match to accept!'
-      objectives: '<gray>Objectives: <white><count>'
-      received: '<red>⚠︎ WAR DECLARATION RECEIVED! ⚠︎'
-      respond: '<yellow>Use <white>/guild war <yellow>to respond!'
-      subtitle: '<gray><guild> challenges you!'
-      terms: '<gray>Terms: <white><terms>'
-      title: '<red>⚠︎ WAR DECLARATION! ⚠︎'
-      wager: '<gray>Their Wager: <gold><amount> coins'
     title: '<dark_red>⚔ Declare War - <guild>'
   statistics:
     common:
@@ -7070,6 +7037,41 @@ notification:
     kill:
       killer: '<gold>⚔ WAR KILL! <gray>You killed <red><victim><gray>!'
       victim: '<red>☠ You were killed by <gold><killer><red> in the war!'
+    lifecycle:
+      broadcast:
+        resolved: '<gold><bold>⚔ WAR ENDED</bold> <gray>» <green><winner> <gray>defeated <red><loser><gray>.'
+      toast:
+        declaration_received:
+          title: '<red><bold>WAR DECLARED</bold>'
+          description: '<gold><guild> <gray>declared war on your guild'
+        declaration_sent:
+          title: '<gold><bold>WAR DECLARED</bold>'
+          description: '<gray>Your guild declared war on <gold><guild>'
+        war_accepted:
+          title: '<yellow><bold>WAR ACCEPTED</bold>'
+          description: '<gray>War with <gold><guild> <gray>has begun'
+        victory:
+          title: '<green><bold>VICTORY</bold>'
+          description: '<gray>Your guild defeated <gold><guild>'
+        defeat:
+          title: '<red><bold>DEFEAT</bold>'
+          description: '<gold><guild> <gray>defeated your guild'
+      chat:
+        divider: '<dark_gray>▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+        declaration_received: '<red><bold>WAR DECLARED</bold> <gray>» <gold><guild> <gray>has challenged your guild.'
+        declaration_sent: '<gold><bold>WAR DECLARED</bold> <gray>» Your guild challenged <gold><guild><gray>.'
+        war_accepted: '<yellow><bold>WAR ACCEPTED</bold> <gray>» War with <gold><guild> <gray>is now active.'
+        victory: '<green><bold>VICTORY</bold> <gray>» Your guild defeated <gold><guild><gray>.'
+        defeat: '<red><bold>DEFEAT</bold> <gray>» <gold><guild> <gray>defeated your guild.'
+        duration: '<gray>Duration: <white><days> days'
+        objectives: '<gray>Objectives: <white><count>'
+        primary_objective: '<gray>Primary target: <white><objective>'
+        wager: '<gray>Wager: <gold><amount> gold <gray>per guild'
+        terms: '<gray>Terms: <white><terms>'
+        expires: '<gray>Response window: <white>about <hours> hour(s) remaining'
+        score: '<gray>Final kills: <green><own> <dark_gray>- <red><opponent>'
+        action: '<yellow><bold>[OPEN WAR MENU]</bold>'
+        action_hover: '<gray>Click to open guild war management'
   banner:
     placed: '<gray>📍 Banner placed! Click ''<green>⏳ APPLY CHANGES<gray>'' to save.'
     take_blocked: '<red>❌ You cannot take banners from this slot! Use ''<yellow>📋 GET BANNER COPY<red>'' instead.'
