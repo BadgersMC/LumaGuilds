@@ -14,6 +14,7 @@ repositories {
     maven("https://repo.aikar.co/content/groups/aikar/")
     maven("https://jitpack.io")
     maven("https://repo.codemc.io/repository/maven-snapshots/")
+    maven("https://repo.codemc.io/repository/maven-releases/")
     maven("https://repo.opencollab.dev/main/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven {
@@ -49,6 +50,7 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.11")
     testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.107.0")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    testImplementation("com.github.retrooper:packetevents-spigot:2.11.2")
     testImplementation("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
     }
@@ -57,6 +59,7 @@ dependencies {
     testImplementation("com.lemonappdev:konsist:0.17.3")
 
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    compileOnly("com.github.retrooper:packetevents-spigot:2.11.2")
     shadow("org.jetbrains.kotlin:kotlin-stdlib")
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
