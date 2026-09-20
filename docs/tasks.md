@@ -473,22 +473,22 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Tag: `TDD`
   - References: REQ-060
   - Evidence: Java and Bedrock/Geyser clients both attempt the same ephemeral PacketEvents advancement toast with the opposing guild banner icon; title + sound is retained only when PacketEvents toast delivery is unavailable. War lifecycle notices persist per-player in schema v33, replay once on login, and resolved wars broadcast the winner/loser globally. Persistence tests prove unread notices survive restart, duplicate deterministic IDs are ignored, and delivered notices cannot replay again.
-  - Files: `WarNotificationServiceBukkit`, `PacketEventsWarToastSender`, `WarNotificationRepositorySQL`, v33 `WarNotificationSchema`, `PlayerSessionListener`, war lifecycle hooks, localization/DI wiring, focused persistence + migration contracts
+  - Files: `WarNotificationServiceBukkit`, `PacketEventsToastSender`, `WarNotificationRepositorySQL`, v33 `WarNotificationSchema`, `PlayerSessionListener`, war lifecycle hooks, localization/DI wiring, focused persistence + migration contracts
   - Notes: replay transitions each successfully presented notice to delivered, so subsequent logins do not replay it
-- [ ] **LG-1305** Customizable war win conditions — unique kill counts, ransoms, death-duel "Champion" mode, high-stakes XP boost/deduction
+- [~] **LG-1305** Customizable war win conditions — DEFERRED / design pending
   - Tag: `TDD`
   - References: REQ-061
-  - Evidence:
-  - Files: war objectives, surrender flow, duel arena (↳ LG-1205)
+  - Evidence: Tabled by project owner before implementation. The bundled custom kill targets, ransom/surrender, Champion duel mode, and high-stakes XP rules do not fit the current guild-war direction cleanly enough to ship as one feature.
+  - Files: none until the war-objective design is revisited
 
 ## PR-14 — Backlog: chat & communication (operator, Fain)
 
-- [ ] **LG-1401** Login notifications — in-game alert when a guild member logs in
+- [x] **LG-1401** Login notifications — in-game alert when a guild member logs in
   - Tag: `TDD`
   - References: REQ-062
-  - Evidence:
-  - Files: `PlayerJoinEvent` handler (pattern: `apollo/GuildTeamListener.onPlayerJoin:26`), guild notification
-  - Harvest: `AnnouncementService` + `AnnouncementRepository` from closed PR #7 (superseded) — rebuild against current persistence (SQLite migrations)
+  - Evidence: Online guildmates receive a TASK-style advancement toast with the joining member's player head on Java and Bedrock/Geyser via the shared PacketEvents toast sender. The joining player is never notified about themselves; offline recipients and opted-out recipients are skipped; recipients shared across multiple guild memberships are deduplicated. A 15-second plugin-start grace window suppresses restart reconnect waves and a 60-second per-player reconnect debounce suppresses rapid relog spam. If toast delivery is unavailable, recipients receive a quiet action-bar + chime fallback. `/g notifications on|off|toggle` persists the recipient preference (default on) in schema v34 for SQLite/MariaDB. Login presence itself is transient and is never persisted/replayed. Preferences are batch-loaded for online recipients. Full `test shadowJar`: 1,092 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
+  - Files: `GuildLoginNotificationServiceBukkit`, `PlayerNotificationPreferenceRepositorySQL`, v34 `PlayerNotificationPreferenceSchema`, generic `PacketEventsToastSender`, `PlayerSessionListener`, `GuildCommand`, localization/DI wiring, focused behavioral/persistence/migration contracts
+  - Harvest: historical announcement persistence was reviewed but intentionally not reused because login presence is transient rather than durable announcement data
 - [ ] **LG-1402** Rank prefixes in guild chat — member's rank shown next to name (legacy restore)
   - Tag: `TDD`
   - References: REQ-063

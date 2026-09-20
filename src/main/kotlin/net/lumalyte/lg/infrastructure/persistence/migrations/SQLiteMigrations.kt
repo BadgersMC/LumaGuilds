@@ -184,6 +184,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(33)
                 dbVersion = 33
             }
+            if (dbVersion < 34) {
+                migrateToVersion34()
+                updateDatabaseVersion(34)
+                dbVersion = 34
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1375,7 +1380,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
             "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history",
             "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security",
-            "war_banners", "war_notifications"
+            "war_banners", "war_notifications", "player_notification_preferences"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1436,6 +1441,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("war_notifications" in missingTables) {
                 migrateToVersion33()
                 componentLogger.info(Component.text("✓ Recreated durable war-notification queue"))
+            }
+            if ("player_notification_preferences" in missingTables) {
+                migrateToVersion34()
+                componentLogger.info(Component.text("✓ Recreated player notification preferences"))
             }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
@@ -1824,6 +1833,13 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         WarNotificationSchema.create(connection, mariaDb = false)
         componentLogger.info(Component.text(
             "✓ Migration v33 complete: durable war-notification queue added"
+        ))
+    }
+
+    private fun migrateToVersion34() {
+        PlayerNotificationPreferenceSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text(
+            "✓ Migration v34 complete: player notification preferences added"
         ))
     }
 }

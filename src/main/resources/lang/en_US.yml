@@ -1787,6 +1787,14 @@ command:
         guild_chat_enabled_your_messages_go_only: '<green>✅ <dark_green>Guild chat <green>enabled<green>! Your messages go only to guild members.'
         run_g_chat_again_to_return_to: '<gray>Run <white>/g chat <gray>again to return to normal chat.'
         you_are_not_in_a_guild: '<red>❌ You are not in a guild!'
+      notifications:
+        status_enabled: '<green>Guild member login notifications are enabled.'
+        status_disabled: '<gray>Guild member login notifications are disabled.'
+        usage: '<gray>Use <white>/g notifications \\<on|off|toggle> <gray>to change this preference.'
+        invalid: '<red>Use on, off, or toggle.'
+        enabled: '<green>✓ Guild member login notifications enabled.'
+        disabled: '<gray>Guild member login notifications disabled.'
+        save_failed: '<red>❌ Could not save your notification preference. Please try again.'
       history:
         blank_line_2: '<gold><bold>╚<length>╝'
         current: '<green>(current)'
@@ -7086,6 +7094,10 @@ notification:
     moved_to_global: '<gray>[<gold>!<gray>] <yellow>You have been moved to Global chat because you are no longer in that channel''s guild or party.'
   guild:
     disbanded: '<red>✗ Your guild <white><guild> <red>has been disbanded.'
+    member_login:
+      title: '<green><bold><player> is online</bold>'
+      description: '<gray>A guild member has joined the server'
+      fallback: '<green><player> <gray>is now online'
   progression:
     level_up:
       title: '<gold>⭐ <bold>GUILD LEVEL UP!</bold> ⭐'

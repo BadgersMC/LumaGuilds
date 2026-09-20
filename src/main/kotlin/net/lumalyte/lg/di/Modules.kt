@@ -591,12 +591,21 @@ fun progressionModule() = module {
     single<net.lumalyte.lg.application.persistence.WarNotificationRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.WarNotificationRepositorySQL(get())
     }
-    single<net.lumalyte.lg.infrastructure.services.WarToastSender> {
-        net.lumalyte.lg.infrastructure.services.PacketEventsWarToastSender(get<LumaGuilds>())
+    single<net.lumalyte.lg.application.persistence.PlayerNotificationPreferenceRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.PlayerNotificationPreferenceRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.infrastructure.services.ToastSender> {
+        net.lumalyte.lg.infrastructure.services.PacketEventsToastSender(get<LumaGuilds>())
     }
     single<net.lumalyte.lg.application.services.WarNotificationService> {
         net.lumalyte.lg.infrastructure.services.WarNotificationServiceBukkit(
             get<LumaGuilds>(), get(), get(), get(), get(), get(), get()
+        )
+    }
+    single<net.lumalyte.lg.application.services.GuildLoginNotificationService> {
+        net.lumalyte.lg.infrastructure.services.GuildLoginNotificationServiceBukkit(
+            get(), get(), get(), get(),
+            startupAtMillis = get<LumaGuilds>().enabledAtMillis,
         )
     }
     single { net.lumalyte.lg.application.services.WarPaymentService(get(), get()) }
