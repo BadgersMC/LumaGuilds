@@ -153,27 +153,43 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private fun addRelationsSection(pane: StaticPane, x: Int, y: Int) {
         val relations = relationService.getGuildRelations(guild.id)
 
-        // Allies — filter out relations where the allied guild no longer exists (disbanded).
-        // Also gate on isActive() so PENDING alliance requests don't display as accepted.
-        val allies = relations.filter {
-            it.type == RelationType.ALLY && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
-        }
+        val allies = net.lumalyte.lg.interaction.menus.GuildInfoRelationResolver.resolve(
+            guild.id,
+            RelationType.ALLY,
+            relations,
+            guildService::getGuild,
+        )
         val alliesItem = ItemStack.of(Material.LIME_BANNER)
             .name(lang.gui("menu.guild_info.relations.allies.name", "count" to allies.size))
 
         if (allies.isNotEmpty()) {
-            allies.take(3).forEach { relation ->
-                val allyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
-                alliesItem.lore(lang.gui("menu.guild_info.relations.entry", "guild" to allyGuild!!.name))
+            allies.take(3).forEach { entry ->
+                alliesItem.lore(lang.gui("menu.guild_info.relations.entry", "guild" to entry.guild.name))
             }
             if (allies.size > 3) {
                 alliesItem.lore(lang.gui("menu.guild_info.relations.more", "count" to allies.size - 3))
             }
+            alliesItem.lore(lang.gui("menu.guild_info.relations.view_all"))
         } else {
             alliesItem.lore(lang.gui("menu.guild_info.relations.allies.none"))
         }
 
-        pane.addItem(GuiItem(alliesItem), x, y)
+        pane.addItem(
+            GuiItem(alliesItem) {
+                if (allies.isNotEmpty()) {
+                    menuNavigator.openMenu(
+                        menuFactory.createGuildRelationBrowserMenu(
+                            menuNavigator,
+                            player,
+                            guild,
+                            RelationType.ALLY,
+                        )
+                    )
+                }
+            },
+            x,
+            y,
+        )
 
         // Truces — filter out disbanded guilds; gate on isActive() so PENDING/EXPIRED don't show.
         val truces = relations.filter {
@@ -196,26 +212,43 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
 
         pane.addItem(GuiItem(trucesItem), x, y + 1)
 
-        // Enemies/Wars — filter out disbanded guilds; gate on isActive() so EXPIRED don't show.
-        val enemies = relations.filter {
-            it.type == RelationType.ENEMY && it.isActive() && guildService.getGuild(it.getOtherGuild(guild.id)) != null
-        }
+        val enemies = net.lumalyte.lg.interaction.menus.GuildInfoRelationResolver.resolve(
+            guild.id,
+            RelationType.ENEMY,
+            relations,
+            guildService::getGuild,
+        )
         val enemiesItem = ItemStack.of(Material.RED_BANNER)
             .name(lang.gui("menu.guild_info.relations.wars.name", "count" to enemies.size))
 
         if (enemies.isNotEmpty()) {
-            enemies.take(3).forEach { relation ->
-                val enemyGuild = guildService.getGuild(relation.getOtherGuild(guild.id))
-                enemiesItem.lore(lang.gui("menu.guild_info.relations.entry", "guild" to enemyGuild!!.name))
+            enemies.take(3).forEach { entry ->
+                enemiesItem.lore(lang.gui("menu.guild_info.relations.entry", "guild" to entry.guild.name))
             }
             if (enemies.size > 3) {
                 enemiesItem.lore(lang.gui("menu.guild_info.relations.more", "count" to enemies.size - 3))
             }
+            enemiesItem.lore(lang.gui("menu.guild_info.relations.view_all"))
         } else {
             enemiesItem.lore(lang.gui("menu.guild_info.relations.wars.none"))
         }
 
-        pane.addItem(GuiItem(enemiesItem), x, y + 2)
+        pane.addItem(
+            GuiItem(enemiesItem) {
+                if (enemies.isNotEmpty()) {
+                    menuNavigator.openMenu(
+                        menuFactory.createGuildRelationBrowserMenu(
+                            menuNavigator,
+                            player,
+                            guild,
+                            RelationType.ENEMY,
+                        )
+                    )
+                }
+            },
+            x,
+            y + 2,
+        )
     }
 
     private fun addStatisticsSection(pane: StaticPane, x: Int, y: Int) {
