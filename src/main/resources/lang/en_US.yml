@@ -513,6 +513,7 @@ bedrock:
       activity: Activity
       economy: Economy
       territory: Territory
+      invitations: Invitations
     date_format:
       overview: MMM dd, yyyy
       activity: MMM dd, HH:mm
@@ -535,6 +536,15 @@ bedrock:
       <light_purple>Total Claims<gray>: <white><claims>
       <dark_purple>Controlled Area<gray>: <white><area> <gray>blocks
       <red>Power Level<gray>: <white><power>
+    invitations:
+      content: |-
+        <gold>Total Invitations Sent<gray>: <white><total>
+        <aqua>Top Inviters <gray>(Page <page>/<pages>):
+        <leaderboard>
+      entry: '<gray>#<rank> <white><player><gray>: <yellow><count>'
+      none: '<gray>No invitation activity yet.'
+      page_selector: Invitation leaderboard page
+      page_option: 'Page <page>'
   info:
     title: 'Guild Information - <guild>'
     description: View your guild's identity, membership, and relations.
@@ -718,6 +728,7 @@ bedrock:
       cancelled: '<red>❌ Guild invitation cancelled.'
       already_member: '<yellow><player> is already a member of this guild.'
       sent: '<green>✅ Invitation sent to <player>!'
+      failed: '<red>❌ Failed to save the guild invitation. Please try again.'
     notification:
       title: '<gold><bold>📨 GUILD INVITATION'
       invited: '<gray><player> invited you to join <gold><guild><gray>!'
@@ -2954,6 +2965,7 @@ menu:
         received: '<gray><player> invited you to join <gold><guild><gray>!'
         received_header: '<gold><bold>📨 GUILD INVITATION'
         sent: '<green>✅ Invitation sent to <player>!'
+        failed: '<red>❌ Failed to save the guild invitation. Please try again.'
       item:
         cancel:
           lore:
@@ -4033,6 +4045,13 @@ menu:
       offline: '<gray>Offline: <gray><count>'
       no_contribution_data: '<gray>No contribution data'
       no_kill_data: '<gray>No kill data available'
+      no_invitation_data: '<gray>No invitation data available'
+      total_invitations: '<gray>Total Invitations Sent: <white><count>'
+      ranked_invitations:
+        first: '<gold><rank>. <player>: <white><count> invites'
+        second: '<gray><rank>. <player>: <white><count> invites'
+        third: '<red><rank>. <player>: <white><count> invites'
+        other: '<white><rank>. <player>: <white><count> invites'
       online: '<gray>Online Now: <green><count>'
       overall_rating:
         gold: '<gray>Overall Rating: <gold><rating>'
@@ -4097,6 +4116,9 @@ menu:
       top_killers:
         description: '<gray>Guild''s most lethal members'
         name: '<red>🏆 TOP KILLERS'
+      top_inviters:
+        description: '<gray>Members who have sent the most guild invitations'
+        name: '<aqua>📨 TOP INVITERS'
       wars:
         active:
           description: '<gray>Currently ongoing conflicts'
@@ -4211,6 +4233,10 @@ menu:
         lore:
           description: '<gray>Guild''s elite warriors'
         name: '<red>Top Killers'
+      top_inviters:
+        lore:
+          description: '<gray>All-time sent invitation leaderboard'
+        name: '<aqua>Top Inviters'
       wars:
         lore:
           unavailable: '<red>War system not available'
@@ -4237,6 +4263,7 @@ menu:
         recent: '<red>❌ Failed to load recent activity. Please try again later.'
         top_contributors: '<red>❌ Failed to load top contributors. Please try again later.'
         top_killers: '<red>❌ Failed to load top killers. Please try again later.'
+        top_inviters: '<red>❌ Failed to load invitation statistics. Please try again later.'
         wars: '<red>❌ Failed to load war statistics. Please try again later.'
         achievements: '<red>❌ Failed to load achievements.'
         comparison: '<red>❌ Failed to load comparison data.'

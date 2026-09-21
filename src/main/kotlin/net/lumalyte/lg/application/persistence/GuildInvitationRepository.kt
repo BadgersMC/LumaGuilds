@@ -1,6 +1,7 @@
 package net.lumalyte.lg.application.persistence
 
 import net.lumalyte.lg.domain.entities.GuildInvitation
+import net.lumalyte.lg.domain.entities.GuildInvitationLeaderboardEntry
 import java.util.UUID
 
 /**
@@ -81,4 +82,16 @@ interface GuildInvitationRepository {
      * @return The number of invitations removed.
      */
     fun removeOlderThan(olderThan: Long): Int
+
+    /** Returns the all-time sent-invitation leaderboard for one guild. */
+    fun getInvitationLeaderboard(guildId: UUID, limit: Int): List<GuildInvitationLeaderboardEntry>
+
+    /** Returns one deterministic page of the all-time invitation leaderboard. */
+    fun getInvitationLeaderboardPage(guildId: UUID, offset: Int, limit: Int): List<GuildInvitationLeaderboardEntry>
+
+    /** Returns the number of distinct inviters represented in the all-time leaderboard. */
+    fun getInvitationLeaderboardInviterCount(guildId: UUID): Int
+
+    /** Returns the all-time number of successfully persisted invitations sent by this guild. */
+    fun getSentInvitationCount(guildId: UUID): Int
 }
