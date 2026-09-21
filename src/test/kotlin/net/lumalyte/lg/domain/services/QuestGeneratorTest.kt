@@ -1,72 +1,187 @@
 package net.lumalyte.lg.domain.services
 
-import net.lumalyte.lg.domain.entities.QuestCandidate
+import net.lumalyte.lg.domain.entities.QuestConditionType
 import net.lumalyte.lg.domain.entities.QuestDefinition
 import net.lumalyte.lg.domain.entities.QuestRewardTier
 import net.lumalyte.lg.domain.entities.QuestTarget
+import net.lumalyte.lg.domain.entities.QuestTargetRarity
 import net.lumalyte.lg.domain.values.QuestAction
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.random.Random
 
 class QuestGeneratorTest {
+    private val rewardXp: (QuestRewardTier) -> Int = { it.ordinal * 500 + 500 }
+
     @Test
-    fun `same seed generates same shared set without duplicates`() {
-        val candidates = listOf(
-            candidate("zombies", "ZOMBIE", QuestAction.KILL_MOBS, 100),
-            candidate("wheat", "WHEAT", QuestAction.HARVEST_CROPS, 1_000),
-            candidate("stone", "STONE", QuestAction.MINE_BLOCKS, 2_000)
+    fun `same seed generates same shared set without duplicate content`() {
+        val targets = listOf(
+            target("minecraft:entity/zombie", QuestAction.KILL_MOBS, 25, 500),
+            target("minecraft:block/wheat", QuestAction.HARVEST_CROPS, 250, 5_000),
+            target("minecraft:block/stone", QuestAction.MINE_BLOCKS, 1_000, 25_000)
         )
 
-        val first = QuestGenerator(QuestGenerationValidator(), Random(42)).generate(candidates, 3, candidates.first().definition)
-        val second = QuestGenerator(QuestGenerationValidator(), Random(42)).generate(candidates, 3, candidates.first().definition)
+        val settings = QuestGenerationSettings(conditionChancePercent = 0)
+        val first = QuestGenerator(QuestGenerationValidator(), Random(42))
+            .generate(targets, 3, settings, rewardXp = rewardXp)
+        val second = QuestGenerator(QuestGenerationValidator(), Random(42))
+            .generate(targets, 3, settings, rewardXp = rewardXp)
 
         assertEquals(first, second)
-        assertEquals(3, first.map { it.id }.toSet().size)
+        assertEquals(3, first.map(QuestDefinition::fingerprint).toSet().size)
     }
 
     @Test
-    fun `bounded retries use deterministic fallback instead of looping`() {
-        val invalid = candidate("bad", "SHEEP", QuestAction.CRAFT_ITEMS, 1_000)
-        val fallback = candidate("fallback", "STONE", QuestAction.MINE_BLOCKS, 500).definition
+    fun `recent action target history forces a different target`() {
+        val zombie = target("minecraft:entity/zombie", QuestAction.KILL_MOBS, 25, 500)
+        val skeleton = target("minecraft:entity/skeleton", QuestAction.KILL_MOBS, 25, 500)
+        val recent = QuestDefinition(
+            id = "recent",
+            action = QuestAction.KILL_MOBS,
+            target = zombie,
+            targetCount = 100,
+            tier = QuestRewardTier.COMMON
+        )
 
-        val result = QuestGenerator(QuestGenerationValidator(), Random(7), maxAttemptsPerQuest = 2)
-            .generate(listOf(invalid), 1, fallback)
+        val settings = QuestGenerationSettings(
+            conditionChancePercent = 0,
+            actionTargetCooldownWeeks = 3,
+            exactRepeatCooldownWeeks = 8
+        )
+        val generated = QuestGenerator(QuestGenerationValidator(), ZeroRandom, maxAttemptsPerQuest = 1)
+            .generate(
+                listOf(zombie, skeleton),
+                1,
+                settings,
+                QuestGenerationHistory(listOf(listOf(recent))),
+                rewardXp
+            )
 
-        assertEquals(listOf(fallback), result)
-        assertNotEquals(invalid.definition, result.single())
+        assertEquals("minecraft:entity/skeleton", generated.single().target.id)
     }
 
     @Test
-    fun `fallback suffix skips ids already selected`() {
-        val fallback = candidate("fallback", "STONE", QuestAction.MINE_BLOCKS, 500).definition
-        val existing = fallback.copy(id = "fallback-2")
+    fun `axis conditions are generated as valid corridors`() {
+        val stone = target(
+            "minecraft:block/stone",
+            QuestAction.MINE_BLOCKS,
+            1_000,
+            25_000,
+            conditions = setOf(QuestConditionType.X_WITHIN)
+        )
 
-        val result = QuestGenerator(QuestGenerationValidator(), Random(7), maxAttemptsPerQuest = 1)
-            .generate(listOf(QuestCandidate(existing, 1)), 3, fallback)
+        val generated = QuestGenerator(QuestGenerationValidator(), Random(4))
+            .generate(
+                listOf(stone),
+                1,
+                QuestGenerationSettings(
+                    conditionChancePercent = 100,
+                    secondConditionChancePercent = 0,
+                    axisCenters = listOf(0),
+                    axisWidths = listOf(100)
+                ),
+                rewardXp = rewardXp
+            )
+            .single()
 
-        assertEquals(3, result.map { it.id }.toSet().size)
+        assertEquals("0:100", generated.conditions.single().value)
+        assertEquals(QuestConditionType.X_WITHIN, generated.conditions.single().type)
     }
 
-    private fun candidate(id: String, targetId: String, action: QuestAction, amount: Long): QuestCandidate {
-        val target = QuestTarget(
-            id = targetId,
-            allowedActions = if (id == "bad") setOf(QuestAction.KILL_MOBS) else setOf(action),
-            minimumAmount = if (id == "bad") 1 else amount,
-            maximumAmount = if (id == "bad") 10 else amount
+    @Test
+    fun `generated amounts are human milestones inside target bounds`() {
+        val stone = target("minecraft:block/stone", QuestAction.MINE_BLOCKS, 1_000, 25_000)
+
+        val amounts = (1..30).map { seed ->
+            QuestGenerator(QuestGenerationValidator(), Random(seed))
+                .generate(
+                    listOf(stone),
+                    1,
+                    QuestGenerationSettings(conditionChancePercent = 0),
+                    rewardXp = rewardXp
+                )
+                .single()
+                .targetCount
+        }
+
+        assertTrue(amounts.all { it in 1_000L..25_000L })
+        assertTrue(amounts.all { it % 100L == 0L || it % 500L == 0L || it % 1_000L == 0L })
+        assertNotEquals(1, amounts.toSet().size)
+    }
+
+    @Test
+    fun `amount policy keeps precious placement bounded`() {
+        val bulk = QuestAmountPolicy.range(QuestAction.PLACE_BLOCKS, QuestTargetRarity.BULK)
+        val precious = QuestAmountPolicy.range(QuestAction.PLACE_BLOCKS, QuestTargetRarity.PRECIOUS)
+
+        assertTrue(precious.maximum < bulk.minimum)
+        assertEquals(1, precious.minimum)
+        assertEquals(32, precious.maximum)
+    }
+
+    @Test
+    fun `fallback relaxes history when the provider pool is otherwise exhausted`() {
+        val zombie = target("minecraft:entity/zombie", QuestAction.KILL_MOBS, 25, 500)
+        val recent = QuestDefinition(
+            id = "recent",
+            action = QuestAction.KILL_MOBS,
+            target = zombie,
+            targetCount = 25,
+            tier = QuestRewardTier.COMMON
         )
-        return QuestCandidate(
-            definition = QuestDefinition(
-                id = id,
-                nameKey = "quests.$id.name",
-                descriptionKey = "quests.$id.description",
-                action = action,
-                target = target,
-                targetCount = amount,
-                tier = QuestRewardTier.COMMON
-            ),
-            weight = 1
+
+        val generated = QuestGenerator(QuestGenerationValidator(), ZeroRandom, maxAttemptsPerQuest = 1)
+            .generate(
+                listOf(zombie),
+                1,
+                QuestGenerationSettings(conditionChancePercent = 0),
+                QuestGenerationHistory(listOf(listOf(recent))),
+                rewardXp
+            )
+
+        assertEquals("minecraft:entity/zombie", generated.single().target.id)
+    }
+
+    @Test
+    fun `dimension condition can be generated for a target that explicitly supports it`() {
+        val player = QuestTarget(
+            id = "minecraft:player/player",
+            allowedActions = setOf(QuestAction.KILL_PLAYERS),
+            minimumAmount = 10,
+            maximumAmount = 100,
+            naturalDimensions = setOf("NORMAL", "NETHER", "THE_END"),
+            supportedConditions = setOf(QuestConditionType.IN_DIMENSION)
         )
+
+        val generated = QuestGenerator(QuestGenerationValidator(), ZeroRandom)
+            .generate(
+                listOf(player),
+                1,
+                QuestGenerationSettings(conditionChancePercent = 100, secondConditionChancePercent = 0),
+                rewardXp = rewardXp
+            )
+            .single()
+
+        assertEquals(QuestConditionType.IN_DIMENSION, generated.conditions.single().type)
+        assertEquals("NETHER", generated.conditions.single().value)
+    }
+    private fun target(
+        id: String,
+        action: QuestAction,
+        min: Long,
+        max: Long,
+        conditions: Set<QuestConditionType> = emptySet()
+    ) = QuestTarget(
+        id = id,
+        allowedActions = setOf(action),
+        minimumAmount = min,
+        maximumAmount = max,
+        supportedConditions = conditions
+    )
+
+    private object ZeroRandom : Random() {
+        override fun nextBits(bitCount: Int): Int = 0
     }
 }

@@ -46,13 +46,13 @@ data class ProgressionSystemConfig(
 }
 
 data class QuestSystemConfig(
-    val enabled: Boolean = false,
+    val enabled: Boolean = true,
     val resetDay: DayOfWeek = DayOfWeek.MONDAY,
     val resetHourUtc: Int = 0,
     val questCount: Int = 3,
     val fullSetBonusXp: Int = 5_000,
     val rewardXp: QuestRewardXpConfig = QuestRewardXpConfig(),
-    val definitions: List<QuestDefinitionConfig> = emptyList()
+    val generation: QuestGenerationConfig = QuestGenerationConfig()
 )
 
 data class QuestRewardXpConfig(
@@ -62,28 +62,6 @@ data class QuestRewardXpConfig(
     val conditioned: Int = 5_000
 )
 
-data class QuestDefinitionConfig(
-    val id: String,
-    val nameKey: String,
-    val descriptionKey: String,
-    val action: String,
-    val target: String,
-    val amount: Long,
-    val tier: String,
-    val weight: Int = 1,
-    val conditionType: String? = null,
-    val conditionValue: String? = null,
-    val naturalDimensions: Set<String> = emptySet(),
-    val naturalBiomes: Set<String> = emptySet(),
-    val minimumAmount: Long = amount,
-    val maximumAmount: Long = amount,
-    val provenancePolicy: String = "ANY",
-    val leaderboard: Boolean = false,
-    val leaderboardPayouts: Map<Int, Int> = emptyMap(),
-    val itemRewards: List<QuestItemRewardConfig> = emptyList()
-)
-
-data class QuestItemRewardConfig(val itemId: String, val amount: Int)
 
 /**
  * Leveling formula configuration

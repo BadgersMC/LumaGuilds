@@ -1,13 +1,16 @@
-package net.lumalyte.lg.application.services
+﻿package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.application.persistence.QuestRepository
 import net.lumalyte.lg.domain.entities.GuildQuestProgress
+import net.lumalyte.lg.domain.entities.QuestCondition
+import net.lumalyte.lg.domain.entities.QuestConditionType
 import net.lumalyte.lg.domain.entities.QuestItemReward
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import net.lumalyte.lg.domain.values.QuestAction
-import java.util.UUID
 import java.time.Duration
 import java.time.Instant
+import java.util.UUID
+import kotlin.math.abs
 
 interface QuestRewardSink {
     fun awardExperience(guildId: UUID, amount: Int)
@@ -18,7 +21,9 @@ data class QuestProgressContext(
     val dimension: String? = null,
     val biome: String? = null,
     val tool: String? = null,
+    val x: Int? = null,
     val y: Int? = null,
+    val z: Int? = null,
     val transport: String? = null,
     val usedElytra: Boolean = false,
     val playerPlacedBlock: Boolean = false
@@ -30,7 +35,7 @@ class QuestService(
     val fullSetBonusExperience: Int
 ) {
     fun activeQuestSet(): WeeklyQuestSet? = repository.getActiveQuestSet()
-
+    fun recentQuestSets(limit: Int): List<WeeklyQuestSet> = repository.getRecentQuestSets(limit)
     fun deactivate() = repository.deactivateActiveQuestSet()
 
     fun progressFor(guildId: UUID, questId: String): GuildQuestProgress {
@@ -76,12 +81,12 @@ class QuestService(
         if (amount <= 0) return
         val active = repository.getActiveQuestSet() ?: return
         active.quests.asSequence()
-            .filter { it.action == action && (it.target.id == targetId || it.target.id == "ANY") }
+            .filter { it.action == action && targetMatches(it.target.id, targetId) }
             .filter {
                 !(context.playerPlacedBlock &&
                     it.target.provenancePolicy == net.lumalyte.lg.domain.entities.BlockProvenancePolicy.NATURAL_ONLY)
             }
-            .filter { conditionMatches(it.condition, context) }
+            .filter { conditionsMatch(it.conditions, context) }
             .forEach { quest ->
                 val current = repository.getProgress(active.weekId, quest.id, guildId)
                     ?: GuildQuestProgress(active.weekId, quest.id, guildId)
@@ -135,20 +140,38 @@ class QuestService(
         }
     }
 
-    private fun conditionMatches(
-        condition: net.lumalyte.lg.domain.entities.QuestCondition?,
-        context: QuestProgressContext
-    ): Boolean {
-        condition ?: return true
-        return when (condition.type) {
-            net.lumalyte.lg.domain.entities.QuestConditionType.WITH_TOOL -> context.tool == condition.value
-            net.lumalyte.lg.domain.entities.QuestConditionType.WITHOUT_TOOL -> context.tool != condition.value
-            net.lumalyte.lg.domain.entities.QuestConditionType.IN_DIMENSION -> context.dimension == condition.value
-            net.lumalyte.lg.domain.entities.QuestConditionType.IN_BIOME -> context.biome == condition.value
-            net.lumalyte.lg.domain.entities.QuestConditionType.ABOVE_Y -> context.y?.let { it > (condition.value?.toIntOrNull() ?: Int.MAX_VALUE) } == true
-            net.lumalyte.lg.domain.entities.QuestConditionType.BELOW_Y -> context.y?.let { it < (condition.value?.toIntOrNull() ?: Int.MIN_VALUE) } == true
-            net.lumalyte.lg.domain.entities.QuestConditionType.USING_TRANSPORT -> context.transport == condition.value
-            net.lumalyte.lg.domain.entities.QuestConditionType.WITHOUT_ELYTRA -> !context.usedElytra
+    private fun targetMatches(questTarget: String, eventTarget: String): Boolean {
+        if (questTarget == eventTarget) return true
+        if (questTarget == "ANY" || questTarget.endsWith("/any")) return true
+        if (':' !in questTarget) {
+            return questTarget.equals(eventTarget.substringAfterLast('/'), ignoreCase = true)
         }
+        return false
+    }
+
+    private fun conditionsMatch(conditions: List<QuestCondition>, context: QuestProgressContext): Boolean =
+        conditions.all { conditionMatches(it, context) }
+
+    private fun conditionMatches(condition: QuestCondition, context: QuestProgressContext): Boolean = when (condition.type) {
+        QuestConditionType.WITH_TOOL -> context.tool == condition.value
+        QuestConditionType.WITHOUT_TOOL -> context.tool != condition.value
+        QuestConditionType.IN_DIMENSION -> context.dimension == condition.value
+        QuestConditionType.IN_BIOME -> context.biome == condition.value
+        QuestConditionType.ABOVE_Y ->
+            context.y?.let { it > (condition.value?.toIntOrNull() ?: Int.MAX_VALUE) } == true
+        QuestConditionType.BELOW_Y ->
+            context.y?.let { it < (condition.value?.toIntOrNull() ?: Int.MIN_VALUE) } == true
+        QuestConditionType.X_WITHIN -> axisMatches(context.x, condition.value)
+        QuestConditionType.Z_WITHIN -> axisMatches(context.z, condition.value)
+        QuestConditionType.USING_TRANSPORT -> context.transport == condition.value
+        QuestConditionType.WITHOUT_ELYTRA -> !context.usedElytra
+    }
+
+    private fun axisMatches(actual: Int?, encoded: String?): Boolean {
+        actual ?: return false
+        val parts = encoded.orEmpty().split(':', limit = 2)
+        val center = parts.getOrNull(0)?.toIntOrNull() ?: return false
+        val radius = parts.getOrNull(1)?.toIntOrNull()?.takeIf { it > 0 } ?: return false
+        return abs(actual.toLong() - center.toLong()) <= radius.toLong()
     }
 }

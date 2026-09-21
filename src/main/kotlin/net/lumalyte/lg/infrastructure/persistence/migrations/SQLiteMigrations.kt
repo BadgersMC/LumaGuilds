@@ -194,6 +194,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(35)
                 dbVersion = 35
             }
+            if (dbVersion < 36) {
+                migrateToVersion36()
+                updateDatabaseVersion(36)
+                dbVersion = 36
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1857,5 +1862,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         componentLogger.info(Component.text(
             "✓ Migration v35 complete: durable guild Discord-role links added"
         ))
+    }
+
+    private fun migrateToVersion36() {
+        QuestSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Quest persistence migrated to schema v36"))
     }
 }

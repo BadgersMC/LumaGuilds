@@ -16,7 +16,7 @@ import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
 
-class GuildGoldMigrationTest {
+class QuestSchemaMigrationTest {
     @TempDir
     lateinit var tempDir: Path
 
@@ -25,20 +25,11 @@ class GuildGoldMigrationTest {
 
     @BeforeEach
     fun setUp() {
-        connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("migration.db")}")
+        connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("quest-schema.db")}")
         connection.createStatement().use { statement ->
-            statement.execute("PRAGMA user_version = 28")
+            statement.execute("PRAGMA user_version = 35")
             statement.execute("CREATE TABLE guilds (id TEXT PRIMARY KEY, ally_home_allowed_guilds TEXT)")
             statement.execute("CREATE TABLE guild_homes (id TEXT PRIMARY KEY, allowed_ranks TEXT)")
-            listOf(
-                "members", "relations", "parties", "party_requests", "player_party_preferences",
-                "bank_tx", "kills", "audits", "wars", "leaderboards", "guild_invitations",
-                "vault_slots", "vault_gold", "vault_transaction_log", "guild_strikes",
-                "guild_penalties", "quest_player_placed_blocks", "guild_experience_source_usage",
-                "guild_bank_xp_high_water", "membership_history"
-            ).forEach { table ->
-                statement.execute("CREATE TABLE $table (id TEXT PRIMARY KEY)")
-            }
         }
         val pluginManager = mockk<PluginManager>(relaxed = true)
         val server = mockk<Server> {
@@ -56,12 +47,20 @@ class GuildGoldMigrationTest {
     }
 
     @Test
-    fun `version 29 creates canonical guild gold operation tables`() {
+    fun `version 36 owns weekly quest persistence schema`() {
         SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
 
-        assertTrue(tableExists("guild_gold_operations"))
-        assertTrue(tableExists("guild_gold_withdrawal_usage"))
-        assertTrue(tableExists("guild_gold_security"))
+        listOf(
+            "weekly_quest_sets",
+            "weekly_quest_definitions",
+            "guild_quest_progress",
+            "guild_quest_weekly_bonus",
+            "quest_leaderboard_payouts"
+        ).forEach { table -> assertTrue(tableExists(table), "Missing $table") }
+
+        assertTrue(columnExists("weekly_quest_definitions", "target_rarity"))
+        assertTrue(columnExists("weekly_quest_definitions", "conditions"))
+        assertTrue(columnExists("weekly_quest_definitions", "quest_order"))
         assertEquals(36, databaseVersion())
     }
 
@@ -71,6 +70,14 @@ class GuildGoldMigrationTest {
         statement.setString(1, table)
         statement.executeQuery().use { it.next() }
     }
+
+    private fun columnExists(table: String, column: String): Boolean =
+        connection.createStatement().use { statement ->
+            statement.executeQuery("PRAGMA table_info($table)").use { results ->
+                generateSequence { if (results.next()) results.getString("name") else null }
+                    .any { it == column }
+            }
+        }
 
     private fun databaseVersion(): Int = connection.createStatement().use { statement ->
         statement.executeQuery("PRAGMA user_version").use { results ->

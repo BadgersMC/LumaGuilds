@@ -8,6 +8,7 @@ import net.lumalyte.lg.domain.entities.QuestTarget
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import net.lumalyte.lg.domain.values.QuestAction
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.migrations.QuestSchema
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -26,6 +27,7 @@ class QuestRepositorySQLiteTest {
 
     @BeforeEach fun setUp() {
         storage = VirtualThreadSQLiteStorage(tempDir.toFile())
+        storage.connection.getConnection().use { QuestSchema.create(it, mariaDb = false) }
         repository = QuestRepositorySQLite(storage)
     }
 
@@ -97,7 +99,7 @@ class QuestRepositorySQLiteTest {
             nameKey = "quests.zombies.name",
             descriptionKey = "quests.zombies.description",
             action = QuestAction.KILL_MOBS,
-            target = QuestTarget("ZOMBIE", setOf(QuestAction.KILL_MOBS), 50, 500),
+            target = QuestTarget("minecraft:entity/zombie", setOf(QuestAction.KILL_MOBS), 50, 500),
             targetCount = 100,
             tier = QuestRewardTier.COMMON,
             experienceReward = 500,
