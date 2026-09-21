@@ -672,7 +672,15 @@ fun progressionModule() = module {
                 .getProgressionConfig().quests.fullSetBonusXp
         )
     }
-    single { net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator(get(), get()) }
+single {
+        net.lumalyte.lg.domain.services.QuestTargetCatalog(
+            listOf(
+                net.lumalyte.lg.infrastructure.services.BukkitQuestTargetProvider(get()),
+                net.lumalyte.lg.infrastructure.services.NexoQuestTargetProvider(get())
+            )
+        )
+    }
+    single { net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator(get(), get(), get()) }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
         net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get(), get())
     }
@@ -692,7 +700,7 @@ fun progressionModule() = module {
             virtualDispatcher = get(named("VirtualDispatcher")),
         )
     }
-    single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get()) }
 }
 
 /**

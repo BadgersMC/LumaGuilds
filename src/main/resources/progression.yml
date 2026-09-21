@@ -398,8 +398,11 @@ leaderboards:
 # =====================================
 # Shared Weekly Guild Quests
 # =====================================
+# Targets are discovered automatically from Bukkit/Paper and installed quest
+# providers such as Nexo. Operators configure generation policy rather than
+# authoring individual quest definitions.
 quests:
-  enabled: false
+  enabled: true
   reset_day: MONDAY
   reset_hour_utc: 0
   quest_count: 3
@@ -409,6 +412,13 @@ quests:
     challenging: 1500
     headline: 3000
     conditioned: 5000
-  # Operators add typed quest candidates here. Every guild receives the same
-  # generated set; progress and rewards remain per guild.
-  definitions: {}
+  generation:
+    condition_chance_percent: 45
+    second_condition_chance_percent: 15
+    max_conditions: 2
+    exact_repeat_cooldown_weeks: 8
+    action_target_cooldown_weeks: 3
+    # Zero is repeated to bias corridor quests toward the player-built highways.
+    axis_centers: [0, 0, 0, 0, 500, -500, 1000, -1000, 2500, -2500]
+    axis_widths: [50, 100, 250, 500]
+    y_levels: [-32, 0, 32, 64, 96, 128]

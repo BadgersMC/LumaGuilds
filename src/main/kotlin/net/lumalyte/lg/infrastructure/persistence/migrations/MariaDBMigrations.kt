@@ -125,6 +125,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(35)
                 currentDbVersion = 35
             }
+            if (currentDbVersion < 36) {
+                migrateToVersion36()
+                updateDatabaseVersion(36)
+                currentDbVersion = 36
+            }
 
             connection.commit()
 
@@ -1061,5 +1066,10 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
         componentLogger.info(Component.text(
             "✓ Migration v35 complete: durable guild Discord-role links added"
         ))
+    }
+
+    private fun migrateToVersion36() {
+        QuestSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Quest persistence migrated to schema v36"))
     }
 }
