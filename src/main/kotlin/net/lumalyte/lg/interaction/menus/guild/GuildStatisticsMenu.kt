@@ -39,10 +39,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
     private val leaderboardService: LeaderboardService by inject()
+    private val invitationStatisticsService: InvitationStatisticsService by inject()
 
     private val logger = LoggerFactory.getLogger(GuildStatisticsMenu::class.java)
 
     private val decimalFormat = DecimalFormat("#.##")
+
+    companion object {
+        internal const val INVITERS_PER_PAGE = 10
+    }
 
     override fun open() {
         val gui = ChestGui(6, MenuTitleBuilder.build(
@@ -70,6 +75,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         addTopContributorsButton(pane, 1, 1)
         addKillDeathRatiosButton(pane, 2, 1)
         addRecentActivityButton(pane, 3, 1)
+        addTopInvitersButton(pane, 4, 1)
 
         // Row 3: Advanced Analytics
         addPeriodStatsButton(pane, 0, 2)
@@ -656,6 +662,27 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         pane.addItem(guiItem, x, y)
     }
 
+    private fun addTopInvitersButton(pane: StaticPane, x: Int, y: Int) {
+        val topInviters = invitationStatisticsService.getLeaderboard(guild.id, 3)
+        val totalInvitations = invitationStatisticsService.getTotalInvitations(guild.id)
+        val item = ItemStack.of(Material.WRITABLE_BOOK)
+            .name(lang.gui("menu.statistics.item.top_inviters.name"))
+            .lore(lang.gui("menu.statistics.item.top_inviters.lore.description"))
+            .lore(lang.gui("menu.statistics.common.total_invitations", "count" to totalInvitations))
+
+        if (topInviters.isNotEmpty()) {
+            item.lore(lang.gui("menu.common.blank"))
+            topInviters.forEachIndexed { index, entry ->
+                val playerName = Bukkit.getOfflinePlayer(entry.inviterPlayerId).name
+                    ?: entry.inviterPlayerId.toString().take(8)
+                item.lore(rankedInvitationsLore(index + 1, playerName, entry.inviteCount))
+            }
+        } else {
+            item.lore(lang.gui("menu.statistics.common.no_invitation_data"))
+        }
+
+        pane.addItem(GuiItem(item) { openTopInvitersDetail() }, x, y)
+    }
     private fun addKillDeathRatiosButton(pane: StaticPane, x: Int, y: Int) {
         val killStats = killService.getGuildKillStats(guild.id)
 
@@ -807,6 +834,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
+    private fun rankedInvitationsLore(rank: Int, playerName: Any, count: Int): Component {
+        return when (rank) {
+            1 -> lang.gui("menu.statistics.common.ranked_invitations.first", "rank" to rank, "player" to playerName, "count" to count)
+            2 -> lang.gui("menu.statistics.common.ranked_invitations.second", "rank" to rank, "player" to playerName, "count" to count)
+            3 -> lang.gui("menu.statistics.common.ranked_invitations.third", "rank" to rank, "player" to playerName, "count" to count)
+            else -> lang.gui("menu.statistics.common.ranked_invitations.other", "rank" to rank, "player" to playerName, "count" to count)
+        }
+    }
     private fun kdRatingLore(ratio: Double): Component {
         val rating = getKDRating(ratio)
         return when {
@@ -998,6 +1033,65 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         } catch (e: Exception) {
             player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.top_contributors"))
             logger.error("Error opening top contributors detail for guild ${guild.id}", e)
+        }
+    }
+
+    private fun openTopInvitersDetail(page: Int = 0) {
+        try {
+            val leaderboardPage = invitationStatisticsService.getLeaderboardPage(guild.id, page, INVITERS_PER_PAGE)
+            val totalInvitations = invitationStatisticsService.getTotalInvitations(guild.id)
+            val gui = statisticsGui(5)
+            gui.setOnTopClick { it.isCancelled = true }
+            gui.setOnBottomClick { event ->
+                if (event.click == ClickType.SHIFT_LEFT || event.click == ClickType.SHIFT_RIGHT) event.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 5)
+            gui.addPane(pane)
+
+            val titleItem = ItemStack.of(Material.WRITABLE_BOOK)
+                .name(lang.gui("menu.statistics.detail.top_inviters.name"))
+                .lore(lang.gui("menu.statistics.detail.top_inviters.description"))
+                .lore(lang.gui("menu.statistics.common.total_invitations", "count" to totalInvitations))
+
+            if (leaderboardPage.entries.isNotEmpty()) {
+                titleItem.lore(lang.gui("menu.common.blank"))
+                val rankOffset = leaderboardPage.page * leaderboardPage.pageSize
+                leaderboardPage.entries.forEachIndexed { index, entry ->
+                    val playerName = Bukkit.getOfflinePlayer(entry.inviterPlayerId).name
+                        ?: entry.inviterPlayerId.toString().take(8)
+                    titleItem.lore(rankedInvitationsLore(rankOffset + index + 1, playerName, entry.inviteCount))
+                }
+            } else {
+                titleItem.lore(lang.gui("menu.statistics.common.no_invitation_data"))
+            }
+            pane.addItem(GuiItem(titleItem), 4, 1)
+
+            if (leaderboardPage.totalPages > 1) {
+                if (leaderboardPage.page > 0) {
+                    val previous = ItemStack.of(Material.ARROW)
+                        .name(lang.gui("menu.statistics.item.previous_page.name"))
+                    pane.addItem(GuiItem(previous) { openTopInvitersDetail(leaderboardPage.page - 1) }, 2, 4)
+                }
+
+                val pageIndicator = ItemStack.of(Material.PAPER)
+                    .name(lang.gui("menu.statistics.common.page_info", "page" to leaderboardPage.page + 1, "total" to leaderboardPage.totalPages))
+                pane.addItem(GuiItem(pageIndicator), 4, 3)
+
+                if (leaderboardPage.page < leaderboardPage.totalPages - 1) {
+                    val next = ItemStack.of(Material.ARROW)
+                        .name(lang.gui("menu.statistics.item.next_page.name"))
+                    pane.addItem(GuiItem(next) { openTopInvitersDetail(leaderboardPage.page + 1) }, 6, 4)
+                }
+            }
+
+            val backItem = ItemStack.of(Material.ARROW)
+                .name(lang.gui("menu.statistics.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
+            pane.addItem(GuiItem(backItem) { open() }, 4, 4)
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.top_inviters"))
+            logger.error("Error opening top inviters detail for guild ${guild.id}", e)
         }
     }
 

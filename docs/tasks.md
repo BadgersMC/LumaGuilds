@@ -507,12 +507,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-15 — Backlog: QoL, UI & Discord integration (operator, Fain)
 
-- [ ] **LG-1501** Guild Statistics node completion — internal invitation tracker/leaderboard (most invites per member)
+- [x] **LG-1501** Guild Statistics node completion — durable internal invitation tracker and all-time most-invites-per-member leaderboard
   - Tag: `TDD`
   - References: REQ-066
-  - Evidence:
-  - Files: `GuildStatisticsMenu.kt` (↳ LG-602 drill-downs, LG-806)
-  - Harvest: `InvitationService` + `GuildInvitationRepositorySQLite` (+ migration) from closed PR #7 (superseded) — verify schema against current migrations before reuse
+  - Evidence: successful pending-invitation creation and immutable history append commit atomically; duplicate/failed writes do not inflate counts and persistence failures no longer produce false success notifications. Schema v37 adds indexed `guild_invitation_history` for SQLite/MariaDB and the SQLite→Maria migration utility. `InvitationStatisticsService` exposes bounded per-guild totals/leaderboards with count-descending + inviter-UUID tie ordering. Java Statistics shows a top-3 card plus a database-backed 10-entry paginated detail view; Bedrock shows total + five inviters per selectable page from the same service, resolving current player names only at render time. Focused repository/migration/service/wiring contracts cover history durability, rollback, duplicate handling, deterministic aggregation, both UI surfaces, and fail-closed invite confirmation.
+  - Files: `GuildInvitationRepository`, `GuildInvitationRepositorySQLite`, `InvitationStatisticsService`, `InvitationStatisticsSchema`, `GuildStatisticsMenu`, `BedrockGuildStatisticsMenu`, Java/Bedrock invite confirmation menus, localization, migrations/tests
+  - Harvest: closed PR #7 was reviewed; its pending-invitation entity/repository work was already present in current code, while its `InvitationService` was interface-only and had no durable sent-invite analytics to reuse.
 - [ ] **LG-1502** Dynamic spawn banners — physical spawn banners track top guilds by Guild Level Leaderboard
   - Tag: `TDD`
   - References: REQ-067
