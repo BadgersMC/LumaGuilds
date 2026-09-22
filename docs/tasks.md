@@ -518,12 +518,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-067
   - Evidence: `/lumaguilds spawnbanner <rank> <category>` creates a white PDC-bound admin item; placement persists rank/category/location in schema v38 and renders the matching guild's current physical banner while preserving wall/standing orientation. Missing rank/guild/banner data falls back to white. `GuildLeaderboardRankChangeEvent` and `GuildBannerSetEvent` trigger immediate refresh, with a 60-second reconciliation safety pass; breaking a bound banner unregisters it and returns the configured white display item. Admin `refresh` and `list` controls are included. Focused category, repository, migration, wiring, and locale contracts are green; full `test shadowJar` validation passes 1,153 tests with zero failures/errors/skips and `git diff --check` is clean.
   - Files: `SpawnBannerCategory`, `SpawnBannerRepository`, `SpawnBannerRepositorySQL`, `SpawnBannerSchema`, `SpawnBannerServiceBukkit`, `SpawnBannerListener`, `LumaGuildsCommand`, `PluginKeys`, DI/startup/shutdown wiring, localization, migrations/tests
-- [ ] **LG-1503** Guild list GUI & leaderboards — all guilds, paged at the service boundary, 4 deterministic sort modes (all-time active, weekly active weighted by unique PvP kills, level low→high, creation old→new, ties → name → creation)
+- [x] **LG-1503** Guild list GUI & leaderboards — all guilds, paged at the service boundary, 4 deterministic sort modes (all-time active, weekly active weighted by unique PvP kills, level low→high, creation old→new, ties → name → creation)
   - Tag: `TDD`
   - References: REQ-068
-  - Evidence:
-  - Files: guild list menu, paged lookup action (page/pageSize/sortKey/ascending + total count — NOT `GuildLookup.getAllGuilds()`), sort providers
-  - Notes: page size from `guild_list.page_size` (default 18); prev/next page buttons with acceptance evidence; tie-break rules stable across refreshes
+  - Evidence: `/g list` now opens a dedicated Java/Bedrock guild directory backed by `GuildListService`; both surfaces request one bounded page and never call `GuildLookup.getAllGuilds()` or slice an unbounded list. SQL owns `LIMIT/OFFSET`, total count, primary ordering, and stable name→creation→UUID tie-breaking. All-Time Active reuses weighted progression activity across history; Weekly Active uses a trailing seven-day window, excludes raw `PLAYER_KILL` XP, and adds only distinct opposing victims weighted by configured `activity.weights.kills_this_week`. Level and creation sorts default ascending. `guild_list.page_size` defaults to 18 and is clamped to the Java inventory capacity of 36. Focused SQL/service/wiring/locale tests are green; full `test shadowJar` validation passes 1,163 tests with zero failures/errors/skips and `git diff --check` is clean.
+  - Files: `GuildListSortKey`, `GuildListRepository`, `GuildListRepositorySQL`, `GuildListService`, Java/Bedrock `GuildListMenu`, `MenuFactory`, `GuildCommand`, config/localization/tests
+  - Notes: LG-1504 remains responsible for replacing the temporary book renderer with each guild's physical banner; LG-1503 intentionally does not consume that scope.
 - [ ] **LG-1504** Guild banners in list — physical banner shown per guild, plain white default when unset
   - Tag: `TDD`
   - References: REQ-069
