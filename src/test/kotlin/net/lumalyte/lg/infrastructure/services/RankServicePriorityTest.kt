@@ -37,12 +37,19 @@ class RankServicePriorityTest {
         return Triple(service, rankRepo, memberRepo)
     }
 
-    private fun makeService(rankRepo: RankRepository, memberRepo: MemberRepository): RankServiceBukkit {
+    private fun makeService(
+        rankRepo: RankRepository,
+        memberRepo: MemberRepository,
+        invalidatePlayer: (UUID) -> Unit = {},
+        invalidateGuild: (UUID) -> Unit = {},
+    ): RankServiceBukkit {
         return RankServiceBukkit(
             rankRepository = rankRepo,
             memberRepository = memberRepo,
             guildRepository = mockk<GuildRepository>(relaxed = true),
-            memberService = mockk<MemberService>(relaxed = true)
+            memberService = mockk<MemberService>(relaxed = true),
+            invalidateClaimPermissionCacheForPlayer = invalidatePlayer,
+            invalidateClaimPermissionCacheForGuild = invalidateGuild,
         )
     }
 
@@ -96,5 +103,47 @@ class RankServicePriorityTest {
         val target = mkRank("Member", 5)
         val (svc, _) = setup(actor = actor, ranks = listOf(actor, target))
         assertFalse(svc.moveRankPriority(target.id, PriorityDirection.UP, actorId))
+    }
+
+    @Test
+    fun `rank permission changes invalidate the guild claim permission cache`() {
+        val owner = mkRank("Owner", 0, setOf(RankPermission.MANAGE_RANKS))
+        val target = mkRank("Member", 5)
+        val rankRepo = mockk<RankRepository>()
+        val memberRepo = mockk<MemberRepository>()
+        every { memberRepo.getRankId(actorId, guildId) } returns owner.id
+        every { rankRepo.getById(owner.id) } returns owner
+        every { rankRepo.getById(target.id) } returns target
+        every { rankRepo.update(any()) } returns true
+
+        val invalidated = mutableListOf<UUID>()
+        val service = makeService(rankRepo, memberRepo, invalidateGuild = { invalidated += it })
+
+        assertTrue(service.setRankPermissions(target.id, setOf(RankPermission.MANAGE_CLAIMS), actorId))
+        assertEquals(listOf(guildId), invalidated)
+    }
+
+    @Test
+    fun `assigning a rank invalidates that players claim permission cache`() {
+        val owner = mkRank("Owner", 0, setOf(RankPermission.MANAGE_MEMBERS))
+        val oldRank = mkRank("Member", 5)
+        val newRank = mkRank("Trusted", 4)
+        val playerId = UUID.randomUUID()
+        val memberRepo = mockk<MemberRepository>()
+        val rankRepo = mockk<RankRepository>()
+        val existing = net.lumalyte.lg.domain.entities.Member(
+            playerId, guildId, oldRank.id, java.time.Instant.now()
+        )
+        every { memberRepo.getRankId(actorId, guildId) } returns owner.id
+        every { memberRepo.getByPlayerAndGuild(playerId, guildId) } returns existing
+        every { rankRepo.getById(owner.id) } returns owner
+        every { rankRepo.getById(newRank.id) } returns newRank
+        every { memberRepo.update(any()) } returns true
+
+        val invalidated = mutableListOf<UUID>()
+        val service = makeService(rankRepo, memberRepo, invalidatePlayer = { invalidated += it })
+
+        assertTrue(service.assignRank(playerId, guildId, newRank.id, actorId))
+        assertEquals(listOf(playerId), invalidated)
     }
 }

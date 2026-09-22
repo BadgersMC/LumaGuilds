@@ -25,7 +25,8 @@ class MemberServiceBukkit(
     private val progressionConfigService: ProgressionConfigService,
     private val historyRepository: MembershipHistoryRepository,
     private val adminOverrideService: AdminOverrideService,
-    private val guildRewards: net.lumalyte.lg.application.services.GuildRewardService? = null
+    private val guildRewards: net.lumalyte.lg.application.services.GuildRewardService? = null,
+    private val invalidateClaimPermissionCache: (UUID) -> Unit = {},
 ) : MemberService {
 
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
@@ -87,6 +88,7 @@ class MemberServiceBukkit(
         
         val result = memberRepository.add(member)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             logger.info("Player $playerId added to guild $guildId with rank '${rank.name}'")
 
             // Fire event for progression system
@@ -133,6 +135,7 @@ class MemberServiceBukkit(
 
         val result = memberRepository.remove(playerId, guildId)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             // Record membership history (LEFT = voluntary, KICKED = by another player)
             val reason = if (actorId == playerId) DepartureReason.LEFT else DepartureReason.KICKED
             historyRepository.closeStint(playerId, guildId, reason)
@@ -245,6 +248,7 @@ class MemberServiceBukkit(
         val updatedMember = member.copy(rankId = newRankId)
         val result = memberRepository.update(updatedMember)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             logger.info("Player $playerId rank changed to '${newRank.name}' in guild $guildId by $actorId")
 
             // Send Apollo notification (if available)
@@ -334,6 +338,7 @@ class MemberServiceBukkit(
         val updatedMember = member.copy(rankId = nextRank.id)
         val result = memberRepository.update(updatedMember)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             logger.info("Player $playerId promoted from '${currentRank.name}' to '${nextRank.name}' in guild $guildId by $actorId")
         }
         return result
@@ -377,6 +382,7 @@ class MemberServiceBukkit(
         val updatedMember = member.copy(rankId = nextRank.id)
         val result = memberRepository.update(updatedMember)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             logger.info("Player $playerId demoted from '${currentRank.name}' to '${nextRank.name}' in guild $guildId by $actorId")
         }
         return result
@@ -437,6 +443,8 @@ class MemberServiceBukkit(
                 return false
             }
 
+            invalidateClaimPermissionCache(currentOwnerId)
+            invalidateClaimPermissionCache(newOwnerId)
             logger.info("Ownership of guild $guildId transferred from $currentOwnerId to $newOwnerId")
             Bukkit.getPluginManager().callEvent(GuildOwnershipTransferEvent(guildId, currentOwnerId, newOwnerId))
             return true

@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.application.services.WarNotificationService
 import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
@@ -26,6 +27,7 @@ class WarServiceBukkit(
     private val progressionService: ProgressionService,
     private val warRepository: net.lumalyte.lg.application.persistence.WarRepository,
     private val warPayments: net.lumalyte.lg.application.services.WarPaymentService,
+    private val memberService: MemberService,
     private val seasonalElo: SeasonalEloCoordinator? = null,
     private val warNotifications: WarNotificationService? = null,
     private val memberRepository: net.lumalyte.lg.application.persistence.MemberRepository? = null,
@@ -122,6 +124,10 @@ class WarServiceBukkit(
         actorId: UUID,
         rated: Boolean,
     ): WarDeclaration? {
+        if (!canPlayerManageWars(actorId, declaringGuildId)) {
+            logger.warn("Player $actorId attempted to declare war for guild $declaringGuildId without permission")
+            return null
+        }
         return try {
             // Check if war already exists between these guilds
             val snapshot = warRepository.getAll()
@@ -195,6 +201,15 @@ class WarServiceBukkit(
 
     @Synchronized
     override fun acceptWarDeclaration(declarationId: UUID, actorId: UUID): War? {
+        val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return null
+        if (!canPlayerManageWars(actorId, declaration.defendingGuildId)) {
+            logger.warn("Player $actorId attempted to accept war declaration $declarationId without permission for guild ${declaration.defendingGuildId}")
+            return null
+        }
+        return acceptWarDeclarationInternal(declarationId, actorId)
+    }
+
+    private fun acceptWarDeclarationInternal(declarationId: UUID, actorId: UUID): War? {
         return try {
             val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return null
             if (!declaration.isValid) return null
@@ -245,6 +260,11 @@ class WarServiceBukkit(
 
     override fun rejectWarDeclaration(declarationId: UUID, actorId: UUID): Boolean {
         return try {
+            val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return false
+            if (!canPlayerManageWars(actorId, declaration.defendingGuildId)) {
+                logger.warn("Player $actorId attempted to reject war declaration $declarationId without permission for guild ${declaration.defendingGuildId}")
+                return false
+            }
             removeDeclaration(declarationId) != null
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
@@ -255,6 +275,11 @@ class WarServiceBukkit(
 
     override fun cancelWarDeclaration(declarationId: UUID, actorId: UUID): Boolean {
         return try {
+            val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return false
+            if (!canPlayerManageWars(actorId, declaration.declaringGuildId)) {
+                logger.warn("Player $actorId attempted to cancel war declaration $declarationId without permission for guild ${declaration.declaringGuildId}")
+                return false
+            }
             removeDeclaration(declarationId) != null
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
@@ -265,6 +290,20 @@ class WarServiceBukkit(
 
     @Synchronized
     override fun endWar(warId: UUID, winnerGuildId: UUID, peaceTerms: String?, actorId: UUID): Boolean {
+        val war = getWar(warId) ?: return false
+        if (winnerGuildId !in setOf(war.declaringGuildId, war.defendingGuildId)) return false
+        val losingGuildId =
+            if (winnerGuildId == war.declaringGuildId) war.defendingGuildId else war.declaringGuildId
+        if (!canPlayerManageWars(actorId, losingGuildId)) {
+            logger.warn(
+                "Player $actorId attempted to end war $warId without permission for losing guild $losingGuildId"
+            )
+            return false
+        }
+        return endWarInternal(warId, winnerGuildId, peaceTerms)
+    }
+
+    private fun endWarInternal(warId: UUID, winnerGuildId: UUID, peaceTerms: String?): Boolean {
         return try {
             val war = getWar(warId) ?: return false
             if (!war.isActive || winnerGuildId !in setOf(war.declaringGuildId, war.defendingGuildId)) return false
@@ -290,6 +329,15 @@ class WarServiceBukkit(
 
     @Synchronized
     override fun endWarAsDraw(warId: UUID, reason: String?, actorId: UUID): Boolean {
+        val war = getWar(warId) ?: return false
+        if (!canActorManageWar(actorId, war)) {
+            logger.warn("Player $actorId attempted to end war $warId as a draw without permission")
+            return false
+        }
+        return endWarAsDrawInternal(warId, reason)
+    }
+
+    private fun endWarAsDrawInternal(warId: UUID, reason: String?): Boolean {
         return try {
             val war = getWar(warId) ?: return false
             if (!war.isActive) return false
@@ -316,6 +364,10 @@ class WarServiceBukkit(
     override fun cancelWar(warId: UUID, actorId: UUID): Boolean {
         return try {
             val war = getWar(warId) ?: return false
+            if (!canActorManageWar(actorId, war)) {
+                logger.warn("Player $actorId attempted to cancel war $warId without permission")
+                return false
+            }
             if (war.status == WarStatus.ENDED || war.status == WarStatus.CANCELLED) return false
             val canceledWar = war.copy(status = WarStatus.CANCELLED)
             saveWar(canceledWar)
@@ -419,7 +471,7 @@ class WarServiceBukkit(
 
         val target = getWarKillWinTarget()
         val killerKills = if (declaringKill) updated.declaringGuildKills else updated.defendingGuildKills
-        val winner = killerGuildId.takeIf { killerKills >= target }
+        val winner = killerGuildId.takeIf { killTargetVictoryTerms(war, updated, killerGuildId) != null }
         return net.lumalyte.lg.application.services.WarKillCounterUpdate(updated, target, winner)
     }
 
@@ -431,7 +483,7 @@ class WarServiceBukkit(
 
         val terms = killTargetVictoryTerms(war, record.stats ?: WarStats(warId), winnerGuildId)
             ?: return false
-        return endWar(warId, winnerGuildId, terms, SYSTEM_ACTOR)
+        return endWarInternal(warId, winnerGuildId, terms)
     }
 
     @Synchronized
@@ -452,7 +504,7 @@ class WarServiceBukkit(
                 0 -> Unit
                 1 -> {
                     val (winner, terms) = candidates.single()
-                    if (endWar(war.id, winner, terms, SYSTEM_ACTOR)) resolved++
+                    if (endWarInternal(war.id, winner, terms)) resolved++
                 }
                 else -> logger.error(
                     "War ${war.id} has conflicting persisted global kill-target victories; refusing automatic resolution"
@@ -468,14 +520,21 @@ class WarServiceBukkit(
             war.defendingGuildId -> stats.defendingGuildKills
             else -> return null
         }
-        val target = getWarKillWinTarget()
-        return if (kills >= target) {
-            "Victory achieved by reaching the global war kill target ($kills/$target)"
-        } else {
-            null
-        }
-    }
 
+        val globalTarget = getWarKillWinTarget()
+        if (kills >= globalTarget) {
+            return "Victory achieved by reaching the global war kill target ($kills/$globalTarget)"
+        }
+
+        val objectiveTarget = war.objectives
+            .asSequence()
+            .filter { it.type == ObjectiveType.KILLS && it.targetValue > 0 }
+            .map { it.targetValue }
+            .minOrNull()
+        return objectiveTarget
+            ?.takeIf { kills >= it }
+            ?.let { "Victory achieved through kill objective ($kills/$it)" }
+    }
 
     override fun addObjectiveProgress(warId: UUID, objectiveId: UUID, progress: Int): Boolean {
         // This is a simplified implementation - would need proper objective tracking
@@ -629,10 +688,12 @@ class WarServiceBukkit(
         return activeWars < maxWars
     }
 
-    override fun canPlayerManageWars(playerId: UUID, guildId: UUID): Boolean {
-        // Placeholder - would need to check player permissions
-        return true
-    }
+    override fun canPlayerManageWars(playerId: UUID, guildId: UUID): Boolean =
+        memberService.hasPermission(playerId, guildId, RankPermission.DECLARE_WAR)
+
+    private fun canActorManageWar(actorId: UUID, war: War): Boolean =
+        canPlayerManageWars(actorId, war.declaringGuildId) ||
+            canPlayerManageWars(actorId, war.defendingGuildId)
 
     override fun getCurrentWarBetweenGuilds(guildA: UUID, guildB: UUID): War? {
         return wars.values.find {
@@ -652,7 +713,7 @@ class WarServiceBukkit(
             it.war?.status == WarStatus.DECLARED && it.paymentPhase == WarPaymentPhase.ESCROWED &&
                 it.declaration?.isValid == true
         }.forEach {
-            acceptWarDeclaration(it.id, UUID(0, 0))
+            acceptWarDeclarationInternal(it.id, SYSTEM_ACTOR)
             warRepository.get(it.id)?.let { updated -> snapshot[it.id] = updated }
         }
         // Retry seasonal rating for durable completed outcomes. The Elo repository's war-id receipt
@@ -685,14 +746,12 @@ class WarServiceBukkit(
         }
         for (war in expiredWars) {
             if (checkForDrawCondition(snapshot.getValue(war.id))) {
-                // End as draw and handle wager refunds
-                endWarAsDraw(
+                // End as draw through the trusted internal transition; player-facing
+                // methods remain permission-gated.
+                endWarAsDrawInternal(
                     warId = war.id,
                     reason = "War expired with no clear winner",
-                    actorId = UUID.randomUUID() // System UUID
                 )
-                // Resolve wager as draw (refund both guilds)
-                resolveWager(war.id, null)
                 logger.info("War ${war.id} ended as draw due to expiration")
             } else {
                 // End without winner (shouldn't happen with current logic)

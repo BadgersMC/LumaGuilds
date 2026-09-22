@@ -2,11 +2,15 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.config.CombatConfig
 import net.lumalyte.lg.config.LevelRewardConfig
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.GuildProgression
+import net.lumalyte.lg.domain.entities.ObjectiveType
+import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.entities.WarObjective
 import net.lumalyte.lg.domain.entities.WarStatus
 import net.lumalyte.lg.domain.values.ExperienceSource
 import org.junit.jupiter.api.AfterEach
@@ -110,12 +114,17 @@ class WarConfigEnforcementTest {
 
     // ---------- declaration flow (REQ-024: no auto-accept) ----------
 
+    private fun permissiveMemberService(): MemberService = mockk {
+        every { hasPermission(any(), any(), RankPermission.DECLARE_WAR) } returns true
+    }
+
     private fun newService(
         configService: ConfigService,
         progressionRepository: ProgressionRepository = mockk(relaxed = true),
         seasonalElo: SeasonalEloCoordinator? = null,
         combatConfig: CombatConfig = CombatConfig(),
         memberRepository: net.lumalyte.lg.application.persistence.MemberRepository? = null,
+        memberService: MemberService = permissiveMemberService(),
     ): WarServiceBukkit {
         val config = mockk<MainConfig>()
         every { config.combat } returns combatConfig
@@ -128,6 +137,7 @@ class WarConfigEnforcementTest {
             progressionRepository = progressionRepository,
             progressionConfigService = mockk(relaxed = true),
             progressionService = mockk(relaxed = true),
+            memberService = memberService,
             seasonalElo = seasonalElo,
             memberRepository = memberRepository,
         )
@@ -557,6 +567,7 @@ class WarConfigEnforcementTest {
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
             progressionConfigService = mockk(relaxed = true),
             progressionService = mockk(relaxed = true),
+            memberService = permissiveMemberService(),
         )
     }
 
@@ -642,6 +653,7 @@ class WarConfigEnforcementTest {
             progressionConfigService = mockk(relaxed = true),
             chapterTwoGuildAwardService = awardService,
             progressionService = mockk(relaxed = true),
+            memberService = permissiveMemberService(),
         )
         mockBukkitPluginManager()
 
@@ -695,6 +707,7 @@ class WarConfigEnforcementTest {
             progressionConfigService = mockk(relaxed = true),
             chapterTwoGuildAwardService = awardService,
             progressionService = mockk(relaxed = true),
+            memberService = permissiveMemberService(),
             seasonalElo = elo,
         )
         mockBukkitPluginManager()
@@ -735,6 +748,7 @@ class WarConfigEnforcementTest {
             progressionRepository = progressionRepo,
             progressionConfigService = mockk(relaxed = true),
             progressionService = progressionService,
+            memberService = permissiveMemberService(),
         )
         val guildId = UUID.randomUUID()
         val killerId = UUID.randomUUID()
@@ -763,6 +777,7 @@ class WarConfigEnforcementTest {
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
             progressionConfigService = mockk(relaxed = true),
             progressionService = mockk(relaxed = true),
+            memberService = permissiveMemberService(),
         )
         mockBukkitPluginManager()
 
@@ -811,6 +826,7 @@ class WarConfigEnforcementTest {
             progressionRepository = mockk<ProgressionRepository>(relaxed = true),
             progressionConfigService = mockk(relaxed = true),
             progressionService = mockk(relaxed = true),
+            memberService = permissiveMemberService(),
         )
         mockBukkitPluginManager()
 
@@ -842,6 +858,142 @@ class WarConfigEnforcementTest {
         // Declaring guild's deduction must not happen (createWager bails on the
         // balance check before any deduction) — and no wager/pot may exist.
         verify(exactly = 0) { bankService.deductFromGuildBank(declaring, any(), any()) }
+    }
+
+    @Test
+    fun `war management permission is authoritative for declaration creation`() {
+        val actor = UUID.randomUUID()
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val members = mockk<MemberService>()
+        every { members.hasPermission(actor, declaring, RankPermission.DECLARE_WAR) } returns false
+        val service = newService(mockk(), memberService = members)
+
+        assertFalse(service.canPlayerManageWars(actor, declaring))
+        assertNull(
+            service.createWarDeclaration(
+                declaring, defending, Duration.ofDays(1), emptySet(), actorId = actor
+            )
+        )
+        assertTrue(records.isEmpty())
+    }
+
+    @Test
+    fun `only the defending guild may accept or reject a declaration`() {
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val declaringActor = UUID.randomUUID()
+        val defendingActor = UUID.randomUUID()
+        val intruder = UUID.randomUUID()
+        val members = mockk<MemberService>()
+        every { members.hasPermission(any(), any(), RankPermission.DECLARE_WAR) } returns false
+        every { members.hasPermission(declaringActor, declaring, RankPermission.DECLARE_WAR) } returns true
+        every { members.hasPermission(defendingActor, defending, RankPermission.DECLARE_WAR) } returns true
+        val service = newService(mockk(), memberService = members)
+        mockBukkitPluginManager()
+
+        val declaration = service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = declaringActor
+        )!!
+        assertNull(service.acceptWarDeclaration(declaration.id, intruder))
+        assertNotNull(service.getPendingDeclarationsForGuild(defending).singleOrNull { it.id == declaration.id })
+        assertNotNull(service.acceptWarDeclaration(declaration.id, defendingActor))
+    }
+
+    @Test
+    fun `reject and cancel enforce declaration direction`() {
+        val firstDeclaring = UUID.randomUUID()
+        val firstDefending = UUID.randomUUID()
+        val secondDeclaring = UUID.randomUUID()
+        val secondDefending = UUID.randomUUID()
+        val firstDeclaringActor = UUID.randomUUID()
+        val firstDefendingActor = UUID.randomUUID()
+        val secondDeclaringActor = UUID.randomUUID()
+        val secondDefendingActor = UUID.randomUUID()
+        val members = mockk<MemberService>()
+        every { members.hasPermission(any(), any(), RankPermission.DECLARE_WAR) } returns false
+        every { members.hasPermission(firstDeclaringActor, firstDeclaring, RankPermission.DECLARE_WAR) } returns true
+        every { members.hasPermission(firstDefendingActor, firstDefending, RankPermission.DECLARE_WAR) } returns true
+        every { members.hasPermission(secondDeclaringActor, secondDeclaring, RankPermission.DECLARE_WAR) } returns true
+        every { members.hasPermission(secondDefendingActor, secondDefending, RankPermission.DECLARE_WAR) } returns true
+        val service = newService(mockk(), memberService = members)
+
+        val rejectable = service.createWarDeclaration(
+            firstDeclaring, firstDefending, Duration.ofDays(1), emptySet(), actorId = firstDeclaringActor
+        )!!
+        assertFalse(service.rejectWarDeclaration(rejectable.id, firstDeclaringActor))
+        assertTrue(service.rejectWarDeclaration(rejectable.id, firstDefendingActor))
+
+        val cancelable = service.createWarDeclaration(
+            secondDeclaring, secondDefending, Duration.ofDays(1), emptySet(), actorId = secondDeclaringActor
+        )!!
+        assertFalse(service.cancelWarDeclaration(cancelable.id, secondDefendingActor))
+        assertTrue(service.cancelWarDeclaration(cancelable.id, secondDeclaringActor))
+    }
+
+    @Test
+    fun `war resolution rejects unrelated actors but allows either participant manager`() {
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val declaringActor = UUID.randomUUID()
+        val defendingActor = UUID.randomUUID()
+        val intruder = UUID.randomUUID()
+        val members = mockk<MemberService>()
+        every { members.hasPermission(any(), any(), RankPermission.DECLARE_WAR) } returns false
+        every { members.hasPermission(declaringActor, declaring, RankPermission.DECLARE_WAR) } returns true
+        every { members.hasPermission(defendingActor, defending, RankPermission.DECLARE_WAR) } returns true
+        val service = newService(mockk(), memberService = members)
+        mockBukkitPluginManager()
+
+        val declaration = service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = declaringActor
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, defendingActor)!!
+
+        assertFalse(service.endWar(war.id, declaring, actorId = declaringActor))
+        assertFalse(service.endWar(war.id, defending, actorId = intruder))
+        assertFalse(service.endWarAsDraw(war.id, "unauthorized", actorId = intruder))
+        assertFalse(service.cancelWar(war.id, actorId = intruder))
+        assertTrue(service.endWar(war.id, defending, actorId = declaringActor))
+    }
+
+    @Test
+    fun `kill objectives resolve through the trusted internal transition`() {
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val declaringActor = UUID.randomUUID()
+        val defendingActor = UUID.randomUUID()
+        val members = mockk<MemberService>()
+        every { members.hasPermission(any(), any(), RankPermission.DECLARE_WAR) } returns false
+        every { members.hasPermission(declaringActor, declaring, RankPermission.DECLARE_WAR) } returns true
+        every { members.hasPermission(defendingActor, defending, RankPermission.DECLARE_WAR) } returns true
+        val service = newService(
+            mockk(),
+            combatConfig = CombatConfig(warKillWinTarget = 25),
+            memberService = members,
+        )
+        mockBukkitPluginManager()
+
+        val declaration = service.createWarDeclaration(
+            declaring,
+            defending,
+            Duration.ofDays(1),
+            setOf(WarObjective(type = ObjectiveType.KILLS, targetValue = 2, description = "Two kills")),
+            actorId = declaringActor,
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, defendingActor)!!
+
+        assertNull(service.recordOpposingGuildKill(war.id, declaring, defending)!!.winnerGuildId)
+        val winning = service.recordOpposingGuildKill(war.id, declaring, defending)!!
+        assertEquals(declaring, winning.winnerGuildId)
+        assertEquals(WarStatus.ACTIVE, service.getWar(war.id)!!.status)
+        assertNull(service.getWar(war.id)!!.winner)
+        assertTrue(service.resolveReachedKillTarget(war.id, declaring))
+        assertEquals(WarStatus.ENDED, service.getWar(war.id)!!.status)
+        assertEquals(declaring, service.getWar(war.id)!!.winner)
+        verify(exactly = 2) {
+            members.hasPermission(any(), any(), RankPermission.DECLARE_WAR)
+        }
     }
 
     private fun levelReward(warSlots: Int = 0, bankLimit: Int = 0) =
