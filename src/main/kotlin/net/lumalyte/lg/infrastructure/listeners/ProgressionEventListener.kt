@@ -240,15 +240,20 @@ class ProgressionEventListener(
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) {
-        if (!eligible(event.player)) return
-        val guildIds = playerGuildCache[event.player.uniqueId]
-        if (guildIds.isNullOrEmpty()) return
         val block = event.block
         val position = BlockPosition(block.world.uid, block.x, block.y, block.z)
+        val guildIds = playerGuildCache[event.player.uniqueId]
+
+        if (!eligible(event.player)) {
+            resolveProvenance(position, removeAfterRead = true) { }
+            return
+        }
+
         val data = block.blockData
         val matureCrop = data is Ageable && data.age >= data.maximumAge
         val material = block.type
         resolveProvenance(position, removeAfterRead = true) { playerPlaced ->
+            if (guildIds.isNullOrEmpty()) return@resolveProvenance
             val source = classifier.sourceForBreak(material, playerPlaced, matureCrop) ?: return@resolveProvenance
             requestPlayerActivity(event.player, guildIds, 1, source)
         }
@@ -257,7 +262,6 @@ class ProgressionEventListener(
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockPlace(event: BlockPlaceEvent) {
         try {
-            if (!eligible(event.player)) return
             val block = event.block
             val position = BlockPosition(block.world.uid, block.x, block.y, block.z)
             val write = asyncTaskService.runAsync {
@@ -265,6 +269,11 @@ class ProgressionEventListener(
             }
             pendingProvenanceWrites[position] = write
             write.whenComplete { _, _ -> pendingProvenanceWrites.remove(position, write) }
+
+            // Provenance is a world-state fact, not an XP eligibility decision. Track
+            // every player placement so switching game modes cannot manufacture a
+            // future "natural" block.
+            if (!eligible(event.player)) return
             classifier.sourceForPlace(block.type)?.let { source ->
                 requestPlayerActivity(event.player, units = 1, source = source)
             }
