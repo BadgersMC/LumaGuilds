@@ -33,6 +33,7 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.inventory.CraftItemEvent
 import org.bukkit.event.inventory.FurnaceExtractEvent
 import org.bukkit.event.player.PlayerFishEvent
+import org.bukkit.inventory.CraftingRecipe
 import org.bukkit.inventory.ItemStack
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -64,7 +65,11 @@ class QuestProgressListener(
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) = safely("block break") {
-        if (!eligible(event.player)) return@safely
+        val position = event.block.position()
+        if (!eligible(event.player)) {
+            provenance.remove(position)
+            return@safely
+        }
 
         val customTarget = nexoBlockTarget(event.block)
         val target = customTarget ?: minecraftBlockTarget(event.block.type)
@@ -76,11 +81,13 @@ class QuestProgressListener(
         }
 
         if (!shouldTrackProvenance(target)) {
+            provenance.remove(position)
             incrementFor(event.player, action, target, context = context(event.player, event.block))
             return@safely
         }
 
-        val playerPlaced = provenance.wasPlayerPlaced(event.block.position())
+        val playerPlaced = provenance.wasPlayerPlaced(position)
+        provenance.remove(position)
         incrementFor(
             event.player,
             action,
@@ -100,13 +107,25 @@ class QuestProgressListener(
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onCraft(event: CraftItemEvent) = safely("craft") {
         val player = event.whoClicked as? Player ?: return@safely
-        if (!eligible(player)) return@safely
+        if (!eligible(player) || event.recipe !is CraftingRecipe) return@safely
+
         val result = event.recipe.result
+        val craftedAmount = if (event.isShiftClick) {
+            shiftCraftedAmount(
+                result = result,
+                matrix = event.inventory.matrix,
+                destination = player.inventory.storageContents,
+            )
+        } else {
+            result.amount.toLong()
+        }
+        if (craftedAmount <= 0) return@safely
+
         incrementFor(
             player,
             QuestAction.CRAFT_ITEMS,
             itemTarget(result),
-            result.amount.toLong(),
+            craftedAmount,
             context(player)
         )
     }
@@ -251,4 +270,30 @@ class QuestProgressListener(
             logger.warn("Weekly quest $operation handler failed", error)
         }
     }
+}
+
+internal fun shiftCraftedAmount(
+    result: ItemStack,
+    matrix: Array<ItemStack?>,
+    destination: Array<ItemStack?>,
+): Long {
+    val outputPerCraft = result.amount
+    if (outputPerCraft <= 0 || result.type.isAir) return 0
+
+    val craftsByIngredients = matrix.asSequence()
+        .filterNotNull()
+        .filterNot { it.type.isAir }
+        .minOfOrNull { it.amount }
+        ?: return 0
+
+    val capacity = destination.sumOf { slot ->
+        when {
+            slot == null || slot.type.isAir -> result.maxStackSize
+            slot.isSimilar(result) -> (slot.maxStackSize - slot.amount).coerceAtLeast(0)
+            else -> 0
+        }
+    }
+    val craftsByCapacity = capacity / outputPerCraft
+    val crafts = minOf(craftsByIngredients, craftsByCapacity)
+    return crafts.toLong() * outputPerCraft.toLong()
 }

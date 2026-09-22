@@ -8,7 +8,6 @@ import net.lumalyte.lg.domain.entities.QuestTargetRarity
 import net.lumalyte.lg.domain.services.QuestAmountPolicy
 import net.lumalyte.lg.domain.services.QuestTargetProvider
 import net.lumalyte.lg.domain.values.QuestAction
-import org.bukkit.inventory.CookingRecipe
 import org.bukkit.inventory.Recipe
 import org.bukkit.plugin.Plugin
 
@@ -36,7 +35,7 @@ class NexoQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvider 
         }
 
         allRecipes().asSequence()
-            .filterNot { it is CookingRecipe<*> }
+            .filter(BukkitQuestTargetProvider::isCraftingMatrixRecipe)
             .map(Recipe::getResult)
             .mapNotNull { resultStack ->
                 runCatching { NexoItems.idFromItem(resultStack) }.getOrNull()?.takeIf(String::isNotBlank)
