@@ -42,7 +42,8 @@ class WarRestartRecoveryTest {
     private fun service(repository: net.lumalyte.lg.application.persistence.WarRepository = WarRepositorySQL(storage)): WarServiceBukkit {
         return WarServiceBukkit(mockk { every { loadConfig() } returns MainConfig() }, mockk(relaxed = true),
             mockk(relaxed = true), mockk(relaxed = true), progressionService = mockk(relaxed = true),
-            warRepository = repository, warPayments = WarPaymentService(repository, gold))
+            warRepository = repository, warPayments = WarPaymentService(repository, gold),
+            memberService = mockk { every { hasPermission(any(), any(), any()) } returns true })
     }
 
     @Test fun `paid war keeps identity statistics and one settlement across service restarts`() {

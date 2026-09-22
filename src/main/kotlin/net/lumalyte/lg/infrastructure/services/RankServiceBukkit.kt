@@ -14,7 +14,9 @@ class RankServiceBukkit(
     private val rankRepository: RankRepository,
     private val memberRepository: MemberRepository,
     private val guildRepository: GuildRepository,
-    private val memberService: net.lumalyte.lg.application.services.MemberService
+    private val memberService: net.lumalyte.lg.application.services.MemberService,
+    private val invalidateClaimPermissionCacheForPlayer: (UUID) -> Unit = {},
+    private val invalidateClaimPermissionCacheForGuild: (UUID) -> Unit = {},
 ) : RankService {
     
     private val logger = LoggerFactory.getLogger(RankServiceBukkit::class.java)
@@ -53,6 +55,7 @@ class RankServiceBukkit(
         
         val result = rankRepository.add(rank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(guildId)
             logger.info("Added rank '$name' to guild $guildId by $actorId")
             return rank
         }
@@ -85,6 +88,7 @@ class RankServiceBukkit(
         val updatedRank = rank.copy(name = newName)
         val result = rankRepository.update(updatedRank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Rank $rankId renamed to '$newName' by $actorId")
         }
         return result
@@ -108,6 +112,7 @@ class RankServiceBukkit(
         
         val result = rankRepository.remove(rankId)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Rank $rankId deleted by $actorId")
         }
         return result
@@ -125,6 +130,7 @@ class RankServiceBukkit(
         val updatedRank = rank.copy(permissions = permissions)
         val result = rankRepository.update(updatedRank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Permissions for rank $rankId set by $actorId: ${permissions.map { it.name }}")
         }
         return result
@@ -148,6 +154,7 @@ class RankServiceBukkit(
         val updatedRank = rank.copy(permissions = updatedPermissions)
         val result = rankRepository.update(updatedRank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Permission ${permission.name} added to rank $rankId by $actorId")
         }
         return result
@@ -171,6 +178,7 @@ class RankServiceBukkit(
         val updatedRank = rank.copy(permissions = updatedPermissions)
         val result = rankRepository.update(updatedRank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Permission ${permission.name} removed from rank $rankId by $actorId")
         }
         return result
@@ -197,6 +205,7 @@ class RankServiceBukkit(
             val updatedMember = existingMember.copy(rankId = rankId)
             val result = memberRepository.update(updatedMember)
             if (result) {
+                invalidateClaimPermissionCacheForPlayer(playerId)
                 logger.info("Player $playerId rank changed to '${rank.name}' in guild $guildId by $actorId")
             }
             return result
@@ -251,6 +260,7 @@ class RankServiceBukkit(
 
         val result = rankRepository.update(rank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Rank ${rank.id} updated by $actorId: name='${rank.name}', permissions=${rank.permissions.size}, icon='${rank.icon}'")
         }
         return result
@@ -336,6 +346,8 @@ class RankServiceBukkit(
         // Block swap when the adjacent rank is at or above the actor's priority — otherwise
         // an actor at priority 1 could shove a rank UP into their own slot.
         if (neighbor.priority <= actorRank.priority) return false
-        return rankRepository.swapPriorities(target.id, neighbor.id)
+        val result = rankRepository.swapPriorities(target.id, neighbor.id)
+        if (result) invalidateClaimPermissionCacheForGuild(target.guildId)
+        return result
     }
 }

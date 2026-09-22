@@ -404,8 +404,31 @@ fun guildsModule() = module {
 
     // Services
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
-    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<RankService> {
+        RankServiceBukkit(
+            get(), get(), get(), get(),
+            invalidateClaimPermissionCacheForPlayer = { playerId ->
+                org.koin.core.context.GlobalContext.get()
+                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                    ?.invalidatePlayerCache(playerId)
+            },
+            invalidateClaimPermissionCacheForGuild = { guildId ->
+                org.koin.core.context.GlobalContext.get()
+                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                    ?.invalidateGuildCache(guildId)
+            },
+        )
+    }
+    single<MemberService> {
+        MemberServiceBukkit(
+            get(), get(), get(), get(), get(), get(), get(), get(),
+            invalidateClaimPermissionCache = { playerId ->
+                org.koin.core.context.GlobalContext.get()
+                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                    ?.invalidatePlayerCache(playerId)
+            },
+        )
+    }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }
     single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<GuildBannerService> { GuildBannerServiceBukkit() }
@@ -647,7 +670,20 @@ fun progressionModule() = module {
     }
     single { net.lumalyte.lg.application.services.WarPaymentService(get(), get()) }
     single<WarService> {
-        WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
+        WarServiceBukkit(
+            configService = get(),
+            bankService = get(),
+            progressionRepository = get(),
+            progressionConfigService = get(),
+            chapterTwoGuildAwardService = get(),
+            progressionService = get(),
+            warRepository = get(),
+            warPayments = get(),
+            memberService = get(),
+            seasonalElo = get(),
+            warNotifications = get(),
+            memberRepository = get(),
+        )
     }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {

@@ -3,8 +3,6 @@ package net.lumalyte.lg.infrastructure.listeners
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
-import net.lumalyte.lg.domain.entities.ObjectiveType
-import net.lumalyte.lg.domain.entities.WarStats
 import net.lumalyte.lg.api.events.GuildWarKillEvent
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -27,14 +25,6 @@ class WarKillTrackingListener : Listener, KoinComponent {
     private val lang: LangService by inject()
 
     private val logger = LoggerFactory.getLogger(WarKillTrackingListener::class.java)
-
-    companion object {
-        /**
-         * Well-known UUID representing the system actor for automated war endings.
-         * This allows for consistent tracking and auditing of system actions.
-         */
-        private val SYSTEM_ACTOR = java.util.UUID(0, 0) // 00000000-0000-0000-0000-000000000000
-    }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerDeath(event: PlayerDeathEvent) {
@@ -92,15 +82,11 @@ class WarKillTrackingListener : Listener, KoinComponent {
                         killer.sendMessage(lang.msg("notification.war.kill.killer", "victim" to victim.name))
                         victim.sendMessage(lang.msg("notification.war.kill.victim", "killer" to killer.name))
 
-                        // Persist the decisive counter first, then resolve only after
-                        // the kill event, XP, and player feedback have completed.
+                        // The service decides whether a durable kill/objective threshold was reached.
+                        // Resolve only after the kill event, XP, and player feedback have completed.
                         val winner = counter.winnerGuildId
-                        if (winner != null) {
-                            if (!warService.resolveReachedKillTarget(war.id, winner)) {
-                                logger.error("Failed to resolve decisive kill for war ${war.id}")
-                            }
-                        } else {
-                            checkAndCompleteKillObjectives(war.id, counter.stats)
+                        if (winner != null && !warService.resolveReachedKillTarget(war.id, winner)) {
+                            logger.error("Failed to resolve decisive kill for war ${war.id}")
                         }
 
                         // Only count the kill once (for the first matching war found)
@@ -111,47 +97,6 @@ class WarKillTrackingListener : Listener, KoinComponent {
         } catch (e: Exception) {
             // Event listener - catching all exceptions to prevent listener failure
             logger.error("Error tracking war kill", e)
-        }
-    }
-
-    /**
-     * Checks if any kill objectives are met and ends the war if so.
-     */
-    private fun checkAndCompleteKillObjectives(warId: java.util.UUID, stats: WarStats) {
-        try {
-            val war = warService.getWar(warId) ?: return
-
-            // Check if there are any kill objectives
-            val killObjectives = war.objectives.filter { it.type == ObjectiveType.KILLS }
-
-            for (objective in killObjectives) {
-                // Check if declaring guild reached the kill target
-                if (stats.declaringGuildKills >= objective.targetValue) {
-                    logger.info("War ${war.id}: Declaring guild reached kill objective (${stats.declaringGuildKills}/${objective.targetValue})")
-                    warService.endWar(
-                        warId = war.id,
-                        winnerGuildId = war.declaringGuildId,
-                        peaceTerms = "Victory achieved through kill objective (${stats.declaringGuildKills} kills)",
-                        actorId = SYSTEM_ACTOR
-                    )
-                    return
-                }
-
-                // Check if defending guild reached the kill target
-                if (stats.defendingGuildKills >= objective.targetValue) {
-                    logger.info("War ${war.id}: Defending guild reached kill objective (${stats.defendingGuildKills}/${objective.targetValue})")
-                    warService.endWar(
-                        warId = war.id,
-                        winnerGuildId = war.defendingGuildId,
-                        peaceTerms = "Victory achieved through kill objective (${stats.defendingGuildKills} kills)",
-                        actorId = SYSTEM_ACTOR
-                    )
-                    return
-                }
-            }
-        } catch (e: Exception) {
-            // Event listener - catching all exceptions to prevent listener failure
-            logger.error("Error checking kill objectives for war $warId", e)
         }
     }
 }
