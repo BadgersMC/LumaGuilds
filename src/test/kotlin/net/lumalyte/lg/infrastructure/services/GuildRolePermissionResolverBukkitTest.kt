@@ -12,6 +12,7 @@ import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.values.ClaimPermission
 import net.lumalyte.lg.config.MainConfig
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
@@ -70,6 +71,11 @@ class GuildRolePermissionResolverBukkitTest {
             configService = configService,
             adminOverrideService = adminOverrideService
         )
+    }
+
+    @AfterEach
+    fun tearDown() {
+        resolver.shutdown()
     }
 
     @Test
