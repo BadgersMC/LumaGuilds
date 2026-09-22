@@ -12,9 +12,14 @@ from the June mass audit. Overlap between audits does not change the provenance 
   it does not imply the PR has merged.
 - **🛠 REMEDIATED IN #171** — independently source-confirmed and corrected by pending PR #171
   (`fix(audit): make chapter and quest rewards crash safe`).
+- **🛠 REMEDIATED IN #172** — independently source-confirmed and corrected by pending PR #172
+  (`fix(quests): harden generated quest progress`).
+- **🔎 NOT REPRODUCED / HARDENED IN #172** — the exact reported failure mode was not present
+  in the current runtime, but adjacent state handling was strengthened to preserve the intended invariant.
 
 **Inventory:** 37 reported findings total; 10 remediated in #168; 4 remediated in #171;
-23 still awaiting independent verification and/or remediation.
+4 remediated in #172; 1 not reproduced/hardened in #172; 18 still awaiting independent
+verification and/or remediation.
 
 ---
 
@@ -44,23 +49,31 @@ XP transaction instead of paying twice.
 
 ## Quest generation and progress tracking
 
-### ◻️ DEV-05 — Natural-block quests can count old player-placed blocks
-Blocks placed before a relevant quest became active may not be tracked as player-placed and can
-later be counted as natural blocks.
+### 🔎 DEV-05 — Natural-block quests can count old player-placed blocks — #172
+The reported **quest-activation gap was not reproduced** in the current runtime: the always-
+registered progression listener already recorded eligible player placements independently of
+which quests were active. PR #172 nevertheless hardens provenance as a world-state invariant by
+recording all player placements, including Creative/Spectator placements that are not XP-eligible.
+Blocks placed before provenance tracking existed remain outside what the current database can
+retroactively identify.
 
-### ◻️ DEV-06 — Player-placed block markers are not always cleared on normal break
-A location can remain marked player-placed after the original block is gone, corrupting future
-natural-block checks for that location.
+### 🛠 DEV-06 — Player-placed block markers are not always cleared on normal break — #172
+Source-confirmed. PR #172 clears provenance on ordinary breaks even when the breaker has no guild
+and synchronizes cleanup with pending async placement writes, closing the fast place/break race
+that could recreate a stale marker after deletion.
 
-### ◻️ DEV-07 — Quest generator can generate impossible natural-block targets
-Example reported: mining naturally generated netherite blocks.
+### 🛠 DEV-07 — Quest generator can generate impossible natural-block targets — #172
+Source-confirmed. PR #172 rejects player-producible blocks from `NATURAL_ONLY` mining targets
+unless they are explicitly known to also world-generate, and always excludes netherite blocks.
 
-### ◻️ DEV-08 — Some crafting quests can target recipes outside the normal crafting event
-Those recipes may never emit the event used for quest progress, making the generated quest
-impossible to complete through the tracked path.
+### 🛠 DEV-08 — Some crafting quests can target recipes outside the normal crafting event — #172
+Source-confirmed against Paper 1.21.11 behavior. PR #172 limits generated crafting quests and the
+craft-progress handler to crafting-matrix `CraftingRecipe` paths, excluding smithing,
+stonecutting, and other recipe types that `CraftItemEvent` does not represent.
 
-### ◻️ DEV-09 — Shift-click crafting can undercount quest progress
-Progress can count a single recipe result rather than the total amount crafted by the shift-click.
+### 🛠 DEV-09 — Shift-click crafting can undercount quest progress — #172
+Source-confirmed. PR #172 calculates the total shift-click output from both available matrix
+ingredients and destination inventory capacity rather than counting one recipe result.
 
 ---
 
@@ -184,6 +197,10 @@ permission model, which can strand a guild-owned claim when that original player
 - **PR #171:** DEV-01 through DEV-04 were independently source-confirmed and remediated with
   chapter-transition atomicity, orphan-backup recovery, durable quest reward reconciliation,
   and deterministic weekly payout transaction IDs.
-- The remaining **23 DEV-REPORTED findings** should be source-verified before implementation.
+- **PR #172:** DEV-06 through DEV-09 were independently source-confirmed and remediated across
+  provenance cleanup, target generation, recipe eligibility, and shift-click progress counting.
+  DEV-05's exact activation-gap report was not reproduced, but provenance tracking was hardened
+  so all player placements are recorded regardless of XP eligibility.
+- The remaining **18 DEV-REPORTED findings** should be source-verified before implementation.
   If confirmed, preserve these IDs in future PR descriptions so fixes can be traced back to this
   audit without conflating it with the June or September ChatGPT audit tracks.
