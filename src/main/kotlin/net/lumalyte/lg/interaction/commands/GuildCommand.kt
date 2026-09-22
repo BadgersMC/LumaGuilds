@@ -1568,40 +1568,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("list")
     @CommandPermission("lumaguilds.guild.list")
     fun onList(player: Player) {
-        val allGuilds = guildRepository.getAll()
-        val openGuilds = allGuilds.filter { it.isOpen }
-
-        if (openGuilds.isEmpty()) {
-            player.sendMessage(lang.msg("command.common.blank_line"))
-            player.sendMessage(lang.msg("command.migrated.guild.list.public_guilds"))
-            player.sendMessage(lang.msg("command.common.blank_line"))
-            player.sendMessage(lang.msg("command.migrated.guild.list.no_open_guilds_available_at_the_moment"))
-            player.sendMessage(lang.msg("command.migrated.guild.list.open_guilds_allow_anyone_to_join_without"))
-            player.sendMessage(lang.msg("command.common.blank_line"))
-            player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
-            return
-        }
-
-        player.sendMessage(lang.msg("command.common.blank_line"))
-        player.sendMessage(lang.msg("command.migrated.guild.list.public_guilds_2", "size" to openGuilds.size))
-        player.sendMessage(lang.msg("command.migrated.guild.list.anyone_can_join_these_guilds"))
-        player.sendMessage(lang.msg("command.common.blank_line"))
-
-        openGuilds.sortedByDescending { memberService.getMemberCount(it.id) }.take(10).forEach { guild ->
-            val memberCount = memberService.getMemberCount(guild.id)
-            val emoji = guild.emoji ?: ""
-            val tag = guild.tag ?: guild.name
-
-            player.sendMessage(lang.msg("command.migrated.guild.list.members", "emoji" to emoji, "tag" to tag, "member_count" to memberCount))
-            player.sendMessage(lang.msg("command.migrated.guild.list.join_guild_join", "guild" to guild.name))
-            player.sendMessage(lang.msg("command.common.blank_line"))
-        }
-
-        if (openGuilds.size > 10) {
-            player.sendMessage(lang.msg("command.migrated.guild.list.and_more_open_guilds", "size" to openGuilds.size - 10))
-            player.sendMessage(lang.msg("command.common.blank_line"))
-        }
-
+        val menuNavigator = MenuNavigator(player)
+        menuNavigator.openMenu(menuFactory.createGuildListMenu(menuNavigator, player))
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
 

@@ -42,6 +42,7 @@ data class MainConfig(
     var seasonalElo: SeasonalEloConfig = SeasonalEloConfig(),
     var warBanner: WarBannerConfig = WarBannerConfig(),
     var discordGuildRoles: DiscordGuildRolesConfig = DiscordGuildRolesConfig(),
+    var guildList: GuildListConfig = GuildListConfig(),
     // Independent rollout gates; none performs migration or state initialization.
     var chapterTwoRewardsEnabled: Boolean = false,
     var chapterTwoGoldCostsEnabled: Boolean = false
@@ -55,6 +56,10 @@ data class WarBannerConfig(
     var rawGoldCost: Int = 64,
     // Re-deploy cooldown begins at placement. Default matches the 15-minute lifetime.
     var cooldownMinutes: Int = 15,
+)
+
+data class GuildListConfig(
+    var pageSize: Int = 18,
 )
 
 data class DiscordGuildRolesConfig(

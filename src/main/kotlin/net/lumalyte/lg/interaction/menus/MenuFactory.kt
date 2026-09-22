@@ -266,6 +266,21 @@ class MenuFactory(
         }
     }
 
+    fun createGuildListMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+    ): Menu {
+        return if (shouldUseBedrockMenus(player)) {
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildListMenu(
+                menuNavigator,
+                player,
+                logger,
+            )
+        } else {
+            net.lumalyte.lg.interaction.menus.guild.GuildListMenu(menuNavigator, player)
+        }
+    }
+
     /**
      * Creates a read-only guild relation browser appropriate for the player's platform.
      */
