@@ -10,28 +10,35 @@ from the June mass audit. Overlap between audits does not change the provenance 
 - **🛠 REMEDIATED IN #168** — independently matched to code corrected by pending PR #168
   (`fix(claims): repair audited claim workflows`). This means the fix exists on that PR branch;
   it does not imply the PR has merged.
+- **🛠 REMEDIATED IN #171** — independently source-confirmed and corrected by pending PR #171
+  (`fix(audit): make chapter and quest rewards crash safe`).
 
-**Inventory:** 37 reported findings total; 10 remediated in #168; 27 still awaiting
-independent verification and/or remediation.
+**Inventory:** 37 reported findings total; 10 remediated in #168; 4 remediated in #171;
+23 still awaiting independent verification and/or remediation.
 
 ---
 
 ## Chapter lifecycle / crash consistency
 
-### ◻️ DEV-01 — Chapter rollover can become non-idempotent after a crash
-Archive/reset writes can persist before chapter state advances. A restart can retry the same
-rollover and attempt duplicate inserts, leaving rollover stuck.
+### 🛠 DEV-01 — Chapter rollover can become non-idempotent after a crash — #171
+Source-confirmed. PR #171 makes archive/reset work transactional with the lifecycle phase
+advance, so a failed phase write rolls the associated chapter mutation back instead of leaving
+replayable partial state.
 
-### ◻️ DEV-02 — Chapter backup file/database state can diverge
-A backup file can be created before its database record. If the DB write fails, the next attempt
-finds the existing file and refuses to proceed, leaving backup creation stuck.
+### 🛠 DEV-02 — Chapter backup file/database state can diverge — #171
+Source-confirmed. PR #171 can adopt an orphaned backup file only after integrity/restore
+verification and confirmation that it captured the expected frozen chapter state, then commits
+its evidence and lifecycle transition.
 
-### ◻️ DEV-03 — Weekly quest rewards can be lost across a crashThe quest can be marked claimed before XP/items are delivered. A crash in that window can
-persist the claimed state without the reward.
+### 🛠 DEV-03 — Weekly quest rewards can be lost across a crash — #171
+Source-confirmed. PR #171 persists claim actor/delivery state, uses deterministic XP transaction
+IDs, reconciles pending claims on the weekly coordinator, and retains undelivered rows through
+week cleanup. Existing historical claimed rows migrate as already delivered.
 
-### ◻️ DEV-04 — Weekly leaderboard rewards can be paid twice across a crash
-XP can be granted before the persistent "already paid" state is saved. A crash in that window
-can cause the reward to be issued again after restart.
+### 🛠 DEV-04 — Weekly leaderboard rewards can be paid twice across a crash — #171
+Source-confirmed. PR #171 uses deterministic payout transaction IDs and refuses to clear/advance
+the weekly reset until the durable paid marker is confirmed. Retrying therefore reuses the same
+XP transaction instead of paying twice.
 
 ---
 
@@ -174,6 +181,9 @@ permission model, which can strand a guild-owned claim when that original player
 - **PR #169:** separate September re-audit remediation for threading, vault write-buffer races,
   and owned executor lifecycle; it is not counted as resolving any of the 37 developer-audit
   findings above.
-- The remaining **27 DEV-REPORTED findings** should be source-verified before implementation.
+- **PR #171:** DEV-01 through DEV-04 were independently source-confirmed and remediated with
+  chapter-transition atomicity, orphan-backup recovery, durable quest reward reconciliation,
+  and deterministic weekly payout transaction IDs.
+- The remaining **23 DEV-REPORTED findings** should be source-verified before implementation.
   If confirmed, preserve these IDs in future PR descriptions so fixes can be traced back to this
   audit without conflating it with the June or September ChatGPT audit tracks.
