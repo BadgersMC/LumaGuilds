@@ -204,6 +204,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(37)
                 dbVersion = 37
             }
+            if (dbVersion < 38) {
+                migrateToVersion38()
+                updateDatabaseVersion(38)
+                dbVersion = 38
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1395,7 +1400,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
             "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history",
             "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security",
-            "war_banners", "war_notifications", "player_notification_preferences", "guild_discord_roles"
+            "war_banners", "war_notifications", "player_notification_preferences", "guild_discord_roles",
+            "spawn_banners"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1464,6 +1470,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("guild_discord_roles" in missingTables) {
                 migrateToVersion35()
                 componentLogger.info(Component.text("✓ Recreated guild Discord-role links"))
+            }
+            if ("spawn_banners" in missingTables) {
+                migrateToVersion38()
+                componentLogger.info(Component.text("✓ Recreated dynamic spawn-banner registry"))
             }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
@@ -1877,5 +1887,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun migrateToVersion37() {
         InvitationStatisticsSchema.create(connection, mariaDb = false)
         componentLogger.info(Component.text("Invitation statistics migrated to schema v37"))
+    }
+
+    private fun migrateToVersion38() {
+        SpawnBannerSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Dynamic spawn banners migrated to schema v38"))
     }
 }

@@ -939,6 +939,11 @@ class LumaGuilds : JavaPlugin() {
             get().get<net.lumalyte.lg.infrastructure.listeners.WarBannerListener>(),
             this,
         )
+        server.pluginManager.registerEvents(
+            get().get<net.lumalyte.lg.infrastructure.listeners.SpawnBannerListener>(),
+            this,
+        )
+        get().get<net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit>().start()
         server.pluginManager.registerEvents(net.lumalyte.lg.interaction.listeners.GuildVaultCraftingPreventionListener(), this)
         server.pluginManager.registerEvents(GuildVaultFuelPreventionListener(), this)
 
@@ -1332,6 +1337,11 @@ class LumaGuilds : JavaPlugin() {
             get().getOrNull<net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator>()?.stop()
         } catch (e: Exception) {
             logger.warning("Failed to stop weekly quest coordinator: ${e.message}")
+        }
+        try {
+            get().getOrNull<net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit>()?.stop()
+        } catch (e: Exception) {
+            logger.warning("Failed to stop spawn banner refresh task: ${e.message}")
         }
         try {
             get().getOrNull<ProgressionEventListener>()?.shutdown()
