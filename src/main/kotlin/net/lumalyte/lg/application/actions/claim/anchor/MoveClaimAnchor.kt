@@ -20,16 +20,14 @@ class MoveClaimAnchor(private val claimRepository: ClaimRepository,
         // Get the claim that is being moved
         val existingClaim = claimRepository.getById(claimId) ?: return MoveClaimAnchorResult.StorageError
 
-        // Get the claim at new position
-        val claimAtPosition: Claim = when(val result = getClaimAtPosition.execute(newWorldId, newPosition)) {
-            is GetClaimAtPositionResult.Success -> result.claim
-            is GetClaimAtPositionResult.NoClaimFound -> return MoveClaimAnchorResult.InvalidPosition
+        // The destination may be empty or already inside this claim, but it may not
+        // overlap another claim.
+        when (val result = getClaimAtPosition.execute(newWorldId, newPosition)) {
+            is GetClaimAtPositionResult.Success -> {
+                if (result.claim.id != claimId) return MoveClaimAnchorResult.InvalidPosition
+            }
+            is GetClaimAtPositionResult.NoClaimFound -> Unit
             is GetClaimAtPositionResult.StorageError -> return MoveClaimAnchorResult.StorageError
-        }
-
-        // Check if the claim at the new position is the same as the current claim
-        if (claimAtPosition.id != claimId) {
-            return MoveClaimAnchorResult.InvalidPosition
         }
 
         // Get player's claim override
@@ -44,10 +42,12 @@ class MoveClaimAnchor(private val claimRepository: ClaimRepository,
             return MoveClaimAnchorResult.NoPermission
         }
 
-        // Move the claim anchor
+        // Persist the authoritative location before removing the old anchor block.
+        val newClaim = existingClaim.copy(worldId = newWorldId, position = newPosition)
+        if (!claimRepository.update(newClaim)) {
+            return MoveClaimAnchorResult.StorageError
+        }
         worldManipulationService.breakWithoutItemDrop(existingClaim.worldId, existingClaim.position)
-        val newClaim = existingClaim.copy(position = newPosition)
-        claimRepository.update(newClaim)
         return MoveClaimAnchorResult.Success
     }
 }

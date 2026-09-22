@@ -71,6 +71,7 @@ import net.lumalyte.lg.application.actions.player.visualisation.ToggleVisualiser
 import net.lumalyte.lg.application.persistence.ClaimFlagRepository
 import net.lumalyte.lg.application.persistence.ClaimPermissionRepository
 import net.lumalyte.lg.application.persistence.ClaimRepository
+import net.lumalyte.lg.application.persistence.ClaimTransferRequestRepository
 import net.lumalyte.lg.application.persistence.PartitionRepository
 import net.lumalyte.lg.application.persistence.PlayerAccessRepository
 import net.lumalyte.lg.application.persistence.PlayerStateRepository
@@ -167,6 +168,7 @@ import net.lumalyte.lg.infrastructure.persistence.guilds.MembershipHistoryReposi
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimFlagRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimPermissionRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.claims.ClaimTransferRequestRepositorySQL
 import net.lumalyte.lg.infrastructure.persistence.claims.PlayerAccessRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.partitions.PartitionRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.players.PlayerStateRepositoryMemory
@@ -284,6 +286,7 @@ fun claimsModule() = module {
     single<ClaimFlagRepository> { ClaimFlagRepositorySQLite(get()) }
     single<ClaimPermissionRepository> { ClaimPermissionRepositorySQLite(get()) }
     single<ClaimRepository> { ClaimRepositorySQLite(get()) }
+    single<ClaimTransferRequestRepository> { ClaimTransferRequestRepositorySQL(get()) }
     single<PartitionRepository> { PartitionRepositorySQLite(get()) }
     single<PlayerAccessRepository> { PlayerAccessRepositorySQLite(get()) }
     single<PlayerStateRepository> { PlayerStateRepositoryMemory() }

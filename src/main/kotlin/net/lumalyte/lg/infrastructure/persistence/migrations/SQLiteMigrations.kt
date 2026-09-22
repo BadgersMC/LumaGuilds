@@ -209,6 +209,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(38)
                 dbVersion = 38
             }
+            if (dbVersion < 39) {
+                if (claimsEnabled) migrateToVersion39()
+                updateDatabaseVersion(39)
+                dbVersion = 39
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1406,7 +1411,12 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
 
         // Add claim tables to required list if claims are enabled
         if (claimsEnabled) {
-            requiredTables.addAll(listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access"))
+            requiredTables.addAll(
+                listOf(
+                    "claims", "claim_partitions", "claim_flags", "claim_permissions",
+                    "player_access", ClaimTransferRequestSchema.TABLE,
+                )
+            )
         }
 
         // Note: chat_visibility_settings and chat_rate_limits are created by ChatSettingsRepository itself
@@ -1479,6 +1489,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
                 migrateToVersion2()
                 componentLogger.info(Component.text("✓ Recreated claim system tables"))
+            }
+            if (claimsEnabled && ClaimTransferRequestSchema.TABLE in missingTables) {
+                migrateToVersion39()
+                componentLogger.info(Component.text("✓ Recreated claim transfer-request table"))
             }
         }
 
@@ -1892,5 +1906,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun migrateToVersion38() {
         SpawnBannerSchema.create(connection, mariaDb = false)
         componentLogger.info(Component.text("Dynamic spawn banners migrated to schema v38"))
+    }
+
+    private fun migrateToVersion39() {
+        ClaimTransferRequestSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Claim transfer requests migrated to schema v39"))
     }
 }
