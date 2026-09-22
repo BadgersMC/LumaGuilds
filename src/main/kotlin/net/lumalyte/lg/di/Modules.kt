@@ -502,7 +502,7 @@ fun socialModule() = module {
         net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener(get(), get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener> {
-        net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get(), get(), get())
+        net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get(), get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService> {
         net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService(get(), get(), get())
@@ -628,6 +628,11 @@ fun progressionModule() = module {
     }
     single<net.lumalyte.lg.infrastructure.services.ToastSender> {
         net.lumalyte.lg.infrastructure.services.PacketEventsToastSender(get<LumaGuilds>())
+    }
+    single<net.lumalyte.lg.application.services.GuildDisbandAnnouncementService> {
+        net.lumalyte.lg.infrastructure.services.GuildDisbandAnnouncementServiceBukkit(
+            get(), get(), get(),
+        )
     }
     single<net.lumalyte.lg.application.services.WarNotificationService> {
         net.lumalyte.lg.infrastructure.services.WarNotificationServiceBukkit(
