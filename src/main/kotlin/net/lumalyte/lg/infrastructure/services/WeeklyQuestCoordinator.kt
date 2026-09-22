@@ -40,6 +40,7 @@ class WeeklyQuestCoordinator(
     }
 
     fun refreshIfRequired(now: Instant) {
+        questService.reconcilePendingRewards()
         val config = configService.getProgressionConfig().quests
         if (!config.enabled) {
             questService.deactivate()

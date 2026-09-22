@@ -77,6 +77,30 @@ class ChapterBackupServiceTest {
         }
     }
     @Test
+    fun `valid orphaned backup file is adopted after evidence crash window`() {
+        val backups = tempDir.resolve("backups")
+        Files.createDirectories(backups)
+        val orphan = backups.resolve("orphaned-backup.db")
+        val escaped = orphan.toAbsolutePath().toString().replace("'", "''")
+        connection.createStatement().use { statement ->
+            statement.execute("VACUUM INTO '$escaped'")
+        }
+        assertTrue(Files.isRegularFile(orphan))
+        assertEquals(0, scalarInt("SELECT COUNT(*) FROM chapter_backup_evidence"))
+
+        val evidence = SQLiteChapterBackupService(connection, backups)
+            .createVerifiedBackup("chapter-1", "orphaned-backup", 2000)
+
+        assertEquals(orphan.toAbsolutePath().normalize().toString(), evidence.storageRef)
+        assertEquals(1, scalarInt(
+            "SELECT COUNT(*) FROM chapter_backup_evidence WHERE backup_id='orphaned-backup'"
+        ))
+        assertEquals("BACKED_UP", scalarString(
+            "SELECT phase FROM chapter_lifecycle WHERE chapter_id='chapter-1'"
+        ))
+    }
+
+    @Test
     fun `backup refuses to run unless chapter is frozen`() {
         connection.createStatement().use {
             it.execute("UPDATE chapter_lifecycle SET phase='SCHEDULED' WHERE chapter_id='chapter-1'")

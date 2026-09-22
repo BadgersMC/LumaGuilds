@@ -8,13 +8,15 @@ import net.lumalyte.lg.domain.entities.QuestItemReward
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import net.lumalyte.lg.domain.values.QuestAction
 import java.time.Duration
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 import kotlin.math.abs
 
 interface QuestRewardSink {
-    fun awardExperience(guildId: UUID, amount: Int)
-    fun awardItems(actorId: UUID, rewards: List<QuestItemReward>)
+    fun awardExperience(guildId: UUID, amount: Int, transactionId: UUID): Boolean
+    fun awardItems(actorId: UUID, rewards: List<QuestItemReward>, transactionId: UUID): Boolean
+    fun finalizeItems(actorId: UUID, transactionId: UUID) = Unit
 }
 
 data class QuestProgressContext(
@@ -99,46 +101,140 @@ class QuestService(
         val quest = active.quests.firstOrNull { it.id == questId } ?: return false
         val progress = repository.getProgress(active.weekId, questId, guildId) ?: return false
         if (!progress.isCompletable(quest.targetCount)) return false
-        if (!repository.tryMarkClaimed(active.weekId, questId, guildId)) return false
+        if (!repository.tryMarkClaimed(active.weekId, questId, guildId, actorId)) return false
 
-        if (quest.experienceReward > 0) rewards.awardExperience(guildId, quest.experienceReward)
-        if (quest.itemRewards.isNotEmpty()) rewards.awardItems(actorId, quest.itemRewards)
+        val claimed = progress.withClaimed(actorId)
+        deliverClaimReward(active, quest, claimed)
         awardFullSetBonusIfComplete(active, guildId)
         return true
+    }
+
+    /**
+     * Finishes durable quest claims left between the claim marker and reward delivery.
+     * Safe to call repeatedly: XP and item delivery use stable transaction identities.
+     */
+    fun reconcilePendingRewards(): Int {
+        var delivered = 0
+        repository.getPendingClaimRewards().forEach { progress ->
+            val questSet = repository.getQuestSet(progress.weekId) ?: return@forEach
+            val quest = questSet.quests.firstOrNull { it.id == progress.questId } ?: return@forEach
+            if (deliverClaimReward(questSet, quest, progress)) delivered++
+        }
+
+        repository.getActiveQuestSet()?.let { active ->
+            reconcileFullSetBonuses(active)
+        }
+        return delivered
     }
 
     fun resetWeeklyQuests(nextQuestSet: WeeklyQuestSet) {
         val active = repository.getActiveQuestSet()
         if (active?.weekId == nextQuestSet.weekId) return
-        active?.quests?.filter { it.leaderboard }?.forEach { quest ->
-            val maxRank = quest.leaderboardPayouts.keys.maxOrNull() ?: 0
-            if (maxRank > 0) {
-                repository.getQuestLeaderboard(active.weekId, quest.id, maxRank)
-                    .forEachIndexed { index, progress ->
-                        quest.leaderboardPayouts[index + 1]?.takeIf { it > 0 }?.let { amount ->
-                            if (!repository.isLeaderboardRecipientPaid(active.weekId, quest.id, progress.guildId)) {
-                                rewards.awardExperience(progress.guildId, amount)
-                                repository.markLeaderboardRecipientPaid(active.weekId, quest.id, progress.guildId)
+
+        active?.let { current ->
+            check(reconcileFullSetBonuses(current)) {
+                "Unable to durably settle weekly quest completion bonuses"
+            }
+            current.quests.filter { it.leaderboard }.forEach { quest ->
+                val maxRank = quest.leaderboardPayouts.keys.maxOrNull() ?: 0
+                if (maxRank > 0) {
+                    repository.getQuestLeaderboard(current.weekId, quest.id, maxRank)
+                        .forEachIndexed { index, progress ->
+                            quest.leaderboardPayouts[index + 1]?.takeIf { it > 0 }?.let { amount ->
+                                if (!repository.isLeaderboardRecipientPaid(current.weekId, quest.id, progress.guildId)) {
+                                    val transactionId = rewardTransactionId(
+                                        "leaderboard",
+                                        current.weekId,
+                                        quest.id,
+                                        progress.guildId,
+                                    )
+                                    check(rewards.awardExperience(progress.guildId, amount, transactionId)) {
+                                        "Unable to durably award weekly leaderboard XP"
+                                    }
+                                    check(repository.markLeaderboardRecipientPaid(
+                                        current.weekId,
+                                        quest.id,
+                                        progress.guildId,
+                                    )) {
+                                        "Unable to persist weekly leaderboard payout marker"
+                                    }
+                                }
                             }
                         }
-                    }
+                }
             }
+            repository.deleteWeekProgress(current.weekId)
         }
-        active?.let { repository.deleteWeekProgress(it.weekId) }
         repository.saveActiveQuestSet(nextQuestSet)
     }
 
-    private fun awardFullSetBonusIfComplete(active: WeeklyQuestSet, guildId: UUID) {
-        if (fullSetBonusExperience <= 0) return
+    private fun deliverClaimReward(
+        questSet: WeeklyQuestSet,
+        quest: net.lumalyte.lg.domain.entities.QuestDefinition,
+        progress: GuildQuestProgress,
+    ): Boolean {
+        if (progress.rewardDelivered) return true
+        val transactionId = rewardTransactionId(
+            "claim",
+            questSet.weekId,
+            quest.id,
+            progress.guildId,
+        )
+        if (quest.experienceReward > 0 &&
+            !rewards.awardExperience(progress.guildId, quest.experienceReward, transactionId)
+        ) return false
+
+        val itemActorId = if (quest.itemRewards.isNotEmpty()) {
+            val actorId = progress.claimActorId ?: return false
+            if (!rewards.awardItems(actorId, quest.itemRewards, transactionId)) return false
+            actorId
+        } else null
+
+        val delivered = repository.markClaimRewardDelivered(
+            questSet.weekId,
+            quest.id,
+            progress.guildId,
+        )
+        if (delivered && itemActorId != null) {
+            runCatching { rewards.finalizeItems(itemActorId, transactionId) }
+        }
+        return delivered
+    }
+
+    private fun reconcileFullSetBonuses(active: WeeklyQuestSet): Boolean {
+        val guildIds = repository.getClaimedProgress(active.weekId)
+            .asSequence()
+            .map { it.guildId }
+            .distinct()
+            .toList()
+        return guildIds.all { awardFullSetBonusIfComplete(active, it) }
+    }
+
+    private fun awardFullSetBonusIfComplete(active: WeeklyQuestSet, guildId: UUID): Boolean {
+        if (fullSetBonusExperience <= 0) return true
+        if (repository.isWeeklyBonusAwarded(active.weekId, guildId)) return true
         val milestones = active.quests.filter { it.targetCount > 0 }
-        if (milestones.isEmpty()) return
+        if (milestones.isEmpty()) return true
         val allComplete = milestones.all { quest ->
             repository.getProgress(active.weekId, quest.id, guildId)?.claimed == true
         }
-        if (allComplete && repository.tryMarkWeeklyBonusAwarded(active.weekId, guildId)) {
-            rewards.awardExperience(guildId, fullSetBonusExperience)
-        }
+        if (!allComplete) return true
+
+        val transactionId = rewardTransactionId("full-set", active.weekId, "all", guildId)
+        if (!rewards.awardExperience(guildId, fullSetBonusExperience, transactionId)) return false
+        repository.tryMarkWeeklyBonusAwarded(active.weekId, guildId)
+        return repository.isWeeklyBonusAwarded(active.weekId, guildId)
     }
+
+    private fun rewardTransactionId(
+        kind: String,
+        weekId: String,
+        questId: String,
+        guildId: UUID,
+    ): UUID = UUID.nameUUIDFromBytes(
+        "lumaguilds:weekly-quest:$kind:$weekId:$questId:$guildId"
+            .toByteArray(StandardCharsets.UTF_8)
+    )
 
     private fun targetMatches(questTarget: String, eventTarget: String): Boolean {
         if (questTarget == eventTarget) return true

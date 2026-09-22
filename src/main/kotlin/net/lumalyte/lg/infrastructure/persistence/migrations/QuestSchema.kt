@@ -59,6 +59,8 @@ object QuestSchema {
                     current_count $integer NOT NULL DEFAULT 0,
                     claimed INTEGER NOT NULL DEFAULT 0,
                     completed_at $integer,
+                    claim_actor_id $text,
+                    reward_delivered INTEGER NOT NULL DEFAULT 0,
                     PRIMARY KEY (week_id, quest_id, guild_id)
                 )
                 """.trimIndent()
@@ -87,11 +89,31 @@ object QuestSchema {
         ensureColumn(connection, "weekly_quest_definitions", "target_rarity", "$text NOT NULL DEFAULT 'COMMON'")
         ensureColumn(connection, "weekly_quest_definitions", "conditions", "$longText NOT NULL DEFAULT ''")
         ensureColumn(connection, "weekly_quest_definitions", "quest_order", "INTEGER NOT NULL DEFAULT 0")
+        ensureColumn(connection, "guild_quest_progress", "claim_actor_id", text)
+        val addedRewardDelivered = ensureColumn(
+            connection,
+            "guild_quest_progress",
+            "reward_delivered",
+            "INTEGER NOT NULL DEFAULT 0",
+        )
+        if (addedRewardDelivered) {
+            // Existing claimed quests predate durable reward reconciliation. Treat them
+            // as already delivered so an upgrade cannot repay historical rewards.
+            connection.createStatement().use {
+                it.executeUpdate("UPDATE guild_quest_progress SET reward_delivered = claimed")
+            }
+        }
     }
 
-    private fun ensureColumn(connection: Connection, table: String, column: String, definition: String) {
-        if (hasColumn(connection, table, column)) return
+    private fun ensureColumn(
+        connection: Connection,
+        table: String,
+        column: String,
+        definition: String,
+    ): Boolean {
+        if (hasColumn(connection, table, column)) return false
         connection.createStatement().use { it.execute("ALTER TABLE $table ADD COLUMN $column $definition") }
+        return true
     }
 
     private fun hasColumn(connection: Connection, table: String, column: String): Boolean {
