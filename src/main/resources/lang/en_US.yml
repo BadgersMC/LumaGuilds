@@ -958,10 +958,12 @@ bedrock:
     input:
       label: New Description
       placeholder: Enter a guild description
-    format_info: Maximum length is 200 characters. Leave the field empty to clear the description.
+    format_info: MiniMessage colors/formatting are supported. Discord invite URLs are detected automatically. Maximum length is 200 characters; leave empty to clear.
     validation:
       too_long: The description cannot exceed 200 characters.
       inappropriate: The description contains inappropriate language.
+      interactive_tag: 'Interactive MiniMessage tag <tag> is not allowed. Discord invite URLs are linked automatically.'
+      invalid_format: The description contains invalid MiniMessage formatting.
     feedback:
       validation: '<red><error>'
       updated: '<green>✅ Guild description updated.'
@@ -1386,11 +1388,14 @@ bedrock:
         <gold><bold>━━━ VALIDATION ━━━
         <gray>• Guild names must contain 3–32 characters
         • Guild names cannot contain line breaks
-        • Guild descriptions may contain up to 256 characters
+        • Guild descriptions may contain up to 200 characters
+        • Discord invite URLs are linked automatically; interactive MiniMessage tags are blocked
       name_too_short: Guild name must contain at least <minimum> characters.
       name_too_long: Guild name cannot exceed <maximum> characters.
       name_no_newlines: Guild name cannot contain line breaks.
       description_too_long: Guild description cannot exceed <maximum> characters.
+      description_interactive_tag: 'Interactive MiniMessage tag <tag> is not allowed; Discord invite URLs are linked automatically.'
+      description_invalid_format: Guild description contains invalid MiniMessage formatting.
       row: '• <error>'
       title: '<red>[ERROR] Please correct the following:'
       errors: '<gray><errors>'
@@ -1791,9 +1796,11 @@ command:
         you_declined_the_invitation_to_join: '<gray>You declined the invitation to join <gold><actual_guild_name><gray>.'
       description:
         failed_to_set_guild_description: '<red>❌ Failed to set guild description.'
-        guild_description_must_be_100_characters_or: '<red>Guild description must be 100 characters or less.'
+        guild_description_must_be_200_characters_or: '<red>Guild description must be 200 characters or less.'
         guild_description_set: '<green>✅ Guild description set!'
-        new_description: '<gray>New description: <white>"<description>"'
+        new_description_prefix: '<gray>New description: <reset>'
+        interactive_tag_not_allowed: '<red>Interactive MiniMessage tag "<tag>" is not allowed in guild descriptions. Discord invite URLs are linked automatically.'
+        invalid_format: '<red>That description contains invalid MiniMessage formatting.'
         you_don_t_have_permission_to_manage: '<red>You don''t have permission to manage guild description.'
         you_need_the_manage_description_permission_to: '<gray>You need the MANAGE_DESCRIPTION permission to change the guild description.'
         your_description_is_characters_long: '<gray>Your description is <length> characters long.'
@@ -5166,6 +5173,8 @@ menu:
     description:
       name: "<gold>Description"
       value: "<reset><description>"
+      invite_hint: "<aqua>Discord invite detected — click to send the clickable link in chat"
+      chat_prefix: "<gray>Guild description: <reset>"
     members:
       name: "<aqua>Members (<white><count><aqua>)"
       description: "<gray>Click to view member list"
@@ -5378,8 +5387,8 @@ menu:
       current: "<gray>Current input:"
       value: "<white><description>"
       none: "None"
-      formatting: "<gray>Supports MiniMessage formatting"
-      limit: "<gray>Max 100 characters"
+      formatting: "<gray>Supports MiniMessage formatting and Discord invite URLs"
+      limit: "<gray>Max 200 characters"
     validation:
       error:
         name: "<red>❌ Validation Error"
@@ -5387,7 +5396,8 @@ menu:
       valid:
         name: "<green>✅ Valid Description"
         description: "<gray>Description is ready to save"
-      too_long: "Description too long (<length>/100 characters)"
+      too_long: "Description too long (<length>/200 characters)"
+      interactive_tag: "Interactive MiniMessage tag <tag> is not allowed; Discord invite URLs are linked automatically"
       invalid_format: "Invalid MiniMessage format: <error>"
       unknown_error: "unknown error"
     save:
@@ -5404,22 +5414,21 @@ menu:
       name: "<light_purple>🔍 Preview"
       description: "<gray>How your description will appear:"
       value: '<white>"<description>"'
-      error: "<red>Error parsing description"
+      discord_invite: "<aqua>Discord invite detected — it will be clickable in Java chat"
       empty: "<gray><italic>Enter a description to see preview"
     feedback:
       cannot_save: "<red>❌ Cannot save description - please check validation errors"
       no_permission: "<red>❌ You don't have permission to manage guild description"
       updated: "<green>✅ Guild description updated successfully!"
       new_description_prefix: "<gray>New description: <reset>"
-      new_description: "<gray>New description: <white><description>"
       cleared: "<gray>New description: <italic>Cleared"
       update_failed: "<red>❌ Failed to update guild description"
       cancelled: "<gray>Description editing cancelled"
     chat:
       header: "<gold>=== Guild Description Editor ==="
       prompt: "<gray>Type your new guild description in chat"
-      formatting: '<gray>Supports MiniMessage formatting (e.g., \<red>text\</red>)'
-      limit: "<gray>Maximum 100 characters"
+      formatting: '<gray>Supports MiniMessage formatting and Discord invite URLs (e.g., https://discord.gg/example)'
+      limit: "<gray>Maximum 200 characters"
       cancel: "<gray>Type 'cancel' to cancel editing"
 
   war_objectives:

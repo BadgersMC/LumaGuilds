@@ -1,6 +1,7 @@
 package net.lumalyte.lg.domain.entities
 
 import net.lumalyte.lg.domain.values.Position3D
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.GuiTheme
 import java.time.Instant
 import java.util.UUID
@@ -70,8 +71,8 @@ data class Guild(
 
         // Validate description length if provided
         description?.let { descValue ->
-            require(descValue.length <= 100) {
-                "Guild description must be 100 characters or less."
+            require(descValue.length <= GuildDescriptionContent.MAX_LENGTH) {
+                "Guild description must be ${GuildDescriptionContent.MAX_LENGTH} characters or less."
             }
         }
     }

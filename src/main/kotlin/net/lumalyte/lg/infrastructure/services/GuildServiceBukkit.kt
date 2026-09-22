@@ -21,6 +21,7 @@ import net.lumalyte.lg.api.events.GuildRenamedEvent
 import net.lumalyte.lg.api.events.GuildHomeSetEvent
 import net.lumalyte.lg.api.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.utils.serializeToString
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.GuildNameFilter
 import org.bukkit.Bukkit
 import org.koin.core.component.KoinComponent
@@ -318,17 +319,14 @@ class GuildServiceBukkit(
         val guild = guildRepository.getById(guildId) ?: return false
 
         // Check if actor has permission to set description
-        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_EMOJI)) { // Reuse emoji permission for description
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_DESCRIPTION)) {
             logger.warn("Player $actorId attempted to set description for guild $guildId without permission")
             return false
         }
 
-        // Validate description length if provided
-        description?.let { descValue ->
-            if (descValue.length > 100) {
-                logger.warn("Description too long: ${descValue.length} characters (max 100)")
-                return false
-            }
+        GuildDescriptionContent.validationFailure(description)?.let { failure ->
+            logger.warn("Rejected guild description for guild $guildId: $failure")
+            return false
         }
 
         val updatedGuild = guild.copy(description = description)

@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
@@ -90,7 +91,7 @@ class BedrockGuildSettingsMenu(
             onFormResponseReceived()
 
             val newName = response.next() as? String ?: guild.name
-            val newDescription = response.next() as? String ?: guild.description ?: ""
+            val newDescription = (response.next() as? String ?: guild.description ?: "").trim()
             val modeIndex = response.next() as? Int ?: 0
 
             // Validate permissions
@@ -152,12 +153,22 @@ class BedrockGuildSettingsMenu(
         return null
     }
 
-    private fun validateGuildDescription(description: String): String? {
-        if (description.length > 256) {
-            return lang.bedrock("bedrock.settings.validation.description_too_long", "maximum" to 256)
+    private fun validateGuildDescription(description: String): String? =
+        when (val failure = GuildDescriptionContent.validationFailure(description)) {
+            is GuildDescriptionContent.Failure.TooLong ->
+                lang.bedrock(
+                    "bedrock.settings.validation.description_too_long",
+                    "maximum" to GuildDescriptionContent.MAX_LENGTH,
+                )
+            is GuildDescriptionContent.Failure.InteractiveTag ->
+                lang.bedrock(
+                    "bedrock.settings.validation.description_interactive_tag",
+                    "tag" to failure.tagName,
+                )
+            is GuildDescriptionContent.Failure.InvalidFormat ->
+                lang.bedrock("bedrock.settings.validation.description_invalid_format")
+            null -> null
         }
-        return null
-    }
 
     private fun validateModeChange(newMode: GuildMode): String? {
         val config = configService.loadConfig()
@@ -220,9 +231,10 @@ class BedrockGuildSettingsMenu(
             }
         }
 
-        // Apply description change (only if not blank and different from current)
-        if (newDescription.isNotBlank() && newDescription != (guild.description ?: "") && hasDescriptionPermission) {
-            val success = guildService.setDescription(guild.id, newDescription, player.uniqueId)
+        // Apply description change, including clearing the current description.
+        val normalizedDescription = newDescription.ifEmpty { null }
+        if (normalizedDescription != guild.description && hasDescriptionPermission) {
+            val success = guildService.setDescription(guild.id, normalizedDescription, player.uniqueId)
             if (success) {
                 changes.add(lang.bedrock("bedrock.settings.change.description"))
             } else {
