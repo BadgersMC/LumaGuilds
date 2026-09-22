@@ -55,8 +55,10 @@ class SQLiteChapterBackupService(
 
             requireLifecyclePhase(chapterId, "FROZEN")
             Files.createDirectories(backupDirectory)
-            check(!Files.exists(backupPath)) {
-                "Backup file already exists without recorded evidence"
+            if (Files.exists(backupPath)) {
+                recoverOrphanedBackup(chapterId, backupId, backupPath, now)?.let {
+                    return@withLock it
+                }
             }
             try {
                 createSnapshot(backupPath)
@@ -86,6 +88,57 @@ class SQLiteChapterBackupService(
                 }
                 throw if (error is IllegalStateException || error is IllegalArgumentException) error
                 else IllegalStateException("Failed to create verified SQLite chapter backup", error)
+            }
+        }
+    }
+
+    private fun recoverOrphanedBackup(
+        chapterId: String,
+        backupId: String,
+        backupPath: Path,
+        now: Long,
+    ): ChapterBackupEvidence? {
+        val evidence = try {
+            check(Files.isRegularFile(backupPath)) { "Orphaned backup path is not a regular file" }
+            val sizeBytes = Files.size(backupPath)
+            check(sizeBytes > 0) { "Orphaned backup file is empty" }
+            verifyRestorableCopy(backupPath, backupId)
+            verifyOrphanChapterState(backupPath, chapterId)
+            ChapterBackupEvidence(
+                backupId = backupId,
+                chapterId = chapterId,
+                storageRef = backupPath.toString(),
+                sha256 = sha256(backupPath),
+                sizeBytes = sizeBytes,
+                createdAt = now,
+                verifiedAt = now,
+                verificationStatus = "VERIFIED",
+                restoreVerifiedAt = now,
+            )
+        } catch (_: Exception) {
+            Files.deleteIfExists(backupPath)
+            return null
+        }
+
+        // If the previous process crashed after the file was fully written but before
+        // evidence committed, adopt the verified file instead of deadlocking retries.
+        persistVerifiedEvidence(evidence)
+        return evidence
+    }
+
+    private fun verifyOrphanChapterState(backupPath: Path, chapterId: String) {
+        DriverManager.getConnection("jdbc:sqlite:$backupPath").use { restored ->
+            val phase = restored.prepareStatement(
+                "SELECT phase FROM chapter_lifecycle WHERE chapter_id=?"
+            ).use { statement ->
+                statement.setString(1, chapterId)
+                statement.executeQuery().use { rows ->
+                    check(rows.next()) { "Orphaned backup does not contain the expected chapter" }
+                    rows.getString(1)
+                }
+            }
+            check(phase == "FROZEN") {
+                "Orphaned backup was not captured from the frozen chapter state"
             }
         }
     }

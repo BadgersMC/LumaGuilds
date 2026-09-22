@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.util.UUID
 
@@ -89,6 +90,78 @@ class QuestServiceTest {
     }
 
     @Test
+    fun `claimed reward is recovered without duplicate XP after delivery marker failure`() {
+        val repository = FakeQuestRepository(week)
+        val rewards = RecordingRewardSink()
+        val service = QuestService(repository, rewards, fullSetBonusExperience = 0)
+        val guild = UUID.randomUUID()
+        val actor = UUID.randomUUID()
+        repository.saveProgress(GuildQuestProgress(week.weekId, "zombies", guild, 2))
+        assertTrue(repository.tryMarkClaimed(week.weekId, "zombies", guild, actor))
+        repository.skipNextClaimDeliveryMarker = true
+
+        assertEquals(0, service.reconcilePendingRewards())
+        assertEquals(listOf(guild to 500), rewards.experienceAwards)
+        assertFalse(repository.getProgress(week.weekId, "zombies", guild)!!.rewardDelivered)
+
+        assertEquals(1, service.reconcilePendingRewards())
+        assertEquals(listOf(guild to 500), rewards.experienceAwards)
+        assertTrue(repository.getProgress(week.weekId, "zombies", guild)!!.rewardDelivered)
+    }
+
+    @Test
+    fun `full set bonus retry reuses transaction after marker failure`() {
+        val repository = FakeQuestRepository(week)
+        val rewards = RecordingRewardSink()
+        val service = QuestService(repository, rewards, fullSetBonusExperience = 2_000)
+        val guild = UUID.randomUUID()
+        val actor = UUID.randomUUID()
+        repository.saveProgress(GuildQuestProgress(week.weekId, "zombies", guild, 2))
+        repository.saveProgress(GuildQuestProgress(week.weekId, "skeletons", guild, 1))
+
+        assertTrue(service.claimQuest(actor, guild, "zombies"))
+        repository.skipNextBonusMarker = true
+        assertTrue(service.claimQuest(actor, guild, "skeletons"))
+
+        assertFalse(repository.isWeeklyBonusAwarded(week.weekId, guild))
+        assertEquals(listOf(500, 750, 2_000), rewards.experienceAwards.map { it.second })
+
+        service.reconcilePendingRewards()
+
+        assertTrue(repository.isWeeklyBonusAwarded(week.weekId, guild))
+        assertEquals(listOf(500, 750, 2_000), rewards.experienceAwards.map { it.second })
+    }
+
+    @Test
+    fun `leaderboard payout retry reuses transaction after marker failure`() {
+        val leaderboardQuest = quest("dragons", 0, 0).copy(
+            leaderboard = true,
+            leaderboardPayouts = mapOf(1 to 5_000)
+        )
+        val current = week.copy(quests = listOf(leaderboardQuest))
+        val next = week.copy(
+            weekId = "2026-W36",
+            startsAt = week.endsAt,
+            endsAt = Instant.parse("2026-09-07T00:00:00Z")
+        )
+        val repository = FakeQuestRepository(current)
+        val rewards = RecordingRewardSink()
+        val service = QuestService(repository, rewards, fullSetBonusExperience = 0)
+        val guild = UUID.randomUUID()
+        repository.saveProgress(GuildQuestProgress(current.weekId, "dragons", guild, 9))
+        repository.skipNextLeaderboardMarker = true
+
+        assertThrows<IllegalStateException> { service.resetWeeklyQuests(next) }
+        assertEquals(current.weekId, repository.getActiveQuestSet()!!.weekId)
+        assertEquals(listOf(guild to 5_000), rewards.experienceAwards)
+
+        service.resetWeeklyQuests(next)
+
+        assertEquals(listOf(guild to 5_000), rewards.experienceAwards)
+        assertEquals(next.weekId, repository.getActiveQuestSet()!!.weekId)
+    }
+
+    @Test
     fun `player placed block cannot satisfy natural only quest`() {
         val naturalQuest = quest("stone", 10, 500).copy(
             action = QuestAction.MINE_BLOCKS,
@@ -161,37 +234,136 @@ class QuestServiceTest {
 
 private class RecordingRewardSink : QuestRewardSink {
     val experienceAwards = mutableListOf<Pair<UUID, Int>>()
-    override fun awardExperience(guildId: UUID, amount: Int) { experienceAwards += guildId to amount }
-    override fun awardItems(actorId: UUID, rewards: List<net.lumalyte.lg.domain.entities.QuestItemReward>) = Unit
+    private val experienceTransactions = mutableSetOf<UUID>()
+
+    override fun awardExperience(guildId: UUID, amount: Int, transactionId: UUID): Boolean {
+        if (experienceTransactions.add(transactionId)) {
+            experienceAwards += guildId to amount
+        }
+        return true
+    }
+
+    override fun awardItems(
+        actorId: UUID,
+        rewards: List<net.lumalyte.lg.domain.entities.QuestItemReward>,
+        transactionId: UUID,
+    ): Boolean = true
 }
 
 private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
     private var active = initial
+    private val questSets = mutableMapOf<String, WeeklyQuestSet>().apply {
+        initial?.let { put(it.weekId, it) }
+    }
     private val progress = mutableMapOf<Triple<String, String, UUID>, GuildQuestProgress>()
     private val bonuses = mutableSetOf<Pair<String, UUID>>()
     private val paidLeaderboardRecipients = mutableSetOf<Triple<String, String, UUID>>()
 
+    var skipNextClaimDeliveryMarker = false
+    var skipNextLeaderboardMarker = false
+    var skipNextBonusMarker = false
+
     override fun getActiveQuestSet(): WeeklyQuestSet? = active
-    override fun getRecentQuestSets(limit: Int): List<WeeklyQuestSet> = active?.let(::listOf).orEmpty().take(limit)
-    override fun saveActiveQuestSet(questSet: WeeklyQuestSet) { active = questSet }
+    override fun getQuestSet(weekId: String): WeeklyQuestSet? = questSets[weekId]
+    override fun getRecentQuestSets(limit: Int): List<WeeklyQuestSet> =
+        questSets.values.sortedByDescending { it.startsAt }.take(limit)
+
+    override fun saveActiveQuestSet(questSet: WeeklyQuestSet) {
+        active = questSet
+        questSets[questSet.weekId] = questSet
+    }
+
     override fun deactivateActiveQuestSet() { active = null }
-    override fun getProgress(weekId: String, questId: String, guildId: UUID): GuildQuestProgress? = progress[Triple(weekId, questId, guildId)]
-    override fun saveProgress(value: GuildQuestProgress) { progress[Triple(value.weekId, value.questId, value.guildId)] = value }
-    override fun getGuildProgress(weekId: String, guildId: UUID): List<GuildQuestProgress> = progress.values.filter { it.weekId == weekId && it.guildId == guildId }
-    override fun getQuestLeaderboard(weekId: String, questId: String, limit: Int): List<GuildQuestProgress> = progress.values.filter { it.weekId == weekId && it.questId == questId }.sortedByDescending { it.currentCount }.take(limit)
-    override fun tryMarkClaimed(weekId: String, questId: String, guildId: UUID): Boolean {
+
+    override fun getProgress(
+        weekId: String,
+        questId: String,
+        guildId: UUID,
+    ): GuildQuestProgress? = progress[Triple(weekId, questId, guildId)]
+
+    override fun saveProgress(value: GuildQuestProgress) {
+        progress[Triple(value.weekId, value.questId, value.guildId)] = value
+    }
+
+    override fun getGuildProgress(weekId: String, guildId: UUID): List<GuildQuestProgress> =
+        progress.values.filter { it.weekId == weekId && it.guildId == guildId }
+
+    override fun getQuestLeaderboard(
+        weekId: String,
+        questId: String,
+        limit: Int,
+    ): List<GuildQuestProgress> = progress.values
+        .filter { it.weekId == weekId && it.questId == questId }
+        .sortedByDescending { it.currentCount }
+        .take(limit)
+
+    override fun getClaimedProgress(weekId: String): List<GuildQuestProgress> =
+        progress.values.filter { it.weekId == weekId && it.claimed }
+
+    override fun getPendingClaimRewards(): List<GuildQuestProgress> =
+        progress.values.filter { it.claimed && !it.rewardDelivered }
+
+    override fun tryMarkClaimed(
+        weekId: String,
+        questId: String,
+        guildId: UUID,
+        actorId: UUID,
+    ): Boolean {
         val key = Triple(weekId, questId, guildId)
         val value = progress[key] ?: return false
         if (value.claimed) return false
-        progress[key] = value.withClaimed()
+        progress[key] = value.withClaimed(actorId).copy(rewardDelivered = false)
         return true
     }
-    override fun tryMarkWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean = bonuses.add(weekId to guildId)
-    override fun isWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean = weekId to guildId in bonuses
-    override fun isLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID): Boolean =
-        Triple(weekId, questId, guildId) in paidLeaderboardRecipients
-    override fun markLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID) {
-        paidLeaderboardRecipients += Triple(weekId, questId, guildId)
+
+    override fun markClaimRewardDelivered(
+        weekId: String,
+        questId: String,
+        guildId: UUID,
+    ): Boolean {
+        if (skipNextClaimDeliveryMarker) {
+            skipNextClaimDeliveryMarker = false
+            return false
+        }
+        val key = Triple(weekId, questId, guildId)
+        val value = progress[key] ?: return false
+        progress[key] = value.withRewardDelivered()
+        return true
     }
-    override fun deleteWeekProgress(weekId: String) { progress.keys.removeIf { it.first == weekId } }
+
+    override fun tryMarkWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean {
+        if (skipNextBonusMarker) {
+            skipNextBonusMarker = false
+            return false
+        }
+        return bonuses.add(weekId to guildId)
+    }
+
+    override fun isWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean =
+        weekId to guildId in bonuses
+
+    override fun isLeaderboardRecipientPaid(
+        weekId: String,
+        questId: String,
+        guildId: UUID,
+    ): Boolean = Triple(weekId, questId, guildId) in paidLeaderboardRecipients
+
+    override fun markLeaderboardRecipientPaid(
+        weekId: String,
+        questId: String,
+        guildId: UUID,
+    ): Boolean {
+        if (skipNextLeaderboardMarker) {
+            skipNextLeaderboardMarker = false
+            return false
+        }
+        paidLeaderboardRecipients += Triple(weekId, questId, guildId)
+        return true
+    }
+
+    override fun deleteWeekProgress(weekId: String) {
+        progress.entries.removeIf { (key, value) ->
+            key.first == weekId && !(value.claimed && !value.rewardDelivered)
+        }
+    }
 }

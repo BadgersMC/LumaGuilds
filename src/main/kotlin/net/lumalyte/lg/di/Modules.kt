@@ -724,7 +724,7 @@ fun progressionModule() = module {
         net.lumalyte.lg.infrastructure.services.ProgressionConfigService(get())
     }
     single<net.lumalyte.lg.application.services.QuestRewardSink> {
-        net.lumalyte.lg.infrastructure.services.QuestRewardSinkBukkit(get())
+        net.lumalyte.lg.infrastructure.services.QuestRewardSinkBukkit(get(), get<LumaGuilds>())
     }
     single {
         net.lumalyte.lg.application.services.QuestService(

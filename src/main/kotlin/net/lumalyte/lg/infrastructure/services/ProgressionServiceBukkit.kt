@@ -122,6 +122,33 @@ class ProgressionServiceBukkit(
         }
     }
 
+    override fun awardUncappedSystemExperienceOnce(
+        guildId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+        transactionId: UUID,
+    ): Boolean {
+        require(source == ExperienceSource.WEEKLY_ACTIVITY || source == ExperienceSource.ADMIN_BONUS) {
+            "Only trusted system sources may bypass caps"
+        }
+        if (experience <= 0) return true
+        val policy = ExperiencePolicy(source, source.defaultPool, 1, 0, CapPeriod.UNLIMITED, true)
+        return when (permanentExperienceService.award(
+            ExperienceAwardRequest(
+                guildId = guildId,
+                actorId = null,
+                source = source,
+                units = experience,
+                occurredAt = Instant.now(),
+                transactionId = transactionId,
+            ),
+            policy,
+        )) {
+            is ExperienceAwardResult.Awarded, ExperienceAwardResult.Duplicate -> true
+            is ExperienceAwardResult.NoAllowance, is ExperienceAwardResult.Rejected -> false
+        }
+    }
+
     override fun getExperienceForNextLevel(currentLevel: Int): Int =
         curve().experienceForNextLevel(currentLevel)
 

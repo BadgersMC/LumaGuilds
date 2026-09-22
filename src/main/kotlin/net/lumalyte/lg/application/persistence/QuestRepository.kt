@@ -6,6 +6,7 @@ import java.util.UUID
 
 interface QuestRepository {
     fun getActiveQuestSet(): WeeklyQuestSet?
+    fun getQuestSet(weekId: String): WeeklyQuestSet?
     fun saveActiveQuestSet(questSet: WeeklyQuestSet)
     fun getRecentQuestSets(limit: Int): List<WeeklyQuestSet>
     fun deactivateActiveQuestSet()
@@ -13,10 +14,13 @@ interface QuestRepository {
     fun saveProgress(value: GuildQuestProgress)
     fun getGuildProgress(weekId: String, guildId: UUID): List<GuildQuestProgress>
     fun getQuestLeaderboard(weekId: String, questId: String, limit: Int): List<GuildQuestProgress>
-    fun tryMarkClaimed(weekId: String, questId: String, guildId: UUID): Boolean
+    fun getClaimedProgress(weekId: String): List<GuildQuestProgress>
+    fun getPendingClaimRewards(): List<GuildQuestProgress>
+    fun tryMarkClaimed(weekId: String, questId: String, guildId: UUID, actorId: UUID): Boolean
+    fun markClaimRewardDelivered(weekId: String, questId: String, guildId: UUID): Boolean
     fun tryMarkWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean
     fun isWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean
     fun isLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID): Boolean
-    fun markLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID)
+    fun markLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID): Boolean
     fun deleteWeekProgress(weekId: String)
 }

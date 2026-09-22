@@ -36,22 +36,26 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
     private val progressUpsertSql = if (mariaDb) {
         """
         INSERT INTO guild_quest_progress
-        (week_id, quest_id, guild_id, current_count, claimed, completed_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (week_id, quest_id, guild_id, current_count, claimed, completed_at, claim_actor_id, reward_delivered)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             current_count = GREATEST(current_count, VALUES(current_count)),
             claimed = GREATEST(claimed, VALUES(claimed)),
-            completed_at = COALESCE(completed_at, VALUES(completed_at))
+            completed_at = COALESCE(completed_at, VALUES(completed_at)),
+            claim_actor_id = COALESCE(claim_actor_id, VALUES(claim_actor_id)),
+            reward_delivered = GREATEST(reward_delivered, VALUES(reward_delivered))
         """.trimIndent()
     } else {
         """
         INSERT INTO guild_quest_progress
-        (week_id, quest_id, guild_id, current_count, claimed, completed_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (week_id, quest_id, guild_id, current_count, claimed, completed_at, claim_actor_id, reward_delivered)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(week_id, quest_id, guild_id) DO UPDATE SET
             current_count = MAX(current_count, excluded.current_count),
             claimed = MAX(claimed, excluded.claimed),
-            completed_at = COALESCE(completed_at, excluded.completed_at)
+            completed_at = COALESCE(completed_at, excluded.completed_at),
+            claim_actor_id = COALESCE(claim_actor_id, excluded.claim_actor_id),
+            reward_delivered = MAX(reward_delivered, excluded.reward_delivered)
         """.trimIndent()
     }
 
@@ -69,6 +73,12 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
     override fun getActiveQuestSet(): WeeklyQuestSet? =
         storage.connection.getFirstRow(
             "SELECT week_id, starts_at, ends_at FROM weekly_quest_sets WHERE active = 1 LIMIT 1"
+        )?.let(::mapQuestSet)
+
+    override fun getQuestSet(weekId: String): WeeklyQuestSet? =
+        storage.connection.getFirstRow(
+            "SELECT week_id, starts_at, ends_at FROM weekly_quest_sets WHERE week_id = ?",
+            weekId,
         )?.let(::mapQuestSet)
 
     override fun getRecentQuestSets(limit: Int): List<WeeklyQuestSet> {
@@ -169,7 +179,9 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             value.guildId.toString(),
             value.currentCount,
             if (value.claimed) 1 else 0,
-            value.completedAt?.toEpochMilli()
+            value.completedAt?.toEpochMilli(),
+            value.claimActorId?.toString(),
+            if (value.rewardDelivered) 1 else 0,
         )
     }
 
@@ -197,16 +209,49 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             limit
         ).map(::mapProgress)
 
-    override fun tryMarkClaimed(weekId: String, questId: String, guildId: UUID): Boolean =
+    override fun getClaimedProgress(weekId: String): List<GuildQuestProgress> =
+        storage.connection.getResults(
+            "SELECT * FROM guild_quest_progress WHERE week_id = ? AND claimed = 1",
+            weekId,
+        ).map(::mapProgress)
+
+    override fun getPendingClaimRewards(): List<GuildQuestProgress> =
+        storage.connection.getResults(
+            "SELECT * FROM guild_quest_progress WHERE claimed = 1 AND reward_delivered = 0"
+        ).map(::mapProgress)
+
+    override fun tryMarkClaimed(
+        weekId: String,
+        questId: String,
+        guildId: UUID,
+        actorId: UUID,
+    ): Boolean =
         storage.connection.executeUpdate(
             """
             UPDATE guild_quest_progress
-            SET claimed = 1
+            SET claimed = 1, claim_actor_id = ?, reward_delivered = 0
             WHERE week_id = ? AND quest_id = ? AND guild_id = ? AND claimed = 0
+            """.trimIndent(),
+            actorId.toString(),
+            weekId,
+            questId,
+            guildId.toString(),
+        ) == 1
+
+    override fun markClaimRewardDelivered(
+        weekId: String,
+        questId: String,
+        guildId: UUID,
+    ): Boolean =
+        storage.connection.executeUpdate(
+            """
+            UPDATE guild_quest_progress
+            SET reward_delivered = 1
+            WHERE week_id = ? AND quest_id = ? AND guild_id = ? AND claimed = 1
             """.trimIndent(),
             weekId,
             questId,
-            guildId.toString()
+            guildId.toString(),
         ) == 1
 
     override fun tryMarkWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean =
@@ -238,24 +283,29 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             guildId.toString()
         ) != null
 
-    override fun markLeaderboardRecipientPaid(weekId: String, questId: String, guildId: UUID) {
+    override fun markLeaderboardRecipientPaid(
+        weekId: String,
+        questId: String,
+        guildId: UUID,
+    ): Boolean {
         storage.connection.executeUpdate(
             payoutInsertSql,
             weekId,
             questId,
-            guildId.toString()
+            guildId.toString(),
         )
+        return isLeaderboardRecipientPaid(weekId, questId, guildId)
     }
 
     override fun deleteWeekProgress(weekId: String) {
         storage.connection.executeUpdate(
-            "DELETE FROM guild_quest_progress WHERE week_id = ?",
-            weekId
+            """
+            DELETE FROM guild_quest_progress
+            WHERE week_id = ? AND NOT (claimed = 1 AND reward_delivered = 0)
+            """.trimIndent(),
+            weekId,
         )
-        storage.connection.executeUpdate(
-            "DELETE FROM guild_quest_weekly_bonus WHERE week_id = ?",
-            weekId
-        )
+        // Keep weekly-bonus markers as durable idempotency history.
     }
 
     private fun mapQuestSet(row: DbRow): WeeklyQuestSet {
@@ -283,7 +333,9 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         guildId = UUID.fromString(row.getString("guild_id")),
         currentCount = row.longValue("current_count"),
         claimed = row.getInt("claimed") == 1,
-        completedAt = row.nullableLong("completed_at")?.let(Instant::ofEpochMilli)
+        completedAt = row.nullableLong("completed_at")?.let(Instant::ofEpochMilli),
+        claimActorId = row.nullableString("claim_actor_id")?.let(UUID::fromString),
+        rewardDelivered = row.getInt("reward_delivered") == 1,
     )
 
     private fun mapQuest(row: DbRow): QuestDefinition {
