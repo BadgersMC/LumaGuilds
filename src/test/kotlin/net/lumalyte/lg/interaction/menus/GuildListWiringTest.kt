@@ -54,6 +54,25 @@ class GuildListWiringTest {
     }
 
     @Test
+    fun `guild directory renders physical guild banners with shared white fallback resolver`() {
+        val java = File(
+            "src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildListMenu.kt"
+        ).readText()
+        val relation = File(
+            "src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildRelationBrowserMenu.kt"
+        ).readText()
+        val resolver = File(
+            "src/main/kotlin/net/lumalyte/lg/interaction/menus/GuildBannerItemResolver.kt"
+        ).readText()
+
+        assertTrue(java.contains("GuildBannerItemResolver.resolve(guild)"))
+        assertFalse(java.contains("ItemStack.of(Material.BOOK)"))
+        assertTrue(relation.contains("GuildBannerItemResolver.resolve(otherGuild)"))
+        assertTrue(resolver.contains("Material.WHITE_BANNER"))
+        assertTrue(resolver.contains("deserializeToItemStack()"))
+    }
+
+    @Test
     fun `page size is operator configured with required default`() {
         val config = File("src/main/resources/config.yml").readText()
         val loader = File(
