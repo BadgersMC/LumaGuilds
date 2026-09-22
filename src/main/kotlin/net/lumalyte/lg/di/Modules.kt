@@ -591,6 +591,9 @@ fun progressionModule() = module {
         net.lumalyte.lg.infrastructure.persistence.guilds.BankProgressionRepositorySQL(get())
     }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.SpawnBannerRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.SpawnBannerRepositorySQL(get())
+    }
     single<net.lumalyte.lg.application.persistence.QuestRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite(get())
     }
@@ -639,6 +642,14 @@ fun progressionModule() = module {
         WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
+    single {
+        net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit(
+            get<LumaGuilds>(), get(), get(), get(), get()
+        )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.listeners.SpawnBannerListener(get(), get())
+    }
     single {
         net.lumalyte.lg.infrastructure.web.handlers.GuildLeaderboardHandler(
             leaderboardService = get(),

@@ -5,6 +5,8 @@ import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.domain.entities.SpawnBannerCategory
+import net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit
 import net.lumalyte.lg.infrastructure.persistence.migrations.ChapterAdminRecoverySQL
 import net.lumalyte.lg.infrastructure.persistence.migrations.DatabaseMigrationUtility
 import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteChapterBackupService
@@ -32,6 +34,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private val guildService: GuildService by inject()
     private val adminOverrideService: AdminOverrideService by inject()
     private val storage: Storage<Database> by inject()
+    private val spawnBannerService: SpawnBannerServiceBukkit by inject()
 
     // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
     // claims are enabled. Touching it via `by inject()` would crash the override command
@@ -53,6 +56,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             "migrate" -> handleMigrate(sender, args)
             "chapter" -> handleChapter(sender, args)
             "override" -> handleOverride(sender)
+            "spawnbanner" -> handleSpawnBanner(sender, args)
             "help" -> showHelp(sender)
             else -> {
                 sender.sendMessage(lang.msg("admin.migrated.luma_guilds.command.unknown_subcommand", "args" to args[0]))
@@ -494,6 +498,76 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private fun parseChapterTime(value: String): Long? =
         value.toLongOrNull() ?: runCatching { Instant.parse(value).toEpochMilli() }.getOrNull()
 
+    private fun handleSpawnBanner(sender: CommandSender, args: Array<out String>) {
+        if (sender is Player && !sender.isOp && !sender.hasPermission("bellclaims.admin")) {
+            sender.sendMessage(lang.msg("spawn_banner.feedback.no_permission"))
+            return
+        }
+        if (args.size < 2) {
+            sender.sendMessage(lang.msg("spawn_banner.feedback.usage"))
+            return
+        }
+
+        when (args[1].lowercase()) {
+            "refresh" -> {
+                val refreshed = spawnBannerService.refreshAll()
+                sender.sendMessage(lang.msg("spawn_banner.feedback.refreshed", "count" to refreshed))
+                return
+            }
+            "list" -> {
+                val states = spawnBannerService.all()
+                if (states.isEmpty()) {
+                    sender.sendMessage(lang.msg("spawn_banner.feedback.list_empty"))
+                    return
+                }
+                sender.sendMessage(lang.msg("spawn_banner.feedback.list_header", "count" to states.size))
+                states.forEach { state ->
+                    val guild = spawnBannerService.currentGuild(state)
+                    val world = Bukkit.getWorld(state.worldId)?.name ?: state.worldId.toString().take(8)
+                    sender.sendMessage(lang.msg(
+                        "spawn_banner.feedback.list_entry",
+                        "category" to state.category.commandName,
+                        "rank" to state.rank,
+                        "world" to world,
+                        "x" to state.x,
+                        "y" to state.y,
+                        "z" to state.z,
+                        "guild" to (guild?.name ?: "-"),
+                    ))
+                }
+                return
+            }
+        }
+
+        if (sender !is Player) {
+            sender.sendMessage(lang.msg("spawn_banner.feedback.player_required"))
+            return
+        }
+        val rank = args[1].toIntOrNull()
+        if (rank == null || rank < 1) {
+            sender.sendMessage(lang.msg("spawn_banner.feedback.invalid_rank"))
+            return
+        }
+        val category = args.getOrNull(2)?.let(SpawnBannerCategory::parse)
+        if (category == null) {
+            sender.sendMessage(lang.msg(
+                "spawn_banner.feedback.invalid_category",
+                "categories" to SpawnBannerCategory.entries.joinToString(", ") { it.commandName },
+            ))
+            return
+        }
+
+        val item = spawnBannerService.createItem(rank, category)
+        sender.inventory.addItem(item).values.forEach { leftover ->
+            sender.world.dropItemNaturally(sender.location, leftover)
+        }
+        sender.sendMessage(lang.msg(
+            "spawn_banner.feedback.given",
+            "rank" to rank,
+            "category" to category.commandName,
+        ))
+    }
+
     /**
      * Show help message
      */
@@ -505,6 +579,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_migrate_confirm_migrate_sqlite_mariadb_op"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.chapter_admin_controls"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_override_toggle_admin_override_mode_admin"))
+        sender.sendMessage(lang.msg("spawn_banner.feedback.help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_help_show_this_help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.reload_commands_are_for_development_some_changes"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.disband_is_for_emergency_use_only_removes"))
@@ -517,7 +592,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
         return when (args.size) {
             1 -> mutableListOf(
-                "reload", "progressionreload", "disband", "migrate", "chapter", "override", "help"
+                "reload", "progressionreload", "disband", "migrate", "chapter", "override", "spawnbanner", "help"
             ).filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "disband" -> {
@@ -529,10 +604,21 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                 "chapter" -> mutableListOf("status", "backup", "postpone", "retry", "force")
                     .filter { it.startsWith(args[1]) }
                     .toMutableList()
+                "spawnbanner" -> mutableListOf("1", "2", "3", "refresh", "list")
+                    .filter { it.startsWith(args[1], ignoreCase = true) }
+                    .toMutableList()
                 else -> mutableListOf()
             }
             3 -> when (args[0].lowercase()) {
                 "disband" -> mutableListOf("confirm")
+                "spawnbanner" -> if (args[1].toIntOrNull() != null) {
+                    SpawnBannerCategory.entries
+                        .map { it.commandName }
+                        .filter { it.startsWith(args[2], ignoreCase = true) }
+                        .toMutableList()
+                } else {
+                    mutableListOf()
+                }
                 else -> mutableListOf()
             }
             else -> mutableListOf()
