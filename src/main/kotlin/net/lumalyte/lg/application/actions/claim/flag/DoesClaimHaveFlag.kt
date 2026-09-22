@@ -9,7 +9,7 @@ import java.util.UUID
 class DoesClaimHaveFlag(private val claimRepository: ClaimRepository,
                         private val claimFlagRepository: ClaimFlagRepository) {
     fun execute(claimId: UUID, flag: Flag): DoesClaimHaveFlagResult {
-        claimRepository.getById(claimId) ?: DoesClaimHaveFlagResult.ClaimNotFound
+        claimRepository.getById(claimId) ?: return DoesClaimHaveFlagResult.ClaimNotFound
         return DoesClaimHaveFlagResult.Success(claimFlagRepository.doesClaimHaveFlag(claimId, flag))
     }
 }

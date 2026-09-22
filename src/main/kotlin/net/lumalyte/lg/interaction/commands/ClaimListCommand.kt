@@ -33,8 +33,8 @@ class ClaimListCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Notify if player specifies an invalid page
-        if (page * 10 - 9 > playerClaims.count() || page < 1) {
+        val bounds = pageBounds(playerClaims.size, page)
+        if (bounds == null) {
             player.sendMessage(lang.msg("command.common.invalid_page"))
             return
         }
@@ -43,9 +43,8 @@ class ClaimListCommand : BaseCommand(), KoinComponent {
         val chatInfo = ChatInfoBuilder(lang, player.uniqueId,
             lang.msg("command.claim_list.header"))
         val totalClaims = playerClaims.size
-        val startIndex = page * 10
-        val endIndex = minOf(startIndex + 10, totalClaims)
-        playerClaims.subList(startIndex, endIndex).forEachIndexed { index, claim ->
+        bounds.forEach { index ->
+            val claim = playerClaims[index]
             val name = claim.name.ifEmpty { claim.id.toString().take(7) }
             val blockCount = getClaimBlockCount.execute(claim.id)
             val rowString = lang.msg(
