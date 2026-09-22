@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.interaction.menus.GuildInfoRelationResolver
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.Form
@@ -119,7 +120,10 @@ class BedrockGuildInfoMenu(
         val formatter = DateTimeFormatter.ofPattern(lang.raw("bedrock.info.date_format"))
         val foundedDate = formatter.format(guild.createdAt.atZone(java.time.ZoneId.systemDefault()))
 
-        val description = guild.description ?: lang.bedrock("bedrock.info.value.no_description")
+        val description = guild.description
+            ?.takeIf { it.isNotBlank() }
+            ?.let(GuildDescriptionContent::plainText)
+            ?: lang.bedrock("bedrock.info.value.no_description")
         val tag = guildService.getTag(guild.id) ?: lang.bedrock("bedrock.info.value.no_tag")
         val emoji = guildService.getEmoji(guild.id) ?: lang.bedrock("bedrock.info.value.no_emoji")
 

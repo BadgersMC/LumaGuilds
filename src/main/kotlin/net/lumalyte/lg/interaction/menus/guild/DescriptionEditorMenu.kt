@@ -16,6 +16,7 @@ import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.MenuItemBuilder
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
@@ -26,8 +27,6 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 
 class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                            private var guild: Guild): Menu, KoinComponent, ChatInputHandler {
@@ -90,7 +89,16 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     private fun addCurrentDescriptionDisplay(pane: StaticPane, x: Int, y: Int) {
         val displayItem = ItemStack.of(Material.BOOK)
             .name(lang.gui("menu.description_editor.current.name"))
-            .lore(lang.gui("menu.description_editor.current.value", "description" to (parseMiniMessageForDisplay(currentDescription) ?: lang.gui("menu.description_editor.current.none"))))
+            .lore(
+                if (currentDescription.isNullOrEmpty()) {
+                    lang.gui("menu.description_editor.current.none")
+                } else {
+                    lang.gui(
+                        "menu.description_editor.current.value",
+                        "description" to GuildDescriptionContent.render(currentDescription),
+                    )
+                }
+            )
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.description_editor.current.description"))
             .lore(lang.gui("menu.description_editor.current.scope"))
@@ -174,16 +182,14 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
 
         inputDescription?.let { desc ->
             if (validationError == null) {
-                try {
-                    val miniMessage = MiniMessage.miniMessage()
-                    val component = miniMessage.deserialize(desc)
-                    val plainText = PlainTextComponentSerializer.plainText().serialize(component)
-
-                    previewItem.lore(lang.gui("menu.description_editor.preview.value", "description" to plainText))
-                } catch (e: Exception) {
-                // Menu operation - catching all exceptions to prevent UI failure
-            // Menu operation - catching all exceptions to prevent UI failure
-                    previewItem.lore(lang.gui("menu.description_editor.preview.error"))
+                previewItem.lore(
+                    lang.gui(
+                        "menu.description_editor.preview.value",
+                        "description" to GuildDescriptionContent.render(desc),
+                    )
+                )
+                if (GuildDescriptionContent.discordInvites(desc).isNotEmpty()) {
+                    previewItem.lore(lang.gui("menu.description_editor.preview.discord_invite"))
                 }
             } else {
                 previewItem.lore(lang.gui("menu.description_editor.preview.empty"))
@@ -210,17 +216,11 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         if (success) {
             player.sendMessage(lang.msg("menu.description_editor.feedback.updated"))
 
-            // Show the description with MiniMessage formatting rendered
-            if (description != null) {
-                try {
-                    val miniMessage = MiniMessage.miniMessage()
-                    val component = miniMessage.deserialize("${lang.raw("menu.description_editor.feedback.new_description_prefix")}$description")
-                    player.sendMessage(component)
-                } catch (e: Exception) {
-                // Menu operation - catching all exceptions to prevent UI failure
-            // Menu operation - catching all exceptions to prevent UI failure
-                    player.sendMessage(lang.msg("menu.description_editor.feedback.new_description", "description" to description))
-                }
+            if (!description.isNullOrEmpty()) {
+                player.sendMessage(
+                    lang.msg("menu.description_editor.feedback.new_description_prefix")
+                        .append(GuildDescriptionContent.render(description))
+                )
             } else {
                 player.sendMessage(lang.msg("menu.description_editor.feedback.cleared"))
             }
@@ -235,24 +235,16 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
         }
     }
 
-    private fun validateDescription(description: String?): Component? {
-        if (description == null) return null
-
-        if (description.length > 100) {
-            return lang.gui("menu.description_editor.validation.too_long", "length" to description.length)
+    private fun validateDescription(description: String?): Component? =
+        when (val failure = GuildDescriptionContent.validationFailure(description)) {
+            is GuildDescriptionContent.Failure.TooLong ->
+                lang.gui("menu.description_editor.validation.too_long", "length" to failure.length)
+            is GuildDescriptionContent.Failure.InteractiveTag ->
+                lang.gui("menu.description_editor.validation.interactive_tag", "tag" to failure.tagName)
+            is GuildDescriptionContent.Failure.InvalidFormat ->
+                lang.gui("menu.description_editor.validation.invalid_format", "error" to (failure.message ?: lang.raw("menu.description_editor.validation.unknown_error")))
+            null -> null
         }
-
-        // Try to parse with MiniMessage to check for errors
-        try {
-            val miniMessage = MiniMessage.miniMessage()
-            miniMessage.deserialize(description)
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            return lang.gui("menu.description_editor.validation.invalid_format", "error" to (e.message ?: lang.raw("menu.description_editor.validation.unknown_error")))
-        }
-
-        return null
-    }
 
     private fun startChatInput() {
         player.sendMessage(lang.msg("menu.description_editor.chat.header"))
@@ -286,18 +278,6 @@ class DescriptionEditorMenu(private val menuNavigator: MenuNavigator, private va
     private fun setInputDescription(description: String?) {
         inputDescription = description
         validationError = validateDescription(description)
-    }
-
-    private fun parseMiniMessageForDisplay(description: String?): Component? {
-        if (description == null) return null
-        return try {
-            val miniMessage = MiniMessage.miniMessage()
-            val component = miniMessage.deserialize(description)
-            component
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            Component.text(description) // Fallback to raw text if parsing fails
-        }
     }
 
     override fun passData(data: Any?) {

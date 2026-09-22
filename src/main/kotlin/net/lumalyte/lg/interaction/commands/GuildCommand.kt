@@ -2013,11 +2013,21 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Validate description length
-        if (description.length > 100) {
-            player.sendMessage(lang.msg("command.migrated.guild.description.guild_description_must_be_100_characters_or"))
-            player.sendMessage(lang.msg("command.migrated.guild.description.your_description_is_characters_long", "length" to description.length))
-            return
+        when (val failure = net.lumalyte.lg.utils.GuildDescriptionContent.validationFailure(description)) {
+            is net.lumalyte.lg.utils.GuildDescriptionContent.Failure.TooLong -> {
+                player.sendMessage(lang.msg("command.migrated.guild.description.guild_description_must_be_200_characters_or"))
+                player.sendMessage(lang.msg("command.migrated.guild.description.your_description_is_characters_long", "length" to failure.length))
+                return
+            }
+            is net.lumalyte.lg.utils.GuildDescriptionContent.Failure.InteractiveTag -> {
+                player.sendMessage(lang.msg("command.migrated.guild.description.interactive_tag_not_allowed", "tag" to failure.tagName))
+                return
+            }
+            is net.lumalyte.lg.utils.GuildDescriptionContent.Failure.InvalidFormat -> {
+                player.sendMessage(lang.msg("command.migrated.guild.description.invalid_format"))
+                return
+            }
+            null -> Unit
         }
 
         // Set the description
@@ -2025,7 +2035,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         if (success) {
             player.sendMessage(lang.msg("command.migrated.guild.description.guild_description_set"))
-            player.sendMessage(lang.msg("command.migrated.guild.description.new_description", "description" to description))
+            player.sendMessage(
+                lang.msg("command.migrated.guild.description.new_description_prefix")
+                    .append(net.lumalyte.lg.utils.GuildDescriptionContent.render(description))
+            )
         } else {
             player.sendMessage(lang.msg("command.migrated.guild.description.failed_to_set_guild_description"))
         }
