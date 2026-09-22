@@ -202,7 +202,7 @@ class GuildRolePermissionResolverBukkit(
     /**
      * Cleanup resources when the service is destroyed.
      */
-    fun destroy() {
+    override fun shutdown() {
         executor.shutdown()
         try {
             if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
@@ -210,6 +210,7 @@ class GuildRolePermissionResolverBukkit(
             }
         } catch (e: InterruptedException) {
             executor.shutdownNow()
+            Thread.currentThread().interrupt()
         }
         clearCache()
     }

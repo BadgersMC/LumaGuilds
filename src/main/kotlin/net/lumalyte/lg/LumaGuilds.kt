@@ -1348,6 +1348,21 @@ class LumaGuilds : JavaPlugin() {
         } catch (e: Exception) {
             logger.warning("Failed to flush progression XP batches: ${e.message}")
         }
+        try {
+            get().getOrNull<net.lumalyte.lg.application.services.FormCacheService>()?.shutdown()
+        } catch (e: Exception) {
+            logger.warning("Failed to shutdown Bedrock form cache executor: ${e.message}")
+        }
+        try {
+            get().getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()?.shutdown()
+        } catch (e: Exception) {
+            logger.warning("Failed to shutdown guild role permission resolver: ${e.message}")
+        }
+        try {
+            net.lumalyte.lg.interaction.menus.bedrock.FormStateManager.shutdown()
+        } catch (e: Exception) {
+            logger.warning("Failed to shutdown Bedrock form state manager: ${e.message}")
+        }
 
         // Stop Web API first so it stops accepting new requests
         try {
