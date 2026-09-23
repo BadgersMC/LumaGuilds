@@ -116,8 +116,14 @@ class WarBannerService(
             cooldownUntil = cooldownUntil,
             active = true,
         )
-        if (!repository.savePlacement(state)) {
-            return rollbackFailedPlacement(previous, state, reservation)
+        when (savePlacementWithRecovery(state)) {
+            PlacementWrite.SAVED -> Unit
+            PlacementWrite.NOT_SAVED -> {
+                val restored = runCatching { physicalGold.restore(reservation) }.getOrDefault(false)
+                return WarBannerPlacementResult.Failed(compensated = restored)
+            }
+            PlacementWrite.UNKNOWN ->
+                return WarBannerPlacementResult.Failed(compensated = false)
         }
 
         val rendered = try {
@@ -137,17 +143,39 @@ class WarBannerService(
         }
     }
 
+    private enum class PlacementWrite {
+        SAVED,
+        NOT_SAVED,
+        UNKNOWN,
+    }
+
+    private fun savePlacementWithRecovery(state: WarBannerState): PlacementWrite {
+        return try {
+            if (repository.savePlacement(state)) PlacementWrite.SAVED else PlacementWrite.NOT_SAVED
+        } catch (_: Exception) {
+            val observed = runCatching { repository.get(state.guildId) }
+            when {
+                observed.isFailure -> PlacementWrite.UNKNOWN
+                observed.getOrNull() == state -> PlacementWrite.SAVED
+                else -> PlacementWrite.NOT_SAVED
+            }
+        }
+    }
+
     private fun rollbackFailedPlacement(
         previous: WarBannerState?,
         current: WarBannerState,
         reservation: PhysicalGoldReservation,
     ): WarBannerPlacementResult.Failed {
-        val stateRestored = if (previous == null) {
-            repository.delete(current.guildId, current.bannerId)
-        } else {
-            repository.savePlacement(previous)
-        }
-        val goldRestored = physicalGold.restore(reservation)
+        val stateRestored = runCatching {
+            if (previous == null) {
+                repository.delete(current.guildId, current.bannerId)
+            } else {
+                repository.savePlacement(previous)
+            }
+        }.getOrDefault(false)
+        val goldRestored = stateRestored &&
+            runCatching { physicalGold.restore(reservation) }.getOrDefault(false)
         return WarBannerPlacementResult.Failed(stateRestored && goldRestored)
     }
 

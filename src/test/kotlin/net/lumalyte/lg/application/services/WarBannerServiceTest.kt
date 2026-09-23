@@ -84,6 +84,58 @@ class WarBannerServiceTest {
     }
 
     @Test
+    fun `save exception with proven no write restores reserved gold`() {
+        repository.throwBeforeSave = true
+
+        val result = place()
+
+        val failed = assertIs<WarBannerPlacementResult.Failed>(result)
+        assertTrue(failed.compensated)
+        assertNull(repository.state)
+        assertEquals(1, physical.restoreCount)
+        assertEquals(0, physical.commitCount)
+    }
+
+    @Test
+    fun `save exception after committed row continues placement from readback`() {
+        repository.throwAfterSave = true
+
+        val result = place()
+
+        val placed = assertIs<WarBannerPlacementResult.Placed>(result)
+        assertEquals(placed.state, repository.state)
+        assertEquals(0, physical.restoreCount)
+        assertEquals(1, physical.commitCount)
+    }
+
+    @Test
+    fun `save exception with unavailable readback keeps reservation uncertain`() {
+        repository.throwBeforeSave = true
+        repository.failReadbackAfterSaveException = true
+
+        val result = place()
+
+        val failed = assertIs<WarBannerPlacementResult.Failed>(result)
+        assertFalse(failed.compensated)
+        assertEquals(0, physical.restoreCount)
+        assertEquals(0, physical.commitCount)
+    }
+
+    @Test
+    fun `render rollback failure does not refund an uncertain deployed banner`() {
+        repository.deleteResult = false
+
+        val result = subject().place(
+            UUID.randomUUID(), playerId, guildId, worldId, 1, 70, 1, 5_000L
+        ) { false }
+
+        val failed = assertIs<WarBannerPlacementResult.Failed>(result)
+        assertFalse(failed.compensated)
+        assertNotNull(repository.state)
+        assertEquals(0, physical.restoreCount)
+    }
+
+    @Test
     fun `render failure restores gold and removes first placement state`() {
         val result = subject().place(
             UUID.randomUUID(), playerId, guildId, worldId, 1, 70, 1, 5_000L
@@ -183,9 +235,19 @@ class WarBannerServiceTest {
 
     private class FakeWarBannerRepository : WarBannerRepository {
         var state: WarBannerState? = null
+        var throwBeforeSave = false
+        var throwAfterSave = false
+        var failReadbackAfterSaveException = false
+        var deleteResult = true
+        private var failNextRead = false
 
-        override fun get(guildId: UUID): WarBannerState? =
-            state?.takeIf { it.guildId == guildId }
+        override fun get(guildId: UUID): WarBannerState? {
+            if (failNextRead) {
+                failNextRead = false
+                throw java.sql.SQLException("simulated readback failure")
+            }
+            return state?.takeIf { it.guildId == guildId }
+        }
 
         override fun getActiveAt(
             worldId: UUID,
@@ -197,11 +259,22 @@ class WarBannerServiceTest {
         }
 
         override fun savePlacement(state: WarBannerState): Boolean {
+            if (throwBeforeSave) {
+                throwBeforeSave = false
+                failNextRead = failReadbackAfterSaveException
+                throw java.sql.SQLException("simulated save failure before write")
+            }
             this.state = state
+            if (throwAfterSave) {
+                throwAfterSave = false
+                failNextRead = failReadbackAfterSaveException
+                throw java.sql.SQLException("simulated save failure after write")
+            }
             return true
         }
 
         override fun delete(guildId: UUID, bannerId: UUID): Boolean {
+            if (!deleteResult) return false
             val current = state ?: return false
             if (current.guildId != guildId || current.bannerId != bannerId) return false
             state = null
