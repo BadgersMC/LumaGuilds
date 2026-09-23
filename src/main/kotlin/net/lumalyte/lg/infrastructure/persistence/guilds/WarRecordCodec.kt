@@ -18,17 +18,30 @@ internal object WarRecordCodec {
         .create()
 
     fun encode(record: DurableWarRecord): String = gson.toJson(JsonObject().apply {
-        addProperty("version", 2)
+        addProperty("version", 3)
         add("record", gson.toJsonTree(record))
     })
 
     fun decode(payload: String): DurableWarRecord = try {
         val root = JsonParser.parseString(payload).asJsonObject
         val version = root.get("version")?.asInt
-        check(version == 1 || version == 2) { "Unsupported war record version" }
+        check(version != null && version in 1..3) { "Unsupported war record version" }
         val json = root.getAsJsonObject("record").deepCopy()
         check(json.keySet().containsAll(setOf("id", "revision", "fundingCycle", "declaration", "war", "stats", "wager",
             "paymentPhase", "settlementChosen", "settlementWinner", "paymentAttempts"))) { "Incomplete war record" }
+        if (version == 3) {
+            check(json.keySet().containsAll(setOf(
+                "notificationRecipients",
+                "declarationNotificationExpected",
+                "acceptanceNotificationExpected",
+                "resolutionNotificationExpected",
+            ))) { "Incomplete war notification recovery state" }
+        } else {
+            json.add("notificationRecipients", gson.toJsonTree(net.lumalyte.lg.domain.entities.WarNotificationRecipients()))
+            json.addProperty("declarationNotificationExpected", false)
+            json.addProperty("acceptanceNotificationExpected", false)
+            json.addProperty("resolutionNotificationExpected", false)
+        }
 
         // v1 predates explicit rated-war identity. Existing persisted wars must remain
         // unrated rather than being rejected or silently attached to a current chapter.

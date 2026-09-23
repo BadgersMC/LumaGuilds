@@ -43,12 +43,16 @@ class WarNotificationServiceBukkit(
         val defending = guildRepository.getById(declaration.defendingGuildId) ?: return
         val objective = declaration.objectives.firstOrNull()?.description
         val createdAt = declaration.declaredAt.toEpochMilli()
+        val recipients = warRepository.get(declaration.id)
+            ?.takeIf { it.declarationNotificationExpected }
+            ?.notificationRecipients
 
         enqueueForGuild(
             kind = WarNotificationKind.DECLARATION_RECEIVED,
             eventId = declaration.id,
             ownGuild = defending,
             opponent = declaring,
+            recipientIds = recipients?.declarationReceived,
             durationSeconds = declaration.proposedDuration.seconds,
             objectiveCount = declaration.objectives.size,
             objectiveDescription = objective,
@@ -62,6 +66,7 @@ class WarNotificationServiceBukkit(
             eventId = declaration.id,
             ownGuild = declaring,
             opponent = defending,
+            recipientIds = recipients?.declarationSent,
             durationSeconds = declaration.proposedDuration.seconds,
             objectiveCount = declaration.objectives.size,
             objectiveDescription = objective,
@@ -77,12 +82,16 @@ class WarNotificationServiceBukkit(
         val defending = guildRepository.getById(war.defendingGuildId) ?: return
         val createdAt = war.startedAt?.toEpochMilli() ?: System.currentTimeMillis()
         val objective = war.objectives.firstOrNull()?.description
+        val recipients = warRepository.get(war.id)
+            ?.takeIf { it.acceptanceNotificationExpected }
+            ?.notificationRecipients
 
         enqueueForGuild(
             kind = WarNotificationKind.WAR_ACCEPTED,
             eventId = war.id,
             ownGuild = declaring,
             opponent = defending,
+            recipientIds = recipients?.acceptanceDeclaring,
             durationSeconds = war.duration.seconds,
             objectiveCount = war.objectives.size,
             objectiveDescription = objective,
@@ -93,6 +102,7 @@ class WarNotificationServiceBukkit(
             eventId = war.id,
             ownGuild = defending,
             opponent = declaring,
+            recipientIds = recipients?.acceptanceDefending,
             durationSeconds = war.duration.seconds,
             objectiveCount = war.objectives.size,
             objectiveDescription = objective,
@@ -105,14 +115,19 @@ class WarNotificationServiceBukkit(
         val loserId = war.loser ?: return
         val winner = guildRepository.getById(winnerId) ?: return
         val loser = guildRepository.getById(loserId) ?: return
-        val stats = warRepository.get(war.id)?.stats
+        val record = warRepository.get(war.id)
+        val stats = record?.stats
         val createdAt = war.endedAt?.toEpochMilli() ?: System.currentTimeMillis()
+        val recipients = record
+            ?.takeIf { it.resolutionNotificationExpected }
+            ?.notificationRecipients
 
         enqueueForGuild(
             kind = WarNotificationKind.VICTORY,
             eventId = war.id,
             ownGuild = winner,
             opponent = loser,
+            recipientIds = recipients?.victory,
             ownKills = killsFor(stats, war, winner.id),
             opponentKills = killsFor(stats, war, loser.id),
             createdAt = createdAt,
@@ -122,6 +137,7 @@ class WarNotificationServiceBukkit(
             eventId = war.id,
             ownGuild = loser,
             opponent = winner,
+            recipientIds = recipients?.defeat,
             ownKills = killsFor(stats, war, loser.id),
             opponentKills = killsFor(stats, war, winner.id),
             createdAt = createdAt,
@@ -153,6 +169,7 @@ class WarNotificationServiceBukkit(
         eventId: UUID,
         ownGuild: Guild,
         opponent: Guild,
+        recipientIds: Set<UUID>? = null,
         durationSeconds: Long = 0,
         objectiveCount: Int = 0,
         objectiveDescription: String? = null,
@@ -163,12 +180,12 @@ class WarNotificationServiceBukkit(
         opponentKills: Int? = null,
         createdAt: Long,
     ) {
-        memberRepository.getByGuild(ownGuild.id).forEach { member ->
-            val notification = WarNotification(
-                id = notificationId(kind, eventId, member.playerId),
-                playerId = member.playerId,
+        val recipients = recipientIds ?: memberRepository.getByGuild(ownGuild.id).map { it.playerId }.toSet()
+        recipients.forEach { playerId ->
+            val notification = buildNotification(
                 kind = kind,
                 eventId = eventId,
+                playerId = playerId,
                 ownGuildId = ownGuild.id,
                 opponentGuildId = opponent.id,
                 opponentName = opponent.name,
@@ -186,15 +203,219 @@ class WarNotificationServiceBukkit(
             runCatching { repository.add(notification) }
                 .onFailure {
                     logger.error(
-                        "Failed to persist ${kind.name} war notification for ${member.playerId}",
+                        "Failed to persist ${kind.name} war notification for $playerId",
                         it,
                     )
                 }
-            deliverUnread(member.playerId)
+            deliverUnread(playerId)
         }
     }
 
+    private fun buildNotification(
+        kind: WarNotificationKind,
+        eventId: UUID,
+        playerId: UUID,
+        ownGuildId: UUID,
+        opponentGuildId: UUID,
+        opponentName: String,
+        opponentBanner: String?,
+        durationSeconds: Long = 0,
+        objectiveCount: Int = 0,
+        objectiveDescription: String? = null,
+        wagerAmount: Int = 0,
+        terms: String? = null,
+        expiresAt: Long? = null,
+        ownKills: Int? = null,
+        opponentKills: Int? = null,
+        createdAt: Long,
+    ): WarNotification = WarNotification(
+        id = notificationId(kind, eventId, playerId),
+        playerId = playerId,
+        kind = kind,
+        eventId = eventId,
+        ownGuildId = ownGuildId,
+        opponentGuildId = opponentGuildId,
+        opponentName = opponentName,
+        opponentBanner = opponentBanner,
+        durationSeconds = durationSeconds,
+        objectiveCount = objectiveCount,
+        objectiveDescription = objectiveDescription,
+        wagerAmount = wagerAmount,
+        terms = terms,
+        expiresAt = expiresAt,
+        ownKills = ownKills,
+        opponentKills = opponentKills,
+        createdAt = createdAt,
+    )
+
+    internal fun reconcileMissingNotifications(): Int {
+        fun recover(
+            kind: WarNotificationKind,
+            eventId: UUID,
+            ownGuildId: UUID,
+            opponentGuildId: UUID,
+            recipientIds: Set<UUID>,
+            createdAt: Long,
+            durationSeconds: Long = 0,
+            objectiveCount: Int = 0,
+            objectiveDescription: String? = null,
+            wagerAmount: Int = 0,
+            terms: String? = null,
+            expiresAt: Long? = null,
+            ownKills: Int? = null,
+            opponentKills: Int? = null,
+        ): Int {
+            if (recipientIds.isEmpty()) return 0
+            val opponent = guildRepository.getById(opponentGuildId)
+            var inserted = 0
+            recipientIds.forEach { playerId ->
+                val notification = buildNotification(
+                    kind = kind,
+                    eventId = eventId,
+                    playerId = playerId,
+                    ownGuildId = ownGuildId,
+                    opponentGuildId = opponentGuildId,
+                    opponentName = opponent?.name ?: opponentGuildId.toString().take(8),
+                    opponentBanner = opponent?.banner,
+                    durationSeconds = durationSeconds,
+                    objectiveCount = objectiveCount,
+                    objectiveDescription = objectiveDescription,
+                    wagerAmount = wagerAmount,
+                    terms = terms,
+                    expiresAt = expiresAt,
+                    ownKills = ownKills,
+                    opponentKills = opponentKills,
+                    createdAt = createdAt,
+                )
+                if (repository.add(notification)) inserted++
+            }
+            return inserted
+        }
+
+        var recovered = 0
+        for (record in warRepository.getAll()) {
+            var clearDeclarationMarker = false
+            var clearAcceptanceMarker = false
+            var clearResolutionMarker = false
+            val declaration = record.declaration
+            if (record.declarationNotificationExpected && declaration != null) {
+                val createdAt = declaration.declaredAt.toEpochMilli()
+                val objective = declaration.objectives.firstOrNull()?.description
+                recovered += recover(
+                    kind = WarNotificationKind.DECLARATION_RECEIVED,
+                    eventId = declaration.id,
+                    ownGuildId = declaration.defendingGuildId,
+                    opponentGuildId = declaration.declaringGuildId,
+                    recipientIds = record.notificationRecipients.declarationReceived,
+                    durationSeconds = declaration.proposedDuration.seconds,
+                    objectiveCount = declaration.objectives.size,
+                    objectiveDescription = objective,
+                    wagerAmount = declaration.wagerAmount,
+                    terms = declaration.terms,
+                    expiresAt = declaration.expiresAt.toEpochMilli(),
+                    createdAt = createdAt,
+                )
+                recovered += recover(
+                    kind = WarNotificationKind.DECLARATION_SENT,
+                    eventId = declaration.id,
+                    ownGuildId = declaration.declaringGuildId,
+                    opponentGuildId = declaration.defendingGuildId,
+                    recipientIds = record.notificationRecipients.declarationSent,
+                    durationSeconds = declaration.proposedDuration.seconds,
+                    objectiveCount = declaration.objectives.size,
+                    objectiveDescription = objective,
+                    wagerAmount = declaration.wagerAmount,
+                    terms = declaration.terms,
+                    expiresAt = declaration.expiresAt.toEpochMilli(),
+                    createdAt = createdAt,
+                )
+                clearDeclarationMarker = true
+            }
+
+            val war = record.war
+            val startedAt = war?.startedAt?.toEpochMilli()
+            if (record.acceptanceNotificationExpected && war != null && startedAt != null) {
+                val objective = war.objectives.firstOrNull()?.description
+                recovered += recover(
+                    kind = WarNotificationKind.WAR_ACCEPTED,
+                    eventId = war.id,
+                    ownGuildId = war.declaringGuildId,
+                    opponentGuildId = war.defendingGuildId,
+                    recipientIds = record.notificationRecipients.acceptanceDeclaring,
+                    durationSeconds = war.duration.seconds,
+                    objectiveCount = war.objectives.size,
+                    objectiveDescription = objective,
+                    createdAt = startedAt,
+                )
+                recovered += recover(
+                    kind = WarNotificationKind.WAR_ACCEPTED,
+                    eventId = war.id,
+                    ownGuildId = war.defendingGuildId,
+                    opponentGuildId = war.declaringGuildId,
+                    recipientIds = record.notificationRecipients.acceptanceDefending,
+                    durationSeconds = war.duration.seconds,
+                    objectiveCount = war.objectives.size,
+                    objectiveDescription = objective,
+                    createdAt = startedAt,
+                )
+                clearAcceptanceMarker = true
+            }
+
+            val endedAt = war?.endedAt?.toEpochMilli()
+            val winner = war?.winner
+            val loser = war?.loser
+            if (record.resolutionNotificationExpected && war != null && endedAt != null && winner != null && loser != null) {
+                recovered += recover(
+                    kind = WarNotificationKind.VICTORY,
+                    eventId = war.id,
+                    ownGuildId = winner,
+                    opponentGuildId = loser,
+                    recipientIds = record.notificationRecipients.victory,
+                    ownKills = killsFor(record.stats, war, winner),
+                    opponentKills = killsFor(record.stats, war, loser),
+                    createdAt = endedAt,
+                )
+                recovered += recover(
+                    kind = WarNotificationKind.DEFEAT,
+                    eventId = war.id,
+                    ownGuildId = loser,
+                    opponentGuildId = winner,
+                    recipientIds = record.notificationRecipients.defeat,
+                    ownKills = killsFor(record.stats, war, loser),
+                    opponentKills = killsFor(record.stats, war, winner),
+                    createdAt = endedAt,
+                )
+                clearResolutionMarker = true
+            }
+
+            if (clearDeclarationMarker || clearAcceptanceMarker || clearResolutionMarker) {
+                val cleared = record.copy(
+                    notificationRecipients = record.notificationRecipients.copy(
+                        declarationSent = if (clearDeclarationMarker) emptySet() else record.notificationRecipients.declarationSent,
+                        declarationReceived = if (clearDeclarationMarker) emptySet() else record.notificationRecipients.declarationReceived,
+                        acceptanceDeclaring = if (clearAcceptanceMarker) emptySet() else record.notificationRecipients.acceptanceDeclaring,
+                        acceptanceDefending = if (clearAcceptanceMarker) emptySet() else record.notificationRecipients.acceptanceDefending,
+                        victory = if (clearResolutionMarker) emptySet() else record.notificationRecipients.victory,
+                        defeat = if (clearResolutionMarker) emptySet() else record.notificationRecipients.defeat,
+                    ),
+                    declarationNotificationExpected =
+                        record.declarationNotificationExpected && !clearDeclarationMarker,
+                    acceptanceNotificationExpected =
+                        record.acceptanceNotificationExpected && !clearAcceptanceMarker,
+                    resolutionNotificationExpected =
+                        record.resolutionNotificationExpected && !clearResolutionMarker,
+                )
+                if (!warRepository.save(cleared)) {
+                    logger.warn("War notification recovery marker changed concurrently for ${record.id}; will retry")
+                }
+            }
+        }
+        return recovered
+    }
+
     private fun deliverUnreadNow(player: Player) {
+        runCatching { reconcileMissingNotifications() }
+            .onFailure { logger.error("Failed to reconcile durable war notifications", it) }
         val pending = runCatching { repository.getPending(player.uniqueId) }
             .onFailure { logger.error("Failed to load war notifications for ${player.uniqueId}", it) }
             .getOrDefault(emptyList())
