@@ -6,6 +6,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
@@ -55,7 +56,10 @@ class BedrockDescriptionEditorMenu(
 
     private fun createCurrentDescriptionSection(description: String): String {
         return if (description.isNotEmpty()) {
-            lang.bedrock("bedrock.description_editor.current", "description" to description)
+            lang.bedrock(
+                "bedrock.description_editor.current",
+                "description" to GuildDescriptionContent.plainText(description),
+            )
         } else {
             lang.bedrock("bedrock.description_editor.none")
         }
@@ -73,7 +77,11 @@ class BedrockDescriptionEditorMenu(
         }
 
         // Update description
-        val success = guildService.setDescription(guild.id, trimmedDescription, player.uniqueId)
+        val success = guildService.setDescription(
+            guild.id,
+            trimmedDescription.ifEmpty { null },
+            player.uniqueId,
+        )
         if (success) {
             player.sendMessage(lang.msg("bedrock.description_editor.feedback.updated"))
             bedrockNavigator.goBack()
@@ -84,15 +92,22 @@ class BedrockDescriptionEditorMenu(
     }
 
     private fun validateDescription(description: String?): String? {
-        if (description == null || description.isEmpty()) {
-            return null // Empty is allowed
+        when (val failure = GuildDescriptionContent.validationFailure(description)) {
+            is GuildDescriptionContent.Failure.TooLong ->
+                return lang.bedrock("bedrock.description_editor.validation.too_long")
+            is GuildDescriptionContent.Failure.InteractiveTag ->
+                return lang.bedrock(
+                    "bedrock.description_editor.validation.interactive_tag",
+                    "tag" to failure.tagName,
+                )
+            is GuildDescriptionContent.Failure.InvalidFormat ->
+                return lang.bedrock("bedrock.description_editor.validation.invalid_format")
+            null -> Unit
         }
 
-        if (description.length > 200) {
-            return lang.bedrock("bedrock.description_editor.validation.too_long")
-        }
+        if (description.isNullOrEmpty()) return null
 
-        // Check for inappropriate content (basic filter)
+        // Preserve the existing Bedrock-side language filter.
         val inappropriate = listOf("fuck", "shit", "damn", "bitch", "ass")
         if (inappropriate.any { description.lowercase().contains(it) }) {
             return lang.bedrock("bedrock.description_editor.validation.inappropriate")
