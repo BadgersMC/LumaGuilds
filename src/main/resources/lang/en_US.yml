@@ -7215,6 +7215,16 @@ notification:
     moved_to_global: '<gray>[<gold>!<gray>] <yellow>You have been moved to Global chat because you are no longer in that channel''s guild or party.'
   guild:
     disbanded: '<red>✗ Your guild <white><guild> <red>has been disbanded.'
+    disband:
+      broadcast: '<red><bold>GUILD DISBANDED</bold> <gray>» <gold><guild> <gray>has disbanded.'
+      toast:
+        ally:
+          title: '<yellow><bold>ALLY DISBANDED: <guild></bold>'
+          description: '<gray>Your alliance with <gold><guild> <gray>has ended.'
+        enemy:
+          title: '<red><bold>ENEMY DISBANDED: <guild></bold>'
+          description: '<gray><gold><guild> <gray>no longer exists.'
+        fallback: '<yellow><guild> <gray>has disbanded.'
     member_login:
       title: '<green><bold><player> is online</bold>'
       description: '<gray>A guild member has joined the server'

@@ -134,8 +134,23 @@ class GuildServiceBukkit(
 
         val deletionPolicy = configService.loadConfig().guild.creationCooldown
 
-        // Capture member IDs before removal so the disbandment event carries them
+        // Capture member IDs and active ally/enemy relations before removal so the
+        // disbandment event survives FK cascades/cache eviction with complete notification context.
         val memberIds = memberService.getGuildMembers(guildId).map { it.playerId }.toSet()
+        val relatedGuilds = runCatching {
+            relationRepository.getByGuild(guildId)
+                .asSequence()
+                .filter { relation ->
+                    relation.isActive() &&
+                        (relation.type == net.lumalyte.lg.domain.entities.RelationType.ALLY ||
+                            relation.type == net.lumalyte.lg.domain.entities.RelationType.ENEMY)
+                }
+                .associate { relation ->
+                    relation.getOtherGuild(guildId) to relation.type
+                }
+        }.onFailure {
+            logger.warn("Failed to capture relation snapshot before disbanding guild $guildId", it)
+        }.getOrDefault(emptyMap())
         val vaultLocation = vaultService.getVaultLocation(guild)
         val vaultCleanup = try {
             if (vaultLocation != null) vaultService.prepareDisband(guild) else null
@@ -169,7 +184,9 @@ class GuildServiceBukkit(
             }
 
             logger.info("Guild $guildId disbanded by $actorId")
-            Bukkit.getPluginManager().callEvent(GuildDisbandedEvent(guild, memberIds, actorId))
+            val disbandedEvent = GuildDisbandedEvent(guild, memberIds, actorId)
+            disbandedEvent.attachRelatedGuilds(relatedGuilds)
+            Bukkit.getPluginManager().callEvent(disbandedEvent)
         }
         return result
     }

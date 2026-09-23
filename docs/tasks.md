@@ -544,12 +544,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-072
   - Evidence: Shared `GuildDescriptionContent` now owns the 200-character invariant, restricted MiniMessage parsing, Discord invite detection, and safe rendering. `discord.gg` and `discord.com/invite` HTTPS URLs become `OPEN_URL` components while unrelated URLs remain inert. User-authored `click`, `hover`, and `insertion` tags are rejected by the command, Java editor, both Bedrock description/settings editors, and again at the service boundary. Java guild info and settings render through the shared component policy; guild info sends invite-bearing descriptions into chat on click so the URL is actionable. Bedrock renders formatting-stripped text while preserving the visible invite URL. The service now correctly requires `MANAGE_DESCRIPTION` rather than the legacy `MANAGE_EMOJI` check. Focused content/wiring/locale contracts are green; full `test shadowJar` validation passes 1,176 tests with zero failures/errors/skips and `git diff --check` is clean.
   - Files: `GuildDescriptionContent`, `Guild`, `GuildServiceBukkit`, `GuildCommand`, Java description editor/settings/info, Bedrock description editor/settings/info, localization/tests
-- [ ] **LG-1508** Disband announcements — broadcast when a guild is disbanded
+- [x] **LG-1508** Disband announcements — global chat broadcast plus ally/enemy relationship toasts
   - Tag: `TDD`
   - References: REQ-073
-  - Evidence:
-  - Files: guild delete path, broadcast
-  - Harvest: `AnnouncementService` + repo from closed PR #7 (superseded) — shared with LG-1401
+  - Evidence: `GuildServiceBukkit` snapshots active ALLY/ENEMY relations before the committed disband removes relation rows, then attaches that immutable snapshot to the existing three-argument `GuildDisbandedEvent` without breaking its public constructor contract. `GuildDisbandAnnouncementServiceBukkit` broadcasts one localized server-wide chat message and sends relationship-aware advancement toasts to online members of pre-disband allied/enemy guilds. Recipients are deduplicated across memberships, former members are excluded from relationship toasts, and ENEMY wins if an anomalous player is reachable through both relation types. The delivery path is edition-agnostic and therefore reaches Geyser/Bedrock through the same advancement packet; ally/enemy + guild name are kept in the first toast line because Geyser may omit the second line. Failed toast delivery falls back to an action bar while the global chat announcement remains visible. Focused announcement/wiring/event-API/locale contracts are green; full `test shadowJar` validation passes 1,184 tests with zero failures/errors/skips and `git diff --check` is clean.
+  - Files: `GuildDisbandedEvent`, guild disband snapshot path, `GuildDisbandAnnouncementService`, Bukkit announcement service, disband listener/DI, localization/tests
+  - Harvest: persistent guild announcement content from closed PR #7 remains separate and is not required for this lifecycle notification.
 
 ---
 
