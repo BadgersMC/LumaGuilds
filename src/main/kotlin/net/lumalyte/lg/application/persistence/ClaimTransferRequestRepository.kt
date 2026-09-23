@@ -9,9 +9,9 @@ interface ClaimTransferRequestRepository {
 
     /**
      * Atomically consumes a receiver's offer and every competing offer for the same claim.
-     * Returns false if that receiver no longer has an offer at the instant of consumption.
+     * Returns false if that receiver no longer has an unexpired offer at the instant of consumption.
      */
-    fun consumeClaim(claimId: UUID, playerId: UUID): Boolean
+    fun consumeClaim(claimId: UUID, playerId: UUID, nowEpochSeconds: Long): Boolean
 
     fun clearClaim(claimId: UUID): Boolean
 }

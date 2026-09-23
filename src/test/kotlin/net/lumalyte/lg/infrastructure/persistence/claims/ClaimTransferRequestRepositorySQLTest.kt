@@ -58,10 +58,22 @@ class ClaimTransferRequestRepositorySQLTest {
         assertTrue(repository.offer(claimId, firstReceiver, now + 300))
         assertTrue(repository.offer(claimId, secondReceiver, now + 300))
 
-        assertTrue(repository.consumeClaim(claimId, firstReceiver))
+        assertTrue(repository.consumeClaim(claimId, firstReceiver, now))
         assertFalse(repository.hasActive(claimId, firstReceiver, now))
         assertFalse(repository.hasActive(claimId, secondReceiver, now))
-        assertFalse(repository.consumeClaim(claimId, secondReceiver))
+        assertFalse(repository.consumeClaim(claimId, secondReceiver, now))
+    }
+
+    @Test
+    fun `consume rejects an offer that expired after an earlier active check`() {
+        val claimId = UUID.randomUUID()
+        val playerId = UUID.randomUUID()
+        val now = 1_800_000_000L
+        insertClaim(claimId)
+
+        assertTrue(repository.offer(claimId, playerId, now + 1))
+        assertTrue(repository.hasActive(claimId, playerId, now))
+        assertFalse(repository.consumeClaim(claimId, playerId, now + 1))
     }
 
     @Test

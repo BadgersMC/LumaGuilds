@@ -51,7 +51,7 @@ class AcceptTransferRequest(
             // Atomically consume this receiver's offer and every competing offer. This is
             // the acceptance token: once one receiver consumes the rows, concurrent
             // acceptors cannot proceed using a stale pre-check.
-            if (!transferRequests.consumeClaim(claimId, playerId)) {
+            if (!transferRequests.consumeClaim(claimId, playerId, Instant.now().epochSecond)) {
                 return AcceptTransferRequestResult.NoActiveTransferRequest
             }
             val updatedClaim = claim.copy(

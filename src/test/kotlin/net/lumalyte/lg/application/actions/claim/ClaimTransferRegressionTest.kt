@@ -97,7 +97,7 @@ class ClaimTransferRegressionTest {
         every { metadata.getPlayerClaimBlockLimit(receiver) } returns 1000
         every { partitions.getByClaim(any()) } returns emptySet()
         every { claims.getByName(receiver, "Received") } returns null
-        every { requests.consumeClaim(claim.id, receiver) } returns true
+        every { requests.consumeClaim(claim.id, receiver, any()) } returns true
         every { claims.updateIfOwnedBy(any(), claim.playerId) } returns true
 
         val result = AcceptTransferRequest(claims, metadata, partitions, requests)
@@ -111,7 +111,7 @@ class ClaimTransferRegressionTest {
             )
         }
         verifyOrder {
-            requests.consumeClaim(claim.id, receiver)
+            requests.consumeClaim(claim.id, receiver, any())
             claims.updateIfOwnedBy(
                 match { it.id == claim.id && it.playerId == receiver && it.name == "Received" },
                 claim.playerId,
@@ -134,7 +134,7 @@ class ClaimTransferRegressionTest {
         every { metadata.getPlayerClaimBlockLimit(receiver) } returns 1000
         every { partitions.getByClaim(any()) } returns emptySet()
         every { claims.getByName(receiver, "Received") } returns null
-        every { requests.consumeClaim(claim.id, receiver) } returns false
+        every { requests.consumeClaim(claim.id, receiver, any()) } returns false
 
         val result = AcceptTransferRequest(claims, metadata, partitions, requests)
             .execute(claim.id, receiver, "Received")
