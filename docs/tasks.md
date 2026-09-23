@@ -454,11 +454,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ## PR-13 — Backlog: wars & combat (operator, Fain)
 
-- [ ] **LG-1301** War system overhaul — accurate kill tracking with measurable gameplay impact: per-guild war kill counter (opposing-guild kills only, persisted, reset on war end) driving resolution at `war_kill_win_target` (default 25), surfaced in `/g info` + war menus
+- [x] **LG-1301** War system overhaul — accurate kill tracking with measurable gameplay impact: per-guild war kill counter (opposing-guild kills only, persisted, reset on war end) driving resolution at `war_kill_win_target` (default 25), surfaced in `/g info` + war menus
   - Tag: `TDD`
   - References: REQ-057
-  - Evidence:
-  - Files: war services (↳ PR-4 LG-401..405), kill counter persistence, win-by-kills resolution
+  - Evidence: `WarService.recordOpposingGuildKill` is the synchronized gameplay boundary for kill progress: it accepts only an active war and the exact declaring/defending guild pair, increments the killer-side counter plus opposing deaths with overflow-safe arithmetic, persists the existing durable `WarStats` inside the revision-checked war record, and resolves the war through the normal `endWar` path when the configured global target is reached. `combat.war_kill_win_target` defaults to 25 and nonpositive values fail closed. The Bukkit death listener delegates all kill-state mutation to this service; anti-farming suppresses XP only and does not erase a legitimate opposing-guild kill. Restart coverage records a 4–2 score through the production API, recreates the service, and recovers the counters. End/reset semantics preserve final per-war statistics for history/audit while ended wars reject further kills, disappear from active progress, and a later war between the same guilds starts at 0–0. Java and Bedrock `/g info` expose active per-opponent `kills/target`; Java and Bedrock war details expose both sides' progress, and the Java active-war list includes the target. Focused war/restart/locale contracts pass; final offline `test shadowJar`: 1,060 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
+  - Files: `WarService.kt`, `WarServiceBukkit.kt`, `WarKillTrackingListener.kt`, combat config, Java/Bedrock guild-info and war menus, locale and restart/config contracts
 - [ ] **LG-1302** World War — configurable secret predicate triggers a server-wide World War (idempotent, cooldown-gated, debug-force override)
   - Tag: `TDD`
   - References: REQ-058

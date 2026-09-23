@@ -294,14 +294,24 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val yourKdr = if (isDeclaring) stats.declaringKillRatio else stats.defendingKillRatio
         val enemyKdr = if (isDeclaring) stats.defendingKillRatio else stats.declaringKillRatio
 
+        val killTarget = warService.getWarKillWinTarget()
         val yourStatsItem = ItemStack.of(Material.DIAMOND_CHESTPLATE)
-            .name(lang.gui("menu.guild_war_management.war_details.stats.your_kills", "kills" to yourKills))
+            .name(lang.gui(
+                "menu.guild_war_management.war_details.stats.your_kills",
+                "kills" to yourKills,
+                "target" to killTarget,
+            ))
             .lore(lang.gui("menu.guild_war_management.war_details.stats.your_deaths", "deaths" to yourDeaths))
             .lore(lang.gui("menu.guild_war_management.war_details.stats.your_kdr", "ratio" to String.format("%.2f", yourKdr)))
         pane.addItem(GuiItem(yourStatsItem), 0, 2)
 
         val enemyStatsItem = ItemStack.of(Material.IRON_CHESTPLATE)
-            .name(lang.gui("menu.guild_war_management.war_details.stats.enemy_kills", "enemy" to enemyName, "kills" to enemyKills))
+            .name(lang.gui(
+                "menu.guild_war_management.war_details.stats.enemy_kills",
+                "enemy" to enemyName,
+                "kills" to enemyKills,
+                "target" to killTarget,
+            ))
             .lore(lang.gui("menu.guild_war_management.war_details.stats.enemy_deaths", "enemy" to enemyName, "deaths" to enemyDeaths))
             .lore(lang.gui("menu.guild_war_management.war_details.stats.enemy_kdr", "enemy" to enemyName, "ratio" to String.format("%.2f", enemyKdr)))
         pane.addItem(GuiItem(enemyStatsItem), 3, 2)
@@ -396,7 +406,11 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
                 val item = ItemStack.of(Material.DIAMOND_SWORD)
                     .name(lang.gui("menu.guild_war_management.war_list.item.name", "enemy" to enemyName))
                     .lore(lang.gui("menu.guild_war_management.war_list.item.lore.duration", "days" to war.duration.toDays()))
-                    .lore(lang.gui("menu.guild_war_management.war_list.item.lore.kills", "kills" to kills))
+                    .lore(lang.gui(
+                        "menu.guild_war_management.war_list.item.lore.kills",
+                        "kills" to kills,
+                        "target" to warService.getWarKillWinTarget(),
+                    ))
                     .lore(lang.gui("menu.guild_war_management.war_list.item.lore.deaths", "deaths" to deaths))
                     .lore(lang.gui("menu.guild_war_management.war_list.item.lore.click"))
                 newPage.addItem(GuiItem(item) { openWarDetailsMenu(war) }, x, y)

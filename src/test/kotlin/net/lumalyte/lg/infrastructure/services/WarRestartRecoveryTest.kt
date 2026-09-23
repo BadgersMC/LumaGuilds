@@ -54,11 +54,18 @@ class WarRestartRecoveryTest {
         val active = assertNotNull(wars.acceptWarDeclaration(declaration.id, UUID.randomUUID()))
         assertEquals(declaration.id, active.id)
         assertEquals(WarStatus.ACTIVE, active.status)
-        val stats = WarStats(active.id, declaringGuildKills = 4, defendingGuildKills = 2)
-        assertTrue(wars.updateWarStats(stats))
+        repeat(4) {
+            assertNotNull(wars.recordOpposingGuildKill(active.id, first, second))
+        }
+        repeat(2) {
+            assertNotNull(wars.recordOpposingGuildKill(active.id, second, first))
+        }
         wars = service()
         assertEquals(active, wars.getActiveWars().single())
-        assertEquals(stats, wars.getWarStats(active.id))
+        assertEquals(4, wars.getWarStats(active.id).declaringGuildKills)
+        assertEquals(2, wars.getWarStats(active.id).defendingGuildKills)
+        assertEquals(2, wars.getWarStats(active.id).declaringGuildDeaths)
+        assertEquals(4, wars.getWarStats(active.id).defendingGuildDeaths)
         assertEquals(200, wars.getWager(active.id)?.totalPot)
         assertEquals(900, gold.balance(first))
         assertTrue(wars.endWar(active.id, first, actorId = UUID.randomUUID()))
