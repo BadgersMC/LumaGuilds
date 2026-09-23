@@ -16,7 +16,7 @@ sealed interface GuildCreationCostResult {
     data object PaymentUnavailable : GuildCreationCostResult
     data object ConfigurationError : GuildCreationCostResult
     data class CreationFailed(val compensated: Boolean) : GuildCreationCostResult
-    data class Uncertain(val guild: Guild, val transactionId: UUID) : GuildCreationCostResult
+    data class Uncertain(val guild: Guild?, val transactionId: UUID) : GuildCreationCostResult
 }
 
 sealed interface HomeActivationCostResult {
@@ -67,7 +67,11 @@ class GuildCostService(
             PhysicalReservationResult.Unavailable -> GuildCreationCostResult.PaymentUnavailable
             PhysicalReservationResult.Unknown -> GuildCreationCostResult.CreationFailed(compensated = false)
             is PhysicalReservationResult.Reserved -> {
-                val guild = try { create() } catch (_: Exception) { null }
+                val guild = try {
+                    create()
+                } catch (_: Exception) {
+                    return GuildCreationCostResult.Uncertain(null, transactionId)
+                }
                 if (guild == null) {
                     GuildCreationCostResult.CreationFailed(physicalGold.restore(reserved.reservation))
                 } else {

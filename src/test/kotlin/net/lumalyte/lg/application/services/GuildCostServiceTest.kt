@@ -36,6 +36,22 @@ class GuildCostServiceTest {
     }
 
     @Test
+    fun creationExceptionKeepsReservationForReconciliation() {
+        val physical = FakePhysicalGold()
+        val service = service(config(enabled = true, create = 250), physical = physical)
+        val tx = UUID.randomUUID()
+
+        val result = service.createGuild(tx, UUID.randomUUID()) {
+            error("creation became uncertain after persistence")
+        }
+
+        assertTrue(result is GuildCreationCostResult.Uncertain)
+        assertEquals(tx, (result as GuildCreationCostResult.Uncertain).transactionId)
+        assertEquals(null, result.guild)
+        assertTrue(!physical.restored)
+    }
+
+    @Test
     fun existingHomeMoveIsNotChargedByActivationService() {
         val gold = mockk<GuildGoldService>(relaxed = true)
         val service = service(config(enabled = true, base = 100, scale = 2.0), gold = gold)

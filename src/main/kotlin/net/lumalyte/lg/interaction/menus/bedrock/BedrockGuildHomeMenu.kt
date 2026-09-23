@@ -3,7 +3,9 @@ package net.lumalyte.lg.interaction.menus.bedrock
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.services.GuildCostService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.HomeActivationCostResult
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
@@ -17,6 +19,7 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.floodgate.api.FloodgateApi
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -32,6 +35,7 @@ class BedrockGuildHomeMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildService: GuildService by inject()
+    private val guildCostService: GuildCostService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val plugin: Plugin by inject()
     private val lang: LangService by inject()
@@ -185,16 +189,34 @@ class BedrockGuildHomeMenu(
             position = currentLocation.toPosition3D(),
         )
 
-        val success = guildService.setHome(
+        val result = guildCostService.activateHome(
+            UUID.randomUUID(),
             guild.id,
-            homeName,
-            home,
             player.uniqueId,
-        )
-        if (success) {
-            player.sendMessage(lang.msg("bedrock.home.feedback.set", "home" to homeName))
-        } else {
-            player.sendMessage(lang.msg("bedrock.home.feedback.set_failed"))
+            homes.size + 1,
+            alreadyActivated = false,
+        ) {
+            guildService.setHome(guild.id, homeName, home, player.uniqueId)
+        }
+        when (result) {
+            is HomeActivationCostResult.Applied -> {
+                player.sendMessage(lang.msg("bedrock.home.feedback.set", "home" to homeName))
+                if (result.cost > 0) {
+                    player.sendMessage(lang.msg("bedrock.home.feedback.activation_paid", "cost" to result.cost))
+                }
+            }
+            is HomeActivationCostResult.Rejected ->
+                player.sendMessage(lang.msg("bedrock.home.feedback.activation_rejected", "reason" to result.reason.name))
+            HomeActivationCostResult.ConfigurationError ->
+                player.sendMessage(lang.msg("bedrock.home.feedback.activation_config_error"))
+            is HomeActivationCostResult.PaymentFailed ->
+                player.sendMessage(lang.msg("bedrock.home.feedback.activation_review", "transaction" to result.transactionId))
+            is HomeActivationCostResult.ActivationFailed -> {
+                player.sendMessage(lang.msg("bedrock.home.feedback.set_failed"))
+                if (!result.compensated) {
+                    player.sendMessage(lang.msg("bedrock.home.feedback.activation_review_no_transaction"))
+                }
+            }
         }
 
         // Reopen menu to refresh

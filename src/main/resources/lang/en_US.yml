@@ -652,6 +652,11 @@ bedrock:
       teleport_failed: '<red>❌ Unable to teleport to that guild home.'
       set: '<green>✅ Guild home ''<home>'' has been set.'
       set_failed: '<red>❌ Failed to set the guild home.'
+      activation_paid: '<gold>? <gray>Paid <gold><cost> guild gold <gray>to activate this home.'
+      activation_rejected: '<red>? Home activation payment was rejected: <reason>'
+      activation_config_error: '<red>? Home activation cost is not configured. Contact an administrator.'
+      activation_review: '<yellow>? Home payment outcome needs administrator review. Transaction: <transaction>'
+      activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       removed: '<green>✅ Guild home ''<home>'' has been removed.'
       remove_failed: '<red>❌ Failed to remove the guild home.'
   member_rank_confirmation:
@@ -6194,6 +6199,11 @@ menu:
       set: '<green>✅ Guild <home> set to your current location!'
       teleport_command: '<gray>Members can now use <gold>/guild home <home><gray>to teleport here.'
       set_failed: '<red>❌ Failed to set guild home. Please try again.'
+      activation_paid: '<gold>? <gray>Paid <gold><cost> guild gold <gray>to activate this home.'
+      activation_rejected: '<red>? Home activation payment was rejected: <reason>'
+      activation_config_error: '<red>? Home activation cost is not configured. Contact an administrator.'
+      activation_review: '<yellow>? Home payment outcome needs administrator review. Transaction: <transaction>'
+      activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       world_missing: '<red>❌ Could not find the world for guild home.'
   tag_editor:
     title: '<gold>Tag Editor - <guild>'

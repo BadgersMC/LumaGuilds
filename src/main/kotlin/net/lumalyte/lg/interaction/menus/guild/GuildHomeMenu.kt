@@ -8,7 +8,9 @@ import net.badgersmc.nexus.i18n.LangService
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.application.services.GuildCostService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.HomeActivationCostResult
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
@@ -30,6 +32,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                    private var guild: Guild): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
+    private val guildCostService: GuildCostService by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
@@ -364,23 +367,46 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             return
         }
 
-        val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
-        if (success) {
-            val homeLabel = if (homeName == "main") {
-                lang.raw("menu.guild_home.feedback.main_home")
-            } else {
-                lang.msg("menu.guild_home.feedback.named_home", "home" to homeName)
-            }
-            player.sendMessage(lang.msg("menu.guild_home.feedback.set", "home" to homeLabel))
-            player.sendMessage(lang.msg("menu.guild_home.feedback.teleport_command", "home" to if (homeName == "main") "" else homeName))
-
-            // Refresh the guild data and reopen menu
-            guild = guildService.getGuild(guild.id) ?: guild
-            open()
-        } else {
-            player.sendMessage(lang.msg("menu.guild_home.feedback.set_failed"))
-            open() // Reopen menu to show current state
+        val existing = guildService.getHome(guild.id, homeName) != null
+        val ordinal = (guildService.getHomes(guild.id).size + if (existing) 0 else 1).coerceAtLeast(1)
+        val result = guildCostService.activateHome(
+            UUID.randomUUID(),
+            guild.id,
+            player.uniqueId,
+            ordinal,
+            alreadyActivated = existing,
+        ) {
+            guildService.setHome(guild.id, homeName, home, player.uniqueId)
         }
+
+        when (result) {
+            is HomeActivationCostResult.Applied -> {
+                val homeLabel = if (homeName == "main") {
+                    lang.raw("menu.guild_home.feedback.main_home")
+                } else {
+                    lang.msg("menu.guild_home.feedback.named_home", "home" to homeName)
+                }
+                player.sendMessage(lang.msg("menu.guild_home.feedback.set", "home" to homeLabel))
+                if (result.cost > 0) {
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.activation_paid", "cost" to result.cost))
+                }
+                player.sendMessage(lang.msg("menu.guild_home.feedback.teleport_command", "home" to if (homeName == "main") "" else homeName))
+                guild = guildService.getGuild(guild.id) ?: guild
+            }
+            is HomeActivationCostResult.Rejected ->
+                player.sendMessage(lang.msg("menu.guild_home.feedback.activation_rejected", "reason" to result.reason.name))
+            HomeActivationCostResult.ConfigurationError ->
+                player.sendMessage(lang.msg("menu.guild_home.feedback.activation_config_error"))
+            is HomeActivationCostResult.PaymentFailed ->
+                player.sendMessage(lang.msg("menu.guild_home.feedback.activation_review", "transaction" to result.transactionId))
+            is HomeActivationCostResult.ActivationFailed -> {
+                player.sendMessage(lang.msg("menu.guild_home.feedback.set_failed"))
+                if (!result.compensated) {
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.activation_review_no_transaction"))
+                }
+            }
+        }
+        open()
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
