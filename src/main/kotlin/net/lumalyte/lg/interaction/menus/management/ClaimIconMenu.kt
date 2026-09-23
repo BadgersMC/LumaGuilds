@@ -9,6 +9,7 @@ import com.github.stefvanschie.inventoryframework.gui.type.FurnaceGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import net.lumalyte.lg.application.actions.claim.metadata.UpdateClaimIcon
 import net.lumalyte.lg.application.results.claim.metadata.UpdateClaimIconResult
+import net.lumalyte.lg.application.services.scheduling.SchedulerService
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -20,12 +21,12 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import kotlin.concurrent.thread
 
 class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuNavigator,
                     private val claim: Claim?): Menu, KoinComponent {
     private val lang: LangService by inject()
     private val updateClaimIcon: UpdateClaimIcon by inject()
+    private val schedulerService: SchedulerService by inject()
 
     override fun open() {
         if (claim == null) {
@@ -64,8 +65,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
 
             inputPane.addItem(GuiItem(ItemStack.of(cursor)), 0, 0)
             gui.update()
-            thread(start = true) {
-                Thread.sleep(1)
+            schedulerService.schedule(1) {
                 player.setItemOnCursor(temp)
             }
         }
