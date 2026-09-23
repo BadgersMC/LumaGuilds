@@ -397,6 +397,9 @@ fun guildsModule() = module {
     // Repositories
     single<GuildRepository> { GuildRepositorySQLite(get()) }
     single<RankRepository> { RankRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.RankClaimPermissionProfileRepositorySQL(get())
+    }
     single<MemberRepository> { MemberRepositorySQLite(get()) }
     single<RelationRepository> { RelationRepositorySQLite(get()) }
     single<GuildInvitationRepository> { GuildInvitationRepositorySQLite(get()) }
@@ -409,7 +412,7 @@ fun guildsModule() = module {
     single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> {
         RankServiceBukkit(
-            get(), get(), get(), get(),
+            get(), get(), get(), get(), get(),
             invalidateClaimPermissionCacheForPlayer = { playerId ->
                 org.koin.core.context.GlobalContext.get()
                     .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
@@ -500,7 +503,9 @@ fun guildsModule() = module {
  * Only loaded when claims are enabled
  */
 fun guildClaimsIntegrationModule() = module {
-    single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get()) }
+    single<GuildRolePermissionResolver> {
+        GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get(), get())
+    }
 }
 
 /**
