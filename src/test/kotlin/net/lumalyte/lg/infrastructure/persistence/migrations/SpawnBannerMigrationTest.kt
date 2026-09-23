@@ -16,16 +16,16 @@ import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
 
-class InvitationStatisticsMigrationTest {
+class SpawnBannerMigrationTest {
     @TempDir lateinit var tempDir: Path
     private lateinit var connection: Connection
     private lateinit var plugin: JavaPlugin
 
     @BeforeEach
     fun setUp() {
-        connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("invite-stats.db")}")
+        connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("spawn-banners.db")}")
         connection.createStatement().use {
-            it.execute("PRAGMA user_version = 36")
+            it.execute("PRAGMA user_version = 37")
             it.execute("CREATE TABLE guilds (id TEXT PRIMARY KEY, ally_home_allowed_guilds TEXT)")
             it.execute("CREATE TABLE guild_homes (id TEXT PRIMARY KEY, allowed_ranks TEXT)")
         }
@@ -37,28 +37,31 @@ class InvitationStatisticsMigrationTest {
         }
     }
 
-    @AfterEach fun tearDown() = connection.close()
+    @AfterEach
+    fun tearDown() = connection.close()
 
     @Test
-    fun `version 37 creates durable guild invitation history`() {
+    fun `version 38 creates persistent dynamic spawn banner registry`() {
         SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
 
-        assertTrue(tableExists("guild_invitation_history"))
-        assertTrue(columnExists("guild_invitation_history", "inviter_player_id"))
-        assertTrue(columnExists("guild_invitation_history", "invited_player_id"))
-        assertTrue(columnExists("guild_invitation_history", "sent_at"))
+        assertTrue(tableExists("spawn_banners"))
+        assertTrue(columnExists("spawn_banners", "banner_id"))
+        assertTrue(columnExists("spawn_banners", "category"))
+        assertTrue(columnExists("spawn_banners", "rank"))
         assertEquals(38, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean =
-        connection.prepareStatement("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").use {
+        connection.prepareStatement("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").use {
             it.setString(1, table)
             it.executeQuery().use { rows -> rows.next() }
         }
+
     private fun columnExists(table: String, column: String): Boolean =
         connection.createStatement().use { statement ->
             statement.executeQuery("PRAGMA table_info($table)").use { rows ->
-                generateSequence { if (rows.next()) rows.getString("name") else null }.any { it == column }
+                generateSequence { if (rows.next()) rows.getString("name") else null }
+                    .any { it == column }
             }
         }
 

@@ -7304,3 +7304,26 @@ chapter_two_rewards:
 guild_creation_cooldown:
   active: '<red>You can create another guild after <until> (UTC).'
   unavailable: '<red>Guild creation is temporarily unavailable. Please try again later.'
+
+spawn_banner:
+  item:
+    name: '<gold><bold>Dynamic Leaderboard Banner'
+    rank: '<gray>Rank: <white>#<rank>'
+    category: '<gray>Category: <white><category>'
+    instructions: '<dark_gray>Place to bind this block to the leaderboard.'
+  feedback:
+    no_permission: '<red>You do not have permission to manage dynamic spawn banners.'
+    place_failed: '<red>Could not register this dynamic spawn banner.'
+    placed: '<green>Dynamic banner placed for <white><category> #<rank><green>.'
+    remove_failed: '<red>Could not unregister this dynamic spawn banner.'
+    removed: '<green>Dynamic spawn banner removed.'
+    usage: '<yellow>Usage: /lumaguilds spawnbanner \\<rank> \\<category> | refresh | list'
+    refreshed: '<green>Refreshed <white><count><green> dynamic spawn banner(s).'
+    list_empty: '<gray>No dynamic spawn banners are registered.'
+    list_header: '<gold>Dynamic spawn banners (<count>):'
+    list_entry: '<gray><category> #<rank> <dark_gray>- <white><world> <x> <y> <z> <dark_gray>- <yellow><guild>'
+    player_required: '<red>A player is required to receive a banner item.'
+    invalid_rank: '<red>Rank must be a positive whole number.'
+    invalid_category: '<red>Unknown category. Available: <white><categories>'
+    given: '<green>Given dynamic banner for <white><category> #<rank><green>.'
+    help: '<gray>/lumaguilds spawnbanner \\<rank> \\<category> <dark_gray>- <white>Create a dynamic leaderboard banner'
