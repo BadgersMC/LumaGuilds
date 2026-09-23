@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.application.persistence.PlayerAccessRepository
 import net.lumalyte.lg.application.results.claim.permission.GrantGuildMembersClaimPermissionsResult
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.ClaimPermission
 import java.util.UUID
 
@@ -23,9 +24,12 @@ class GrantGuildMembersClaimPermissions(private val claimRepository: ClaimReposi
         val claim = claimRepository.getById(claimId)
             ?: return GrantGuildMembersClaimPermissionsResult.ClaimNotFound
 
-        // Verify player owns the claim
+        // Personal owners remain authorized; guild-owned claims use current rank permissions.
         if (claim.playerId != playerId) {
-            return GrantGuildMembersClaimPermissionsResult.NotClaimOwner
+            val guildId = claim.teamId ?: return GrantGuildMembersClaimPermissionsResult.NotClaimOwner
+            if (!memberService.hasPermission(playerId, guildId, RankPermission.MANAGE_PERMISSIONS)) {
+                return GrantGuildMembersClaimPermissionsResult.NotClaimOwner
+            }
         }
 
         // Check if claim is guild-owned
