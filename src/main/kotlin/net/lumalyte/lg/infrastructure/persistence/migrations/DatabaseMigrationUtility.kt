@@ -62,6 +62,7 @@ class DatabaseMigrationUtility(
                 "members",
                 "guild_invitations",
                 "guild_invitation_history",
+                "spawn_banners",
                 "relations",
                 "bank_tx",
                 "kills",

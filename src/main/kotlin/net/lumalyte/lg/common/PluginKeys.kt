@@ -53,6 +53,22 @@ object PluginKeys {
         NamespacedKey(pluginInstance, "war_banner_id")
     }
 
+    val SPAWN_BANNER_ITEM: NamespacedKey by lazy {
+        NamespacedKey(pluginInstance, "spawn_banner_item")
+    }
+
+    val SPAWN_BANNER_ID: NamespacedKey by lazy {
+        NamespacedKey(pluginInstance, "spawn_banner_id")
+    }
+
+    val SPAWN_BANNER_RANK: NamespacedKey by lazy {
+        NamespacedKey(pluginInstance, "spawn_banner_rank")
+    }
+
+    val SPAWN_BANNER_CATEGORY: NamespacedKey by lazy {
+        NamespacedKey(pluginInstance, "spawn_banner_category")
+    }
+
     /**
      * Returns the plugin instance for use in scheduler tasks and event registration.
      */
