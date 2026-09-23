@@ -41,7 +41,6 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.UUID
-import kotlin.concurrent.thread
 
 /**
  * Actions based on using the claim tool.
@@ -161,8 +160,7 @@ class EditToolListener: Listener, KoinComponent {
             player.sendActionBar(
                 lang.msg("feedback.edit_tool.invalid")
                     .color(TextColor.color(255, 85, 85)))
-            thread(start = true) {
-                Thread.sleep(1)
+            schedulerService.schedule(1) {
                 refreshVisualisation.execute(player.uniqueId, partition.claimId, partition.id)
             }
             return
@@ -209,8 +207,7 @@ class EditToolListener: Listener, KoinComponent {
 
         // Start partition building
         firstSelectedCornerCreate[player.uniqueId] = Pair(selectedClaim.id, location.toPosition2D())
-        thread(start = true) {
-            Thread.sleep(1)
+        schedulerService.schedule(1) {
             displayVisualisation.execute(player.uniqueId, location.toPosition3D())
             displaySelectionVisualisation.execute(player.uniqueId, location.toPosition3D())
         }
@@ -331,8 +328,7 @@ class EditToolListener: Listener, KoinComponent {
         player.sendActionBar(
             lang.msg("feedback_edit_tool.start_resize", "remaining_blocks" to remainingClaimBlockCount)
                 .color(TextColor.color(85, 255, 85)))
-        thread(start = true) {
-            Thread.sleep(1)
+        schedulerService.schedule(1) {
             displaySelectionVisualisation.execute(player.uniqueId, location.toPosition3D())
         }
         return true

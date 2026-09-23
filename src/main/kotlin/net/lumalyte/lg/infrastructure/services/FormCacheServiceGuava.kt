@@ -6,11 +6,10 @@ import net.lumalyte.lg.application.services.CacheStats
 import net.lumalyte.lg.application.services.FormCacheService
 import org.geysermc.cumulus.form.Form
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
-import kotlin.time.Duration.Companion.minutes
 
 /**
  * Implementation of FormCacheService using Guava Cache
@@ -23,7 +22,7 @@ class FormCacheServiceGuava(
 ) : FormCacheService {
 
     // Async executor for form building
-    private val asyncExecutor: Executor = Executors.newCachedThreadPool { runnable ->
+    private val asyncExecutor: ExecutorService = Executors.newCachedThreadPool { runnable ->
         Thread(runnable, "BedrockFormBuilder").apply {
             isDaemon = true
             priority = Thread.NORM_PRIORITY
@@ -109,6 +108,19 @@ class FormCacheServiceGuava(
             formCache.put(cacheKey, form)
             logger.fine("Built and cached form asynchronously: $cacheKey")
             form
+        }
+    }
+
+    override fun shutdown() {
+        clearCache()
+        asyncExecutor.shutdown()
+        try {
+            if (!asyncExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                asyncExecutor.shutdownNow()
+            }
+        } catch (e: InterruptedException) {
+            asyncExecutor.shutdownNow()
+            Thread.currentThread().interrupt()
         }
     }
 
