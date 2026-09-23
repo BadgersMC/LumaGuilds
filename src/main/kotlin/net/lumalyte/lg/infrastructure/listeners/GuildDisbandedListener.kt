@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.listeners
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.services.GuildDisbandAnnouncementService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.api.events.GuildDisbandedEvent
 import net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners
@@ -19,13 +20,17 @@ internal class GuildDisbandedListener(
     private val partyService: PartyService,
     private val bannermanListeners: BannermanListeners,
     private val lang: LangService,
+    private val announcementService: GuildDisbandAnnouncementService,
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(GuildDisbandedListener::class.java)
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildDisbanded(event: GuildDisbandedEvent) {
-        // 1. Close inventories and notify online members
+        // Broadcast globally and notify online members of pre-disband allies/enemies.
+        announcementService.announce(event.guild, event.memberIds, event.relatedGuilds)
+
+        // 1. Close inventories and notify online former members
         event.memberIds.forEach { memberId ->
             val player = Bukkit.getPlayer(memberId) ?: return@forEach
             if (!player.isOnline) return@forEach
