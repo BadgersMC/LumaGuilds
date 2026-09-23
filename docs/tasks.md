@@ -524,11 +524,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence: `/g list` now opens a dedicated Java/Bedrock guild directory backed by `GuildListService`; both surfaces request one bounded page and never call `GuildLookup.getAllGuilds()` or slice an unbounded list. SQL owns `LIMIT/OFFSET`, total count, primary ordering, and stable name→creation→UUID tie-breaking. All-Time Active reuses weighted progression activity across history; Weekly Active uses a trailing seven-day window, excludes raw `PLAYER_KILL` XP, and adds only distinct opposing victims weighted by configured `activity.weights.kills_this_week`. Level and creation sorts default ascending. `guild_list.page_size` defaults to 18 and is clamped to the Java inventory capacity of 36. Focused SQL/service/wiring/locale tests are green; full `test shadowJar` validation passes 1,163 tests with zero failures/errors/skips and `git diff --check` is clean.
   - Files: `GuildListSortKey`, `GuildListRepository`, `GuildListRepositorySQL`, `GuildListService`, Java/Bedrock `GuildListMenu`, `MenuFactory`, `GuildCommand`, config/localization/tests
   - Notes: LG-1504 remains responsible for replacing the temporary book renderer with each guild's physical banner; LG-1503 intentionally does not consume that scope.
-- [ ] **LG-1504** Guild banners in list — physical banner shown per guild, plain white default when unset
+- [x] **LG-1504** Guild banners in list — physical banner shown per guild, plain white default when unset
   - Tag: `TDD`
   - References: REQ-069
-  - Evidence:
-  - Files: banner resolution, list renderer
+  - Evidence: Java `/g list` entries now render through shared `GuildBannerItemResolver` instead of the temporary book icon. Valid serialized standing banners retain their physical material/base color and ordered pattern layers; missing, corrupt, non-banner, or wall-banner payloads resolve to `WHITE_BANNER`. The existing Java ally/enemy relation browser now uses the same resolver so list surfaces cannot drift on fallback behavior. Bedrock's SimpleForm directory remains behaviorally unchanged because it has no Minecraft `ItemStack` rendering surface. Focused resolver/wiring/locale contracts are green; full `test shadowJar` validation passes 1,167 tests with zero failures/errors/skips and `git diff --check` is clean.
+  - Files: `GuildBannerItemResolver`, `GuildListMenu`, `GuildRelationBrowserMenu`, resolver/wiring tests
 - [x] **LG-1505** Expandable Enemy/Ally lists in `/g info` — full guild list beyond top 3
   - Tag: `TDD`
   - References: REQ-070
