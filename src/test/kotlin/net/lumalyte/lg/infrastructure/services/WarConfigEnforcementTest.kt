@@ -1144,7 +1144,12 @@ class WarConfigEnforcementTest {
         val guilds = mockk<GuildRepository> {
             every { getById(any()) } answers {
                 val id = firstArg<UUID>()
-                mockk<Guild> { every { mode } returns (modes[id] ?: GuildMode.HOSTILE) }
+                Guild(
+                    id = id,
+                    name = "test-${id.toString().take(8)}",
+                    mode = modes[id] ?: GuildMode.HOSTILE,
+                    createdAt = Instant.EPOCH,
+                )
             }
         }
         val service = newService(
