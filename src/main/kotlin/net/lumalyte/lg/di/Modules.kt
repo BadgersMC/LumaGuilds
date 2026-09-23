@@ -713,6 +713,52 @@ fun economyModule() = module {
             { org.bukkit.Bukkit.getPlayer(it) }, get<ConfigService>().loadConfig().vault,
             net.lumalyte.lg.infrastructure.services.PhysicalGoldJournal(get()))
     }
+    single(named("WarBannerRawGold")) {
+        net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter(
+            { org.bukkit.Bukkit.getPlayer(it) },
+            org.bukkit.Material.RAW_GOLD,
+            org.bukkit.Material.RAW_GOLD_BLOCK,
+            9L,
+            net.lumalyte.lg.infrastructure.services.PhysicalGoldJournal(get()),
+        )
+    }
+    single<net.lumalyte.lg.application.persistence.WarBannerRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.WarBannerRepositorySQL(get())
+    }
+    single {
+        val members = get<net.lumalyte.lg.application.persistence.MemberRepository>()
+        val ranks = get<net.lumalyte.lg.application.persistence.RankRepository>()
+        val wars = get<net.lumalyte.lg.application.services.WarService>()
+        val config = get<ConfigService>()
+        net.lumalyte.lg.application.services.WarBannerService(
+            repository = get(),
+            physicalGold = get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(
+                named("WarBannerRawGold")
+            ),
+            config = { config.loadConfig().warBanner },
+            isMember = { playerId, guildId ->
+                members.getByPlayerAndGuild(playerId, guildId) != null
+            },
+            canPlace = { playerId, guildId ->
+                val member = members.getByPlayerAndGuild(playerId, guildId)
+                member != null && ranks.getById(member.rankId)?.permissions
+                    ?.contains(net.lumalyte.lg.domain.entities.RankPermission.PLACE_WAR_BANNER) == true
+            },
+            hasActiveWar = { guildId ->
+                wars.getWarsForGuild(guildId).any { it.isActive }
+            },
+        )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.services.WarBannerServiceBukkit(
+            get<LumaGuilds>(), get(), get(), get(), get(),
+        )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.listeners.WarBannerListener(
+            get(), get(), get(), get(),
+        )
+    }
     single {
         net.lumalyte.lg.application.services.GuildCostService(
             { get<ConfigService>().loadConfig() },

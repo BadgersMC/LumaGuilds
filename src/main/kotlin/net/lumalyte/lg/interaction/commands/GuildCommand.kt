@@ -58,6 +58,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val strikeService: net.lumalyte.lg.application.services.StrikeService by inject()
     private val bankService: net.lumalyte.lg.application.services.BankService by inject()
     private val guildCostService: net.lumalyte.lg.application.services.GuildCostService by inject()
+    private val warBannerService: net.lumalyte.lg.infrastructure.services.WarBannerServiceBukkit by inject()
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
@@ -2019,6 +2020,61 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("command.migrated.guild.description.new_description", "description" to description))
         } else {
             player.sendMessage(lang.msg("command.migrated.guild.description.failed_to_set_guild_description"))
+        }
+    }
+
+    @Subcommand("warbanner")
+    @CommandPermission("lumaguilds.guild.warbanner")
+    fun onWarBanner(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (guild == null) {
+            player.sendMessage(lang.msg("war_banner.feedback.not_member"))
+            return
+        }
+        if (!memberService.hasPermission(
+                player.uniqueId,
+                guild.id,
+                RankPermission.PLACE_WAR_BANNER,
+            )
+        ) {
+            player.sendMessage(lang.msg("war_banner.feedback.no_permission"))
+            return
+        }
+        if (warService.getWarsForGuild(guild.id).none { it.isActive }) {
+            player.sendMessage(lang.msg("war_banner.feedback.no_active_war"))
+            return
+        }
+        val cost = configService.loadConfig().warBanner.rawGoldCost
+        if (cost <= 0) {
+            player.sendMessage(lang.msg("war_banner.feedback.configuration_error"))
+            return
+        }
+
+        val item = warBannerService.createDeployableItem(guild)
+        val overflow = player.inventory.addItem(item).values
+        overflow.forEach { player.world.dropItemNaturally(player.location, it) }
+        player.sendMessage(lang.msg("war_banner.feedback.item_given", "cost" to cost))
+    }
+
+    @Subcommand("warbanner tp")
+    @CommandPermission("lumaguilds.guild.warbanner")
+    fun onWarBannerTeleport(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (guild == null) {
+            player.sendMessage(lang.msg("war_banner.feedback.not_member"))
+            return
+        }
+        when (warBannerService.teleport(player, guild.id)) {
+            net.lumalyte.lg.infrastructure.services.WarBannerTeleportResult.STARTED ->
+                player.sendMessage(lang.msg("war_banner.teleport.started"))
+            net.lumalyte.lg.infrastructure.services.WarBannerTeleportResult.NO_ACTIVE_BANNER ->
+                player.sendMessage(lang.msg("war_banner.teleport.none"))
+            net.lumalyte.lg.infrastructure.services.WarBannerTeleportResult.BANNER_MISSING ->
+                player.sendMessage(lang.msg("war_banner.teleport.missing"))
+            net.lumalyte.lg.infrastructure.services.WarBannerTeleportResult.WORLD_UNAVAILABLE ->
+                player.sendMessage(lang.msg("war_banner.teleport.world_unavailable"))
+            net.lumalyte.lg.infrastructure.services.WarBannerTeleportResult.UNSAFE ->
+                player.sendMessage(lang.msg("war_banner.teleport.unsafe"))
         }
     }
 

@@ -40,6 +40,7 @@ data class MainConfig(
     var webApi: WebApiConfig = WebApiConfig(),
     var strikes: StrikesConfig = StrikesConfig(),
     var seasonalElo: SeasonalEloConfig = SeasonalEloConfig(),
+    var warBanner: WarBannerConfig = WarBannerConfig(),
     // Independent rollout gates; none performs migration or state initialization.
     var chapterTwoRewardsEnabled: Boolean = false,
     var chapterTwoGoldCostsEnabled: Boolean = false
@@ -48,6 +49,13 @@ data class MainConfig(
 /**
  * Guild Strikes — LiteBans punishments attributed to guilds.
  */
+data class WarBannerConfig(
+    // One physical stack by default; nonpositive operator overrides fail closed.
+    var rawGoldCost: Int = 64,
+    // Re-deploy cooldown begins at placement. Default matches the 15-minute lifetime.
+    var cooldownMinutes: Int = 15,
+)
+
 data class SeasonalEloConfig(
     var enabled: Boolean = false,
     var kFactor: Int = 40,

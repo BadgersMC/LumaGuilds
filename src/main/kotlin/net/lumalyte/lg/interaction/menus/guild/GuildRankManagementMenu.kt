@@ -219,6 +219,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RELATIONS,
                 net.lumalyte.lg.domain.entities.RankPermission.DECLARE_WAR,
+                net.lumalyte.lg.domain.entities.RankPermission.PLACE_WAR_BANNER,
                 net.lumalyte.lg.domain.entities.RankPermission.ACCEPT_ALLIANCES,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PARTIES,
                 net.lumalyte.lg.domain.entities.RankPermission.SEND_PARTY_REQUESTS,

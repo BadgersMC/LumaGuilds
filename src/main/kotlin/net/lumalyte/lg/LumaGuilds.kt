@@ -931,6 +931,10 @@ class LumaGuilds : JavaPlugin() {
 
         server.pluginManager.registerEvents(BannerSelectionListener(), this)
         server.pluginManager.registerEvents(BannerFuelPreventionListener(), this)
+        server.pluginManager.registerEvents(
+            get().get<net.lumalyte.lg.infrastructure.listeners.WarBannerListener>(),
+            this,
+        )
         server.pluginManager.registerEvents(net.lumalyte.lg.interaction.listeners.GuildVaultCraftingPreventionListener(), this)
         server.pluginManager.registerEvents(GuildVaultFuelPreventionListener(), this)
 
