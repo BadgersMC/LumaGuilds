@@ -69,7 +69,8 @@ class ChapterLifecycleMigrationTest {
         assertTrue(tableExists("chapter_rated_war_results"))
         assertTrue(tableExists("war_banners"))
         assertTrue(tableExists("war_notifications"))
-        assertEquals(33, databaseVersion())
+        assertTrue(tableExists("player_notification_preferences"))
+        assertEquals(34, databaseVersion())
     }
 
     @Test
@@ -78,12 +79,12 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE war_banners") }
         assertFalse(tableExists("war_banners"))
-        assertEquals(33, databaseVersion())
+        assertEquals(34, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("war_banners"))
-        assertEquals(33, databaseVersion())
+        assertEquals(34, databaseVersion())
     }
 
     @Test
@@ -92,12 +93,26 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE war_notifications") }
         assertFalse(tableExists("war_notifications"))
-        assertEquals(33, databaseVersion())
+        assertEquals(34, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("war_notifications"))
-        assertEquals(33, databaseVersion())
+        assertEquals(34, databaseVersion())
+    }
+
+    @Test
+    fun `version 34 repairs missing player notification preferences without version rollback`() {
+        val migrations = SQLiteMigrations(plugin, connection, claimsEnabled = false)
+        migrations.migrate()
+        connection.createStatement().use { it.execute("DROP TABLE player_notification_preferences") }
+        assertFalse(tableExists("player_notification_preferences"))
+        assertEquals(34, databaseVersion())
+
+        migrations.migrate()
+
+        assertTrue(tableExists("player_notification_preferences"))
+        assertEquals(34, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

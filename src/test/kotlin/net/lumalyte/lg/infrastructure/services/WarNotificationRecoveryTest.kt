@@ -47,7 +47,7 @@ class WarNotificationRecoveryTest {
         memberRepository = members,
         warRepository = wars,
         lang = mockk<LangService>(relaxed = true),
-        toastSender = mockk<WarToastSender>(relaxed = true),
+        toastSender = mockk<ToastSender>(relaxed = true),
     )
 
     private fun member(guildId: UUID, joinedAt: Instant = eventAt.minusSeconds(60)) =

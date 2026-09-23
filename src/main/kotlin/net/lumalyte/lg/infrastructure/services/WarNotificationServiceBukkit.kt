@@ -34,7 +34,7 @@ class WarNotificationServiceBukkit(
     private val memberRepository: MemberRepository,
     private val warRepository: WarRepository,
     private val lang: LangService,
-    private val toastSender: WarToastSender,
+    private val toastSender: ToastSender,
 ) : WarNotificationService {
     private val logger = LoggerFactory.getLogger(WarNotificationServiceBukkit::class.java)
 
@@ -577,20 +577,20 @@ class WarNotificationServiceBukkit(
         }?.clone() ?: ItemStack(Material.WHITE_BANNER)
     }
 
-    private fun toastFrame(kind: WarNotificationKind): WarToastFrame =
+    private fun toastFrame(kind: WarNotificationKind): ToastFrame =
         when (kind) {
-            WarNotificationKind.DECLARATION_RECEIVED -> WarToastFrame.CHALLENGE
-            WarNotificationKind.DECLARATION_SENT -> WarToastFrame.TASK
-            WarNotificationKind.WAR_ACCEPTED -> WarToastFrame.GOAL
-            WarNotificationKind.VICTORY -> WarToastFrame.CHALLENGE
-            WarNotificationKind.DEFEAT -> WarToastFrame.GOAL
+            WarNotificationKind.DECLARATION_RECEIVED -> ToastFrame.CHALLENGE
+            WarNotificationKind.DECLARATION_SENT -> ToastFrame.TASK
+            WarNotificationKind.WAR_ACCEPTED -> ToastFrame.GOAL
+            WarNotificationKind.VICTORY -> ToastFrame.CHALLENGE
+            WarNotificationKind.DEFEAT -> ToastFrame.GOAL
         }
 
-    private fun fallbackSound(frame: WarToastFrame): Sound =
+    private fun fallbackSound(frame: ToastFrame): Sound =
         when (frame) {
-            WarToastFrame.CHALLENGE -> Sound.UI_TOAST_CHALLENGE_COMPLETE
-            WarToastFrame.GOAL -> Sound.ENTITY_PLAYER_LEVELUP
-            WarToastFrame.TASK -> Sound.BLOCK_BELL_USE
+            ToastFrame.CHALLENGE -> Sound.UI_TOAST_CHALLENGE_COMPLETE
+            ToastFrame.GOAL -> Sound.ENTITY_PLAYER_LEVELUP
+            ToastFrame.TASK -> Sound.BLOCK_BELL_USE
         }
 
     private fun killsFor(
