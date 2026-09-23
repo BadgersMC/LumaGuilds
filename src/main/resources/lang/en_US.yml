@@ -908,6 +908,8 @@ bedrock:
       name_required: '<red>Enter the name of the receiving player.'
       player_not_found: '<red>Player ''<player>'' could not be found.'
       sent: '<green>✅ Claim transfer request sent to <player>.'
+      already_pending: '<yellow>A transfer request for <player> is already pending.'
+      storage_error: '<red>Could not save the claim transfer request. Try again.'
   claim_transfer_naming:
     title: Name Transferred Claim
     instructions: Choose the name this claim should use after accepting the transfer.

@@ -3,7 +3,6 @@ package net.lumalyte.lg.domain.entities
 import net.lumalyte.lg.domain.values.Position3D
 import java.time.Instant
 import java.util.UUID
-import kotlin.concurrent.thread
 
 /**
  * A claim object holds the data for the world its in and the players associated with it. It relies on partitions to
@@ -32,8 +31,11 @@ data class Claim(var id: UUID, var worldId: UUID, var playerId: UUID, var teamId
     private val defaultBreakCount = 3
     private var breakPeriod = false
 
-    // Key: UUID of player which transfer request is sent to
-    // Value: expiry time of the transfer request (Default request timestamp + 5 minutes)
+    /**
+     * Legacy transient transfer-request state retained for binary compatibility.
+     * New transfer flows persist through ClaimTransferRequestRepository instead.
+     */
+    @Deprecated("Use the durable claim transfer request service/repository")
     var transferRequests: java.util.HashMap<UUID, Int> = HashMap()
 
     /**

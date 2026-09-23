@@ -3,6 +3,8 @@ package net.lumalyte.lg.interaction.menus.bedrock
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.actions.claim.transfer.OfferPlayerTransferRequest
+import net.lumalyte.lg.application.results.claim.transfer.OfferPlayerTransferRequestResult
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.Bukkit
@@ -25,6 +27,7 @@ class BedrockClaimTransferMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val lang: LangService by inject()
+    private val offerPlayerTransferRequest: OfferPlayerTransferRequest by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -64,9 +67,25 @@ class BedrockClaimTransferMenu(
                     return@validResultHandler
                 }
 
-                // Add transfer request
-                claim.transferRequests[targetPlayer.uniqueId] = (System.currentTimeMillis() / 1000).toInt() + 300 // 5 minutes
-                player.sendMessage(lang.msg("bedrock.claim_transfer.feedback.sent", "player" to targetPlayerName))
+                when (offerPlayerTransferRequest.execute(claim.id, targetPlayer.uniqueId)) {
+                    OfferPlayerTransferRequestResult.Success ->
+                        player.sendMessage(
+                            lang.msg(
+                                "bedrock.claim_transfer.feedback.sent",
+                                "player" to targetPlayerName,
+                            )
+                        )
+                    OfferPlayerTransferRequestResult.RequestAlreadyPending ->
+                        player.sendMessage(
+                            lang.msg(
+                                "bedrock.claim_transfer.feedback.already_pending",
+                                "player" to targetPlayerName,
+                            )
+                        )
+                    OfferPlayerTransferRequestResult.ClaimNotFound,
+                    OfferPlayerTransferRequestResult.StorageError ->
+                        player.sendMessage(lang.msg("bedrock.claim_transfer.feedback.storage_error"))
+                }
 
                 bedrockNavigator.goBack()
             }

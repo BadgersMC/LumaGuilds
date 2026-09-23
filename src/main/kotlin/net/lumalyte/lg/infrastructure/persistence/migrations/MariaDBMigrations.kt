@@ -140,6 +140,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(38)
                 currentDbVersion = 38
             }
+            if (currentDbVersion < 39) {
+                migrateToVersion39()
+                updateDatabaseVersion(39)
+                currentDbVersion = 39
+            }
 
             connection.commit()
 
@@ -1091,5 +1096,10 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
     private fun migrateToVersion38() {
         SpawnBannerSchema.create(connection, mariaDb = true)
         componentLogger.info(Component.text("Dynamic spawn banners migrated to schema v38"))
+    }
+
+    private fun migrateToVersion39() {
+        ClaimTransferRequestSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Claim transfer requests migrated to schema v39"))
     }
 }

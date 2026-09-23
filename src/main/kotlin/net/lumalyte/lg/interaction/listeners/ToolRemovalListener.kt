@@ -128,13 +128,7 @@ class ToolRemovalListener : Listener, KoinComponent {
 
     @EventHandler
     fun onPlayerDeath(event: PlayerDeathEvent) {
-        val droppedItems = event.drops
-        val itemsToRemove = arrayListOf<ItemStack>()
-        for (droppedItem in droppedItems) {
-            if (isKeyItem(droppedItem)) {
-                itemsToRemove.add(droppedItem)
-            }
-        }
+        event.drops.removeAll { isKeyItem(it) }
     }
 
     private fun isKeyItem(itemStack: ItemStack): Boolean {
