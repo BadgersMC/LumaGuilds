@@ -24,5 +24,6 @@ interface DiscordGuildRoleGateway {
     fun grantRole(playerId: UUID, roleId: String): CompletableFuture<DiscordMemberRoleResult>
     fun revokeRole(playerId: UUID, roleId: String): CompletableFuture<DiscordMemberRoleResult>
     fun revokeRoleByDiscordId(discordId: String, roleId: String): CompletableFuture<DiscordMemberRoleResult>
+    fun revokeUnexpectedRoleMembers(roleId: String, allowedPlayerIds: Set<UUID>): CompletableFuture<Int>
     fun deleteRole(roleId: String): CompletableFuture<Boolean>
 }
