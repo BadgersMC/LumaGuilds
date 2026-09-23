@@ -997,6 +997,53 @@ class LumaGuilds : JavaPlugin() {
             logger.warning("Emoji permission reconciliation completed with ${emojiResult.failed} failure(s)")
         }
 
+        // Optional DiscordSRV guild-role integration. The listener is always registered;
+        // the service is a no-op unless discord.guild_roles.enabled is explicitly enabled.
+        val discordRoleListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener>()
+        server.pluginManager.registerEvents(discordRoleListener, this)
+        val discordRoleConfig = get().get<net.lumalyte.lg.application.services.ConfigService>()
+            .loadConfig().discordGuildRoles
+        if (discordRoleConfig.enabled) {
+            get().get<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>().subscribe()
+            val discordGateway = get().get<net.lumalyte.lg.application.services.DiscordGuildRoleGateway>()
+            val discordRoleService = get().get<net.lumalyte.lg.application.services.GuildDiscordRoleService>()
+            if (!discordGateway.isAvailable()) {
+                logger.warning("Discord guild roles are enabled, but DiscordSRV/main guild is unavailable")
+            } else {
+                discordRoleService
+                    .reconcileAll()
+                    .whenComplete { result, error ->
+                        if (error != null) {
+                            logger.warning("Discord guild-role startup reconciliation failed: ${error.message}")
+                        } else {
+                            logColored(
+                                "✓ Discord guild roles reconciled: " +
+                                    "${result.guildsReconciled} guild(s), " +
+                                    "${result.rolesCreated} role(s) created, " +
+                                    "${result.memberRolesApplied} member role(s) applied, " +
+                                    "${result.failures} failure(s)"
+                            )
+                        }
+                    }
+            }
+
+            // Repair missed grants/revocations after transient DiscordSRV/JDA outages without
+            // requiring a server restart or unrelated guild activity.
+            server.scheduler.runTaskTimer(this, Runnable {
+                if (!discordGateway.isAvailable()) return@Runnable
+                discordRoleService.reconcileAll().whenComplete { result, error ->
+                    if (error != null) {
+                        logger.warning("Discord guild-role periodic reconciliation failed: ${error.message}")
+                    } else if (result.failures > 0) {
+                        logger.warning(
+                            "Discord guild-role periodic reconciliation completed with " +
+                                "${result.failures} failure(s)"
+                        )
+                    }
+                }
+            }, 20L * 60L, 20L * 60L * 5L)
+        }
+
         // Clean up RoseChat channels when guild status changes.
         // LumaGuilds can enable BEFORE RoseChat despite `depend: [RoseChat]`
         // (observed on the Fuji test server: RoseChat enabled ~4 minutes later),
@@ -1276,6 +1323,11 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        try {
+            get().getOrNull<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>()?.unsubscribe()
+        } catch (e: Exception) {
+            logger.warning("Failed to unsubscribe DiscordSRV account-link listener: ${e.message}")
+        }
         try {
             get().getOrNull<net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator>()?.stop()
         } catch (e: Exception) {

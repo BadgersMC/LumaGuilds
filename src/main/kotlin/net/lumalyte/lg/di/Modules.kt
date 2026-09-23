@@ -518,6 +518,31 @@ fun socialModule() = module {
     single<net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener(get())
     }
+
+    single<net.lumalyte.lg.application.persistence.GuildDiscordRoleRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildDiscordRoleRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.services.DiscordGuildRoleGateway> {
+        if (org.bukkit.Bukkit.getPluginManager().getPlugin("DiscordSRV") != null) {
+            net.lumalyte.lg.infrastructure.services.DiscordSrvGuildRoleGateway()
+        } else {
+            net.lumalyte.lg.infrastructure.services.UnavailableDiscordGuildRoleGateway()
+        }
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildDiscordRoleService(get(), get(), get(), get(), get())
+    }
+    single<net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener> {
+        net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener(get())
+    }
+    single<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription> {
+        if (org.bukkit.Bukkit.getPluginManager().getPlugin("DiscordSRV") != null) {
+            net.lumalyte.lg.infrastructure.services.DiscordSrvAccountLinkSubscription(get())
+        } else {
+            net.lumalyte.lg.infrastructure.services.UnavailableDiscordAccountLinkSubscription()
+        }
+    }
+
     single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
         net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get(), get())
     }
