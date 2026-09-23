@@ -189,6 +189,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(34)
                 dbVersion = 34
             }
+            if (dbVersion < 35) {
+                migrateToVersion35()
+                updateDatabaseVersion(35)
+                dbVersion = 35
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1380,7 +1385,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
             "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history",
             "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security",
-            "war_banners", "war_notifications", "player_notification_preferences"
+            "war_banners", "war_notifications", "player_notification_preferences", "guild_discord_roles"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1445,6 +1450,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("player_notification_preferences" in missingTables) {
                 migrateToVersion34()
                 componentLogger.info(Component.text("✓ Recreated player notification preferences"))
+            }
+            if ("guild_discord_roles" in missingTables) {
+                migrateToVersion35()
+                componentLogger.info(Component.text("✓ Recreated guild Discord-role links"))
             }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
@@ -1840,6 +1849,13 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         PlayerNotificationPreferenceSchema.create(connection, mariaDb = false)
         componentLogger.info(Component.text(
             "✓ Migration v34 complete: player notification preferences added"
+        ))
+    }
+
+    private fun migrateToVersion35() {
+        GuildDiscordRoleSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text(
+            "✓ Migration v35 complete: durable guild Discord-role links added"
         ))
     }
 }
