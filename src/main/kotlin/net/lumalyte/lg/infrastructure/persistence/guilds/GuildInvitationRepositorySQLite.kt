@@ -4,6 +4,7 @@ import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.GuildInvitationRepository
 import net.lumalyte.lg.domain.entities.GuildInvitation
+import net.lumalyte.lg.domain.entities.GuildInvitationLeaderboardEntry
 import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
@@ -58,27 +59,53 @@ class GuildInvitationRepositorySQLite(private val storage: Storage<Database>) : 
         invitations[Pair(playerId, guildId)]
 
     override fun add(invitation: GuildInvitation): Boolean {
-        val sql = """
+        val pendingSql = """
             INSERT INTO guild_invitations (guild_id, guild_name, invited_player_id, inviter_player_id, inviter_name, timestamp)
             VALUES (?, ?, ?, ?, ?, ?)
         """.trimIndent()
+        val historySql = """
+            INSERT INTO guild_invitation_history (id, guild_id, inviter_player_id, invited_player_id, sent_at)
+            VALUES (?, ?, ?, ?, ?)
+        """.trimIndent()
 
-        return try {
-            val rowsAffected = storage.connection.executeUpdate(sql,
-                invitation.guildId.toString(),
-                invitation.guildName,
-                invitation.invitedPlayerId.toString(),
-                invitation.inviterPlayerId.toString(),
-                invitation.inviterName,
-                invitation.timestamp.toString()
-            )
-            if (rowsAffected > 0) {
-                invitations[Pair(invitation.invitedPlayerId, invitation.guildId)] = invitation
+        val committed = storage.connection.getConnection().use { connection ->
+            val previousAutoCommit = connection.autoCommit
+            connection.autoCommit = false
+            try {
+                val pendingRows = connection.prepareStatement(pendingSql).use { statement ->
+                    statement.setString(1, invitation.guildId.toString())
+                    statement.setString(2, invitation.guildName)
+                    statement.setString(3, invitation.invitedPlayerId.toString())
+                    statement.setString(4, invitation.inviterPlayerId.toString())
+                    statement.setString(5, invitation.inviterName)
+                    statement.setString(6, invitation.timestamp.toString())
+                    statement.executeUpdate()
+                }
+                check(pendingRows == 1) { "Pending invitation insert affected $pendingRows rows" }
+
+                val historyRows = connection.prepareStatement(historySql).use { statement ->
+                    statement.setString(1, UUID.randomUUID().toString())
+                    statement.setString(2, invitation.guildId.toString())
+                    statement.setString(3, invitation.inviterPlayerId.toString())
+                    statement.setString(4, invitation.invitedPlayerId.toString())
+                    statement.setLong(5, invitation.timestamp.toEpochMilli())
+                    statement.executeUpdate()
+                }
+                check(historyRows == 1) { "Invitation history insert affected $historyRows rows" }
+                connection.commit()
+                true
+            } catch (error: Exception) {
+                runCatching { connection.rollback() }
+                false
+            } finally {
+                runCatching { connection.autoCommit = previousAutoCommit }
             }
-            rowsAffected > 0
-        } catch (e: SQLException) {
-            false
         }
+
+        if (committed) {
+            invitations[Pair(invitation.invitedPlayerId, invitation.guildId)] = invitation
+        }
+        return committed
     }
 
     override fun remove(playerId: UUID, guildId: UUID): Boolean {
@@ -136,7 +163,6 @@ class GuildInvitationRepositorySQLite(private val storage: Storage<Database>) : 
             val cutoffTime = Instant.ofEpochSecond(olderThan)
             val rowsAffected = storage.connection.executeUpdate(sql, cutoffTime.toString())
             if (rowsAffected > 0) {
-                // Remove from memory cache
                 val toRemove = invitations.filter { it.value.timestamp.isBefore(cutoffTime) }.keys
                 toRemove.forEach { invitations.remove(it) }
             }
@@ -145,4 +171,63 @@ class GuildInvitationRepositorySQLite(private val storage: Storage<Database>) : 
             0
         }
     }
+
+    override fun getInvitationLeaderboard(guildId: UUID, limit: Int): List<GuildInvitationLeaderboardEntry> {
+        if (limit <= 0) return emptyList()
+        return storage.connection.getResults(
+            """
+            SELECT inviter_player_id, COUNT(*) AS invite_count
+            FROM guild_invitation_history
+            WHERE guild_id = ?
+            GROUP BY inviter_player_id
+            ORDER BY invite_count DESC, inviter_player_id ASC
+            LIMIT ?
+            """.trimIndent(),
+            guildId.toString(),
+            limit
+        ).map { row ->
+            GuildInvitationLeaderboardEntry(
+                inviterPlayerId = UUID.fromString(row.getString("inviter_player_id")),
+                inviteCount = row.getInt("invite_count")
+            )
+        }
+    }
+
+    override fun getInvitationLeaderboardPage(
+        guildId: UUID,
+        offset: Int,
+        limit: Int
+    ): List<GuildInvitationLeaderboardEntry> {
+        if (limit <= 0) return emptyList()
+        return storage.connection.getResults(
+            """
+            SELECT inviter_player_id, COUNT(*) AS invite_count
+            FROM guild_invitation_history
+            WHERE guild_id = ?
+            GROUP BY inviter_player_id
+            ORDER BY invite_count DESC, inviter_player_id ASC
+            LIMIT ? OFFSET ?
+            """.trimIndent(),
+            guildId.toString(),
+            limit,
+            offset.coerceAtLeast(0)
+        ).map { row ->
+            GuildInvitationLeaderboardEntry(
+                inviterPlayerId = UUID.fromString(row.getString("inviter_player_id")),
+                inviteCount = row.getInt("invite_count")
+            )
+        }
+    }
+
+    override fun getInvitationLeaderboardInviterCount(guildId: UUID): Int =
+        storage.connection.getFirstRow(
+            "SELECT COUNT(DISTINCT inviter_player_id) AS total FROM guild_invitation_history WHERE guild_id = ?",
+            guildId.toString()
+        )?.getInt("total") ?: 0
+
+    override fun getSentInvitationCount(guildId: UUID): Int =
+        storage.connection.getFirstRow(
+            "SELECT COUNT(*) AS total FROM guild_invitation_history WHERE guild_id = ?",
+            guildId.toString()
+        )?.getInt("total") ?: 0
 }

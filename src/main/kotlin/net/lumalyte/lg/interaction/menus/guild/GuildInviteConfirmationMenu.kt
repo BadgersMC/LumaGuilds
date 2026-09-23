@@ -128,13 +128,17 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         }
 
         // Store the invitation
-        GuildInvitationManager.addInvite(
+        val invitationStored = GuildInvitationManager.addInvite(
             guildId = guild.id,
             guildName = guild.name,
             invitedPlayerId = targetPlayer.uniqueId,
             inviterPlayerId = player.uniqueId,
             inviterName = player.name
         )
+        if (!invitationStored) {
+            player.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.failed"))
+            return
+        }
 
         // Send invitation message
         player.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.sent", "player" to targetPlayer.name))

@@ -4,6 +4,7 @@ import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.InvitationLeaderboardPage
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -28,13 +29,22 @@ class BedrockGuildStatisticsMenu(
 
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
+    private val invitationStatisticsService: net.lumalyte.lg.application.services.InvitationStatisticsService by inject()
     private val lang: LangService by inject()
+    private var invitationPage = 0
+
+    companion object {
+        internal const val INVITERS_PER_PAGE = 5
+        internal const val INVITATION_PAGE_DROPDOWN_INDEX = 7
+    }
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
         val statsIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
+        val leaderboardPage = invitationStatisticsService.getLeaderboardPage(guild.id, invitationPage, INVITERS_PER_PAGE)
+        invitationPage = leaderboardPage.page
 
-        return CustomForm.builder()
+        val builder = CustomForm.builder()
             .title(lang.bedrock("bedrock.statistics.title", "guild" to guild.name))
             .apply { statsIcon?.let { icon(it) } }
             .label(lang.bedrock("bedrock.statistics.description"))
@@ -42,12 +52,35 @@ class BedrockGuildStatisticsMenu(
             .label(createOverviewSection())
             .label(createSectionHeader(lang.bedrock("bedrock.statistics.header.activity")))
             .label(createActivitySection())
+            .label(createSectionHeader(lang.bedrock("bedrock.statistics.header.invitations")))
+            .label(createInvitationSection(leaderboardPage))
+
+        if (leaderboardPage.totalPages > 1) {
+            builder.dropdown(
+                lang.bedrock("bedrock.statistics.invitations.page_selector"),
+                (1..leaderboardPage.totalPages).map { page ->
+                    lang.bedrock("bedrock.statistics.invitations.page_option", "page" to page)
+                },
+                leaderboardPage.page
+            )
+        }
+
+        builder
             .label(createSectionHeader(lang.bedrock("bedrock.statistics.header.economy")))
             .label(createEconomySection())
             .label(createSectionHeader(lang.bedrock("bedrock.statistics.header.territory")))
             .label(createTerritorySection())
+
+        return builder
             .validResultHandler { response ->
-                // Read-only menu, just close
+                if (leaderboardPage.totalPages > 1) {
+                    val selectedPage = response.asDropdown(INVITATION_PAGE_DROPDOWN_INDEX)
+                    if (selectedPage != invitationPage) {
+                        invitationPage = selectedPage
+                        open()
+                        return@validResultHandler
+                    }
+                }
                 bedrockNavigator.goBack()
             }
             .closedOrInvalidResultHandler { _, _ ->
@@ -93,6 +126,32 @@ class BedrockGuildStatisticsMenu(
         val lastSeen = formatter.format(lastActivity)
 
         return lang.bedrock("bedrock.statistics.activity", "status" to lang.bedrock("bedrock.statistics.value.active"), "last_seen" to lastSeen)
+    }
+
+    private fun createInvitationSection(leaderboardPage: InvitationLeaderboardPage): String {
+        val totalInvitations = invitationStatisticsService.getTotalInvitations(guild.id)
+        val rendered = if (leaderboardPage.entries.isEmpty()) {
+            lang.bedrock("bedrock.statistics.invitations.none")
+        } else {
+            val rankOffset = leaderboardPage.page * leaderboardPage.pageSize
+            leaderboardPage.entries.mapIndexed { index, entry ->
+                val playerName = player.server.getOfflinePlayer(entry.inviterPlayerId).name
+                    ?: entry.inviterPlayerId.toString().take(8)
+                lang.bedrock(
+                    "bedrock.statistics.invitations.entry",
+                    "rank" to rankOffset + index + 1,
+                    "player" to playerName,
+                    "count" to entry.inviteCount
+                )
+            }.joinToString("\n")
+        }
+        return lang.bedrock(
+            "bedrock.statistics.invitations.content",
+            "total" to totalInvitations,
+            "page" to leaderboardPage.page + 1,
+            "pages" to leaderboardPage.totalPages,
+            "leaderboard" to rendered
+        )
     }
 
     private fun createEconomySection(): String {
