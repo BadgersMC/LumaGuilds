@@ -79,7 +79,7 @@ class ClaimTransferRequestRepositorySQL(
         )
     }
 
-    override fun consumeClaim(claimId: UUID, playerId: UUID): Boolean = try {
+    override fun consumeClaim(claimId: UUID, playerId: UUID, nowEpochSeconds: Long): Boolean = try {
         storage.connection.executeUpdate(
             """
                 DELETE FROM ${ClaimTransferRequestSchema.TABLE}
@@ -89,7 +89,7 @@ class ClaimTransferRequestRepositorySQL(
                       FROM (
                           SELECT claim_id
                           FROM ${ClaimTransferRequestSchema.TABLE}
-                          WHERE claim_id = ? AND player_id = ?
+                          WHERE claim_id = ? AND player_id = ? AND expires_at > ?
                           LIMIT 1
                       ) AS eligible_transfer
                   )
@@ -97,6 +97,7 @@ class ClaimTransferRequestRepositorySQL(
             claimId.toString(),
             claimId.toString(),
             playerId.toString(),
+            nowEpochSeconds,
         ) > 0
     } catch (exception: SQLException) {
         throw DatabaseOperationException(
