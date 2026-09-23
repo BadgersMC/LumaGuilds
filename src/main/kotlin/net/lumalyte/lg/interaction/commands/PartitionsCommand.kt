@@ -31,8 +31,8 @@ class PartitionsCommand : ClaimCommand(), KoinComponent {
         // Get partitions of claim
         val partitions = getClaimPartitions.execute(partition.claimId)
 
-        // Check if page is empty
-        if (page * 10 - 9 > partitions.count() || page < 1) {
+        val bounds = pageBounds(partitions.size, page)
+        if (bounds == null) {
             player.sendMessage(lang.msg("command.common.invalid_page"))
             return
         }
@@ -41,16 +41,12 @@ class PartitionsCommand : ClaimCommand(), KoinComponent {
         val claimName = getClaimName(player.uniqueId, partition.claimId)
         val header = lang.msg("command.partitions.header", "claim" to claimName)
         val chatInfo = ChatInfoBuilder(lang, player.uniqueId, header)
-        for (i in 0..9 + page) {
-            if (i > partitions.count() - 1) {
-                break
-            }
-
-            chatInfo.addIndexed(i, lang.msg("command.partitions.row",
-                "lower_x" to partitions[i].area.lowerPosition2D.x,
-                "lower_z" to partitions[i].area.lowerPosition2D.z,
-                "upper_x" to partitions[i].area.upperPosition2D.x,
-                "upper_z" to partitions[i].area.upperPosition2D.z,
+        bounds.forEach { index ->
+            chatInfo.addIndexed(index, lang.msg("command.partitions.row",
+                "lower_x" to partitions[index].area.lowerPosition2D.x,
+                "lower_z" to partitions[index].area.lowerPosition2D.z,
+                "upper_x" to partitions[index].area.upperPosition2D.x,
+                "upper_z" to partitions[index].area.upperPosition2D.z,
             ))
         }
         player.sendMessage(chatInfo.createPaged(page, ceil((partitions.count() / 10.0)).toInt()))

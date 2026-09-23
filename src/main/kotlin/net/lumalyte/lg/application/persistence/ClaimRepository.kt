@@ -81,6 +81,18 @@ interface ClaimRepository {
     fun update(claim: Claim): Boolean
 
     /**
+     * Updates a claim only while the persisted owner still matches the caller's snapshot.
+     *
+     * Implementations backed by a database should override this with an atomic conditional
+     * write. The default keeps test/in-memory repositories source-compatible.
+     */
+    fun updateIfOwnedBy(claim: Claim, expectedOwnerId: UUID): Boolean {
+        val current = getById(claim.id) ?: return false
+        if (current.playerId != expectedOwnerId) return false
+        return update(claim)
+    }
+
+    /**
      * Removes an existing claim.
      *
      * @param claimId The id of the claim to remove.

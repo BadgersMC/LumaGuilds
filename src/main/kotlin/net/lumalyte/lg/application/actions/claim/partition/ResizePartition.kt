@@ -48,17 +48,17 @@ class ResizePartition(private val claimRepository: ClaimRepository,
         }
 
         // Check if claim takes too much space
-        if (playerBlockCount - partition.area.getBlockCount() + newPartition.area.getBlockCount() > playerBlockLimit) {
-            val requiredExtraBlocks = (playerBlockCount + newArea.getBlockCount()) - playerBlockLimit
-            return ResizePartitionResult.InsufficientBlocks(requiredExtraBlocks)
+        val resizedBlockCount =
+            playerBlockCount - partition.area.getBlockCount() + newPartition.area.getBlockCount()
+        if (resizedBlockCount > playerBlockLimit) {
+            return ResizePartitionResult.InsufficientBlocks(resizedBlockCount - playerBlockLimit)
         }
 
-        // Check if claim resize would result a partition being disconnected from the main
-        if (isResizeResultInAnyDisconnected(newPartition)) return ResizePartitionResult.Disconnected
-
         // Successful resizing
-        partitionRepository.update(newPartition)
-        val blocksRemaining = playerBlockLimit - playerBlockCount - newArea.getBlockCount()
+        if (!partitionRepository.update(newPartition)) {
+            return ResizePartitionResult.StorageError
+        }
+        val blocksRemaining = playerBlockLimit - resizedBlockCount
         return ResizePartitionResult.Success(claim, partition, blocksRemaining)
     }
 

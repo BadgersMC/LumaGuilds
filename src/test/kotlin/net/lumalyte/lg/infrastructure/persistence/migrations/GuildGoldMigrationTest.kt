@@ -62,7 +62,7 @@ class GuildGoldMigrationTest {
         assertTrue(tableExists("guild_gold_operations"))
         assertTrue(tableExists("guild_gold_withdrawal_usage"))
         assertTrue(tableExists("guild_gold_security"))
-        assertEquals(38, databaseVersion())
+        assertEquals(39, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

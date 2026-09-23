@@ -52,13 +52,13 @@ class ClaimRepositorySQLite(private val storage: Storage<Database>): ClaimReposi
     }
 
     override fun add(claim: Claim): Boolean {
-        claims[claim.id] = claim
         try {
             val rowsAffected = storage.connection.executeUpdate("INSERT INTO claims (id, world_id, owner_id, team_id, " +
                     "creation_time, name, description, position_x, position_y, position_z, icon) " +
                     "VALUES (?,?,?,?,?,?,?,?,?,?,?);",
                 claim.id, claim.worldId, claim.playerId, claim.teamId, claim.creationTime, claim.name, claim.description,
                 claim.position.x, claim.position.y, claim.position.z, claim.icon)
+            if (rowsAffected > 0) claims[claim.id] = claim
             return rowsAffected > 0
         } catch (error: SQLException) {
             throw DatabaseOperationException("Failed to add claim '${claim.name}' to the database. " +
@@ -67,14 +67,13 @@ class ClaimRepositorySQLite(private val storage: Storage<Database>): ClaimReposi
     }
 
     override fun update(claim: Claim): Boolean {
-        claims.remove(claim.id)
-        claims[claim.id] = claim
         try {
             val rowsAffected = storage.connection.executeUpdate("UPDATE claims SET world_id=?, owner_id=?, team_id=?, " +
                     "creation_time=?, name=?, description=?, position_x=?, " +
                     "position_y=?, position_z=?, icon=? WHERE id=?;",
                 claim.worldId, claim.playerId, claim.teamId, claim.creationTime, claim.name, claim.description,
                 claim.position.x, claim.position.y, claim.position.z, claim.icon, claim.id)
+            if (rowsAffected > 0) claims[claim.id] = claim
             return rowsAffected > 0
         } catch (error: SQLException) {
             throw DatabaseOperationException("Failed to add update claim '${claim.name}' in the database. " +
@@ -82,10 +81,25 @@ class ClaimRepositorySQLite(private val storage: Storage<Database>): ClaimReposi
         }
     }
 
+    override fun updateIfOwnedBy(claim: Claim, expectedOwnerId: UUID): Boolean {
+        try {
+            val rowsAffected = storage.connection.executeUpdate("UPDATE claims SET world_id=?, owner_id=?, team_id=?, " +
+                    "creation_time=?, name=?, description=?, position_x=?, " +
+                    "position_y=?, position_z=?, icon=? WHERE id=? AND owner_id=?;",
+                claim.worldId, claim.playerId, claim.teamId, claim.creationTime, claim.name, claim.description,
+                claim.position.x, claim.position.y, claim.position.z, claim.icon, claim.id, expectedOwnerId)
+            if (rowsAffected > 0) claims[claim.id] = claim
+            return rowsAffected > 0
+        } catch (error: SQLException) {
+            throw DatabaseOperationException("Failed to conditionally update claim '${claim.name}' in the database. " +
+                    "Cause: ${error.message}", error)
+        }
+    }
+
     override fun remove(claimId: UUID): Boolean {
-        claims.remove(claimId)
         try {
             val rowsAffected = storage.connection.executeUpdate("DELETE FROM claims WHERE id=?;", claimId)
+            if (rowsAffected > 0) claims.remove(claimId)
             return rowsAffected > 0
         } catch (error: SQLException) {
             throw DatabaseOperationException("Failed to remove claim '$claimId' from the database. " +
