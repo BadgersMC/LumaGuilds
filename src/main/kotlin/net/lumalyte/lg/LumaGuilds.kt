@@ -52,6 +52,7 @@ class LumaGuilds : JavaPlugin() {
     private lateinit var bankInterestScheduler: net.lumalyte.lg.infrastructure.services.BankInterestScheduler
     private lateinit var qualifiedRecruitScheduler: net.lumalyte.lg.infrastructure.services.QualifiedRecruitScheduler
     private var experienceTransactionCleanupScheduler: net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler? = null
+    private var chapterRolloverScheduler: net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     private val componentLogger = getComponentLogger()
 
@@ -187,6 +188,8 @@ class LumaGuilds : JavaPlugin() {
 
         // Initialize relation maintenance scheduler (truce expiry + stale-request cleanup)
         initRelationMaintenanceScheduler()
+
+        chapterRolloverScheduler = net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler(this, storage).also { it.start() }
 
         // Start Web API (read-only JSON endpoint for the website)
         try {
@@ -1339,6 +1342,7 @@ class LumaGuilds : JavaPlugin() {
 
         // Stop the experience transaction cleanup scheduler
         experienceTransactionCleanupScheduler?.stop()
+        chapterRolloverScheduler?.stop()
 
         // Shutdown virtual thread executor
         try {

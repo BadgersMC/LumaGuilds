@@ -6821,8 +6821,21 @@ admin:
         use_bedrockcachestats_clear_to_clear_the_cache: '<gray>Use <white>/bedrockcachestats clear <gray>to clear the cache'
     luma_guilds:
       command:
-        this_command_can_only_be_used_by: '<red>This command can only be used by players!'
         unknown_subcommand: '<red>Unknown subcommand: <args>'
+      handlechapter:
+        no_permission: '<red>❌ You do not have permission to manage chapter transitions.'
+        usage: '<yellow>Usage: /lumaguilds chapter \<status|backup|postpone|retry|force> \<chapterId> [value]'
+        postpone_usage: '<yellow>Usage: /lumaguilds chapter postpone \<chapterId> \<ISO-8601 time|epoch millis>'
+        invalid_time: '<red>❌ Invalid time. Use ISO-8601 (for example 2026-10-01T04:00:00Z) or epoch milliseconds.'
+        status: '<gold><chapter> <gray>(<chapter_id>) <white>phase=<phase> <gray>end=<ends_at> backup=<backup_id> verified=<backup_verified> restoreVerified=<restore_verified> error=<error>'
+        postponed: '<green>✅ Chapter <chapter_id> postponed to <ends_at>.'
+        retry_requested: '<green>✅ Retry prepared for chapter <chapter_id> at phase <phase>. The scheduler will retry this persisted phase.'
+        force_confirm: '<yellow>⚠ Force makes the chapter due immediately but never skips backup/archive safety. Re-run with literal CONFIRM.'
+        force_due: '<green>✅ Chapter <chapter_id> is due/retry-ready at phase <phase>; no lifecycle states were skipped.'
+        sqlite_only: '<red>❌ In-plugin verified chapter backup currently supports SQLite only.'
+        backup_started: '<yellow>🔄 Creating and restore-verifying chapter backup <backup_id>...'
+        backup_verified: '<green>✅ Backup <backup_id> verified and restore-tested. <gray>Path: <path> SHA-256: <sha256>'
+        failed: '<red>❌ Chapter operation failed: <reason>'
       handledisband:
         all_members_have_been_removed_from_the: '<gray>All members have been removed from the guild.'
         bellclaims_disband_confirm: '<yellow>/bellclaims disband <guild> confirm'
@@ -6893,6 +6906,7 @@ admin:
         bellclaims_disband_guild_confirm_force_disband_a: '<yellow>/bellclaims disband \<guild> confirm <gray>- Force disband a guild (OP only)'
         bellclaims_help_show_this_help: '<yellow>/bellclaims help <gray>- Show this help'
         bellclaims_migrate_confirm_migrate_sqlite_mariadb_op: '<yellow>/bellclaims migrate confirm <gray>- Migrate SQLite → MariaDB (OP only)'
+        chapter_admin_controls: '<yellow>/lumaguilds chapter ... <gray>- Chapter status, verified backup, postpone, retry, and force-due controls (OP/Admin)'
         bellclaims_override_toggle_admin_override_mode_admin: '<yellow>/bellclaims override <gray>- Toggle admin override mode (Admin only)'
         bellclaims_progressionreload_reload_progression_yml_op_only: '<yellow>/bellclaims progressionreload <gray>- Reload progression.yml (OP only)'
         bellclaims_reload_reload_plugin_configuration_op_only: '<yellow>/bellclaims reload <gray>- Reload plugin configuration (OP only)'
