@@ -27,7 +27,7 @@ class RenameCommand : ClaimCommand(), KoinComponent {
     fun onRename(player: Player, name: String) {
         // Gets the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return
-        if (!isPlayerHasClaimPermission(player, partition)) return
+        if (!isPlayerHasClaimPermission(player, partition, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_CLAIMS)) return
 
         // Assign common variables
         val claimId = partition.claimId

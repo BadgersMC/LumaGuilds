@@ -6,6 +6,7 @@ import net.lumalyte.lg.application.actions.claim.transfer.DoesPlayerHaveTransfer
 import net.lumalyte.lg.application.actions.claim.anchor.GetClaimAnchorAtPosition
 import net.lumalyte.lg.application.actions.claim.CreateClaim
 import net.lumalyte.lg.application.actions.player.DoesPlayerHaveClaimOverride
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.results.claim.transfer.DoesPlayerHaveTransferRequestResult
 import net.lumalyte.lg.application.results.claim.anchor.GetClaimAnchorAtPositionResult
 import net.lumalyte.lg.application.results.player.DoesPlayerHaveClaimOverrideResult
@@ -34,6 +35,7 @@ class ClaimAnchorListener(): Listener, KoinComponent {
     private val createClaim: CreateClaim by inject()
     private val doesPlayerHaveTransferRequest: DoesPlayerHaveTransferRequest by inject()
     private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
 
     @EventHandler
@@ -76,8 +78,9 @@ class ClaimAnchorListener(): Listener, KoinComponent {
                 is DoesPlayerHaveClaimOverrideResult.Success -> result.hasOverride
             }
 
-            // Notify no ability to interact with the claim without being owner or without an active transfer request
-            if (claim.playerId != event.player.uniqueId && !playerHasTransferRequest && !claimOverride) {
+            // Personal owners, guild managers, transfer recipients, and overrides may access the claim flow.
+            val canManageClaim = claimManagementAuthorizer.hasAnyManagementPermission(event.player.uniqueId, claim)
+            if (!canManageClaim && !playerHasTransferRequest && !claimOverride) {
                 val playerName = Bukkit.getOfflinePlayer(claim.playerId).name ?: "general.name_error"
                 event.player.sendActionBar(
                     lang.msg("feedback.claim.owner", "owner" to playerName)

@@ -42,6 +42,7 @@ import org.bukkit.event.block.BlockBurnEvent
 import org.bukkit.event.block.BlockDispenseEvent
 import org.bukkit.event.block.BlockFormEvent
 import org.bukkit.event.block.BlockFromToEvent
+import org.bukkit.event.block.BlockExplodeEvent
 import org.bukkit.event.block.BlockPistonExtendEvent
 import org.bukkit.event.block.BlockPistonRetractEvent
 import org.bukkit.event.block.BlockSpreadEvent
@@ -169,27 +170,23 @@ class WorldClaimProtectionListener: Listener, KoinComponent {
             affectedLocations.add(newBlockPosition)
         }
 
-        // Perform checks to see if in claim, and if the claim has piston flag
+        // Check every cross-claim destination; an early allowed block must not skip a later denial.
         val action = WorldActionType.PISTON_EXTEND
-        for (location in affectedLocations) {
-            // Get claim that the block being moved occupies
-            val blockClaim = when (
-                val result = getClaimAtPosition.execute(location.world.uid, location.toPosition2D())) {
-                is GetClaimAtPositionResult.Success -> result.claim
-                else -> null
-            }
-
-            // If they're in the same claim, bypass check
-            if (blockClaim == pistonClaim) continue
-
-            // Cancel if claim being moved into doesn't allow the action
-            when (isWorldActionAllowed.execute(location.world.uid, location.toPosition2D(), action)) {
-                is Denied -> {
-                    event.isCancelled = true
-                    return
+        if (hasDeniedRelevantTarget(
+            affectedLocations,
+            isRelevant = { location ->
+                val blockClaim = when (
+                    val result = getClaimAtPosition.execute(location.world.uid, location.toPosition2D())) {
+                    is GetClaimAtPositionResult.Success -> result.claim
+                    else -> null
                 }
-                else -> return
-            }
+                blockClaim != pistonClaim
+            },
+            isDenied = { location ->
+                isWorldActionAllowed.execute(location.world.uid, location.toPosition2D(), action) is Denied
+            },
+        )) {
+            event.isCancelled = true
         }
     }
 
@@ -202,27 +199,23 @@ class WorldClaimProtectionListener: Listener, KoinComponent {
             else -> null
         }
 
-        // Perform checks to see if in claim, and if the claim has piston flag
+        // Check every cross-claim source block; an early allowed block must not skip a later denial.
         val action = WorldActionType.PISTON_RETRACT
-        for (block in event.blocks) {
-            // Get claim that the block being moved occupies
-            val blockClaim = when (
-                val result = getClaimAtPosition.execute(block.location.world.uid, block.location.toPosition2D())) {
-                is GetClaimAtPositionResult.Success -> result.claim
-                else -> null
-            }
-
-            // If they're in the same claim, bypass check
-            if (blockClaim == pistonClaim) continue
-
-            // Cancel if claim the blocks are being moved in doesn't allow the action
-            when (isWorldActionAllowed.execute(block.world.uid, block.location.toPosition2D(), action)) {
-                is Denied -> {
-                    event.isCancelled = true
-                    return
+        if (hasDeniedRelevantTarget(
+            event.blocks,
+            isRelevant = { block ->
+                val blockClaim = when (
+                    val result = getClaimAtPosition.execute(block.location.world.uid, block.location.toPosition2D())) {
+                    is GetClaimAtPositionResult.Success -> result.claim
+                    else -> null
                 }
-                else -> return
-            }
+                blockClaim != pistonClaim
+            },
+            isDenied = { block ->
+                isWorldActionAllowed.execute(block.world.uid, block.location.toPosition2D(), action) is Denied
+            },
+        )) {
+            event.isCancelled = true
         }
     }
 
@@ -235,7 +228,7 @@ class WorldClaimProtectionListener: Listener, KoinComponent {
     }
 
     @EventHandler
-    fun onBlockExplodeEvent(event: EntityExplodeEvent) {
+    fun onBlockExplodeEvent(event: BlockExplodeEvent) {
         val action = WorldActionType.BLOCK_EXPLOSION_DESTROY_BLOCK
         val cancelledBlocks = fetchBlocksToCancel(event.blockList(), action)
         event.blockList().removeAll(cancelledBlocks)
@@ -393,7 +386,7 @@ class WorldClaimProtectionListener: Listener, KoinComponent {
             if (sourceClaim == affectedClaim) continue
             when (isWorldActionAllowed.execute(block.location.world.uid, block.location.toPosition2D(), action)) {
                 is Denied -> event.isCancelled = true
-                else -> return
+                else -> continue
             }
         }
         event.blocks.removeAll(cancelledBlocks)

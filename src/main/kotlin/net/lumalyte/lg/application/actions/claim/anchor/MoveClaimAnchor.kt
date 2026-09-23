@@ -6,15 +6,18 @@ import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult
 import net.lumalyte.lg.application.results.claim.anchor.MoveClaimAnchorResult
 import net.lumalyte.lg.application.results.player.DoesPlayerHaveClaimOverrideResult
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.services.WorldManipulationService
 import net.lumalyte.lg.domain.entities.Claim
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.Position3D
 import java.util.UUID
 
 class MoveClaimAnchor(private val claimRepository: ClaimRepository,
                       private val worldManipulationService: WorldManipulationService,
                       private val getClaimAtPosition: GetClaimAtPosition,
-                      private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride
+                      private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride,
+                      private val claimManagementAuthorizer: ClaimManagementAuthorizer,
 ) {
     fun execute(claimId: UUID, playerId: UUID, newWorldId: UUID, newPosition: Position3D): MoveClaimAnchorResult {
         // Get the claim that is being moved
@@ -37,8 +40,8 @@ class MoveClaimAnchor(private val claimRepository: ClaimRepository,
             is DoesPlayerHaveClaimOverrideResult.Success -> result.hasOverride
         }
 
-        // Check if the player moving the claim bell is the owner of the claim
-        if (existingClaim.playerId != playerId && !claimOverride) {
+        // Personal owner, guild managers, or explicit override may move the anchor.
+        if (!claimOverride && !claimManagementAuthorizer.hasPermission(playerId, existingClaim, RankPermission.MANAGE_CLAIMS)) {
             return MoveClaimAnchorResult.NoPermission
         }
 

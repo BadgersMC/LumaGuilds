@@ -6,6 +6,7 @@ import com.destroystokyo.paper.event.block.BlockDestroyEvent
 import net.lumalyte.lg.application.actions.claim.anchor.BreakClaimAnchor
 import net.lumalyte.lg.application.actions.claim.anchor.GetClaimAnchorAtPosition
 import net.lumalyte.lg.application.actions.player.DoesPlayerHaveClaimOverride
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.results.claim.anchor.BreakClaimAnchorResult
 import net.lumalyte.lg.application.results.claim.anchor.GetClaimAnchorAtPositionResult
 import net.lumalyte.lg.application.results.player.DoesPlayerHaveClaimOverrideResult
@@ -14,6 +15,7 @@ import org.bukkit.block.data.type.Bell
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.Position3D
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toLocation
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
@@ -43,6 +45,7 @@ class ClaimDestructionListener: Listener, KoinComponent {
     private val getClaimAnchorAtPosition: GetClaimAnchorAtPosition by inject()
     private val breakClaimAnchor: BreakClaimAnchor by inject()
     private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
 
     @EventHandler
     fun onClaimHubDestroy(event: BlockBreakEvent) {
@@ -60,7 +63,7 @@ class ClaimDestructionListener: Listener, KoinComponent {
 
         // No permission to break bell
         val playerId = event.player.uniqueId
-        if (playerId != claim.playerId && !hasOverride) {
+        if (!hasOverride && !claimManagementAuthorizer.hasPermission(playerId, claim, RankPermission.DELETE_CLAIMS)) {
             val playerName = Bukkit.getOfflinePlayer(claim.playerId).name ?:
                 lang.msg("general.name_error")
             event.player.sendActionBar(
