@@ -330,6 +330,22 @@ class WarServiceBukkit(
         if (!declaringKill && !defendingKill) return null
 
         val current = record.stats ?: WarStats(warId)
+        val persistedWinners = listOf(war.declaringGuildId, war.defendingGuildId)
+            .filter { guildId -> killTargetVictoryTerms(war, current, guildId) != null }
+        if (persistedWinners.isNotEmpty()) {
+            if (persistedWinners.size == 1) {
+                val pendingWinner = persistedWinners.single()
+                if (!resolveReachedKillTarget(warId, pendingWinner)) {
+                    logger.error("Failed to recover persisted kill-target victory for war $warId")
+                }
+            } else {
+                logger.error(
+                    "War $warId has conflicting persisted global kill-target victories; refusing another kill"
+                )
+            }
+            return null
+        }
+
         val updated = if (declaringKill) {
             current.copy(
                 declaringGuildKills = Math.addExact(current.declaringGuildKills, 1),
@@ -348,15 +364,60 @@ class WarServiceBukkit(
         val target = getWarKillWinTarget()
         val killerKills = if (declaringKill) updated.declaringGuildKills else updated.defendingGuildKills
         val winner = killerGuildId.takeIf { killerKills >= target }
-        if (winner != null) {
-            check(endWar(
-                warId = warId,
-                winnerGuildId = winner,
-                peaceTerms = "Victory achieved by reaching the global war kill target ($killerKills/$target)",
-                actorId = SYSTEM_ACTOR,
-            )) { "Failed to end war after kill target was reached" }
-        }
         return net.lumalyte.lg.application.services.WarKillCounterUpdate(updated, target, winner)
+    }
+
+    @Synchronized
+    override fun resolveReachedKillTarget(warId: UUID, winnerGuildId: UUID): Boolean {
+        val record = warRepository.get(warId) ?: return false
+        val war = record.war ?: return false
+        if (!war.isActive) return false
+
+        val terms = killTargetVictoryTerms(war, record.stats ?: WarStats(warId), winnerGuildId)
+            ?: return false
+        return endWar(warId, winnerGuildId, terms, SYSTEM_ACTOR)
+    }
+
+    @Synchronized
+    override fun reconcilePendingKillVictories(): Int =
+        reconcilePendingKillVictories(warRepository.getAll())
+
+    private fun reconcilePendingKillVictories(records: Iterable<DurableWarRecord>): Int {
+        var resolved = 0
+        records.forEach { record ->
+            val war = record.war?.takeIf { it.isActive } ?: return@forEach
+            val stats = record.stats ?: return@forEach
+            val candidates = listOf(war.declaringGuildId, war.defendingGuildId)
+                .mapNotNull { guildId ->
+                    killTargetVictoryTerms(war, stats, guildId)?.let { terms -> guildId to terms }
+                }
+
+            when (candidates.size) {
+                0 -> Unit
+                1 -> {
+                    val (winner, terms) = candidates.single()
+                    if (endWar(war.id, winner, terms, SYSTEM_ACTOR)) resolved++
+                }
+                else -> logger.error(
+                    "War ${war.id} has conflicting persisted global kill-target victories; refusing automatic resolution"
+                )
+            }
+        }
+        return resolved
+    }
+
+    private fun killTargetVictoryTerms(war: War, stats: WarStats, guildId: UUID): String? {
+        val kills = when (guildId) {
+            war.declaringGuildId -> stats.declaringGuildKills
+            war.defendingGuildId -> stats.defendingGuildKills
+            else -> return null
+        }
+        val target = getWarKillWinTarget()
+        return if (kills >= target) {
+            "Victory achieved by reaching the global war kill target ($kills/$target)"
+        } else {
+            null
+        }
     }
 
 
@@ -528,6 +589,7 @@ class WarServiceBukkit(
     @Synchronized
     override fun processExpiredWars(): Int {
         val snapshot = warRepository.getAll().associateBy { it.id }.toMutableMap()
+        var processedCount = reconcilePendingKillVictories(snapshot.values)
         // Only resume acceptance already recorded as fully funded. Never start a fresh charge
         // from a timer or revive expired consent; other incomplete phases remain held.
         snapshot.values.toList().filter {
@@ -551,7 +613,6 @@ class WarServiceBukkit(
                 warRepository.get(it.id)?.let { updated -> snapshot[it.id] = updated }
             }
         val now = Instant.now()
-        var processedCount = 0
 
         // Process expired declarations
         val expiredDeclarations = snapshot.values.mapNotNull { it.declaration }.filter { !it.accepted && !it.rejected && it.expiresAt.isBefore(now) }
