@@ -59,6 +59,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val bankService: net.lumalyte.lg.application.services.BankService by inject()
     private val guildCostService: net.lumalyte.lg.application.services.GuildCostService by inject()
     private val warBannerService: net.lumalyte.lg.infrastructure.services.WarBannerServiceBukkit by inject()
+    private val guildLoginNotificationService: net.lumalyte.lg.application.services.GuildLoginNotificationService by inject()
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
@@ -1077,6 +1078,45 @@ class GuildCommand : BaseCommand(), KoinComponent {
         } else {
             player.sendMessage(lang.msg("command.migrated.guild.guildchat.guild_chat_disabled_your_messages_go_to"))
         }
+    }
+
+    @Subcommand("notifications|notify")
+    @CommandCompletion("on|off|toggle")
+    fun onNotifications(player: Player, @Optional state: String?) {
+        val current = guildLoginNotificationService.isEnabled(player.uniqueId)
+        if (state == null) {
+            player.sendMessage(
+                if (current) {
+                    lang.msg("command.migrated.guild.notifications.status_enabled")
+                } else {
+                    lang.msg("command.migrated.guild.notifications.status_disabled")
+                }
+            )
+            player.sendMessage(lang.msg("command.migrated.guild.notifications.usage"))
+            return
+        }
+
+        val enabled = when (state.lowercase()) {
+            "on", "enable", "enabled" -> true
+            "off", "disable", "disabled" -> false
+            "toggle" -> !current
+            else -> {
+                player.sendMessage(lang.msg("command.migrated.guild.notifications.invalid"))
+                return
+            }
+        }
+
+        if (!guildLoginNotificationService.setEnabled(player.uniqueId, enabled)) {
+            player.sendMessage(lang.msg("command.migrated.guild.notifications.save_failed"))
+            return
+        }
+        player.sendMessage(
+            if (enabled) {
+                lang.msg("command.migrated.guild.notifications.enabled")
+            } else {
+                lang.msg("command.migrated.guild.notifications.disabled")
+            }
+        )
     }
 
     @Subcommand("allychat")

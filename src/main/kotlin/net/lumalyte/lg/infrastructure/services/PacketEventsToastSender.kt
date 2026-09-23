@@ -15,39 +15,39 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.Plugin
 import java.util.UUID
 
-enum class WarToastFrame {
+enum class ToastFrame {
     TASK,
     GOAL,
     CHALLENGE,
 }
 
-interface WarToastSender {
+interface ToastSender {
     fun show(
         player: Player,
         notificationId: UUID,
         title: Component,
         description: Component,
         icon: ItemStack,
-        frame: WarToastFrame,
+        frame: ToastFrame,
     ): Boolean
 }
 
-class PacketEventsWarToastSender(
+class PacketEventsToastSender(
     private val plugin: Plugin,
-) : WarToastSender {
+) : ToastSender {
     override fun show(
         player: Player,
         notificationId: UUID,
         title: Component,
         description: Component,
         icon: ItemStack,
-        frame: WarToastFrame,
+        frame: ToastFrame,
     ): Boolean {
         if (!isAvailable()) return false
         return runCatching {
             val key = ResourceLocation(
                 "lumaguilds",
-                "war_toast/${notificationId.toString().replace("-", "")}",
+                "toast/${notificationId.toString().replace("-", "")}",
             )
             val display = AdvancementDisplay(
                 title,
