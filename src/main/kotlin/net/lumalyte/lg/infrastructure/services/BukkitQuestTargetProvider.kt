@@ -6,6 +6,7 @@ import net.lumalyte.lg.domain.entities.QuestTarget
 import net.lumalyte.lg.domain.entities.QuestTargetRarity
 import net.lumalyte.lg.domain.services.QuestAmountPolicy
 import net.lumalyte.lg.domain.services.QuestTargetProvider
+import io.papermc.paper.datacomponent.DataComponentTypes
 import net.lumalyte.lg.domain.values.QuestAction
 import org.bukkit.Material
 import org.bukkit.block.data.Ageable
@@ -13,6 +14,7 @@ import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.inventory.CookingRecipe
+import org.bukkit.inventory.CraftingRecipe
 import org.bukkit.inventory.Recipe
 import org.bukkit.plugin.Plugin
 
@@ -22,9 +24,15 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
     override fun discoverTargets(): Collection<QuestTarget> {
         val recipes = allRecipes()
         val compressionBlocks = compressionBlocks(recipes)
+        val playerProducibleBlocks = recipes.asSequence()
+            .map(Recipe::getResult)
+            .map { it.type }
+            .filter { !it.isLegacy && it.isBlock && !it.isAir }
+            .toSet()
         val result = mutableListOf<QuestTarget>()
 
         Material.entries.asSequence()
+            .filter { !it.isLegacy }
             .filter { it.isBlock && !it.isAir }
             .filterNot { it.name in TECHNICAL_BLOCKS }
             .forEach { material ->
@@ -40,13 +48,15 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                         conditions = SPATIAL_CONDITIONS
                     )
                 } else {
-                    result += target(
-                        id = blockId(material),
-                        action = QuestAction.MINE_BLOCKS,
-                        rarity = rarity,
-                        provenance = BlockProvenancePolicy.NATURAL_ONLY,
-                        conditions = SPATIAL_CONDITIONS
-                    )
+                    if (isNaturalMineTarget(material, playerProducibleBlocks)) {
+                        result += target(
+                            id = blockId(material),
+                            action = QuestAction.MINE_BLOCKS,
+                            rarity = rarity,
+                            provenance = BlockProvenancePolicy.NATURAL_ONLY,
+                            conditions = SPATIAL_CONDITIONS
+                        )
+                    }
                     if (material.isItem) {
                         result += target(
                             id = blockId(material),
@@ -88,9 +98,9 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
         )
 
         recipes.asSequence()
-            .filterNot { it is CookingRecipe<*> }
+            .filter(::isCraftingMatrixRecipe)
             .map(Recipe::getResult)
-            .filter { !it.type.isAir }
+            .filter { !it.type.isLegacy && !it.type.isAir }
             .distinctBy { it.type.key }
             .forEach { stack ->
                 result += target(
@@ -103,7 +113,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
 
         recipes.filterIsInstance<CookingRecipe<*>>()
             .map { it.result }
-            .filter { !it.type.isAir }
+            .filter { !it.type.isLegacy && !it.type.isAir }
             .distinctBy { it.type.key }
             .forEach { stack ->
                 result += target(
@@ -122,7 +132,8 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
         )
 
         Material.entries.asSequence()
-            .filter { it.isItem && (it.maxDurability > 0 || it.name == "BOOK") }
+            .filter { !it.isLegacy }
+            .filter(::isEnchantingTableTarget)
             .forEach { material ->
                 result += target(
                     id = itemId(material),
@@ -212,6 +223,52 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
             "END_STONE", "_LOG", "_WOOD", "_PLANKS"
         )
 
+        private val NON_NATURAL_MINE_TARGETS = setOf(
+            Material.NETHERITE_BLOCK,
+        )
+
+        /**
+         * Blocks that have a player-production recipe but are also known to occur
+         * in world or structure generation. Be conservative here: omitting a valid
+         * target is preferable to generating an impossible NATURAL_ONLY quest.
+         */
+        private val WORLD_GENERATED_CRAFTABLE_BLOCKS = setOf(
+            Material.STONE,
+            Material.CLAY,
+            Material.SANDSTONE,
+            Material.RED_SANDSTONE,
+            Material.SNOW_BLOCK,
+            Material.BONE_BLOCK,
+            Material.HAY_BLOCK,
+            Material.MELON,
+            Material.GOLD_BLOCK,
+            Material.RAW_IRON_BLOCK,
+            Material.RAW_COPPER_BLOCK,
+            Material.STONE_BRICKS,
+            Material.MOSSY_STONE_BRICKS,
+            Material.NETHER_BRICKS,
+            Material.END_STONE_BRICKS,
+            Material.PRISMARINE,
+            Material.PRISMARINE_BRICKS,
+            Material.DARK_PRISMARINE,
+            Material.POLISHED_BLACKSTONE_BRICKS,
+            Material.PURPUR_BLOCK,
+            Material.PURPUR_PILLAR,
+        )
+
+        internal fun isNaturalMineTarget(
+            material: Material,
+            playerProducibleBlocks: Set<Material> = emptySet(),
+        ): Boolean {
+            if (material.isLegacy || material in NON_NATURAL_MINE_TARGETS) return false
+            return material !in playerProducibleBlocks || material in WORLD_GENERATED_CRAFTABLE_BLOCKS
+        }
+
+        internal fun isCraftingMatrixRecipe(recipe: Recipe): Boolean = recipe is CraftingRecipe
+
+        internal fun isEnchantingTableTarget(material: Material): Boolean =
+            !material.isLegacy && material.isItem && material.hasDefaultData(DataComponentTypes.ENCHANTABLE)
+
         private val TECHNICAL_BLOCKS = setOf(
             "AIR", "CAVE_AIR", "VOID_AIR", "BEDROCK", "END_PORTAL", "END_PORTAL_FRAME",
             "NETHER_PORTAL", "BARRIER", "LIGHT", "STRUCTURE_BLOCK", "STRUCTURE_VOID",
@@ -221,4 +278,3 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
         )
     }
 }
-
