@@ -50,6 +50,34 @@ class DiscordSrvGuildRoleGateway : DiscordGuildRoleGateway {
     ): CompletableFuture<DiscordMemberRoleResult> =
         mutateRoleByDiscordId(discordId, roleId, grant = false)
 
+    override fun revokeUnexpectedRoleMembers(
+        roleId: String,
+        allowedPlayerIds: Set<UUID>,
+    ): CompletableFuture<Int> {
+        val plugin = runCatching { DiscordSRV.getPlugin() }.getOrNull()
+            ?: return failedFuture(IllegalStateException("DiscordSRV plugin is unavailable"))
+        val guild = mainGuild()
+            ?: return failedFuture(IllegalStateException("DiscordSRV main guild is unavailable"))
+        val role = guild.getRoleById(roleId)
+            ?: return CompletableFuture.completedFuture(0)
+
+        return CompletableFuture.supplyAsync {
+            plugin.accountLinkManager.getManyDiscordIds(allowedPlayerIds).values.toSet()
+        }.thenCompose { allowedDiscordIds ->
+            val unexpected = guild.getMembersWithRoles(role)
+                .filter { member -> member.id !in allowedDiscordIds }
+            if (unexpected.isEmpty()) {
+                CompletableFuture.completedFuture(0)
+            } else {
+                val removals = unexpected.map { member ->
+                    guild.removeRoleFromMember(member, role).submit()
+                }
+                CompletableFuture.allOf(*removals.toTypedArray())
+                    .thenApply { unexpected.size }
+            }
+        }
+    }
+
     override fun deleteRole(roleId: String): CompletableFuture<Boolean> {
         val guild = mainGuild() ?: return CompletableFuture.completedFuture(false)
         val role = guild.getRoleById(roleId) ?: return CompletableFuture.completedFuture(true)

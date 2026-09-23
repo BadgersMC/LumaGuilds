@@ -68,16 +68,22 @@ class GuildDiscordRoleService(
         val guild = guildService.getGuild(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
 
         return ensureRole(guild, config).thenCompose { ensured ->
-            val memberFutures = memberService.getGuildMembers(guild.id).map { member ->
-                gateway.grantRole(member.playerId, ensured.roleId)
-                    .handle { result, error -> memberResult(result, error, grant = true) }
-            }
-            combine(memberFutures).thenApply { memberSummary ->
-                memberSummary.copy(
-                    guildsReconciled = memberSummary.guildsReconciled + 1,
-                    rolesCreated = memberSummary.rolesCreated + if (ensured.created) 1 else 0,
-                )
-            }
+            val members = memberService.getGuildMembers(guild.id)
+            val allowedPlayerIds = members.mapTo(linkedSetOf()) { it.playerId }
+            gateway.revokeUnexpectedRoleMembers(ensured.roleId, allowedPlayerIds)
+                .thenCompose { removed ->
+                    val memberFutures = members.map { member ->
+                        gateway.grantRole(member.playerId, ensured.roleId)
+                            .handle { result, error -> memberResult(result, error, grant = true) }
+                    }
+                    combine(memberFutures).thenApply { memberSummary ->
+                        memberSummary.copy(
+                            guildsReconciled = memberSummary.guildsReconciled + 1,
+                            rolesCreated = memberSummary.rolesCreated + if (ensured.created) 1 else 0,
+                            memberRolesRemoved = memberSummary.memberRolesRemoved + removed,
+                        )
+                    }
+                }
         }.exceptionally { error ->
             logger.warn("Discord role reconciliation failed for guild $guildId", unwrap(error))
             DiscordGuildRoleSyncSummary(failures = 1)
@@ -154,12 +160,25 @@ class GuildDiscordRoleService(
 
     private fun ensureRole(guild: Guild, config: DiscordGuildRolesConfig): CompletableFuture<EnsuredRole> {
         ensureInFlight[guild.id]?.let { return it }
-        val created = doEnsureRole(guild, config)
-        val winner = ensureInFlight.putIfAbsent(guild.id, created) ?: created
-        if (winner === created) {
-            created.whenComplete { _, _ -> ensureInFlight.remove(guild.id, created) }
+
+        val claimed = CompletableFuture<EnsuredRole>()
+        val winner = ensureInFlight.putIfAbsent(guild.id, claimed)
+        if (winner != null) return winner
+
+        try {
+            doEnsureRole(guild, config).whenComplete { ensured, error ->
+                if (error == null) {
+                    claimed.complete(ensured)
+                } else {
+                    claimed.completeExceptionally(unwrap(error))
+                }
+                ensureInFlight.remove(guild.id, claimed)
+            }
+        } catch (error: Throwable) {
+            claimed.completeExceptionally(error)
+            ensureInFlight.remove(guild.id, claimed)
         }
-        return winner
+        return claimed
     }
 
     private fun doEnsureRole(guild: Guild, config: DiscordGuildRolesConfig): CompletableFuture<EnsuredRole> {

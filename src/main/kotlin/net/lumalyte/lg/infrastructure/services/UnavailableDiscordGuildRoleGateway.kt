@@ -17,6 +17,8 @@ class UnavailableDiscordGuildRoleGateway : DiscordGuildRoleGateway {
 
     override fun revokeRoleByDiscordId(discordId: String, roleId: String): CompletableFuture<DiscordMemberRoleResult> = unavailable()
 
+    override fun revokeUnexpectedRoleMembers(roleId: String, allowedPlayerIds: Set<UUID>): CompletableFuture<Int> = unavailable()
+
     override fun deleteRole(roleId: String): CompletableFuture<Boolean> = unavailable()
 
     private fun <T> unavailable(): CompletableFuture<T> = CompletableFuture<T>().also {

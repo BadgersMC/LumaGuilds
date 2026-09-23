@@ -14,6 +14,10 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -84,6 +88,62 @@ class GuildDiscordRoleServiceTest {
         assertEquals(1, removed.memberRolesRemoved)
         assertEquals(listOf(playerOne), fixture.gateway.granted)
         assertEquals(listOf(playerOne), fixture.gateway.revoked)
+    }
+
+    @Test
+    fun `reconciliation revokes stale role holders missed during an outage`() {
+        val fixture = fixture(
+            guild(level = 50),
+            members = setOf(member(playerOne)),
+        )
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.createOnEnsure = false
+        fixture.gateway.unexpectedRoleMembers += playerTwo
+
+        val result = fixture.service.reconcileGuild(guildId).join()
+
+        assertEquals(1, result.memberRolesRemoved)
+        assertEquals(listOf(playerTwo), fixture.gateway.revoked)
+        assertTrue(fixture.gateway.unexpectedRoleMembers.isEmpty())
+        assertEquals(listOf(playerOne), fixture.gateway.granted)
+    }
+
+    @Test
+    fun `simultaneous callers claim in flight slot before gateway role creation`() {
+        val fixture = fixture(guild(level = 50))
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        fixture.gateway.ensureEntered = entered
+        fixture.gateway.ensureRelease = release
+        val executor = Executors.newFixedThreadPool(2)
+
+        try {
+            val first = CompletableFuture.supplyAsync(
+                { fixture.service.memberJoined(guildId, playerOne).join() },
+                executor,
+            )
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+
+            val secondStarted = CountDownLatch(1)
+            val second = CompletableFuture.supplyAsync(
+                {
+                    secondStarted.countDown()
+                    fixture.service.memberJoined(guildId, playerTwo).join()
+                },
+                executor,
+            )
+            assertTrue(secondStarted.await(5, TimeUnit.SECONDS))
+            Thread.sleep(100)
+            assertEquals(1, fixture.gateway.ensureCalls)
+
+            release.countDown()
+            first.join()
+            second.join()
+            assertEquals(1, fixture.gateway.ensureCalls)
+        } finally {
+            release.countDown()
+            executor.shutdownNow()
+        }
     }
 
     @Test
@@ -273,8 +333,12 @@ class GuildDiscordRoleServiceTest {
 
         var available = true
         var createOnEnsure = true
-        var ensureCalls = 0
+        private val ensureCallCounter = AtomicInteger()
+        val ensureCalls: Int get() = ensureCallCounter.get()
         var ensureOverride: CompletableFuture<DiscordRoleEnsureResult>? = null
+        var ensureEntered: CountDownLatch? = null
+        var ensureRelease: CountDownLatch? = null
+        val unexpectedRoleMembers = linkedSetOf<UUID>()
         val ensureRequests = mutableListOf<Pair<String?, String>>()
         val granted = mutableListOf<UUID>()
         val revoked = mutableListOf<UUID>()
@@ -287,8 +351,10 @@ class GuildDiscordRoleServiceTest {
             existingRoleId: String?,
             roleName: String,
         ): CompletableFuture<DiscordRoleEnsureResult> {
-            ensureCalls++
+            ensureCallCounter.incrementAndGet()
             ensureRequests += existingRoleId to roleName
+            ensureEntered?.countDown()
+            ensureRelease?.await(5, TimeUnit.SECONDS)
             ensureOverride?.let { return it }
             return CompletableFuture.completedFuture(
                 DiscordRoleEnsureResult(
@@ -320,6 +386,16 @@ class GuildDiscordRoleServiceTest {
         ): CompletableFuture<DiscordMemberRoleResult> {
             revokedDiscordIds += discordId
             return CompletableFuture.completedFuture(DiscordMemberRoleResult.REMOVED)
+        }
+
+        override fun revokeUnexpectedRoleMembers(
+            roleId: String,
+            allowedPlayerIds: Set<UUID>,
+        ): CompletableFuture<Int> {
+            val stale = unexpectedRoleMembers.filter { it !in allowedPlayerIds }
+            revoked += stale
+            unexpectedRoleMembers.removeAll(stale.toSet())
+            return CompletableFuture.completedFuture(stale.size)
         }
 
         override fun deleteRole(roleId: String): CompletableFuture<Boolean> {
