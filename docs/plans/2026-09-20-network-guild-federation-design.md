@@ -19,6 +19,7 @@ The core rule is:
 > **Guild progression belongs to the gamemode. Guild identity may optionally federate across the network. Only explicitly network-scoped systems cross that boundary.**
 
 This design keeps each LumaGuilds installation authoritative for its own gamemode while leaving room for network-wide guild identity, quests, events, cosmetics, and other deliberately shared systems.
+
 ## 2. Terminology
 
 ### 2.1 Local LumaGuilds instance
@@ -26,6 +27,7 @@ This design keeps each LumaGuilds installation authoritative for its own gamemod
 One LumaGuilds installation attached to one gamemode/server domain. It owns that gamemode's guild membership and progression.
 
 Examples:
+
 - Enthusia SMP LumaGuilds instance
 - future claims/Nexo/AuraSkills gamemode LumaGuilds instance
 
@@ -50,6 +52,7 @@ The link does **not** merge databases, rosters, levels, economies, permissions, 
 ### 2.5 Local and network scope
 
 A local-scoped operation is authoritative only inside its LumaGuilds instance. A network-scoped operation is explicitly designed to aggregate or coordinate across federation links.
+
 ## 3. Non-negotiable invariants
 
 1. **Player guild membership is local to a gamemode.**
@@ -77,6 +80,7 @@ A local-scoped operation is authoritative only inside its LumaGuilds instance. A
    Loss of the network federation service must not corrupt or disable ordinary local guild gameplay.
 
 These invariants intentionally permit one player to contribute to different network guilds depending on which gamemode they are playing.
+
 ## 4. Player membership model
 
 Example:
@@ -116,6 +120,7 @@ Therefore:
 ```
 
 The player never has to choose one network-wide allegiance. Attribution follows the local guild that actually owns the activity.
+
 ## 5. Progression isolation
 
 The following state is local by default and must not cross federation boundaries:
@@ -147,6 +152,7 @@ Network identity  "Badgers Coalition"
 The existence of the network identity does not imply a network level of 100, 17, 117, or any other derived gameplay level.
 
 If a future network progression track exists, it must be a separate explicitly network-owned track.
+
 ## 6. Network-wide quests and events
 
 Network quests are an intentional bridge between otherwise isolated gamemodes.
@@ -163,6 +169,7 @@ Badgers Coalition total:       13,500
 ```
 
 The local instances remain authoritative for detecting the gameplay event. The network layer receives a normalized, idempotent contribution associated with:
+
 - source instance / gamemode;
 - source local guild;
 - linked network guild;
@@ -178,12 +185,14 @@ A network outage must not rewrite local progression. Network contribution delive
 Network quests are allowed to create cross-network progression, but never implicitly.
 
 Each network objective must declare a reward strategy, for example:
+
 - **NETWORK_ONLY** — network title, cosmetic, reputation, Discord role, network leaderboard points;
 - **EACH_LINKED_GUILD** — grant a defined reward independently to each participating local guild;
 - **CONTRIBUTING_GUILD** — reward only the local guild(s) that supplied contribution;
 - **CONTRIBUTION_WEIGHTED** — distribute a defined reward according to contribution.
 
 The exact reward catalogue is future design work. The architectural requirement is that the strategy is explicit and auditable.
+
 ## 7. Federation creation, migration, and lifecycle
 
 Federation is optional and deliberate. Existing local guilds do **not** convert into network guilds and do not receive replacement UUIDs.
@@ -195,6 +204,7 @@ Creating a local guild does not automatically create a network guild. Joining a 
 When federation support is introduced, every existing guild remains exactly where it is with the same local guild UUID and all existing local state intact.
 
 No migration may rewrite or copy:
+
 - membership or ownership;
 - ranks or rank permissions;
 - guild level or XP;
@@ -233,6 +243,7 @@ Conceptually:
 ```
 
 Creation:
+
 1. creates a new immutable network-guild UUID;
 2. records the creating local guild as the **founding guild**;
 3. immediately links that local guild to the new network guild;
@@ -248,6 +259,7 @@ Network Guild: Badgers
   Founding local guild:
     Enthusia SMP -> Badgers (level 100)
 ```
+
 ### 7.3 Linking a guild from another gamemode
 
 A federation may invite an existing local guild from another gamemode through a short-lived, single-use invitation/link token or equivalent authenticated flow.
@@ -263,6 +275,7 @@ Conceptually:
 ```
 
 The link operation must verify:
+
 - the invitation exists, is unexpired, and has not already been consumed;
 - the actor has local authority to federate the target guild;
 - the target local guild is not already linked to another network guild;
@@ -279,6 +292,7 @@ Conceptually the persistence invariant is:
 UNIQUE(network_guild_id, realm_id)
 UNIQUE(realm_id, local_guild_id)
 ```
+
 Local names do not need to match the network-guild name.
 
 Example:
@@ -327,6 +341,7 @@ Initial federation rollout must protect established local guild identities from 
 Before or at launch, existing active local guild names may be registered as **network-name reservations** owned by the corresponding local guild identity.
 
 A reservation:
+
 - is not itself an active network guild;
 - grants the established local guild first claim on the corresponding network display name;
 - must not alter local guild naming;
@@ -346,6 +361,7 @@ Exact reservation duration and inactivity rules remain deployment-policy decisio
 ### 7.7 Unlinking does not delete either side
 
 Unlinking a local guild:
+
 - removes only the federation link;
 - stops future network attribution through that link;
 - preserves all local guild state;
@@ -404,6 +420,7 @@ Competitive network events may additionally lock federation changes or delay lin
 ### 7.10 Federation link audit and recovery
 
 The federation service must durably record:
+
 - federation creation;
 - founding local guild;
 - link invitations;
@@ -419,6 +436,7 @@ Retrying a completed link/unlink operation must be idempotent.
 Federation should be designed as a separate service/boundary rather than placing shared federation tables directly inside every local LumaGuilds database.
 
 A future federation flow therefore supports:
+
 - create a network guild identity;
 - invite/link an existing local guild;
 - prove authorization from local leadership;
@@ -451,6 +469,7 @@ auraskills:skill/mining
 The local instance builds its procedural quest pool from the providers installed on that gamemode.
 
 Likely providers include:
+
 - vanilla Bukkit/Paper materials, entities, recipes and other registries;
 - Nexo custom items, blocks, furniture or other supported content;
 - AuraSkills skills and XP events;
@@ -465,6 +484,7 @@ Claims, Nexo, AuraSkills and future systems are capabilities of a local instance
 A claims-disabled SMP simply has no claims quest targets/events. A claims-enabled future mode may contribute them automatically.
 
 Nexo is a first-class future requirement. The provider architecture must be capable of discovering newly added Nexo content without requiring a LumaGuilds release for every custom block/item addition.
+
 ## 9. Relationship to procedural quest generation
 
 The approved quest-generation direction remains true randomness with guardrails:
@@ -479,6 +499,7 @@ random action
 The universe of targets is discovered at runtime wherever practical.
 
 Manual configuration is for:
+
 - technical blacklists;
 - compatibility exceptions;
 - pathological balance overrides;
@@ -525,6 +546,7 @@ The federation layer should exchange stable IDs and versioned messages rather th
 ## 11. Failure and abuse boundaries
 
 The eventual implementation must account for:
+
 - duplicate network contribution delivery;
 - local server restart during delivery;
 - federation unlink while contributions are in flight;
@@ -543,6 +565,7 @@ No federation failure may silently grant local guild progression.
 ## 12. Phased direction
 
 ### Phase 1 — current work
+
 - keep each LumaGuilds deployment local;
 - finish PR-16 as a robust procedural local quest engine;
 - design PR-16 target discovery around provider/namespaced identities;
@@ -550,23 +573,28 @@ No federation failure may silently grant local guild progression.
 - leave claims optional and capability-driven.
 
 ### Phase 2 — second gamemode
+
 - run a separate LumaGuilds instance and database;
 - enable its own claims/progression/Nexo/AuraSkills integrations;
 - preserve completely separate membership and progression;
 - validate that the same plugin architecture supports both modes without mode-specific forks.
 
 ### Phase 3 — federation
+
 - introduce optional network guild identities and federation links;
 - add network presentation/read models;
 - preserve local membership and progression authority.
 
 ### Phase 4 — explicitly network-scoped systems
+
 - network quests/events;
 - network cosmetics/reputation/leaderboards;
 - explicitly defined cross-progression rewards where desired.
+
 ## 13. Decisions intentionally deferred
 
 The following are not decided by this design:
+
 - the physical transport/service used for federation;
 - exact command/menu UX for federation creation and link invitations;
 - federation leadership and voting rules;
