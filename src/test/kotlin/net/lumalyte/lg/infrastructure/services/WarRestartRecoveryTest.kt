@@ -43,7 +43,10 @@ class WarRestartRecoveryTest {
         return WarServiceBukkit(mockk { every { loadConfig() } returns MainConfig() }, mockk(relaxed = true),
             mockk(relaxed = true), mockk(relaxed = true), progressionService = mockk(relaxed = true),
             warRepository = repository, warPayments = WarPaymentService(repository, gold),
-            memberService = mockk { every { hasPermission(any(), any(), any()) } returns true })
+            memberService = mockk { every { hasPermission(any(), any(), any()) } returns true },
+            guildRepository = mockk {
+                every { getById(any()) } returns mockk<Guild> { every { mode } returns GuildMode.HOSTILE }
+            })
     }
 
     @Test fun `paid war keeps identity statistics and one settlement across service restarts`() {
@@ -151,5 +154,70 @@ class WarRestartRecoveryTest {
         assertEquals(0, scans, "Single-record queries must not scan history")
         wars.processExpiredWars()
         assertEquals(1, scans, "Expiry pass must reuse one history snapshot")
+    }
+
+    @Test fun `declaration cooldown survives restart and blocks another declaration`() {
+        var wars = service()
+        val declaration = assertNotNull(wars.createWarDeclaration(
+            first, second, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        ))
+        val cooldownEnd = assertNotNull(wars.getWarDeclarationCooldownEnd(first))
+        assertTrue(wars.rejectWarDeclaration(declaration.id, UUID.randomUUID()))
+
+        wars = service()
+
+        assertEquals(cooldownEnd, wars.getWarDeclarationCooldownEnd(first))
+        assertTrue(wars.isGuildOnWarDeclarationCooldown(first))
+        assertNull(wars.createWarDeclaration(
+            first, second, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        ))
+    }
+
+    @Test fun `winner farming cooldown survives restart and blocks redeclaration`() {
+        var wars = service()
+        val declaration = assertNotNull(wars.createWarDeclaration(
+            first, second, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        ))
+        val active = assertNotNull(wars.acceptWarDeclaration(declaration.id, UUID.randomUUID()))
+        assertTrue(wars.endWar(active.id, second, actorId = UUID.randomUUID()))
+        val cooldownEnd = assertNotNull(wars.getGuildWarFarmingCooldownEnd(second))
+
+        wars = service()
+
+        assertEquals(cooldownEnd, wars.getGuildWarFarmingCooldownEnd(second))
+        assertTrue(wars.isGuildInWarFarmingCooldown(second))
+        assertNull(wars.createWarDeclaration(
+            second, first, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        ))
+    }
+
+    @Test fun `objective progress survives restart and completion clamps at target`() {
+        var wars = service()
+        val objective = WarObjective(
+            type = ObjectiveType.CLAIMS_CAPTURED,
+            targetValue = 3,
+            description = "Capture three claims",
+        )
+        val declaration = assertNotNull(wars.createWarDeclaration(
+            first, second, Duration.ofDays(1), setOf(objective), actorId = UUID.randomUUID()
+        ))
+        val active = assertNotNull(wars.acceptWarDeclaration(declaration.id, UUID.randomUUID()))
+
+        assertTrue(wars.addObjectiveProgress(active.id, objective.id, 2))
+        wars = service()
+        var restoredObjective = assertNotNull(
+            wars.getWar(active.id)?.objectives?.singleOrNull { it.id == objective.id }
+        )
+        assertEquals(2, restoredObjective.currentValue)
+        assertFalse(restoredObjective.completed)
+
+        assertTrue(wars.addObjectiveProgress(active.id, objective.id, 5))
+        wars = service()
+        restoredObjective = assertNotNull(
+            wars.getWar(active.id)?.objectives?.singleOrNull { it.id == objective.id }
+        )
+        assertEquals(3, restoredObjective.currentValue)
+        assertTrue(restoredObjective.completed)
+        assertNotNull(restoredObjective.completedAt)
     }
 }
