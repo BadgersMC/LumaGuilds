@@ -344,7 +344,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Event-driven.** WHEN a guild is created, THEN THE SYSTEM SHALL create/link a Discord role immediately and dynamically grant/remove it for Discord-linked players as they join/leave the guild or link/unlink their Discord account.
 
 ### REQ-072
-**Event-driven.** WHEN a guild edits its description THEN THE SYSTEM SHALL allow embedding a Discord invite link for recruitment.
+**Event-driven.** WHEN a guild edits its description THEN THE SYSTEM SHALL accept up to 200 characters of safe display MiniMessage formatting and SHALL recognize HTTPS Discord invite URLs from `discord.gg/<code>` and `discord.com/invite/<code>`. Discord invite URLs SHALL be the only external URLs promoted to clickable `OPEN_URL` components; arbitrary URLs SHALL remain inert text. User-authored interactive MiniMessage event tags including `click`, `hover`, and `insertion` SHALL be rejected at every write path. Java guild-info SHALL expose detected Discord invites through a clickable chat component, while Bedrock SHALL preserve the visible invite URL as plain text.
 
 ### REQ-073
 **Event-driven.** WHEN a guild is disbanded THEN THE SYSTEM SHALL broadcast a server-wide announcement.

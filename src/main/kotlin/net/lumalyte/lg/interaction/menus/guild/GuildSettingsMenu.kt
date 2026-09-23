@@ -18,6 +18,7 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.MenuItemBuilder
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.lore
@@ -26,9 +27,6 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -97,7 +95,12 @@ class GuildSettingsMenu(
 
         if (currentDescription != null) {
             descItem.lore(lang.gui("menu.guild_settings.item.description.lore.set"))
-                .lore(lang.gui("menu.guild_settings.item.description.lore.current", "description" to parseMiniMessageForDisplay(currentDescription)))
+                .lore(
+                    lang.gui(
+                        "menu.guild_settings.item.description.lore.current",
+                        "description" to GuildDescriptionContent.render(currentDescription),
+                    )
+                )
         } else {
             descItem.lore(lang.gui("menu.guild_settings.item.description.lore.not_set"))
         }
@@ -485,20 +488,6 @@ class GuildSettingsMenu(
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
         }
         pane.addItem(backGuiItem, 4, 5)
-    }
-
-    private fun parseMiniMessageForDisplay(description: String?): String? {
-        if (description == null) return null
-        return try {
-            val miniMessage = MiniMessage.miniMessage()
-            val component = miniMessage.deserialize(description)
-            // Convert to legacy formatting for menu display
-            val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
-            legacyText
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            description // Fallback to raw text if parsing fails
-        }
     }
 
     /**

@@ -10,8 +10,6 @@ import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ResolvableProfile
-import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
@@ -20,6 +18,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -59,7 +58,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         addGuildOverview(pane, 0, 0)
 
         // Description section (if available)
-        if (guild.description != null) {
+        if (!guild.description.isNullOrBlank()) {
             addDescriptionSection(pane, 1, 0)
         }
 
@@ -102,16 +101,24 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addDescriptionSection(pane: StaticPane, x: Int, y: Int) {
+        val rawDescription = guild.description ?: return
+        val renderedDescription = GuildDescriptionContent.render(rawDescription)
+        val invites = GuildDescriptionContent.discordInvites(rawDescription)
         val descriptionItem = ItemStack.of(Material.WRITABLE_BOOK)
             .name(lang.gui("menu.guild_info.description.name"))
+            .lore(lang.gui("menu.guild_info.description.value", "description" to renderedDescription))
 
-        // Parse and display the description with MiniMessage formatting
-        val formattedDescription = parseMiniMessageForDisplay(guild.description)
-        if (formattedDescription != null) {
-            descriptionItem.lore(lang.gui("menu.guild_info.description.value", "description" to formattedDescription))
+        if (invites.isNotEmpty()) {
+            descriptionItem.lore(lang.gui("menu.guild_info.description.invite_hint"))
+            pane.addItem(GuiItem(descriptionItem) {
+                player.sendMessage(
+                    lang.msg("menu.guild_info.description.chat_prefix")
+                        .append(renderedDescription)
+                )
+            }, x, y)
+        } else {
+            pane.addItem(GuiItem(descriptionItem), x, y)
         }
-
-        pane.addItem(GuiItem(descriptionItem), x, y)
     }
 
     private fun addMembersSection(pane: StaticPane, x: Int, y: Int) {
@@ -309,20 +316,6 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(backGuiItem, x, y)
     }
 
-
-    private fun parseMiniMessageForDisplay(description: String?): String? {
-        if (description == null) return null
-        return try {
-            val miniMessage = MiniMessage.miniMessage()
-            val component = miniMessage.deserialize(description)
-            // Convert to legacy formatting for menu display
-            val legacyText = LegacyComponentSerializer.legacySection().serialize(component)
-            legacyText
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            description // Fallback to raw text if parsing fails
-        }
-    }
 
     private fun modeDisplayName(): net.kyori.adventure.text.Component = when (guild.mode.name) {
         "PEACEFUL" -> lang.gui("menu.guild_info.overview.modes.peaceful")
