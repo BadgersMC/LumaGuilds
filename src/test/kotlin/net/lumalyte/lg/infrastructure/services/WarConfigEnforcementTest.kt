@@ -115,6 +115,7 @@ class WarConfigEnforcementTest {
         progressionRepository: ProgressionRepository = mockk(relaxed = true),
         seasonalElo: SeasonalEloCoordinator? = null,
         combatConfig: CombatConfig = CombatConfig(),
+        memberRepository: net.lumalyte.lg.application.persistence.MemberRepository? = null,
     ): WarServiceBukkit {
         val config = mockk<MainConfig>()
         every { config.combat } returns combatConfig
@@ -128,6 +129,7 @@ class WarConfigEnforcementTest {
             progressionConfigService = mockk(relaxed = true),
             progressionService = mockk(relaxed = true),
             seasonalElo = seasonalElo,
+            memberRepository = memberRepository,
         )
     }
 
@@ -163,6 +165,39 @@ class WarConfigEnforcementTest {
         assertEquals(defending, declaration.defendingGuildId)
         assertNull(service.getCurrentWarBetweenGuilds(declaring, defending), "no active war may exist before acceptance")
         assertNotNull(service.getPendingDeclarationsForGuild(defending).firstOrNull { it.id == declaration.id })
+        assertTrue(records[declaration.id]!!.declarationNotificationExpected)
+    }
+
+    @Test
+    fun `war transitions snapshot exact notification recipients`() {
+        mockBukkitPluginManager()
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val declaringPlayer = UUID.randomUUID()
+        val defendingPlayer = UUID.randomUUID()
+        val rank = UUID.randomUUID()
+        val members = mockk<net.lumalyte.lg.application.persistence.MemberRepository>()
+        every { members.getByGuild(declaring) } returns setOf(
+            net.lumalyte.lg.domain.entities.Member(declaringPlayer, declaring, rank, java.time.Instant.EPOCH)
+        )
+        every { members.getByGuild(defending) } returns setOf(
+            net.lumalyte.lg.domain.entities.Member(defendingPlayer, defending, rank, java.time.Instant.EPOCH)
+        )
+        val service = newService(mockk(), memberRepository = members)
+
+        val declaration = service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        )!!
+        assertEquals(setOf(declaringPlayer), records[declaration.id]!!.notificationRecipients.declarationSent)
+        assertEquals(setOf(defendingPlayer), records[declaration.id]!!.notificationRecipients.declarationReceived)
+
+        val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+        assertEquals(setOf(declaringPlayer), records[war.id]!!.notificationRecipients.acceptanceDeclaring)
+        assertEquals(setOf(defendingPlayer), records[war.id]!!.notificationRecipients.acceptanceDefending)
+
+        assertTrue(service.endWar(war.id, declaring, actorId = UUID.randomUUID()))
+        assertEquals(setOf(declaringPlayer), records[war.id]!!.notificationRecipients.victory)
+        assertEquals(setOf(defendingPlayer), records[war.id]!!.notificationRecipients.defeat)
     }
 
     @Test
@@ -189,6 +224,8 @@ class WarConfigEnforcementTest {
         assertEquals(WarStatus.ACTIVE, war!!.status)
         assertNotNull(war.startedAt)
         assertTrue(service.getCurrentWarBetweenGuilds(declaring, defending)?.id == war.id)
+        assertTrue(records[war.id]!!.declarationNotificationExpected)
+        assertTrue(records[war.id]!!.acceptanceNotificationExpected)
     }
 
     @Test
@@ -240,6 +277,7 @@ class WarConfigEnforcementTest {
         assertEquals(0, service.getWarStats(war.id).declaringGuildKills)
 
         assertTrue(service.endWar(war.id, declaring, actorId = UUID.randomUUID()))
+        assertTrue(records[war.id]!!.resolutionNotificationExpected)
         assertNull(service.recordOpposingGuildKill(war.id, defending, declaring))
         assertEquals(0, service.getActiveWars().size)
     }

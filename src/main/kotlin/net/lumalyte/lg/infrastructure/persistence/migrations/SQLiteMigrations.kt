@@ -179,6 +179,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(32)
                 dbVersion = 32
             }
+            if (dbVersion < 33) {
+                migrateToVersion33()
+                updateDatabaseVersion(33)
+                dbVersion = 33
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1370,7 +1375,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
             "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history",
             "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security",
-            "war_banners"
+            "war_banners", "war_notifications"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1427,6 +1432,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("war_banners" in missingTables) {
                 migrateToVersion32()
                 componentLogger.info(Component.text("✓ Recreated tactical war-banner table"))
+            }
+            if ("war_notifications" in missingTables) {
+                migrateToVersion33()
+                componentLogger.info(Component.text("✓ Recreated durable war-notification queue"))
             }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
@@ -1808,6 +1817,13 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         componentLogger.info(Component.text(
             "✓ Migration v32 complete: tactical war-banner state added; " +
                 "$updatedRanks existing war-management rank(s) granted PLACE_WAR_BANNER"
+        ))
+    }
+
+    private fun migrateToVersion33() {
+        WarNotificationSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text(
+            "✓ Migration v33 complete: durable war-notification queue added"
         ))
     }
 }

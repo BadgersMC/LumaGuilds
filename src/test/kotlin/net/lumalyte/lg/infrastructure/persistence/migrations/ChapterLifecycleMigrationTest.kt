@@ -68,7 +68,8 @@ class ChapterLifecycleMigrationTest {
         assertTrue(tableExists("chapter_rated_pair_guards"))
         assertTrue(tableExists("chapter_rated_war_results"))
         assertTrue(tableExists("war_banners"))
-        assertEquals(32, databaseVersion())
+        assertTrue(tableExists("war_notifications"))
+        assertEquals(33, databaseVersion())
     }
 
     @Test
@@ -77,12 +78,26 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE war_banners") }
         assertFalse(tableExists("war_banners"))
-        assertEquals(32, databaseVersion())
+        assertEquals(33, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("war_banners"))
-        assertEquals(32, databaseVersion())
+        assertEquals(33, databaseVersion())
+    }
+
+    @Test
+    fun `version 33 repairs a missing war notification table without version rollback`() {
+        val migrations = SQLiteMigrations(plugin, connection, claimsEnabled = false)
+        migrations.migrate()
+        connection.createStatement().use { it.execute("DROP TABLE war_notifications") }
+        assertFalse(tableExists("war_notifications"))
+        assertEquals(33, databaseVersion())
+
+        migrations.migrate()
+
+        assertTrue(tableExists("war_notifications"))
+        assertEquals(33, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

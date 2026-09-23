@@ -588,8 +588,21 @@ fun progressionModule() = module {
     single<net.lumalyte.lg.application.persistence.WarRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.WarRepositorySQL(get())
     }
+    single<net.lumalyte.lg.application.persistence.WarNotificationRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.WarNotificationRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.infrastructure.services.WarToastSender> {
+        net.lumalyte.lg.infrastructure.services.PacketEventsWarToastSender(get<LumaGuilds>())
+    }
+    single<net.lumalyte.lg.application.services.WarNotificationService> {
+        net.lumalyte.lg.infrastructure.services.WarNotificationServiceBukkit(
+            get<LumaGuilds>(), get(), get(), get(), get(), get(), get()
+        )
+    }
     single { net.lumalyte.lg.application.services.WarPaymentService(get(), get()) }
-    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<WarService> {
+        WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
+    }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {
         net.lumalyte.lg.infrastructure.web.handlers.GuildLeaderboardHandler(

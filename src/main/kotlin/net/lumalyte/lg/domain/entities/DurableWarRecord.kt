@@ -2,6 +2,15 @@ package net.lumalyte.lg.domain.entities
 
 import java.util.UUID
 
+data class WarNotificationRecipients(
+    val declarationSent: Set<UUID> = emptySet(),
+    val declarationReceived: Set<UUID> = emptySet(),
+    val acceptanceDeclaring: Set<UUID> = emptySet(),
+    val acceptanceDefending: Set<UUID> = emptySet(),
+    val victory: Set<UUID> = emptySet(),
+    val defeat: Set<UUID> = emptySet(),
+)
+
 /** One revision-checked recovery unit; paymentPhase governs an unfinished wager's lifecycle. */
 data class DurableWarRecord(
     val id: UUID,
@@ -14,7 +23,11 @@ data class DurableWarRecord(
     val paymentPhase: WarPaymentPhase? = null,
     val settlementChosen: Boolean = false,
     val settlementWinner: UUID? = null,
-    val paymentAttempts: Map<String, Int> = emptyMap()
+    val paymentAttempts: Map<String, Int> = emptyMap(),
+    val notificationRecipients: WarNotificationRecipients = WarNotificationRecipients(),
+    val declarationNotificationExpected: Boolean = false,
+    val acceptanceNotificationExpected: Boolean = false,
+    val resolutionNotificationExpected: Boolean = false,
 ) {
     init {
         require(revision >= 0)

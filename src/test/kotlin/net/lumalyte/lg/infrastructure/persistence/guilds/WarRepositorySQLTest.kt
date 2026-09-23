@@ -92,12 +92,42 @@ class WarRepositorySQLTest {
         assertEquals("chapter-2", restored.war!!.ratedChapterId)
     }
 
+    @Test fun `notification recovery markers survive a new repository`() {
+        val recipient = UUID.randomUUID()
+        val original = record().copy(
+            notificationRecipients = WarNotificationRecipients(
+                declarationSent = setOf(recipient),
+                acceptanceDeclaring = setOf(recipient),
+                victory = setOf(recipient),
+            ),
+            declarationNotificationExpected = true,
+            acceptanceNotificationExpected = true,
+            resolutionNotificationExpected = true,
+        )
+        assertTrue(repository.save(original))
+        storage.connection.close()
+        storage = VirtualThreadSQLiteStorage(directory.toFile())
+
+        val restored = WarRepositorySQL(storage).get(original.id)!!
+
+        assertEquals(setOf(recipient), restored.notificationRecipients.declarationSent)
+        assertEquals(setOf(recipient), restored.notificationRecipients.acceptanceDeclaring)
+        assertEquals(setOf(recipient), restored.notificationRecipients.victory)
+        assertTrue(restored.declarationNotificationExpected)
+        assertTrue(restored.acceptanceNotificationExpected)
+        assertTrue(restored.resolutionNotificationExpected)
+    }
+
     @Test fun `legacy version one war payload decodes as explicitly unrated`() {
         val original = record().copy(revision = 1)
         val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
         json.addProperty("version", 1)
         json.getAsJsonObject("record").getAsJsonObject("declaration").remove("ratedChapterId")
         json.getAsJsonObject("record").getAsJsonObject("war").remove("ratedChapterId")
+        json.getAsJsonObject("record").remove("notificationRecipients")
+        json.getAsJsonObject("record").remove("declarationNotificationExpected")
+        json.getAsJsonObject("record").remove("acceptanceNotificationExpected")
+        json.getAsJsonObject("record").remove("resolutionNotificationExpected")
 
         val decoded = WarRecordCodec.decode(json.toString())
 
@@ -109,8 +139,34 @@ class WarRepositorySQLTest {
 
     @Test fun `version two payload cannot omit rated war identity`() {
         val json = JsonParser.parseString(WarRecordCodec.encode(record())).asJsonObject
+        json.addProperty("version", 2)
+        json.getAsJsonObject("record").remove("notificationRecipients")
+        json.getAsJsonObject("record").remove("declarationNotificationExpected")
+        json.getAsJsonObject("record").remove("acceptanceNotificationExpected")
+        json.getAsJsonObject("record").remove("resolutionNotificationExpected")
         json.getAsJsonObject("record").getAsJsonObject("war").remove("ratedChapterId")
         assertFailsWith<IllegalStateException> { WarRecordCodec.decode(json.toString()) }
+    }
+
+    @Test fun `version two payload does not invent notification recovery work`() {
+        val original = record().copy(
+            declarationNotificationExpected = true,
+            acceptanceNotificationExpected = true,
+            resolutionNotificationExpected = true,
+        )
+        val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
+        json.addProperty("version", 2)
+        json.getAsJsonObject("record").remove("notificationRecipients")
+        json.getAsJsonObject("record").remove("declarationNotificationExpected")
+        json.getAsJsonObject("record").remove("acceptanceNotificationExpected")
+        json.getAsJsonObject("record").remove("resolutionNotificationExpected")
+
+        val decoded = WarRecordCodec.decode(json.toString())
+
+        assertEquals(WarNotificationRecipients(), decoded.notificationRecipients)
+        assertFalse(decoded.declarationNotificationExpected)
+        assertFalse(decoded.acceptanceNotificationExpected)
+        assertFalse(decoded.resolutionNotificationExpected)
     }
 
     @Test fun `stale writer cannot overwrite a newer settlement decision`() {
