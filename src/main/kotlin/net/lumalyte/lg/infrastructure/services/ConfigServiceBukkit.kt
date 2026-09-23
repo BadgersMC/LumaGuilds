@@ -50,6 +50,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             seasonalElo = loadSeasonalEloConfig(),
             warBanner = loadWarBannerConfig(),
             discordGuildRoles = loadDiscordGuildRolesConfig(),
+            guildList = loadGuildListConfig(),
             chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", false),
             chapterTwoGoldCostsEnabled = config.getBoolean("progression.chapter_two_gold_costs_enabled", false)
         )
@@ -68,6 +69,11 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             roleNameFormat = string("discord.guild_roles.role_name_format", "Guild • <guild>"),
         )
     }
+
+    private fun loadGuildListConfig(): GuildListConfig =
+        GuildListConfig(
+            pageSize = config.getInt("guild_list.page_size", 18).coerceIn(1, 36),
+        )
 
     private fun loadSeasonalEloConfig(): SeasonalEloConfig {
         val result = SeasonalEloConfig(

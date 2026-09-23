@@ -3,6 +3,22 @@
 # All values are MiniMessage strings. Placeholders use <name> syntax.
 #
 bedrock:
+  guild_list:
+    title: 'Guilds · <page>/<pages>'
+    content: 'Sort: <sort><newline>Guilds: <total>'
+    guild_button: '<guild><newline>Level <level> · <members> members<newline>Created <created><activity>'
+    activity: '<newline>Activity: <activity_score>'
+    weekly_activity: '<newline>Activity: <activity_score> · <kills> unique PvP kills'
+    sort:
+      button: 'Sort: <sort> <selected>'
+      selected: '✓'
+      all_time_active: 'All-Time Active'
+      weekly_active: 'Weekly Active'
+      guild_level: 'Guild Level (Low → High)'
+      created_at: 'Creation Date (Old → New)'
+    previous: 'Previous Page'
+    next: 'Next Page'
+    close: 'Close'
   party:
     creation:
       title: Party Creation
@@ -1913,15 +1929,6 @@ command:
         use_guild_menu_to_manage_your_guild: '<gray>Use <yellow>/guild menu<gray> to manage your guild.'
         you_are_the_only_member_of_this: '<red>You are the only member of this guild.'
         you_have_left: '<green>You have left <gold><guild><green>.'
-      list:
-        and_more_open_guilds: '<gray>... and <size> more open guilds'
-        anyone_can_join_these_guilds: '<gray>Anyone can join these guilds!'
-        join_guild_join: '  <gray>Join: <yellow>/guild join <guild>'
-        members: '<green>▸ <gold><emoji> <tag> <gray>[<member_count> members]'
-        no_open_guilds_available_at_the_moment: '<gray>No open guilds available at the moment.'
-        open_guilds_allow_anyone_to_join_without: '<gray>Open guilds allow anyone to join without an invitation!'
-        public_guilds: '<gold><bold>🏛 PUBLIC GUILDS'
-        public_guilds_2: '<gold><bold>🏛 PUBLIC GUILDS (<size>)'
       menu:
         only_guild_owners_and_members_with_management: '<gray>Only guild owners and members with management permissions can access this menu.'
         you_don_t_have_permission_to_access: '<red>You don''t have permission to access the guild control panel.'
@@ -4755,6 +4762,38 @@ menu:
         description: "<gray>Go to next page"
     feedback:
       closed: "<gray>Closed guild browser"
+
+  guild_list:
+    title: "<gold><bold>Guild Directory"
+    guild:
+      name: "<gold><guild>"
+      level: "<gray>Level: <white><level>"
+      members: "<gray>Members: <white><count>"
+      created: "<gray>Created: <white><date>"
+      activity_score: "<gray>Activity score: <white><activity_score>"
+      unique_pvp_kills: "<gray>Unique PvP kills (7d): <white><count>"
+      action: "<yellow>Click to view guild"
+    sort:
+      all_time_active:
+        name: "<gold>All-Time Active"
+      weekly_active:
+        name: "<gold>Weekly Active"
+      guild_level:
+        name: "<gold>Guild Level (Low → High)"
+      created_at:
+        name: "<gold>Creation Date (Old → New)"
+      active: "<green>Selected"
+      select: "<gray>Click to sort"
+    navigation:
+      previous:
+        name: "<yellow>← Previous Page"
+      next:
+        name: "<yellow>Next Page →"
+      page:
+        name: "<gold>Page <page>/<pages>"
+        lore: "<gray><total> guilds total"
+      close:
+        name: "<red>Close"
 
   guild_strike_penalty_confirm:
     title: "<dark_red><bold>Confirm - <type>"
