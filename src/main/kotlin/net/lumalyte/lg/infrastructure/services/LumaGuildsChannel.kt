@@ -50,6 +50,16 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
                 LumaGuildsChannelType.MODCHAT
             else -> LumaGuildsChannelType.GUILD
         }
+
+        if (channelType == LumaGuildsChannelType.GUILD) {
+            val rankFormat = config.getString("guild-rank-format")
+            listOf("chat", "shout").forEach { formatKey ->
+                val current = settings.formats[formatKey]
+                GuildRankChatFormatter.decorate(current, rankFormat)?.let { decorated ->
+                    settings.formats[formatKey] = decorated
+                }
+            }
+        }
     }
 
     override fun getMembers(): List<UUID> {
