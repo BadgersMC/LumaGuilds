@@ -10,6 +10,7 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.GuildListSortKey
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.GuiTheme
@@ -133,7 +134,7 @@ class GuildListMenu(
 
     private fun createGuildItem(entry: GuildListEntry): ItemStack {
         val guild = entry.guild
-        val item = ItemStack.of(Material.BOOK)
+        val item = GuildBannerItemResolver.resolve(guild)
             .name(lang.gui("menu.guild_list.guild.name", "guild" to guild.name))
             .lore(lang.gui("menu.guild_list.guild.level", "level" to guild.level))
             .lore(lang.gui(

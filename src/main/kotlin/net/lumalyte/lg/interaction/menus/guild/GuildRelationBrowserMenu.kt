@@ -12,11 +12,11 @@ import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.interaction.menus.GuildInfoRelationResolver
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -105,11 +105,7 @@ class GuildRelationBrowserMenu(
         gui.show(player)
     }
     private fun createGuildItem(otherGuild: Guild): ItemStack {
-        val banner = otherGuild.banner
-            ?.let { encoded -> runCatching { encoded.deserializeToItemStack() }.getOrNull() }
-            ?.takeIf { it.type.name.endsWith("_BANNER") && !it.type.name.endsWith("_WALL_BANNER") }
-            ?.clone()
-            ?: ItemStack.of(Material.WHITE_BANNER)
+        val banner = GuildBannerItemResolver.resolve(otherGuild)
 
         val displayName = if (relationType == RelationType.ALLY) {
             lang.gui("menu.guild_info.relation_browser.allies.guild_name", "guild" to otherGuild.name)
