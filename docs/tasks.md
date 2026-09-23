@@ -489,11 +489,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence: Online guildmates receive a TASK-style advancement toast with the joining member's player head on Java and Bedrock/Geyser via the shared PacketEvents toast sender. The joining player is never notified about themselves; offline recipients and opted-out recipients are skipped; recipients shared across multiple guild memberships are deduplicated. A 15-second plugin-start grace window suppresses restart reconnect waves and a 60-second per-player reconnect debounce suppresses rapid relog spam. If toast delivery is unavailable, recipients receive a quiet action-bar + chime fallback. `/g notifications on|off|toggle` persists the recipient preference (default on) in schema v34 for SQLite/MariaDB. Login presence itself is transient and is never persisted/replayed. Preferences are batch-loaded for online recipients. Full `test shadowJar`: 1,092 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
   - Files: `GuildLoginNotificationServiceBukkit`, `PlayerNotificationPreferenceRepositorySQL`, v34 `PlayerNotificationPreferenceSchema`, generic `PacketEventsToastSender`, `PlayerSessionListener`, `GuildCommand`, localization/DI wiring, focused behavioral/persistence/migration contracts
   - Harvest: historical announcement persistence was reviewed but intentionally not reused because login presence is transient rather than durable announcement data
-- [ ] **LG-1402** Rank prefixes in guild chat — member's rank shown next to name (legacy restore)
+- [x] **LG-1402** Rank prefixes in guild chat — member's rank shown next to name (legacy restore)
   - Tag: `TDD`
   - References: REQ-063
-  - Evidence:
-  - Files: guild chat formatter (↳ RoseChat hook)
+  - Evidence: LumaGuilds' RoseChat GUILD channel decorates its existing chat/shout format at load time so the live `%lumaguilds_guild_rank%` value appears immediately before RoseChat's player token while preserving any existing global/LuckPerms prefix. The decorator is idempotent (operator formats that already include the guild-rank placeholder are untouched), supports RoseChat `{player}` and direct PlaceholderAPI player-name tokens, and accepts a per-channel `guild-rank-format` override using `<rank>`. ALLY/MODCHAT formats are intentionally unchanged. The existing PAPI rank placeholder resolves membership/rank state on every request, proven by a regression contract that changes the mocked member from Owner to Officer between consecutive resolutions. Full `test shadowJar`: 1,101 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
+  - Files: `LumaGuildsChannel`, `GuildRankChatFormatter`, live-rank PlaceholderAPI regression contract, RoseChat channel-format integration tests
 - [ ] **LG-1403** Guild admin chat — dedicated private channel for admins/leadership
   - Tag: `TDD`
   - References: REQ-064
