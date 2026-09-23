@@ -189,7 +189,14 @@ class LumaGuilds : JavaPlugin() {
         // Initialize relation maintenance scheduler (truce expiry + stale-request cleanup)
         initRelationMaintenanceScheduler()
 
-        chapterRolloverScheduler = net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler(this, storage).also { it.start() }
+        chapterRolloverScheduler = net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler(
+            this,
+            storage,
+            net.lumalyte.lg.infrastructure.services.ChapterRatedWarReconciliationGate(
+                get().get<net.lumalyte.lg.application.persistence.WarRepository>(),
+                get().get<net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator>(),
+            ),
+        ).also { it.start() }
 
         // Start Web API (read-only JSON endpoint for the website)
         try {

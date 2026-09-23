@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.services
 
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.domain.entities.War
 import net.lumalyte.lg.infrastructure.persistence.migrations.ChapterReadSQL
 import net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalEloRepositorySQL
 import net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult
@@ -45,6 +46,60 @@ class SeasonalEloCoordinator(
                 storage.dialect == SqlDialect.MARIADB,
                 config.settings(),
             ).rate(warId, chapterId, firstGuildId, secondGuildId, firstScore, secondScore, ratedAt)
+        }
+    }
+
+    fun rateResolvedWar(war: War): SeasonalWarRatingResult? {
+        val chapterId = war.ratedChapterId ?: return null
+        if (!war.isEnded) return null
+        val ratedAt = war.endedAt?.toEpochMilli() ?: return null
+        val draw = war.winner == null
+        val firstScore = when {
+            draw -> 0.5
+            war.winner == war.declaringGuildId -> 1.0
+            else -> 0.0
+        }
+        val secondScore = when {
+            draw -> 0.5
+            war.winner == war.defendingGuildId -> 1.0
+            else -> 0.0
+        }
+        return rateWar(
+            war.id,
+            chapterId,
+            war.declaringGuildId,
+            war.defendingGuildId,
+            firstScore,
+            secondScore,
+            ratedAt,
+        )
+    }
+
+    fun markWarUnratedForChapterEnd(war: War, decidedAt: Long): SeasonalWarRatingResult? {
+        val chapterId = war.ratedChapterId ?: return null
+        val config = configService.loadConfig().seasonalElo
+        return storage.connection.connection.use { connection ->
+            SeasonalEloRepositorySQL(
+                connection,
+                storage.dialect == SqlDialect.MARIADB,
+                config.settings(),
+            ).decideUnrated(
+                war.id,
+                chapterId,
+                "CHAPTER_ENDED_BEFORE_WAR_RESOLUTION",
+                decidedAt,
+            )
+        }
+    }
+
+    fun isWarRatingSettled(warId: UUID): Boolean {
+        val config = configService.loadConfig().seasonalElo
+        return storage.connection.connection.use { connection ->
+            SeasonalEloRepositorySQL(
+                connection,
+                storage.dialect == SqlDialect.MARIADB,
+                config.settings(),
+            ).isSettled(warId)
         }
     }
 

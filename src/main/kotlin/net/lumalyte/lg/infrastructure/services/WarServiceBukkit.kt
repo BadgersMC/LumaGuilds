@@ -156,7 +156,8 @@ class WarServiceBukkit(
         return try {
             val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return null
             if (!declaration.isValid) return null
-            if (declaration.isRated) {
+            val alreadyEscrowed = warRepository.get(declarationId)?.paymentPhase == WarPaymentPhase.ESCROWED
+            if (declaration.isRated && !alreadyEscrowed) {
                 val currentRatedChapter = seasonalElo?.currentRatedChapterId()
                 if (currentRatedChapter != declaration.ratedChapterId ||
                     progressionRepository.getGuildProgression(declaration.declaringGuildId)?.currentLevel != 100 ||

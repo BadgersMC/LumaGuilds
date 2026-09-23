@@ -259,6 +259,65 @@ class WarConfigEnforcementTest {
     }
 
     @Test
+    fun `escrowed rated acceptance resumes even after eligibility changes`() {
+        mockBukkitPluginManager()
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val progression = mockk<ProgressionRepository>()
+        every { progression.getGuildProgression(declaring) } returns
+            GuildProgression(guildId = declaring, currentLevel = 100)
+        every { progression.getGuildProgression(defending) } returns
+            GuildProgression(guildId = defending, currentLevel = 100)
+        val elo = mockk<SeasonalEloCoordinator>()
+        every { elo.currentRatedChapterId() } returns "chapter-2"
+        val service = newService(mockk(), progression, elo)
+        val declaration = service.createWarDeclaration(
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = Duration.ofDays(7),
+            objectives = emptySet(),
+            wagerAmount = 500,
+            actorId = UUID.randomUUID(),
+            rated = true,
+        )!!
+
+        val pendingWar = net.lumalyte.lg.domain.entities.War(
+            id = declaration.id,
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            duration = declaration.proposedDuration,
+            objectives = declaration.objectives,
+            ratedChapterId = declaration.ratedChapterId,
+        )
+        val wager = net.lumalyte.lg.domain.entities.WarWager(
+            warId = declaration.id,
+            declaringGuildId = declaring,
+            defendingGuildId = defending,
+            declaringGuildWager = 500,
+            defendingGuildWager = 500,
+        )
+        val current = records.getValue(declaration.id)
+        repository.save(
+            current.copy(
+                war = pendingWar,
+                wager = wager,
+                paymentPhase = net.lumalyte.lg.domain.entities.WarPaymentPhase.ESCROWED,
+            ),
+        )
+        every { progression.getGuildProgression(declaring) } returns
+            GuildProgression(guildId = declaring, currentLevel = 99)
+        every { progression.getGuildProgression(defending) } returns
+            GuildProgression(guildId = defending, currentLevel = 99)
+        every { payments.fund(declaration.id) } returns true
+
+        val resumed = service.acceptWarDeclaration(declaration.id, UUID(0, 0))
+
+        assertNotNull(resumed)
+        assertEquals(WarStatus.ACTIVE, resumed!!.status)
+        verify(exactly = 1) { elo.currentRatedChapterId() }
+    }
+
+    @Test
     fun `unrated declaration remains legacy-compatible and carries no chapter identity`() {
         val service = newService(mockk())
         val declaration = service.createWarDeclaration(

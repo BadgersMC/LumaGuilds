@@ -199,6 +199,7 @@ class BedrockGuildWarDeclarationMenu(
             val opponent = seasonalElo.view(targetGuild.id)
             if (own?.eligible != true || opponent?.eligible != true || own.chapterId != opponent.chapterId) {
                 player.sendMessage(lang.msg("bedrock.war_declaration.feedback.rated_unavailable"))
+                bedrockNavigator.goBack()
                 return
             }
         }
