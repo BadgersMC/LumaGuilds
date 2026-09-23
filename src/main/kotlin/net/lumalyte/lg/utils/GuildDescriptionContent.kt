@@ -1,12 +1,12 @@
 package net.lumalyte.lg.utils
 
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -71,54 +71,28 @@ object GuildDescriptionContent {
         val source = description?.takeIf { it.isNotEmpty() } ?: return Component.empty()
 
         val matches = invitePattern.findAll(source).toList()
-        var marked = source
-        matches.asReversed().forEachIndexed { reverseIndex, match ->
-            val index = matches.lastIndex - reverseIndex
-            marked = marked.replaceRange(match.range, marker(index))
+        if (matches.isEmpty()) {
+            return runCatching { miniMessage.deserialize(source) }
+                .getOrElse { Component.text(source) }
         }
 
-        val parsed = runCatching { miniMessage.deserialize(marked) }
+        var tagged = source
+        val inviteTags = TagResolver.builder()
+        matches.asReversed().forEachIndexed { reverseIndex, match ->
+            val index = matches.lastIndex - reverseIndex
+            val tagName = inviteTag(index)
+            tagged = tagged.replaceRange(match.range, "<$tagName>")
+            inviteTags.resolver(Placeholder.component(tagName, inviteComponent(match.value)))
+        }
+
+        return runCatching { miniMessage.deserialize(tagged, inviteTags.build()) }
             .getOrElse { Component.text(source) }
-        return replaceMarkers(parsed, matches.map { it.value })
     }
 
     fun plainText(description: String?): String =
         PlainTextComponentSerializer.plainText().serialize(render(description))
 
-    private fun marker(index: Int): String = "__LG_DISCORD_INVITE_${index}__"
-
-    private fun replaceMarkers(component: Component, invites: List<String>): Component {
-        val replacedChildren = component.children().map { replaceMarkers(it, invites) }
-        val withoutChildren = component.children(emptyList())
-
-        if (withoutChildren !is TextComponent) {
-            return withoutChildren.children(replacedChildren)
-        }
-
-        val content = withoutChildren.content()
-        val markerRegex = Regex("""__LG_DISCORD_INVITE_(\d+)__""")
-        if (!markerRegex.containsMatchIn(content)) {
-            return withoutChildren.children(replacedChildren)
-        }
-
-        var rebuilt: Component = Component.empty().style(withoutChildren.style())
-        var cursor = 0
-        markerRegex.findAll(content).forEach { match ->
-            if (match.range.first > cursor) {
-                rebuilt = rebuilt.append(Component.text(content.substring(cursor, match.range.first)))
-            }
-            val invite = invites.getOrNull(match.groupValues[1].toIntOrNull() ?: -1)
-            rebuilt = rebuilt.append(
-                if (invite == null) Component.text(match.value) else inviteComponent(invite)
-            )
-            cursor = match.range.last + 1
-        }
-
-        if (cursor < content.length) {
-            rebuilt = rebuilt.append(Component.text(content.substring(cursor)))
-        }
-        return rebuilt.children(rebuilt.children() + replacedChildren)
-    }
+    private fun inviteTag(index: Int): String = "lg_discord_invite_$index"
 
     private fun inviteComponent(invite: String): Component =
         Component.text(invite)

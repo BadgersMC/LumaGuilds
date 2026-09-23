@@ -59,6 +59,25 @@ class GuildDescriptionContentTest {
     }
 
     @Test
+    fun `discord invite survives gradient and rainbow formatting`() {
+        val discord = "https://discord.gg/Badgers-123"
+        listOf(
+            "<gradient:red:blue>$discord</gradient>",
+            "<rainbow>$discord</rainbow>",
+        ).forEach { description ->
+            val rendered = GuildDescriptionContent.render(description)
+            val clicks = descendants(rendered)
+                .mapNotNull { it.clickEvent() }
+                .toList()
+
+            assertEquals(discord, GuildDescriptionContent.plainText(description))
+            assertEquals(1, clicks.size)
+            assertEquals(ClickEvent.Action.OPEN_URL, clicks.single().action())
+            assertEquals(discord, clicks.single().value())
+        }
+    }
+
+    @Test
     fun `both supported discord invite hosts are detected without duplicates`() {
         val first = "https://discord.gg/abc_DEF-123"
         val second = "https://discord.com/invite/Second-2"
