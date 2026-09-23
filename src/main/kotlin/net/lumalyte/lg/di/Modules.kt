@@ -583,12 +583,13 @@ fun progressionModule() = module {
         }
     }
     single { net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(get(), get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator(get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.persistence.WarRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.WarRepositorySQL(get())
     }
     single { net.lumalyte.lg.application.services.WarPaymentService(get(), get()) }
-    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {
         net.lumalyte.lg.infrastructure.web.handlers.GuildLeaderboardHandler(

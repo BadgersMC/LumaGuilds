@@ -15,6 +15,7 @@ import java.time.ZonedDateTime
 class ChapterRolloverScheduler(
     private val plugin: LumaGuilds,
     private val storage: Storage<Database>,
+    private val ratedWarGate: ChapterRatedWarReconciliationGate,
 ) {
     private var task: BukkitTask? = null
 
@@ -42,6 +43,9 @@ class ChapterRolloverScheduler(
                 .plusMonths(plugin.config.getLong("chapter.duration_months", 3L).coerceAtLeast(1L))
                 .toInstant().toEpochMilli()
             val plan = ChapterRolloverPlan(current.chapterId,current.chapterName,nextId,nextName,end,nextEnd)
+            if (current.phase == "SCHEDULED" && end <= now) {
+                ratedWarGate.reconcile(current.chapterId, end)
+            }
             val backup: (String,String,Long)->Unit = { chapterId, backupId, at ->
                 check(storage.dialect == SqlDialect.SQLITE) { "Automatic verified backup currently requires SQLite" }
                 SQLiteChapterBackupService(connection, plugin.dataFolder.toPath().resolve("chapter-backups"))

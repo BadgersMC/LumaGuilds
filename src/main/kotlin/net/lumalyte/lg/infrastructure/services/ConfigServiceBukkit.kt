@@ -47,9 +47,21 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             bedrock = loadBedrockConfig(),
             webApi = loadWebApiConfig(),
             strikes = loadStrikesConfig(),
+            seasonalElo = loadSeasonalEloConfig(),
             chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", false),
             chapterTwoGoldCostsEnabled = config.getBoolean("progression.chapter_two_gold_costs_enabled", false)
         )
+    }
+
+    private fun loadSeasonalEloConfig(): SeasonalEloConfig {
+        val result = SeasonalEloConfig(
+            enabled = config.getBoolean("seasonal_elo.enabled", false),
+            kFactor = config.getInt("seasonal_elo.k_factor", 40),
+            upperDisplayRating = config.getInt("seasonal_elo.upper_display_rating", 1600),
+            rematchWindowDays = config.getInt("seasonal_elo.rematch_window_days", 7),
+        )
+        result.settings()
+        return result
     }
 
     private fun loadStrikesConfig(): StrikesConfig {
