@@ -18,12 +18,14 @@ from the June mass audit. Overlap between audits does not change the provenance 
   (`fix(discord): serialize guild role synchronization`).
 - **🛠 REMEDIATED IN #174** — independently source-confirmed and corrected by pending PR #174
   (`fix(wars): harden terminal lifecycle resolution`).
+- **🛠 REMEDIATED IN #175** — independently source-confirmed and corrected by pending PR #175
+  (`fix(claims): preserve rank permission identity`).
 - **🔎 NOT REPRODUCED / HARDENED IN #172** — the exact reported failure mode was not present
   in the current runtime, but adjacent state handling was strengthened to preserve the intended invariant.
 
 **Inventory:** 37 reported findings total; 10 remediated in #168; 4 remediated in #171;
-4 remediated in #172; 2 remediated in #173; 4 remediated in #174; 1 not reproduced/hardened in #172;
-12 still awaiting independent verification and/or remediation.
+4 remediated in #172; 2 remediated in #173; 4 remediated in #174; 1 remediated in #175;
+1 not reproduced/hardened in #172; 11 still awaiting independent verification and/or remediation.
 
 ---
 
@@ -104,9 +106,13 @@ Source-confirmed. Expired draws used a persistence-only path that skipped the st
 production caller at all. PR #174 routes expiration through the shared terminal lifecycle and
 schedules war maintenance once per minute after the war listeners are registered.
 
-### ◻️ DEV-13 — Rank renames can break claim permissions
-Claim permissions are tied to rank names rather than stable rank IDs, so renaming a rank can
-disconnect the permission mapping.
+### 🛠 DEV-13 — Rank renames can break claim permissions — #175
+Source-confirmed. Claim permission lookup used the mutable rank display name as the
+`team_role_permissions.roles.*` key, so a rename could silently fall back to default claim
+permissions. PR #175 persists an immutable rank-UUID -> legacy permission-profile name mapping,
+establishes that profile before any rename/update, compensates failed rank/profile creation, and
+adds SQLite/MariaDB schema v40 plus regression coverage proving permissions survive rename,
+cache invalidation, and repository reload.
 
 ### 🛠 DEV-14 — A war-ending kill can end the war before kill processing completes — #174
 Source-confirmed. The kill counter previously ended the war inside the durable counter update,
@@ -225,6 +231,9 @@ permission model, which can strand a guild-owned claim when that original player
 - **PR #174:** DEV-12, DEV-14, DEV-28, and DEV-29 were independently source-confirmed and
   remediated through a shared terminal war lifecycle, post-kill terminal resolution, corrected
   expiration semantics, restart reconciliation, and production scheduling of war maintenance.
-- The remaining **12 DEV-REPORTED findings** should be source-verified before implementation.
+- **PR #175:** DEV-13 was independently source-confirmed and remediated by persisting a stable
+  rank UUID to legacy claim-permission profile identity, preserving existing name-keyed operator
+  configuration across rank renames, with schema v40 and failure-compensation regression coverage.
+- The remaining **11 DEV-REPORTED findings** should be source-verified before implementation.
   If confirmed, preserve these IDs in future PR descriptions so fixes can be traced back to this
   audit without conflating it with the June or September ChatGPT audit tracks.
