@@ -21,6 +21,7 @@ import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WorldManipulationService
 import net.lumalyte.lg.domain.entities.Claim
+import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.ClaimPermission
 import net.lumalyte.lg.domain.values.Flag
@@ -30,6 +31,7 @@ import net.lumalyte.lg.interaction.listeners.forEachNonExemptTarget
 import net.lumalyte.lg.interaction.listeners.hasDeniedRelevantTarget
 import org.bukkit.event.block.BlockExplodeEvent
 import org.junit.jupiter.api.Test
+import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertIs
 
@@ -141,6 +143,41 @@ class ClaimAuditRegressionTest {
 
         assertIs<GrantGuildMembersClaimPermissionsResult.NoGuildMembers>(result)
         verify { members.hasPermission(manager, guildId, RankPermission.MANAGE_PERMISSIONS) }
+    }
+
+    @Test
+    fun `guild permission manager is included when sharing with all guild members`() {
+        val originalOwner = UUID.randomUUID()
+        val manager = UUID.randomUUID()
+        val otherMember = UUID.randomUUID()
+        val guildId = UUID.randomUUID()
+        val rankId = UUID.randomUUID()
+        val converted = claim(owner = originalOwner, guildId = guildId)
+        val claims = mockk<ClaimRepository>()
+        val members = mockk<MemberService>()
+        val access = mockk<PlayerAccessRepository>()
+
+        every { claims.getById(converted.id) } returns converted
+        every { members.hasPermission(manager, guildId, RankPermission.MANAGE_PERMISSIONS) } returns true
+        every { members.getGuildMembers(guildId) } returns setOf(
+            Member(originalOwner, guildId, rankId, Instant.EPOCH),
+            Member(manager, guildId, rankId, Instant.EPOCH),
+            Member(otherMember, guildId, rankId, Instant.EPOCH),
+        )
+        ClaimPermission.entries.forEach { permission ->
+            every { access.add(converted.id, manager, permission) } returns true
+            every { access.add(converted.id, otherMember, permission) } returns true
+        }
+
+        val result = GrantGuildMembersClaimPermissions(claims, members, access)
+            .execute(converted.id, manager)
+
+        assertIs<GrantGuildMembersClaimPermissionsResult.Success>(result)
+        ClaimPermission.entries.forEach { permission ->
+            verify(exactly = 0) { access.add(converted.id, originalOwner, permission) }
+            verify(exactly = 1) { access.add(converted.id, manager, permission) }
+            verify(exactly = 1) { access.add(converted.id, otherMember, permission) }
+        }
     }
 
     @Test
