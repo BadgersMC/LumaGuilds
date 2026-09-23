@@ -99,11 +99,11 @@ class GuildQuestsMenu(
         }
         return NexoItemProvider.getItemStackOrFallback("lg_quest_${quest.tier.name.lowercase()}") { ItemStack.of(material) }
             .also { item -> item.editMeta { meta ->
-                meta.displayName(lang.gui("menu.quests.item.quest.name", "action" to QuestDisplayFormatter.token(quest.action.name), "target" to QuestDisplayFormatter.token(quest.target.id)))
+                meta.displayName(lang.gui("menu.quests.item.quest.name", "action" to QuestDisplayFormatter.token(quest.action.name), "target" to QuestDisplayFormatter.target(quest.target.id)))
                 val lore = mutableListOf<Component>(
                     tierLabel(quest.tier),
-                    lang.gui("menu.quests.item.quest.description", "amount" to quest.targetCount, "target" to QuestDisplayFormatter.token(quest.target.id),
-                        "condition" to (quest.condition?.let { " ${QuestDisplayFormatter.token(it.type.name)} ${it.value?.let(QuestDisplayFormatter::token).orEmpty()}" } ?: "")),
+                    lang.gui("menu.quests.item.quest.description", "amount" to quest.targetCount, "target" to QuestDisplayFormatter.target(quest.target.id),
+                        "condition" to quest.conditions.takeIf { it.isNotEmpty() }?.let { " ${QuestDisplayFormatter.conditions(it)}" }.orEmpty()),
                     Component.empty(),
                     lang.gui("menu.quests.item.quest.progress", "count" to count, "target" to quest.targetCount, "percent" to percent),
                     lang.gui("menu.quests.item.quest.reward", "xp" to quest.experienceReward)

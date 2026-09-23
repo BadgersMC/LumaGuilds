@@ -7,6 +7,7 @@ import java.util.UUID
 interface QuestRepository {
     fun getActiveQuestSet(): WeeklyQuestSet?
     fun saveActiveQuestSet(questSet: WeeklyQuestSet)
+    fun getRecentQuestSets(limit: Int): List<WeeklyQuestSet>
     fun deactivateActiveQuestSet()
     fun getProgress(weekId: String, questId: String, guildId: UUID): GuildQuestProgress?
     fun saveProgress(value: GuildQuestProgress)

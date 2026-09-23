@@ -559,59 +559,63 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 > Part of the Chapter 2 progression overhaul. Builds on the XP infrastructure in PR-12/LG-1201. Every quest, full-set bonus, and leaderboard Guild EXP payout passes through `QuestRewardSinkBukkit` to `ProgressionService.awardUncappedSystemExperience(guildId, amount, ExperienceSource.WEEKLY_ACTIVITY)`. The permanent award repository records progression and audit rows atomically without creating or consuming a source-cap usage row.
 >
-> **Claims-disabled constraint (EnthusiaSMP):** No claim-related quest actions (`CLAIM_CREATED`, `CLAIM_DESTROYED`) are included in the `QuestAction` enum. The progress listener gates claims-adjacent handlers on `claims_enabled`. See REQ-075.
+> **Procedural-generation contract:** Operators configure generation policy, not an authored quest catalog. Each reset independently composes action + provider-owned namespaced target + sane rounded amount + zero or more compatible conditions from runtime-discovered content. Vanilla targets come from Bukkit/Paper runtime registries/recipes/semantics; optional providers (currently Nexo) contribute custom content without changing generator code.
 >
-> **Nav layout (10-slot, 5×2):**
-> - Row 1: Guild Info — Members — Ranks — Economy (vault + bank + resources merged) — **Quests** 🎯
-> - Row 2: Settings — Wars — Combat — ??? — **Statistics** (being built by another agent)
+> **Chaos/sanity rule:** difficult, expensive, strange, and conflict-driving quests are intentional; mathematically absurd quests are not. Magnitude derives from action/target rarity classes with small exceptional rules rather than a material-by-material whitelist. Recent exact quests and recent action+target pairs are rejected for configured cooldown windows.
+>
+> **Claims-disabled constraint (EnthusiaSMP):** Claims are disabled on the current SMP, but ordinary mining/placement quest progress is not claims functionality and remains available. Claims-specific providers/actions may register only on claims-enabled gamemodes.
+>
+> **Spatial-event intent:** X/Z corridor conditions deliberately bias some activity toward the player-built X=0/Z=0 highway network. Event context carries coordinates only for actions where location is meaningful.
+>
+> **Future network boundary:** PR-16 quests are local to one gamemode/LumaGuilds instance. Network Guild federation may later aggregate explicitly network-scoped objectives, but local weekly quest progress never implicitly crosses gamemodes. See `docs/plans/2026-09-20-network-guild-federation-design.md`.
 
-- [ ] **LG-1601** Domain model: `QuestDefinition`, `GuildQuestProgress`, `QuestAction` enum (with `ExperienceSource` mapping), and `ExperienceSource` reuse — domain layer, zero Bukkit imports
+- [x] **LG-1601** Procedural quest domain and generator — namespaced targets, independent action/target/amount/condition rolls, semantic validation, deterministic bounded generation, history fingerprints, and human-rounded magnitude-aware amounts; domain layer remains Bukkit-free.
   - Tag: `TDD`
   - References: REQ-074, REQ-075, REQ-081
-- Evidence: Domain model, semantic validator, bounded generator, overflow protection, and zero-Bukkit layer checks are GREEN; the newly specified direct `QuestAction`→`ExperienceSource` mapping remains open.
-  - Files: `domain/values/QuestAction.kt`, `domain/entities/QuestDefinition.kt`, `domain/entities/GuildQuestProgress.kt`
+  - Evidence: `QuestGeneratorTest` / `QuestGenerationValidatorTest` cover deterministic sets, current-set uniqueness, recent action-target rejection, axis corridors, structured failures, rounded amounts, and precious-vs-bulk magnitude bounds. `QuestAction` already maps directly to `ExperienceSource`.
+  - Files: `domain/values/QuestAction.kt`, `domain/entities/QuestDefinition.kt`, `domain/services/QuestGenerator.kt`, `QuestGenerationValidator.kt`, `QuestAmountPolicy.kt`, `QuestTargetProvider.kt`
 
-- [ ] **LG-1602** Quest persistence: `QuestRepository` (interface in application/persistence) + `QuestRepositorySQLite` with migration for per-guild quest progress (quest_id, guild_id, current_count, completed, claimed, reset_timestamp)
+- [x] **LG-1602** Quest persistence and schema ownership — active/history sets plus per-guild progress/claim/bonus/payout state live behind `QuestRepository`; SQLite and MariaDB migration chains own quest schema v36 and repository construction performs no DDL.
   - Tag: `TDD`
-  - References: REQ-080
-- Evidence: Repository, atomic active-set replacement, claim-preserving upserts, per-recipient payout markers, cleanup, and restart tests are GREEN; the newly specified quest-table migration chain remains open.
-  - Files: `application/persistence/QuestRepository.kt`, `infrastructure/persistence/guilds/QuestRepositorySQLite.kt`, `migrations/*.sql`
+  - References: REQ-074, REQ-077, REQ-080
+  - Evidence: `QuestRepositorySQLiteTest` covers restart persistence, claim-preserving upserts and idempotent markers; `QuestSchemaMigrationTest` proves v36 creates the quest tables and generated-target metadata/order columns. Repository write SQL is backend-aware for SQLite/MariaDB.
+  - Files: `application/persistence/QuestRepository.kt`, `infrastructure/persistence/guilds/QuestRepositorySQLite.kt`, `infrastructure/persistence/migrations/QuestSchema.kt`, `SQLiteMigrations.kt`, `MariaDBMigrations.kt`
 
-- [x] **LG-1603** Quest config loading: load weekly quest definitions from config (quests section in config.yml or separate quests.yml) — action type, target count, reward tier (COMMON/CHALLENGING/HEADLINE/CONDITIONED), optional item rewards, lang keys, enabled flag
+- [x] **LG-1603** Runtime target discovery and generation-policy config — ordinary operation requires no authored quest definitions. Bukkit/Paper discovers vanilla block/crop/entity/recipe/enchant targets; Nexo contributes custom blocks/items through the same provider contract. Config controls reset/rewards, condition probabilities, repeat cooldowns, and coordinate generation policy.
   - Tag: `TDD`
-  - References: REQ-079
-  - Evidence: Typed progression config loads actions, targets, reward tiers, optional conditions/items, lang keys, enabled/default-disabled state, and rejects empty definition sets.
-  - Files: config loader, quest definition config model
+  - References: REQ-074, REQ-075
+  - Evidence: shipped `progression.yml` contains generation policy only and enables weekly quests; `BukkitQuestTargetProvider`, `NexoQuestTargetProvider`, and `QuestTargetCatalog` supply sorted provider-owned targets without a giant whitelist.
+  - Files: `config/QuestGenerationConfig.kt`, `infrastructure/services/BukkitQuestTargetProvider.kt`, `NexoQuestTargetProvider.kt`, `ProgressionConfigService.kt`, `progression.yml`
 
-- [ ] **LG-1604** Quest progress listener: Bukkit event listener in infrastructure/listeners that increments quest progress matching active weekly quests, using `QuestAction`→`ExperienceSource` mapping for provenance compatibility. Claims-adjacent event handlers (block break/place for MINE_BLOCKS/PLACE_BLOCKS) SHALL gate on `claims_enabled` before registering — the listener SHALL NOT register claim-related handlers when claims are disabled.
+- [x] **LG-1604** Quest progress listener and provider identity bridge — qualifying Bukkit/domain events increment matching active quests using namespaced target IDs and event context including coordinates, dimension/biome, tool/transport, Elytra state, and block provenance. Nexo custom blocks/items retain custom identity instead of collapsing to vanilla backing types.
   - Tag: `TDD`
-  - References: REQ-075
-- Evidence: Listener covers the configured activity families and provenance reconciliation; the newly specified `claims_enabled` registration gate remains open.
-  - Files: `infrastructure/listeners/QuestProgressListener.kt`
+  - References: REQ-075, REQ-076
+  - Evidence: kill, break/harvest/place, craft, smelt, fish, enchant, guild-bank and war-win paths are wired with cancellation/game-mode gates; X/Z corridor conditions are evaluated by `QuestService`. Ordinary block quest handlers intentionally remain registered when claims are disabled.
+  - Files: `infrastructure/listeners/QuestProgressListener.kt`, `application/services/QuestService.kt`
 
-- [x] **LG-1605** Quest lifecycle service: weekly rotation (auto-reset at configured time, default Monday 00:00 UTC), quest activation/deactivation, guild progress aggregation, completion detection per quest
+- [x] **LG-1605** Quest lifecycle service — weekly rotation (default Monday 00:00 UTC), deterministic generation from a stable week seed, startup catch-up, active/history persistence, guild aggregation, and recent-history rejection.
   - Tag: `TDD`
   - References: REQ-074
-  - Evidence: `QuestServiceTest` and coordinator integration cover shared weekly rotation, deactivation, guild aggregation, completion, payout-before-cleanup, and retry-safe recipient state.
-  - Files: `application/services/QuestService.kt`
+  - Evidence: `WeeklyQuestCoordinator` discovers/sorts provider targets, reads recent persisted sets for cooldown enforcement, and retains the active set across restart rather than regenerating it.
+  - Files: `application/services/QuestService.kt`, `infrastructure/services/WeeklyQuestCoordinator.kt`
 
-- [x] **LG-1606** Quest reward delivery: claim flow awarding Guild EXP via the uncapped `WEEKLY_ACTIVITY` system pipeline + optional item rewards (drop or inventory); claim-once-per-week-per-guild enforcement
+- [x] **LG-1606** Quest reward delivery — claim flow awards Guild EXP via the uncapped `WEEKLY_ACTIVITY` system pipeline plus optional item rewards; claim, full-set bonus, and leaderboard recipient markers remain idempotent.
   - Tag: `TDD`
-  - References: REQ-077, REQ-078
-  - Evidence: Claim-once persistence, claim-gated full-set bonus, weekly activity XP, namespaced item reward round-trip, stack splitting, and inventory overflow drops are implemented and tested.
-  - Files: reward delivery in `QuestService`, claim command/menu handler
+  - References: REQ-077
+  - Evidence: claim-once persistence, claim-gated full-set bonus, weekly activity XP, namespaced item reward round-trip, stack splitting, inventory overflow drops, and payout-before-cleanup remain covered.
+  - Files: reward delivery in `QuestService`, `QuestRewardSinkBukkit`
 
-- [x] **LG-1607** Quest menu UI: ChestGUI/StaticPane menu shown as a nav-accessible page (Row 1, Slot 5 — replacing the former vault slot which now lives under Economy). Menu displays active quests with name, description, progress bar, target count, reward tier, and claim button — wired through `MenuFactory` and `MenuNavigator`.
+- [x] **LG-1607** Quest menu UI and dynamic rendering — ChestGUI/Bedrock surfaces display generated action/target/amount/conditions without requiring one language key per generated quest.
   - Tag: `TDD`
-  - References: REQ-076
-  - Evidence: Dashboard/factory/6-row ChestGUI navigation, progress/reward/claim rendering, timer, pagination, and explicit Bedrock fallback are wired.
-  - Files: `interaction/menus/guild/GuildQuestsMenu.kt`
+  - References: REQ-078
+  - Evidence: `QuestDisplayFormatter` renders provider IDs and axis corridors into human text; dashboard/factory/6-row quest navigation, progress/reward/claim state, timer, pagination, and Bedrock fallback remain wired.
+  - Files: `interaction/menus/guild/GuildQuestsMenu.kt`, `utils/QuestDisplayFormatter.kt`, Bedrock quest menu
 
-- [x] **LG-1608** Lang keys: all player-facing quest strings in `lang/en_US.yml` via `LangService` — quest names, descriptions, completion messages, error messages, reward announcements
+- [x] **LG-1608** Read-only localization/placeholders — all surrounding player-facing quest UI uses `LangService`; generated components are dynamically formatted, while PlaceholderAPI exposes read-only timer/definition/progress/reward/bonus state.
   - Tag: `INFRA`
-  - References: REQ-074..REQ-081
-  - Evidence: Quest menu and feedback strings use `LangService`; `MenuLocalizationTest`, `LocaleContractTest`, and the full clean suite (625 tests before merge) are GREEN.
-  - Files: `lang/en_US.yml` (quest section)
+  - References: REQ-078, REQ-079
+  - Evidence: menu and PAPI adapters consume the persisted active set and never generate/reset/claim/reward from placeholder evaluation.
+  - Files: `lang/en_US.yml`, `infrastructure/placeholders/LumaGuildsExpansion.kt`, `utils/QuestDisplayFormatter.kt`
 
 - [x] **Claims-disabled vault startup regression (REQ-015):** Vault claim lookup is optional; claims-enabled placement remains fail-closed. Both real startup graphs pass, and the full test suite plus shadowJar build pass.
 - [x] **Withdrawal fee messaging (REQ-015):** Quick withdrawal buttons preview actual capped fees and total deduction; successful physical and personal-account withdrawals report destination, fee and total. Regression test and full suite pass; shadowJar rebuilt.

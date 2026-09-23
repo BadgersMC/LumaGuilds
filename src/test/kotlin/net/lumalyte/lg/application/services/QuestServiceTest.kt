@@ -3,6 +3,8 @@ package net.lumalyte.lg.application.services
 import net.lumalyte.lg.application.persistence.QuestRepository
 import net.lumalyte.lg.domain.entities.GuildQuestProgress
 import net.lumalyte.lg.domain.entities.BlockProvenancePolicy
+import net.lumalyte.lg.domain.entities.QuestCondition
+import net.lumalyte.lg.domain.entities.QuestConditionType
 import net.lumalyte.lg.domain.entities.QuestDefinition
 import net.lumalyte.lg.domain.entities.QuestRewardTier
 import net.lumalyte.lg.domain.entities.QuestTarget
@@ -33,8 +35,8 @@ class QuestServiceTest {
         val alpha = UUID.randomUUID()
         val beta = UUID.randomUUID()
 
-        service.incrementProgress(alpha, QuestAction.KILL_MOBS, "ZOMBIE", 3)
-        service.incrementProgress(beta, QuestAction.KILL_MOBS, "ZOMBIE", 1)
+        service.incrementProgress(alpha, QuestAction.KILL_MOBS, "minecraft:entity/zombie", 3)
+        service.incrementProgress(beta, QuestAction.KILL_MOBS, "minecraft:entity/zombie", 1)
 
         assertEquals(3, service.progressFor(alpha, "zombies").currentCount)
         assertEquals(1, service.progressFor(beta, "zombies").currentCount)
@@ -49,8 +51,8 @@ class QuestServiceTest {
         val guild = UUID.randomUUID()
         val actor = UUID.randomUUID()
 
-        service.incrementProgress(guild, QuestAction.KILL_MOBS, "ZOMBIE", 2)
-        service.incrementProgress(guild, QuestAction.KILL_MOBS, "SKELETON", 1)
+        service.incrementProgress(guild, QuestAction.KILL_MOBS, "minecraft:entity/zombie", 2)
+        service.incrementProgress(guild, QuestAction.KILL_MOBS, "minecraft:entity/skeleton", 1)
 
         assertEquals(emptyList<Int>(), rewards.experienceAwards.map { it.second })
 
@@ -91,7 +93,7 @@ class QuestServiceTest {
         val naturalQuest = quest("stone", 10, 500).copy(
             action = QuestAction.MINE_BLOCKS,
             target = QuestTarget(
-                "STONE", setOf(QuestAction.MINE_BLOCKS), 1, 100,
+                "minecraft:block/stone", setOf(QuestAction.MINE_BLOCKS), 1, 100,
                 provenancePolicy = BlockProvenancePolicy.NATURAL_ONLY
             )
         )
@@ -100,21 +102,56 @@ class QuestServiceTest {
         val guild = UUID.randomUUID()
 
         service.incrementProgress(
-            guild, QuestAction.MINE_BLOCKS, "STONE", 1,
+            guild, QuestAction.MINE_BLOCKS, "minecraft:block/stone", 1,
             QuestProgressContext(playerPlacedBlock = true)
         )
 
         assertEquals(0, service.progressFor(guild, "stone").currentCount)
     }
 
+    @Test
+    fun `axis corridor conditions require activity inside the configured corridor`() {
+        val corridorQuest = quest("stone-axis", 2, 500).copy(
+            action = QuestAction.MINE_BLOCKS,
+            target = QuestTarget(
+                "minecraft:block/stone",
+                setOf(QuestAction.MINE_BLOCKS),
+                1,
+                100,
+                supportedConditions = setOf(QuestConditionType.X_WITHIN, QuestConditionType.Z_WITHIN)
+            ),
+            conditions = listOf(
+                QuestCondition(QuestConditionType.X_WITHIN, "0:100"),
+                QuestCondition(QuestConditionType.Z_WITHIN, "500:50")
+            )
+        )
+        val repository = FakeQuestRepository(week.copy(quests = listOf(corridorQuest)))
+        val service = QuestService(repository, RecordingRewardSink(), fullSetBonusExperience = 0)
+        val guild = UUID.randomUUID()
+
+        service.incrementProgress(
+            guild, QuestAction.MINE_BLOCKS, "minecraft:block/stone", 1,
+            QuestProgressContext(x = 90, z = 525)
+        )
+        service.incrementProgress(
+            guild, QuestAction.MINE_BLOCKS, "minecraft:block/stone", 1,
+            QuestProgressContext(x = 101, z = 525)
+        )
+        service.incrementProgress(
+            guild, QuestAction.MINE_BLOCKS, "minecraft:block/stone", 1,
+            QuestProgressContext(x = 90, z = 551)
+        )
+
+        assertEquals(1, service.progressFor(guild, "stone-axis").currentCount)
+    }
     private fun quest(id: String, target: Long, xp: Int): QuestDefinition {
-        val targetId = if (id == "skeletons") "SKELETON" else if (id == "dragons") "ENDER_DRAGON" else "ZOMBIE"
+        val targetId = if (id == "skeletons") "minecraft:entity/skeleton" else if (id == "dragons") "minecraft:entity/ender_dragon" else "minecraft:entity/zombie"
         return QuestDefinition(
             id = id,
             nameKey = "quests.$id.name",
             descriptionKey = "quests.$id.description",
             action = QuestAction.KILL_MOBS,
-            target = QuestTarget(targetId, setOf(QuestAction.KILL_MOBS), 0, 10_000),
+            target = QuestTarget(targetId, setOf(QuestAction.KILL_MOBS), 1, 10_000),
             targetCount = target,
             tier = QuestRewardTier.COMMON,
             experienceReward = xp
@@ -135,6 +172,7 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
     private val paidLeaderboardRecipients = mutableSetOf<Triple<String, String, UUID>>()
 
     override fun getActiveQuestSet(): WeeklyQuestSet? = active
+    override fun getRecentQuestSets(limit: Int): List<WeeklyQuestSet> = active?.let(::listOf).orEmpty().take(limit)
     override fun saveActiveQuestSet(questSet: WeeklyQuestSet) { active = questSet }
     override fun deactivateActiveQuestSet() { active = null }
     override fun getProgress(weekId: String, questId: String, guildId: UUID): GuildQuestProgress? = progress[Triple(weekId, questId, guildId)]
