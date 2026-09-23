@@ -78,6 +78,23 @@ class ChapterRolloverCoordinatorTest {
         assertTrue(status.lastError!!.contains("phase write failed"))
     }
 
+    @Test fun persistedFailurePausesUntilExplicitRetry() {
+        val admin = ChapterAdminRecoverySQL(connection)
+        val attempts = intArrayOf(0)
+        val c = ChapterRolloverCoordinatorSQL(connection) { _, _, _ -> attempts[0]++ }
+        assertEquals("FROZEN", c.advance(plan(), 1000).phase)
+        admin.recordFailure("c2", "operator review required", "FROZEN", 1001)
+
+        val paused = c.catchUp(plan(), 1100)
+
+        assertEquals("FROZEN", paused.phase)
+        assertEquals("operator review required", paused.lastError)
+        assertEquals(0, attempts[0])
+
+        admin.retry("c2", 1101)
+        c.advance(plan(), 1102)
+        assertEquals(1, attempts[0])
+    }
     @Test fun backupFailureIsPersistedAndPhaseRemainsFrozen() {
         val c = ChapterRolloverCoordinatorSQL(connection) { _, _, _ -> error("disk full") }
         c.advance(plan(), 1000)
