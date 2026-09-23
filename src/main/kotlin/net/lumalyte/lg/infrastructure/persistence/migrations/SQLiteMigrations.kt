@@ -214,6 +214,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(39)
                 dbVersion = 39
             }
+            if (dbVersion < 40) {
+                migrateToVersion40()
+                updateDatabaseVersion(40)
+                dbVersion = 40
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1406,7 +1411,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history",
             "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security",
             "war_banners", "war_notifications", "player_notification_preferences", "guild_discord_roles",
-            "spawn_banners"
+            "spawn_banners", "rank_claim_permission_profiles"
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1484,6 +1489,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if ("spawn_banners" in missingTables) {
                 migrateToVersion38()
                 componentLogger.info(Component.text("✓ Recreated dynamic spawn-banner registry"))
+            }
+            if ("rank_claim_permission_profiles" in missingTables) {
+                migrateToVersion40()
+                componentLogger.info(Component.text("✓ Recreated rank claim-permission profiles"))
             }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
@@ -1911,5 +1920,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun migrateToVersion39() {
         ClaimTransferRequestSchema.create(connection, mariaDb = false)
         componentLogger.info(Component.text("Claim transfer requests migrated to schema v39"))
+    }
+
+    private fun migrateToVersion40() {
+        RankClaimPermissionProfileSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Rank claim-permission profiles migrated to schema v40"))
     }
 }
