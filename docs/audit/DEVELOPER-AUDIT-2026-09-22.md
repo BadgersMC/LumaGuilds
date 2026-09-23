@@ -22,13 +22,15 @@ from the June mass audit. Overlap between audits does not change the provenance 
   (`fix(claims): preserve rank permission identity`).
 - **🛠 REMEDIATED IN #176** — independently source-confirmed and corrected by pending PR #176
   (`fix(wars): enforce durable war policy`).
+- **🛠 REMEDIATED IN #177** — independently source-confirmed and corrected by pending PR #177
+  (`fix(claims): close protection and guild management gaps`).
 - **🔎 NOT REPRODUCED / HARDENED IN #172** — the exact reported failure mode was not present
   in the current runtime, but adjacent state handling was strengthened to preserve the intended invariant.
 
 **Inventory:** 37 reported findings total; 10 remediated in #168; 4 remediated in #171;
 4 remediated in #172; 2 remediated in #173; 4 remediated in #174; 1 remediated in #175;
-7 remediated in #176; 1 not reproduced/hardened in #172; 4 still awaiting independent verification
-and/or remediation.
+7 remediated in #176; 4 remediated in #177; 1 not reproduced/hardened in #172;
+**0 findings remain awaiting independent verification or remediation.**
 
 ---
 
@@ -210,21 +212,27 @@ The display path now resolves the actual claim owner instead of substituting the
 ---
 
 ## Claim protection event coverage
-### ◻️ DEV-25 — Some multi-block protections stop after the first allowed block
-Reported examples include pistons crossing claim boundaries. An early allowed block can prevent
-later affected blocks from being checked.
+### 🛠 DEV-25 — Some multi-block protections stop after the first allowed block — #177
+Source-confirmed. Piston and sponge protection traversals could stop after an earlier allowed
+entry and skip a later protected target. PR #177 makes the affected traversals continue through
+allowed entries and adds regression coverage proving a later denied target is still evaluated.
 
-### ◻️ DEV-26 — Splash/lingering potion protection can stop checking affected entities early
-An early allowed entity can reportedly end validation before later animals/entities in the same
-splash are checked.
+### 🛠 DEV-26 — Splash/lingering potion protection can stop checking affected entities early — #177
+Source-confirmed. Splash and lingering potion loops returned from the whole handler when an exempt
+Monster or Player appeared first. PR #177 skips only that exempt entity and continues evaluating
+later passive entities, with ordered traversal regression coverage.
 
-### ◻️ DEV-27 — One block-explosion protection path listens to the wrong event
-A handler intended for block explosions reportedly listens to `EntityExplodeEvent` rather than
-the block explosion event, allowing some block explosions to miss that protection path.
+### 🛠 DEV-27 — One block-explosion protection path listens to the wrong event — #177
+Source-confirmed. The handler named for block explosions accepted `EntityExplodeEvent`, leaving
+`BlockExplodeEvent` without that protection path. PR #177 binds the handler to the correct event
+and includes a signature regression test.
 
-### ◻️ DEV-37 — Guild-owned claim management still relies on original owner checks in places
-Some management paths reportedly validate the original player owner instead of the guild/member
-permission model, which can strand a guild-owned claim when that original player is gone.
+### 🛠 DEV-37 — Guild-owned claim management still relies on original owner checks in places — #177
+Source-confirmed across command, menu, edit-tool, anchor movement, and claim-destruction paths.
+PR #177 centralizes actor-authoritative management for guild-owned claims using current rank
+permissions (`MANAGE_CLAIMS`, `MANAGE_FLAGS`, `MANAGE_PERMISSIONS`, and `DELETE_CLAIMS`) while
+preserving original-owner and explicit-override compatibility. Regression coverage verifies a
+non-owner guild manager can administer and move a converted claim.
 
 ---
 
