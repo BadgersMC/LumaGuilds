@@ -292,7 +292,8 @@ data class CombatConfig(
     var warDurationHours: Int = 168, // 1 week
     var warEndGracePeriodMinutes: Int = 30,
     var maxSimultaneousWars: Int = 3,
-    
+    var warKillWinTarget: Int = 25,
+
     // Experience and Rewards
     var killExperience: Int = 10,
     var warWinExperience: Int = 500,
