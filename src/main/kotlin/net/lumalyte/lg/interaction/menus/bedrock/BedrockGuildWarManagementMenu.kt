@@ -12,11 +12,9 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
-import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
@@ -244,84 +242,7 @@ class BedrockGuildWarManagementMenu(
     }
 
     private fun openDeclareWarMenu() {
-        val config = getBedrockConfig()
-
-        val form = CustomForm.builder()
-            .title(lang.bedrock("bedrock.war_management.management_declare_war"))
-            .label(lang.bedrock("bedrock.war_management.management_declare_war_description"))
-            .input(
-                lang.bedrock("bedrock.war_management.management_declare_war_target_label"),
-                lang.bedrock("bedrock.war_management.management_declare_war_target_placeholder")
-            )
-            .input(
-                lang.bedrock("bedrock.war_management.management_declare_war_duration_label"),
-                lang.bedrock("bedrock.war_management.management_declare_war_duration_placeholder")
-            )
-            .input(
-                lang.bedrock("bedrock.war_management.management_declare_war_reason_label"),
-                lang.bedrock("bedrock.war_management.management_declare_war_reason_placeholder")
-            )
-            .validResultHandler { response ->
-                handleDeclareWarResponse(response)
-            }
-            .closedOrInvalidResultHandler { _, _ ->
-                getForm() // Back to main menu
-            }
-            .build()
-
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
-            override fun getForm(): Form = form
-
-            override fun handleResponse(player: Player, response: Any?) {
-                onFormResponseReceived()
-            }
-        })
-    }
-
-    private fun handleDeclareWarResponse(response: org.geysermc.cumulus.response.CustomFormResponse) {
-        val targetGuildName = response.asInput(0)
-        val durationStr = response.asInput(1) ?: "7"
-        val reason = response.asInput(2)
-
-        if (targetGuildName.isNullOrBlank()) {
-            player.sendMessage(lang.msg("bedrock.war_management.management_declare_war_target_required"))
-            return
-        }
-
-        val targetGuild = guildService.getGuildByName(targetGuildName)
-        if (targetGuild == null) {
-            player.sendMessage(lang.msg("bedrock.war_management.management_declare_war_guild_not_found"))
-            return
-        }
-
-        if (targetGuild.id == guild.id) {
-            player.sendMessage(lang.msg("bedrock.war_management.management_declare_war_self"))
-            return
-        }
-
-        val duration = try {
-            Duration.ofDays(durationStr.toLong().coerceIn(1, 30))
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            Duration.ofDays(7)
-        }
-
-        val success = warService.createWarDeclaration(
-            declaringGuildId = guild.id,
-            defendingGuildId = targetGuild.id,
-            duration = duration,
-            objectives = emptySet(),
-            wagerAmount = 0,
-            terms = null,
-            actorId = player.uniqueId
-        )
-        if (success != null) {
-            player.sendMessage(lang.msg("bedrock.war_management.management_declare_war_declared", "guild" to targetGuild.name))
-        } else {
-            player.sendMessage(lang.msg("bedrock.war_management.management_declare_war_failed"))
-        }
-
-        getForm() // Refresh main menu
+        bedrockNavigator.openMenu(BedrockGuildWarDeclarationMenu(menuNavigator, player, guild, logger))
     }
 
     private fun openWarHistoryMenu() {

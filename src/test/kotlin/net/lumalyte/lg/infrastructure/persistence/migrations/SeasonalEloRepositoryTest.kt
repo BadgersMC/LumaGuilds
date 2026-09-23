@@ -155,6 +155,24 @@ class SeasonalEloRepositoryTest {
         assertEquals(1, count("chapter_rated_war_results"))
     }
 
+    @Test
+    fun `terminal no-rating decision replays after chapter freezes`() {
+        val war = UUID.randomUUID()
+        assertTrue(
+            repo().decideUnrated(war, "c2", "CHAPTER_ENDED_BEFORE_WAR_RESOLUTION", 2_000) is
+                SeasonalWarRatingResult.Ineligible,
+        )
+        connection.createStatement().use {
+            it.execute("UPDATE chapter_lifecycle SET phase='FROZEN' WHERE chapter_id='c2'")
+        }
+
+        val replay = repo().rate(war, "c2", a, b, 1.0, 0.0, 1_500)
+
+        assertTrue(replay is SeasonalWarRatingResult.Replayed)
+        assertEquals(1, count("chapter_war_rating_decisions"))
+        assertEquals(0, count("chapter_rated_war_results"))
+    }
+
     private fun repo() = SeasonalEloRepositorySQL(connection, false, SeasonalEloSettings())
     private fun rating(id:UUID)=connection.createStatement().use{it.executeQuery("SELECT elo FROM chapter_seasonal_ratings WHERE chapter_id='c2' AND guild_id='$id'").use{r->check(r.next());r.getInt(1)}}
     private fun progression(id:UUID)=connection.createStatement().use{it.executeQuery("SELECT current_level,total_experience FROM guild_progression WHERE guild_id='$id'").use{r->check(r.next());r.getInt(1) to r.getInt(2)}}

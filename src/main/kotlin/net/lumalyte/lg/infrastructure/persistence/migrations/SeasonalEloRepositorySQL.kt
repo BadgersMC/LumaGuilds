@@ -42,12 +42,12 @@ class SeasonalEloRepositorySQL(
         return try {
             lockChapter(chapterId)
             val chapter = chapterWindow(chapterId)
-            if (chapter.phase != "SCHEDULED") {
-                connection.rollback()
-                SeasonalWarRatingResult.Frozen
-            } else if (resultExists(warId) || decisionExists(warId)) {
+            if (resultExists(warId) || decisionExists(warId)) {
                 connection.rollback()
                 SeasonalWarRatingResult.Replayed
+            } else if (chapter.phase != "SCHEDULED") {
+                connection.rollback()
+                SeasonalWarRatingResult.Frozen
             } else if (!chapter.contains(ratedAt)) {
                 insertDecision(warId, chapterId, "OUTSIDE_ACTIVE_INTERVAL", ratedAt)
                 connection.commit()
@@ -93,11 +93,47 @@ class SeasonalEloRepositorySQL(
         }
     }
 
+    fun decideUnrated(
+        warId: UUID,
+        chapterId: String,
+        decision: String,
+        decidedAt: Long,
+    ): SeasonalWarRatingResult {
+        val previousAutoCommit = connection.autoCommit
+        connection.autoCommit = false
+        return try {
+            lockChapter(chapterId)
+            val chapter = chapterWindow(chapterId)
+            when {
+                resultExists(warId) || decisionExists(warId) -> {
+                    connection.rollback()
+                    SeasonalWarRatingResult.Replayed
+                }
+                chapter.phase != "SCHEDULED" -> {
+                    connection.rollback()
+                    SeasonalWarRatingResult.Frozen
+                }
+                else -> {
+                    insertDecision(warId, chapterId, decision, decidedAt)
+                    connection.commit()
+                    SeasonalWarRatingResult.Ineligible
+                }
+            }
+        } catch (error: Exception) {
+            runCatching { connection.rollback() }.onFailure(error::addSuppressed)
+            throw error
+        } finally {
+            connection.autoCommit = previousAutoCommit
+        }
+    }
+
     fun rating(chapterId: String, guildId: UUID): Int? =
         connection.prepareStatement("SELECT elo FROM chapter_seasonal_ratings WHERE chapter_id=? AND guild_id=?").use {
             it.setString(1, chapterId); it.setString(2, guildId.toString())
             it.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else null }
         }
+
+    fun isSettled(warId: UUID): Boolean = resultExists(warId) || decisionExists(warId)
 
     fun rank(chapterId: String, guildId: UUID): Int? {
         val current = rating(chapterId, guildId) ?: return null
