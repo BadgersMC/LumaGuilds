@@ -120,6 +120,7 @@ class GuildWarDeclarationMenu(
         // Get all guilds except own guild
         val availableGuilds = guildRepository.getAll()
             .filter { it.id != guild.id }
+            .filter { it.mode == GuildMode.HOSTILE }
             .filter { warService.getCurrentWarBetweenGuilds(guild.id, it.id)?.isActive != true }
             .sortedBy { it.name }
 
@@ -441,7 +442,7 @@ class GuildWarDeclarationMenu(
         if (selectedObjectives.isEmpty()) {
             selectedObjectives.add(WarObjective(
                 type = ObjectiveType.KILLS,
-                targetValue = 10,
+                targetValue = minOf(10, warService.getWarKillWinTarget()),
                 description = lang.raw("menu.war_declaration.objective.default_description")
             ))
         }
@@ -656,8 +657,12 @@ class GuildWarDeclarationMenu(
     }
 
     private fun cycleKillTarget() {
-        val killTargets = listOf(5, 10, 25, 50)
-        val currentKills = selectedObjectives.firstOrNull()?.targetValue ?: 10
+        val killCap = warService.getWarKillWinTarget()
+        val killTargets = (listOf(5, 10, 25, 50).filter { it <= killCap } + killCap)
+            .filter { it > 0 }
+            .distinct()
+            .sorted()
+        val currentKills = selectedObjectives.firstOrNull()?.targetValue ?: killTargets.first()
         val currentIndex = killTargets.indexOf(currentKills)
         val nextIndex = if (currentIndex == -1 || currentIndex >= killTargets.size - 1) 0 else currentIndex + 1
         val newTarget = killTargets[nextIndex]

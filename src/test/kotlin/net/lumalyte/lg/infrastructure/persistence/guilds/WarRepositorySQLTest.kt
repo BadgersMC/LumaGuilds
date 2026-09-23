@@ -122,12 +122,18 @@ class WarRepositorySQLTest {
         val original = record().copy(revision = 1)
         val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
         json.addProperty("version", 1)
-        json.getAsJsonObject("record").getAsJsonObject("declaration").remove("ratedChapterId")
-        json.getAsJsonObject("record").getAsJsonObject("war").remove("ratedChapterId")
-        json.getAsJsonObject("record").remove("notificationRecipients")
-        json.getAsJsonObject("record").remove("declarationNotificationExpected")
-        json.getAsJsonObject("record").remove("acceptanceNotificationExpected")
-        json.getAsJsonObject("record").remove("resolutionNotificationExpected")
+        val legacyRecord = json.getAsJsonObject("record")
+        val legacyDeclaration = legacyRecord.getAsJsonObject("declaration")
+        val legacyWar = legacyRecord.getAsJsonObject("war")
+        legacyDeclaration.remove("ratedChapterId")
+        legacyDeclaration.remove("declarationCooldownUntil")
+        legacyWar.remove("ratedChapterId")
+        legacyWar.remove("farmingCooldownGuildId")
+        legacyWar.remove("farmingCooldownUntil")
+        legacyRecord.remove("notificationRecipients")
+        legacyRecord.remove("declarationNotificationExpected")
+        legacyRecord.remove("acceptanceNotificationExpected")
+        legacyRecord.remove("resolutionNotificationExpected")
 
         val decoded = WarRecordCodec.decode(json.toString())
 
@@ -135,16 +141,65 @@ class WarRepositorySQLTest {
         assertFalse(decoded.war!!.isRated)
         assertEquals(null, decoded.declaration!!.ratedChapterId)
         assertEquals(null, decoded.war!!.ratedChapterId)
+        assertEquals(null, decoded.declaration!!.declarationCooldownUntil)
+        assertEquals(null, decoded.war!!.farmingCooldownGuildId)
+        assertEquals(null, decoded.war!!.farmingCooldownUntil)
+    }
+
+    @Test fun `legacy version two payload decodes without durable cooldown metadata`() {
+        val original = record().copy(revision = 1)
+        val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
+        json.addProperty("version", 2)
+        val legacyDeclaration = json.getAsJsonObject("record").getAsJsonObject("declaration")
+        val legacyWar = json.getAsJsonObject("record").getAsJsonObject("war")
+        legacyDeclaration.remove("declarationCooldownUntil")
+        legacyWar.remove("farmingCooldownGuildId")
+        legacyWar.remove("farmingCooldownUntil")
+
+        val decoded = WarRecordCodec.decode(json.toString())
+
+        assertEquals(null, decoded.declaration!!.declarationCooldownUntil)
+        assertEquals(null, decoded.war!!.farmingCooldownGuildId)
+        assertEquals(null, decoded.war!!.farmingCooldownUntil)
+    }
+
+    @Test fun `version three notification payload decodes without cooldown metadata`() {
+        val recipient = UUID.randomUUID()
+        val original = record().copy(
+            notificationRecipients = WarNotificationRecipients(victory = setOf(recipient)),
+            resolutionNotificationExpected = true,
+        )
+        val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
+        json.addProperty("version", 3)
+        val legacyDeclaration = json.getAsJsonObject("record").getAsJsonObject("declaration")
+        val legacyWar = json.getAsJsonObject("record").getAsJsonObject("war")
+        legacyDeclaration.remove("declarationCooldownUntil")
+        legacyWar.remove("farmingCooldownGuildId")
+        legacyWar.remove("farmingCooldownUntil")
+
+        val decoded = WarRecordCodec.decode(json.toString())
+
+        assertEquals(null, decoded.declaration!!.declarationCooldownUntil)
+        assertEquals(null, decoded.war!!.farmingCooldownGuildId)
+        assertEquals(null, decoded.war!!.farmingCooldownUntil)
+        assertEquals(setOf(recipient), decoded.notificationRecipients.victory)
+        assertTrue(decoded.resolutionNotificationExpected)
     }
 
     @Test fun `version two payload cannot omit rated war identity`() {
         val json = JsonParser.parseString(WarRecordCodec.encode(record())).asJsonObject
         json.addProperty("version", 2)
-        json.getAsJsonObject("record").remove("notificationRecipients")
-        json.getAsJsonObject("record").remove("declarationNotificationExpected")
-        json.getAsJsonObject("record").remove("acceptanceNotificationExpected")
-        json.getAsJsonObject("record").remove("resolutionNotificationExpected")
-        json.getAsJsonObject("record").getAsJsonObject("war").remove("ratedChapterId")
+        val legacyRecord = json.getAsJsonObject("record")
+        val legacyDeclaration = legacyRecord.getAsJsonObject("declaration")
+        val legacyWar = legacyRecord.getAsJsonObject("war")
+        legacyDeclaration.remove("declarationCooldownUntil")
+        legacyWar.remove("farmingCooldownGuildId")
+        legacyWar.remove("farmingCooldownUntil")
+        legacyWar.remove("ratedChapterId")
+        legacyRecord.remove("notificationRecipients")
+        legacyRecord.remove("declarationNotificationExpected")
+        legacyRecord.remove("acceptanceNotificationExpected")
+        legacyRecord.remove("resolutionNotificationExpected")
         assertFailsWith<IllegalStateException> { WarRecordCodec.decode(json.toString()) }
     }
 

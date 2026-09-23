@@ -80,7 +80,12 @@ class WarObjectivesSelectionMenu(
     private fun addKillsObjectiveItem(pane: StaticPane, x: Int, y: Int) {
         val killObjective = tempObjectives.firstOrNull { it.type == ObjectiveType.KILLS }
         val hasObjective = killObjective != null
-        val currentValue = killObjective?.targetValue ?: 10
+        val killCap = configService.loadConfig().combat.warKillWinTarget
+        val killTargets = (listOf(5, 10, 25, 50).filter { it <= killCap } + killCap)
+            .filter { it > 0 }
+            .distinct()
+            .sorted()
+        val currentValue = killObjective?.targetValue ?: killTargets.first()
 
         val item = ItemStack.of(if (hasObjective) Material.DIAMOND_SWORD else Material.IRON_SWORD)
             .name(if (hasObjective) lang.gui("menu.war_objectives.kills.selected") else lang.gui("menu.war_objectives.kills.name"))
@@ -104,7 +109,6 @@ class WarObjectivesSelectionMenu(
                 player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 0.8f)
             } else {
                 // Cycle or add objective
-                val killTargets = listOf(5, 10, 25, 50)
                 val currentIndex = killTargets.indexOf(currentValue)
                 val nextIndex = if (currentIndex == -1 || currentIndex >= killTargets.size - 1) 0 else currentIndex + 1
                 val newTarget = killTargets[nextIndex]
