@@ -5,7 +5,12 @@ import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.infrastructure.persistence.migrations.ChapterAdminRecoverySQL
 import net.lumalyte.lg.infrastructure.persistence.migrations.DatabaseMigrationUtility
+import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteChapterBackupService
+import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import co.aikar.idb.Database
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -15,6 +20,7 @@ import org.bukkit.entity.Player
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
+import java.time.Instant
 import kotlin.io.path.exists
 
 /**
@@ -25,6 +31,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private val lang: LangService by inject()
     private val guildService: GuildService by inject()
     private val adminOverrideService: AdminOverrideService by inject()
+    private val storage: Storage<Database> by inject()
 
     // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
     // claims are enabled. Touching it via `by inject()` would crash the override command
@@ -34,11 +41,6 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private val progressionConfigService: net.lumalyte.lg.infrastructure.services.ProgressionConfigService by inject()
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (sender !is Player) {
-            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.command.this_command_can_only_be_used_by"))
-            return true
-        }
-
         if (args.isEmpty()) {
             showHelp(sender)
             return true
@@ -49,6 +51,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             "progressionreload" -> handleProgressionReload(sender)
             "disband" -> handleDisband(sender, args)
             "migrate" -> handleMigrate(sender, args)
+            "chapter" -> handleChapter(sender, args)
             "override" -> handleOverride(sender)
             "help" -> showHelp(sender)
             else -> {
@@ -344,6 +347,153 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         })
     }
 
+    private fun handleChapter(sender: CommandSender, args: Array<out String>) {
+        if (sender is Player && !sender.isOp && !sender.hasPermission("bellclaims.admin")) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlechapter.no_permission"))
+            return
+        }
+        if (args.size < 3) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlechapter.usage"))
+            return
+        }
+
+        val action = args[1].lowercase()
+        val chapterId = args[2]
+
+        fun withAdmin(block: (ChapterAdminRecoverySQL) -> Unit) {
+            storage.connection.connection.use { connection ->
+                block(ChapterAdminRecoverySQL(connection))
+            }
+        }
+
+        try {
+            when (action) {
+                "status" -> withAdmin { admin ->
+                    val status = admin.status(chapterId)
+                    sender.sendMessage(lang.msg(
+                        "admin.migrated.luma_guilds.handlechapter.status",
+                        "chapter" to status.chapterName,
+                        "chapter_id" to status.chapterId,
+                        "phase" to status.phase,
+                        "ends_at" to (status.endsAt?.let { Instant.ofEpochMilli(it).toString() } ?: "unset"),
+                        "backup_id" to (status.backupId ?: "none"),
+                        "backup_verified" to status.backupVerified,
+                        "restore_verified" to status.restoreVerified,
+                        "error" to (status.lastError ?: "none"),
+                    ))
+                }
+                "postpone" -> {
+                    if (args.size < 4) {
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlechapter.postpone_usage"))
+                        return
+                    }
+                    val newEnd = parseChapterTime(args[3])
+                    if (newEnd == null) {
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlechapter.invalid_time"))
+                        return
+                    }
+                    withAdmin { admin ->
+                        val status = admin.postpone(chapterId, newEnd, System.currentTimeMillis())
+                        sender.sendMessage(lang.msg(
+                            "admin.migrated.luma_guilds.handlechapter.postponed",
+                            "chapter_id" to chapterId,
+                            "ends_at" to Instant.ofEpochMilli(requireNotNull(status.endsAt)).toString(),
+                        ))
+                    }
+                }
+                "retry" -> withAdmin { admin ->
+                    val status = admin.retry(chapterId, System.currentTimeMillis())
+                    sender.sendMessage(lang.msg(
+                        "admin.migrated.luma_guilds.handlechapter.retry_requested",
+                        "chapter_id" to chapterId,
+                        "phase" to status.phase,
+                    ))
+                }
+                "force" -> {
+                    if (args.size < 4 || args[3] != "CONFIRM") {
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlechapter.force_confirm"))
+                        return
+                    }
+                    withAdmin { admin ->
+                        val status = admin.forceDue(chapterId, args[3], System.currentTimeMillis())
+                        sender.sendMessage(lang.msg(
+                            "admin.migrated.luma_guilds.handlechapter.force_due",
+                            "chapter_id" to chapterId,
+                            "phase" to status.phase,
+                        ))
+                    }
+                }
+                "backup" -> {
+                    if (storage.dialect != SqlDialect.SQLITE) {
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlechapter.sqlite_only"))
+                        return
+                    }
+                    val plugin = Bukkit.getPluginManager().getPlugin("LumaGuilds") as? LumaGuilds
+                    if (plugin == null) {
+                        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlereload.lumaguilds_plugin_not_found"))
+                        return
+                    }
+                    val backupId = args.getOrNull(3)
+                        ?: "${chapterId}-${System.currentTimeMillis()}"
+                    sender.sendMessage(lang.msg(
+                        "admin.migrated.luma_guilds.handlechapter.backup_started",
+                        "backup_id" to backupId,
+                    ))
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+                        val result = runCatching {
+                            storage.connection.connection.use { connection ->
+                                try {
+                                    SQLiteChapterBackupService(
+                                        connection,
+                                        plugin.dataFolder.toPath().resolve("chapter-backups"),
+                                    ).createVerifiedBackup(chapterId, backupId, System.currentTimeMillis())
+                                } catch (error: Exception) {
+                                    runCatching {
+                                        ChapterAdminRecoverySQL(connection).recordFailure(
+                                            chapterId = chapterId,
+                                            error = error.message ?: error.javaClass.simpleName,
+                                            transitionToken = backupId,
+                                            now = System.currentTimeMillis(),
+                                        )
+                                    }.onFailure { recoveryError ->
+                                        plugin.logger.severe(
+                                            "Failed to persist chapter backup failure for $chapterId: ${recoveryError.message}"
+                                        )
+                                    }
+                                    throw error
+                                }
+                            }
+                        }
+                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                            result.onSuccess { evidence ->
+                                sender.sendMessage(lang.msg(
+                                    "admin.migrated.luma_guilds.handlechapter.backup_verified",
+                                    "backup_id" to evidence.backupId,
+                                    "path" to evidence.storageRef,
+                                    "sha256" to evidence.sha256,
+                                ))
+                            }.onFailure { error ->
+                                sender.sendMessage(lang.msg(
+                                    "admin.migrated.luma_guilds.handlechapter.failed",
+                                    "reason" to (error.message ?: error.javaClass.simpleName),
+                                ))
+                            }
+                        })
+                    })
+                }
+                else -> sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlechapter.usage"))
+            }
+        } catch (error: Exception) {
+            sender.sendMessage(lang.msg(
+                "admin.migrated.luma_guilds.handlechapter.failed",
+                "reason" to (error.message ?: error.javaClass.simpleName),
+            ))
+        }
+    }
+
+    private fun parseChapterTime(value: String): Long? =
+        value.toLongOrNull() ?: runCatching { Instant.parse(value).toEpochMilli() }.getOrNull()
+
     /**
      * Show help message
      */
@@ -353,6 +503,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_progressionreload_reload_progression_yml_op_only"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_disband_guild_confirm_force_disband_a"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_migrate_confirm_migrate_sqlite_mariadb_op"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.chapter_admin_controls"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_override_toggle_admin_override_mode_admin"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_help_show_this_help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.reload_commands_are_for_development_some_changes"))
@@ -366,7 +517,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
         return when (args.size) {
             1 -> mutableListOf(
-                "reload", "progressionreload", "disband", "migrate", "override", "help"
+                "reload", "progressionreload", "disband", "migrate", "chapter", "override", "help"
             ).filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "disband" -> {
@@ -375,6 +526,9 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                         .toMutableList()
                 }
                 "migrate" -> mutableListOf("confirm")
+                "chapter" -> mutableListOf("status", "backup", "postpone", "retry", "force")
+                    .filter { it.startsWith(args[1]) }
+                    .toMutableList()
                 else -> mutableListOf()
             }
             3 -> when (args[0].lowercase()) {

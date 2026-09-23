@@ -5,6 +5,9 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.infrastructure.services.NexoEmojiService
+import net.lumalyte.lg.infrastructure.persistence.migrations.ChapterReadSQL
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import co.aikar.idb.Database
 import net.lumalyte.lg.utils.ColorCodeUtils
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -101,6 +104,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private val leaderboardRepository: LeaderboardRepository by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
     private val questService: QuestService by inject()
+    private val storage: Storage<Database> by inject()
 
     private val miniMessage = MiniMessage.miniMessage()
     private val plainSerializer = PlainTextComponentSerializer.plainText()
@@ -134,6 +138,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         // Global placeholders — no player required
         when {
             ident == "guild_total_count" -> return safeGuildCount()
+            ident.startsWith("chapter_") -> return handleChapterPlaceholder(ident)
             ident.startsWith("top_") -> return handleTopPlaceholder(ident)
             ident in PERMANENT_PLACEHOLDERS && player == null -> return "0"
             ident.startsWith("source_") && player == null -> return if (ident.endsWith("_used")) "0" else ""
@@ -598,6 +603,25 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         try {
             leaderboardRepository.getWeeklyActivity(guildId, currentWeekStart())?.totalScore ?: 0
         } catch (_: Exception) { 0 }
+
+    private fun handleChapterPlaceholder(identifier: String): String {
+        return try {
+            storage.connection.connection.use { connection ->
+                val chapter = ChapterReadSQL(connection).current() ?: return ""
+                when (identifier) {
+                    "chapter_id" -> chapter.id
+                    "chapter_name" -> chapter.name
+                    "chapter_phase" -> chapter.phase
+                    "chapter_start" -> chapter.startIso()
+                    "chapter_end" -> chapter.endIso()
+                    "chapter_time_remaining" -> chapter.timeRemainingText(System.currentTimeMillis())
+                    else -> ""
+                }
+            }
+        } catch (_: Exception) {
+            ""
+        }
+    }
 
     private fun safeGuildCount(): String =
         try { guildService.getAllGuilds().size.toString() } catch (_: Exception) { "0" }
