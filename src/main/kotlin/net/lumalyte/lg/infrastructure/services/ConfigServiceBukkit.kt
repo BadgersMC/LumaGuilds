@@ -47,7 +47,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             bedrock = loadBedrockConfig(),
             webApi = loadWebApiConfig(),
             strikes = loadStrikesConfig(),
-            chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", false)
+            chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", false),
+            chapterTwoGoldCostsEnabled = config.getBoolean("progression.chapter_two_gold_costs_enabled", false)
         )
     }
 
@@ -105,6 +106,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             minNameLength = config.getInt("guild.min_name_length", 1),
             maxGuildCount = config.getInt("guild.max_guild_count", 1000),
             createGuildCost = config.getInt("guild.create_guild_cost", 0),
+            homeActivationBaseCost = config.getInt("guild.home_activation_base_cost", 0),
+            homeActivationScale = config.getDouble("guild.home_activation_scale", 2.0),
             creationCooldown = net.lumalyte.lg.domain.values.GuildCreationCooldown(
                 config.getInt("guild.create_then_delete_window_days", 7),
                 config.getInt("guild.creation_cooldown_days", 15)),
