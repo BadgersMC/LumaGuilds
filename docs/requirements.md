@@ -326,7 +326,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Conditional.** GIVEN RoseChat feasibility, THEN THE SYSTEM SHALL let guilds create and name custom chat channels for their own organizational structure.
 
 ### REQ-066
-**Event-driven.** WHEN a member invites a player to the guild THEN THE SYSTEM SHALL record it, AND the Guild Statistics UI node SHALL display an internal invitation leaderboard (most invites per member).
+**Event-driven.** WHEN a member successfully persists a guild invitation THEN THE SYSTEM SHALL atomically append an immutable sent-invitation history event keyed by guild, inviter UUID, invitee UUID, and send time. Accepting, declining, expiring, or otherwise removing the pending invitation SHALL NOT remove that history. Failed or duplicate pending-invitation writes SHALL NOT increment statistics. The Guild Statistics UI SHALL display the guild's all-time invitation leaderboard ordered by sent count descending with inviter UUID as the deterministic tie-breaker, resolving the inviter's current player name only for display. The leaderboard SHALL paginate across all historical inviters rather than truncate the result set.
 
 ### REQ-067
 **State-driven.** THE SYSTEM SHALL keep the physical banners at server spawn updated to reflect current top guilds by Guild Level Leaderboard placement.

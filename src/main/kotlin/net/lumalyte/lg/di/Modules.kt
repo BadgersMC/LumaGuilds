@@ -397,6 +397,7 @@ fun guildsModule() = module {
     single<MemberRepository> { MemberRepositorySQLite(get()) }
     single<RelationRepository> { RelationRepositorySQLite(get()) }
     single<GuildInvitationRepository> { GuildInvitationRepositorySQLite(get()) }
+    single { net.lumalyte.lg.application.services.InvitationStatisticsService(get()) }
     single<GuildBannerRepository> { GuildBannerRepositorySQLite(get()) }
     single<AuditRepository> { AuditRepositorySQLite(get()) }
     single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }

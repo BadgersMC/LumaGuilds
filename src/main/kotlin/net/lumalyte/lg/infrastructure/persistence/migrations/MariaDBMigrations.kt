@@ -130,6 +130,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(36)
                 currentDbVersion = 36
             }
+            if (currentDbVersion < 37) {
+                migrateToVersion37()
+                updateDatabaseVersion(37)
+                currentDbVersion = 37
+            }
 
             connection.commit()
 
@@ -1071,5 +1076,10 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
     private fun migrateToVersion36() {
         QuestSchema.create(connection, mariaDb = true)
         componentLogger.info(Component.text("Quest persistence migrated to schema v36"))
+    }
+
+    private fun migrateToVersion37() {
+        InvitationStatisticsSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Invitation statistics migrated to schema v37"))
     }
 }

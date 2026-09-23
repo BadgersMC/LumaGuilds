@@ -199,6 +199,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(36)
                 dbVersion = 36
             }
+            if (dbVersion < 37) {
+                migrateToVersion37()
+                updateDatabaseVersion(37)
+                dbVersion = 37
+            }
 
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
@@ -1385,7 +1390,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         val requiredTables = mutableListOf(
             "guilds", "guild_homes", "members", "relations", "parties", "party_requests",
             "player_party_preferences", "bank_tx", "kills",
-            "audits", "wars", "leaderboards", "guild_invitations",
+            "audits", "wars", "leaderboards", "guild_invitations", "guild_invitation_history",
             "vault_slots", "vault_gold", "vault_transaction_log",
             "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
             "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history",
@@ -1867,5 +1872,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun migrateToVersion36() {
         QuestSchema.create(connection, mariaDb = false)
         componentLogger.info(Component.text("Quest persistence migrated to schema v36"))
+    }
+
+    private fun migrateToVersion37() {
+        InvitationStatisticsSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Invitation statistics migrated to schema v37"))
     }
 }

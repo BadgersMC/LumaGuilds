@@ -62,13 +62,17 @@ class BedrockGuildInviteConfirmationMenu(
             return
         }
 
-        GuildInvitationManager.addInvite(
+        val invitationStored = GuildInvitationManager.addInvite(
             guildId = guild.id,
             guildName = guild.name,
             invitedPlayerId = targetPlayer.uniqueId,
             inviterPlayerId = player.uniqueId,
             inviterName = player.name
         )
+        if (!invitationStored) {
+            player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.failed"))
+            return
+        }
 
         // Send invitation message
         player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.sent", "player" to targetPlayer.name))
