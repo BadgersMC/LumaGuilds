@@ -125,8 +125,9 @@ catalog. Bedrock callbacks dispatch onto the server thread and ignore disconnect
 players. Cancelling or viewing never spends gold.
 
 `guild_reward_*` placeholders report unavailable numeric values as blank and expose
-state separately. Migration and live UI validation must be ready before the switch
-is enabled for a server. See `docs/plans/2026-09-17-reward-purchase-ui.md`.
+state separately. Migration readiness is covered by the Chapter 1→2 migration/read-model integration
+contract. Live Paper/Java/Bedrock validation remains a deployment gate before the
+switch is enabled for a server. See `docs/plans/2026-09-17-reward-purchase-ui.md`.
 
 `ExperienceBoost` defines an immutable UTC interval and source selection for
 `progression.xp_boost`. `PermanentExperienceService` applies it after eligibility and

@@ -47,8 +47,13 @@ handling. SQL gate-reload checks run on both databases and prove no balance,
 ownership or receipt write while disabled. Existing contracts cover atomicity,
 concurrent purchases, permission revocation, stale quotes and restart receipt replay.
 
-LG-1214 remains in progress for migration readiness and live Paper/Java/Bedrock
-validation. The default Chapter 2 gate remains false. No account is initialized by
-viewing or confirming a purchase, and no production data or server was changed.
-Chapter lifecycle/migration, paid creation/home activation, seasonal Elo and bounded
-prestige runtime remain separate pending tasks.
+Migration readiness is now proven by `ChapterRewardMigrationReadinessTest`: actual
+Chapter 1→2 migration output reopens through production pooled SQLite storage and
+resolves through the enabled reward read model with migrated home capacity, run level
+1 and empty purchase ownership; no account is synthesized by the read path and no
+historical Chapter 1 progression becomes a Chapter 2 purchase. The final offline
+`test shadowJar` gate passes 1,055 tests with zero failures/errors/skips.
+
+LG-1214 code readiness is complete. The default Chapter 2 gate remains false and
+live Paper/Java/Bedrock client validation is intentionally deferred to the Sep 28
+closed-server deployment gate. No production data or server was changed by this proof.
