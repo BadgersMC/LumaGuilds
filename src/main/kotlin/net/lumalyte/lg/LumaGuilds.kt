@@ -1006,10 +1006,11 @@ class LumaGuilds : JavaPlugin() {
         if (discordRoleConfig.enabled) {
             get().get<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>().subscribe()
             val discordGateway = get().get<net.lumalyte.lg.application.services.DiscordGuildRoleGateway>()
+            val discordRoleService = get().get<net.lumalyte.lg.application.services.GuildDiscordRoleService>()
             if (!discordGateway.isAvailable()) {
                 logger.warning("Discord guild roles are enabled, but DiscordSRV/main guild is unavailable")
             } else {
-                get().get<net.lumalyte.lg.application.services.GuildDiscordRoleService>()
+                discordRoleService
                     .reconcileAll()
                     .whenComplete { result, error ->
                         if (error != null) {
@@ -1025,6 +1026,22 @@ class LumaGuilds : JavaPlugin() {
                         }
                     }
             }
+
+            // Repair missed grants/revocations after transient DiscordSRV/JDA outages without
+            // requiring a server restart or unrelated guild activity.
+            server.scheduler.runTaskTimer(this, Runnable {
+                if (!discordGateway.isAvailable()) return@Runnable
+                discordRoleService.reconcileAll().whenComplete { result, error ->
+                    if (error != null) {
+                        logger.warning("Discord guild-role periodic reconciliation failed: ${error.message}")
+                    } else if (result.failures > 0) {
+                        logger.warning(
+                            "Discord guild-role periodic reconciliation completed with " +
+                                "${result.failures} failure(s)"
+                        )
+                    }
+                }
+            }, 20L * 60L, 20L * 60L * 5L)
         }
 
         // Clean up RoseChat channels when guild status changes.

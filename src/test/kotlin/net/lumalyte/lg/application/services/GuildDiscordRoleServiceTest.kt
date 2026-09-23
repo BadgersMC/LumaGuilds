@@ -91,7 +91,7 @@ class GuildDiscordRoleServiceTest {
     }
 
     @Test
-    fun `reconciliation revokes stale role holders missed during an outage`() {
+    fun `reconciliation after outage revokes member removal missed while Discord was unavailable`() {
         val fixture = fixture(
             guild(level = 50),
             members = setOf(member(playerOne)),
@@ -99,8 +99,14 @@ class GuildDiscordRoleServiceTest {
         fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
         fixture.gateway.createOnEnsure = false
         fixture.gateway.unexpectedRoleMembers += playerTwo
+        fixture.gateway.available = false
 
-        val result = fixture.service.reconcileGuild(guildId).join()
+        val missedRemoval = fixture.service.memberRemoved(guildId, playerTwo).join()
+        assertEquals(0, missedRemoval.memberRolesRemoved)
+        assertTrue(fixture.gateway.revoked.isEmpty())
+
+        fixture.gateway.available = true
+        val result = fixture.service.reconcileAll().join()
 
         assertEquals(1, result.memberRolesRemoved)
         assertEquals(listOf(playerTwo), fixture.gateway.revoked)
