@@ -20,12 +20,9 @@ class NexoQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvider 
         val result = mutableListOf<QuestTarget>()
         runCatching { NexoBlocks.blockIDs().sorted() }.getOrDefault(emptyList()).forEach { id ->
             val rarity = rarity(id)
-            result += target(
-                "nexo:block/${id.lowercase()}",
-                QuestAction.MINE_BLOCKS,
-                rarity,
-                BlockProvenancePolicy.NATURAL_ONLY
-            )
+            // Nexo exposes registered custom blocks but does not tell us whether a
+            // block participates in world generation. Do not invent NATURAL_ONLY
+            // mining quests for custom blocks we cannot prove are naturally placed.
             result += target(
                 "nexo:block/${id.lowercase()}",
                 QuestAction.PLACE_BLOCKS,

@@ -65,11 +65,7 @@ class QuestProgressListener(
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) = safely("block break") {
-        val position = event.block.position()
-        if (!eligible(event.player)) {
-            provenance.remove(position)
-            return@safely
-        }
+        if (!eligible(event.player)) return@safely
 
         val customTarget = nexoBlockTarget(event.block)
         val target = customTarget ?: minecraftBlockTarget(event.block.type)
@@ -81,13 +77,11 @@ class QuestProgressListener(
         }
 
         if (!shouldTrackProvenance(target)) {
-            provenance.remove(position)
             incrementFor(event.player, action, target, context = context(event.player, event.block))
             return@safely
         }
 
-        val playerPlaced = provenance.wasPlayerPlaced(position)
-        provenance.remove(position)
+        val playerPlaced = provenance.wasPlayerPlaced(event.block.position())
         incrementFor(
             event.player,
             action,
