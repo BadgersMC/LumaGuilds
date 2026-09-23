@@ -20,12 +20,15 @@ from the June mass audit. Overlap between audits does not change the provenance 
   (`fix(wars): harden terminal lifecycle resolution`).
 - **🛠 REMEDIATED IN #175** — independently source-confirmed and corrected by pending PR #175
   (`fix(claims): preserve rank permission identity`).
+- **🛠 REMEDIATED IN #176** — independently source-confirmed and corrected by pending PR #176
+  (`fix(wars): enforce durable war policy`).
 - **🔎 NOT REPRODUCED / HARDENED IN #172** — the exact reported failure mode was not present
   in the current runtime, but adjacent state handling was strengthened to preserve the intended invariant.
 
 **Inventory:** 37 reported findings total; 10 remediated in #168; 4 remediated in #171;
 4 remediated in #172; 2 remediated in #173; 4 remediated in #174; 1 remediated in #175;
-1 not reproduced/hardened in #172; 11 still awaiting independent verification and/or remediation.
+7 remediated in #176; 1 not reproduced/hardened in #172; 4 still awaiting independent verification
+and/or remediation.
 
 ---
 
@@ -131,29 +134,42 @@ Source-confirmed. Peace acceptance manually persisted `ENDED` state and settled 
 than traversing the normal terminal lifecycle. PR #174 routes accepted peace through the same
 rating, wager settlement, end-event, cooldown, and war-ended notification path as other endings.
 
-### ◻️ DEV-30 — War declaration cooldown is recorded but not enforced
-A guild can reportedly create another declaration without the stored declaration cooldown
-actually blocking it.
-### ◻️ DEV-31 — War farming cooldown is stored but not enforced
-The anti-farming cooldown reportedly does not prevent another war.
+### 🛠 DEV-30 — War declaration cooldown is recorded but not enforced — #176
+Source-confirmed. The service recorded declaration cooldowns but never consulted them during
+admission. PR #176 enforces the cooldown before creating another declaration and persists the
+exact deadline on the durable declaration record.
 
-### ◻️ DEV-32 — War cooldowns are memory-only
-Declaration/farming cooldown state disappears across a restart even if enforcement is added.
+### 🛠 DEV-31 — War farming cooldown is stored but not enforced — #176
+Source-confirmed. The anti-farming cooldown had query/update methods but was not part of war
+admission. PR #176 checks both participants for an active farming cooldown at declaration and
+again at acceptance before any new escrow is funded.
 
-### ◻️ DEV-33 — Max simultaneous war limit is checked only for the declaring guild
-The defending guild can be pushed above its own simultaneous-war cap.
+### 🛠 DEV-32 — War cooldowns are memory-only — #176
+Source-confirmed. Both declaration and farming cooldowns previously lived in process-local maps.
+PR #176 stores exact cooldown deadlines in the existing revision-checked durable war record,
+upgrades the war-record codec to v3, and keeps v1/v2 records readable via persisted timestamp
+fallback. SQL restart tests verify both cooldown classes survive service/repository restart.
 
-### ◻️ DEV-34 — Non-kill war objectives do not update real progress
-`addObjectiveProgress()` reportedly logs the progress and returns success without changing the
-objective state.
+### 🛠 DEV-33 — Max simultaneous war limit is checked only for the declaring guild — #176
+Source-confirmed. Admission counted active wars only for the declaring guild. PR #176 applies each
+guild's effective slot limit to both participants at declaration and rechecks both at acceptance,
+covering the pending-declaration race where a target can fill its final slot before accepting.
 
-### ◻️ DEV-35 — Bedrock 100-kill objective conflicts with the 25-kill global win target
-Bedrock can select a 100-kill objective while the default global kill target ends the war at 25,
-making that objective unreachable under the default configuration.
+### 🛠 DEV-34 — Non-kill war objectives do not update real progress — #176
+Source-confirmed. `addObjectiveProgress()` previously only logged and returned success. PR #176
+revision-writes objective progress into the durable war record, clamps progress at the target,
+persists completion metadata, and verifies progress/completion across repository restart.
 
-### ◻️ DEV-36 — Java can target peaceful guilds for war
-Bedrock filters peaceful guilds, but the Java menu/service path reportedly does not fully enforce
-the same restriction.
+### 🛠 DEV-35 — Bedrock 100-kill objective conflicts with the 25-kill global win target — #176
+Source-confirmed. Bedrock hard-coded a 100-kill objective while the global default ends wars at 25,
+and Java exposed fixed kill targets independently of the configured cap. PR #176 makes the global
+kill target authoritative in the service, Bedrock, and Java objective selectors, including Java's
+initial default objective.
+
+### 🛠 DEV-36 — Java can target peaceful guilds for war — #176
+Source-confirmed. The Java target menu did not filter peaceful guilds and the service boundary did
+not enforce mode eligibility. PR #176 hides peaceful targets in Java and requires both guilds to
+remain HOSTILE at declaration and acceptance, with service-level regression coverage.
 
 ---
 
@@ -234,6 +250,9 @@ permission model, which can strand a guild-owned claim when that original player
 - **PR #175:** DEV-13 was independently source-confirmed and remediated by persisting a stable
   rank UUID to legacy claim-permission profile identity, preserving existing name-keyed operator
   configuration across rank renames, with schema v40 and failure-compensation regression coverage.
-- The remaining **11 DEV-REPORTED findings** should be source-verified before implementation.
+- **PR #176:** DEV-30 through DEV-36 were independently source-confirmed and remediated with
+  durable/enforced war cooldowns, bilateral war-slot admission, persisted objective progress,
+  configured kill-target consistency, and authoritative hostile-mode checks.
+- The remaining **4 DEV-REPORTED findings** should be source-verified before implementation.
   If confirmed, preserve these IDs in future PR descriptions so fixes can be traced back to this
   audit without conflating it with the June or September ChatGPT audit tracks.
