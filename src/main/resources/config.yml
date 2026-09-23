@@ -183,6 +183,11 @@ guild:
   #     AwesomeGuild: lumaguilds.emoji.star
   emoji_grants: {}
 
+# Guild directory / leaderboard browser
+guild_list:
+  # Number of guilds fetched per page. Java inventory layout supports up to 36.
+  page_size: 18
+
 # =====================================
 # Guild Vault Configuration
 # =====================================
