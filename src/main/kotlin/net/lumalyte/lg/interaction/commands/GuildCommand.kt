@@ -57,6 +57,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
     private val strikeService: net.lumalyte.lg.application.services.StrikeService by inject()
     private val bankService: net.lumalyte.lg.application.services.BankService by inject()
+    private val guildCostService: net.lumalyte.lg.application.services.GuildCostService by inject()
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
@@ -166,7 +167,48 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("guild_creation_cooldown.unavailable"))
             return
         }
-        val guild = guildService.createGuild(name, playerId, banner)
+        val goldCostsEnabled = configService.loadConfig().chapterTwoGoldCostsEnabled
+        val guild = if (!goldCostsEnabled) {
+            guildService.createGuild(name, playerId, banner)
+        } else {
+            when (val result = guildCostService.createGuild(UUID.randomUUID(), playerId) {
+                guildService.createGuild(name, playerId, banner)
+            }) {
+                is net.lumalyte.lg.application.services.GuildCreationCostResult.Applied -> {
+                    player.sendMessage(lang.msg(
+                        "command.migrated.guild.create.raw_gold_paid",
+                        "cost" to result.cost,
+                    ))
+                    result.guild
+                }
+                net.lumalyte.lg.application.services.GuildCreationCostResult.InsufficientGold -> {
+                    player.sendMessage(lang.msg("command.migrated.guild.create.insufficient_raw_gold"))
+                    return
+                }
+                net.lumalyte.lg.application.services.GuildCreationCostResult.PaymentUnavailable -> {
+                    player.sendMessage(lang.msg("command.migrated.guild.create.raw_gold_unavailable"))
+                    return
+                }
+                net.lumalyte.lg.application.services.GuildCreationCostResult.ConfigurationError -> {
+                    player.sendMessage(lang.msg("command.migrated.guild.create.raw_gold_cost_misconfigured"))
+                    return
+                }
+                is net.lumalyte.lg.application.services.GuildCreationCostResult.CreationFailed -> {
+                    player.sendMessage(lang.msg("command.migrated.guild.create.failed_to_create_guild"))
+                    if (!result.compensated) {
+                        player.sendMessage(lang.msg("command.migrated.guild.create.payment_requires_review"))
+                    }
+                    return
+                }
+                is net.lumalyte.lg.application.services.GuildCreationCostResult.Uncertain -> {
+                    player.sendMessage(lang.msg(
+                        "command.migrated.guild.create.payment_outcome_uncertain",
+                        "transaction" to result.transactionId,
+                    ))
+                    result.guild
+                }
+            }
+        }
         if (guild != null) {
             player.sendMessage(lang.msg("command.migrated.guild.create.guild_created_successfully", "name" to name))
             player.sendMessage(lang.msg("command.migrated.guild.create.you_are_now_the_owner_of_the"))
@@ -2015,17 +2057,64 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val config = configService.loadConfig()
 
-        val success = guildService.setHome(guild.id, homeName, home, player.uniqueId)
-
-        if (success) {
-            val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
-            player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.guild_set_successfully", "home_label" to homeLabel))
-            if (config.claimsEnabled) {
-                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.this_location_is_within_your_guild_s"))
+        val existing = guildService.getHome(guild.id, homeName) != null
+        val result = if (!config.chapterTwoGoldCostsEnabled) {
+            if (guildService.setHome(guild.id, homeName, home, player.uniqueId)) {
+                net.lumalyte.lg.application.services.HomeActivationCostResult.Applied(0)
+            } else {
+                net.lumalyte.lg.application.services.HomeActivationCostResult.ActivationFailed(true)
             }
-            player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.members_can_now_use_guild_home_to"))
         } else {
-            player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.failed_to_set_guild_home_you_may"))
+            val ordinal = guildService.getHomes(guild.id).size + if (existing) 0 else 1
+            guildCostService.activateHome(
+                UUID.randomUUID(),
+                guild.id,
+                player.uniqueId,
+                ordinal.coerceAtLeast(1),
+                alreadyActivated = existing,
+            ) {
+                guildService.setHome(guild.id, homeName, home, player.uniqueId)
+            }
+        }
+
+        when (result) {
+            is net.lumalyte.lg.application.services.HomeActivationCostResult.Applied -> {
+                val homeLabel = if (homeName == "main") "main home" else "home '$homeName'"
+                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.guild_set_successfully", "home_label" to homeLabel))
+                if (result.cost > 0) {
+                    player.sendMessage(lang.msg(
+                        "command.migrated.guild.setguildhomecommand.activation_paid",
+                        "cost" to result.cost,
+                    ))
+                }
+                if (config.claimsEnabled) {
+                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.this_location_is_within_your_guild_s"))
+                }
+                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.members_can_now_use_guild_home_to"))
+            }
+            is net.lumalyte.lg.application.services.HomeActivationCostResult.Rejected -> {
+                if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {
+                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.insufficient_guild_gold"))
+                } else {
+                    player.sendMessage(lang.msg(
+                        "command.migrated.guild.setguildhomecommand.payment_rejected",
+                        "reason" to result.reason.name,
+                    ))
+                }
+            }
+            net.lumalyte.lg.application.services.HomeActivationCostResult.ConfigurationError ->
+                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.activation_cost_misconfigured"))
+            is net.lumalyte.lg.application.services.HomeActivationCostResult.PaymentFailed ->
+                player.sendMessage(lang.msg(
+                    "command.migrated.guild.setguildhomecommand.payment_requires_review",
+                    "transaction" to result.transactionId,
+                ))
+            is net.lumalyte.lg.application.services.HomeActivationCostResult.ActivationFailed -> {
+                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.failed_to_set_guild_home_you_may"))
+                if (!result.compensated) {
+                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.payment_requires_review_no_transaction"))
+                }
+            }
         }
     }
 
