@@ -60,7 +60,9 @@ data class War(
      * Checks if the war has expired.
      */
     val isExpired: Boolean
-        get() = remainingDuration?.isNegative ?: false
+        get() = startedAt?.plus(duration)?.let { endTime ->
+            !Instant.now().isBefore(endTime)
+        } ?: false
 
     companion object {
         fun create(declaringGuildId: UUID, defendingGuildId: UUID, duration: Duration = Duration.ofDays(7)): War {

@@ -57,7 +57,7 @@ class WarKillTrackingListener : Listener, KoinComponent {
                     val war = warService.getCurrentWarBetweenGuilds(killerGuild, victimGuild)
 
                     if (war != null && war.isActive) {
-                        val counter = warService.recordOpposingGuildKill(
+                        val killUpdate = warService.recordOpposingGuildKill(
                             warId = war.id,
                             killerGuildId = killerGuild,
                             victimGuildId = victimGuild,
@@ -82,14 +82,15 @@ class WarKillTrackingListener : Listener, KoinComponent {
                         killer.sendMessage(lang.msg("notification.war.kill.killer", "victim" to victim.name))
                         victim.sendMessage(lang.msg("notification.war.kill.victim", "killer" to killer.name))
 
-                        // The service decides whether a durable kill/objective threshold was reached.
-                        // Resolve only after the kill event, XP, and player feedback have completed.
-                        val winner = counter.winnerGuildId
-                        if (winner != null && !warService.resolveReachedKillTarget(war.id, winner)) {
-                            logger.error("Failed to resolve decisive kill for war ${war.id}")
+                        // A decisive kill is persisted first, but the terminal war transition
+                        // intentionally happens after the kill event, XP, and player feedback.
+                        killUpdate.winnerGuildId?.let { winner ->
+                            if (!warService.resolveReachedKillTarget(war.id, winner)) {
+                                logger.error("Failed to resolve decisive kill for war ${war.id}")
+                            }
                         }
 
-                        // Only count the kill once (for the first matching war found)
+                        // Only count the kill once (for the first matching war found).
                         return
                     }
                 }
