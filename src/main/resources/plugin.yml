@@ -3,7 +3,7 @@ version: ${version}
 api-version: '1.21.11'
 load: STARTUP
 main: net.lumalyte.lg.LumaGuilds
-softdepend: [Vault, PlaceholderAPI, AxKoth, LiteBans, EnthusiaPlaytime, Nexo]
+softdepend: [Vault, PlaceholderAPI, AxKoth, LiteBans, EnthusiaPlaytime, Nexo, packetevents]
 depend: [RoseChat]
 
 commands:

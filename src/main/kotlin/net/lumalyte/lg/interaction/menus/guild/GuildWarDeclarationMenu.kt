@@ -19,7 +19,6 @@ import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.ObjectiveType
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.entities.War
-import net.lumalyte.lg.domain.entities.WarDeclaration
 import net.lumalyte.lg.domain.entities.WarObjective
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
@@ -34,8 +33,6 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.title.Title
-import java.time.Duration as JavaDuration
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.Duration
@@ -621,8 +618,6 @@ class GuildWarDeclarationMenu(
                 player.closeInventory()
                 menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
 
-                // Notify defending guild of the declaration
-                notifyGuildOfWarDeclaration(declaration)
                 return
             } else {
                 player.sendMessage(lang.msg("menu.war_declaration.feedback.send_failed"))
@@ -715,77 +710,6 @@ class GuildWarDeclarationMenu(
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
-    }
-
-    private fun notifyGuildOfWarDeclaration(declaration: WarDeclaration) {
-        try {
-            val declaringGuild = guildService.getGuild(declaration.declaringGuildId)
-            val defendingGuild = guildService.getGuild(declaration.defendingGuildId)
-
-            if (declaringGuild == null || defendingGuild == null) return
-
-            // Notify defending guild members
-            val defendingMembers = memberService.getGuildMembers(declaration.defendingGuildId)
-
-            for (member in defendingMembers) {
-                val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
-                if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    // Send title
-                    onlinePlayer.showTitle(net.kyori.adventure.title.Title.title(
-                        lang.msg("menu.war_declaration.notification.title"),
-                        lang.msg("menu.war_declaration.notification.subtitle", "guild" to declaringGuild.name),
-                        net.kyori.adventure.title.Title.Times.times(
-                            java.time.Duration.ofMillis(500),
-                            java.time.Duration.ofSeconds(4),
-                            java.time.Duration.ofSeconds(1)
-                        )
-                    ))
-
-                    // Send chat messages
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.divider"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.received"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.from", "guild" to declaringGuild.name))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.duration", "days" to declaration.proposedDuration.toDays()))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.objectives", "count" to declaration.objectives.size))
-                    if (wagerAmount > 0) {
-                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.wager", "amount" to wagerAmount))
-                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.match"))
-                    }
-                    if (declaration.terms != null) {
-                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.terms", "terms" to declaration.terms))
-                    }
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.expires", "hours" to declaration.remainingTime.toHours()))
-                    onlinePlayer.sendMessage(lang.msg("menu.common.blank"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.respond"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.divider"))
-
-                    // Play alert sound
-                    onlinePlayer.playSound(onlinePlayer.location, org.bukkit.Sound.BLOCK_BELL_USE, 1.0f, 0.8f)
-                    onlinePlayer.playSound(onlinePlayer.location, org.bukkit.Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.7f, 1.0f)
-                }
-            }
-
-            // Also notify declaring guild that declaration was sent
-            val declaringMembers = memberService.getGuildMembers(declaration.declaringGuildId)
-            for (member in declaringMembers) {
-                if (member.playerId == player.uniqueId) continue // Skip the sender
-
-                val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
-                if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.ally_sent", "guild" to defendingGuild.name))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.duration", "days" to declaration.proposedDuration.toDays()))
-                    if (wagerAmount > 0) {
-                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.ally_wager", "amount" to wagerAmount))
-                    }
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.awaiting"))
-                }
-            }
-
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage(lang.msg("menu.war_declaration.feedback.notify_failed"))
-            println("Error notifying guild of war declaration: ${e.message}")
-        }
     }
 
     override fun passData(data: Any?) {
