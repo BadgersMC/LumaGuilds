@@ -18,6 +18,7 @@ class ChapterRolloverCoordinatorSQL(
     fun advance(plan: ChapterRolloverPlan, now: Long): ChapterAdminStatus {
         val admin = ChapterAdminRecoverySQL(connection)
         val status = admin.status(plan.currentChapterId)
+        if (status.lastError != null) return status
         return try {
             when (status.phase) {
                 "SCHEDULED" -> {
