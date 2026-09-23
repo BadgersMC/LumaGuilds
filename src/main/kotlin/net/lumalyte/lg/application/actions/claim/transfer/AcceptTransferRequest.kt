@@ -48,17 +48,19 @@ class AcceptTransferRequest(
         }
 
         return try {
-            // Revoke every outstanding offer before ownership can change. If the claim
-            // write then fails the owner can simply send a fresh offer; the inverse
-            // ordering could leave a stale offer able to transfer the new owner's claim.
-            if (!transferRequests.clearClaim(claimId)) {
-                return AcceptTransferRequestResult.StorageError
+            // Atomically consume this receiver's offer and every competing offer. This is
+            // the acceptance token: once one receiver consumes the rows, concurrent
+            // acceptors cannot proceed using a stale pre-check.
+            if (!transferRequests.consumeClaim(claimId, playerId)) {
+                return AcceptTransferRequestResult.NoActiveTransferRequest
             }
             val updatedClaim = claim.copy(
                 playerId = playerId,
                 name = newName,
             )
-            if (!claimRepository.update(updatedClaim)) {
+            // The durable owner may have changed through another path after our initial
+            // read. Never overwrite a newer owner from a stale snapshot.
+            if (!claimRepository.updateIfOwnedBy(updatedClaim, claim.playerId)) {
                 return AcceptTransferRequestResult.StorageError
             }
             AcceptTransferRequestResult.Success
