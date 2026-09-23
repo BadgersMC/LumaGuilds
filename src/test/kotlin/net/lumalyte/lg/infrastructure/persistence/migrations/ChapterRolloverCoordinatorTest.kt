@@ -24,9 +24,12 @@ class ChapterRolloverCoordinatorTest {
             s.execute("INSERT INTO guild_progression VALUES ('g1',42000,42)")
         }
         ChapterLifecycleSchema.create(connection, false)
+        SeasonalEloSchema.create(connection, false)
         connection.createStatement().use { s ->
             s.execute("INSERT INTO chapter_lifecycle (chapter_id,chapter_name,phase,starts_at,ends_at,updated_at,version) VALUES ('c2','Chapter 2','SCHEDULED',100,1000,100,0)")
             s.execute("INSERT INTO chapter_seasonal_ratings VALUES ('c2','g1',1337,200)")
+            s.execute("INSERT INTO chapter_rated_pair_guards VALUES ('c2','g1','g2',900,'w1')")
+            s.execute("INSERT INTO chapter_rated_war_results VALUES ('w1','c2','g1','g2',1300,1200,1337,1163,1.0,0.0,900)")
         }
     }
     @AfterEach fun tearDown() = connection.close()
@@ -49,6 +52,8 @@ class ChapterRolloverCoordinatorTest {
         assertEquals(1337, int("SELECT seasonal_elo FROM chapter_standings_archive WHERE chapter_id='c2' AND guild_id='g1'"))
         assertEquals(1000, int("SELECT elo FROM chapter_seasonal_ratings WHERE chapter_id='c3' AND guild_id='g1'"))
         assertEquals(0, int("SELECT COUNT(*) FROM chapter_seasonal_ratings WHERE chapter_id='c2'"))
+        assertEquals(0, int("SELECT COUNT(*) FROM chapter_rated_pair_guards WHERE chapter_id='c2'"))
+        assertEquals(1, int("SELECT COUNT(*) FROM chapter_rated_war_results WHERE war_id='w1' AND chapter_id='c2'"))
         assertEquals("SCHEDULED", text("SELECT phase FROM chapter_lifecycle WHERE chapter_id='c3'"))
     }
 
