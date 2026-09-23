@@ -52,8 +52,22 @@ class SeasonalEloRepositoryTest {
     @Test fun unorderedRematchInsideWindowIsPlayableButUnrated() {
         val repo = repo()
         repo.rate(UUID.randomUUID(), "c2", a, b, 1.0, 0.0, 1_000_000)
-        val result = repo.rate(UUID.randomUUID(), "c2", b, a, 1.0, 0.0, 1_000_001)
+        val rematchWar = UUID.randomUUID()
+        val result = repo.rate(rematchWar, "c2", b, a, 1.0, 0.0, 1_000_001)
         assertTrue(result is SeasonalWarRatingResult.RematchGuarded)
+        assertEquals(1, count("chapter_rated_war_results"))
+        assertEquals(1, count("chapter_war_rating_decisions"))
+
+        val laterReplay = repo.rate(
+            rematchWar,
+            "c2",
+            b,
+            a,
+            1.0,
+            0.0,
+            1_000_000 + SeasonalEloSettings().rematchWindowMillis,
+        )
+        assertTrue(laterReplay is SeasonalWarRatingResult.Replayed)
         assertEquals(1, count("chapter_rated_war_results"))
     }
 
@@ -110,13 +124,35 @@ class SeasonalEloRepositoryTest {
     }
 
     @Test fun preLevel100AndFrozenChapterDoNotRate() {
+        val ineligibleWar = UUID.randomUUID()
         connection.createStatement().use { it.execute("UPDATE guild_progression SET current_level=99 WHERE guild_id='$a'") }
-        assertTrue(repo().rate(UUID.randomUUID(),"c2",a,b,1.0,0.0,1000) is SeasonalWarRatingResult.Ineligible)
+        assertTrue(repo().rate(ineligibleWar,"c2",a,b,1.0,0.0,1000) is SeasonalWarRatingResult.Ineligible)
+        assertEquals(1, count("chapter_war_rating_decisions"))
+
+        connection.createStatement().use { it.execute("UPDATE guild_progression SET current_level=100 WHERE guild_id='$a'") }
+        assertTrue(repo().rate(ineligibleWar,"c2",a,b,1.0,0.0,2000) is SeasonalWarRatingResult.Replayed)
+
         connection.createStatement().use {
-            it.execute("UPDATE guild_progression SET current_level=100 WHERE guild_id='$a'")
             it.execute("UPDATE chapter_lifecycle SET phase='FROZEN' WHERE chapter_id='c2'")
         }
         assertTrue(repo().rate(UUID.randomUUID(),"c2",a,b,1.0,0.0,2000) is SeasonalWarRatingResult.Frozen)
+    }
+
+    @Test fun scheduledChapterOnlyRatesInsideItsActiveInterval() {
+        connection.createStatement().use {
+            it.execute("UPDATE chapter_lifecycle SET starts_at=1000,ends_at=2000 WHERE chapter_id='c2'")
+        }
+
+        val beforeStart = UUID.randomUUID()
+        val atEnd = UUID.randomUUID()
+        assertTrue(repo().rate(beforeStart, "c2", a, b, 1.0, 0.0, 999) is SeasonalWarRatingResult.Ineligible)
+        assertTrue(repo().rate(atEnd, "c2", a, b, 1.0, 0.0, 2000) is SeasonalWarRatingResult.Ineligible)
+        assertEquals(2, count("chapter_war_rating_decisions"))
+        assertEquals(0, count("chapter_rated_war_results"))
+
+        val active = repo().rate(UUID.randomUUID(), "c2", a, b, 1.0, 0.0, 1000)
+        assertTrue(active is SeasonalWarRatingResult.Rated)
+        assertEquals(1, count("chapter_rated_war_results"))
     }
 
     private fun repo() = SeasonalEloRepositorySQL(connection, false, SeasonalEloSettings())
