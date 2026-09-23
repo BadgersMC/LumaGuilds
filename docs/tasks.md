@@ -529,11 +529,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-069
   - Evidence:
   - Files: banner resolution, list renderer
-- [ ] **LG-1505** Expandable Enemy/Ally lists in `/g info` — full guild list beyond top 3
+- [x] **LG-1505** Expandable Enemy/Ally lists in `/g info` — full guild list beyond top 3
   - Tag: `TDD`
   - References: REQ-070
-  - Evidence:
-  - Files: `/g info` view, pagination
+  - Evidence: Java `/g info` keeps the compact three-guild Allies/Enemies preview but the cards now open read-only full browsers with 28 guilds per page, actual guild banner items (plain white fallback), stable case-insensitive name ordering with UUID tie-breaks, member/level/mode details, and click-through into the selected guild's info. Bedrock `/g info` now resolves real active relations instead of the previous hardcoded "None" placeholder and exposes native Allies/Enemies buttons backed by 12-entry paged SimpleForms. A shared resolver filters inactive/pending relations and disbanded guilds, deduplicates stale duplicate rows, and is used by both platforms so counts/order cannot diverge. Focused contracts cover filtering, deterministic ordering, Java/Bedrock menu routing, info-menu wiring, localization, and the 29-guild pagination regression. Full `test shadowJar`: 1,109 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
+  - Files: `GuildInfoRelationResolver`, `GuildInfoMenu`, `GuildRelationBrowserMenu`, `BedrockGuildInfoMenu`, `BedrockGuildRelationBrowserMenu`, `MenuFactory`, locale keys, resolver/factory/wiring contracts
 - [ ] **LG-1506** Dynamic Discord roles — level perk auto-creates/links a Discord role, grants/removes on join/leave
   - Tag: `TDD`
   - References: REQ-071

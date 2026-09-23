@@ -267,6 +267,33 @@ class MenuFactory(
     }
 
     /**
+     * Creates a read-only guild relation browser appropriate for the player's platform.
+     */
+    fun createGuildRelationBrowserMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild,
+        relationType: net.lumalyte.lg.domain.entities.RelationType,
+    ): Menu {
+        return if (shouldUseBedrockMenus(player)) {
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildRelationBrowserMenu(
+                menuNavigator,
+                player,
+                guild,
+                relationType,
+                logger,
+            )
+        } else {
+            net.lumalyte.lg.interaction.menus.guild.GuildRelationBrowserMenu(
+                menuNavigator,
+                player,
+                guild,
+                relationType,
+            )
+        }
+    }
+
+    /**
      * Creates a guild member list menu appropriate for the player's platform
      */
     fun createGuildMemberListMenu(
