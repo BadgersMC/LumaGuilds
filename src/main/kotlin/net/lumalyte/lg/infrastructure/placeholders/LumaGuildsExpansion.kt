@@ -373,11 +373,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         val count = current?.currentCount ?: 0
         val percentage = if (quest.targetCount > 0) ((count.coerceAtMost(quest.targetCount) * 100) / quest.targetCount) else 0
         return when (field) {
-            "name" -> "${net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.action.name)} ${net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.target.id)}"
-            "description" -> buildString {
-                append(quest.targetCount).append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.target.id))
-                quest.condition?.let { append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(it.type.name)).append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(it.value.orEmpty())) }
-            }.trim()
+            "name" -> net.lumalyte.lg.utils.QuestDisplayFormatter.name(quest)
+            "description" -> net.lumalyte.lg.utils.QuestDisplayFormatter.description(quest)
             "action" -> quest.action.name
             "target" -> quest.target.id
             "required" -> quest.targetCount.toString()
