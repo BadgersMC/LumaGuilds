@@ -33,6 +33,14 @@ internal object SeasonalEloSchema {
                     rated_at $integer NOT NULL
                 )$engine
             """.trimIndent())
+            s.execute("""
+                CREATE TABLE IF NOT EXISTS chapter_war_rating_decisions (
+                    war_id $shortText PRIMARY KEY,
+                    chapter_id $shortText NOT NULL,
+                    decision $shortText NOT NULL,
+                    decided_at $integer NOT NULL
+                )$engine
+            """.trimIndent())
             s.execute("CREATE INDEX IF NOT EXISTS idx_rated_pair_last ON chapter_rated_pair_guards(chapter_id,last_rated_at)")
         }
     }

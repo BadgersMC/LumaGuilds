@@ -41,14 +41,20 @@ class SeasonalEloRepositorySQL(
         connection.autoCommit = false
         return try {
             lockChapter(chapterId)
-            if (chapterPhase(chapterId) != "SCHEDULED") {
+            val chapter = chapterWindow(chapterId)
+            if (chapter.phase != "SCHEDULED") {
                 connection.rollback()
                 SeasonalWarRatingResult.Frozen
-            } else if (resultExists(warId)) {
+            } else if (resultExists(warId) || decisionExists(warId)) {
                 connection.rollback()
                 SeasonalWarRatingResult.Replayed
+            } else if (!chapter.contains(ratedAt)) {
+                insertDecision(warId, chapterId, "OUTSIDE_ACTIVE_INTERVAL", ratedAt)
+                connection.commit()
+                SeasonalWarRatingResult.Ineligible
             } else if (level(firstGuildId) != 100 || level(secondGuildId) != 100) {
-                connection.rollback()
+                insertDecision(warId, chapterId, "INELIGIBLE_LEVEL", ratedAt)
+                connection.commit()
                 SeasonalWarRatingResult.Ineligible
             } else {
                 ensureRating(chapterId, firstGuildId, ratedAt)
@@ -57,7 +63,8 @@ class SeasonalEloRepositorySQL(
                 val higher = maxOf(firstGuildId.toString(), secondGuildId.toString())
                 val lastRatedAt = pairLastRatedAt(chapterId, lower, higher)
                 if (lastRatedAt != null && ratedAt - lastRatedAt < settings.rematchWindowMillis) {
-                    connection.rollback()
+                    insertDecision(warId, chapterId, "REMATCH_GUARDED", ratedAt)
+                    connection.commit()
                     SeasonalWarRatingResult.RematchGuarded
                 } else {
                     val firstBefore = requiredRating(chapterId, firstGuildId)
@@ -116,16 +123,43 @@ class SeasonalEloRepositorySQL(
         }
     }
 
-    private fun chapterPhase(chapterId: String): String =
-        connection.prepareStatement("SELECT phase FROM chapter_lifecycle WHERE chapter_id=?").use {
+    private data class ChapterWindow(val phase: String, val startsAt: Long?, val endsAt: Long?) {
+        fun contains(timestamp: Long): Boolean =
+            (startsAt == null || timestamp >= startsAt) && (endsAt == null || timestamp < endsAt)
+    }
+
+    private fun chapterWindow(chapterId: String): ChapterWindow =
+        connection.prepareStatement("SELECT phase,starts_at,ends_at FROM chapter_lifecycle WHERE chapter_id=?").use {
             it.setString(1, chapterId)
-            it.executeQuery().use { rows -> check(rows.next()); rows.getString(1) }
+            it.executeQuery().use { rows ->
+                check(rows.next())
+                val startsAt = rows.getLong(2).let { value -> if (rows.wasNull()) null else value }
+                val endsAt = rows.getLong(3).let { value -> if (rows.wasNull()) null else value }
+                ChapterWindow(rows.getString(1), startsAt, endsAt)
+            }
         }
 
     private fun resultExists(warId: UUID): Boolean =
         connection.prepareStatement("SELECT 1 FROM chapter_rated_war_results WHERE war_id=?").use {
             it.setString(1, warId.toString()); it.executeQuery().use { rows -> rows.next() }
         }
+
+    private fun decisionExists(warId: UUID): Boolean =
+        connection.prepareStatement("SELECT 1 FROM chapter_war_rating_decisions WHERE war_id=?").use {
+            it.setString(1, warId.toString()); it.executeQuery().use { rows -> rows.next() }
+        }
+
+    private fun insertDecision(warId: UUID, chapterId: String, decision: String, decidedAt: Long) {
+        connection.prepareStatement(
+            "INSERT INTO chapter_war_rating_decisions (war_id,chapter_id,decision,decided_at) VALUES (?,?,?,?)"
+        ).use {
+            it.setString(1, warId.toString())
+            it.setString(2, chapterId)
+            it.setString(3, decision)
+            it.setLong(4, decidedAt)
+            check(it.executeUpdate() == 1)
+        }
+    }
 
     private fun level(guildId: UUID): Int? =
         connection.prepareStatement("SELECT current_level FROM guild_progression WHERE guild_id=?").use {

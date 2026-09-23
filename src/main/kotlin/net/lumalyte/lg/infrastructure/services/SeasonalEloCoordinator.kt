@@ -16,9 +16,14 @@ class SeasonalEloCoordinator(
     fun currentRatedChapterId(): String? {
         val config = configService.loadConfig().seasonalElo
         if (!config.enabled) return null
+        val now = System.currentTimeMillis()
         return storage.connection.connection.use { connection ->
             ChapterReadSQL(connection).current()
-                ?.takeIf { it.phase == "SCHEDULED" }
+                ?.takeIf { chapter ->
+                    chapter.phase == "SCHEDULED" &&
+                        (chapter.startsAt == null || now >= chapter.startsAt) &&
+                        (chapter.endsAt == null || now < chapter.endsAt)
+                }
                 ?.id
         }
     }
@@ -65,8 +70,18 @@ class SeasonalEloCoordinator(
             ).use {
                 it.setString(1, guildId.toString())
                 it.executeQuery().use { rows -> rows.next() && rows.getInt(1) == 100 }
-            } && chapter.phase == "SCHEDULED" && config.enabled
-            SeasonalEloView(chapter.id, rating, level, rank, eligible)
+            }
+            val now = System.currentTimeMillis()
+            val insideChapterWindow =
+                (chapter.startsAt == null || now >= chapter.startsAt) &&
+                    (chapter.endsAt == null || now < chapter.endsAt)
+            SeasonalEloView(
+                chapter.id,
+                rating,
+                level,
+                rank,
+                eligible && chapter.phase == "SCHEDULED" && insideChapterWindow && config.enabled,
+            )
         }
     }
 }
