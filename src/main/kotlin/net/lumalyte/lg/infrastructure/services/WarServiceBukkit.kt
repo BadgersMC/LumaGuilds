@@ -303,27 +303,55 @@ class WarServiceBukkit(
         return endWarInternal(warId, winnerGuildId, peaceTerms)
     }
 
-    private fun endWarInternal(warId: UUID, winnerGuildId: UUID, peaceTerms: String?): Boolean {
+    private fun endWarInternal(warId: UUID, winnerGuildId: UUID, peaceTerms: String?): Boolean =
+        finishWarInternal(warId, winnerGuildId, peaceTerms) != null
+
+    private fun finishWarInternal(warId: UUID, winnerGuildId: UUID?, peaceTerms: String?): War? {
         return try {
-            val war = getWar(warId) ?: return false
-            if (!war.isActive || winnerGuildId !in setOf(war.declaringGuildId, war.defendingGuildId)) return false
-            val loser = if (winnerGuildId == war.declaringGuildId) war.defendingGuildId else war.declaringGuildId
-            val ended = war.copy(status = WarStatus.ENDED, endedAt = Instant.now(),
-                winner = winnerGuildId, loser = loser, peaceTerms = peaceTerms)
-            saveWar(ended, expectResolutionNotification = true)
+            val war = getWar(warId) ?: return null
+            if (!war.isActive) return null
+            if (winnerGuildId != null &&
+                winnerGuildId !in setOf(war.declaringGuildId, war.defendingGuildId)
+            ) {
+                return null
+            }
+
+            val loser = when (winnerGuildId) {
+                war.declaringGuildId -> war.defendingGuildId
+                war.defendingGuildId -> war.declaringGuildId
+                else -> null
+            }
+            val ended = war.copy(
+                status = WarStatus.ENDED,
+                endedAt = Instant.now(),
+                winner = winnerGuildId,
+                loser = loser,
+                peaceTerms = peaceTerms,
+            )
+            // Durable VICTORY/DEFEAT recovery requires winner/loser snapshots.
+            // Draws and mutual peace currently have no winner/loser notification kind.
+            saveWar(ended, expectResolutionNotification = winnerGuildId != null)
             rateResolvedWar(ended)
             resolveWager(warId, winnerGuildId)
             applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, winnerGuildId)
-            if (!ended.isRated) {
+            if (winnerGuildId != null && !ended.isRated) {
                 awardWarExperience(winnerGuildId)
             }
-            Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loser, war.declaringGuildId, war.defendingGuildId))
+            Bukkit.getPluginManager().callEvent(
+                GuildWarEndEvent(
+                    warId,
+                    winnerGuildId,
+                    loser,
+                    war.declaringGuildId,
+                    war.defendingGuildId,
+                )
+            )
             runCatching { warNotifications?.warEnded(ended) }
                 .onFailure { logger.error("Failed to publish war resolution notifications $warId", it) }
-            true
+            ended
         } catch (error: Exception) {
             logger.error("Error ending durable war $warId", error)
-            false
+            null
         }
     }
 
@@ -338,26 +366,9 @@ class WarServiceBukkit(
     }
 
     private fun endWarAsDrawInternal(warId: UUID, reason: String?): Boolean {
-        return try {
-            val war = getWar(warId) ?: return false
-            if (!war.isActive) return false
-            val endedWar = war.copy(
-                status = WarStatus.ENDED,
-                endedAt = Instant.now(),
-                winner = null, // No winner in a draw
-                loser = null,  // No loser in a draw
-                peaceTerms = reason ?: "War ended in a draw"
-            )
-            saveWar(endedWar)
-            rateResolvedWar(endedWar)
-            resolveWager(warId, null)
-            logger.info("War ended as draw: $warId, reason: $reason")
-            true
-        } catch (e: Exception) {
-            // In-memory operation - catching runtime exceptions from state validation
-            logger.error("Error ending war as draw: $warId", e)
-            false
-        }
+        val ended = finishWarInternal(warId, null, reason ?: "War ended in a draw") ?: return false
+        logger.info("War ended as draw: ${ended.id}, reason: $reason")
+        return true
     }
 
     @Synchronized
@@ -439,7 +450,7 @@ class WarServiceBukkit(
 
         val current = record.stats ?: WarStats(warId)
         val persistedWinners = listOf(war.declaringGuildId, war.defendingGuildId)
-            .filter { guildId -> killTargetVictoryTerms(war, current, guildId) != null }
+            .filter { guildId -> killVictoryTerms(war, current, guildId) != null }
         if (persistedWinners.isNotEmpty()) {
             if (persistedWinners.size == 1) {
                 val pendingWinner = persistedWinners.single()
@@ -470,8 +481,7 @@ class WarServiceBukkit(
         persist(record.copy(stats = updated))
 
         val target = getWarKillWinTarget()
-        val killerKills = if (declaringKill) updated.declaringGuildKills else updated.defendingGuildKills
-        val winner = killerGuildId.takeIf { killTargetVictoryTerms(war, updated, killerGuildId) != null }
+        val winner = killerGuildId.takeIf { killVictoryTerms(war, updated, killerGuildId) != null }
         return net.lumalyte.lg.application.services.WarKillCounterUpdate(updated, target, winner)
     }
 
@@ -481,8 +491,11 @@ class WarServiceBukkit(
         val war = record.war ?: return false
         if (!war.isActive) return false
 
-        val terms = killTargetVictoryTerms(war, record.stats ?: WarStats(warId), winnerGuildId)
-            ?: return false
+        val terms = killVictoryTerms(
+            war,
+            record.stats ?: WarStats(warId),
+            winnerGuildId,
+        ) ?: return false
         return endWarInternal(warId, winnerGuildId, terms)
     }
 
@@ -497,7 +510,7 @@ class WarServiceBukkit(
             val stats = record.stats ?: return@forEach
             val candidates = listOf(war.declaringGuildId, war.defendingGuildId)
                 .mapNotNull { guildId ->
-                    killTargetVictoryTerms(war, stats, guildId)?.let { terms -> guildId to terms }
+                    killVictoryTerms(war, stats, guildId)?.let { terms -> guildId to terms }
                 }
 
             when (candidates.size) {
@@ -507,23 +520,22 @@ class WarServiceBukkit(
                     if (endWarInternal(war.id, winner, terms)) resolved++
                 }
                 else -> logger.error(
-                    "War ${war.id} has conflicting persisted global kill-target victories; refusing automatic resolution"
+                    "War ${war.id} has conflicting persisted kill victories; refusing automatic resolution"
                 )
             }
         }
         return resolved
     }
 
-    private fun killTargetVictoryTerms(war: War, stats: WarStats, guildId: UUID): String? {
-        val kills = when (guildId) {
+    private fun killVictoryTerms(war: War, stats: WarStats, guildId: UUID): String? {
+        val killerKills = when (guildId) {
             war.declaringGuildId -> stats.declaringGuildKills
             war.defendingGuildId -> stats.defendingGuildKills
             else -> return null
         }
-
-        val globalTarget = getWarKillWinTarget()
-        if (kills >= globalTarget) {
-            return "Victory achieved by reaching the global war kill target ($kills/$globalTarget)"
+        val target = getWarKillWinTarget()
+        if (killerKills >= target) {
+            return "Victory achieved by reaching the global war kill target ($killerKills/$target)"
         }
 
         val objectiveTarget = war.objectives
@@ -532,8 +544,8 @@ class WarServiceBukkit(
             .map { it.targetValue }
             .minOrNull()
         return objectiveTarget
-            ?.takeIf { kills >= it }
-            ?.let { "Victory achieved through kill objective ($kills/$it)" }
+            ?.takeIf { killerKills >= it }
+            ?.let { "Victory achieved through kill objective ($killerKills/$it)" }
     }
 
     override fun addObjectiveProgress(warId: UUID, objectiveId: UUID, progress: Int): Boolean {
@@ -745,20 +757,15 @@ class WarServiceBukkit(
                 war.startedAt!!.plus(war.duration).plusSeconds(graceSeconds).isBefore(now)
         }
         for (war in expiredWars) {
-            if (checkForDrawCondition(snapshot.getValue(war.id))) {
-                // End as draw through the trusted internal transition; player-facing
-                // methods remain permission-gated.
-                endWarAsDrawInternal(
-                    warId = war.id,
-                    reason = "War expired with no clear winner",
-                )
-                logger.info("War ${war.id} ended as draw due to expiration")
+            val reason = if (checkForDrawCondition(snapshot.getValue(war.id))) {
+                "War expired with no clear winner"
             } else {
-                // End without winner (shouldn't happen with current logic)
-                val endedWar = war.copy(status = WarStatus.ENDED, endedAt = now)
-                saveWar(endedWar)
+                "War expired without a resolvable victory"
             }
-            processedCount++
+            if (endWarAsDrawInternal(war.id, reason)) {
+                logger.info("War ${war.id} ended as draw due to expiration")
+                processedCount++
+            }
         }
 
         return processedCount
@@ -906,19 +913,12 @@ class WarServiceBukkit(
                 return null
             }
 
-            // End the war
-            val endedWar = war.copy(
-                status = WarStatus.ENDED,
-                endedAt = Instant.now(),
-                peaceTerms = agreement.peaceTerms
-            )
-
-            saveWar(endedWar)
-            resolveWager(war.id, null)
+            val endedWar = finishWarInternal(
+                war.id,
+                winnerGuildId = null,
+                peaceTerms = agreement.peaceTerms,
+            ) ?: return null
             peaceAgreements[agreementId] = agreement.copy(accepted = true, acceptedAt = Instant.now())
-
-            // Apply war farming cooldown to the winner
-            applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, war.winner)
 
             logger.info("Peace agreement accepted, war ${war.id} ended")
             endedWar
