@@ -28,6 +28,7 @@ class WarServiceBukkit(
     private val warPayments: net.lumalyte.lg.application.services.WarPaymentService,
     private val seasonalElo: SeasonalEloCoordinator? = null,
     private val warNotifications: WarNotificationService? = null,
+    private val memberRepository: net.lumalyte.lg.application.persistence.MemberRepository? = null,
 ) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
@@ -37,18 +38,55 @@ class WarServiceBukkit(
     private val warDeclarations: Map<UUID, WarDeclaration> get() = warRepository.getAll()
         .mapNotNull { it.declaration }.filter { !it.accepted && !it.rejected }.associateBy { it.id }
 
-    init { warRepository.getAll() } // Corrupt/unavailable persistence must fail initialization.
+    init {
+        warRepository.getAll() // Corrupt/unavailable persistence must fail initialization.
+        require(warNotifications == null || memberRepository != null) {
+            "War notification publishing requires a member repository for durable recipient snapshots"
+        }
+    }
 
     private fun persist(record: DurableWarRecord) {
         check(warRepository.save(record)) { "War state changed concurrently: ${record.id}" }
     }
 
-    private fun saveWar(war: War) {
-        persist(warRepository.get(war.id)?.copy(war = war) ?: DurableWarRecord(war.id, war = war))
+    private fun snapshotNotificationRecipients(guildId: UUID): Set<UUID> =
+        memberRepository?.getByGuild(guildId)?.mapTo(linkedSetOf()) { it.playerId } ?: emptySet()
+
+    private fun saveWar(war: War, expectResolutionNotification: Boolean = false) {
+        val current = warRepository.get(war.id)
+        var recipients = current?.notificationRecipients ?: WarNotificationRecipients()
+        if (expectResolutionNotification) {
+            val winner = requireNotNull(war.winner)
+            val loser = requireNotNull(war.loser)
+            recipients = recipients.copy(
+                victory = snapshotNotificationRecipients(winner),
+                defeat = snapshotNotificationRecipients(loser),
+            )
+        }
+        val updated = current?.copy(
+            war = war,
+            notificationRecipients = recipients,
+            resolutionNotificationExpected =
+                current.resolutionNotificationExpected || expectResolutionNotification,
+        ) ?: DurableWarRecord(
+            war.id,
+            war = war,
+            notificationRecipients = recipients,
+            resolutionNotificationExpected = expectResolutionNotification,
+        )
+        persist(updated)
     }
 
     private fun saveDeclaration(declaration: WarDeclaration) {
-        persist(DurableWarRecord(declaration.id, declaration = declaration))
+        persist(DurableWarRecord(
+            declaration.id,
+            declaration = declaration,
+            notificationRecipients = WarNotificationRecipients(
+                declarationSent = snapshotNotificationRecipients(declaration.declaringGuildId),
+                declarationReceived = snapshotNotificationRecipients(declaration.defendingGuildId),
+            ),
+            declarationNotificationExpected = true,
+        ))
     }
 
     private fun removeDeclaration(id: UUID): WarDeclaration? {
@@ -171,6 +209,8 @@ class WarServiceBukkit(
                     return null
                 }
             }
+            val acceptanceDeclaringRecipients = snapshotNotificationRecipients(declaration.declaringGuildId)
+            val acceptanceDefendingRecipients = snapshotNotificationRecipients(declaration.defendingGuildId)
             var record = requireNotNull(warRepository.get(declarationId))
             if (record.war?.isEnded == true || record.war?.status == WarStatus.CANCELLED) return null
             if (record.war == null) {
@@ -184,7 +224,15 @@ class WarServiceBukkit(
             }
             record = requireNotNull(warRepository.get(declarationId))
             val active = requireNotNull(record.war).copy(status = WarStatus.ACTIVE, startedAt = Instant.now())
-            persist(record.copy(war = active, declaration = declaration.copy(accepted = true)))
+            persist(record.copy(
+                war = active,
+                declaration = declaration.copy(accepted = true),
+                notificationRecipients = record.notificationRecipients.copy(
+                    acceptanceDeclaring = acceptanceDeclaringRecipients,
+                    acceptanceDefending = acceptanceDefendingRecipients,
+                ),
+                acceptanceNotificationExpected = true,
+            ))
             Bukkit.getPluginManager().callEvent(GuildWarDeclaredEvent(active.declaringGuildId, active.defendingGuildId, actorId))
             runCatching { warNotifications?.warAccepted(active) }
                 .onFailure { logger.error("Failed to publish war acceptance notifications ${active.id}", it) }
@@ -223,7 +271,7 @@ class WarServiceBukkit(
             val loser = if (winnerGuildId == war.declaringGuildId) war.defendingGuildId else war.declaringGuildId
             val ended = war.copy(status = WarStatus.ENDED, endedAt = Instant.now(),
                 winner = winnerGuildId, loser = loser, peaceTerms = peaceTerms)
-            saveWar(ended)
+            saveWar(ended, expectResolutionNotification = true)
             rateResolvedWar(ended)
             resolveWager(warId, winnerGuildId)
             applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, winnerGuildId)

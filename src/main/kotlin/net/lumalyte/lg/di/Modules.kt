@@ -601,7 +601,7 @@ fun progressionModule() = module {
     }
     single { net.lumalyte.lg.application.services.WarPaymentService(get(), get()) }
     single<WarService> {
-        WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
+        WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {
