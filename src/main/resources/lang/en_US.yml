@@ -573,6 +573,23 @@ bedrock:
     relations: |-
       <green>Allies<gray>: <gray><allies>
       <red>Enemies<gray>: <gray><enemies>
+    button:
+      allies: 'View Allies (<count>)'
+      enemies: 'View Enemies (<count>)'
+      back: Back
+    relation_browser:
+      page: 'Page <page>/<pages> — showing <start>-<end> of <total>'
+      previous: '⬅ Previous Page'
+      next: 'Next Page ➡'
+      back: '⬅ Back to Guild Info'
+      allies:
+        title: 'Allies - <guild>'
+        empty: 'This guild has no active allies.'
+        guild: "<guild>\nLevel <level> • <members> members"
+      enemies:
+        title: 'Enemies - <guild>'
+        empty: 'This guild has no active enemies.'
+        guild: "<guild>\nLevel <level> • <members> members"
     wars:
       none: '<gray>No active wars'
       entry: '<red>vs <opponent><gray>: <green><kills><gray>/<yellow><target> kills'
@@ -5093,6 +5110,7 @@ menu:
     relations:
       entry: "<gray>• <white><guild>"
       more: "<gray>... and <count> more"
+      view_all: "<yellow>Click to view the full list"
       allies:
         name: "<green>Allies (<white><count><green>)"
         none: "<gray>No allies"
@@ -5102,6 +5120,34 @@ menu:
       wars:
         name: "<red>Wars (<white><count><red>)"
         none: "<gray>No active wars"
+    relation_browser:
+      allies:
+        title: "<green>Allies - <guild>"
+        empty: "<gray>This guild has no active allies."
+        guild_name: "<green>✦ <guild>"
+      enemies:
+        title: "<red>Enemies - <guild>"
+        empty: "<gray>This guild has no active enemies."
+        guild_name: "<red>⚔ <guild>"
+      members: "<gray>Members: <white><count>"
+      level: "<gray>Level: <white><level>"
+      mode:
+        line: "<gray>Mode: <mode>"
+        peaceful: "<green>Peaceful"
+        hostile: "<red>Hostile"
+      open: "<yellow>Click to view guild info"
+      previous:
+        name: "<white>⬅ PREVIOUS PAGE"
+        description: "<gray>View previous guilds"
+      next:
+        name: "<white>NEXT PAGE ➡"
+        description: "<gray>View more guilds"
+      page:
+        name: "<yellow>Page <page> / <pages>"
+        total: "<gray>Total guilds: <white><count>"
+      back:
+        name: "<red>⬅ BACK"
+        description: "<gray>Return to guild info"
     statistics:
       name: "<yellow>Statistics"
       balance: "<gray>Bank Balance: <gold>$<balance>"
