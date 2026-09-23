@@ -16,12 +16,14 @@ from the June mass audit. Overlap between audits does not change the provenance 
   (`fix(quests): harden generated quest progress`).
 - **🛠 REMEDIATED IN #173** — independently source-confirmed and corrected by pending PR #173
   (`fix(discord): serialize guild role synchronization`).
+- **🛠 REMEDIATED IN #174** — independently source-confirmed and corrected by pending PR #174
+  (`fix(wars): harden terminal lifecycle resolution`).
 - **🔎 NOT REPRODUCED / HARDENED IN #172** — the exact reported failure mode was not present
   in the current runtime, but adjacent state handling was strengthened to preserve the intended invariant.
 
 **Inventory:** 37 reported findings total; 10 remediated in #168; 4 remediated in #171;
-4 remediated in #172; 2 remediated in #173; 1 not reproduced/hardened in #172; 16 still awaiting
-independent verification and/or remediation.
+4 remediated in #172; 2 remediated in #173; 4 remediated in #174; 1 not reproduced/hardened in #172;
+12 still awaiting independent verification and/or remediation.
 
 ---
 
@@ -96,21 +98,32 @@ complete in invocation order and the latest requested state wins.
 
 ## War lifecycle, objectives, and limits
 
-### ◻️ DEV-12 — Expired-draw wars skip the normal war-end lifecycle
-Wars that expire as draws reportedly do not fire the standard war-end event/notifications.
+### 🛠 DEV-12 — Expired-draw wars skip the normal war-end lifecycle — #174
+Source-confirmed. Expired draws used a persistence-only path that skipped the standard
+`GuildWarEndEvent` and war-ended notification lifecycle, and `processExpiredWars()` had no
+production caller at all. PR #174 routes expiration through the shared terminal lifecycle and
+schedules war maintenance once per minute after the war listeners are registered.
 
 ### ◻️ DEV-13 — Rank renames can break claim permissions
 Claim permissions are tied to rank names rather than stable rank IDs, so renaming a rank can
 disconnect the permission mapping.
 
-### ◻️ DEV-14 — A war-ending kill can end the war before kill processing completes
-The war can terminate before the kill event, XP award, and kill messages finish processing.
+### 🛠 DEV-14 — A war-ending kill can end the war before kill processing completes — #174
+Source-confirmed. The kill counter previously ended the war inside the durable counter update,
+before the listener fired the kill event, awarded XP, and sent killer/victim messages. PR #174
+persists the decisive kill first, completes those kill-side effects, then revalidates and resolves
+the terminal state. A restart reconciliation pass recovers the persisted decisive-kill crash gap.
 
-### ◻️ DEV-28 — `War.isExpired` cannot become true at zero remaining time
-The reported logic clamps remaining duration to zero and then checks whether zero is negative.
+### 🛠 DEV-28 — `War.isExpired` cannot become true at zero remaining time — #174
+Source-confirmed. `remainingDuration` intentionally clamps elapsed wars to `Duration.ZERO`, while
+`isExpired` then tested whether that value was negative. PR #174 computes expiration directly
+from `startedAt + duration`, so elapsed wars report expired without changing the display-friendly
+clamped remaining duration.
 
-### ◻️ DEV-29 — Peace agreements skip the normal war-end lifecycle
-Peace completion can bypass the same standard war-end event/notification path.
+### 🛠 DEV-29 — Peace agreements skip the normal war-end lifecycle — #174
+Source-confirmed. Peace acceptance manually persisted `ENDED` state and settled the wager rather
+than traversing the normal terminal lifecycle. PR #174 routes accepted peace through the same
+rating, wager settlement, end-event, cooldown, and war-ended notification path as other endings.
 
 ### ◻️ DEV-30 — War declaration cooldown is recorded but not enforced
 A guild can reportedly create another declaration without the stored declaration cooldown
@@ -207,6 +220,11 @@ permission model, which can strand a guild-owned claim when that original player
   provenance cleanup, target generation, recipe eligibility, and shift-click progress counting.
   DEV-05's exact activation-gap report was not reproduced, but provenance tracking was hardened
   so all player placements are recorded regardless of XP eligibility.
-- The remaining **18 DEV-REPORTED findings** should be source-verified before implementation.
+- **PR #173:** DEV-10 and DEV-11 were independently source-confirmed and remediated by making
+  Discord guild-role creation single-flight and serializing per-member role mutations.
+- **PR #174:** DEV-12, DEV-14, DEV-28, and DEV-29 were independently source-confirmed and
+  remediated through a shared terminal war lifecycle, post-kill terminal resolution, corrected
+  expiration semantics, restart reconciliation, and production scheduling of war maintenance.
+- The remaining **12 DEV-REPORTED findings** should be source-verified before implementation.
   If confirmed, preserve these IDs in future PR descriptions so fixes can be traced back to this
   audit without conflating it with the June or September ChatGPT audit tracks.
