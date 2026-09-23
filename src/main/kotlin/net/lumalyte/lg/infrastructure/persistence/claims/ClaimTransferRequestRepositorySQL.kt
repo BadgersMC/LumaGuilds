@@ -79,6 +79,32 @@ class ClaimTransferRequestRepositorySQL(
         )
     }
 
+    override fun consumeClaim(claimId: UUID, playerId: UUID): Boolean = try {
+        storage.connection.executeUpdate(
+            """
+                DELETE FROM ${ClaimTransferRequestSchema.TABLE}
+                WHERE claim_id = ?
+                  AND EXISTS (
+                      SELECT 1
+                      FROM (
+                          SELECT claim_id
+                          FROM ${ClaimTransferRequestSchema.TABLE}
+                          WHERE claim_id = ? AND player_id = ?
+                          LIMIT 1
+                      ) AS eligible_transfer
+                  )
+            """.trimIndent(),
+            claimId.toString(),
+            claimId.toString(),
+            playerId.toString(),
+        ) > 0
+    } catch (exception: SQLException) {
+        throw DatabaseOperationException(
+            "Failed to consume claim transfer request $claimId -> $playerId",
+            exception,
+        )
+    }
+
     override fun clearClaim(claimId: UUID): Boolean = try {
         storage.connection.executeUpdate(
             "DELETE FROM ${ClaimTransferRequestSchema.TABLE} WHERE claim_id = ?",

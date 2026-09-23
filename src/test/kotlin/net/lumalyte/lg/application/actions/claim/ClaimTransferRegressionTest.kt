@@ -97,28 +97,30 @@ class ClaimTransferRegressionTest {
         every { metadata.getPlayerClaimBlockLimit(receiver) } returns 1000
         every { partitions.getByClaim(any()) } returns emptySet()
         every { claims.getByName(receiver, "Received") } returns null
-        every { claims.update(any()) } returns true
-        every { requests.clearClaim(claim.id) } returns true
+        every { requests.consumeClaim(claim.id, receiver) } returns true
+        every { claims.updateIfOwnedBy(any(), claim.playerId) } returns true
 
         val result = AcceptTransferRequest(claims, metadata, partitions, requests)
             .execute(claim.id, receiver, "Received")
 
         assertIs<AcceptTransferRequestResult.Success>(result)
         verify {
-            claims.update(match {
-                it.id == claim.id && it.playerId == receiver && it.name == "Received"
-            })
+            claims.updateIfOwnedBy(
+                match { it.id == claim.id && it.playerId == receiver && it.name == "Received" },
+                claim.playerId,
+            )
         }
         verifyOrder {
-            requests.clearClaim(claim.id)
-            claims.update(match {
-                it.id == claim.id && it.playerId == receiver && it.name == "Received"
-            })
+            requests.consumeClaim(claim.id, receiver)
+            claims.updateIfOwnedBy(
+                match { it.id == claim.id && it.playerId == receiver && it.name == "Received" },
+                claim.playerId,
+            )
         }
     }
 
     @Test
-    fun `accept does not change ownership when pending offers cannot be cleared`() {
+    fun `accept does not change ownership when receiver offer was already consumed`() {
         val receiver = UUID.randomUUID()
         val claim = claim()
         val claims = mockk<ClaimRepository>()
@@ -132,13 +134,13 @@ class ClaimTransferRegressionTest {
         every { metadata.getPlayerClaimBlockLimit(receiver) } returns 1000
         every { partitions.getByClaim(any()) } returns emptySet()
         every { claims.getByName(receiver, "Received") } returns null
-        every { requests.clearClaim(claim.id) } returns false
+        every { requests.consumeClaim(claim.id, receiver) } returns false
 
         val result = AcceptTransferRequest(claims, metadata, partitions, requests)
             .execute(claim.id, receiver, "Received")
 
-        assertIs<AcceptTransferRequestResult.StorageError>(result)
-        verify(exactly = 0) { claims.update(any()) }
+        assertIs<AcceptTransferRequestResult.NoActiveTransferRequest>(result)
+        verify(exactly = 0) { claims.updateIfOwnedBy(any(), any()) }
     }
 
     private fun claim(

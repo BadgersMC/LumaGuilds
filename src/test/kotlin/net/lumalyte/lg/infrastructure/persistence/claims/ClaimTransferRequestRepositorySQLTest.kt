@@ -48,6 +48,23 @@ class ClaimTransferRequestRepositorySQLTest {
     }
 
     @Test
+    fun `consuming one receiver atomically invalidates competing offers`() {
+        val claimId = UUID.randomUUID()
+        val firstReceiver = UUID.randomUUID()
+        val secondReceiver = UUID.randomUUID()
+        val now = 1_800_000_000L
+        insertClaim(claimId)
+
+        assertTrue(repository.offer(claimId, firstReceiver, now + 300))
+        assertTrue(repository.offer(claimId, secondReceiver, now + 300))
+
+        assertTrue(repository.consumeClaim(claimId, firstReceiver))
+        assertFalse(repository.hasActive(claimId, firstReceiver, now))
+        assertFalse(repository.hasActive(claimId, secondReceiver, now))
+        assertFalse(repository.consumeClaim(claimId, secondReceiver))
+    }
+
+    @Test
     fun `expired request is removed when checked`() {
         val claimId = UUID.randomUUID()
         val playerId = UUID.randomUUID()
