@@ -57,6 +57,44 @@ class ChapterRolloverCoordinatorTest {
         assertEquals("SCHEDULED", text("SELECT phase FROM chapter_lifecycle WHERE chapter_id='c3'"))
     }
 
+    @Test fun archiveWorkRollsBackWhenPhaseAdvanceFails() {
+        connection.createStatement().use { s ->
+            s.execute("UPDATE chapter_lifecycle SET phase='BACKED_UP', backup_id='b1' WHERE chapter_id='c2'")
+            s.execute("INSERT INTO chapter_backup_evidence (backup_id,chapter_id,storage_ref,sha256,size_bytes,created_at,verified_at,verification_status,restore_verified_at) VALUES ('b1','c2','b.db','abc',1,1,1,'VERIFIED',1)")
+            s.execute("""
+                CREATE TRIGGER fail_archive_phase
+                BEFORE UPDATE OF phase ON chapter_lifecycle
+                WHEN OLD.chapter_id='c2' AND NEW.phase='ARCHIVED'
+                BEGIN
+                    SELECT RAISE(ABORT, 'phase write failed');
+                END
+            """.trimIndent())
+        }
+
+        val status = coordinator().advance(plan(), 1100)
+
+        assertEquals("BACKED_UP", status.phase)
+        assertEquals(0, int("SELECT COUNT(*) FROM chapter_standings_archive WHERE chapter_id='c2'"))
+        assertTrue(status.lastError!!.contains("phase write failed"))
+    }
+
+    @Test fun persistedFailurePausesUntilExplicitRetry() {
+        val admin = ChapterAdminRecoverySQL(connection)
+        val attempts = intArrayOf(0)
+        val c = ChapterRolloverCoordinatorSQL(connection) { _, _, _ -> attempts[0]++ }
+        assertEquals("FROZEN", c.advance(plan(), 1000).phase)
+        admin.recordFailure("c2", "operator review required", "FROZEN", 1001)
+
+        val paused = c.catchUp(plan(), 1100)
+
+        assertEquals("FROZEN", paused.phase)
+        assertEquals("operator review required", paused.lastError)
+        assertEquals(0, attempts[0])
+
+        admin.retry("c2", 1101)
+        c.advance(plan(), 1102)
+        assertEquals(1, attempts[0])
+    }
     @Test fun backupFailureIsPersistedAndPhaseRemainsFrozen() {
         val c = ChapterRolloverCoordinatorSQL(connection) { _, _, _ -> error("disk full") }
         c.advance(plan(), 1000)

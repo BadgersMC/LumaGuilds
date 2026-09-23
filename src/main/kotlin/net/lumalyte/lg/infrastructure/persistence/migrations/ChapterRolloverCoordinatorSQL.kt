@@ -18,6 +18,7 @@ class ChapterRolloverCoordinatorSQL(
     fun advance(plan: ChapterRolloverPlan, now: Long): ChapterAdminStatus {
         val admin = ChapterAdminRecoverySQL(connection)
         val status = admin.status(plan.currentChapterId)
+        if (status.lastError != null) return status
         return try {
             when (status.phase) {
                 "SCHEDULED" -> {
@@ -31,16 +32,19 @@ class ChapterRolloverCoordinatorSQL(
                 }
                 "BACKED_UP" -> {
                     requireVerifiedBackup(plan.currentChapterId)
-                    archiveStandings(plan.currentChapterId, now)
-                    updatePhase(plan.currentChapterId, "BACKED_UP", "ARCHIVED", now)
+                    transitionWithWork(plan.currentChapterId, "BACKED_UP", "ARCHIVED", now) {
+                        archiveStandings(plan.currentChapterId, now)
+                    }
                 }
                 "ARCHIVED" -> {
-                    initializeNextRatings(plan.nextChapterId, now)
-                    updatePhase(plan.currentChapterId, "ARCHIVED", "RESET", now)
+                    transitionWithWork(plan.currentChapterId, "ARCHIVED", "RESET", now) {
+                        initializeNextRatings(plan.nextChapterId, now)
+                    }
                 }
                 "RESET" -> {
-                    pruneSeasonal(plan.currentChapterId)
-                    updatePhase(plan.currentChapterId, "RESET", "PRUNED", now)
+                    transitionWithWork(plan.currentChapterId, "RESET", "PRUNED", now) {
+                        pruneSeasonal(plan.currentChapterId)
+                    }
                 }
                 "PRUNED" -> {
                     completeAndScheduleNext(plan, now)
@@ -166,6 +170,33 @@ class ChapterRolloverCoordinatorSQL(
     }
 
     private fun updatePhase(chapterId: String, from: String, to: String, now: Long): ChapterAdminStatus {
+        updatePhaseRow(chapterId, from, to, now)
+        return ChapterAdminRecoverySQL(connection).status(chapterId)
+    }
+
+    private fun transitionWithWork(
+        chapterId: String,
+        from: String,
+        to: String,
+        now: Long,
+        work: () -> Unit,
+    ): ChapterAdminStatus {
+        val oldAutoCommit = connection.autoCommit
+        connection.autoCommit = false
+        try {
+            work()
+            updatePhaseRow(chapterId, from, to, now)
+            connection.commit()
+        } catch (error: Exception) {
+            connection.rollback()
+            throw error
+        } finally {
+            connection.autoCommit = oldAutoCommit
+        }
+        return ChapterAdminRecoverySQL(connection).status(chapterId)
+    }
+
+    private fun updatePhaseRow(chapterId: String, from: String, to: String, now: Long) {
         connection.prepareStatement("""
             UPDATE chapter_lifecycle SET phase=?,updated_at=?,version=version+1,last_error=NULL,transition_token=NULL
             WHERE chapter_id=? AND phase=?
@@ -176,7 +207,6 @@ class ChapterRolloverCoordinatorSQL(
             it.setString(4, from)
             check(it.executeUpdate() == 1) { "Chapter phase changed concurrently" }
         }
-        return ChapterAdminRecoverySQL(connection).status(chapterId)
     }
 
     private fun tableExists(name: String): Boolean =

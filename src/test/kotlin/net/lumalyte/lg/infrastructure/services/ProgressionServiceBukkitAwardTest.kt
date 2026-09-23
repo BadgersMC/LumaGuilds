@@ -18,6 +18,7 @@ import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PeriodWindow
 import org.bukkit.plugin.Plugin
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -82,15 +83,19 @@ class ProgressionServiceBukkitAwardTest {
     }
 
     @Test
-    fun `weekly quest sink forces reward outside source caps`() {
+    fun `weekly quest system award uses supplied id outside source caps`() {
         val awards = RecordingRepository()
         val service = serviceWith(awards)
+        val transactionId = UUID.randomUUID()
 
-        QuestRewardSinkBukkit(service).awardExperience(
+        assertTrue(service.awardUncappedSystemExperienceOnce(
             UUID.randomUUID(),
             50_000,
-        )
+            ExperienceSource.WEEKLY_ACTIVITY,
+            transactionId,
+        ))
 
+        assertEquals(transactionId, awards.request?.transactionId)
         assertEquals(ExperienceSource.WEEKLY_ACTIVITY, awards.request?.source)
         assertEquals(false, awards.policy?.isCapped)
         assertEquals(50_000, awards.requestedXp)

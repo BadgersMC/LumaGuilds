@@ -45,6 +45,17 @@ interface ProgressionService {
         awardExperience(guildId, experience, source)
 
     /**
+     * Idempotent system-XP award for crash-recoverable workflows.
+     * Returns true when the transaction was applied or had already been applied.
+     */
+    fun awardUncappedSystemExperienceOnce(
+        guildId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+        transactionId: UUID,
+    ): Boolean
+
+    /**
      * Removes experience from a guild (used by Guild Strikes EXP penalties).
      * Never drops total XP below 0. Recalculates level and syncs the guild's
      * level field.
