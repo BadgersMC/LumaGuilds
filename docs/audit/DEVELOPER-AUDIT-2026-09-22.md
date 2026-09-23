@@ -232,7 +232,8 @@ Source-confirmed across command, menu, edit-tool, anchor movement, and claim-des
 PR #177 centralizes actor-authoritative management for guild-owned claims using current rank
 permissions (`MANAGE_CLAIMS`, `MANAGE_FLAGS`, `MANAGE_PERMISSIONS`, and `DELETE_CLAIMS`) while
 preserving original-owner and explicit-override compatibility. Regression coverage verifies a
-non-owner guild manager can administer and move a converted claim.
+non-owner guild manager can administer and move a converted claim, and that permission sharing
+includes the authorized guild manager while preserving implicit access for the historical owner.
 
 ---
 
