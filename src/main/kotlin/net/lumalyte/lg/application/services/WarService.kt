@@ -151,14 +151,21 @@ interface WarService {
     /**
      * Atomically validates and records one opposing-guild kill for an active war.
      * Returns null when the war is inactive or the supplied guilds are not the
-     * exact opposing pair for that war. A non-null winner means the configured
-     * global kill target ended the war.
+     * exact opposing pair for that war. A non-null winner means this kill reached
+     * the configured global target; callers must finish kill-side effects before
+     * resolving the durable terminal state with [resolveReachedKillTarget].
      */
     fun recordOpposingGuildKill(
         warId: UUID,
         killerGuildId: UUID,
         victimGuildId: UUID,
     ): WarKillCounterUpdate?
+
+    /** Revalidates the persisted winning counter before ending the war. */
+    fun resolveReachedKillTarget(warId: UUID, winnerGuildId: UUID): Boolean
+
+    /** Recovers active wars whose persisted counters already prove a kill-target victory. */
+    fun reconcilePendingKillVictories(): Int
 
     /**
      * Adds progress to a war objective.

@@ -267,6 +267,9 @@ class WarConfigEnforcementTest {
 
         assertEquals(declaring, winning.winnerGuildId)
         assertEquals(3, winning.stats.declaringGuildKills)
+        assertEquals(WarStatus.ACTIVE, service.getWar(firstWar.id)!!.status)
+
+        assertTrue(service.resolveReachedKillTarget(firstWar.id, declaring))
         assertEquals(WarStatus.ENDED, service.getWar(firstWar.id)!!.status)
         assertEquals(declaring, service.getWar(firstWar.id)!!.winner)
         assertNull(service.recordOpposingGuildKill(firstWar.id, declaring, defending))
@@ -281,6 +284,50 @@ class WarConfigEnforcementTest {
         val secondWar = service.acceptWarDeclaration(secondDeclaration.id, UUID.randomUUID())!!
         assertEquals(0, service.getWarStats(secondWar.id).declaringGuildKills)
         assertEquals(0, service.getWarStats(secondWar.id).defendingGuildKills)
+    }
+
+    @Test
+    fun `decisive persisted kill is recovered after restart gap`() {
+        mockBukkitPluginManager()
+        val combat = CombatConfig(warKillWinTarget = 1)
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val service = newService(mockk(), combatConfig = combat)
+        val declaration = service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+
+        val winning = service.recordOpposingGuildKill(war.id, declaring, defending)!!
+        assertEquals(declaring, winning.winnerGuildId)
+        assertEquals(WarStatus.ACTIVE, service.getWar(war.id)!!.status)
+
+        val restored = newService(mockk(), combatConfig = combat)
+        assertEquals(1, restored.reconcilePendingKillVictories())
+        assertEquals(WarStatus.ENDED, restored.getWar(war.id)!!.status)
+        assertEquals(declaring, restored.getWar(war.id)!!.winner)
+    }
+
+    @Test
+    fun `pending persisted winner blocks later opposing kill before reconciliation tick`() {
+        mockBukkitPluginManager()
+        val combat = CombatConfig(warKillWinTarget = 1)
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val service = newService(mockk(), combatConfig = combat)
+        val declaration = service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+
+        val winning = service.recordOpposingGuildKill(war.id, declaring, defending)!!
+        assertEquals(declaring, winning.winnerGuildId)
+        assertEquals(WarStatus.ACTIVE, service.getWar(war.id)!!.status)
+
+        assertNull(service.recordOpposingGuildKill(war.id, defending, declaring))
+        assertEquals(WarStatus.ENDED, service.getWar(war.id)!!.status)
+        assertEquals(declaring, service.getWar(war.id)!!.winner)
+        assertEquals(0, service.getWarStats(war.id).defendingGuildKills)
     }
 
     @Test

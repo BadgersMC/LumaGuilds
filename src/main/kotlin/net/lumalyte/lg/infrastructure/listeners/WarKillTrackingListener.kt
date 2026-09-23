@@ -92,8 +92,14 @@ class WarKillTrackingListener : Listener, KoinComponent {
                         killer.sendMessage(lang.msg("notification.war.kill.killer", "victim" to victim.name))
                         victim.sendMessage(lang.msg("notification.war.kill.victim", "killer" to killer.name))
 
-                        // The global kill target may already have ended the war.
-                        if (counter.winnerGuildId == null) {
+                        // Persist the decisive counter first, then resolve only after
+                        // the kill event, XP, and player feedback have completed.
+                        val winner = counter.winnerGuildId
+                        if (winner != null) {
+                            if (!warService.resolveReachedKillTarget(war.id, winner)) {
+                                logger.error("Failed to resolve decisive kill for war ${war.id}")
+                            }
+                        } else {
                             checkAndCompleteKillObjectives(war.id, counter.stats)
                         }
 
