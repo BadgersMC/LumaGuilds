@@ -442,6 +442,12 @@ combat:
   war_win_experience: 500       # XP gained for winning a war
   war_lose_experience: 100      # XP gained for losing a war (participation)
 
+war_banner:
+  # One stack of physical RAW_GOLD by default. Nonpositive values fail closed.
+  raw_gold_cost: 64
+  # Cooldown starts at placement. Banner lifetime is fixed by REQ-059 at 15 minutes.
+  cooldown_minutes: 15
+
 
 # =====================================
 # Chat System Configuration

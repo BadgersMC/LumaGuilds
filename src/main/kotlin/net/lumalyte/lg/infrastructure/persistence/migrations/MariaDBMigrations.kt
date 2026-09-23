@@ -105,6 +105,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(31)
                 currentDbVersion = 31
             }
+            if (currentDbVersion < 32) {
+                migrateToVersion32()
+                updateDatabaseVersion(32)
+                currentDbVersion = 32
+            }
 
             connection.commit()
 
@@ -1011,5 +1016,14 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
     private fun migrateToVersion31() {
         SeasonalEloSchema.create(connection, mariaDb = true)
         componentLogger.info(Component.text("✓ Migration v31 complete: seasonal Elo pair/result persistence added"))
+    }
+
+    private fun migrateToVersion32() {
+        WarBannerSchema.create(connection, mariaDb = true)
+        val updatedRanks = WarBannerSchema.backfillRankPermission(connection)
+        componentLogger.info(Component.text(
+            "✓ Migration v32 complete: tactical war-banner state added; " +
+                "$updatedRanks existing war-management rank(s) granted PLACE_WAR_BANNER"
+        ))
     }
 }

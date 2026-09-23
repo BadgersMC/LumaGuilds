@@ -48,8 +48,16 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             webApi = loadWebApiConfig(),
             strikes = loadStrikesConfig(),
             seasonalElo = loadSeasonalEloConfig(),
+            warBanner = loadWarBannerConfig(),
             chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", false),
             chapterTwoGoldCostsEnabled = config.getBoolean("progression.chapter_two_gold_costs_enabled", false)
+        )
+    }
+
+    private fun loadWarBannerConfig(): WarBannerConfig {
+        return WarBannerConfig(
+            rawGoldCost = config.getInt("war_banner.raw_gold_cost", 64),
+            cooldownMinutes = config.getInt("war_banner.cooldown_minutes", 15),
         )
     }
 

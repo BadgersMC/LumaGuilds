@@ -6510,6 +6510,7 @@ menu:
       modify_shop_prices: '<gray>Change prices on shop signs'
       manage_relations: '<gray>Manage guild relationships'
       declare_war: '<gray>Declare war on other guilds'
+      place_war_banner: '<gray>Deploy tactical war banners during active wars'
       accept_alliances: '<gray>Accept alliance requests'
       manage_parties: '<gray>Create and manage guild parties'
       send_party_requests: '<gray>Send party invitations'
@@ -6751,6 +6752,37 @@ menu:
       icon_updated: '<green>✅ Rank icon updated to: <material>'
       icon_update_failed: '<red>❌ Failed to update rank icon'
       input_cancelled: '<gray>Input cancelled.'
+war_banner:
+  item:
+    name: '<gold><guild> War Banner'
+    lore:
+      cost: '<gray>Placement cost: <gold><cost> raw gold'
+      duration: '<gray>Active for <white>15 minutes'
+      place: '<yellow>Place during an active guild war to deploy.'
+  feedback:
+    guild_missing: '<red>This guild no longer exists.'
+    placed: '<green>War banner deployed for <gold><cost> raw gold.'
+    payment_unknown: '<yellow>War banner deployed, but payment confirmation is uncertain. Do not retry placement; contact staff if needed.'
+    cooldown: '<red>Your guild must wait <seconds>s before placing another war banner.'
+    already_active: '<red>Your guild already has an active war banner.'
+    not_member: '<red>You are not a member of that guild.'
+    no_permission: '<red>Your guild rank cannot place war banners.'
+    no_active_war: '<red>Your guild must be in an active war to deploy a war banner.'
+    insufficient_gold: '<red>You do not have enough raw gold to place this war banner.'
+    payment_unavailable: '<red>Raw-gold payment is currently unavailable.'
+    configuration_error: '<red>War banner cost/cooldown is not configured correctly.'
+    failed_refunded: '<red>War banner placement failed. Your raw gold was restored.'
+    failed_uncertain: '<red>War banner placement failed and payment recovery is uncertain. Contact staff before retrying.'
+    item_given: '<green>War banner readied. Placement will cost <gold><cost> raw gold<green>.'
+  broadcast:
+    placed: '<gold>[<guild>] <yellow>has placed down a war banner.'
+    destroyed: '<red>[<guild>] <gray>war banner has been destroyed.'
+  teleport:
+    started: '<green>Teleporting to your guild war banner...'
+    none: '<red>Your guild has no active war banner.'
+    missing: '<red>Your guild war banner is no longer standing.'
+    world_unavailable: '<red>The war banner world is unavailable.'
+    unsafe: '<red>The war banner teleport location is unsafe.'
 permission:
   accept:
     alliances: Accept Alliances
@@ -6771,6 +6803,9 @@ permission:
     claims: Create Claims
   declare:
     war: Declare War
+  place:
+    war:
+      banner: Place War Banner
   delete:
     claims: Delete Claims
   detonate:
