@@ -36,6 +36,7 @@ class BedrockGuildWarDeclarationMenu(
     private val guildRepository: GuildRepository by inject()
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
@@ -71,6 +72,10 @@ class BedrockGuildWarDeclarationMenu(
                 lang.bedrock("bedrock.war_declaration.duration.label"),
                 durationOptions,
                 2 // Default to 7 days
+            )
+            .toggle(
+                lang.bedrock("bedrock.war_declaration.rated.label"),
+                false
             )
             .input(
                 lang.bedrock("bedrock.war_declaration.terms.label"),
@@ -109,12 +114,13 @@ class BedrockGuildWarDeclarationMenu(
 
                 val targetIndex = response.asDropdown(1)
                 val durationIndex = response.asDropdown(2)
-                val terms = response.asInput(3) ?: ""
-                val territoryObjective = response.asToggle(4)
-                val killsObjective = response.asToggle(5)
-                // Skip label at index 6
-                val wagerSlider = response.asSlider(7)
-                val wagerInput = response.asInput(8) ?: ""
+                val rated = response.asToggle(3)
+                val terms = response.asInput(4) ?: ""
+                val territoryObjective = response.asToggle(5)
+                val killsObjective = response.asToggle(6)
+                // Skip label at index 7
+                val wagerSlider = response.asSlider(8)
+                val wagerInput = response.asInput(9) ?: ""
 
                 val targetGuild = allGuilds.getOrNull(targetIndex)
                 if (targetGuild == null) {
@@ -155,7 +161,7 @@ class BedrockGuildWarDeclarationMenu(
                     wagerSlider.toInt()
                 }
 
-                handleWarDeclaration(targetGuild, duration, objectives, terms, wagerAmount)
+                handleWarDeclaration(targetGuild, duration, objectives, terms, wagerAmount, rated)
             }
             .closedOrInvalidResultHandler { _, _ ->
                 bedrockNavigator.goBack()
@@ -168,7 +174,8 @@ class BedrockGuildWarDeclarationMenu(
         duration: Duration,
         objectives: Set<WarObjective>,
         terms: String,
-        wagerAmount: Int
+        wagerAmount: Int,
+        rated: Boolean,
     ) {
         // Validate guild can declare war
         if (guild.mode != GuildMode.HOSTILE) {
@@ -187,6 +194,16 @@ class BedrockGuildWarDeclarationMenu(
             return
         }
 
+        if (rated) {
+            val own = seasonalElo.view(guild.id)
+            val opponent = seasonalElo.view(targetGuild.id)
+            if (own?.eligible != true || opponent?.eligible != true || own.chapterId != opponent.chapterId) {
+                player.sendMessage(lang.msg("bedrock.war_declaration.feedback.rated_unavailable"))
+                bedrockNavigator.goBack()
+                return
+            }
+        }
+
         // REQ-024: no auto-accept — every declaration goes through the accept/decline
         // flow. REQ-039: escrow is handled by the war service on acceptance; the menu
         // no longer moves bank funds itself.
@@ -197,12 +214,18 @@ class BedrockGuildWarDeclarationMenu(
             objectives = objectives,
             wagerAmount = wagerAmount,
             terms = if (terms.isNotBlank()) terms else null,
-            actorId = player.uniqueId
+            actorId = player.uniqueId,
+            rated = rated,
         )
 
         if (declaration != null) {
             player.sendMessage(lang.msg("bedrock.war_declaration.feedback.sent", "guild" to targetGuild.name))
             player.sendMessage(lang.msg("bedrock.war_declaration.feedback.duration", "days" to duration.toDays()))
+            if (declaration.isRated) {
+                player.sendMessage(lang.msg("bedrock.war_declaration.feedback.rated_created"))
+            } else {
+                player.sendMessage(lang.msg("bedrock.war_declaration.feedback.unrated_created"))
+            }
             if (objectives.isNotEmpty()) {
                 player.sendMessage(lang.msg("bedrock.war_declaration.feedback.objectives", "count" to objectives.size))
             }

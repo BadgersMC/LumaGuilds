@@ -23,7 +23,8 @@ interface WarService {
         objectives: Set<WarObjective>,
         wagerAmount: Int = 0,
         terms: String? = null,
-        actorId: UUID
+        actorId: UUID,
+        rated: Boolean = false,
     ): WarDeclaration?
 
     /**
