@@ -14,12 +14,14 @@ from the June mass audit. Overlap between audits does not change the provenance 
   (`fix(audit): make chapter and quest rewards crash safe`).
 - **🛠 REMEDIATED IN #172** — independently source-confirmed and corrected by pending PR #172
   (`fix(quests): harden generated quest progress`).
+- **🛠 REMEDIATED IN #173** — independently source-confirmed and corrected by pending PR #173
+  (`fix(discord): serialize guild role synchronization`).
 - **🔎 NOT REPRODUCED / HARDENED IN #172** — the exact reported failure mode was not present
   in the current runtime, but adjacent state handling was strengthened to preserve the intended invariant.
 
 **Inventory:** 37 reported findings total; 10 remediated in #168; 4 remediated in #171;
-4 remediated in #172; 1 not reproduced/hardened in #172; 18 still awaiting independent
-verification and/or remediation.
+4 remediated in #172; 2 remediated in #173; 1 not reproduced/hardened in #172; 16 still awaiting
+independent verification and/or remediation.
 
 ---
 
@@ -78,13 +80,17 @@ ingredients and destination inventory capacity rather than counting one recipe r
 ---
 
 ## Discord role synchronization
-### ◻️ DEV-10 — Concurrent role syncs can create duplicate guild roles
-Two role synchronization operations running at nearly the same time can both decide a role must
-be created.
+### 🛠 DEV-10 — Concurrent role syncs can create duplicate guild roles — #173
+Source-confirmed. The pre-patch single-flight map started `doEnsureRole()` before publishing the
+future with `putIfAbsent`, so two concurrent callers could both enter Discord role creation. PR
+#173 publishes role creation atomically with `computeIfAbsent` and removes the in-flight entry
+only after that shared future completes.
 
-### ◻️ DEV-11 — Join/leave role updates can complete out of order
-A rapid guild join/leave sequence can leave a stale async role update completing last, causing a
-player to retain a guild role they should no longer have.
+### 🛠 DEV-11 — Join/leave role updates can complete out of order — #173
+Source-confirmed. Join and removal calls previously launched independent Discord futures with no
+ordering guarantee. PR #173 serializes grant/revoke operations per `(guildId, playerId)` and uses
+the same queue for reconciliation and account unlink paths, so rapid join/leave/rejoin updates
+complete in invocation order and the latest requested state wins.
 
 ---
 
