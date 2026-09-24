@@ -172,6 +172,108 @@ class GuildDiscordRoleServiceTest {
     }
 
     @Test
+    fun `member removal waits for earlier join grant to finish`() {
+        val fixture = fixture(guild(level = 50))
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.createOnEnsure = false
+        val pendingGrant = CompletableFuture<DiscordMemberRoleResult>()
+        fixture.gateway.grantOverride = pendingGrant
+
+        val joined = fixture.service.memberJoined(guildId, playerOne)
+        val removed = fixture.service.memberRemoved(guildId, playerOne)
+
+        assertEquals(listOf(playerOne), fixture.gateway.granted)
+        assertTrue(fixture.gateway.revoked.isEmpty())
+
+        pendingGrant.complete(DiscordMemberRoleResult.APPLIED)
+
+        assertEquals(1, joined.join().memberRolesApplied)
+        assertEquals(1, removed.join().memberRolesRemoved)
+        assertEquals(listOf(playerOne), fixture.gateway.revoked)
+    }
+
+    @Test
+    fun `latest member update wins across join leave and rejoin`() {
+        val fixture = fixture(guild(level = 50))
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.createOnEnsure = false
+        val pendingGrant = CompletableFuture<DiscordMemberRoleResult>()
+        fixture.gateway.grantOverride = pendingGrant
+
+        val firstJoin = fixture.service.memberJoined(guildId, playerOne)
+        val removal = fixture.service.memberRemoved(guildId, playerOne)
+        val secondJoin = fixture.service.memberJoined(guildId, playerOne)
+
+        assertEquals(listOf("grant:$playerOne"), fixture.gateway.operationLog)
+        pendingGrant.complete(DiscordMemberRoleResult.APPLIED)
+
+        firstJoin.join()
+        removal.join()
+        secondJoin.join()
+        assertEquals(
+            listOf("grant:$playerOne", "revoke:$playerOne", "grant:$playerOne"),
+            fixture.gateway.operationLog,
+        )
+    }
+
+    @Test
+    fun `account unlink waits for earlier guild role grant`() {
+        val fixture = fixture(guild(level = 50), members = setOf(member(playerOne)))
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.createOnEnsure = false
+        val pendingGrant = CompletableFuture<DiscordMemberRoleResult>()
+        fixture.gateway.grantOverride = pendingGrant
+
+        val joined = fixture.service.memberJoined(guildId, playerOne)
+        val unlinked = fixture.service.discordAccountUnlinked(playerOne, "222222222222222222")
+
+        assertTrue(fixture.gateway.revokedDiscordIds.isEmpty())
+        pendingGrant.complete(DiscordMemberRoleResult.APPLIED)
+
+        joined.join()
+        unlinked.join()
+        assertEquals(
+            listOf("grant:$playerOne", "revokeDiscord:222222222222222222"),
+            fixture.gateway.operationLog,
+        )
+    }
+
+    @Test
+    fun `reconciliation regrants member that joined during stale holder cleanup`() {
+        val fixture = fixture(guild(level = 50))
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.createOnEnsure = false
+        every { fixture.memberService.getGuildMembers(guildId) } returnsMany
+            listOf(emptySet(), setOf(member(playerOne)))
+
+        val pendingCleanup = CompletableFuture<Int>()
+        fixture.gateway.unexpectedRevokeOverride = pendingCleanup
+
+        val reconciliation = fixture.service.reconcileGuild(guildId)
+        assertEquals(listOf("reconcile:start"), fixture.gateway.operationLog)
+
+        fixture.service.memberJoined(guildId, playerOne).join()
+        assertEquals(
+            listOf("reconcile:start", "grant:$playerOne"),
+            fixture.gateway.operationLog,
+        )
+
+        pendingCleanup.complete(1)
+        reconciliation.join()
+
+        assertEquals(
+            listOf(
+                "reconcile:start",
+                "grant:$playerOne",
+                "reconcile:finish",
+                "grant:$playerOne",
+            ),
+            fixture.gateway.operationLog,
+        )
+        assertEquals(listOf(playerOne, playerOne), fixture.gateway.granted)
+    }
+
+    @Test
     fun `new Discord role is deleted when durable link persistence fails`() {
         val fixture = fixture(guild(level = 50))
         fixture.repository.failUpsert = true
@@ -291,6 +393,7 @@ class GuildDiscordRoleServiceTest {
             ),
             repository,
             gateway,
+            memberService,
         )
     }
 
@@ -312,6 +415,7 @@ class GuildDiscordRoleServiceTest {
         val service: GuildDiscordRoleService,
         val repository: FakeRepository,
         val gateway: FakeGateway,
+        val memberService: MemberService,
     )
 
     private class FakeRepository : GuildDiscordRoleRepository {
@@ -345,10 +449,14 @@ class GuildDiscordRoleServiceTest {
         var ensureEntered: CountDownLatch? = null
         var ensureRelease: CountDownLatch? = null
         val unexpectedRoleMembers = linkedSetOf<UUID>()
+        var grantOverride: CompletableFuture<DiscordMemberRoleResult>? = null
+        var revokeOverride: CompletableFuture<DiscordMemberRoleResult>? = null
+        var unexpectedRevokeOverride: CompletableFuture<Int>? = null
         val ensureRequests = mutableListOf<Pair<String?, String>>()
-        val granted = mutableListOf<UUID>()
-        val revoked = mutableListOf<UUID>()
-        val revokedDiscordIds = mutableListOf<String>()
+        val granted = java.util.Collections.synchronizedList(mutableListOf<UUID>())
+        val revoked = java.util.Collections.synchronizedList(mutableListOf<UUID>())
+        val revokedDiscordIds = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val operationLog = java.util.Collections.synchronizedList(mutableListOf<String>())
         val deleted = mutableListOf<String>()
 
         override fun isAvailable(): Boolean = available
@@ -375,6 +483,11 @@ class GuildDiscordRoleServiceTest {
             roleId: String,
         ): CompletableFuture<DiscordMemberRoleResult> {
             granted += playerId
+            operationLog += "grant:$playerId"
+            grantOverride?.let {
+                grantOverride = null
+                return it
+            }
             return CompletableFuture.completedFuture(DiscordMemberRoleResult.APPLIED)
         }
 
@@ -383,6 +496,11 @@ class GuildDiscordRoleServiceTest {
             roleId: String,
         ): CompletableFuture<DiscordMemberRoleResult> {
             revoked += playerId
+            operationLog += "revoke:$playerId"
+            revokeOverride?.let {
+                revokeOverride = null
+                return it
+            }
             return CompletableFuture.completedFuture(DiscordMemberRoleResult.REMOVED)
         }
 
@@ -391,6 +509,7 @@ class GuildDiscordRoleServiceTest {
             roleId: String,
         ): CompletableFuture<DiscordMemberRoleResult> {
             revokedDiscordIds += discordId
+            operationLog += "revokeDiscord:$discordId"
             return CompletableFuture.completedFuture(DiscordMemberRoleResult.REMOVED)
         }
 
@@ -398,9 +517,19 @@ class GuildDiscordRoleServiceTest {
             roleId: String,
             allowedPlayerIds: Set<UUID>,
         ): CompletableFuture<Int> {
+            operationLog += "reconcile:start"
+            unexpectedRevokeOverride?.let { pending ->
+                unexpectedRevokeOverride = null
+                return pending.thenApply {
+                    operationLog += "reconcile:finish"
+                    it
+                }
+            }
+
             val stale = unexpectedRoleMembers.filter { it !in allowedPlayerIds }
             revoked += stale
             unexpectedRoleMembers.removeAll(stale.toSet())
+            operationLog += "reconcile:finish"
             return CompletableFuture.completedFuture(stale.size)
         }
 
