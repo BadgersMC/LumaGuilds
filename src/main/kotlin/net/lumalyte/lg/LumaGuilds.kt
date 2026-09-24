@@ -989,6 +989,26 @@ class LumaGuilds : JavaPlugin() {
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.CombatAntiGriefListener(), this)
+        val warService = get().get<net.lumalyte.lg.application.services.WarService>()
+        val recoveredKillVictories = warService.reconcilePendingKillVictories()
+        if (recoveredKillVictories > 0) {
+            logColored("✓ Recovered $recoveredKillVictories decisive war kill(s) after restart")
+        }
+        server.scheduler.runTaskTimer(
+            this,
+            Runnable {
+                try {
+                    val processed = warService.processExpiredWars()
+                    if (processed > 0) {
+                        logger.info("War maintenance processed $processed expired/recoverable record(s)")
+                    }
+                } catch (error: Exception) {
+                    logger.log(java.util.logging.Level.SEVERE, "War maintenance failed", error)
+                }
+            },
+            20L * 60L,
+            20L * 60L,
+        )
 
         // Close stale guild menus, clean up channels, and despawn bannerman displays when a guild is disbanded
         val guildDisbandedListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener>()

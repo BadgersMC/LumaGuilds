@@ -4,12 +4,15 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ProgressionService
+import net.lumalyte.lg.application.services.WarNotificationService
+import net.lumalyte.lg.api.events.GuildWarEndEvent
 import net.lumalyte.lg.config.CombatConfig
 import net.lumalyte.lg.config.LevelRewardConfig
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.entities.ObjectiveType
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.domain.entities.War
 import net.lumalyte.lg.domain.entities.WarObjective
 import net.lumalyte.lg.domain.entities.WarStatus
 import net.lumalyte.lg.domain.values.ExperienceSource
@@ -27,6 +30,7 @@ import io.mockk.unmockkStatic
 import io.mockk.verify
 import org.bukkit.Bukkit
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -112,6 +116,20 @@ class WarConfigEnforcementTest {
         )
     }
 
+    @Test
+    fun `elapsed active war reports expired when remaining duration is clamped to zero`() {
+        val war = War(
+            declaringGuildId = UUID.randomUUID(),
+            defendingGuildId = UUID.randomUUID(),
+            startedAt = Instant.now().minus(Duration.ofMinutes(5)),
+            duration = Duration.ofMinutes(1),
+            status = WarStatus.ACTIVE,
+        )
+
+        assertEquals(Duration.ZERO, war.remainingDuration)
+        assertTrue(war.isExpired)
+    }
+
     // ---------- declaration flow (REQ-024: no auto-accept) ----------
 
     private fun permissiveMemberService(): MemberService = mockk {
@@ -125,6 +143,7 @@ class WarConfigEnforcementTest {
         combatConfig: CombatConfig = CombatConfig(),
         memberRepository: net.lumalyte.lg.application.persistence.MemberRepository? = null,
         memberService: MemberService = permissiveMemberService(),
+        warNotifications: WarNotificationService? = null,
     ): WarServiceBukkit {
         val config = mockk<MainConfig>()
         every { config.combat } returns combatConfig
@@ -139,7 +158,8 @@ class WarConfigEnforcementTest {
             progressionService = mockk(relaxed = true),
             memberService = memberService,
             seasonalElo = seasonalElo,
-            memberRepository = memberRepository,
+            warNotifications = warNotifications,
+            memberRepository = memberRepository ?: if (warNotifications != null) mockk(relaxed = true) else null,
         )
     }
 
@@ -148,9 +168,11 @@ class WarConfigEnforcementTest {
         unmockkStatic(Bukkit::class)
     }
 
-    private fun mockBukkitPluginManager() {
+    private fun mockBukkitPluginManager(): org.bukkit.plugin.PluginManager {
         mockkStatic(Bukkit::class)
-        every { Bukkit.getPluginManager() } returns mockk(relaxed = true)
+        val pluginManager = mockk<org.bukkit.plugin.PluginManager>(relaxed = true)
+        every { Bukkit.getPluginManager() } returns pluginManager
+        return pluginManager
     }
 
     @Test
@@ -293,7 +315,7 @@ class WarConfigEnforcementTest {
     }
 
     @Test
-    fun `global kill target automatically resolves war and next war starts at zero`() {
+    fun `global kill target reports winner before trusted resolution and next war starts at zero`() {
         mockBukkitPluginManager()
         val combat = CombatConfig(warKillWinTarget = 3)
         val service = newService(mockk(), combatConfig = combat)
@@ -628,6 +650,70 @@ class WarConfigEnforcementTest {
         val processed = service.processExpiredWars()
         assertEquals(0, processed, "war inside grace period must not be force-ended")
         assertNotNull(service.getWar(accepted.id))
+    }
+
+    @Test
+    fun `expired draw uses the standard war end lifecycle`() {
+        val pluginManager = mockBukkitPluginManager()
+        val notifications = mockk<WarNotificationService>(relaxed = true)
+        val service = newService(
+            mockk(),
+            combatConfig = CombatConfig(warEndGracePeriodMinutes = 0),
+            warNotifications = notifications,
+        )
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val declaration = service.createWarDeclaration(
+            declaring, defending, Duration.ofSeconds(1), emptySet(), actorId = UUID.randomUUID()
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+        val persisted = records.getValue(war.id)
+        records[war.id] = persisted.copy(
+            war = persisted.war!!.copy(
+                startedAt = Instant.now().minus(Duration.ofMinutes(5)),
+                duration = Duration.ofSeconds(1),
+            )
+        )
+
+        assertEquals(1, service.processExpiredWars())
+        val ended = service.getWar(war.id)!!
+        assertEquals(WarStatus.ENDED, ended.status)
+        assertNull(ended.winner)
+        verify(exactly = 1) {
+            pluginManager.callEvent(match {
+                it is GuildWarEndEvent && it.warId == war.id && it.winnerGuildId == null
+            })
+        }
+        verify(exactly = 1) {
+            notifications.warEnded(match { it.id == war.id && it.isEnded && it.winner == null })
+        }
+    }
+
+    @Test
+    fun `accepted peace agreement uses the standard war end lifecycle`() {
+        val pluginManager = mockBukkitPluginManager()
+        val notifications = mockk<WarNotificationService>(relaxed = true)
+        val service = newService(mockk(), warNotifications = notifications)
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val declaration = service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        )!!
+        val war = service.acceptWarDeclaration(declaration.id, UUID.randomUUID())!!
+        val agreement = service.proposePeaceAgreement(war.id, declaring, "Mutual peace")!!
+
+        val ended = service.acceptPeaceAgreement(agreement.id, defending)!!
+        assertEquals(WarStatus.ENDED, ended.status)
+        assertNull(ended.winner)
+        assertEquals("Mutual peace", ended.peaceTerms)
+        verify(exactly = 1) {
+            pluginManager.callEvent(match {
+                it is GuildWarEndEvent && it.warId == war.id && it.winnerGuildId == null
+            })
+        }
+        verify(exactly = 1) {
+            notifications.warEnded(match { it.id == war.id && it.peaceTerms == "Mutual peace" })
+        }
     }
 
     @Test
