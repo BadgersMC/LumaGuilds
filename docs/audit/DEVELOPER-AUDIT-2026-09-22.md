@@ -241,8 +241,8 @@ includes the authorized guild manager while preserving implicit access for the h
 
 ## Remediation tracking
 
-- **PR #168:** DEV-15 through DEV-24 are represented by source changes and tests on the pending
-  claim-correctness PR.
+- **PR #168:** DEV-15 through DEV-24 were remediated by the merged claim-correctness changes
+  and their regression coverage.
 - **PR #169:** separate September re-audit remediation for threading, vault write-buffer races,
   and owned executor lifecycle; it is not counted as resolving any of the 37 developer-audit
   findings above.
