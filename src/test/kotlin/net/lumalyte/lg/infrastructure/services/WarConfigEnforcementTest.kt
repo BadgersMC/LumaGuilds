@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.MemberService
@@ -9,11 +10,15 @@ import net.lumalyte.lg.api.events.GuildWarEndEvent
 import net.lumalyte.lg.config.CombatConfig
 import net.lumalyte.lg.config.LevelRewardConfig
 import net.lumalyte.lg.config.MainConfig
+import net.lumalyte.lg.domain.entities.DurableWarRecord
+import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.entities.ObjectiveType
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.entities.War
 import net.lumalyte.lg.domain.entities.WarObjective
+import net.lumalyte.lg.domain.entities.WarStats
 import net.lumalyte.lg.domain.entities.WarStatus
 import net.lumalyte.lg.domain.values.ExperienceSource
 import org.junit.jupiter.api.AfterEach
@@ -136,6 +141,15 @@ class WarConfigEnforcementTest {
         every { hasPermission(any(), any(), RankPermission.DECLARE_WAR) } returns true
     }
 
+    private fun hostileGuildRepository(): GuildRepository {
+        val hostileGuild = mockk<Guild> {
+            every { mode } returns GuildMode.HOSTILE
+        }
+        return mockk {
+            every { getById(any()) } returns hostileGuild
+        }
+    }
+
     private fun newService(
         configService: ConfigService,
         progressionRepository: ProgressionRepository = mockk(relaxed = true),
@@ -143,6 +157,7 @@ class WarConfigEnforcementTest {
         combatConfig: CombatConfig = CombatConfig(),
         memberRepository: net.lumalyte.lg.application.persistence.MemberRepository? = null,
         memberService: MemberService = permissiveMemberService(),
+        guildRepository: GuildRepository = hostileGuildRepository(),
         warNotifications: WarNotificationService? = null,
     ): WarServiceBukkit {
         val config = mockk<MainConfig>()
@@ -157,6 +172,7 @@ class WarConfigEnforcementTest {
             progressionConfigService = mockk(relaxed = true),
             progressionService = mockk(relaxed = true),
             memberService = memberService,
+            guildRepository = guildRepository,
             seasonalElo = seasonalElo,
             warNotifications = warNotifications,
             memberRepository = memberRepository ?: if (warNotifications != null) mockk(relaxed = true) else null,
@@ -317,7 +333,11 @@ class WarConfigEnforcementTest {
     @Test
     fun `global kill target reports winner before trusted resolution and next war starts at zero`() {
         mockBukkitPluginManager()
-        val combat = CombatConfig(warKillWinTarget = 3)
+        val combat = CombatConfig(
+            warKillWinTarget = 3,
+            warDeclarationCooldownHours = 0,
+            warFarmingCooldownHours = 0,
+        )
         val service = newService(mockk(), combatConfig = combat)
         val declaring = UUID.randomUUID()
         val defending = UUID.randomUUID()
@@ -590,6 +610,7 @@ class WarConfigEnforcementTest {
             progressionConfigService = mockk(relaxed = true),
             progressionService = mockk(relaxed = true),
             memberService = permissiveMemberService(),
+            guildRepository = hostileGuildRepository(),
         )
     }
 
@@ -740,6 +761,7 @@ class WarConfigEnforcementTest {
             chapterTwoGuildAwardService = awardService,
             progressionService = mockk(relaxed = true),
             memberService = permissiveMemberService(),
+            guildRepository = hostileGuildRepository(),
         )
         mockBukkitPluginManager()
 
@@ -794,6 +816,7 @@ class WarConfigEnforcementTest {
             chapterTwoGuildAwardService = awardService,
             progressionService = mockk(relaxed = true),
             memberService = permissiveMemberService(),
+            guildRepository = hostileGuildRepository(),
             seasonalElo = elo,
         )
         mockBukkitPluginManager()
@@ -835,6 +858,7 @@ class WarConfigEnforcementTest {
             progressionConfigService = mockk(relaxed = true),
             progressionService = progressionService,
             memberService = permissiveMemberService(),
+            guildRepository = hostileGuildRepository(),
         )
         val guildId = UUID.randomUUID()
         val killerId = UUID.randomUUID()
@@ -864,6 +888,7 @@ class WarConfigEnforcementTest {
             progressionConfigService = mockk(relaxed = true),
             progressionService = mockk(relaxed = true),
             memberService = permissiveMemberService(),
+            guildRepository = hostileGuildRepository(),
         )
         mockBukkitPluginManager()
 
@@ -913,6 +938,7 @@ class WarConfigEnforcementTest {
             progressionConfigService = mockk(relaxed = true),
             progressionService = mockk(relaxed = true),
             memberService = permissiveMemberService(),
+            guildRepository = hostileGuildRepository(),
         )
         mockBukkitPluginManager()
 
@@ -1080,6 +1106,111 @@ class WarConfigEnforcementTest {
         verify(exactly = 2) {
             members.hasPermission(any(), any(), RankPermission.DECLARE_WAR)
         }
+    }
+
+    @Test
+    fun `configured kill target rejects oversized objectives`() {
+        val service = newService(
+            mockk(),
+            combatConfig = CombatConfig(
+                warKillWinTarget = 25,
+                warDeclarationCooldownHours = 0,
+                warFarmingCooldownHours = 0,
+            ),
+        )
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+
+        assertNull(service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1),
+            setOf(WarObjective(type = ObjectiveType.KILLS, targetValue = 50, description = "Too many kills")),
+            actorId = UUID.randomUUID(),
+        ))
+        assertNotNull(service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1),
+            setOf(WarObjective(type = ObjectiveType.KILLS, targetValue = 25, description = "Configured cap")),
+            actorId = UUID.randomUUID(),
+        ))
+    }
+
+    @Test
+    fun `peaceful mode is enforced at declaration and acceptance`() {
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val modes = mutableMapOf(
+            declaring to GuildMode.HOSTILE,
+            defending to GuildMode.PEACEFUL,
+        )
+        val guilds = mockk<GuildRepository> {
+            every { getById(any()) } answers {
+                val id = firstArg<UUID>()
+                Guild(
+                    id = id,
+                    name = "test-${id.toString().take(8)}",
+                    mode = modes[id] ?: GuildMode.HOSTILE,
+                    createdAt = Instant.EPOCH,
+                )
+            }
+        }
+        val service = newService(
+            mockk(),
+            combatConfig = CombatConfig(warDeclarationCooldownHours = 0, warFarmingCooldownHours = 0),
+            guildRepository = guilds,
+        )
+
+        assertNull(service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        ))
+
+        modes[defending] = GuildMode.HOSTILE
+        val declaration = service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        )
+        assertNotNull(declaration)
+        modes[defending] = GuildMode.PEACEFUL
+
+        assertNull(service.acceptWarDeclaration(declaration!!.id, UUID.randomUUID()))
+    }
+
+    @Test
+    fun `defending guild war limit is enforced at declaration and acceptance`() {
+        val combat = CombatConfig(
+            maxSimultaneousWars = 1,
+            warDeclarationCooldownHours = 0,
+            warFarmingCooldownHours = 0,
+        )
+        val service = newService(mockk(), combatConfig = combat)
+        val declaring = UUID.randomUUID()
+        val defending = UUID.randomUUID()
+        val other = UUID.randomUUID()
+
+        val existing = War(
+            declaringGuildId = defending,
+            defendingGuildId = other,
+            startedAt = Instant.now(),
+            status = WarStatus.ACTIVE,
+        )
+        records[existing.id] = DurableWarRecord(
+            id = existing.id,
+            war = existing,
+            stats = WarStats(existing.id),
+        )
+        assertNull(service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        ))
+
+        records.remove(existing.id)
+        val pending = service.createWarDeclaration(
+            declaring, defending, Duration.ofDays(1), emptySet(), actorId = UUID.randomUUID()
+        )
+        assertNotNull(pending)
+        records[existing.id] = DurableWarRecord(
+            id = existing.id,
+            war = existing,
+            stats = WarStats(existing.id),
+        )
+
+        assertNull(service.acceptWarDeclaration(pending!!.id, UUID.randomUUID()))
     }
 
     private fun levelReward(warSlots: Int = 0, bankLimit: Int = 0) =
