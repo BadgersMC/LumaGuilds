@@ -18,11 +18,13 @@ import net.lumalyte.lg.application.actions.player.visualisation.ClearVisualisati
 import net.lumalyte.lg.application.actions.player.visualisation.DisplayVisualisation
 import net.lumalyte.lg.application.actions.player.visualisation.GetVisualiserMode
 import net.lumalyte.lg.application.actions.player.visualisation.ToggleVisualiserMode
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.events.PartitionModificationEvent
 import net.lumalyte.lg.application.results.claim.partition.CanRemovePartitionResult
 import net.lumalyte.lg.application.results.player.DoesPlayerHaveClaimOverrideResult
 import net.lumalyte.lg.application.results.player.visualisation.GetVisualiserModeResult
 import net.lumalyte.lg.domain.entities.Partition
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
@@ -52,6 +54,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
     private val canRemovePartition: CanRemovePartition by inject()
     private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
     private val menuFactory: MenuFactory by inject()
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
 
     override fun open() {
         val title = lang.guiTitle("menu.edit_tool.title")
@@ -123,7 +126,7 @@ class EditToolMenu(private val menuNavigator: MenuNavigator, private val player:
 
         // Add a message if the player doesn't own the claim
         val claim = getClaimDetails.execute(partition.claimId) ?: return
-        if (claim.playerId != player.uniqueId && !hasOverride) {
+        if (!hasOverride && !claimManagementAuthorizer.hasPermission(player.uniqueId, claim, RankPermission.MANAGE_CLAIMS)) {
             val messageItem = ItemStack.of(Material.COAL)
                 .name(lang.gui("menu.edit_tool.item.no_permission.name"))
                 .lore(lang.gui("menu.edit_tool.item.no_permission.lore"))

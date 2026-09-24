@@ -549,12 +549,14 @@ class PlayerClaimProtectionListener: Listener, KoinComponent {
     fun onPotionSplash(event: PotionSplashEvent) {
         val player = event.potion.shooter as? Player ?: return
         val action = PlayerActionType.POTION_ANIMAL
-        for (entity in event.affectedEntities) {
-            if (entity is Monster || entity is Player) return
+        forEachNonExemptTarget(
+            event.affectedEntities,
+            isExempt = { it is Monster || it is Player },
+        ) { entity ->
             when (isPlayerActionAllowed.execute(event.entity.world.uid, player.uniqueId,
                 entity.location.toPosition2D(), action)) {
                 is Denied -> event.setIntensity(entity, 0.0)
-                else -> continue
+                else -> Unit
             }
         }
     }
@@ -570,12 +572,14 @@ class PlayerClaimProtectionListener: Listener, KoinComponent {
         val player = event.entity.source as? Player ?: return
         val cancelledEntities = mutableListOf<Entity>()
         val action = PlayerActionType.POTION_ANIMAL
-        for (entity in event.affectedEntities) {
-            if (entity is Monster || entity is Player) return
+        forEachNonExemptTarget(
+            event.affectedEntities,
+            isExempt = { it is Monster || it is Player },
+        ) { entity ->
             when (isPlayerActionAllowed.execute(event.entity.world.uid, player.uniqueId,
                 entity.location.toPosition2D(), action)) {
                 is Denied -> cancelledEntities.add(entity)
-                else -> continue
+                else -> Unit
             }
         }
         event.affectedEntities.removeAll(cancelledEntities)

@@ -5,7 +5,9 @@ import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.actions.claim.ConvertClaimToGuild
 import net.lumalyte.lg.application.results.claim.ConvertClaimToGuildResult
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.domain.entities.Claim
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
@@ -26,6 +28,7 @@ class BedrockClaimManagementMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val convertClaimToGuild: ConvertClaimToGuild by inject()
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
@@ -68,10 +71,18 @@ class BedrockClaimManagementMenu(
             .button(lang.bedrock("bedrock.claim_management.button.back"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
-                    0 -> menuNavigator.openMenu(menuFactory.createClaimIconMenu(player, menuNavigator, claim))
-                    1 -> menuNavigator.openMenu(menuFactory.createClaimNamingMenu(menuNavigator, player, claim))
-                    2 -> menuNavigator.openMenu(menuFactory.createClaimTrustMenu(menuNavigator, player, claim))
-                    3 -> menuNavigator.openMenu(menuFactory.createClaimFlagMenu(menuNavigator, player, claim))
+                    0 -> openIfAllowed(RankPermission.MANAGE_CLAIMS) {
+                        menuNavigator.openMenu(menuFactory.createClaimIconMenu(player, menuNavigator, claim))
+                    }
+                    1 -> openIfAllowed(RankPermission.MANAGE_CLAIMS) {
+                        menuNavigator.openMenu(menuFactory.createClaimNamingMenu(menuNavigator, player, claim))
+                    }
+                    2 -> openIfAllowed(RankPermission.MANAGE_PERMISSIONS) {
+                        menuNavigator.openMenu(menuFactory.createClaimTrustMenu(menuNavigator, player, claim))
+                    }
+                    3 -> openIfAllowed(RankPermission.MANAGE_FLAGS) {
+                        menuNavigator.openMenu(menuFactory.createClaimFlagMenu(menuNavigator, player, claim))
+                    }
                     4 -> {
                         if (claim.teamId == null) {
                             handleConvertToGuild()
@@ -93,6 +104,14 @@ class BedrockClaimManagementMenu(
                 bedrockNavigator.goBack()
             }
             .build()
+    }
+
+    private fun openIfAllowed(permission: RankPermission, action: () -> Unit) {
+        if (claimManagementAuthorizer.hasPermission(player.uniqueId, claim, permission)) {
+            action()
+        } else {
+            player.sendMessage(lang.msg("command.common.no_claim_permission"))
+        }
     }
 
     private fun handleConvertToGuild() {

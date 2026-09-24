@@ -75,6 +75,7 @@ import net.lumalyte.lg.application.persistence.ClaimTransferRequestRepository
 import net.lumalyte.lg.application.persistence.PartitionRepository
 import net.lumalyte.lg.application.persistence.PlayerAccessRepository
 import net.lumalyte.lg.application.persistence.PlayerStateRepository
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.services.ConfigService
 
 import net.lumalyte.lg.application.services.BedrockLocalizationService
@@ -297,6 +298,7 @@ fun claimsModule() = module {
     single<WorldManipulationService> { WorldManipulationServiceBukkit() }
     single<SchedulerService> { SchedulerServiceBukkit(get()) }
     single<ToolItemService> { ToolItemServiceBukkit(get(), get()) }
+    singleOf(::ClaimManagementAuthorizer)
 
     // Claim actions
     singleOf(::CreateClaim)

@@ -12,10 +12,12 @@ import net.lumalyte.lg.application.results.claim.ConvertClaimToGuildResult
 import net.lumalyte.lg.application.actions.claim.flag.GetClaimFlags
 import net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermissionInClaim
 import net.lumalyte.lg.application.persistence.ClaimRepository
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.actions.player.RegisterClaimMenuOpening
 import net.lumalyte.lg.application.actions.player.tool.GivePlayerClaimTool
 import net.lumalyte.lg.application.actions.player.tool.GivePlayerMoveTool
 import net.lumalyte.lg.domain.entities.Claim
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.kyori.adventure.text.Component
@@ -44,6 +46,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
     private val givePlayerClaimTool: GivePlayerClaimTool by inject()
     private val givePlayerMoveTool: GivePlayerMoveTool by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
 
     override fun open() {
         val playerId = player.uniqueId
@@ -71,15 +74,21 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
             .name(lang.gui("menu.management.item.icon.name"))
             .lore(lang.gui("menu.management.item.icon.lore"))
         val guiIconEditorItem = GuiItem(iconEditorItem) {
-            menuNavigator.openMenu(menuFactory.createClaimIconMenu(player, menuNavigator, claim)) }
+            if (claimManagementAuthorizer.hasPermission(playerId, claim, RankPermission.MANAGE_CLAIMS)) {
+                menuNavigator.openMenu(menuFactory.createClaimIconMenu(player, menuNavigator, claim))
+            } else player.sendMessage(lang.msg("command.common.no_claim_permission"))
+        }
         pane.addItem(guiIconEditorItem, 2, 0)
 
         // Add a claim renaming button
         val renamingItem = ItemStack.of(Material.NAME_TAG)
             .name(lang.gui("menu.management.item.rename.name"))
             .lore(lang.gui("menu.management.item.rename.lore"))
-        val guiRenamingItem = GuiItem(renamingItem) { menuNavigator.openMenu(
-            ClaimRenamingMenu(menuNavigator, player, claim)) }
+        val guiRenamingItem = GuiItem(renamingItem) {
+            if (claimManagementAuthorizer.hasPermission(playerId, claim, RankPermission.MANAGE_CLAIMS)) {
+                menuNavigator.openMenu(ClaimRenamingMenu(menuNavigator, player, claim))
+            } else player.sendMessage(lang.msg("command.common.no_claim_permission"))
+        }
         pane.addItem(guiRenamingItem, 3, 0)
 
         // Add a player trusts button
@@ -87,7 +96,10 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
             .name(lang.gui("menu.management.item.permissions.name"))
             .lore("${getPlayersWithPermissionInClaim.execute(claim.id).count()}")
         val guiPlayerTrustItem = GuiItem(playerTrustItem) {
-            menuNavigator.openMenu(menuFactory.createClaimTrustMenu(menuNavigator, player, claim)) }
+            if (claimManagementAuthorizer.hasPermission(playerId, claim, RankPermission.MANAGE_PERMISSIONS)) {
+                menuNavigator.openMenu(menuFactory.createClaimTrustMenu(menuNavigator, player, claim))
+            } else player.sendMessage(lang.msg("command.common.no_claim_permission"))
+        }
         pane.addItem(guiPlayerTrustItem, 5, 0)
 
         // Add a convert to guild claim button (only for personal claims)
@@ -146,7 +158,10 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
             .name(lang.gui("menu.management.item.flags.name"))
             .lore("${getClaimFlags.execute(claim.id).count()}")
         val guiClaimFlagsItem = GuiItem(claimFlagsItem) {
-            menuNavigator.openMenu(menuFactory.createClaimFlagMenu(menuNavigator, player, claim)) }
+            if (claimManagementAuthorizer.hasPermission(playerId, claim, RankPermission.MANAGE_FLAGS)) {
+                menuNavigator.openMenu(menuFactory.createClaimFlagMenu(menuNavigator, player, claim))
+            } else player.sendMessage(lang.msg("command.common.no_claim_permission"))
+        }
         pane.addItem(guiClaimFlagsItem, 7, 0)
 
         // Add a claim move button
@@ -155,7 +170,9 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
             .lore(lang.gui("menu.management.item.move.lore"))
         val guiDeleteItem = GuiItem(deleteItem) { guiEvent ->
             guiEvent.isCancelled = true
-            givePlayerMoveTool.execute(player.uniqueId, claim.id)
+            if (claimManagementAuthorizer.hasPermission(playerId, claim, RankPermission.MANAGE_CLAIMS)) {
+                givePlayerMoveTool.execute(player.uniqueId, claim.id)
+            } else player.sendMessage(lang.msg("command.common.no_claim_permission"))
         }
         pane.addItem(guiDeleteItem, 8, 0)
 
