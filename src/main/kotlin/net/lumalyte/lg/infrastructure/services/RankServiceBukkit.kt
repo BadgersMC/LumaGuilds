@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RankRepository
+import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
 import net.lumalyte.lg.application.services.PriorityDirection
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Rank
@@ -15,11 +16,24 @@ class RankServiceBukkit(
     private val memberRepository: MemberRepository,
     private val guildRepository: GuildRepository,
     private val memberService: net.lumalyte.lg.application.services.MemberService,
+    private val rankClaimPermissionProfiles: RankClaimPermissionProfileRepository,
     private val invalidateClaimPermissionCacheForPlayer: (UUID) -> Unit = {},
     private val invalidateClaimPermissionCacheForGuild: (UUID) -> Unit = {},
 ) : RankService {
     
     private val logger = LoggerFactory.getLogger(RankServiceBukkit::class.java)
+
+    private fun rollbackCreatedRanks(ranks: Collection<Rank>) {
+        ranks.toList().asReversed().forEach { rank ->
+            if (!rankRepository.remove(rank.id)) {
+                logger.error("Failed to roll back rank {} after claim-permission profile failure", rank.id)
+            }
+            runCatching { rankClaimPermissionProfiles.remove(rank.id) }
+                .onFailure {
+                    logger.warn("Failed to clear claim-permission profile while rolling back rank ${rank.id}", it)
+                }
+        }
+    }
     
     override fun listRanks(guildId: UUID): Set<Rank> = rankRepository.getByGuild(guildId)
     
@@ -55,6 +69,13 @@ class RankServiceBukkit(
         
         val result = rankRepository.add(rank)
         if (result) {
+            try {
+                rankClaimPermissionProfiles.getOrCreate(rank.id, rank.name)
+            } catch (error: Exception) {
+                logger.error("Failed to establish claim-permission profile for new rank ${rank.id}", error)
+                rollbackCreatedRanks(listOf(rank))
+                return null
+            }
             invalidateClaimPermissionCacheForGuild(guildId)
             logger.info("Added rank '$name' to guild $guildId by $actorId")
             return rank
@@ -85,6 +106,16 @@ class RankServiceBukkit(
             return false
         }
         
+        // Freeze the legacy config identity against this stable rank ID before
+        // changing its display name. If persistence fails, abort rather than silently
+        // changing the permissions that will apply after the rename.
+        try {
+            rankClaimPermissionProfiles.getOrCreate(rank.id, rank.name)
+        } catch (error: Exception) {
+            logger.error("Failed to preserve claim-permission profile before renaming rank $rankId", error)
+            return false
+        }
+
         val updatedRank = rank.copy(name = newName)
         val result = rankRepository.update(updatedRank)
         if (result) {
@@ -112,6 +143,9 @@ class RankServiceBukkit(
         
         val result = rankRepository.remove(rankId)
         if (result) {
+            // Normally removed by FK cascade; clear the repository cache as well.
+            runCatching { rankClaimPermissionProfiles.remove(rankId) }
+                .onFailure { logger.warn("Failed to clear claim-permission profile cache for deleted rank $rankId", it) }
             invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Rank $rankId deleted by $actorId")
         }
@@ -258,6 +292,18 @@ class RankServiceBukkit(
             return false
         }
 
+        if (existingRank.name != rank.name) {
+            try {
+                rankClaimPermissionProfiles.getOrCreate(existingRank.id, existingRank.name)
+            } catch (error: Exception) {
+                logger.error(
+                    "Failed to preserve claim-permission profile before updating rank ${rank.id}",
+                    error,
+                )
+                return false
+            }
+        }
+
         val result = rankRepository.update(rank)
         if (result) {
             invalidateClaimPermissionCacheForGuild(rank.guildId)
@@ -313,19 +359,28 @@ class RankServiceBukkit(
             ))
         )
         
-        var success = true
+        val createdRanks = mutableListOf<Rank>()
         for (rank in defaultRanks) {
             if (!rankRepository.add(rank)) {
                 logger.error("Failed to create default rank: ${rank.name}")
-                success = false
-                break
+                rollbackCreatedRanks(createdRanks)
+                return false
+            }
+            createdRanks += rank
+            try {
+                rankClaimPermissionProfiles.getOrCreate(rank.id, rank.name)
+            } catch (error: Exception) {
+                logger.error(
+                    "Failed to establish claim-permission profile for default rank ${rank.id}",
+                    error,
+                )
+                rollbackCreatedRanks(createdRanks)
+                return false
             }
         }
         
-        if (success) {
-            logger.info("Created default ranks for guild $guildId")
-        }
-        return success
+        logger.info("Created default ranks for guild $guildId")
+        return true
     }
 
     override fun moveRankPriority(rankId: UUID, direction: PriorityDirection, actorId: UUID): Boolean {

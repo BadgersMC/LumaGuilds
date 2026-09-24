@@ -3,8 +3,10 @@ package net.lumalyte.lg.infrastructure.services
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.mockk.verifyOrder
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
+import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PriorityDirection
@@ -40,6 +42,7 @@ class RankServicePriorityTest {
     private fun makeService(
         rankRepo: RankRepository,
         memberRepo: MemberRepository,
+        rankClaimPermissionProfiles: RankClaimPermissionProfileRepository = mockk(relaxed = true),
         invalidatePlayer: (UUID) -> Unit = {},
         invalidateGuild: (UUID) -> Unit = {},
     ): RankServiceBukkit {
@@ -48,6 +51,7 @@ class RankServicePriorityTest {
             memberRepository = memberRepo,
             guildRepository = mockk<GuildRepository>(relaxed = true),
             memberService = mockk<MemberService>(relaxed = true),
+            rankClaimPermissionProfiles = rankClaimPermissionProfiles,
             invalidateClaimPermissionCacheForPlayer = invalidatePlayer,
             invalidateClaimPermissionCacheForGuild = invalidateGuild,
         )
@@ -145,5 +149,47 @@ class RankServicePriorityTest {
 
         assertTrue(service.assignRank(playerId, guildId, newRank.id, actorId))
         assertEquals(listOf(playerId), invalidated)
+    }
+
+    @Test
+    fun `rename preserves the old claim permission profile before updating the rank`() {
+        val owner = mkRank("Owner", 0, setOf(RankPermission.MANAGE_RANKS))
+        val target = mkRank("Member", 5)
+        val rankRepo = mockk<RankRepository>()
+        val memberRepo = mockk<MemberRepository>()
+        val profiles = mockk<RankClaimPermissionProfileRepository>()
+        every { memberRepo.getRankId(actorId, guildId) } returns owner.id
+        every { rankRepo.getById(owner.id) } returns owner
+        every { rankRepo.getById(target.id) } returns target
+        every { rankRepo.isNameTaken(guildId, "Veteran") } returns false
+        every { profiles.getOrCreate(target.id, "Member") } returns "Member"
+        every { rankRepo.update(any()) } returns true
+
+        val service = makeService(rankRepo, memberRepo, rankClaimPermissionProfiles = profiles)
+
+        assertTrue(service.renameRank(target.id, "Veteran", actorId))
+        verifyOrder {
+            profiles.getOrCreate(target.id, "Member")
+            rankRepo.update(match { it.id == target.id && it.name == "Veteran" })
+        }
+    }
+
+    @Test
+    fun `rename aborts when the stable claim permission profile cannot be persisted`() {
+        val owner = mkRank("Owner", 0, setOf(RankPermission.MANAGE_RANKS))
+        val target = mkRank("Member", 5)
+        val rankRepo = mockk<RankRepository>()
+        val memberRepo = mockk<MemberRepository>()
+        val profiles = mockk<RankClaimPermissionProfileRepository>()
+        every { memberRepo.getRankId(actorId, guildId) } returns owner.id
+        every { rankRepo.getById(owner.id) } returns owner
+        every { rankRepo.getById(target.id) } returns target
+        every { rankRepo.isNameTaken(guildId, "Veteran") } returns false
+        every { profiles.getOrCreate(target.id, "Member") } throws IllegalStateException("db unavailable")
+
+        val service = makeService(rankRepo, memberRepo, rankClaimPermissionProfiles = profiles)
+
+        assertFalse(service.renameRank(target.id, "Veteran", actorId))
+        verify(exactly = 0) { rankRepo.update(any()) }
     }
 }
