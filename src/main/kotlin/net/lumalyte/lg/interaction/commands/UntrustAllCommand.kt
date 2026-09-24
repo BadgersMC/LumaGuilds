@@ -24,7 +24,7 @@ class UntrustAllCommand : ClaimCommand(), KoinComponent {
     fun onUntrustAll(player: Player, permission: ClaimPermission) {
         // Gets the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return
-        if (!isPlayerHasClaimPermission(player, partition)) return
+        if (!isPlayerHasClaimPermission(player, partition, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PERMISSIONS)) return
 
         // Assign common variables
         val claimId = partition.claimId

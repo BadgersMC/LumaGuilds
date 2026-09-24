@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.application.persistence.PlayerAccessRepository
 import net.lumalyte.lg.application.results.claim.permission.GrantGuildMembersClaimPermissionsResult
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.ClaimPermission
 import java.util.UUID
 
@@ -15,7 +16,7 @@ class GrantGuildMembersClaimPermissions(private val claimRepository: ClaimReposi
      * Grants all available permissions to all members of the guild that owns the claim.
      *
      * @param claimId The UUID of the claim to share with guild members.
-     * @param playerId The UUID of the player performing the action (must be claim owner).
+     * @param playerId The UUID of the personal owner or authorized guild permission manager.
      * @return A GrantGuildMembersClaimPermissionsResult indicating the outcome.
      */
     fun execute(claimId: UUID, playerId: UUID): GrantGuildMembersClaimPermissionsResult {
@@ -23,9 +24,12 @@ class GrantGuildMembersClaimPermissions(private val claimRepository: ClaimReposi
         val claim = claimRepository.getById(claimId)
             ?: return GrantGuildMembersClaimPermissionsResult.ClaimNotFound
 
-        // Verify player owns the claim
+        // Personal owners remain authorized; guild-owned claims use current rank permissions.
         if (claim.playerId != playerId) {
-            return GrantGuildMembersClaimPermissionsResult.NotClaimOwner
+            val guildId = claim.teamId ?: return GrantGuildMembersClaimPermissionsResult.NotClaimOwner
+            if (!memberService.hasPermission(playerId, guildId, RankPermission.MANAGE_PERMISSIONS)) {
+                return GrantGuildMembersClaimPermissionsResult.NotClaimOwner
+            }
         }
 
         // Check if claim is guild-owned
@@ -38,7 +42,8 @@ class GrantGuildMembersClaimPermissions(private val claimRepository: ClaimReposi
             return GrantGuildMembersClaimPermissionsResult.NoGuildMembers
         }
 
-        // Grant permissions to all guild members (excluding the claim owner)
+        // Grant permissions to all guild members except the historical personal owner,
+        // who already has implicit claim access through claim.playerId.
         var grantedCount = 0
         var alreadyHadAccessCount = 0
 
@@ -46,8 +51,8 @@ class GrantGuildMembersClaimPermissions(private val claimRepository: ClaimReposi
             val allPermissions = ClaimPermission.entries
 
             for (member in guildMembers) {
-                // Skip the claim owner
-                if (member.playerId == playerId) continue
+                // The actor can be a guild manager; do not accidentally exclude them.
+                if (member.playerId == claim.playerId) continue
 
                 var memberGranted = false
                 for (permission in allPermissions) {
