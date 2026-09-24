@@ -38,6 +38,8 @@ class GuildDiscordRoleService(
 ) {
     private val logger = LoggerFactory.getLogger(GuildDiscordRoleService::class.java)
     private val ensureInFlight = ConcurrentHashMap<UUID, CompletableFuture<EnsuredRole>>()
+    private val memberSyncInFlight =
+        ConcurrentHashMap<MemberRoleKey, CompletableFuture<DiscordGuildRoleSyncSummary>>()
 
     fun reconcileAll(): CompletableFuture<DiscordGuildRoleSyncSummary> {
         val config = config()
@@ -68,13 +70,18 @@ class GuildDiscordRoleService(
         val guild = guildService.getGuild(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
 
         return ensureRole(guild, config).thenCompose { ensured ->
-            val members = memberService.getGuildMembers(guild.id)
-            val allowedPlayerIds = members.mapTo(linkedSetOf()) { it.playerId }
+            val allowedPlayerIds = memberService.getGuildMembers(guild.id)
+                .mapTo(linkedSetOf()) { it.playerId }
             gateway.revokeUnexpectedRoleMembers(ensured.roleId, allowedPlayerIds)
                 .thenCompose { removed ->
-                    val memberFutures = members.map { member ->
-                        gateway.grantRole(member.playerId, ensured.roleId)
-                            .handle { result, error -> memberResult(result, error, grant = true) }
+                    // Re-read after stale-holder cleanup. If a member joined while the
+                    // cleanup was in flight, this post-cleanup grant repairs any role
+                    // that the stale roster may just have revoked.
+                    val memberFutures = memberService.getGuildMembers(guild.id).map { member ->
+                        serializeMemberUpdate(guild.id, member.playerId) {
+                            gateway.grantRole(member.playerId, ensured.roleId)
+                                .handle { result, error -> memberResult(result, error, grant = true) }
+                        }
                     }
                     combine(memberFutures).thenApply { memberSummary ->
                         memberSummary.copy(
@@ -90,35 +97,56 @@ class GuildDiscordRoleService(
         }
     }
 
-    fun memberJoined(guildId: UUID, playerId: UUID): CompletableFuture<DiscordGuildRoleSyncSummary> {
-        val config = config()
-        if (!config.enabled || !gateway.isAvailable()) return completed(DiscordGuildRoleSyncSummary())
-        val guild = guildService.getGuild(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
+    fun memberJoined(
+        guildId: UUID,
+        playerId: UUID,
+    ): CompletableFuture<DiscordGuildRoleSyncSummary> =
+        serializeMemberUpdate(guildId, playerId) {
+            val config = config()
+            if (!config.enabled || !gateway.isAvailable()) {
+                return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
+            }
+            val guild = guildService.getGuild(guildId)
+                ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
 
-        return ensureRole(guild, config)
-            .thenCompose { ensured ->
-                gateway.grantRole(playerId, ensured.roleId).thenApply { result ->
-                    memberResult(result, null, grant = true).copy(rolesCreated = if (ensured.created) 1 else 0)
+            ensureRole(guild, config)
+                .thenCompose { ensured ->
+                    gateway.grantRole(playerId, ensured.roleId).thenApply { result ->
+                        memberResult(result, null, grant = true)
+                            .copy(rolesCreated = if (ensured.created) 1 else 0)
+                    }
                 }
-            }
-            .exceptionally { error ->
-                logger.warn("Failed to grant Discord guild role to player $playerId for guild $guildId", unwrap(error))
-                DiscordGuildRoleSyncSummary(failures = 1)
-            }
-    }
+                .exceptionally { error ->
+                    logger.warn(
+                        "Failed to grant Discord guild role to player $playerId for guild $guildId",
+                        unwrap(error),
+                    )
+                    DiscordGuildRoleSyncSummary(failures = 1)
+                }
+        }
 
-    fun memberRemoved(guildId: UUID, playerId: UUID): CompletableFuture<DiscordGuildRoleSyncSummary> {
-        val config = config()
-        if (!config.enabled || !gateway.isAvailable()) return completed(DiscordGuildRoleSyncSummary())
-        val link = repository.get(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
-
-        return gateway.revokeRole(playerId, link.discordRoleId)
-            .thenApply { memberResult(it, null, grant = false) }
-            .exceptionally { error ->
-                logger.warn("Failed to revoke Discord guild role from player $playerId for guild $guildId", unwrap(error))
-                DiscordGuildRoleSyncSummary(failures = 1)
+    fun memberRemoved(
+        guildId: UUID,
+        playerId: UUID,
+    ): CompletableFuture<DiscordGuildRoleSyncSummary> =
+        serializeMemberUpdate(guildId, playerId) {
+            val config = config()
+            if (!config.enabled || !gateway.isAvailable()) {
+                return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
             }
-    }
+            val link = repository.get(guildId)
+                ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
+
+            gateway.revokeRole(playerId, link.discordRoleId)
+                .thenApply { memberResult(it, null, grant = false) }
+                .exceptionally { error ->
+                    logger.warn(
+                        "Failed to revoke Discord guild role from player $playerId for guild $guildId",
+                        unwrap(error),
+                    )
+                    DiscordGuildRoleSyncSummary(failures = 1)
+                }
+        }
 
     fun discordAccountLinked(playerId: UUID): CompletableFuture<DiscordGuildRoleSyncSummary> {
         val config = config()
@@ -136,8 +164,10 @@ class GuildDiscordRoleService(
         if (!config.enabled || !gateway.isAvailable()) return completed(DiscordGuildRoleSyncSummary())
         val futures = memberService.getPlayerGuilds(playerId).mapNotNull { guildId ->
             val link = repository.get(guildId) ?: return@mapNotNull null
-            gateway.revokeRoleByDiscordId(discordId, link.discordRoleId)
-                .handle { result, error -> memberResult(result, error, grant = false) }
+            serializeMemberUpdate(guildId, playerId) {
+                gateway.revokeRoleByDiscordId(discordId, link.discordRoleId)
+                    .handle { result, error -> memberResult(result, error, grant = false) }
+            }
         }
         return combine(futures)
     }
@@ -207,6 +237,34 @@ class GuildDiscordRoleService(
         }
     }
 
+    private fun serializeMemberUpdate(
+        guildId: UUID,
+        playerId: UUID,
+        operation: () -> CompletableFuture<DiscordGuildRoleSyncSummary>,
+    ): CompletableFuture<DiscordGuildRoleSyncSummary> {
+        val key = MemberRoleKey(guildId, playerId)
+        var queued: CompletableFuture<DiscordGuildRoleSyncSummary>? = null
+
+        memberSyncInFlight.compute(key) { _, previous ->
+            val ready = previous
+                ?.handle { _, _ -> Unit }
+                ?: completed(Unit)
+            val next = ready.thenCompose {
+                try {
+                    operation()
+                } catch (error: Throwable) {
+                    failed(error)
+                }
+            }
+            queued = next
+            next
+        }
+
+        val future = requireNotNull(queued)
+        future.whenComplete { _, _ -> memberSyncInFlight.remove(key, future) }
+        return future
+    }
+
     private fun deleteOrphan(link: GuildDiscordRoleLink): CompletableFuture<DiscordGuildRoleSyncSummary> =
         gateway.deleteRole(link.discordRoleId).handle { deleted, error ->
             if (error == null && deleted == true && repository.delete(link.guildId)) {
@@ -267,4 +325,5 @@ class GuildDiscordRoleService(
         CompletableFuture<T>().also { it.completeExceptionally(error) }
 
     private data class EnsuredRole(val roleId: String, val created: Boolean)
+    private data class MemberRoleKey(val guildId: UUID, val playerId: UUID)
 }
