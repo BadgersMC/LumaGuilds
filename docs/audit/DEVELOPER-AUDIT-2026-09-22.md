@@ -7,22 +7,21 @@ from the June mass audit. Overlap between audits does not change the provenance 
 ## Status legend
 
 - **◻️ DEV-REPORTED** — reported by the developer audit; not independently re-verified in this track yet.
-- **🛠 REMEDIATED IN #168** — independently matched to code corrected by pending PR #168
-  (`fix(claims): repair audited claim workflows`). This means the fix exists on that PR branch;
-  it does not imply the PR has merged.
-- **🛠 REMEDIATED IN #171** — independently source-confirmed and corrected by pending PR #171
+- **🛠 REMEDIATED IN #168** — independently matched to code corrected by merged PR #168
+  (`fix(claims): repair audited claim workflows`).
+- **🛠 REMEDIATED IN #171** — independently source-confirmed and corrected by merged PR #171
   (`fix(audit): make chapter and quest rewards crash safe`).
-- **🛠 REMEDIATED IN #172** — independently source-confirmed and corrected by pending PR #172
+- **🛠 REMEDIATED IN #172** — independently source-confirmed and corrected by merged PR #172
   (`fix(quests): harden generated quest progress`).
-- **🛠 REMEDIATED IN #173** — independently source-confirmed and corrected by pending PR #173
+- **🛠 REMEDIATED IN #173** — independently source-confirmed and corrected by merged PR #173
   (`fix(discord): serialize guild role synchronization`).
-- **🛠 REMEDIATED IN #174** — independently source-confirmed and corrected by pending PR #174
+- **🛠 REMEDIATED IN #174** — independently source-confirmed and corrected by merged PR #174
   (`fix(wars): harden terminal lifecycle resolution`).
-- **🛠 REMEDIATED IN #175** — independently source-confirmed and corrected by pending PR #175
+- **🛠 REMEDIATED IN #175** — independently source-confirmed and corrected by merged PR #175
   (`fix(claims): preserve rank permission identity`).
-- **🛠 REMEDIATED IN #176** — independently source-confirmed and corrected by pending PR #176
+- **🛠 REMEDIATED IN #176** — independently source-confirmed and corrected by merged PR #176
   (`fix(wars): enforce durable war policy`).
-- **🛠 REMEDIATED IN #177** — independently source-confirmed and corrected by pending PR #177
+- **🛠 REMEDIATED IN #177** — independently source-confirmed and corrected by merged PR #177
   (`fix(claims): close protection and guild management gaps`).
 - **🔎 NOT REPRODUCED / HARDENED IN #172** — the exact reported failure mode was not present
   in the current runtime, but adjacent state handling was strengthened to preserve the intended invariant.
@@ -90,10 +89,11 @@ ingredients and destination inventory capacity rather than counting one recipe r
 
 ## Discord role synchronization
 ### 🛠 DEV-10 — Concurrent role syncs can create duplicate guild roles — #173
-Source-confirmed. The pre-patch single-flight map started `doEnsureRole()` before publishing the
-future with `putIfAbsent`, so two concurrent callers could both enter Discord role creation. PR
-#173 publishes role creation atomically with `computeIfAbsent` and removes the in-flight entry
-only after that shared future completes.
+Source-confirmed in the earlier Discord-role implementation. The duplicate-creation race was already
+closed by #158 before this audit-tail PR: role creation publishes a placeholder future with
+`putIfAbsent` before invoking the external gateway, so only one caller can create the role. PR #173
+retains that safer single-flight design and adds/keeps concurrency coverage while serializing the
+remaining per-member synchronization paths.
 
 ### 🛠 DEV-11 — Join/leave role updates can complete out of order — #173
 Source-confirmed. Join and removal calls previously launched independent Discord futures with no
@@ -134,7 +134,9 @@ clamped remaining duration.
 ### 🛠 DEV-29 — Peace agreements skip the normal war-end lifecycle — #174
 Source-confirmed. Peace acceptance manually persisted `ENDED` state and settled the wager rather
 than traversing the normal terminal lifecycle. PR #174 routes accepted peace through the same
-rating, wager settlement, end-event, cooldown, and war-ended notification path as other endings.
+rating, wager settlement, end-event, cooldown, and terminal notification hook as other endings.
+The current notification model only persists VICTORY/DEFEAT recipients, so no-winner peace/draw
+outcomes intentionally do not fabricate a durable victory/defeat notification.
 
 ### 🛠 DEV-30 — War declaration cooldown is recorded but not enforced — #176
 Source-confirmed. The service recorded declaration cooldowns but never consulted them during
@@ -149,7 +151,7 @@ again at acceptance before any new escrow is funded.
 ### 🛠 DEV-32 — War cooldowns are memory-only — #176
 Source-confirmed. Both declaration and farming cooldowns previously lived in process-local maps.
 PR #176 stores exact cooldown deadlines in the existing revision-checked durable war record,
-upgrades the war-record codec to v3, and keeps v1/v2 records readable via persisted timestamp
+upgrades the war-record codec to v4, and keeps v1-v3 records readable via persisted timestamp
 fallback. SQL restart tests verify both cooldown classes survive service/repository restart.
 
 ### 🛠 DEV-33 — Max simultaneous war limit is checked only for the declaring guild — #176
@@ -251,8 +253,9 @@ includes the authorized guild manager while preserving implicit access for the h
   provenance cleanup, target generation, recipe eligibility, and shift-click progress counting.
   DEV-05's exact activation-gap report was not reproduced, but provenance tracking was hardened
   so all player placements are recorded regardless of XP eligibility.
-- **PR #173:** DEV-10 and DEV-11 were independently source-confirmed and remediated by making
-  Discord guild-role creation single-flight and serializing per-member role mutations.
+- **PR #173:** DEV-10 and DEV-11 were independently source-confirmed. The role-creation single-flight
+  was already present from #158 and preserved/verified in this audit tail; #173 adds serialized
+  per-member role mutations and reconciliation repair so asynchronous updates cannot finish out of order.
 - **PR #174:** DEV-12, DEV-14, DEV-28, and DEV-29 were independently source-confirmed and
   remediated through a shared terminal war lifecycle, post-kill terminal resolution, corrected
   expiration semantics, restart reconciliation, and production scheduling of war maintenance.
@@ -262,6 +265,9 @@ includes the authorized guild manager while preserving implicit access for the h
 - **PR #176:** DEV-30 through DEV-36 were independently source-confirmed and remediated with
   durable/enforced war cooldowns, bilateral war-slot admission, persisted objective progress,
   configured kill-target consistency, and authoritative hostile-mode checks.
-- The remaining **4 DEV-REPORTED findings** should be source-verified before implementation.
-  If confirmed, preserve these IDs in future PR descriptions so fixes can be traced back to this
-  audit without conflating it with the June or September ChatGPT audit tracks.
+- **PR #177:** DEV-25, DEV-26, DEV-27, and DEV-37 were independently source-confirmed and remediated
+  across multi-target protection traversal, potion/explosion event coverage, and actor-authoritative
+  guild-claim management.
+- **All 37 developer-audit findings are now independently accounted for:** 36 were remediated or
+  verified as already remediated, and DEV-05's exact activation-gap report was not reproduced but
+  adjacent provenance handling was hardened. No findings remain awaiting remediation in this track.
