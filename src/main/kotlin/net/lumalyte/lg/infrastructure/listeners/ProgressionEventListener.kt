@@ -11,6 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.asExecutor
 import net.lumalyte.lg.application.services.ActivityType
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.values.ExperienceSource
@@ -27,6 +28,7 @@ import net.lumalyte.lg.api.events.GuildMemberJoinEvent
 import net.lumalyte.lg.api.events.GuildMemberRemovedEvent
 import net.lumalyte.lg.infrastructure.services.AsyncTaskService
 import net.lumalyte.lg.domain.values.BlockPosition
+import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.block.data.Ageable
 import org.bukkit.entity.Player
@@ -52,6 +54,7 @@ import org.slf4j.LoggerFactory
 import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.CompletableFuture
 import io.papermc.paper.event.inventory.ItemCraftedEvent
@@ -89,7 +92,7 @@ class ProgressionEventListener(
     private val playerGuildCache = ConcurrentHashMap<UUID, Set<UUID>>()
     private val pendingGuildXp = ConcurrentHashMap<GuildXpKey, AtomicInteger>()
     private val sourceXpValues = ConcurrentHashMap<ExperienceSource, Int>()
-    private val pendingProvenanceWrites = ConcurrentHashMap<BlockPosition, CompletableFuture<Boolean>>()
+    private val provenanceOperations = BlockProvenanceOperationQueue(virtualDispatcher.asExecutor())
     @Volatile private var cachedProgressionConfig: ProgressionConfig = configService.loadConfig().progression
     @Volatile private var classifier = ProgressionActivityClassifier(
         cachedProgressionConfig.materialPools,
@@ -240,15 +243,20 @@ class ProgressionEventListener(
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) {
-        if (!eligible(event.player)) return
-        val guildIds = playerGuildCache[event.player.uniqueId]
-        if (guildIds.isNullOrEmpty()) return
         val block = event.block
         val position = BlockPosition(block.world.uid, block.x, block.y, block.z)
+        val guildIds = playerGuildCache[event.player.uniqueId]
+
+        if (!eligible(event.player)) {
+            resolveProvenance(position, removeAfterRead = true) { }
+            return
+        }
+
         val data = block.blockData
         val matureCrop = data is Ageable && data.age >= data.maximumAge
         val material = block.type
         resolveProvenance(position, removeAfterRead = true) { playerPlaced ->
+            if (guildIds.isNullOrEmpty()) return@resolveProvenance
             val source = classifier.sourceForBreak(material, playerPlaced, matureCrop) ?: return@resolveProvenance
             requestPlayerActivity(event.player, guildIds, 1, source)
         }
@@ -257,14 +265,20 @@ class ProgressionEventListener(
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockPlace(event: BlockPlaceEvent) {
         try {
-            if (!eligible(event.player)) return
             val block = event.block
             val position = BlockPosition(block.world.uid, block.x, block.y, block.z)
-            val write = asyncTaskService.runAsync {
+            provenanceOperations.submit(position) {
                 blockProvenanceRepository.recordPlayerPlaced(position)
+            }.whenComplete { _, error ->
+                if (error != null) {
+                    logger.warn("Failed to persist block provenance at $position", error)
+                }
             }
-            pendingProvenanceWrites[position] = write
-            write.whenComplete { _, _ -> pendingProvenanceWrites.remove(position, write) }
+
+            // Provenance is a world-state fact, not an XP eligibility decision. Track
+            // every player placement so switching game modes cannot manufacture a
+            // future "natural" block.
+            if (!eligible(event.player)) return
             classifier.sourceForPlace(block.type)?.let { source ->
                 requestPlayerActivity(event.player, units = 1, source = source)
             }
@@ -464,17 +478,19 @@ class ProgressionEventListener(
         removeAfterRead: Boolean,
         callback: (Boolean) -> Unit,
     ) {
-        val pendingWrite = if (removeAfterRead) pendingProvenanceWrites.remove(position) else pendingProvenanceWrites[position]
-        asyncTaskService.runAsyncCallback(
-            task = {
-                pendingWrite?.join()
-                val placed = blockProvenanceRepository.wasPlayerPlaced(position)
-                if (removeAfterRead) blockProvenanceRepository.remove(position)
-                placed
-            },
-            onSuccess = callback,
-            onError = { error -> logger.warn("Failed to resolve block provenance at $position", error) },
-        )
+        provenanceOperations.submit(position) {
+            val placed = blockProvenanceRepository.wasPlayerPlaced(position)
+            if (removeAfterRead) blockProvenanceRepository.remove(position)
+            placed
+        }.whenComplete { placed, error ->
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (error != null) {
+                    logger.warn("Failed to resolve block provenance at $position", error)
+                } else {
+                    callback(placed)
+                }
+            })
+        }
     }
 
     private fun requestPlayerActivity(
@@ -608,5 +624,23 @@ class ProgressionEventListener(
 
     companion object {
         private const val FLUSH_INTERVAL_MS = 5_000L
+    }
+}
+
+internal class BlockProvenanceOperationQueue(private val executor: Executor) {
+    private val tails = ConcurrentHashMap<BlockPosition, CompletableFuture<*>>()
+
+    fun <T> submit(position: BlockPosition, operation: () -> T): CompletableFuture<T> {
+        var queued: CompletableFuture<T>? = null
+        tails.compute(position) { _, previous ->
+            CompletableFuture.supplyAsync({
+                previous?.handle { _, _ -> null }?.join()
+                operation()
+            }, executor).also { queued = it }
+        }
+
+        return checkNotNull(queued).also { future ->
+            future.whenComplete { _, _ -> tails.remove(position, future) }
+        }
     }
 }

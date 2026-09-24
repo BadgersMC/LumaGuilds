@@ -8,7 +8,6 @@ import net.lumalyte.lg.domain.entities.QuestTargetRarity
 import net.lumalyte.lg.domain.services.QuestAmountPolicy
 import net.lumalyte.lg.domain.services.QuestTargetProvider
 import net.lumalyte.lg.domain.values.QuestAction
-import org.bukkit.inventory.CookingRecipe
 import org.bukkit.inventory.Recipe
 import org.bukkit.plugin.Plugin
 
@@ -21,12 +20,9 @@ class NexoQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvider 
         val result = mutableListOf<QuestTarget>()
         runCatching { NexoBlocks.blockIDs().sorted() }.getOrDefault(emptyList()).forEach { id ->
             val rarity = rarity(id)
-            result += target(
-                "nexo:block/${id.lowercase()}",
-                QuestAction.MINE_BLOCKS,
-                rarity,
-                BlockProvenancePolicy.NATURAL_ONLY
-            )
+            // Nexo exposes registered custom blocks but does not tell us whether a
+            // block participates in world generation. Do not invent NATURAL_ONLY
+            // mining quests for custom blocks we cannot prove are naturally placed.
             result += target(
                 "nexo:block/${id.lowercase()}",
                 QuestAction.PLACE_BLOCKS,
@@ -36,7 +32,7 @@ class NexoQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvider 
         }
 
         allRecipes().asSequence()
-            .filterNot { it is CookingRecipe<*> }
+            .filter(BukkitQuestTargetProvider::isCraftingMatrixRecipe)
             .map(Recipe::getResult)
             .mapNotNull { resultStack ->
                 runCatching { NexoItems.idFromItem(resultStack) }.getOrNull()?.takeIf(String::isNotBlank)
