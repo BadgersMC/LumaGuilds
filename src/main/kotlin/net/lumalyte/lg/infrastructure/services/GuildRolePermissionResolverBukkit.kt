@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.ClaimRepository
+import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
@@ -24,7 +25,8 @@ class GuildRolePermissionResolverBukkit(
     private val rankService: RankService,
     private val claimRepository: ClaimRepository,
     private val configService: ConfigService,
-    private val adminOverrideService: AdminOverrideService
+    private val adminOverrideService: AdminOverrideService,
+    private val rankClaimPermissionProfiles: RankClaimPermissionProfileRepository,
 ) : GuildRolePermissionResolver {
     
     private val logger = LoggerFactory.getLogger(GuildRolePermissionResolverBukkit::class.java)
@@ -99,8 +101,9 @@ class GuildRolePermissionResolverBukkit(
             // Get player's rank in the guild
             val rank = rankService.getPlayerRank(playerId, guildId) ?: return getDefaultPermissions()
             
-            // Map rank name to claim permissions using config
-            return mapRankToClaimPermissions(rank.name)
+            // Bind legacy name-based config to this stable rank ID once. Renaming
+            // the display name must not change the permission profile identity.
+            return mapRankToClaimPermissions(rank)
             
         } catch (e: Exception) {
             // Service operation - catching all exceptions to prevent service failure
@@ -123,23 +126,34 @@ class GuildRolePermissionResolverBukkit(
         return isMember
     }
     
-    private fun mapRankToClaimPermissions(rankName: String): Set<ClaimPermission> {
+    private fun mapRankToClaimPermissions(rank: net.lumalyte.lg.domain.entities.Rank): Set<ClaimPermission> {
         val config = configService.loadConfig()
-        
-        // Get permissions for the specific rank from role mappings
-        val rankPermissions = config.teamRolePermissions.roleMappings[rankName]
-        
+        val profileName = rankClaimPermissionProfiles.getOrCreate(rank.id, rank.name)
+
+        // Legacy config remains keyed by a human-readable profile name, but the
+        // immutable rank-id -> profile binding survives rank display-name changes.
+        val rankPermissions = config.teamRolePermissions.roleMappings[profileName]
+
         if (rankPermissions.isNullOrEmpty()) {
-            logger.debug("No permissions found for rank '$rankName', using defaults")
+            logger.warn(
+                "No claim permissions found for rank {} profile '{}' (current name '{}'); using defaults",
+                rank.id,
+                profileName,
+                rank.name,
+            )
             return getDefaultPermissions()
         }
-        
-        // Convert string permissions to ClaimPermission enum values
+
         return rankPermissions.mapNotNull { permissionString ->
             try {
                 ClaimPermission.valueOf(permissionString.uppercase())
             } catch (e: IllegalArgumentException) {
-                logger.warn("Invalid permission '$permissionString' for rank '$rankName'")
+                logger.warn(
+                    "Invalid permission '{}' for rank {} profile '{}'",
+                    permissionString,
+                    rank.id,
+                    profileName,
+                )
                 null
             }
         }.toSet()

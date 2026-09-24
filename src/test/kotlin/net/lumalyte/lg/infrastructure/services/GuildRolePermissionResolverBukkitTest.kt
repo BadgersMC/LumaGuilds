@@ -4,6 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import net.lumalyte.lg.application.persistence.ClaimRepository
+import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.MemberService
@@ -26,6 +27,7 @@ class GuildRolePermissionResolverBukkitTest {
     private lateinit var claimRepository: ClaimRepository
     private lateinit var configService: ConfigService
     private lateinit var adminOverrideService: AdminOverrideService
+    private lateinit var rankClaimPermissionProfiles: RankClaimPermissionProfileRepository
 
     private lateinit var testPlayerId: UUID
     private lateinit var testGuildId: UUID
@@ -40,6 +42,8 @@ class GuildRolePermissionResolverBukkitTest {
         claimRepository = mockk(relaxed = true)
         configService = mockk(relaxed = true)
         adminOverrideService = mockk(relaxed = true)
+        rankClaimPermissionProfiles = mockk(relaxed = true)
+        every { rankClaimPermissionProfiles.getOrCreate(any(), any()) } answers { secondArg() }
 
         // Set up test UUIDs
         testPlayerId = UUID.randomUUID()
@@ -69,7 +73,8 @@ class GuildRolePermissionResolverBukkitTest {
             rankService = rankService,
             claimRepository = claimRepository,
             configService = configService,
-            adminOverrideService = adminOverrideService
+            adminOverrideService = adminOverrideService,
+            rankClaimPermissionProfiles = rankClaimPermissionProfiles,
         )
     }
 
@@ -170,6 +175,28 @@ class GuildRolePermissionResolverBukkitTest {
         // Verify normal service calls were made
         verify(exactly = 1) { memberService.getPlayerGuilds(testPlayerId) }
         verify(exactly = 1) { rankService.getPlayerRank(testPlayerId, testGuildId) }
+    }
+
+    @Test
+    fun `rank rename keeps the original claim permission profile`() {
+        every { adminOverrideService.hasOverride(testPlayerId) } returns false
+        every { memberService.getPlayerGuilds(testPlayerId) } returns setOf(testGuildId)
+
+        val rankId = UUID.randomUUID()
+        val original = Rank(rankId, testGuildId, "member", 4, emptySet())
+        val renamed = original.copy(name = "trusted")
+        every { rankService.getPlayerRank(testPlayerId, testGuildId) } returns original andThen renamed
+        every { rankClaimPermissionProfiles.getOrCreate(rankId, "member") } returns "member"
+        every { rankClaimPermissionProfiles.getOrCreate(rankId, "trusted") } returns "member"
+
+        val beforeRename = resolver.getPermissions(testPlayerId, testClaimId)
+        resolver.invalidatePlayerCache(testPlayerId)
+        val afterRename = resolver.getPermissions(testPlayerId, testClaimId)
+
+        assertEquals(setOf(ClaimPermission.VIEW, ClaimPermission.DOOR), beforeRename)
+        assertEquals(beforeRename, afterRename)
+        verify(exactly = 1) { rankClaimPermissionProfiles.getOrCreate(rankId, "member") }
+        verify(exactly = 1) { rankClaimPermissionProfiles.getOrCreate(rankId, "trusted") }
     }
 
     @Test

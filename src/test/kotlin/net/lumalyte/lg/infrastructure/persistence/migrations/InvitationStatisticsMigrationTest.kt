@@ -47,7 +47,7 @@ class InvitationStatisticsMigrationTest {
         assertTrue(columnExists("guild_invitation_history", "inviter_player_id"))
         assertTrue(columnExists("guild_invitation_history", "invited_player_id"))
         assertTrue(columnExists("guild_invitation_history", "sent_at"))
-        assertEquals(39, databaseVersion())
+        assertEquals(40, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean =

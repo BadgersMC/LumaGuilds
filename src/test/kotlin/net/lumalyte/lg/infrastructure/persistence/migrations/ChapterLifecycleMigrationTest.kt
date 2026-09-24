@@ -71,7 +71,8 @@ class ChapterLifecycleMigrationTest {
         assertTrue(tableExists("war_notifications"))
         assertTrue(tableExists("player_notification_preferences"))
         assertTrue(tableExists("guild_discord_roles"))
-        assertEquals(39, databaseVersion())
+        assertTrue(tableExists("rank_claim_permission_profiles"))
+        assertEquals(40, databaseVersion())
     }
 
     @Test
@@ -80,12 +81,12 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE war_banners") }
         assertFalse(tableExists("war_banners"))
-        assertEquals(39, databaseVersion())
+        assertEquals(40, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("war_banners"))
-        assertEquals(39, databaseVersion())
+        assertEquals(40, databaseVersion())
     }
 
     @Test
@@ -94,12 +95,12 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE war_notifications") }
         assertFalse(tableExists("war_notifications"))
-        assertEquals(39, databaseVersion())
+        assertEquals(40, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("war_notifications"))
-        assertEquals(39, databaseVersion())
+        assertEquals(40, databaseVersion())
     }
 
     @Test
@@ -108,12 +109,26 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE player_notification_preferences") }
         assertFalse(tableExists("player_notification_preferences"))
-        assertEquals(39, databaseVersion())
+        assertEquals(40, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("player_notification_preferences"))
-        assertEquals(39, databaseVersion())
+        assertEquals(40, databaseVersion())
+    }
+
+    @Test
+    fun `version 40 repairs missing rank claim permission profiles without version rollback`() {
+        val migrations = SQLiteMigrations(plugin, connection, claimsEnabled = false)
+        migrations.migrate()
+        connection.createStatement().use { it.execute("DROP TABLE rank_claim_permission_profiles") }
+        assertFalse(tableExists("rank_claim_permission_profiles"))
+        assertEquals(40, databaseVersion())
+
+        migrations.migrate()
+
+        assertTrue(tableExists("rank_claim_permission_profiles"))
+        assertEquals(40, databaseVersion())
     }
 
     @Test
@@ -122,12 +137,12 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE guild_discord_roles") }
         assertFalse(tableExists("guild_discord_roles"))
-        assertEquals(39, databaseVersion())
+        assertEquals(40, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("guild_discord_roles"))
-        assertEquals(39, databaseVersion())
+        assertEquals(40, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(
