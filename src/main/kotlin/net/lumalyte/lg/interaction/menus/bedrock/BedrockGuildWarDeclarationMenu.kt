@@ -149,7 +149,7 @@ class BedrockGuildWarDeclarationMenu(
                 if (killsObjective) {
                     objectives.add(WarObjective(
                         type = ObjectiveType.KILLS,
-                        targetValue = 100,
+                        targetValue = warService.getWarKillWinTarget(),
                         description = lang.bedrock("bedrock.war_declaration.objective.kills_description")
                     ))
                 }

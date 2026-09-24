@@ -688,6 +688,7 @@ fun progressionModule() = module {
             warRepository = get(),
             warPayments = get(),
             memberService = get(),
+            guildRepository = get(),
             seasonalElo = get(),
             warNotifications = get(),
             memberRepository = get(),

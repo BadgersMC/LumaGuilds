@@ -18,18 +18,18 @@ internal object WarRecordCodec {
         .create()
 
     fun encode(record: DurableWarRecord): String = gson.toJson(JsonObject().apply {
-        addProperty("version", 3)
+        addProperty("version", 4)
         add("record", gson.toJsonTree(record))
     })
 
     fun decode(payload: String): DurableWarRecord = try {
         val root = JsonParser.parseString(payload).asJsonObject
         val version = root.get("version")?.asInt
-        check(version != null && version in 1..3) { "Unsupported war record version" }
+        check(version != null && version in 1..4) { "Unsupported war record version" }
         val json = root.getAsJsonObject("record").deepCopy()
         check(json.keySet().containsAll(setOf("id", "revision", "fundingCycle", "declaration", "war", "stats", "wager",
             "paymentPhase", "settlementChosen", "settlementWinner", "paymentAttempts"))) { "Incomplete war record" }
-        if (version == 3) {
+        if (version >= 3) {
             check(json.keySet().containsAll(setOf(
                 "notificationRecipients",
                 "declarationNotificationExpected",
@@ -56,6 +56,27 @@ internal object WarRecordCodec {
             }
             json.get("war")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
                 check(it.has("ratedChapterId")) { "Incomplete war rating identity" }
+            }
+        }
+
+        // v4 persists the exact cooldown deadline chosen when a declaration is
+        // created or a winning war ends. v3 was already deployed for durable
+        // notification recovery, so v1-v3 must remain readable without cooldown fields.
+        if (version < 4) {
+            json.get("declaration")?.takeUnless { it.isJsonNull }?.asJsonObject
+                ?.add("declarationCooldownUntil", com.google.gson.JsonNull.INSTANCE)
+            json.get("war")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                it.add("farmingCooldownGuildId", com.google.gson.JsonNull.INSTANCE)
+                it.add("farmingCooldownUntil", com.google.gson.JsonNull.INSTANCE)
+            }
+        } else {
+            json.get("declaration")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                check(it.has("declarationCooldownUntil")) { "Incomplete war declaration cooldown identity" }
+            }
+            json.get("war")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                check(it.has("farmingCooldownGuildId") && it.has("farmingCooldownUntil")) {
+                    "Incomplete war farming cooldown identity"
+                }
             }
         }
 

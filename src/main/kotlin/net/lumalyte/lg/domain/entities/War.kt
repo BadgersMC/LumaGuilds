@@ -21,10 +21,18 @@ data class War(
     val loser: UUID? = null,
     val peaceTerms: String? = null,
     val ratedChapterId: String? = null,
+    val farmingCooldownGuildId: UUID? = null,
+    val farmingCooldownUntil: Instant? = null,
 ) {
     init {
         require(declaringGuildId != defendingGuildId) { "Guild cannot declare war on itself" }
         require(ratedChapterId == null || ratedChapterId.isNotBlank()) { "Rated chapter id cannot be blank" }
+        require((farmingCooldownGuildId == null) == (farmingCooldownUntil == null)) {
+            "War farming cooldown guild and deadline must be stored together"
+        }
+        require(farmingCooldownGuildId == null || farmingCooldownGuildId in setOf(declaringGuildId, defendingGuildId)) {
+            "War farming cooldown must belong to a participant"
+        }
     }
 
     val isRated: Boolean
@@ -175,6 +183,7 @@ data class WarDeclaration(
     val declaredAt: Instant = Instant.now(),
     val expiresAt: Instant = Instant.now().plus(Duration.ofHours(24)), // 24 hour expiration
     val ratedChapterId: String? = null,
+    val declarationCooldownUntil: Instant? = null,
     val accepted: Boolean = false,
     val rejected: Boolean = false
 ) {
