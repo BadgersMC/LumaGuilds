@@ -14,7 +14,7 @@ jobs:
     # Single source of truth: the cache key and the build step both read this, so
     # bumping the ref can't silently reuse a stale cached jar.
     env:
-      ROSECHAT_PREHOOK_REF: 3fe078a   # last RoseChat commit before the LumaGuilds hook
+      ROSECHAT_UPSTREAM_REF: 179483128fa2020f3ad8b0e4192ada3d0a251c49 # official Rosewood 26.2 support commit
       PLAYTIME_API_REF: 2a5b57d       # wsg138/PlayTimePlugin commit the API jar is built from
       COMBATLOGX_API_REF: 4812e85af1264ebb27da481b9d9cbf8de0956e53 # last complete 11.6 API source tree
 
@@ -32,31 +32,26 @@ jobs:
         java-version: '25'
         distribution: 'temurin'
 
-    # RoseChat <-> LumaGuilds is a circular compile dependency: RoseChat master now
-    # carries a LumaGuilds channel hook (needs the LumaGuilds jar to compile), and
-    # LumaGuilds needs the RoseChat jar to compile its chat listeners. Both resolve
-    # the other via compileOnly files('libs/...'), so building RoseChat master here
-    # fails ("package net.lumalyte.lg does not exist"). Build RoseChat at the last
-    # PRE-HOOK commit instead: it needs no LumaGuilds jar and still exposes every
-    # RoseChat API LumaGuilds compiles against. Keep ROSECHAT_PREHOOK_REF in sync
-    # with EnthusiaMarket's CI.
+    # Compile against the canonical official Rosewood 26.2 source. Enthusia-specific
+    # RoseChat runtime extensions are not required by LumaGuilds' public API usage.
     - name: Cache RoseChat jar
       id: rosechat-cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: libs/RoseChat-RC-2.jar
-        key: rosechat-jar-prehook-${{ env.ROSECHAT_PREHOOK_REF }}
+        key: rosechat-jar-official-${{ env.ROSECHAT_UPSTREAM_REF }}
 
-    - name: Build RoseChat (pre-hook) dependency
+    - name: Build official RoseChat 26.2 dependency
       if: steps.rosechat-cache.outputs.cache-hit != 'true'
       run: |
-        git clone https://github.com/BadgersMC/Enthusia-RoseChat.git /tmp/rosechat
+        git clone https://github.com/Rosewood-Development/RoseChat.git /tmp/rosechat
         cd /tmp/rosechat
-        git checkout "$ROSECHAT_PREHOOK_REF"
+        git checkout "$ROSECHAT_UPSTREAM_REF"
         chmod +x gradlew
-        ./gradlew shadowJar --no-daemon
+        ./gradlew -I "$GITHUB_WORKSPACE/ci/rosechat/simpleclans.init.gradle" shadowJar --no-daemon
         mkdir -p "$GITHUB_WORKSPACE/libs"
-        ROSE_JAR=$(ls build/libs/RoseChat-RC-2*.jar | grep -v -- '-sources\|-javadoc' | head -1)
+        ROSE_JAR=$(find build/libs -maxdepth 1 -name 'RoseChat-*.jar'           ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+        test -n "$ROSE_JAR"
         cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
 
 # EnthusiaPlaytime is a Maven project; compiling its API classes directly is

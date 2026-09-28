@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: write
     env:
-      ROSECHAT_PREHOOK_REF: 3fe078a
+      ROSECHAT_UPSTREAM_REF: 179483128fa2020f3ad8b0e4192ada3d0a251c49
       COMBATLOGX_API_REF: 4812e85af1264ebb27da481b9d9cbf8de0956e53
 
     steps:
@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0  # need tags for version bump
 
-      - name: Set up Java 21 for integration API builds
+      - name: Set up Java 21 for CombatLogX API build
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -60,19 +60,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: libs/RoseChat-RC-2.jar
-          key: rosechat-jar-prehook-${{ env.ROSECHAT_PREHOOK_REF }}
-
-      - name: Build RoseChat (pre-hook) dependency
-        if: steps.rosechat-cache.outputs.cache-hit != 'true'
-        run: |
-          git clone https://github.com/BadgersMC/Enthusia-RoseChat.git "$RUNNER_TEMP/rosechat"
-          cd "$RUNNER_TEMP/rosechat"
-          git checkout "$ROSECHAT_PREHOOK_REF"
-          chmod +x gradlew
-          ./gradlew shadowJar --no-daemon
-          ROSE_JAR=$(ls build/libs/RoseChat-RC-2*.jar | grep -v '\-sources\|\-javadoc' | head -1)
-          mkdir -p "$GITHUB_WORKSPACE/libs"
-          cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
+          key: rosechat-jar-official-${{ env.ROSECHAT_UPSTREAM_REF }}
 
       - name: Cache CombatLogX API jar
         id: combatlogx-cache
@@ -95,11 +83,24 @@ jobs:
           test -n "$COMBATLOGX_JAR"
           cp "$COMBATLOGX_JAR" "$GITHUB_WORKSPACE/libs/CombatLogX-api.jar"
 
-      - name: Set up Java 25 for LumaGuilds
+      - name: Set up Java 25 for RoseChat and LumaGuilds
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 25
+
+      - name: Build official RoseChat 26.2 dependency
+        if: steps.rosechat-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/Rosewood-Development/RoseChat.git "$RUNNER_TEMP/rosechat"
+          cd "$RUNNER_TEMP/rosechat"
+          git checkout "$ROSECHAT_UPSTREAM_REF"
+          chmod +x gradlew
+          ./gradlew -I "$GITHUB_WORKSPACE/ci/rosechat/simpleclans.init.gradle" shadowJar --no-daemon
+          ROSE_JAR=$(find build/libs -maxdepth 1 -name 'RoseChat-*.jar'             ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+          test -n "$ROSE_JAR"
+          mkdir -p "$GITHUB_WORKSPACE/libs"
+          cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
 
       # Run the full test suite, including the Koin graph smoke test. The v2.1.23
       # release shipped a jar whose Koin graph referenced an unregistered type — a
