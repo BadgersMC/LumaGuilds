@@ -18,31 +18,33 @@ jobs:
         with:
           fetch-depth: 0  # need tags for version bump
 
-      - uses: actions/setup-java@v4
+      - name: Set up Java 21 for integration API builds
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 25
+          java-version: 21
 
       - name: Bump version
         id: bump
         run: |
-          # Find latest tag matching v*.*.*
+          # The build file is the minimum release baseline. This allows intentional
+          # major/minor jumps (for example 2.1.x -> 3.0.0) without rewriting tags.
+          BASE=$(grep -oP 'version\s*=\s*findProperty.*\?\s*:\s*"\K[^"]+' build.gradle.kts)
           LATEST=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
+
           if [ -z "$LATEST" ]; then
-            # No tags yet — read base from build.gradle.kts
-            BASE=$(grep -oP 'version\s*=\s*findProperty.*\?\s*:\s*"\K[^"]+' build.gradle.kts)
-            MAJOR=$(echo "$BASE" | cut -d. -f1)
-            MINOR=$(echo "$BASE" | cut -d. -f2)
-            PATCH=$(echo "$BASE" | cut -d. -f3)
+            NEXT="$BASE"
           else
-            # Strip leading 'v'
             VER="${LATEST#v}"
             MAJOR=$(echo "$VER" | cut -d. -f1)
             MINOR=$(echo "$VER" | cut -d. -f2)
             PATCH=$(echo "$VER" | cut -d. -f3)
+            PATCH_NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))"
+
+            NEXT=$(printf '%s\n%s\n' "$BASE" "$PATCH_NEXT" | sort -V | tail -1)
           fi
-          NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))"
-          echo "Latest tag: ${LATEST:-none}, bumping to v$NEXT"
+
+          echo "Latest tag: ${LATEST:-none}; baseline: $BASE; releasing v$NEXT"
           echo "version=$NEXT" >> "$GITHUB_OUTPUT"
 
       - name: Cache RoseChat jar
@@ -84,6 +86,12 @@ jobs:
             ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
           test -n "$COMBATLOGX_JAR"
           cp "$COMBATLOGX_JAR" "$GITHUB_WORKSPACE/libs/CombatLogX-api.jar"
+
+      - name: Set up Java 25 for LumaGuilds
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
 
       # Run the full test suite, including the Koin graph smoke test. The v2.1.23
       # release shipped a jar whose Koin graph referenced an unregistered type — a

@@ -2,54 +2,59 @@
 title: War
 audience: player
 topic: war
-summary: Declare and fight wars between guilds.
-keywords: [war, pvp, declare war, kills]
+summary: Declare, accept, fight, and resolve wars between guilds, including seasonal rating and lifecycle notifications.
+keywords: [war, pvp, declare war, kills, seasonal elo, rating, toast]
 related: [alliances, mode, progression]
-updated: 2026-05-13
+updated: 2026-09-28
 ---
 
 # War
 
-Declare and fight wars between guilds.
-
-## Quick reference
-
-| Command | Permission | Description |
-|---------|------------|-------------|
-| `/g war <guild>` | `lumaguilds.guild.war` | Open the war control flow. |
-
-## How it works
-
-War is the escalation of an enemy relation. Once two guilds are at war, kills between their members count toward war statistics and are tracked separately from normal PvP. Wars persist until one side surrenders, the other side accepts a truce, or relations are reset.
+Wars are persisted guild-vs-guild conflicts with explicit declaration, acceptance, objectives, resolution, and notifications.
 
 ## Declaring war
 
-First, mark the other guild as enemy using `/g enemy <them>`. Then run `/g war <them>`. A confirmation menu opens — confirm to start the war. Both guilds will see a server-wide announcement. From that point on, kills between the two warring guilds count toward war statistics.
+Use your guild's war controls to select an eligible guild and configure the declaration. Peaceful/hostile mode, guild permissions, cooldowns, and other server rules are checked before the declaration can proceed.
+
+The receiving guild gets the declaration through its war UI and can respond through the acceptance flow. A war becomes active only when its lifecycle reaches the active state; a sent declaration is not treated as an already-resolved fight.
+
+## Objectives and victory
+
+Wars can track kill objectives and configured global kill targets. When a victory condition is reached, the server persists the result and resolves the war instead of relying on a transient chat event.
+
+War statistics and the management UI show the active state and progress. Expired wars are also recovered and reconciled after restarts.
+
+## Seasonal rating
+
+Eligible rated wars affect the current Chapter's seasonal Elo-style rating. The war declaration and management menus show rating information so guilds can see the competitive context before and during a rated war.
+
+Seasonal rating is separate from permanent guild progression. See [Progression](progression.md) for the distinction between Chapter XP and seasonal competition.
+
+## Notifications
+
+War lifecycle events use persistent notifications. Guild members receive toast-style notifications plus chat detail for events such as:
+
+- declaration sent or received;
+- war accepted;
+- victory;
+- defeat.
+
+Unread lifecycle notifications can be replayed when a member logs in, so a restart or an offline player does not silently lose the result.
+
+Guild disbands are also announced to affected allies and enemies.
 
 ## Ending a war
 
-Either side can end a war by:
+Resolution state is stored durably. On startup, LumaGuilds reconciles active or expired wars and pending victory/defeat notification state so a crash between gameplay resolution and notification delivery does not duplicate or lose the outcome.
 
-- **Proposing a truce:** `/g truce <them>` offers a friendly resolution; both sides must confirm.
-- **Going neutral:** `/g neutral <them>` is unilateral and faster, but clears all relation data.
+## Guild mode and diplomacy
 
-## How kills are tracked
+Peaceful guilds cannot participate in war in the same way as hostile guilds. Relation state, ally/enemy rules, and mode restrictions are validated by the server before a declaration is accepted.
 
-Killing a member of a guild you're at war with awards your guild kill credit toward the war. The win goes to whichever guild accumulates the most kills (or however your server configures victory conditions — check with staff). Kill streaks and war statistics are displayed in your guild's war profile.
-
-## Guild Mode and war
-
-Your guild's Mode (peaceful/hostile) affects whether your guild can start wars at all. Peaceful guilds cannot declare war. Hostile guilds can. See [Mode](mode.md) for more detail.
-
-## Gotchas
-
-- You can't earn guild XP from killing a member of your own guild (anti-farm — fixed mid-2026).
-- War only enables PvP between the two warring guilds — your normal PvP rules with everyone else stay unchanged.
-- Pending ally requests are cancelled if you declare war on an ally.
-- Both sides must be at least enemy status before a war can be declared.
+See [Mode](mode.md) and [Alliances & Diplomacy](alliances.md) for those rules.
 
 ## Related
 
-- [Alliances & Diplomacy](alliances.md) — manage enemy and ally relations
-- [Mode](mode.md) — peaceful vs. hostile guild alignment
-- [Progression](progression.md) — how XP and kill stats work
+- [Alliances & Diplomacy](alliances.md)
+- [Mode](mode.md)
+- [Progression, Quests & Prestige](progression.md)
