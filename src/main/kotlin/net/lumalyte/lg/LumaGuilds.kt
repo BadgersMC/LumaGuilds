@@ -284,7 +284,7 @@ class LumaGuilds : JavaPlugin() {
                     throw RuntimeException("Failed to initialize MariaDB storage - invalid configuration", e)
                 } catch (e: NoSuchMethodError) {
                     logColored("⚠ Virtual threads not available - falling back to platform threads")
-                    logColored("Upgrade to Java 21+ for better performance")
+                    logColored("Virtual threads are unavailable on this Java runtime")
                     MariaDBStorage(
                         host = host,
                         port = port,
@@ -321,7 +321,7 @@ class LumaGuilds : JavaPlugin() {
                     throw RuntimeException("Failed to initialize SQLite storage - file system error", e)
                 } catch (e: NoSuchMethodError) {
                     logColored("⚠ Virtual threads not available - falling back to platform threads")
-                    logColored("Upgrade to Java 21+ for better performance")
+                    logColored("Virtual threads are unavailable on this Java runtime")
                     SQLiteStorage(dataFolder)
                 }
             }

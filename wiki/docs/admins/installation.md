@@ -2,24 +2,25 @@
 title: Installation & config.yml
 audience: admin
 topic: installation
-summary: Install LumaGuilds on Paper 1.21.x, drop in dependencies, and walk through every config.yml block.
+summary: Install LumaGuilds 3.x on Paper 26.2 with Java 25, add dependencies, and walk through every config.yml block.
 keywords: [installation, install, setup, config, config.yml, paper, dependencies]
 related: [permissions, claims, rosechat]
-updated: 2026-05-14
+updated: 2026-09-28
 ---
 
 # Installation & config.yml
 
-Install LumaGuilds on Paper 1.21.x, drop in dependencies, and walk through every config.yml block.
+Install LumaGuilds 3.x on Paper 26.2 with Java 25, add dependencies, and walk through every config.yml block.
 
 ## Quick reference
 
 | Dependency | Type | Required | Notes |
 |-----------|------|----------|-------|
-| Paper 1.21.11+ | Server | Yes | API version checked at load. |
-| Vault | Plugin | Yes | Economy abstraction layer. |
-| PlaceholderAPI | Plugin | Yes | Player/guild placeholder hooks. |
-| RoseChat | Plugin | No | Custom chat format & guild chat channels. |
+| Paper 26.2+ | Server | Yes | LumaGuilds 3.0.0 targets Paper API 26.2. |
+| Java 25+ | Runtime | Yes | Required by LumaGuilds 3.0.0 and Paper 26.2. |
+| Vault | Plugin | No | Required for economy-backed features such as virtual banking and paid actions. |
+| PlaceholderAPI | Plugin | No | Enables player/guild placeholder hooks. |
+| RoseChat | Plugin | Yes | Hard dependency; provides the chat/channel integration LumaGuilds expects. |
 | Geyser/Floodgate | Plugin | No | Bedrock client support & menus. |
 | Lunar Client SDK (Apollo) | Plugin | No | Lunar Client enhancements (waypoints, teams, beams). |
 
@@ -27,7 +28,7 @@ Install LumaGuilds on Paper 1.21.x, drop in dependencies, and walk through every
 
 ## How it works
 
-Drop the LumaGuilds JAR into `plugins/`, start the server, and it auto-creates `plugins/LumaGuilds/config.yml` with defaults. The plugin uses SQLite by default (file-based, no external DB needed). On server restart, config changes are reloaded. RoseChat, Geyser, and other integrations are soft dependencies — the plugin works without them but will use them if present.
+Drop RoseChat and the LumaGuilds JAR into `plugins/`, start the server, and LumaGuilds auto-creates `plugins/LumaGuilds/config.yml` with defaults. The plugin uses SQLite by default (file-based, no external DB needed). RoseChat is a hard dependency. Vault, PlaceholderAPI, Geyser/Floodgate, Apollo, and the other integrations are feature-dependent or optional.
 
 ## Install steps
 
@@ -37,12 +38,13 @@ Drop the LumaGuilds JAR into `plugins/`, start the server, and it auto-creates `
    /version
    ```
 
-   Confirm you see `Paper 1.21.11` or later. LumaGuilds requires API version `1.21.11` (hardcoded in `plugin.yml`).
+   Confirm you see `Paper 26.2` or a compatible newer build. LumaGuilds 3.0.0 declares API version `26.2` in `plugin.yml` and requires Java 25.
 
 2. **Download dependencies into `plugins/`:**
-   - [Vault](https://www.spigotmc.org/resources/vault.41918/) (latest)
-   - [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) (latest)
-   - Optionally: RoseChat, Geyser/Floodgate, Apollo (Lunar Client SDK)
+   - **Required:** RoseChat (the Enthusia-compatible build used by your network)
+   - Optional: [Vault](https://www.spigotmc.org/resources/vault.41918/) for economy-backed features
+   - Optional: [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) for placeholders
+   - Optional: Geyser/Floodgate for Bedrock forms and Apollo for Lunar Client enhancements
 
 3. **Download LumaGuilds JAR** and place it in `plugins/`.
 
@@ -54,7 +56,7 @@ Drop the LumaGuilds JAR into `plugins/`, start the server, and it auto-creates `
    /version LumaGuilds
    ```
 
-   You should see the plugin version. Check the console for errors; common ones are missing Vault or mismatched Paper version.
+   You should see the plugin version. Check the console for errors; common startup blockers are a missing RoseChat dependency, an incompatible Paper build, or the wrong Java runtime.
 
 6. **Open `plugins/LumaGuilds/config.yml`** and review each section below before restarting again.
 
@@ -97,7 +99,7 @@ mariadb:
     max_lifetime: 1800000
 ```
 
-**What it does:** SQLite is the default and zero-configuration — useful for development and smaller servers. For production, use MariaDB/MySQL and set `use_virtual_threads: true` (Java 21+ only; older Java versions fall back automatically).
+**What it does:** SQLite is the default and zero-configuration — useful for development and smaller servers. For production, use MariaDB/MySQL and keep `use_virtual_threads: true`. Virtual threads require Java 21+, and LumaGuilds 3.0.0 already requires Java 25.
 
 ## Core claims configuration
 
@@ -566,38 +568,46 @@ party:
 
 **What it does:** Configures party chat channels, format strings with placeholders, and listener priority for chat routing. MiniMessage supports gradient colors, bold, italic, etc. The listener priority controls which plugin's chat handler runs first (set to LOWEST to intercept ChatControl at HIGH).
 
-## Guild progression system configuration
+## Chapter 2 progression and seasonal rating
 
-XP values for different activities (farming, killing, crafting, fishing, war), cooldowns, and leveling curve.
+LumaGuilds 3.0 adds gated Chapter 2 rewards, scheduled XP boosts, permanent source caps, prestige, and seasonal war rating. Keep the gated systems disabled until your Chapter migration and live validation are complete.
 
 ```yaml
+seasonal_elo:
+  enabled: false
+  k_factor: 40
+  upper_display_rating: 1600
+  rematch_window_days: 7
+
 progression:
-  # Experience values for different activities
-  bank_deposit_xp_per_100: 1         # XP per 100 coins deposited
-  member_joined_xp: 50                # XP when a new member joins
-  player_kill_xp: 25                  # XP for killing another player
-  mob_kill_xp: 2                      # XP for killing mobs
-  crop_break_xp: 1                    # XP for harvesting crops
-  block_break_xp: 1                   # XP for breaking blocks
-  block_place_xp: 1                   # XP for placing blocks
-  crafting_xp: 2                      # XP per item crafted
-  smelting_xp: 2                      # XP per item smelted
-  fishing_xp: 3                       # XP per fish caught
-  enchanting_xp: 10                   # XP per enchantment level spent
-  claim_created_xp: 100               # XP for creating a claim (if claims enabled)
-  war_won_xp: 500                     # XP for winning a war
+  chapter_two_rewards_enabled: false
+  chapter_two_gold_costs_enabled: false
+  max_level: 100
 
-  # Rate limiting settings (prevents XP farming/spam)
-  xp_cooldown_ms: 5000                # Milliseconds between XP awards per source per player
-  max_xp_per_batch: 50                # Maximum XP accumulated before forced processing
+  xp_boost:
+    enabled: false
+    multiplier: 2.0
+    starts_at: '2026-09-18T00:00:00Z'
+    ends_at: '2026-09-21T00:00:00Z'
 
-  # Leveling curve settings (balanced for competitive but fair progression)
-  base_xp: 800.0                      # Base XP requirement
-  level_exponent: 1.3                 # Exponential growth factor (gentler than 1.5)
-  linear_bonus_per_level: 200         # Linear bonus to prevent harsh walls
+  prestige:
+    enabled: false
+    max_count: 6
+    fees: [10000, 20000, 30000, 30000, 30000, 30000]
+
+  sources:
+    bank_deposit: { enabled: true, award_xp: 1, cap_xp: 500, period: DAILY, pool: BANK_DEPOSIT }
+    player_kill: { enabled: true, award_xp: 100, cap_xp: 6000, period: DAILY, pool: PLAYER_KILL }
+    weekly_activity: { enabled: true, award_xp: 1, cap_xp: 0, period: UNLIMITED, pool: WEEKLY_ACTIVITY }
+
+  xp_cooldown_ms: 5000
+  max_xp_per_batch: 50
+  base_xp: 500.0
+  level_exponent: 1.15
+  linear_bonus_per_level: 150
 ```
 
-**What it does:** Sets XP rewards for guild activities and the leveling curve. Lower `xp_cooldown_ms` = faster XP gains but more spam. Adjust `level_exponent` to make leveling faster (< 1.3) or slower (> 1.3).
+**What it does:** `sources` controls the Chapter 2 guild-wide XP policies and caps. Weekly quest activity is intentionally unlimited so quest progression can continue beyond the normal completion target for leaderboard scoring. `chapter_two_rewards_enabled`, gold costs, prestige, and seasonal Elo are separate rollout gates; enabling one does not perform the migration for you. The complete generated `config.yml` contains the full material, mob, crafting, boss, and exploration source catalog.
 
 ## UI and menu configuration
 
