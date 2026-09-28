@@ -65,7 +65,9 @@ class BedrockGuildHomeMenu(
                     }
                     if (homes.hasHomes()) {
                         button(lang.bedrock("bedrock.home.button.remove"))
+                        button(lang.bedrock("bedrock.home.button.access"))
                     }
+                    button(lang.bedrock("bedrock.home.button.ally_access"))
                 }
             }
             .validResultHandler { response ->
@@ -139,6 +141,22 @@ class BedrockGuildHomeMenu(
                 showRemoveHomeMenu(homes)
                 return
             }
+            currentIndex++
+        }
+
+        // Per-home rank access
+        if (canManageHomes() && homes.hasHomes()) {
+            if (buttonIndex == currentIndex) {
+                showHomeAccessSelection(homes)
+                return
+            }
+            currentIndex++
+        }
+
+        // Inbound ally-home access
+        if (canManageHomes() && buttonIndex == currentIndex) {
+            bedrockNavigator.openMenu(menuFactory.createAllyHomeAccessMenu(menuNavigator, player, guild))
+            return
         }
 
         // Default: go back
@@ -221,6 +239,37 @@ class BedrockGuildHomeMenu(
 
         // Reopen menu to refresh
         bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+    }
+
+    private fun showHomeAccessSelection(homes: net.lumalyte.lg.domain.entities.GuildHomes) {
+        val accessForm = SimpleForm.builder()
+            .title(lang.bedrock("bedrock.home.access.title", "guild" to guild.name))
+            .content(lang.bedrock("bedrock.home.access.description"))
+            .apply {
+                homes.homeNames.forEach { homeName ->
+                    button(lang.bedrock("bedrock.home.access.button", "home" to homeName))
+                }
+            }
+            .validResultHandler { response ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    val homeName = homes.homeNames.toList().getOrNull(response.clickedButtonId())
+                    if (homeName != null && canManageHomes()) {
+                        bedrockNavigator.openMenu(
+                            menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName)
+                        )
+                    } else {
+                        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                    }
+                })
+            }
+            .closedOrInvalidResultHandler { _, _ ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                })
+            }
+            .build()
+
+        FloodgateApi.getInstance().sendForm(player.uniqueId, accessForm)
     }
 
     private fun showRemoveHomeMenu(homes: net.lumalyte.lg.domain.entities.GuildHomes) {

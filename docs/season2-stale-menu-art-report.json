@@ -1,0 +1,50 @@
+{
+  "staging": {
+    "new_items": 17,
+    "new_cmd_range": [
+      733239,
+      733255
+    ],
+    "new_cmd_collisions": 0,
+    "top_level_id_duplicates_total": 0
+  },
+  "output": {
+    "new_items": 17,
+    "new_cmd_range": [
+      733239,
+      733255
+    ],
+    "new_cmd_collisions": 0,
+    "top_level_id_duplicates_total": 0
+  },
+  "icons_copied": 19,
+  "icon_dimensions": "32x32",
+  "reused_ids": {
+    "lg_history": "lg/season2/bank_history.png",
+    "lg_automation": "lg/season2/bank_automation.png",
+    "lg_nav_statistics": "lg/season2/stats_overview.png"
+  },
+  "kill_trends": "asset packaged but intentionally not wired; UI remains hidden until real data exists",
+  "validated_at": "2026-09-25T08:00:35-04:00",
+  "runtime_pack_sha256": "60814E1CB04812B4395D6928536C23EA5C9A1167DE611D77345AEEEBB4E58A21",
+  "runtime_pack_size_bytes": 915141,
+  "selfhost": true,
+  "nexo_validator": "clean: no missing/oversized/placeholder warnings during generation",
+  "toggle_policy": {
+    "generic_on": "lg_toggle_on",
+    "generic_off": "lg_toggle_off",
+    "used_for": [
+      "Guild Settings access open/closed",
+      "Guild Settings Lunar tracking",
+      "Ally home access per allied guild"
+    ],
+    "not_used_for": [
+      "Active Automations status as a toggle",
+      "permission locked state",
+      "unavailable/empty state",
+      "Guild mode",
+      "bank emergency freeze"
+    ]
+  },
+  "visual_signoff": "pending second Java-client walkthrough"
+}

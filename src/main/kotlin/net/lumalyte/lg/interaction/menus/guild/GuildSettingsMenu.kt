@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -7,7 +10,7 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.ProgressionService
@@ -77,7 +80,7 @@ class GuildSettingsMenu(
 
     private fun addGuildInfoSection(pane: StaticPane) {
         // Guild name display (placeholder for now)
-        val nameItem = ItemStack.of(Material.BOOK)
+        val nameItem = NexoItemProvider.getItemStackOrFallback("lg_nav_info") { ItemStack.of(Material.BOOK) }
             .name(lang.gui("menu.guild_settings.item.name.name"))
             .lore(lang.gui("menu.guild_settings.item.name.lore.current", "guild" to guild.name))
             .lore(lang.gui("menu.common.blank"))
@@ -90,7 +93,7 @@ class GuildSettingsMenu(
         val hasDescriptionPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_DESCRIPTION)
         val currentDescription = guild.description
 
-        val descItem = ItemStack.of(Material.WRITABLE_BOOK)
+        val descItem = NexoItemProvider.getItemStackOrFallback("lg_description") { ItemStack.of(Material.WRITABLE_BOOK) }
             .name(lang.gui("menu.guild_settings.item.description.name"))
 
         if (currentDescription != null) {
@@ -124,25 +127,38 @@ class GuildSettingsMenu(
 
         pane.addItem(guiItem, 1, 0)
 
+        // Guild Tag - NEW FEATURE
+        val tagItem = NexoItemProvider.getItemStackOrFallback("lg_tag") { ItemStack.of(Material.NAME_TAG) }
+            .name(lang.gui("menu.guild_settings.item.tag.name"))
+            .lore(lang.gui("menu.guild_settings.item.tag.lore.current", "tag" to (guild.tag ?: lang.raw("menu.control_panel.state.not_set"))))
+            .lore(lang.gui("menu.common.blank"))
+            .lore(lang.gui("menu.guild_settings.item.tag.lore.action"))
+            .lore(lang.gui("menu.guild_settings.item.tag.lore.formatting"))
+
+        val tagGuiItem = GuiItem(tagItem) {
+            menuNavigator.openMenu(menuFactory.createTagEditorMenu(menuNavigator, player, guild))
+        }
+        pane.addItem(tagGuiItem, 2, 0)
+
         // Guild creation date
         val localDateTime = guild.createdAt.atZone(ZoneId.systemDefault())
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
-        val createdItem = ItemStack.of(Material.CLOCK)
+        val createdItem = NexoItemProvider.getItemStackOrFallback("lg_history") { ItemStack.of(Material.CLOCK) }
             .name(lang.gui("menu.guild_settings.item.created.name"))
             .lore(lang.gui("menu.guild_settings.item.created.lore.date", "date" to localDateTime.format(dateFormatter)))
             .lore(lang.gui("menu.guild_settings.item.created.lore.time", "time" to localDateTime.format(timeFormatter)))
 
-        pane.addItem(GuiItem(createdItem), 2, 0)
+        pane.addItem(GuiItem(createdItem), 3, 0)
 
         // Guild leveling information
         val levelingItem = createLevelingInfoItem()
-        pane.addItem(GuiItem(levelingItem), 3, 0)
+        pane.addItem(GuiItem(levelingItem), 4, 0)
     }
 
     private fun createLevelingInfoItem(): ItemStack {
-        val levelingItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
+        val levelingItem = NexoItemProvider.getItemStackOrFallback("lg_nav_progression") { ItemStack.of(Material.EXPERIENCE_BOTTLE) }
             .name(lang.gui("menu.control_panel.item.progression.name"))
 
         // Check if claims are enabled in config
@@ -247,7 +263,7 @@ class GuildSettingsMenu(
         pane.addItem(bannerGuiItem, 0, 2)
 
         // Guild Emoji
-        val emojiItem = ItemStack.of(Material.FIREWORK_STAR)
+        val emojiItem = NexoItemProvider.getItemStackOrFallback("lg_emoji") { ItemStack.of(Material.FIREWORK_STAR) }
             .name(lang.gui("menu.guild_settings.item.emoji.name"))
             .lore(lang.gui("menu.guild_settings.item.emoji.lore.current", "emoji" to (guild.emoji ?: lang.raw("menu.control_panel.state.not_set"))))
             .lore(lang.gui("menu.common.blank"))
@@ -257,19 +273,6 @@ class GuildSettingsMenu(
             menuNavigator.openMenu(menuFactory.createGuildEmojiMenu(menuNavigator, player, guild))
         }
         pane.addItem(emojiGuiItem, 1, 2)
-
-        // Guild Tag - NEW FEATURE
-        val tagItem = ItemStack.of(Material.NAME_TAG)
-            .name(lang.gui("menu.guild_settings.item.tag.name"))
-            .lore(lang.gui("menu.guild_settings.item.tag.lore.current", "tag" to (guild.tag ?: lang.raw("menu.control_panel.state.not_set"))))
-            .lore(lang.gui("menu.common.blank"))
-            .lore(lang.gui("menu.guild_settings.item.tag.lore.action"))
-            .lore(lang.gui("menu.guild_settings.item.tag.lore.formatting"))
-
-        val tagGuiItem = GuiItem(tagItem) {
-            menuNavigator.openMenu(menuFactory.createTagEditorMenu(menuNavigator, player, guild))
-        }
-        pane.addItem(tagGuiItem, 2, 2)
 
         // Preview section
         val currentTag = guild.tag ?: guild.name
@@ -281,7 +284,9 @@ class GuildSettingsMenu(
         pane.addItem(GuiItem(previewItem), 4, 2)
 
         // GUI Theme Selector
-        val themeItem = ItemStack.of(Material.PAINTING)
+        val themeItem = NexoItemProvider.getItemStackOrFallback(
+            "lg_theme_${guild.guiTheme.name.lowercase()}"
+        ) { ItemStack.of(Material.PAINTING) }
             .name(lang.gui("menu.guild_settings.item.theme.name"))
             .lore(lang.gui("menu.guild_settings.item.theme.lore.current", "theme" to guild.guiTheme.displayName))
             .lore(lang.gui("menu.common.blank"))
@@ -297,12 +302,12 @@ class GuildSettingsMenu(
             }
             openThemeSelector()
         }
-        pane.addItem(themeGuiItem, 5, 2)
+        pane.addItem(themeGuiItem, 2, 2)
     }
 
     private fun addLocationModeSection(pane: StaticPane) {
         // Guild Home
-        val homeItem = ItemStack.of(Material.COMPASS)
+        val homeItem = NexoItemProvider.getItemStackOrFallback("lg_home") { ItemStack.of(Material.COMPASS) }
                 .name(lang.gui("menu.guild_settings.item.homes.name"))
 
         val allHomes = guildService.getHomes(guild.id)
@@ -341,9 +346,11 @@ class GuildSettingsMenu(
         pane.addItem(homeGuiItem, 0, 4)
 
         // Guild Open/Closed Toggle
-        val openClosedItem = ItemStack.of(
-            if (guild.isOpen) Material.LIME_DYE else Material.GRAY_DYE
-        )
+        val openClosedItem = NexoItemProvider.getItemStackOrFallback(
+            if (guild.isOpen) "lg_toggle_on" else "lg_toggle_off"
+        ) {
+            ItemStack.of(if (guild.isOpen) Material.LIME_DYE else Material.GRAY_DYE)
+        }
             .name(lang.gui("menu.guild_settings.item.access.name"))
             .lore(if (guild.isOpen) lang.gui("menu.guild_settings.item.access.lore.current.open") else lang.gui("menu.guild_settings.item.access.lore.current.closed"))
             .lore(lang.gui("menu.common.blank"))
@@ -378,9 +385,11 @@ class GuildSettingsMenu(
         pane.addItem(openClosedGuiItem, 1, 4)
 
         // Lunar Tracking Toggle
-        val trackingItem = ItemStack.of(
-            if (guild.trackingEnabled) Material.RECOVERY_COMPASS else Material.COMPASS
-        )
+        val trackingItem = NexoItemProvider.getItemStackOrFallback(
+            if (guild.trackingEnabled) "lg_toggle_on" else "lg_toggle_off"
+        ) {
+            ItemStack.of(if (guild.trackingEnabled) Material.RECOVERY_COMPASS else Material.COMPASS)
+        }
             .name(lang.gui("menu.guild_settings.item.tracking.name"))
             .lore(if (guild.trackingEnabled) lang.gui("menu.guild_settings.item.tracking.lore.current.enabled") else lang.gui("menu.guild_settings.item.tracking.lore.current.disabled"))
             .lore(lang.gui("menu.common.blank"))
@@ -480,7 +489,7 @@ class GuildSettingsMenu(
         }
 
         // Back button
-        val backItem = ItemStack.of(Material.BARRIER)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_settings.item.back.name"))
             .lore(lang.gui("menu.guild_settings.item.back.lore"))
 
@@ -496,41 +505,71 @@ class GuildSettingsMenu(
      * with the new theme applied.
      */
     private fun openThemeSelector() {
-        val gui = ChestGui(1, MenuTitleBuilder.build(guild.guiTheme, 1, lang.guiTitle("menu.guild_settings.title", "guild" to guild.name)))
+        val gui = ChestGui(
+            1,
+            MenuTitleBuilder.build(
+                guild.guiTheme,
+                1,
+                lang.guiTitle("menu.guild_settings.theme_selector.title")
+            )
+        )
         val pane = StaticPane(0, 0, 9, 1)
         gui.setOnGlobalClick { it.isCancelled = true }
         gui.addPane(pane)
 
-        val themes = net.lumalyte.lg.utils.GuiTheme.entries
-        // Place up to 6 themes in a single row; each takes 1 slot
-        // with a gap between them for visual clarity.
-        themes.forEachIndexed { index, theme ->
-            val isCurrent = theme == guild.guiTheme
-            val slot = index * 1 + index  // 0, 2, 4, 6, 8, 10 — but max 6 in 9 slots
-            // Recalculate: 9 slots, 6 themes, spread evenly
-            val pos = if (themes.size <= 9) index else index * 9 / themes.size
+        val canManageThemes = guildService.hasPermission(
+            player.uniqueId,
+            guild.id,
+            RankPermission.MANAGE_GUILD_SETTINGS
+        )
 
-            val item = ItemStack.of(
-                when {
-                    isCurrent -> Material.GREEN_STAINED_GLASS_PANE
-                    else -> Material.GRAY_STAINED_GLASS_PANE
+        net.lumalyte.lg.utils.GuiTheme.entries.forEachIndexed { index, theme ->
+            val isCurrent = theme == guild.guiTheme
+            val nexoId = "lg_theme_${theme.name.lowercase()}"
+            val item = NexoItemProvider.getItemStackOrFallback(nexoId) {
+                ItemStack.of(if (isCurrent) Material.LIME_DYE else Material.GRAY_DYE)
+            }.also { stack ->
+                stack.editMeta { meta ->
+                    meta.displayName(
+                        if (isCurrent) {
+                            lang.gui("menu.guild_settings.item.theme_option.name.current", "theme" to theme.displayName)
+                        } else {
+                            lang.gui("menu.guild_settings.item.theme_option.name.available", "theme" to theme.displayName)
+                        }
+                    )
+                    meta.lore(
+                        listOf(
+                            when {
+                                isCurrent -> lang.gui("menu.guild_settings.item.theme_option.lore.current")
+                                canManageThemes -> lang.gui("menu.guild_settings.item.theme_option.lore.apply")
+                                else -> lang.gui("menu.guild_settings.item.theme_option.lore.locked")
+                            }
+                        )
+                    )
+                    if (isCurrent) meta.setEnchantmentGlintOverride(true)
                 }
-            )
-                .name(if (isCurrent) lang.gui("menu.guild_settings.item.theme_option.name.current", "theme" to theme.displayName) else lang.gui("menu.guild_settings.item.theme_option.name.available", "theme" to theme.displayName))
-                .lore(if (isCurrent) lang.gui("menu.guild_settings.item.theme_option.lore.current") else lang.gui("menu.guild_settings.item.theme_option.lore.apply"))
+            }
 
             pane.addItem(GuiItem(item) {
-                if (!isCurrent) {
-                    guildService.setGuiTheme(guild.id, theme, player.uniqueId)
-                    guild = guild.copy(guiTheme = theme)
-                    player.sendMessage(lang.msg("menu.guild_settings.feedback.theme_changed", "theme" to theme.displayName))
-                    open()
+                if (isCurrent) return@GuiItem
+                if (!canManageThemes) {
+                    player.sendMessage(lang.msg("menu.guild_settings.feedback.no_settings_permission"))
+                    return@GuiItem
                 }
-            }, pos, 0)
+
+                if (guildService.setGuiTheme(guild.id, theme, player.uniqueId)) {
+                    guild = guild.copy(guiTheme = theme)
+                    player.sendMessage(
+                        lang.msg("menu.guild_settings.feedback.theme_changed", "theme" to theme.displayName)
+                    )
+                    open()
+                } else {
+                    player.sendMessage(lang.msg("menu.guild_settings.feedback.theme_change_failed"))
+                }
+            }, index, 0)
         }
 
-        // Back button at the last slot
-        val backItem = ItemStack.of(Material.BARRIER)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_settings.item.back.name"))
         pane.addItem(GuiItem(backItem) { open() }, 8, 0)
 

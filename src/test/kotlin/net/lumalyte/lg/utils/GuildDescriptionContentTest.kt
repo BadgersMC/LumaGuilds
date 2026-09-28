@@ -51,7 +51,7 @@ class GuildDescriptionContentTest {
 
         assertEquals(1, clicks.size)
         assertEquals(ClickEvent.Action.OPEN_URL, clicks.single().action())
-        assertEquals(discord, clicks.single().value())
+        assertEquals(discord, clicks.single().textValue())
         assertEquals(
             "Recruiting: $discord $ordinary",
             GuildDescriptionContent.plainText("<gold>Recruiting:</gold> $discord $ordinary"),
@@ -73,7 +73,7 @@ class GuildDescriptionContentTest {
             assertEquals(discord, GuildDescriptionContent.plainText(description))
             assertEquals(1, clicks.size)
             assertEquals(ClickEvent.Action.OPEN_URL, clicks.single().action())
-            assertEquals(discord, clicks.single().value())
+            assertEquals(discord, clicks.single().textValue())
         }
     }
 
@@ -111,3 +111,6 @@ class GuildDescriptionContentTest {
         createdAt = Instant.EPOCH,
     )
 }
+
+private fun ClickEvent<*>.textValue(): String =
+    (payload() as ClickEvent.Payload.Text).value()

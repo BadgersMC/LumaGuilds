@@ -161,7 +161,8 @@ class QuestProgressListener(
             event.guildId,
             QuestAction.DEPOSIT_BANK,
             "lumaguilds:bank/coins",
-            event.amount.toLong()
+            event.amount.toLong(),
+            actorId = event.playerId,
         )
     }
 
@@ -204,7 +205,14 @@ class QuestProgressListener(
         context: QuestProgressContext = QuestProgressContext()
     ) {
         memberService.getPlayerGuilds(player.uniqueId).forEach { guildId ->
-            questService.incrementProgress(guildId, action, target, amount, context)
+            questService.incrementProgress(
+                guildId = guildId,
+                action = action,
+                targetId = target,
+                amount = amount,
+                context = context,
+                actorId = player.uniqueId,
+            )
         }
     }
 

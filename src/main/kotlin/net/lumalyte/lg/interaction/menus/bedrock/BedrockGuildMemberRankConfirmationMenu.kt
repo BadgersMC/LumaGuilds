@@ -10,8 +10,6 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu
-import net.lumalyte.lg.interaction.menus.guild.GuildMemberRankMenu
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
@@ -92,10 +90,10 @@ class BedrockGuildMemberRankConfirmationMenu(
             }
 
             // Return to member management menu
-            bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
         } else {
             player.sendMessage(lang.msg("bedrock.member_rank_confirmation.feedback.failed"))
-            bedrockNavigator.openMenu(GuildMemberRankMenu(menuNavigator, player, guild, targetMember))
+            bedrockNavigator.openMenu(menuFactory.createGuildMemberRankMenu(menuNavigator, player, guild, targetMember))
         }
     }
 

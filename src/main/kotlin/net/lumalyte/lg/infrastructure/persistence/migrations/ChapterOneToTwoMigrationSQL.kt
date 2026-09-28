@@ -19,6 +19,11 @@ data class ChapterOneToTwoPreview(
     val guilds: List<ChapterOneToTwoGuildPlan>,
     val orphanProgressionRows: Int,
     val orphanHomeRows: Int,
+    val orphanMemberRows: Int,
+    val orphanRankRows: Int,
+    val orphanRelationRows: Int,
+    val invalidMemberRankRows: Int,
+    val ownerlessGuilds: Int,
     val levelDriftRows: Int,
 )
 
@@ -137,6 +142,49 @@ class ChapterOneToTwoMigrationSQL(
             LEFT JOIN guilds g ON g.id = h.guild_id
             WHERE g.id IS NULL
         """.trimIndent())
+        // Membership/rank/relation tables evolved before Chapter 2. The readiness
+        // preview must remain consumable by valid older Chapter 1 schemas while
+        // performing the deeper integrity audit whenever the required columns exist.
+        val hasMembers = tableExists("members") && columnExists("members", "guild_id")
+        val hasRanks = tableExists("ranks") && columnExists("ranks", "id") && columnExists("ranks", "guild_id")
+        val hasMemberRank = hasMembers && columnExists("members", "rank_id")
+        val hasRankPriority = hasRanks && columnExists("ranks", "priority")
+        val hasRelations = tableExists("relations") &&
+            columnExists("relations", "guild_a") && columnExists("relations", "guild_b")
+
+        val orphanMemberRows = if (hasMembers) scalarInt("""
+            SELECT COUNT(*) FROM members m
+            LEFT JOIN guilds g ON g.id = m.guild_id
+            WHERE g.id IS NULL
+        """.trimIndent()) else 0
+        val orphanRankRows = if (hasRanks) scalarInt("""
+            SELECT COUNT(*) FROM ranks r
+            LEFT JOIN guilds g ON g.id = r.guild_id
+            WHERE g.id IS NULL
+        """.trimIndent()) else 0
+        val orphanRelationRows = if (hasRelations) scalarInt("""
+            SELECT COUNT(*) FROM relations rel
+            LEFT JOIN guilds ga ON ga.id = rel.guild_a
+            LEFT JOIN guilds gb ON gb.id = rel.guild_b
+            WHERE ga.id IS NULL OR gb.id IS NULL
+        """.trimIndent()) else 0
+        val invalidMemberRankRows = if (hasMemberRank && hasRanks) scalarInt("""
+            SELECT COUNT(*) FROM members m
+            LEFT JOIN ranks r ON r.id = m.rank_id
+            WHERE r.id IS NULL OR r.guild_id <> m.guild_id
+        """.trimIndent()) else 0
+        val ownerlessGuilds = if (hasMemberRank && hasRankPriority) scalarInt("""
+            SELECT COUNT(*) FROM guilds g
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM members m
+                JOIN ranks r ON r.id = m.rank_id AND r.guild_id = g.id
+                WHERE m.guild_id = g.id
+                  AND r.priority = (
+                      SELECT MIN(rr.priority) FROM ranks rr WHERE rr.guild_id = g.id
+                  )
+            )
+        """.trimIndent()) else 0
         val levelDriftRows = scalarInt("""
             SELECT COUNT(*) FROM guilds g
             JOIN guild_progression p ON p.guild_id = g.id
@@ -146,6 +194,11 @@ class ChapterOneToTwoMigrationSQL(
             guilds = rows,
             orphanProgressionRows = orphanProgressionRows,
             orphanHomeRows = orphanHomeRows,
+            orphanMemberRows = orphanMemberRows,
+            orphanRankRows = orphanRankRows,
+            orphanRelationRows = orphanRelationRows,
+            invalidMemberRankRows = invalidMemberRankRows,
+            ownerlessGuilds = ownerlessGuilds,
             levelDriftRows = levelDriftRows,
         )
     }
@@ -400,6 +453,25 @@ class ChapterOneToTwoMigrationSQL(
             statement.setLong(3, now)
             statement.setString(4, chapterId)
             check(statement.executeUpdate() == 1)
+        }
+    }
+
+    private fun tableExists(table: String): Boolean {
+        val metadata = connection.metaData
+        val candidates = listOf(table, table.lowercase(), table.uppercase())
+        return candidates.any { candidate ->
+            metadata.getTables(connection.catalog, null, candidate, arrayOf("TABLE")).use(ResultSet::next)
+        }
+    }
+
+    private fun columnExists(table: String, column: String): Boolean {
+        val metadata = connection.metaData
+        val tableCandidates = listOf(table, table.lowercase(), table.uppercase())
+        val columnCandidates = listOf(column, column.lowercase(), column.uppercase())
+        return tableCandidates.any { tableName ->
+            columnCandidates.any { columnName ->
+                metadata.getColumns(connection.catalog, null, tableName, columnName).use(ResultSet::next)
+            }
         }
     }
 

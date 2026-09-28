@@ -95,7 +95,8 @@ class QuestGenerator(
                 targetCount = amount,
                 tier = tier,
                 conditions = conditions,
-                experienceReward = rewardXp(tier)
+                experienceReward = rewardXp(tier),
+                leaderboard = true,
             )
             if (isAcceptable(quest, selected, history, settings)) return quest
         }
@@ -120,7 +121,8 @@ class QuestGenerator(
                     target = target,
                     targetCount = amount,
                     tier = tier,
-                    experienceReward = rewardXp(tier)
+                    experienceReward = rewardXp(tier),
+                    leaderboard = true,
                 )
                 if (isAcceptable(quest, selected, history, settings)) return quest
             }
@@ -138,7 +140,8 @@ class QuestGenerator(
                     target = target,
                     targetCount = amount,
                     tier = tier,
-                    experienceReward = rewardXp(tier)
+                    experienceReward = rewardXp(tier),
+                    leaderboard = true,
                 )
                 if (isFallbackAcceptable(quest, selected)) return quest
             }

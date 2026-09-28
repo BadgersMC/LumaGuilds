@@ -605,11 +605,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence: claim-once persistence, claim-gated full-set bonus, weekly activity XP, namespaced item reward round-trip, stack splitting, inventory overflow drops, and payout-before-cleanup remain covered.
   - Files: reward delivery in `QuestService`, `QuestRewardSinkBukkit`
 
-- [x] **LG-1607** Quest menu UI and dynamic rendering — ChestGUI/Bedrock surfaces display generated action/target/amount/conditions without requiring one language key per generated quest.
+- [x] **LG-1607** Quest menu UI and dynamic rendering — Java ChestGUI and dedicated Bedrock Cumulus forms display the persisted generated weekly quest set without requiring one language key per generated quest.
   - Tag: `TDD`
-  - References: REQ-078
-  - Evidence: `QuestDisplayFormatter` renders provider IDs and axis corridors into human text; dashboard/factory/6-row quest navigation, progress/reward/claim state, timer, pagination, and Bedrock fallback remain wired.
-  - Files: `interaction/menus/guild/GuildQuestsMenu.kt`, `utils/QuestDisplayFormatter.kt`, Bedrock quest menu
+  - References: REQ-078, REQ-111
+  - Evidence: `QuestDisplayFormatter` serves both editions. `BedrockGuildQuestsMenu` now renders six quests per page with human objective text, progress, Guild EXP/item rewards, leaderboard rank, claim state, reset timer and full-set bonus state; claims use the existing idempotent `QuestService` on the server thread. MenuFactory no longer returns the unavailable placeholder for Bedrock. Focused routing/wiring/locale tests and the full 1,357-test suite are green.
+  - Files: `interaction/menus/guild/GuildQuestsMenu.kt`, `interaction/menus/bedrock/BedrockGuildQuestsMenu.kt`, `utils/QuestDisplayFormatter.kt`, MenuFactory/localization/tests
 
 - [x] **LG-1608** Read-only localization/placeholders — all surrounding player-facing quest UI uses `LangService`; generated components are dynamically formatted, while PlaceholderAPI exposes read-only timer/definition/progress/reward/bonus state.
   - Tag: `INFRA`
@@ -619,3 +619,194 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 - [x] **Claims-disabled vault startup regression (REQ-015):** Vault claim lookup is optional; claims-enabled placement remains fail-closed. Both real startup graphs pass, and the full test suite plus shadowJar build pass.
 - [x] **Withdrawal fee messaging (REQ-015):** Quick withdrawal buttons preview actual capped fees and total deduction; successful physical and personal-account withdrawals report destination, fee and total. Regression test and full suite pass; shadowJar rebuilt.
+
+## Season 2 UI redesign — local staging
+
+- [~] **LG-S2-UI** Audit all menu presentations, reconcile Nexo definitions and unify navigation/progression artwork.
+  - Tag: `INFRA`
+  - References: REQ-087, REQ-094, REQ-095; `docs/implementation.md` §Layer Dependency Rules; user handoff 2026-09-24.
+  - Evidence: implementation and staging deployment are complete. Full `test shadowJar` passes 1,310 tests with 0 failures / 0 errors / 3 skips; `git diff --check` is clean; Semgrep `p/kotlin` ran 9 rules over 68 tracked guild-menu files with 0 findings. LumaGuilds 2.1.0 and Nexo 1.22.1 enable cleanly on Leaf 1.21.11 / Java 21. A first human Java-client walkthrough was completed on 2026-09-24 and found the presentation broadly improved, especially Progression, while identifying the follow-up work documented below; the overall Season 2 UI task remains partial until those findings are resolved and rechecked.
+  - Follow-up validation 2026-09-25: full test + shadowJar passes 1,342 tests with 0 failures / 0 errors / 3 skips; git diff check is clean; Semgrep p/kotlin ran 9 rules over 69 guild-menu targets with 0 findings. Staging JAR SHA-256 512D5734AD6DDC9E8E7E259DD67B6CEAB535B1C68502AC30A08A709257EAA3C6. SELFHOST pack SHA-256 60814E1CB04812B4395D6928536C23EA5C9A1167DE611D77345AEEEBB4E58A21 (915,141 bytes). Human second-pass visual sign-off remains pending.
+
+- [x] **LG-S2-LAYOUT** Separate progression content from sidebar and navigation.
+  - Tag: `TDD`
+  - References: REQ-094; `docs/implementation.md` §Layer Dependency Rules.
+  - Evidence: `GuildProgressionLayoutTest` locks the 24 source slots (11–16, 20–25, 29–34, 38–43) and prevents collisions with header/sidebar/navigation regions. Full suite green.
+- [x] **LG-S2-THEME** One-row GUI theme selector and six themed glyph backgrounds.
+  - Tag: `TDD`
+  - References: REQ-096, REQ-099.
+  - Evidence: Settings → GUI Theme is a one-row selector with six theme choices at slots 0–5 and Back at slot 8, permission-gated mutation, current-theme cue, and localized light title. `MenuTitleBuilderTest` covers 1/3/4/5/6-row glyph names for all six themes. Runtime glyphs `guild_bg_<theme>_1_row` use unique U+A018..U+A01D codepoints; all six codepoints are present in the generated pack JSON.
+- [x] **LG-S2-PROGRESSION-ICONS** Exhaustive ExperienceSource and pool-aware progression presentation.
+  - Tag: `TDD`
+  - References: REQ-097.
+  - Evidence: every `ExperienceSource` maps explicitly; ORE/CRAFTING pools select semantic pool art; gift artwork is no longer a catch-all. `GuildProgressionIconMappingTest` and the full suite are green.
+- [x] **LG-S2-BANK-I18N** Repair Guild Bank literal/computed language lookups and compact layout.
+  - Tag: `TDD`
+  - References: REQ-098, REQ-100.
+  - Evidence: all previously unresolved bank paths are declared, finite quick-action keys are covered by `LocaleContractTest`, dynamic transaction labels reuse declared history keys, and the Java bank uses the approved 4-row / 36-slot shell. Bank localization/layout/runtime contracts and full suite are green.
+- [x] **LG-S2-PACK** Install second-pass backgrounds/icons/swatches into local Nexo, audit identifiers, regenerate SELFHOST pack.
+  - Tag: `INFRA`
+  - References: REQ-095, REQ-099.
+  - Evidence: staging-only Nexo remains `SELFHOST`. 26 new item CMD values 733213–733238 each occur exactly once; six new glyph chars U+A018–U+A01D each occur exactly once; there are zero duplicate item IDs or glyph IDs. Approved 512×512 art remains the master source, while all 60 Nexo/package GUI runtime copies were downscaled to 256×256 to satisfy Nexo's bitmap validator. Clean restart generated `plugins/Nexo/pack/pack.zip` without oversized/placeholder warnings; SHA-256 `17CED3AFD257F80C7EF2209B3646D2C6543B9D969C426AD264E9F7F5983964CC`.
+  - Deployment: `plugins/LumaGuilds-Season2.jar` SHA-256 `B695D28BC44DDEEB6C8A54E76876624B1CBDB76257255E862386F86483ADE903`; previous JAR backed up under `_staging_backups/season2-ui-deploy-20260924-194304`. Resource pre-overwrite backup: `_staging_backups/season2-ui-secondpass-20260924-190910`.
+- [x] **LG-S2-MENUS** Apply approved dashboard/economy/settings/diplomacy/warfare/member layout family without behavior loss.
+  - Tag: `TDD`
+  - References: REQ-087, REQ-100.
+  - Evidence: dashboard keeps all ten sections with Statistics under Economy and uses the guild's real stored banner when available; Settings is regrouped into identity / appearance / access-location; existing segmented diplomacy/warfare flows and member/rank state/paging are preserved. Layout contracts and full suite are green.
+  - Runtime note: a Java client connected successfully after the clean pack rebuild. Bedrock remains explicitly unverified because this staging runtime reports Floodgate/Cumulus classes absent.
+
+## Season 2 Java visual-audit follow-up — 2026-09-24
+
+> Source: live Java-client walkthrough on local staging after the second-pass pack/JAR deployment. The walkthrough used an imported guild database, including temporary override/join testing with Vibe and Test. Treat data anomalies as findings to reproduce against authoritative live data before deciding whether they are migration artifacts or runtime defects.
+>
+> Positive sign-off from the walkthrough: Members looked good; core Quests behavior appeared to work; Progression was specifically called out as clear, intuitive and visually successful; Diplomacy looked good; the Warfare/Party shell looked good. These areas still participate in regression testing but do not need presentation rewrites solely from this audit.
+
+- [x] **LG-S2-DASHBOARD-DATA** Make Dashboard summary authoritative and more useful at a glance.
+  - Tag: `TDD`
+  - References: REQ-101.
+  - Finding: Vibe displayed 23 members / rank 4 / balance 0 on the dashboard while Economy reported guild balance 850. Reproduce and make the dashboard consume the same canonical balance/data source as Economy/Bank. Review which additional high-value guild facts fit the summary without adding clutter.
+  - Follow-up evidence: Dashboard now reads the canonical BankService.getBalance(guild.id) value used by Economy/Bank; the stale guild.bankBalance path is contract-tested out. Full suite is green.
+
+- [~] **LG-S2-INFO-DISBAND-INTEGRITY** Reproduce Information access behavior and eliminate stale disband remnants.
+  - Tag: `TDD`, `MIGRATION`
+  - References: REQ-102.
+  - Finding: Information appeared inert while temporarily overridden into Vibe but opened after joining Test, so permission/override behavior needs diagnosis rather than assuming a rendering bug. Test also remained joinable despite having been previously disbanded and showed an unknown owner; the unknown owner could be the former owner UUID. Verify disband persistence cleanup and add pre-cutover detection/reporting for orphaned guild/owner rows.
+  - Follow-up evidence: Guild Info re-resolves the canonical guild before rendering and closes cleanly if the guild no longer exists. Chapter 1 to 2 readiness preview now reports orphan members/ranks/relations, invalid member-rank links and ownerless guilds while remaining compatible with older Chapter 1 schemas. Root-cause/live-data validation of the observed Test guild remains pending.
+
+- [x] **LG-S2-RANK-LORE** Localize and compress rank/perk hover content.
+  - Tag: `TDD`, `UI`
+  - References: REQ-103.
+  - Finding: several rank/perk entries expose missing language keys and legacy descriptions are long enough to run off practical tooltip space. Preserve behavior while rewriting to concise, scannable lore and add localization coverage for every displayed perk.
+  - Follow-up evidence: Rank cards now show a bounded six-permission preview plus total/overflow count instead of unbounded category lore; all dynamic rank-permission localization keys are contract-tested.
+
+- [x] **LG-S2-QUEST-UX** Make generated weekly quests read like player objectives and expand the weekly set to six.
+  - Tag: `TDD`, `UI`
+  - References: REQ-104, REQ-074..REQ-078.
+  - Findings/examples: `Fish Any` / `100 any above Y96` should render as a natural objective such as `Catch any fish`; `Enchant Items Stone Spear` / `90 stone spear within 50 blocks of Z0` reads like generator output and the highway condition is not meaningful for enchanting; `Deposit Bank Coins` must describe the server's actual currency as Gold Ore and show the amount as Gold Ore, not generic coins. Revisit condition/action compatibility and reshape the menu for six weekly quests instead of three.
+  - Follow-up evidence: shipped/default weekly quest count is six with a centered six-card grid; procedural wording now renders player objectives such as Catch Any Fish, Enchant 90 Stone Spears, and Deposit 30,000 Gold Ore to the Guild Bank; crafting/smelting/enchanting no longer receive highway coordinate conditions.
+
+- [~] **LG-S2-BANK-UX-FUNCTIONALITY** Keep the bank feature depth but make the entire flow coherent, localized and operational.
+  - Tag: `TDD`, `UI`
+  - References: REQ-010..REQ-012, REQ-036, REQ-105.
+  - Findings: Transaction History opens deeper statistics/filter controls with missing language keys and apparently inert actions; Automation exposes scheduled deposits, auto rewards, alerts, recurring payments and status/configuration information but several setup controls are still `coming soon`; Bank Statistics and Member Contributions need verified real data. Preserve the intended information/functionality, add purpose-specific custom icons, simplify navigation/labels, and ensure every visible control works or is explicitly read-only. The next-interest/accrual timer should tick from real persisted schedule state rather than behave like static text.
+  - Follow-up evidence: missing bank filter/budget localization is repaired; false coming-soon automation clicks were removed or converted to honest read-only state, Budget Alerts opens its real menu, next interest accrual ticks live, and stale-menu art hooks are wired with vanilla fallbacks. Live-data/member-contribution verification remains pending; this staging boot also reports no Vault economy provider.
+
+- [x] **LG-S2-LUNAR-DEFAULT** Disable Lunar tracking by default.
+  - Tag: `TDD`, `CONFIG`
+  - References: REQ-106.
+  - Acceptance: new guild/default settings initialize Lunar tracking off; explicit persisted opt-ins remain stable unless migration policy intentionally changes them.
+  - Follow-up evidence: new/default Guild.trackingEnabled is false and covered by GuildSeason2DefaultsTest; existing persisted values are not rewritten.
+
+- [x] **LG-S2-PRESTIGE-RELEASE** Finish and expose the real level-100 Prestige flow for Chapter 2.
+  - Tag: `TDD`, `RELEASE`
+  - References: REQ-093, REQ-107.
+  - Finding: current Progression UI says Prestige requires level 25 and `coming in a future update`; correct eligibility is level 100. Remove the placeholder copy and validate the full prestige transaction/reset/reward path for release while retaining the explicit operator enable/disable policy from REQ-093.
+  - Follow-up evidence: level-100 Prestige is now a live selection/confirmation flow backed by an atomic, idempotent repository transaction that debits canonical guild gold, resets run progression to Level 1, promotes the selected eligible reward to permanent ownership, increments lifetime prestige count and refreshes progression state. Reward purchases, wars and Prestige share guild-scoped coordination. Operator progression.prestige.enabled remains false by default per REQ-093.
+  - 2026-09-25 operator adjustment: lifetime prestige maximum increased from 3 to 6. Prestige IV / V / VI temporarily reuse the existing approved 30,000 Gold Ore fee ceiling; the cap change does not introduce a new economy curve.
+
+- [~] **LG-S2-WAR-CUTOVER** Add a clean-slate Chapter 2 war-state reset and verify warfare statistics.
+  - Tag: `TDD`, `MIGRATION`, `RELEASE`
+  - References: REQ-108, REQ-024, REQ-033, REQ-039, REQ-057.
+  - Findings: imported staging data showed Vibe apparently involved in roughly a dozen long-running wars while Warfare quick stats reported zero. Before cut-over, inspect the live database and distinguish stale legacy rows from current-code defects. Provide an explicit audited admin operation to clear/end all active wars plus incoming/outgoing declarations and peace-agreement state so Chapter 2 starts clean; do not rely on manual SQL deletion as the release procedure.
+  - Follow-up evidence: /lumaguilds warcutover CONFIRM is explicit/admin-gated and safely cancels active/declared wars, rejects pending declarations, clears peace proposals and refunds provably unsettled wagers; ambiguous REVIEW payment state fails closed and is reported. Live-database cleanup and warfare-stat reconciliation remain pending.
+
+- [~] **LG-S2-STATS-OVERHAUL** Rebuild the Statistics menu presentation around verified data.
+  - Tag: `TDD`, `UI`
+  - References: REQ-013, REQ-023, REQ-032, REQ-036, REQ-066, REQ-109.
+  - Findings: the menu still largely resembles the legacy vanilla-icon UI. Remove the obsolete `Export Statistics` CSV button. Kill Trends, Periodic Statistics and other entries expose missing localization; Rivalry Statistics and Guild Achievements appeared empty; Top Killers did not appear to surface data; Top Contributors appeared inert; K/D Analysis and other legacy drill-downs require verification. Replace vanilla presentation with intentional Season 2 icons and make each retained view demonstrably data-backed; hide/remove unwired surfaces rather than shipping dead buttons.
+  - Follow-up evidence: CSV Export is removed, the unwired Kill Trends entry remains hidden, war-stat load failures display explicit unavailable state rather than believable zeros, and delivered Season 2 art is wired for supported statistics controls with vanilla fallbacks. Representative live-data verification remains pending.
+
+- [~] **LG-S2-LIVE-DB-READINESS** Run a Chapter 2 readiness audit against a copy of the current live database before the production migration.
+  - Tag: `MIGRATION`, `RELEASE`
+  - References: REQ-091, REQ-102, REQ-108, REQ-109.
+  - Scope: report orphaned/disbanded guild records, unknown/missing owners, residual wars/declarations/peace state, guild balances versus canonical `vault_gold.balance`, and representative statistics/leaderboard source rows. Produce a before/after cleanup report and validate the migration on the copy before any production execution.
+  - Follow-up evidence: migration/readiness tooling now detects orphan progression/home/member/rank/relation rows, invalid member-rank identity, ownerless guilds and level drift; war cut-over tooling is ready. The audit has not yet been run against a fresh copy of the current production database.
+
+- [x] **LG-S2-STALE-ART** Integrate Astra stale-menu bank/statistics artwork and coordinated persisted-state toggle sprites.
+  - Tag: UI, INFRA, TDD
+  - References: REQ-099, REQ-105, REQ-109; Astra delivery outputs/season2-stale-menu-icons/NAME-MAPPING.md.
+  - Evidence: existing lg_history, lg_automation and lg_nav_statistics IDs were reused; 17 collision-free new Nexo IDs use CMD 733239-733255; 19 delivered 32x32 textures were staged/output-packaged. Generic ON/OFF sprites are used only for real persisted settings/ally-home booleans; Active Automations remains read-only status. Kill Trends art is packaged but intentionally not exposed while that data surface remains unwired. Nexo regenerated SELFHOST pack without validator/placeholder errors.
+
+> Visual-audit release gate: `LG-S2-UI` remains partial until the findings above are resolved/retested and the user performs another Java-client walkthrough. Bedrock validation remains a separate gate because the current staging runtime does not expose Floodgate/Cumulus classes to LumaGuilds.
+
+---
+
+## PR-17 — Season 2 Bedrock parity
+
+> Source: `docs/season2-bedrock-parity-audit-2026-09-25.md` (BPAR-001..BPAR-020).
+> Plan: `docs/superpowers/plans/2026-09-25-season2-bedrock-parity.md`.
+> Contract: Bedrock may use Cumulus-specific presentation, but supported behavior, authority, canonical data and failure semantics must match Java. Static parity and real-client runtime acceptance are separate gates.
+
+- [x] **LG-1801** Bedrock parity contracts, authorization, and navigation isolation.
+  - Tag: `TDD`
+  - References: REQ-110, REQ-120; BPAR-007, BPAR-009, BPAR-019, BPAR-020.
+  - Evidence: SPEAR RED was captured by `BedrockGuildAuthorizationTest` failing compilation on the missing authorization boundary. `BedrockGuildAuthorization` now centralizes management permission checks; Bank auto-deposit/automation/budget/security fail closed and hide mutable settings from unauthorized players; Settings and rank management reuse the guard and recheck before mutation. Invite/kick/member-rank/disband/leave confirmation flows no longer directly construct Java guild menus. `BedrockMenuNavigator` now persists forward/step state, restores recovery state and clears player workflow state on cancellation. The Bedrock control panel exposes all ten Season 2 dashboard domains and routes Quests through the platform-aware factory (the dedicated Quest form remains LG-1802). Focused parity/auth/bank/locale contracts and `LayerRulesTest` are green; full `test shadowJar` passes 1,353 tests with 0 failures / 0 errors / 3 skips; `git diff --check` is clean.
+  - Files: `BedrockGuildAuthorization.kt`, `BedrockBankSettingsEditor.kt`, Bedrock bank/settings/rank/confirmation/navigation/control-panel forms, localization, parity/authorization tests.
+
+- [x] **LG-1802** Dedicated Bedrock Weekly Guild Quests form.
+  - Tag: `TDD`
+  - References: REQ-111, REQ-074..REQ-079, REQ-104; BPAR-001.
+  - Evidence: SPEAR RED was captured by `MenuFactoryBedrockQuestsTest` failing compilation because `BedrockGuildQuestsMenu` did not exist. The new Cumulus form consumes only shared `QuestService` read/claim APIs, pages six quests at a time, renders `QuestDisplayFormatter` objective text, progress, XP/item rewards, leaderboard rank, claimed/completable/in-progress state, reset time and full-set bonus state, and dispatches claim/page/back callbacks onto the server thread. The factory now returns the native Bedrock form. Focused routing/wiring/parity/locale tests are green. One initial full run hit the pre-existing timing-sensitive Discord-role concurrency test; that test passed in isolation and the clean rerun of `test shadowJar` passes 1,357 tests with 0 failures / 0 errors / 3 skips. `git diff --check` is clean.
+  - Files: `BedrockGuildQuestsMenu.kt`, MenuFactory/control panel/localization, `MenuFactoryBedrockQuestsTest.kt`, `BedrockGuildQuestsWiringTest.kt`.
+
+- [x] **LG-1803** Bedrock Chapter 2 progression and six-prestige flow.
+  - Tag: `TDD`
+  - References: REQ-093, REQ-107, REQ-112; BPAR-002, BPAR-003.
+  - Evidence: Chapter 2 Bedrock progression now consumes the shared reward catalog/purchase services and `GuildPrestigeService`. The progression form exposes explicit unavailable/disabled/not-Level-100/maximum/no-choice/ready prestige states, current/max prestige count, next fee and eligible retained rewards. Selection obtains the shared immutable `PrestigeQuote`; confirmation reuses that exact quote/transaction ID, returns rejected outcomes to selection, and reopens the same quote on uncertain failure for idempotent retry. Bedrock callbacks re-enter the server thread. The Chapter 2 reward route does not use the legacy `PerkType` catalog; legacy progression remains isolated to the disabled pre-Chapter-2 fallback. Focused Bedrock prestige, reward-catalog and prestige service/config tests are green.
+  - Files: `BedrockGuildProgressionInfoMenu.kt`, `BedrockPrestigeSelectionMenu.kt`, `BedrockPrestigeConfirmationMenu.kt`, localization and Bedrock prestige contract/wiring tests.
+
+- [x] **LG-1804** Bedrock Settings parity for open state, Lunar tracking, GUI theme and current persisted state.
+  - Tag: `TDD`
+  - References: REQ-106, REQ-113; BPAR-004.
+  - Evidence: SPEAR RED is captured by `BedrockGuildSettingsSeason2ContractTest` with all three assertions failing before implementation. The Bedrock form now refreshes the guild from `GuildService`, renders persisted open/closed, Lunar tracking and all six `GuiTheme` choices, and uses the same `setOpen`, `setTrackingEnabled` and `setGuiTheme` mutations as Java. `MANAGE_GUILD_SETTINGS` controls are read-only when unauthorized and permission is rechecked before mutation; existing description/mode permission behavior remains distinct. Form callbacks return to the Bukkit server thread and the form is no longer cached across stale guild state. Focused Bedrock/Java settings contracts are green; full `test shadowJar` passes 1,365 tests with 0 failures / 0 errors / 3 skips; `git diff --check` has warnings only.
+  - Files: `BedrockGuildSettingsMenu.kt`, `BedrockGuildSettingsSeason2ContractTest.kt`, shared GuildService/GuiTheme/localization contracts.
+
+- [x] **LG-1805** Rebuild Bedrock Statistics around authoritative data and explicit unavailable/empty states.
+  - Tag: `TDD`
+  - References: REQ-109, REQ-114; BPAR-005.
+  - Evidence: SPEAR RED is captured by BedrockGuildStatisticsTruthfulnessContractTest (3/3 failing before implementation). Bedrock Statistics now uses the same KillService, WarService, MemberService, BankService, GuildService, LeaderboardService, InvitationStatisticsService and progression repository data as Java. Fabricated 0/800 XP, always-active, join-time activity and 0/0/1 territory placeholders were removed. Supported kill/war/member-performance/recent/top-killer/top-contributor/top-inviter/K-D/periodic/rivalry/achievement/economy states are service-backed; empty and unavailable states are explicit; unsupported territory is omitted; no CSV/export surface exists. Existing paged invitation leaderboard behavior was preserved. Focused truthfulness/data-state/invitation/localization contracts are green; full test shadowJar passes 1,368 tests with 0 failures / 0 errors / 3 skips. JAR SHA-256 F185C98845056790BC96D05865233FE8189591303F355342ADBAD466EFD25413; git diff --check warnings only.
+  - Files: BedrockGuildStatisticsMenu.kt, BedrockGuildStatisticsTruthfulnessContractTest.kt, statistics localization and existing invitation/data-state contracts.
+
+- [x] **LG-1806** Bedrock Bank authorization and coherent navigation shell.
+  - Tag: `TDD`
+  - References: REQ-010..REQ-012, REQ-036, REQ-105, REQ-115; BPAR-006, BPAR-007.
+  - Evidence: SPEAR RED is captured by `BedrockBankNavigationSafetyContractTest` failing on the missing Bedrock bank drill-down routes and management-navigation contract. The main Bedrock bank form now routes through `MenuFactory` to History, Statistics, Contributions, Automation, Budget and Security while keeping Deposit / Withdraw as the default transaction surface. Automation/Budget/Security are omitted for players without `MANAGE_BANK_SETTINGS`, and crafted management selections recheck that permission before navigation. Existing automation/budget/security forms and `BedrockBankSettingsEditor` also recheck the same authority before persistence. Deposits remain canonical `BankService.deposit` calls and withdrawals retain `withdrawOutcome` with `BankWithdrawalResult.Ambiguous` routed to the payout-review/pending message. Focused bank/localization contracts are green; full `test shadowJar` passes 1,371 tests with 0 failures / 0 errors / 3 skips. JAR SHA-256 `64A4373A93586E336D02F29C61154D685E4BC3D9786A609B9C1E45CE9EB44346`; `git diff --check` has warnings only.
+  - Files: `BedrockGuildBankMenu.kt`, `BedrockBankSettingsEditor.kt`, Bedrock automation/budget/security forms, `en_US.yml`, `BedrockBankNavigationSafetyContractTest.kt`, `BedrockBankSettingsEditorTest.kt`.
+
+- [x] **LG-1807** Bedrock Bank drill-down parity for history, statistics, contributions and automation state.
+  - Tag: `TDD`
+  - References: REQ-105, REQ-115; BPAR-008.
+  - Evidence: `BedrockBankDrilldownParityContractTest` now covers the bounded/filterable history model, complete paged contribution list and executable-vs-retained automation state. Bedrock transaction history loads a bounded 500-row authoritative `BankService` window, pages 10 at a time and supports transaction-type, guild-member, date-range and text search filters while rendering the actual `TransactionType`. Member contributions page the complete bounded `BankService.getMemberContributions` result instead of truncating to ten. Automation now reads `BankAutomationService.getNextInterestRun`, exposes real interest status/countdown, keeps the three persisted-but-unexecuted automation flags visibly read-only, and only mutates the executing interest rate through the authorization-checked `BedrockBankSettingsEditor.saveInterestRate`. Focused Bedrock bank contracts are green; full `test shadowJar` passes 1,375 tests with 0 failures / 0 errors / 3 skips. JAR SHA-256 `4205E64FC4FA9E0EECCAD0CB7E6175A17F263F9ECB5980AAF3956DF7B8984DEF`.
+  - Files: `BedrockGuildBankTransactionHistoryMenu.kt`, `BedrockGuildMemberContributionsMenu.kt`, `BedrockGuildBankAutomationMenu.kt`, `BedrockBankSettingsEditor.kt`, `en_US.yml`, `BedrockBankDrilldownParityContractTest.kt`.
+
+- [x] **LG-1808** Bedrock homes, selected-member management and rank-editor convergence.
+  - Tag: `TDD`
+  - References: REQ-116, REQ-117; BPAR-010, BPAR-012, BPAR-013, BPAR-018.
+  - Evidence: native Bedrock per-home rank access and inbound ally-home whitelist forms now use the shared home/relation services; paid home activation/payment-review semantics remain intact; selected-member flow now exposes supported rank-change and kick actions; Bedrock rank creation/editing uses the complete current `RankPermission` model while preserving rank identity and existing priority during ordinary edits. `BedrockHomeMemberRankParityContractTest` went RED (4/4 failures) then green. Focused home/member/rank, locale and architecture tests are green. Full `test shadowJar` passes 1,379 tests with 0 failures / 0 errors / 3 skips. JAR SHA-256 `94ECB2FEC0859E2976E83BEEDC506EC51D5B7D9077E31EB3E602AFABA56CF713`.
+  - Files: `BedrockHomeAccessMenu.kt`, `BedrockAllyHomeAccessMenu.kt`, `BedrockGuildHomeMenu.kt`, `BedrockGuildMemberListMenu.kt`, `BedrockGuildMemberDetailMenu.kt`, `BedrockGuildRankManagementMenu.kt`, `BedrockRankCreationMenu.kt`, `BedrockRankEditMenu.kt`, `MenuFactory.kt`, `en_US.yml`, `BedrockHomeMemberRankParityContractTest.kt`.
+
+- [x] **LG-1809** Bedrock Party and LFG end-to-end form parity.
+  - Tag: `TDD`
+  - References: REQ-118; BPAR-011, BPAR-014.
+  - Evidence: `BedrockPartyLfgParityContractTest` started RED (4/4 failing) and is now green. A dedicated `BedrockLfgBrowserMenu` uses `LfgService.getAvailableGuilds()`, bounded paging and the shared join-requirements route; browser -> requirements -> join/result remains in Bedrock forms and paid admission stays delegated to `LfgService.joinGuild`. Party details now render persisted party state instead of an unavailable message; the fake mutable party-permission surface is replaced by truthful read-only guidance; party creation checks `canManageParties` before render and again before `PartyService.createParty`. Focused LFG/party service tests and the final Bedrock parity suite are green.
+  - Files: `BedrockLfgBrowserMenu.kt`, `BedrockJoinRequirementsMenu.kt`, `BedrockGuildPartyManagementMenu.kt`, `BedrockPartyCreationMenu.kt`, `MenuFactory.kt`, `en_US.yml`, `BedrockPartyLfgParityContractTest.kt`.
+
+- [x] **LG-1810** Bedrock Warfare/Diplomacy option parity without forking lifecycle logic.
+  - Tag: `TDD`
+  - References: REQ-039, REQ-108, REQ-119; BPAR-015, BPAR-016, BPAR-017.
+  - Evidence: `BedrockWarDiplomacyParityContractTest` started with 2/4 failures, exposing missing time-survival configuration and missing declaration authorization boundaries, then went green. Bedrock declaration now matches the Java-supported KILLS, TIME_SURVIVAL and claims-conditional CLAIMS_CAPTURED objective surfaces, uses the configured kill cap, rechecks `DECLARE_WAR` before render and mutation, and continues to create declarations only through `WarService` with no menu-side escrow. War declaration accept/reject/cancel, wager state, history/stats and peace remain authoritative `WarService` flows; alliance/truce/peace request lifecycle remains `RelationService` backed. Focused War/Relation tests are green.
+  - Files: `BedrockGuildWarDeclarationMenu.kt`, `BedrockGuildWarManagementMenu.kt`, `BedrockPeaceAgreementMenu.kt`, `BedrockGuildRelationsMenu.kt`, `en_US.yml`, `BedrockWarDiplomacyParityContractTest.kt`.
+
+- [x] **LG-1811** Bedrock localization and platform-truthfulness cleanup.
+  - Tag: `TDD`
+  - References: REQ-120; BPAR-014 plus all repaired Bedrock flows.
+  - Evidence: `BedrockLocalizationTruthfulnessContractTest`, `LocaleContractTest`, `GuildDescriptionWiringTest` and `GuildDescriptionContentTest` are green. Audited Bedrock Party/LFG/War/Diplomacy flows have no hardcoded unavailable/coming-soon/Java-client fallbacks or literal `sendMessage` strings; stale unused Bedrock fallback adapter/locales were removed; legacy Java party text keys now contain truthful current-state descriptions rather than roadmap promises. Dynamic names remain plain form text and guild descriptions use `GuildDescriptionContent.plainText`, preserving Discord invite URLs visibly for Bedrock.
+  - Files: Bedrock Party/LFG/War/Diplomacy forms, `MenuFactory.kt`, `en_US.yml`, `BedrockLocalizationTruthfulnessContractTest.kt`, locale/description contracts.
+
+- [ ] **LG-1812** Bedrock full-suite and real-client release acceptance.
+  - Tag: `INFRA`
+  - References: REQ-095, REQ-120; BPAR-020.
+  - Evidence: automated/static and staging-infrastructure gates are complete: focused Bedrock parity plus architecture/localization/resource contracts are green; final full `test shadowJar` passes **1,393 tests, 0 failures, 0 errors, 3 skipped**; JAR SHA-256 `040C47B3AAD1AC015928389536440CC355C286EC602802F369BB0B39056F5572`; `git diff --check` has no errors (line-ending warnings only), `gradlew check` is green, and Semgrep `p/kotlin` reruns clean with 9 rules / 795 tracked targets / 0 findings (one non-blocking PartialParsing warning in `BedrockGuildSelectionMenu.kt` around `open()` calls); no detekt/ktlint/spotless/checkstyle analyzer is configured. Local-only staging boots that exact JAR with Geyser 2.11.3-b1247, Floodgate 2.2.5-b141, bundled Cumulus, and ViaVersion 5.12.0; Geyser is bound to `127.0.0.1:19132` and Java to `127.0.0.1:25570`. LG-1812 runtime probing also exposed a real SQLite watchdog risk in bank audit pruning: `pruneAuditLogs` was performing database deletes on the Bukkit main thread. `BankInterestScheduler` now keeps inventory-sensitive interest settlement on the main thread but runs retention pruning asynchronously on an offset hourly cadence; the audit cache is concurrency-safe, and `BankInterestSchedulerThreadingContractTest` covers both thread placement and shutdown cancellation. After redeploy/restart, the first five-minute interest cycle and first asynchronous prune window passed with no `SQLITE_BUSY`, database-lock, or watchdog entries, and the server remained responsive to `bedrockcachestats`. **Still open:** the required real Bedrock-client walkthrough and independent final Java/Bedrock sign-off.
+  - Files: tests, `BankInterestScheduler.kt`, `BankRepositorySQLite.kt`, `BankInterestSchedulerThreadingContractTest.kt`, `docs/season2-runtime-validation.json`, validation docs, local staging only.
+
+> PR-17 dependency order: LG-1801 first; LG-1806 before LG-1807; LG-1802..LG-1810 before LG-1811; LG-1812 last. P0 findings (Quests, Prestige, Statistics truthfulness, bank authorization, parity-test gate) block Chapter 2 Bedrock sign-off.

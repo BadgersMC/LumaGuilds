@@ -215,6 +215,16 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             weekId,
         ).map(::mapProgress)
 
+    override fun getUnclaimedCompletedProgress(weekId: String): List<GuildQuestProgress> =
+        storage.connection.getResults(
+            """
+            SELECT * FROM guild_quest_progress
+            WHERE week_id = ? AND claimed = 0 AND completed_at IS NOT NULL
+            ORDER BY completed_at ASC, quest_id ASC, guild_id ASC
+            """.trimIndent(),
+            weekId,
+        ).map(::mapProgress)
+
     override fun getPendingClaimRewards(): List<GuildQuestProgress> =
         storage.connection.getResults(
             "SELECT * FROM guild_quest_progress WHERE claimed = 1 AND reward_delivered = 0"
@@ -224,7 +234,7 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         weekId: String,
         questId: String,
         guildId: UUID,
-        actorId: UUID,
+        actorId: UUID?,
     ): Boolean =
         storage.connection.executeUpdate(
             """
@@ -232,7 +242,7 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             SET claimed = 1, claim_actor_id = ?, reward_delivered = 0
             WHERE week_id = ? AND quest_id = ? AND guild_id = ? AND claimed = 0
             """.trimIndent(),
-            actorId.toString(),
+            actorId?.toString(),
             weekId,
             questId,
             guildId.toString(),

@@ -129,14 +129,19 @@ Prestige is configurable and ships disabled:
 ```yaml
 prestige:
   enabled: false
-  max_count: 3
+  max_count: 6
   costs:
     1: 10000
     2: 20000
     3: 30000
+    4: 30000
+    5: 30000
+    6: 30000
 ```
 
-Prestige count belongs to the guild and is never transferred to a player or another guild. Three is a lifetime maximum. After Prestige III, the guild may complete level 100 again and remain at the endgame permanently.
+Prestige IV–VI temporarily reuse the existing approved 30,000-gold fee ceiling. Increasing the lifetime cap to six is not an economy-retuning decision; the later tiers can be re-priced separately after Chapter 2 live data is reviewed.
+
+Prestige count belongs to the guild and is never transferred to a player or another guild. Six is a lifetime maximum. After Prestige VI, the guild may complete level 100 again and remain at the endgame permanently.
 
 ### 6.2 Eligibility
 
@@ -195,7 +200,7 @@ Prestige never grants a fresh daily allowance, a second weekly reward, or anothe
 
 The reward registry is the authority for prestige eligibility. A selected perk must already be purchased in the current run, may be selected only once, and retains exactly its configured effect across later resets. XP multipliers, source-cap increases, raw-gold generation, and home capacity are not selectable; prestige already grants its separate permanent home.
 
-The LG-1202 table must bound every selectable effect. Non-stackable perks remain non-stackable, and mutually exclusive perk families cannot both become permanent. Up to three selections are possible because prestige is capped at three.
+The LG-1202 table must bound every selectable effect. Non-stackable perks remain non-stackable, and mutually exclusive perk families cannot both become permanent. Up to six selections are possible because prestige is capped at six.
 
 ## 7. Elo and chapter interaction
 

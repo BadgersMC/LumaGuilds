@@ -10,7 +10,9 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.ModalForm
@@ -35,6 +37,7 @@ class BedrockGuildMemberListMenu(
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
     private val lang: LangService by inject()
+    private val plugin: Plugin by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -68,10 +71,14 @@ class BedrockGuildMemberListMenu(
                 config.backIconPath
             )
             .validResultHandler { response ->
-                handleFormResponse(response, members)
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (player.isOnline) handleFormResponse(response, members)
+                })
             }
             .closedOrInvalidResultHandler { _, _ ->
-                navigateBack()
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (player.isOnline) navigateBack()
+                })
             }
             .build()
     }
@@ -154,14 +161,43 @@ class BedrockGuildMemberListMenu(
             return
         }
 
-        // For now, show member management menu
-        // TODO: Implement detailed member selection with individual actions
-        showMemberManagementMenu()
-    }
+        val actions = mutableListOf<() -> Unit>()
+        var builder = SimpleForm.builder()
+            .title(lang.bedrock("bedrock.member_list.select_title", "guild" to guild.name))
+            .content(lang.bedrock("bedrock.member_list.select_description"))
 
-    private fun showMemberManagementMenu() {
-        val memberManagementMenu = menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild)
-        menuNavigator.openMenu(memberManagementMenu)
+        members.sortedBy { getPlayerName(it).lowercase() }.forEach { member ->
+            val name = getPlayerName(member)
+            val rank = rankService.getRank(member.rankId)?.name
+                ?: lang.bedrock("bedrock.member_list.unknown")
+            builder = builder.button(
+                lang.bedrock("bedrock.member_list.select_member", "player" to name, "rank" to rank)
+            )
+            actions += {
+                bedrockNavigator.openMenu(
+                    BedrockGuildMemberDetailMenu(menuNavigator, player, guild, member, logger)
+                )
+            }
+        }
+
+        builder = builder.button(lang.bedrock("bedrock.member_list.button.back"))
+        actions += { reopen() }
+
+        val selectionForm = builder
+            .validResultHandler { response ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (!player.isOnline) return@Runnable
+                    actions.getOrNull(response.clickedButtonId())?.invoke()
+                })
+            }
+            .closedOrInvalidResultHandler { _, _ ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (player.isOnline) reopen()
+                })
+            }
+            .build()
+
+        org.geysermc.floodgate.api.FloodgateApi.getInstance().sendForm(player.uniqueId, selectionForm)
     }
 
     private fun handleInvitePlayer() {

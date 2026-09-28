@@ -14,6 +14,15 @@ data class WarKillCounterUpdate(
     val winnerGuildId: UUID? = null,
 )
 
+data class WarCutoverReport(
+    val canceledWars: Int,
+    val rejectedDeclarations: Int,
+    val clearedPeaceAgreements: Int,
+    val failedRecordIds: List<UUID> = emptyList(),
+) {
+    val successful: Boolean get() = failedRecordIds.isEmpty()
+}
+
 interface WarService {
 
     /**
@@ -216,6 +225,12 @@ interface WarService {
      * @return The number of items processed.
      */
     fun processExpiredWars(): Int
+
+    /**
+     * Trusted operator-only Chapter cut-over operation. Callers must authorize the
+     * operator before invoking it. Wagers are safely unwound before wars are cancelled.
+     */
+    fun resetChapterCutoverState(operator: String): WarCutoverReport
 
     /**
      * Validates war objectives.

@@ -433,8 +433,27 @@ data class PartyConfig(
     var defaultToAllMembers: Boolean = true
 )
 
+data class PrestigeConfig(
+    var enabled: Boolean = false,
+    var maxCount: Int = 6,
+    var fees: List<Long> = listOf(10_000L, 20_000L, 30_000L, 30_000L, 30_000L, 30_000L),
+) {
+    init {
+        require(maxCount in 1..6) { "Prestige lifetime maximum must be between 1 and 6" }
+        require(fees.size >= maxCount && fees.take(maxCount).all { it > 0 }) {
+            "Prestige fees must define a positive fee for every allowed prestige"
+        }
+    }
+
+    fun feeFor(currentPrestigeCount: Int): Long {
+        require(currentPrestigeCount in 0 until maxCount)
+        return fees[currentPrestigeCount]
+    }
+}
+
 data class ProgressionConfig(
     var maxLevel: Int = 100,
+    val prestige: PrestigeConfig = PrestigeConfig(),
 
     // Experience values for different activities
     var bankDepositXpPer100: Int = 1,

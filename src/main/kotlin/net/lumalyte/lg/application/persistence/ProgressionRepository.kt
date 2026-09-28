@@ -27,6 +27,12 @@ interface ProgressionRepository {
     fun getGuildProgression(guildId: UUID): GuildProgression?
 
     /**
+     * Refreshes this repository's local view after another atomic use case commits
+     * progression on the shared database connection.
+     */
+    fun refreshGuildProgression(guildId: UUID): GuildProgression? = getGuildProgression(guildId)
+
+    /**
      * Records an experience transaction.
      *
      * @param transaction The transaction to record.

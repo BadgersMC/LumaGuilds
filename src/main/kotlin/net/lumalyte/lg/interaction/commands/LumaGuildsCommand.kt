@@ -5,6 +5,7 @@ import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.SpawnBannerCategory
 import net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit
 import net.lumalyte.lg.infrastructure.persistence.migrations.ChapterAdminRecoverySQL
@@ -35,6 +36,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private val adminOverrideService: AdminOverrideService by inject()
     private val storage: Storage<Database> by inject()
     private val spawnBannerService: SpawnBannerServiceBukkit by inject()
+    private val warService: WarService by inject()
 
     // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
     // claims are enabled. Touching it via `by inject()` would crash the override command
@@ -57,6 +59,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             "chapter" -> handleChapter(sender, args)
             "override" -> handleOverride(sender)
             "spawnbanner" -> handleSpawnBanner(sender, args)
+            "warcutover" -> handleWarCutover(sender, args)
             "help" -> showHelp(sender)
             else -> {
                 sender.sendMessage(lang.msg("admin.migrated.luma_guilds.command.unknown_subcommand", "args" to args[0]))
@@ -498,6 +501,37 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private fun parseChapterTime(value: String): Long? =
         value.toLongOrNull() ?: runCatching { Instant.parse(value).toEpochMilli() }.getOrNull()
 
+    private fun handleWarCutover(sender: CommandSender, args: Array<out String>) {
+        if (sender is Player && !sender.isOp && !sender.hasPermission("bellclaims.admin")) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlewarcutover.no_permission"))
+            return
+        }
+        if (args.size < 2 || args[1] != "CONFIRM") {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlewarcutover.warning"))
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlewarcutover.confirm"))
+            return
+        }
+
+        val report = warService.resetChapterCutoverState(sender.name)
+        sender.sendMessage(
+            lang.msg(
+                "admin.migrated.luma_guilds.handlewarcutover.completed",
+                "wars" to report.canceledWars,
+                "declarations" to report.rejectedDeclarations,
+                "peace" to report.clearedPeaceAgreements,
+            )
+        )
+        if (report.failedRecordIds.isNotEmpty()) {
+            sender.sendMessage(
+                lang.msg(
+                    "admin.migrated.luma_guilds.handlewarcutover.failed_records",
+                    "count" to report.failedRecordIds.size,
+                    "ids" to report.failedRecordIds.joinToString(", "),
+                )
+            )
+        }
+    }
+
     private fun handleSpawnBanner(sender: CommandSender, args: Array<out String>) {
         if (sender is Player && !sender.isOp && !sender.hasPermission("bellclaims.admin")) {
             sender.sendMessage(lang.msg("spawn_banner.feedback.no_permission"))
@@ -580,6 +614,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.chapter_admin_controls"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_override_toggle_admin_override_mode_admin"))
         sender.sendMessage(lang.msg("spawn_banner.feedback.help"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.warcutover"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_help_show_this_help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.reload_commands_are_for_development_some_changes"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.disband_is_for_emergency_use_only_removes"))
@@ -592,7 +627,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
         return when (args.size) {
             1 -> mutableListOf(
-                "reload", "progressionreload", "disband", "migrate", "chapter", "override", "spawnbanner", "help"
+                "reload", "progressionreload", "disband", "migrate", "chapter", "override", "spawnbanner", "warcutover", "help"
             ).filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "disband" -> {
@@ -601,6 +636,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                         .toMutableList()
                 }
                 "migrate" -> mutableListOf("confirm")
+                "warcutover" -> mutableListOf("CONFIRM")
                 "chapter" -> mutableListOf("status", "backup", "postpone", "retry", "force")
                     .filter { it.startsWith(args[1]) }
                     .toMutableList()
