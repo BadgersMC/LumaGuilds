@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.0.0] - 2026-09-28
+
+### Major release
+
+- Promoted the Chapter 2 / Season 2 feature set to the LumaGuilds 3.x release line.
+- Added permanent Chapter progression, reward ownership and purchases, XP boosts, creation cooldown handling, and prestige runtime support.
+- Added procedural weekly guild quests with Java/Bedrock parity, automatic completion rewards, per-quest guild leaderboards, and weekly winner XP.
+- Added seasonal Elo-style war rating, hardened war lifecycle persistence/recovery, and persistent toast/chat notifications for declarations, victories, and defeats.
+- Added dynamic leaderboard spawn banners, improved guild disband notifications, rank-permission identity hardening, and broad audit/remediation work.
+- Migrated the project to Paper 26.2, Java 25, Kotlin 2.3.20, Gradle 9.1.0, MockBukkit 26.2, and the current InventoryFramework API.
+- Updated release CI, README, tech-stack documentation, and the player/admin wiki for the 3.0.0 baseline.
+
+
 ## [Unreleased] - 2025-11-15
 
 ### ✨ Features
@@ -235,5 +248,6 @@ The migration utility successfully handles:
 
 ## Version History
 
-- **0.5.0** - Current development version with all above changes
+- **3.0.0** - Current major release line (Chapter 2 / Paper 26.2)
+- **0.5.0** - Historical pre-2.x development version
 - **0.4.0** - Previous stable version
