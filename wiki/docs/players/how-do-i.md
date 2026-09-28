@@ -5,7 +5,7 @@ topic: how-do-i
 summary: Index of common player tasks with deep links to the right feature page.
 keywords: [index, how to, tasks, find]
 related: [walkthrough]
-updated: 2026-05-13
+updated: 2026-09-28
 ---
 
 # How do I…?
@@ -55,6 +55,16 @@ Quick index. Scan for your task; click through to the page that answers it.
 - [Mark a guild as enemy](alliances.md#declaring-an-enemy)
 - [Clear a guild relation](alliances.md#clearing-a-relation)
 
+## Progression & quests
+
+- [Check my guild's Chapter level / XP](progression.md#checking-your-guilds-level)
+- [See this week's guild quests](quests.md#weekly-format)
+- [Understand automatic quest rewards](quests.md#progress-and-completion)
+- [Compare guilds on a quest leaderboard](quests.md#per-quest-leaderboards)
+- [Understand the full-set bonus](quests.md#full-set-bonus)
+- [See how prestige works](progression.md#prestige)
+- [Understand seasonal war rating](progression.md#seasonal-war-rating)
+
 ## Chat
 
 - [Toggle guild chat](chat.md#toggling-guild-chat)
@@ -65,7 +75,6 @@ Quick index. Scan for your task; click through to the page that answers it.
 
 - [Open the guild vault](vault.md#opening-the-vault)
 - [Switch between Peaceful and Hostile mode](mode.md#switching-to-peaceful)
-- [Check my guild level / XP](progression.md#checking-your-guilds-level)
 - [Mark a shop as guild-owned](shop.md#buying-a-stall-for-your-guild)
 
 - [What's different on Bedrock?](bedrock.md)

@@ -2,157 +2,158 @@
 title: Troubleshooting
 audience: admin
 topic: troubleshooting
-summary: Operator-facing fixes for common LumaGuilds issues — stuck guilds, broken homes, schema drift, chat leaks.
-keywords: [troubleshooting, issues, fixes, recovery, stuck, broken]
-related: [override, installation, rosechat]
-updated: 2026-05-14
+summary: Operator-facing checks for LumaGuilds 3.0 startup, Chapter 2, quests, Bedrock forms, chat, homes, and recovery.
+keywords: [troubleshooting, issues, recovery, 3.0, chapter 2, quests, bedrock]
+related: [override, installation, upgrade-3.0, rosechat, geyser]
+updated: 2026-09-28
 ---
 
 # Troubleshooting
 
-Common LumaGuilds issues and how to fix them. Most issues are self-healing — schema backfills on startup, caches refresh on join/leave events — but a few scenarios need operator intervention.
+Start with the environment. LumaGuilds 3.0 targets **Paper 26.2**, **Java 25**, and requires **RoseChat** to load.
 
-## Owner-less guild
+## Plugin will not load
 
-**Symptom:** A guild's owner left the server without transferring ownership. No one can access the guild menu or reassign ranks.
+Check the first LumaGuilds error in `logs/latest.log`, not the cascade that follows it.
 
-**Cause:** Guild ownership is single-account. When the owner quits, the guild becomes locked because only the owner has access to the Ranks menu. No fallback or co-owner exists.
+Verify:
 
-**Fix:** Use admin override to recover. See [/lumaguilds override and recovery](override.md) → **Recovering an owner-less guild** for step-by-step instructions. TL;DR: toggle override on, join the guild, open menu → Ranks, assign yourself to the owner rank, toggle override off.
-
-## Guild stuck at "Level 1" with high XP
-
-**Symptom:** A guild shows `Level: 1` in `/g info` but has accumulated thousands of XP. It should be level 5+.
-
-**Cause:** This was a real bug before May 2026 (pre-progression refactor). The XP was stored but level calculation was broken.
-
-**Fix:** Upgrade the plugin to the latest build (2026-05+). On first startup after the upgrade, the schema migration runs automatically and recalculates all guild levels. Restart the server once, then check `/g info` again — the level should correct itself. No manual action needed.
-
-## Home teleport from Nether silently fails
-
-**Symptom:** A player tries `/g home` while in the Nether and nothing happens. No error message, but they don't teleport.
-
-**Cause:** This was real and fixed in commit 6fcdfbd (May 2026). The issue was synchronous teleportation blocking on cross-dimension movement. The fix uses `teleportAsync` to defer the teleport one tick.
-
-**Fix:** Verify you're on plugin build 2026-05 or later. Confirm the fix is applied by checking your plugin version:
-
-```bash
+```text
+/version
 /version LumaGuilds
+/version RoseChat
 ```
 
-Should show a build date of 2026-05-13 or later. If you're on an older build, upgrade. If the issue persists on a current build, check for other teleport-blocking plugins (anticheat, custom teleport systems) in your plugin list. Look at the console for "cancelled teleport" messages from other plugins.
+Expected baseline:
 
-## Guild chat leaks to global with RoseChat installed
+- Paper 26.2 or a compatible fork;
+- Java 25;
+- LumaGuilds 3.0.x;
+- RoseChat loaded before LumaGuilds.
 
-**Symptom:** When a player uses `/g chat` to toggle to guild-only chat, their messages still appear in global chat.
+If you upgraded from 2.x, follow [Upgrading to LumaGuilds 3.0](upgrade-3-0.md) before changing database state manually.
 
-**Cause:** Misconfiguration or missing RoseChat channel integration. When LumaGuilds hands off to RoseChat for custom formatting, it expects a `guild-chat` channel to be registered. If the registration fails or isn't complete, messages route to global instead.
+## Chapter 2 features are present but disabled
 
-**Fix:** See [RoseChat integration](rosechat.md) for the canonical setup. Confirm the LumaGuilds RoseChat channel is registered by running:
+This is normally configuration, not a migration failure. The 3.0 defaults intentionally gate high-impact systems:
 
-```bash
-/papi parse <your_name> %lumaguilds_chat_format%
+```yaml
+seasonal_elo:
+  enabled: false
+
+progression:
+  chapter_two_rewards_enabled: false
+  chapter_two_gold_costs_enabled: false
+  prestige:
+    enabled: false
 ```
 
-Should return a non-empty string (e.g., `[guild_name]`). If it's blank, RoseChat isn't hooked. Restart the server and ensure RoseChat loads *before* LumaGuilds in `plugin.yml` soft-depends.
+Verify the migration and live behavior first, then enable each gate deliberately. See the [3.0 upgrade guide](upgrade-3-0.md).
 
-## Guild banner blank in Diplomatic Relations menu
+## Chapter lifecycle looks stuck
 
-**Symptom:** The guild banner slot in the guild's Diplomatic Relations menu (alliances, wars) shows a blank/empty item.
-
-**Cause:** Corrupted or missing banner data row in the database.
-
-**Fix:** No operator action needed as of May 2026. The plugin now renders a placeholder banner automatically when the data is missing. The guild can copy a new banner via `/g menu` → Banner.
-
-If you want to clean up the database, you can delete the orphaned row directly:
-
-```bash
-sqlite3 plugins/LumaGuilds/lumaguilds.db "DELETE FROM guild_banners WHERE guild_id = <guild_id>;"
-```
-
-Replace `<guild_id>` with the guild's ID (visible in `/g info`). Take a backup first.
-
-## First message after `/g chat` toggle off was dropped
-
-**Symptom:** A player toggles off guild chat (`/g chat` to switch to global), types a message, and the first message doesn't appear. Subsequent messages work fine.
-
-**Cause:** Stale chat-claim metadata. When the toggle happens, the permission state is cached but not immediately cleared. The first message checks the cache and still thinks the player is in guild chat mode.
-
-**Fix:** This was fixed in commit a09429d (May 2026). Upgrade to the latest plugin build. If you're already on 2026-05+ and it still happens, clear the permission cache by toggling off guild chat again.
-
-## Schema migration warnings in startup log
-
-**Symptom:** On server startup, you see warnings like:
+Use the admin lifecycle tooling before editing SQL by hand.
 
 ```text
-[LumaGuilds] INFO - Running database migration...
-[LumaGuilds] INFO - Migration completed successfully
+/lumaguilds chapter status <chapter_id>
 ```
 
-**Cause:** In-place schema migration in progress (new columns, table structure changes). This is normal during major-version upgrades.
+The status includes lifecycle phase, end time, backup/restore verification state, and the last recorded error. Use `/lumaguilds help` for the current recovery actions.
 
-**Fix:** These are informational, not errors. The migration is self-healing and runs on first startup. Just let it finish. The server will be briefly slower during the migration; don't stop the server. If you want to avoid downtime, migrate to MariaDB (see `config.yml` database section) and test the upgrade offline first.
+If a rollover failed after a crash, preserve the database and logs before retrying. The lifecycle code is designed to recover idempotently; manual table edits can destroy the evidence needed to do that safely.
 
-## `/lumaguilds override` crashes on claims-disabled servers
+## Weekly quest progress is not moving
 
-**Symptom:** Running `/lumaguilds override` throws a Koin exception:
+First read the full objective. Procedural quests may have conditions in addition to the action itself, such as a dimension or location requirement.
 
-```text
-org.koin.core.error.NoDefinitionFoundException
-```
+Check:
 
-**Cause:** This was a real bug (fixed in commit 3699222). When claims are disabled, the `GuildRolePermissionResolver` is not registered in the Koin DI container. The command tried to access it unconditionally, causing a crash.
+- the player belongs to the guild being viewed;
+- the action/target matches the generated objective;
+- any dimension or corridor/location condition is satisfied;
+- the quest week has not rolled over;
+- the target is not excluded by server quest-generation policy.
 
-**Fix:** Upgrade the plugin to the latest build. The fix makes the resolver lazy-loaded — it's now resolved only if claims are enabled. If you see this on a current build, file a GitHub issue.
+Completing the normal target does **not** stop leaderboard progress. A guild can continue scoring past completion.
 
-## Player reports they can dupe items via guild vault chest
+If the quest is genuinely impossible, capture the exact rendered objective and report it. Do not replace quest rows manually while the server is running.
 
-**Symptom:** A player claims they can duplicate items by putting items in the vault, breaking the vault chest, and recovering items from the database.
+## Quest completed but a player did not see the toast
 
-**Cause:** This was fixed in commit 6bb75e9 (May 2026). Vault chests are now blocked from being used as furnace fuel, and the item recovery system prevents dupe chains.
+Quest reward state is server-side; the toast is a notification surface, not the source of truth.
 
-**Fix:** Verify you're on build 2026-05+. If it's still reproducible on a current build, file a GitHub issue with step-by-step reproduction steps.
+Check the guild quest menu and progression state first. LumaGuilds persists completion notification state and reconciles pending rewards so a crash or offline member does not require a manual reward claim.
 
-## General debugging tips
+If the reward state is correct but one client missed the toast, treat it as a notification/UI issue rather than re-awarding the quest.
 
-**Plugin logs:** LumaGuilds logs to the standard server log (`logs/latest.log`). All override toggles, guild events, and errors appear here.
+## Bedrock player gets Java menus
 
-**Inspect the database directly (read-only):** To check guild data without restarting:
+LumaGuilds uses a Bedrock form only when:
 
-```bash
-sqlite3 plugins/LumaGuilds/lumaguilds.db ".tables"
-```
+1. Bedrock menus are enabled;
+2. Floodgate identifies the player as Bedrock;
+3. the Cumulus form API is available.
 
-Shows all tables. Common ones:
+If one of those checks fails, the menu can fall back to the Java path. See [Geyser/Floodgate behavior](geyser.md).
 
-- `guilds` — guild names, owners, levels, XP
-- `guild_members` — membership and rank assignments
-- `guild_homes` — home coordinates
-- `guild_invitations` — pending invites
-- `claims` — land claim data
+If only one form fails while the rest work, capture that specific action and stack trace. That usually indicates a menu-specific bug, not a Geyser installation problem.
 
-View a guild's info:
+## Guild chat leaks to global
 
-```bash
-sqlite3 plugins/LumaGuilds/lumaguilds.db "SELECT id, name, owner_id, level, xp FROM guilds WHERE name = 'YourGuild';"
-```
+RoseChat is a hard dependency in 3.0. Confirm it loaded successfully and that the LumaGuilds channel integration initialized without errors.
 
-**Do not edit the database while the server is running** — always stop the server first to avoid corruption.
+Restart the server after changing RoseChat/channel configuration. Do not use a plugin hot-reloader to repair chat routing.
 
-## When to escalate to GitHub Issues
+If the problem persists, include the RoseChat and LumaGuilds startup sections from `latest.log` when reporting it.
 
-If you've confirmed the issue is reproducible on the latest plugin build and none of the above fixes apply, file a GitHub issue:
+## Owner or rank permissions are broken
 
-1. Include your plugin version: `/version LumaGuilds`
-2. Include your Paper version: `/version`
-3. **Step-by-step reproduction:** Exactly what a player does to trigger the bug
-4. **Server log excerpt:** Any relevant error messages or stack traces
-5. **Config context:** If applicable, relevant sections of `config.yml` (e.g., claims enabled/disabled, database type)
+For emergency recovery, use `/lumaguilds override`. The override grants owner-level guild management checks to the admin for the session and also invalidates the relevant claim-permission cache.
+
+See [Override & recovery](override.md) for the recovery procedure. Disable override again as soon as the repair is complete.
+
+## Home teleport is blocked as unsafe
+
+LumaGuilds validates the destination before teleporting. Damaging blocks, invalid world state, and invalid height can trigger the safety warning.
+
+If the location is intentionally safe and the command offers an unsafe-location confirmation flow, follow the confirmation shown in chat. Otherwise move the home to a safer block.
+
+If another plugin cancels the teleport, its cancellation may appear in the server log even though the LumaGuilds home itself is valid.
+
+## Migration messages appear on startup
+
+Schema migration output during a major upgrade is expected. Let the migration finish and do not stop the server midway through it.
+
+If startup ends in an error:
+
+1. stop the server;
+2. preserve `latest.log`;
+3. preserve the migrated database;
+4. do **not** repeatedly start old and new plugin versions against the same database;
+5. use your pre-upgrade backup if a rollback is required.
+
+## Reload behavior
+
+`/lumaguilds reload` reloads supported runtime configuration and refreshes several caches. `/lumaguilds progressionreload` reloads `progression.yml`.
+
+Neither command replaces a full restart for plugin dependencies, database backend changes, startup-only settings, or major-version upgrades.
+
+## When to escalate
+
+Include:
+
+- `/version` output;
+- `/version LumaGuilds`;
+- Java version;
+- relevant config section;
+- exact reproduction steps;
+- the first relevant exception and surrounding log lines.
 
 Issues: <https://github.com/BadgersMC/LumaGuilds/issues>
 
 ## Related
 
-- [/lumaguilds override and recovery](override.md) — admin recovery tools
-- [Installation & config.yml](installation.md) — database and dependency setup
-- [RoseChat integration](rosechat.md) — custom chat format troubleshooting
+- [Upgrading to LumaGuilds 3.0](upgrade-3-0.md)
+- [Override & recovery](override.md)
+- [RoseChat integration](rosechat.md)
+- [Geyser/Floodgate behavior](geyser.md)

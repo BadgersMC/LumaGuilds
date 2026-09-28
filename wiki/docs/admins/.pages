@@ -1,5 +1,6 @@
 nav:
   - Installation: installation.md
+  - Upgrading to 3.0: upgrade-3-0.md
   - Permission nodes: permissions.md
   - Override & recovery: override.md
   - Troubleshooting: troubleshooting.md

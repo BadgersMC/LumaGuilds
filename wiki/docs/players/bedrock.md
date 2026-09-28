@@ -2,53 +2,70 @@
 title: Bedrock differences
 audience: player
 topic: bedrock
-summary: Where LumaGuilds behaves differently on Bedrock Edition via Geyser/Floodgate.
-keywords: [bedrock, geyser, floodgate, cross-play]
-related: [homes, chat, ranks]
-updated: 2026-05-13
+summary: How LumaGuilds presents the same guild systems to Bedrock players through Geyser/Floodgate forms.
+keywords: [bedrock, geyser, floodgate, cross-play, forms]
+related: [quests, progression, homes, chat, ranks]
+updated: 2026-09-28
 ---
 
 # Bedrock differences
 
-Where LumaGuilds behaves differently on Bedrock Edition via Geyser/Floodgate.
+LumaGuilds uses Geyser/Floodgate to identify Bedrock players and presents native Bedrock forms instead of Java inventory menus.
 
-## Quick reference
+The underlying guild data and rules are shared. A Java member and a Bedrock member contribute to the same guild, quests, progression, bank, homes, relations, and wars.
 
-All guild commands work identically on Bedrock and Java. There are no Bedrock-specific commands — the differences are visual and UX-focused only.
+## What is the same
 
-## How it works
+Bedrock players can use the same guild command surface and participate in the same systems, including:
 
-The server supports Bedrock players via Geyser (protocol translation) and Floodgate (Bedrock Forms Menus). All LumaGuilds features work on Bedrock: commands, vaults, homes, alliances, menus, and chat.
+- guild creation, invites, membership, and ranks;
+- homes and ally-home access;
+- banking, vaults, budgets, and transaction views;
+- alliances, enemies, truces, and wars;
+- weekly guild quests and per-quest leaderboards;
+- Chapter progression, reward state, and prestige;
+- guild statistics, LFG, parties, tags, emojis, and settings.
 
-The only differences are visual. Some Java menus open as native GUI-based forms on Bedrock, and clickable chat buttons have backup commands (such as `/g ally <them>`). Behavior is otherwise identical.
+## What looks different
 
-## What looks different in menus
+Java uses inventory-style menus with items and slots. Bedrock uses Floodgate/Cumulus forms with buttons, text fields, toggles, and dropdowns.
 
-Some Java menus (the guild member rank confirmation, the ally-home access editor, the home selection on `/g homes`) open as Floodgate form dialogs on Bedrock instead of inventory GUIs. The functionality is identical — pick options, confirm, done. The UX is slightly different, but you get the same result.
+That means the interaction can look different even when it performs the same action. For example:
 
-Example: On Java, `/g homes` opens an inventory menu. On Bedrock, it opens a form dialog with the same homes listed and the same buttons to teleport.
+- a Java item click becomes a Bedrock form button;
+- a Java paginated inventory becomes a paginated form;
+- a Java confirmation item becomes a modal confirmation;
+- text editing uses a Bedrock input field instead of an inventory/anvil-style interaction.
 
-## Known limitations
+## Weekly quests and progression
 
-A few advanced menu features fall back to simpler chat menus or text input on Bedrock. The affected features are:
+Bedrock has native forms for both **Weekly Quests** and **Progression**.
 
-- **Guild banner editing:** Drag-and-drop banner placement is unavailable; Bedrock players use a text-based alternative.
-- **Multi-page selectors:** Complex paginated menus (large member lists, extended alliance directories) render as a simplified flat list without prev/next page buttons.
-- **Inventory-based GUI interactions:** Item-moving workflows (vault sorting, manual rank reordering) may show as command prompts instead of drag-and-drop interfaces.
-- **Item renaming UIs:** Custom anvil-style renaming menus fall back to plain text input.
+The quest form shows the active objectives, progress, Guild EXP/item rewards, reset state, full-set bonus state, and leaderboard access. Clicking a quest opens the same per-quest guild competition available to Java players.
 
-The substance is preserved; the UX is plainer. If you find something that doesn't render correctly, report it to staff so it can be added to the known-issues list.
+The progression form exposes Chapter information and the prestige flow when prestige is enabled.
 
-## Teleports and cross-dimensional travel
+See [Weekly Guild Quests](quests.md) and [Progression, Rewards & Prestige](progression.md).
 
-All teleports (including cross-dimensional home teleports from the Overworld to the Nether, or to the End) are dispatched safely on the main thread for Bedrock players. Floodgate threading quirks are handled correctly — you won't see "teleport rejected" or timeout errors (fixed in v2.4.0, commit 7a3f2e1, 2026-05-01).
+## Toasts and notifications
 
-## Recently Fixed/Changed
+LumaGuilds uses toast-style notifications for important lifecycle events such as quest completion and war state changes. The notification system is designed to work for the network's Bedrock path as well as Java, with chat/sound fallback where needed.
 
-Nothing for now!
+## If a form does not open
+
+Try the command again once. If the problem persists, report it to staff with:
+
+- your Bedrock username;
+- the exact command or menu button;
+- which form you expected;
+- whether other guild forms still open.
+
+A form failure should not require changing guild data manually.
 
 ## Related
 
-- [Homes](homes.md) — set and teleport to guild homes
-- [Chat](chat.md) — guild chat and messaging
-- [Ranks & Permissions](ranks.md) — guild rank system and permissions
+- [Weekly Guild Quests](quests.md)
+- [Progression, Rewards & Prestige](progression.md)
+- [Homes](homes.md)
+- [Chat](chat.md)
+- [Ranks & Permissions](ranks.md)
