@@ -4,12 +4,12 @@
 ![Banner](docs/images/banner.png)
 -->
 
-> A comprehensive guild management and land claiming plugin for Minecraft servers running Paper 1.21+
+> A comprehensive guild management and land claiming plugin for Minecraft servers running Paper 26.2+
 
-[![Version](https://img.shields.io/badge/version-0.5.0-blue)](https://github.com/BadgersMC/LumaGuilds/releases)
-[![Minecraft](https://img.shields.io/badge/minecraft-1.21+-green)](https://papermc.io/)
-[![Java](https://img.shields.io/badge/java-21+-orange)](https://adoptium.net/)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.0-purple)](https://kotlinlang.org/)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue)](https://github.com/BadgersMC/LumaGuilds/releases)
+[![Minecraft](https://img.shields.io/badge/minecraft-26.2+-green)](https://papermc.io/)
+[![Java](https://img.shields.io/badge/java-25+-orange)](https://adoptium.net/)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.3-purple)](https://kotlinlang.org/)
 
 **LumaGuilds** (formerly Bell Claims) combines an intuitive bell-based land claiming system with full-featured guild management, wars, parties, and cross-platform support for both Java and Bedrock players.
 
@@ -70,7 +70,7 @@ Form communities with comprehensive guild management.
 - **Guild Bank** - Shared treasury with deposit/withdrawal controls
 - **Guild Vaults** - Shared storage chests accessible by members
 - **Guild Claims** - Convert personal claims to guild territory
-- **Guild Levels** - Progression system with unlockable benefits
+- **Guild Progression** - Chapter progression, weekly quests, reward purchases, prestige, and unlockable benefits
 
 ### War System
 
@@ -144,8 +144,8 @@ Works with popular plugins out of the box.
 
 ### Requirements
 
-- **Server**: Paper 1.21+ (or forks like Purpur)
-- **Java**: 21 or higher
+- **Server**: Paper 26.2+ (or compatible forks)
+- **Java**: 25 or higher
 - **Database**: SQLite (default) or MariaDB
 
 ### Dependencies
@@ -159,11 +159,11 @@ Works with popular plugins out of the box.
 
 ### Installation Steps
 
-1. Download `LumaGuilds-0.5.0.jar` from [releases](https://github.com/BadgersMC/LumaGuilds/releases)
+1. Download `LumaGuilds-3.0.0.jar` from [releases](https://github.com/BadgersMC/LumaGuilds/releases)
 2. Place in your server's `plugins/` folder
 3. Restart the server
 4. Edit `plugins/LumaGuilds/config.yml` as needed
-5. Run `/lumaguilds reload` to apply changes
+5. Restart the server to apply configuration changes
 
 ---
 
@@ -235,7 +235,6 @@ Works with popular plugins out of the box.
 | Command | Description |
 |---------|-------------|
 | `/claimoverride` | Toggle admin bypass mode |
-| `/lumaguilds reload` | Reload configuration |
 
 ---
 
@@ -383,7 +382,7 @@ class YourFeature : KoinComponent {
 git clone https://github.com/BadgersMC/LumaGuilds.git
 cd LumaGuilds
 ./gradlew shadowJar
-# Output: build/libs/LumaGuilds-0.5.0.jar
+# Output: build/libs/LumaGuilds-3.0.0.jar
 ```
 
 ### Running Tests
