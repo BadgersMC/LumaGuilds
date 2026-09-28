@@ -92,6 +92,37 @@ class QuestRepositorySQLiteTest {
     }
 
     @Test
+    fun `completed but unclaimed progress can be recovered after restart`() {
+        val set = questSet()
+        val completedGuild = UUID.randomUUID()
+        val inProgressGuild = UUID.randomUUID()
+        val alreadyClaimedGuild = UUID.randomUUID()
+        val completedAt = Instant.parse("2026-08-26T12:00:00Z")
+
+        repository.saveProgress(
+            GuildQuestProgress(
+                set.weekId, "zombies", completedGuild, 125,
+                completedAt = completedAt,
+            )
+        )
+        repository.saveProgress(
+            GuildQuestProgress(set.weekId, "zombies", inProgressGuild, 99)
+        )
+        repository.saveProgress(
+            GuildQuestProgress(
+                set.weekId, "zombies", alreadyClaimedGuild, 140,
+                claimed = true,
+                completedAt = completedAt,
+            )
+        )
+
+        val recoverable = repository.getUnclaimedCompletedProgress(set.weekId)
+
+        assertEquals(listOf(completedGuild), recoverable.map { it.guildId })
+        assertEquals(125, recoverable.single().currentCount)
+    }
+
+    @Test
     fun `legacy claimed progress migrates as already delivered`() {
         val legacyFile = tempDir.resolve("legacy-quests.db")
         DriverManager.getConnection("jdbc:sqlite:$legacyFile").use { connection ->

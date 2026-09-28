@@ -330,27 +330,26 @@ class BankServiceBukkit(
 
     override fun getMemberContributions(guildId: UUID): List<MemberContribution> {
         val members = memberRepository.getByGuild(guildId)
+        val transactionsByActor = bankRepository.getTransactionsForGuild(guildId)
+            .groupBy { it.actorId }
 
         return members.map { member ->
             val playerId = member.playerId
-            val totalDeposits = bankRepository.getPlayerTotalDeposits(playerId, guildId)
-            val totalWithdrawals = bankRepository.getPlayerTotalWithdrawals(playerId, guildId)
-
-            // Get transaction count and last transaction for this member
-            val memberTransactions = bankRepository.getTransactionsForGuild(guildId)
-                .filter { it.actorId == playerId }
-            val transactionCount = memberTransactions.size
+            val memberTransactions = transactionsByActor[playerId].orEmpty()
+            val totalDeposits = memberTransactions
+                .filter { it.type == TransactionType.DEPOSIT }
+                .sumOf { it.amount }
+            val totalWithdrawals = memberTransactions
+                .filter { it.type == TransactionType.WITHDRAWAL }
+                .sumOf { it.amount + it.fee }
             val lastTransaction = memberTransactions.maxByOrNull { it.timestamp }?.timestamp
-
-            // Try to get player name from online players
-            val playerName = Bukkit.getPlayer(playerId)?.name
 
             MemberContribution(
                 playerId = playerId,
-                playerName = playerName,
+                playerName = Bukkit.getOfflinePlayer(playerId).name,
                 totalDeposits = totalDeposits,
                 totalWithdrawals = totalWithdrawals,
-                transactionCount = transactionCount,
+                transactionCount = memberTransactions.size,
                 lastTransaction = lastTransaction
             )
         }.sortedByDescending { it.netContribution }

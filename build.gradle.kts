@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.0.0"
-    id("com.gradleup.shadow") version "8.3.6"
+    kotlin("jvm") version "2.3.20"
+    id("com.gradleup.shadow") version "8.3.11"
     idea
 }
 
@@ -10,6 +10,7 @@ version = findProperty("releaseVersion")?.toString() ?: "2.1.0"
 repositories {
     mavenLocal()
     mavenCentral()
+    maven("https://central.sonatype.com/repository/maven-snapshots/")
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://repo.aikar.co/content/groups/aikar/")
     maven("https://jitpack.io")
@@ -49,8 +50,8 @@ dependencies {
     // InventoryFramework expects this server-provided library when constructing real GUIs.
     testRuntimeOnly("commons-lang:commons-lang:2.6")
     testImplementation("io.mockk:mockk:1.13.11")
-    testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.107.0")
-    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v26.2:4.116.1")
+    testImplementation("io.papermc.paper:paper-api:26.2.build.129-stable")
     testImplementation("com.github.retrooper:packetevents-spigot:2.11.2")
     testImplementation("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
@@ -59,7 +60,7 @@ dependencies {
     testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
     testImplementation("com.lemonappdev:konsist:0.17.3")
 
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
     compileOnly("com.github.retrooper:packetevents-spigot:2.11.2")
     compileOnly("com.discordsrv:discordsrv:1.28.0")
     shadow("org.jetbrains.kotlin:kotlin-stdlib")
@@ -69,7 +70,7 @@ dependencies {
     implementation("org.mariadb.jdbc:mariadb-java-client:3.3.2")
     implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
     implementation("co.aikar:idb-core:1.0.0-SNAPSHOT")
-    implementation("com.github.stefvanschie.inventoryframework:IF:0.11.6")
+    implementation("com.github.stefvanschie.inventoryframework:IF:0.12.2-SNAPSHOT")
     implementation("io.insert-koin:koin-core:4.0.2")
     implementation("org.json:json:20240303")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
@@ -119,10 +120,6 @@ dependencies {
     // Exercise actual Bedrock form responses in the reward confirmation contracts.
     testImplementation("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
 
-    //adventure
-    compileOnly("net.kyori:adventure-api:4.17.0")
-    compileOnly("net.kyori:adventure-text-minimessage:4.17.0")
-
     //combatlogX api
     compileOnly("com.github.sirblobman.api:core:2.9-SNAPSHOT")
     compileOnly(files("libs/CombatLogX-api.jar"))
@@ -134,7 +131,7 @@ dependencies {
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 }
 
 // Keep local tooling trees (e.g. Claude worktree copies) out of the IDE module so

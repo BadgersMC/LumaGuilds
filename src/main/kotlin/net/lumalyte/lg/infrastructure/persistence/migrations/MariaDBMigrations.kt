@@ -150,6 +150,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(40)
                 currentDbVersion = 40
             }
+            if (currentDbVersion < 41) {
+                migrateToVersion41()
+                updateDatabaseVersion(41)
+                currentDbVersion = 41
+            }
 
             connection.commit()
 
@@ -1111,5 +1116,10 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
     private fun migrateToVersion40() {
         RankClaimPermissionProfileSchema.create(connection, mariaDb = true)
         componentLogger.info(Component.text("Rank claim-permission profiles migrated to schema v40"))
+    }
+
+    private fun migrateToVersion41() {
+        QuestCompletionNotificationSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Quest completion notifications migrated to schema v41"))
     }
 }

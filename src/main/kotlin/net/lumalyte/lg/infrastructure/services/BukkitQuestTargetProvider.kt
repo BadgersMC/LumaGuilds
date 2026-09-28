@@ -44,8 +44,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                         id = blockId(material),
                         action = QuestAction.HARVEST_CROPS,
                         rarity = rarity,
-                        provenance = BlockProvenancePolicy.ANY,
-                        conditions = SPATIAL_CONDITIONS
+                        provenance = BlockProvenancePolicy.ANY
                     )
                 } else {
                     if (isNaturalMineTarget(material, playerProducibleBlocks)) {
@@ -53,8 +52,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                             id = blockId(material),
                             action = QuestAction.MINE_BLOCKS,
                             rarity = rarity,
-                            provenance = BlockProvenancePolicy.NATURAL_ONLY,
-                            conditions = SPATIAL_CONDITIONS
+                            provenance = BlockProvenancePolicy.NATURAL_ONLY
                         )
                     }
                     if (material.isItem) {
@@ -62,8 +60,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                             id = blockId(material),
                             action = QuestAction.PLACE_BLOCKS,
                             rarity = rarity,
-                            provenance = BlockProvenancePolicy.PLAYER_PLACED,
-                            conditions = SPATIAL_CONDITIONS
+                            provenance = BlockProvenancePolicy.PLAYER_PLACED
                         )
                     }
                 }
@@ -84,8 +81,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                 result += target(
                     id = entityId(type),
                     action = QuestAction.KILL_MOBS,
-                    rarity = rarity,
-                    conditions = SPATIAL_CONDITIONS
+                    rarity = rarity
                 )
             }
 
@@ -93,7 +89,6 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
             id = "minecraft:player/player",
             action = QuestAction.KILL_PLAYERS,
             rarity = QuestTargetRarity.UNCOMMON,
-            conditions = PLAYER_CONDITIONS,
             naturalDimensions = setOf("NORMAL", "NETHER", "THE_END")
         )
 
@@ -106,8 +101,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                 result += target(
                     id = itemId(stack.type),
                     action = QuestAction.CRAFT_ITEMS,
-                    rarity = itemRarity(stack.type, compressionBlocks),
-                    conditions = SPATIAL_CONDITIONS
+                    rarity = itemRarity(stack.type, compressionBlocks)
                 )
             }
 
@@ -119,16 +113,14 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                 result += target(
                     id = itemId(stack.type),
                     action = QuestAction.SMELT_ITEMS,
-                    rarity = itemRarity(stack.type, compressionBlocks),
-                    conditions = SPATIAL_CONDITIONS
+                    rarity = itemRarity(stack.type, compressionBlocks)
                 )
             }
 
         result += target(
             id = "minecraft:item/any",
             action = QuestAction.FISH,
-            rarity = QuestTargetRarity.COMMON,
-            conditions = SPATIAL_CONDITIONS
+            rarity = QuestTargetRarity.COMMON
         )
 
         Material.entries.asSequence()
@@ -138,8 +130,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                 result += target(
                     id = itemId(material),
                     action = QuestAction.ENCHANT_ITEMS,
-                    rarity = itemRarity(material, compressionBlocks),
-                    conditions = SPATIAL_CONDITIONS
+                    rarity = itemRarity(material, compressionBlocks)
                 )
             }
 
@@ -153,7 +144,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
         action: QuestAction,
         rarity: QuestTargetRarity,
         provenance: BlockProvenancePolicy = BlockProvenancePolicy.ANY,
-        conditions: Set<QuestConditionType> = emptySet(),
+        conditions: Set<QuestConditionType> = defaultConditionsFor(action),
         naturalDimensions: Set<String> = emptySet()
     ): QuestTarget {
         val range = QuestAmountPolicy.range(action, rarity)
@@ -218,6 +209,20 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
             QuestConditionType.IN_DIMENSION,
             QuestConditionType.WITHOUT_ELYTRA
         )
+
+        internal fun defaultConditionsFor(action: QuestAction): Set<QuestConditionType> = when (action) {
+            QuestAction.KILL_PLAYERS -> PLAYER_CONDITIONS
+            QuestAction.KILL_MOBS,
+            QuestAction.HARVEST_CROPS,
+            QuestAction.MINE_BLOCKS,
+            QuestAction.PLACE_BLOCKS,
+            QuestAction.FISH -> SPATIAL_CONDITIONS
+            QuestAction.CRAFT_ITEMS,
+            QuestAction.SMELT_ITEMS,
+            QuestAction.ENCHANT_ITEMS,
+            QuestAction.DEPOSIT_BANK,
+            QuestAction.WIN_WARS -> emptySet()
+        }
         private val BULK_TOKENS = setOf(
             "STONE", "DEEPSLATE", "DIRT", "SAND", "GRAVEL", "NETHERRACK",
             "END_STONE", "_LOG", "_WOOD", "_PLANKS"

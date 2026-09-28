@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -7,7 +10,7 @@ import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ConfigService
@@ -492,7 +495,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         pane.addItem(deleteGuiItem, 5, 5)
 
         // Back to rank management
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.rank_edit.action.back.name"))
             .lore(lang.gui("menu.rank_edit.action.back.description"))
 
@@ -556,7 +559,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 lang.msg("menu.rank_edit.input.icon.link_action")
                     .color(NamedTextColor.AQUA)
                     .decorate(TextDecoration.UNDERLINED)
-                    .clickEvent(ClickEvent.openUrl("https://jd.papermc.io/paper/1.21.8/org/bukkit/Material.html"))
+                    .clickEvent(ClickEvent.openUrl("https://jd.papermc.io/paper/26.2/org/bukkit/Material.html"))
             )
         player.sendMessage(linkText)
         

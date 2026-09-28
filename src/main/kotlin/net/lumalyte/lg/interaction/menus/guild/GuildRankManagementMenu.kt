@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -7,7 +10,7 @@ import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
@@ -83,7 +86,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         addNavigationButtons(pane, totalPages, ranks.size)
 
         // Add new rank button
-        val createRankItem = ItemStack.of(Material.EMERALD)
+        val createRankItem = NexoItemProvider.getItemStackOrFallback("lg_rank_create") { ItemStack.of(Material.EMERALD) }
             .name(lang.gui("menu.rank_management.item.create.name"))
             .lore(lang.gui("menu.rank_management.item.create.lore.description"))
             .lore(lang.gui("menu.rank_management.item.create.lore.limit"))
@@ -93,7 +96,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         pane.addItem(guiCreateItem, 4, 4)
 
         // Back button
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.rank_management.item.back.name"))
         val guiBackItem = GuiItem(backItem) {
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -105,7 +108,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
 
     private fun addNavigationButtons(pane: StaticPane, totalPages: Int, totalRanks: Int) {
         // Previous page button
-        val prevItem = ItemStack.of(Material.ARROW)
+        val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.rank_management.item.previous.name"))
             .lore(lang.gui("menu.rank_management.item.pagination.lore", "current" to currentPage + 1, "total" to totalPages))
 
@@ -125,7 +128,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         pane.addItem(GuiItem(pageItem), 4, 3)
 
         // Next page button
-        val nextItem = ItemStack.of(Material.ARROW)
+        val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.rank_management.item.next.name"))
             .lore(lang.gui("menu.rank_management.item.pagination.lore", "current" to currentPage + 1, "total" to totalPages))
 
@@ -153,24 +156,20 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
             .lore(lang.gui("menu.rank_management.item.rank.lore.members", "count" to getMemberCount(rank.id)))
             .lore(lang.gui("menu.common.blank"))
 
-        // Add formatted permissions with proper line breaks
-        if (rank.permissions.isNotEmpty()) {
-            rankItem.lore(lang.gui("menu.rank_management.item.rank.lore.permissions"))
-            
-            // Group permissions by category for better readability
-            val permissionsByCategory = groupPermissionsByCategory(rank.permissions)
-            
-            permissionsByCategory.forEach { (category, perms) ->
-                if (perms.isNotEmpty()) {
-                    rankItem.lore(lang.gui("menu.rank_management.item.rank.lore.category", "category" to category))
-                    perms.forEach { permission ->
-                        val permissionKey = "permission.${permission.name.lowercase().replace("_", ".")}"
-                        rankItem.lore(lang.gui(
-                            "menu.rank_management.item.rank.lore.permission",
-                            "permission" to lang.raw(permissionKey),
-                        ))
-                    }
-                }
+        // Keep rank cards scannable: show a short permission preview instead of an unbounded tooltip.
+        val visiblePermissions = groupPermissionsByCategory(rank.permissions).values.flatten().distinct()
+        if (visiblePermissions.isNotEmpty()) {
+            rankItem.lore(lang.gui("menu.rank_list.item.rank.lore.permission_count", "permission_count" to visiblePermissions.size))
+            visiblePermissions.take(6).forEach { permission ->
+                val permissionKey = "permission.${permission.name.lowercase().replace("_", ".")}"
+                rankItem.lore(lang.gui(
+                    "menu.rank_management.item.rank.lore.permission",
+                    "permission" to lang.raw(permissionKey),
+                ))
+            }
+            val omitted = visiblePermissions.size - 6
+            if (omitted > 0) {
+                rankItem.lore(lang.gui("menu.rank_list.item.rank.lore.more", "count" to omitted))
             }
         } else {
             rankItem.lore(lang.gui("menu.rank_management.item.rank.lore.none"))

@@ -371,8 +371,17 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
     }
 
     private fun loadProgressionConfig(): ProgressionConfig {
+        val prestigeMax = config.getInt("progression.prestige.max_count", 6).coerceIn(1, 6)
+        val prestigeFees = config.getLongList("progression.prestige.fees").ifEmpty {
+            listOf(10_000L, 20_000L, 30_000L, 30_000L, 30_000L, 30_000L)
+        }
         return ProgressionConfig(
             maxLevel = config.getInt("progression.max_level", 100).coerceIn(1, 100),
+            prestige = net.lumalyte.lg.config.PrestigeConfig(
+                enabled = config.getBoolean("progression.prestige.enabled", false),
+                maxCount = prestigeMax,
+                fees = prestigeFees,
+            ),
 
             // Experience values for different activities
             bankDepositXpPer100 = config.getInt("progression.bank_deposit_xp_per_100", 1),

@@ -58,7 +58,7 @@ class NexoQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvider 
             allowedActions = setOf(action),
             minimumAmount = range.minimum,
             maximumAmount = range.maximum,
-            supportedConditions = BukkitQuestTargetProvider.SPATIAL_CONDITIONS,
+            supportedConditions = BukkitQuestTargetProvider.defaultConditionsFor(action),
             provenancePolicy = provenance,
             rarity = rarity
         )

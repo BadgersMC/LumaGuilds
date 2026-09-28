@@ -7,6 +7,7 @@ import net.lumalyte.lg.application.persistence.BankSettingsRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.BankWithdrawalResult
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.BankSettings
@@ -32,6 +33,8 @@ class BedrockGuildBankMenu(
 
     private val bankService: BankService by inject()
     private val configService: ConfigService by inject()
+    private val guildService: GuildService by inject()
+    private val authorization by lazy { BedrockGuildAuthorization(guildService) }
     private val physicalCurrencyService: PhysicalCurrencyService by inject()
     private val bankSettingsRepository: BankSettingsRepository by inject()
     private val lang: LangService by inject()
@@ -48,11 +51,29 @@ class BedrockGuildBankMenu(
             .scheduledDepositsEnabled
         val config = getBedrockConfig()
         val bankIcon = BedrockFormUtils.createFormImage(config, config.guildBankIconUrl, config.guildBankIconPath)
+        val canManageBankSettings = authorization.canManageBankSettings(player.uniqueId, guild.id)
+        val navigationOptions = mutableListOf(
+            lang.bedrock("bedrock.bank.navigation.transactions"),
+            lang.bedrock("bedrock.bank.navigation.history"),
+            lang.bedrock("bedrock.bank.navigation.statistics"),
+            lang.bedrock("bedrock.bank.navigation.contributions"),
+        ).apply {
+            if (canManageBankSettings) {
+                add(lang.bedrock("bedrock.bank.navigation.automation"))
+                add(lang.bedrock("bedrock.bank.navigation.budget"))
+                add(lang.bedrock("bedrock.bank.navigation.security"))
+            }
+        }
 
-        return CustomForm.builder()
+        val builder = CustomForm.builder()
             .title(lang.bedrock("bedrock.bank.title", "guild" to guild.name))
             .apply { bankIcon?.let { icon(it) } }
             .label(createBalanceInfoSection(playerBalance, guildBalance))
+            .dropdown(
+                lang.bedrock("bedrock.bank.navigation.label"),
+                navigationOptions,
+                0
+            )
             .slider(
                 lang.bedrock("bedrock.bank.deposit.slider"),
                 0f,
@@ -77,16 +98,36 @@ class BedrockGuildBankMenu(
                 lang.bedrock("bedrock.bank.withdraw.custom_placeholder"),
                 ""
             )
-            .toggle(
-                lang.bedrock("bedrock.bank.auto_deposit"),
-                autoDepositEnabled
+
+        if (canManageBankSettings) {
+            builder.label(lang.bedrock("bedrock.bank.navigation.management"))
+            builder.toggle(lang.bedrock("bedrock.bank.auto_deposit"), autoDepositEnabled)
+        } else {
+            val autoDepositState = if (autoDepositEnabled) {
+                lang.bedrock("bedrock.bank.management.enabled")
+            } else {
+                lang.bedrock("bedrock.bank.management.disabled")
+            }
+            builder.label(
+                lang.bedrock(
+                    "bedrock.bank.management.auto_deposit_read_only",
+                    "state" to autoDepositState
+                )
             )
+        }
+
+        return builder
             .label(createValidationInfoSection())
             .validResultHandler { response ->
-                handleFormResponse(response, playerBalance, guildBalance, autoDepositEnabled)
+                handleFormResponse(
+                    response,
+                    playerBalance,
+                    guildBalance,
+                    autoDepositEnabled,
+                    canManageBankSettings
+                )
             }
             .closedOrInvalidResultHandler { _, _ ->
-                // Handle form closed without submission
                 navigateBack()
             }
             .build()
@@ -108,16 +149,27 @@ class BedrockGuildBankMenu(
         response: org.geysermc.cumulus.response.CustomFormResponse,
         playerBalance: Int,
         guildBalance: Int,
-        currentAutoDepositEnabled: Boolean
+        currentAutoDepositEnabled: Boolean,
+        canManageBankSettings: Boolean
     ) {
         try {
             onFormResponseReceived()
+
+            val navigationSelection = response.next() as? Int ?: 0
+            if (navigationSelection != 0) {
+                navigateToBankSection(navigationSelection)
+                return
+            }
 
             val depositSliderValue = response.next() as? Float ?: 0f
             val depositInputValue = response.next() as? String ?: ""
             val withdrawSliderValue = response.next() as? Float ?: 0f
             val withdrawInputValue = response.next() as? String ?: ""
-            val autoDepositEnabled = response.next() as? Boolean ?: false
+            val autoDepositEnabled = if (canManageBankSettings) {
+                response.next() as? Boolean ?: currentAutoDepositEnabled
+            } else {
+                currentAutoDepositEnabled
+            }
 
             // Parse amounts
             val depositAmount = parseAmount(depositInputValue, depositSliderValue, playerBalance, true)
@@ -183,6 +235,31 @@ class BedrockGuildBankMenu(
             logger.warning("Error processing guild bank form response: ${e.message}")
             player.sendMessage(lang.msg("bedrock.bank.error.processing"))
             navigateBack()
+        }
+    }
+
+    private fun navigateToBankSection(selection: Int) {
+        val target = when (selection) {
+            1 -> menuFactory.createGuildBankTransactionHistoryMenu(menuNavigator, player, guild)
+            2 -> menuFactory.createGuildBankStatisticsMenu(menuNavigator, player, guild)
+            3 -> menuFactory.createGuildMemberContributionsMenu(menuNavigator, player, guild)
+            4 -> if (authorization.canManageBankSettings(player.uniqueId, guild.id)) {
+                menuFactory.createGuildBankAutomationMenu(menuNavigator, player, guild)
+            } else null
+            5 -> if (authorization.canManageBankSettings(player.uniqueId, guild.id)) {
+                menuFactory.createGuildBankBudgetMenu(menuNavigator, player, guild)
+            } else null
+            6 -> if (authorization.canManageBankSettings(player.uniqueId, guild.id)) {
+                menuFactory.createGuildBankSecurityMenu(menuNavigator, player, guild)
+            } else null
+            else -> null
+        }
+
+        if (target != null) {
+            bedrockNavigator.openMenu(target)
+        } else {
+            player.sendMessage(lang.msg("bedrock.bank.management.no_permission"))
+            reopen()
         }
     }
 
@@ -310,7 +387,7 @@ class BedrockGuildBankMenu(
         }
 
         if (autoDepositEnabled != currentAutoDepositEnabled) {
-            if (BedrockBankSettingsEditor(bankSettingsRepository).saveAutoDeposit(guild.id, autoDepositEnabled)) {
+            if (bankSettingsEditor().saveAutoDeposit(guild.id, autoDepositEnabled)) {
                 if (autoDepositEnabled) {
                     changes.add(lang.bedrock("bedrock.bank.success.auto_deposit_enabled"))
                 } else {
@@ -336,7 +413,7 @@ class BedrockGuildBankMenu(
     }
 
     private fun saveAutoDeposit(enabled: Boolean) {
-        if (BedrockBankSettingsEditor(bankSettingsRepository).saveAutoDeposit(guild.id, enabled)) {
+        if (bankSettingsEditor().saveAutoDeposit(guild.id, enabled)) {
             if (enabled) {
                 player.sendMessage(lang.msg("bedrock.bank.success.auto_deposit_enabled"))
             } else {
@@ -346,6 +423,11 @@ class BedrockGuildBankMenu(
             player.sendMessage(lang.msg("bedrock.bank.error.auto_deposit_failed"))
         }
     }
+
+    private fun bankSettingsEditor(): BedrockBankSettingsEditor =
+        BedrockBankSettingsEditor(bankSettingsRepository) { targetGuildId ->
+            authorization.canManageBankSettings(player.uniqueId, targetGuildId)
+        }
 
     override fun shouldCacheForm(): Boolean = false
 

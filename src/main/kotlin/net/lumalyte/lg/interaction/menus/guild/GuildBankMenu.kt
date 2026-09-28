@@ -1,16 +1,19 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 
 import com.github.stefvanschie.inventoryframework.pane.Pane.Priority
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.BankWithdrawalResult
 import net.lumalyte.lg.infrastructure.services.BankServiceBukkit
@@ -125,7 +128,7 @@ class GuildBankMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, getLocalizedTitle()))
+        gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, getLocalizedTitle()))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main pane for balance and quick actions
@@ -235,9 +238,8 @@ class GuildBankMenu(
         // Custom deposit button
         val customDepositItem = createMenuItem(
             Material.GREEN_WOOL,
-            getLocalizedString("menu.bank.custom.deposit"),
-            listOf(lang.gui("menu.bank.custom.deposit_description"))
-        )
+            lang.gui("menu.bank.custom.deposit"),
+            listOf(lang.gui("menu.bank.custom.deposit_description")), nexoId = "lg_deposit")
         val depositGuiItem = GuiItem(customDepositItem) { event ->
             event.isCancelled = true
             openCustomAmountDialog(TransactionType.DEPOSIT)
@@ -247,9 +249,8 @@ class GuildBankMenu(
         // Custom withdraw button
         val customWithdrawItem = createMenuItem(
             Material.RED_WOOL,
-            getLocalizedString("menu.bank.custom.withdraw"),
-            listOf(lang.gui("menu.bank.custom.withdraw_description"))
-        )
+            lang.gui("menu.bank.custom.withdraw"),
+            listOf(lang.gui("menu.bank.custom.withdraw_description")), nexoId = "lg_withdraw")
         val withdrawGuiItem = GuiItem(customWithdrawItem) { event ->
             event.isCancelled = true
             openCustomAmountDialog(TransactionType.WITHDRAWAL)
@@ -268,8 +269,7 @@ class GuildBankMenu(
             createMenuItem(
                 Material.BARRIER,
                 getLocalizedString("menu.bank.history.title", "guild" to guild.name),
-                listOf(getLocalizedString("menu.bank.history.no_transactions"))
-            )
+                listOf(lang.gui("menu.bank.history.no_transactions")), nexoId = "lg_history")
         } else {
             createMenuItem(
                 Material.BOOK,
@@ -277,8 +277,7 @@ class GuildBankMenu(
                 listOf(
                     lang.gui("menu.bank.history.recent", "count" to transactions.size),
                     lang.gui("menu.bank.history.open_action")
-                )
-            )
+                ), nexoId = "lg_history")
         }
 
         // Make it clickable to open detailed history menu
@@ -305,8 +304,7 @@ class GuildBankMenu(
         val statsItem = createMenuItem(
             Material.BOOK,
             getLocalizedString("menu.bank.stats.title"),
-            listOf(lang.gui("menu.bank.navigation.statistics_description"))
-        )
+            listOf(lang.gui("menu.bank.navigation.statistics_description")), nexoId = "lg_bank_statistics")
         val statsGuiItem = GuiItem(statsItem) { event ->
             event.isCancelled = true
             menuNavigator.openMenu(menuFactory.createGuildBankStatisticsMenu(menuNavigator, player, guild))
@@ -317,8 +315,7 @@ class GuildBankMenu(
         val automationItem = createMenuItem(
             Material.COMPARATOR,
             lang.gui("menu.bank.navigation.automation_name"),
-            listOf(lang.gui("menu.bank.navigation.automation_description"), lang.gui("menu.bank.navigation.automation_features"))
-        )
+            listOf(lang.gui("menu.bank.navigation.automation_description"), lang.gui("menu.bank.navigation.automation_features")), nexoId = "lg_automation")
         val automationGuiItem = GuiItem(automationItem) { event ->
             event.isCancelled = true
             menuNavigator.openMenu(menuFactory.createGuildBankAutomationMenu(menuNavigator, player, guild))
@@ -329,8 +326,7 @@ class GuildBankMenu(
         val contributionsItem = createMenuItem(
             Material.PLAYER_HEAD,
             lang.gui("menu.bank.navigation.contributions_name"),
-            listOf(lang.gui("menu.bank.navigation.contributions_description"), lang.gui("menu.bank.navigation.contributions_detail"))
-        )
+            listOf(lang.gui("menu.bank.navigation.contributions_description"), lang.gui("menu.bank.navigation.contributions_detail")), nexoId = "lg_bank_member_contributions")
         val contributionsGuiItem = GuiItem(contributionsItem) { event ->
             event.isCancelled = true
             menuNavigator.openMenu(menuFactory.createGuildMemberContributionsMenu(menuNavigator, player, guild))
@@ -340,9 +336,8 @@ class GuildBankMenu(
         // Back button
         val backItem = createMenuItem(
             Material.ARROW,
-            getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf(lang.gui("menu.bank.navigation.back_description"))
-        )
+            lang.gui("menu.bank.back_to_control_panel"),
+            listOf(lang.gui("menu.bank.navigation.back_description")), nexoId = "lg_back")
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -373,7 +368,7 @@ class GuildBankMenu(
             listOf(lang.gui("menu.bank.feedback.withdraw_preview", "amount" to payout,
                 "fee" to fee, "total" to (payout.toLong() + fee)))
         }
-        val itemStack = createMenuItem(material, displayName, lore + preview)
+        val itemStack = createMenuItem(material, displayName, lore + preview, nexoId = if (isDeposit) "lg_deposit" else "lg_withdraw")
         return GuiItem(itemStack) { event ->
             event.isCancelled = true
             handleQuickAction(amount, isDeposit)
@@ -565,10 +560,10 @@ class GuildBankMenu(
      */
     private fun createTransactionItem(transaction: BankTransaction): ItemStack {
         val transactionType = when (transaction.type) {
-            TransactionType.DEPOSIT -> getLocalizedString("menu.bank.transaction.deposit")
-            TransactionType.WITHDRAWAL -> getLocalizedString("menu.bank.transaction.withdrawal")
-            TransactionType.FEE -> getLocalizedString("menu.bank.transaction.fee")
-            TransactionType.DEDUCTION -> getLocalizedString("menu.bank.transaction.deduction")
+            TransactionType.DEPOSIT -> lang.gui("menu.bank.history.type.deposit")
+            TransactionType.WITHDRAWAL -> lang.gui("menu.bank.history.type.withdrawal")
+            TransactionType.FEE -> lang.gui("menu.bank.history.type.fee")
+            TransactionType.DEDUCTION -> lang.gui("menu.bank.history.type.deduction")
         }
 
         val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: lang.gui("menu.bank.transaction.unknown_actor")
@@ -597,8 +592,9 @@ class GuildBankMenu(
     /**
      * Create a menu item with consistent formatting
      */
-    private fun createMenuItem(material: Material, name: Component, lore: List<Component>): ItemStack {
-        val item = ItemStack.of(material)
+    private fun createMenuItem(material: Material, name: Component, lore: List<Component>, nexoId: String? = null): ItemStack {
+        val item = if (nexoId == null) ItemStack.of(material) else
+            NexoItemProvider.getItemStackOrFallback(nexoId) { ItemStack.of(material) }
         val meta = item.itemMeta
 
         meta.displayName(name.decoration(TextDecoration.ITALIC, false))
@@ -770,7 +766,7 @@ class GuildBankMenu(
             .color(color)
             .decoration(TextDecoration.ITALIC, false)
 
-        val item = ItemStack.of(Material.EMERALD)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_bank") { ItemStack.of(Material.EMERALD) }
         val meta = item.itemMeta
 
         meta.displayName(displayName)
@@ -794,12 +790,11 @@ class GuildBankMenu(
 
         val balanceItem = createMenuItem(
             Material.EMERALD,
-            getLocalizedString("menu.bank.balance.current", "balance" to currentBalance),
+            lang.gui("menu.bank.balance.current", "balance" to currentBalance),
             listOf(
                 getLocalizedString("menu.bank.balance.title"),
                 trend
-            )
-        )
+            ), nexoId = "lg_bank")
 
         mainPane.addItem(GuiItem(balanceItem), 1, 0)
         previousBalance = currentBalance
@@ -813,8 +808,7 @@ class GuildBankMenu(
         val playerBalanceItem = createMenuItem(
             Material.GOLD_NUGGET,
             lang.gui("menu.bank.balance.player", "balance" to playerBalance),
-            listOf(lang.gui("menu.bank.balance.player_description"))
-        )
+            listOf(lang.gui("menu.bank.balance.player_description")), nexoId = "lg_gold")
         mainPane.addItem(GuiItem(playerBalanceItem), 0, 0)
     }
 

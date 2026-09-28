@@ -85,6 +85,15 @@ class WeeklyQuestCoordinator(
                 QuestRewardTier.HEADLINE -> config.rewardXp.headline
                 QuestRewardTier.CONDITIONED -> config.rewardXp.conditioned
             }
+        }.map { quest ->
+            quest.copy(
+                leaderboard = true,
+                leaderboardPayouts = if (config.leaderboardWinnerXp > 0) {
+                    mapOf(1 to config.leaderboardWinnerXp)
+                } else {
+                    emptyMap()
+                }
+            )
         }
 
         questService.resetWeeklyQuests(

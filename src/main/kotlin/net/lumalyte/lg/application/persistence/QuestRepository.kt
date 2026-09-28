@@ -15,8 +15,9 @@ interface QuestRepository {
     fun getGuildProgress(weekId: String, guildId: UUID): List<GuildQuestProgress>
     fun getQuestLeaderboard(weekId: String, questId: String, limit: Int): List<GuildQuestProgress>
     fun getClaimedProgress(weekId: String): List<GuildQuestProgress>
+    fun getUnclaimedCompletedProgress(weekId: String): List<GuildQuestProgress>
     fun getPendingClaimRewards(): List<GuildQuestProgress>
-    fun tryMarkClaimed(weekId: String, questId: String, guildId: UUID, actorId: UUID): Boolean
+    fun tryMarkClaimed(weekId: String, questId: String, guildId: UUID, actorId: UUID?): Boolean
     fun markClaimRewardDelivered(weekId: String, questId: String, guildId: UUID): Boolean
     fun tryMarkWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean
     fun isWeeklyBonusAwarded(weekId: String, guildId: UUID): Boolean

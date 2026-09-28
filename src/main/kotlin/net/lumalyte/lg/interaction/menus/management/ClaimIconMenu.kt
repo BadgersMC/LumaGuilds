@@ -1,12 +1,13 @@
 package net.lumalyte.lg.interaction.menus.management
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.FurnaceGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.actions.claim.metadata.UpdateClaimIcon
 import net.lumalyte.lg.application.results.claim.metadata.UpdateClaimIconResult
 import net.lumalyte.lg.application.services.scheduling.SchedulerService
@@ -77,7 +78,7 @@ class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuN
             .name(lang.gui("menu.common.item.confirm.name"))
         val confirmGuiItem = GuiItem(confirmItem) { guiEvent ->
             guiEvent.isCancelled = true
-            val newIcon = gui.ingredientComponent.getItem(0, 0)
+            val newIcon = inputPane.getItem(0, 0)?.item
 
             // Set icon if item in slot
             if (newIcon != null) {

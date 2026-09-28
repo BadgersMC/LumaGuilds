@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -7,13 +9,14 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.name
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
@@ -38,6 +41,7 @@ class GuildDashboard(
     private val menuFactory: MenuFactory
 ) : Menu, KoinComponent {
     private val lang: LangService by inject()
+    private val bankService: BankService by inject()
 
     override fun open() {
         val playerId = player.uniqueId
@@ -181,15 +185,20 @@ class GuildDashboard(
         val emoji = guildService.getEmoji(guild.id)
         val memberCount = memberService.getMemberCount(guild.id)
         val rankCount = rankService.listRanks(guild.id).size
+        val canonicalBalance = bankService.getBalance(guild.id)
 
         val displayName = if (emoji != null) "$emoji ${guild.name}" else guild.name
 
-        val item = ItemStack.of(Material.BELL)
-            .name(lang.gui("menu.dashboard.item.guild_info.name", "display_name" to displayName))
+        val item = (
+            guild.banner?.deserializeToItemStack()?.clone()
+                ?: NexoItemProvider.getItemStackOrFallback("lg_nav_info") {
+                    ItemStack.of(Material.WHITE_BANNER)
+                }
+            ).name(lang.gui("menu.dashboard.item.guild_info.name", "display_name" to displayName))
         val lore = java.util.ArrayList<Component>().apply {
             add(lang.gui("menu.dashboard.item.guild_info.lore.members", "member_count" to memberCount))
             add(lang.gui("menu.dashboard.item.guild_info.lore.ranks", "rank_count" to rankCount))
-            add(lang.gui("menu.dashboard.item.guild_info.lore.balance", "balance" to guild.bankBalance))
+            add(lang.gui("menu.dashboard.item.guild_info.lore.balance", "balance" to canonicalBalance))
             add(Component.empty())
             add(lang.gui("menu.dashboard.item.guild_info.lore.prompt_line_1"))
             add(lang.gui("menu.dashboard.item.guild_info.lore.prompt_line_2"))

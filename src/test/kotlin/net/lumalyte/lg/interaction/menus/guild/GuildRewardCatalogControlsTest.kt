@@ -61,6 +61,7 @@ class GuildRewardCatalogControlsTest {
         startKoin { modules(module {
             single<LangService> { lang }
             single<GuildRewardPurchaseService> { purchases }
+            single<GuildPrestigeService> { mockk(relaxed = true) }
             single<ProgressionService> { progression }
             single<ProgressionRepository> { mockk(relaxed = true) }
             single<MemberService> { members }
@@ -78,7 +79,7 @@ class GuildRewardCatalogControlsTest {
     @Test fun `Java offers only advertise and quote available rewards`() {
         val panes = mutableListOf<Pane>()
         mockkConstructor(ChestGui::class)
-        every { anyConstructed<ChestGui>().addPane(capture(panes)) } just Runs
+        every { anyConstructed<ChestGui>().addPane(any(), capture(panes)) } just Runs
         every { anyConstructed<ChestGui>().show(any()) } just Runs
         val menu = GuildProgressionMenu(mockk(), player, guild, mockk(), members, progression, mockk(), mockk(), mockk())
         GuildProgressionMenu::class.java.getDeclaredMethod("openRewardCatalog").apply { isAccessible = true }.invoke(menu)

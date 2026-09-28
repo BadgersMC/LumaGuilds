@@ -185,6 +185,7 @@ import net.lumalyte.lg.infrastructure.services.WorldManipulationServiceBukkit
 import net.lumalyte.lg.infrastructure.services.scheduling.SchedulerServiceBukkit
 import net.badgersmc.nexus.i18n.LangService
 import net.badgersmc.nexus.i18n.LangHost
+import net.lumalyte.lg.infrastructure.i18n.LocaleCompatibilityMigrator
 import net.badgersmc.nexus.i18n.Locale
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -255,6 +256,7 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
 
     // Utilities
     single<LangService> {
+        LocaleCompatibilityMigrator.migrate(plugin.dataFolder, plugin.logger)
         LangService(LangHost.of(plugin), Locale("en_US"), net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang::class.java)
     }
     single<PlatformDetectionService> { FloodgatePlatformDetectionService(get<LumaGuilds>().logger) }
@@ -589,8 +591,13 @@ fun socialModule() = module {
  * Progression module - Combat, kills, wars, and guild progression
  */
 fun progressionModule() = module {
+    single { net.lumalyte.lg.application.services.GuildActionCoordinator() }
     single { net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo() }
-    single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(get(), get(), get()) }
+    single {
+        net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(
+            get(), get(), get(), get<net.lumalyte.lg.application.services.GuildActionCoordinator>()
+        )
+    }
     single { net.lumalyte.lg.application.services.GuildRewardPurchaseAccess(get(), get()) }
     single {
         val config = get<ConfigService>()
@@ -599,6 +606,23 @@ fun progressionModule() = module {
             { config.loadConfig().chapterTwoRewardsEnabled }, access::allowed)
     }
     single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL(get(), get()) }
+    single<net.lumalyte.lg.application.persistence.RewardOwnershipRepository> {
+        get<net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL>()
+    }
+    single<net.lumalyte.lg.application.persistence.PrestigeRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.PrestigeRepositorySQL(
+            get(),
+            get(),
+            get<net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL>(),
+            get(),
+            get(),
+        ) { get<ConfigService>().loadConfig() }
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildPrestigeService(
+            get(), get(), get(), get(), get(), get(),
+        )
+    }
     single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardStateRepositorySQL(get(), get()) }
     single {
         val config = get<ConfigService>()
@@ -656,11 +680,19 @@ fun progressionModule() = module {
     single<net.lumalyte.lg.application.persistence.WarNotificationRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.WarNotificationRepositorySQL(get())
     }
+    single<net.lumalyte.lg.application.persistence.QuestCompletionNotificationRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.QuestCompletionNotificationRepositorySQL(get())
+    }
     single<net.lumalyte.lg.application.persistence.PlayerNotificationPreferenceRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.PlayerNotificationPreferenceRepositorySQL(get())
     }
     single<net.lumalyte.lg.infrastructure.services.ToastSender> {
         net.lumalyte.lg.infrastructure.services.PacketEventsToastSender(get<LumaGuilds>())
+    }
+    single<net.lumalyte.lg.application.services.QuestCompletionNotifier> {
+        net.lumalyte.lg.infrastructure.services.QuestCompletionNotifierBukkit(
+            get(), get(), get(), get(), get(),
+        )
     }
     single<net.lumalyte.lg.application.services.GuildDisbandAnnouncementService> {
         net.lumalyte.lg.infrastructure.services.GuildDisbandAnnouncementServiceBukkit(
@@ -694,6 +726,7 @@ fun progressionModule() = module {
             seasonalElo = get(),
             warNotifications = get(),
             memberRepository = get(),
+            guildActions = get(),
         )
     }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
@@ -735,11 +768,14 @@ fun progressionModule() = module {
         net.lumalyte.lg.infrastructure.services.QuestRewardSinkBukkit(get(), get<LumaGuilds>())
     }
     single {
+        val questConfig = get<net.lumalyte.lg.infrastructure.services.ProgressionConfigService>()
+            .getProgressionConfig().quests
         net.lumalyte.lg.application.services.QuestService(
             repository = get(),
             rewards = get(),
-            fullSetBonusExperience = get<net.lumalyte.lg.infrastructure.services.ProgressionConfigService>()
-                .getProgressionConfig().quests.fullSetBonusXp
+            fullSetBonusExperience = questConfig.fullSetBonusXp,
+            leaderboardWinnerExperience = questConfig.leaderboardWinnerXp,
+            completionNotifier = get(),
         )
     }
 single {

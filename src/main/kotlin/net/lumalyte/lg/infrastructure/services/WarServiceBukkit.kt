@@ -5,6 +5,8 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
+import net.lumalyte.lg.application.services.GuildActionCoordinator
+import net.lumalyte.lg.application.services.WarCutoverReport
 import net.lumalyte.lg.application.services.WarNotificationService
 import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
 import net.lumalyte.lg.application.services.ProgressionService
@@ -33,6 +35,7 @@ class WarServiceBukkit(
     private val seasonalElo: SeasonalEloCoordinator? = null,
     private val warNotifications: WarNotificationService? = null,
     private val memberRepository: net.lumalyte.lg.application.persistence.MemberRepository? = null,
+    private val guildActions: GuildActionCoordinator = GuildActionCoordinator(),
 ) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
@@ -174,7 +177,8 @@ class WarServiceBukkit(
             logger.warn("Player $actorId attempted to declare war for guild $declaringGuildId without permission")
             return null
         }
-        return try {
+        return guildActions.withGuilds(declaringGuildId, defendingGuildId) {
+            try {
             if (!participantsAreHostile(declaringGuildId, defendingGuildId)) {
                 logger.warn("Cannot create war declaration - both guilds must be hostile")
                 return null
@@ -277,6 +281,7 @@ class WarServiceBukkit(
             logger.error("Error creating war declaration between $declaringGuildId and $defendingGuildId", e)
             null
         }
+        }
     }
 
     @Synchronized
@@ -286,7 +291,9 @@ class WarServiceBukkit(
             logger.warn("Player $actorId attempted to accept war declaration $declarationId without permission for guild ${declaration.defendingGuildId}")
             return null
         }
-        return acceptWarDeclarationInternal(declarationId, actorId)
+        return guildActions.withGuilds(declaration.declaringGuildId, declaration.defendingGuildId) {
+            acceptWarDeclarationInternal(declarationId, actorId)
+        }
     }
 
     private fun acceptWarDeclarationInternal(declarationId: UUID, actorId: UUID): War? {
@@ -864,6 +871,74 @@ class WarServiceBukkit(
     }
 
     @Synchronized
+    override fun resetChapterCutoverState(operator: String): WarCutoverReport {
+        val failed = mutableListOf<UUID>()
+        var canceledWars = 0
+        var rejectedDeclarations = 0
+        logger.warn("Chapter cut-over war reset requested by $operator")
+
+        warRepository.getAll().forEach { initial ->
+            try {
+                var record = warRepository.get(initial.id) ?: return@forEach
+                val war = record.war
+                val pendingDeclaration = record.declaration?.takeIf { !it.accepted && !it.rejected }
+                val resetWar = war?.status == WarStatus.ACTIVE || war?.status == WarStatus.DECLARED
+                if (!resetWar && pendingDeclaration == null) return@forEach
+
+                if (resetWar && record.wager != null && !warPayments.cancelForCutover(record.id)) {
+                    logger.error(
+                        "Chapter cut-over refused to cancel war ${record.id}: wager state " +
+                            "${record.paymentPhase} requires operator review"
+                    )
+                    failed += record.id
+                    return@forEach
+                }
+
+                record = warRepository.get(record.id) ?: run {
+                    failed += initial.id
+                    return@forEach
+                }
+                val currentWar = record.war
+                val currentPending = record.declaration?.takeIf { !it.accepted && !it.rejected }
+
+                if (currentWar?.status == WarStatus.ACTIVE || currentWar?.status == WarStatus.DECLARED) {
+                    val updatedDeclaration = currentPending?.copy(rejected = true) ?: record.declaration
+                    persist(
+                        record.copy(
+                            war = currentWar.copy(status = WarStatus.CANCELLED),
+                            declaration = updatedDeclaration,
+                        )
+                    )
+                    canceledWars++
+                    if (currentPending != null) rejectedDeclarations++
+                } else if (currentPending != null) {
+                    persist(record.copy(declaration = currentPending.copy(rejected = true)))
+                    rejectedDeclarations++
+                }
+            } catch (error: Exception) {
+                logger.error("Chapter cut-over failed for war record ${initial.id}", error)
+                failed += initial.id
+            }
+        }
+
+        val peaceCount = peaceAgreements.size
+        peaceAgreements.clear()
+
+        val report = WarCutoverReport(
+            canceledWars = canceledWars,
+            rejectedDeclarations = rejectedDeclarations,
+            clearedPeaceAgreements = peaceCount,
+            failedRecordIds = failed.distinct(),
+        )
+        logger.warn(
+            "Chapter cut-over war reset by $operator complete: cancelled=${report.canceledWars}, " +
+                "declarations=${report.rejectedDeclarations}, peace=${report.clearedPeaceAgreements}, " +
+                "failures=${report.failedRecordIds.size}"
+        )
+        return report
+    }
+
+    @Synchronized
     override fun processExpiredWars(): Int {
         val snapshot = warRepository.getAll().associateBy { it.id }.toMutableMap()
         var processedCount = reconcilePendingKillVictories(snapshot.values)
@@ -873,7 +948,10 @@ class WarServiceBukkit(
             it.war?.status == WarStatus.DECLARED && it.paymentPhase == WarPaymentPhase.ESCROWED &&
                 it.declaration?.isValid == true
         }.forEach {
-            acceptWarDeclarationInternal(it.id, SYSTEM_ACTOR)
+            val declaration = it.declaration ?: return@forEach
+            guildActions.withGuilds(declaration.declaringGuildId, declaration.defendingGuildId) {
+                acceptWarDeclarationInternal(it.id, SYSTEM_ACTOR)
+            }
             warRepository.get(it.id)?.let { updated -> snapshot[it.id] = updated }
         }
         // Retry seasonal rating for durable completed outcomes. The Elo repository's war-id receipt
