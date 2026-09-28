@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.persistence.RewardPurchaseRepository
+import net.lumalyte.lg.application.services.GuildActionCoordinator
 import net.lumalyte.lg.domain.gold.*
 import net.lumalyte.lg.domain.rewards.*
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
@@ -13,7 +14,8 @@ import java.util.UUID
 class RewardPurchaseRepositorySQL(
     private val storage: Storage<Database>,
     private val catalog: RewardCatalog,
-    private val gold: GuildGoldRepositorySQL
+    private val gold: GuildGoldRepositorySQL,
+    private val guildActions: GuildActionCoordinator = GuildActionCoordinator(),
 ) : RewardPurchaseRepository {
     private val owners = RewardOwnershipRepositorySQL(storage, catalog)
     private val resolver = RewardEntitlementResolver(catalog)
@@ -39,8 +41,9 @@ class RewardPurchaseRepositorySQL(
     }
 
     override fun purchase(request: RewardPurchaseRequest, guard: () -> RewardPurchaseRejection?): RewardPurchaseResult = try {
-        gold.withGuildLock(request.guildId) {
-            storage.connection.connection.use { connection ->
+        guildActions.withGuilds(request.guildId) {
+            gold.withGuildLock(request.guildId) {
+                storage.connection.connection.use { connection ->
                 val autoCommit = connection.autoCommit
                 connection.autoCommit = false
                 try {
@@ -60,6 +63,7 @@ class RewardPurchaseRepositorySQL(
                     connection.autoCommit = autoCommit
                 }
             }
+        }
         }
     } catch (_: Exception) {
         RewardPurchaseResult.Failed(request.transactionId)

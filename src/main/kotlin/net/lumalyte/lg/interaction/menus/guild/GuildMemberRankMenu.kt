@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -7,7 +10,7 @@ import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.lumalyte.lg.application.services.GuildService
@@ -169,7 +172,7 @@ class GuildMemberRankMenu(
 
     private fun addNavigationButtons(pane: StaticPane, availableRanks: List<Rank>, totalPages: Int) {
         // Previous page button
-        val prevItem = ItemStack.of(Material.ARROW)
+        val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.guild_member_rank.navigation.previous.name"))
             .lore(lang.gui("menu.guild_member_rank.navigation.position", "page" to currentPage + 1, "pages" to totalPages))
 
@@ -189,7 +192,7 @@ class GuildMemberRankMenu(
         pane.addItem(GuiItem(pageItem), 4, 4)
 
         // Next page button
-        val nextItem = ItemStack.of(Material.ARROW)
+        val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.guild_member_rank.navigation.next.name"))
             .lore(lang.gui("menu.guild_member_rank.navigation.position", "page" to currentPage + 1, "pages" to totalPages))
 
@@ -221,7 +224,7 @@ class GuildMemberRankMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.BARRIER)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_member_rank.navigation.back.name"))
             .lore(lang.gui("menu.guild_member_rank.navigation.back.description"))
 

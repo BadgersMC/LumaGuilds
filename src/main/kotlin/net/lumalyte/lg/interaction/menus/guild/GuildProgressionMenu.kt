@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
@@ -9,7 +11,7 @@ import net.lumalyte.lg.infrastructure.i18n.rewardStatus
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.rewards.GuildRewardRead
@@ -31,7 +33,7 @@ import org.koin.core.component.inject
 /**
  * Guild Progression Menu — shows guild level, daily XP caps per source, and rewards.
  *
- * 6-row layout modeled after AuraSkills LevelProgressionMenu.
+ * 6-row layout with a dedicated sidebar and a row-major source grid.
  *
  * Row 0: [     Guild Level + XP bar + today's total     ][Back][Close]
  * Row 1: [Rank] ─── 24-slot paginated source grid ───────
@@ -54,15 +56,18 @@ class GuildProgressionMenu(
 
     private val lang: LangService by inject()
     private val rewardPurchases: GuildRewardPurchaseService by inject()
+    private val prestigeService: GuildPrestigeService by inject()
 
     private var currentPage = 0
     private var rewardState: GuildRewardRead = GuildRewardRead.Disabled
     private val itemsPerPage = 24
 
-    /** Source grid slots (AuraSkills track pattern). */
+    /** Six content columns; the sidebar, header and navigation never share these slots. */
     private val gridSlots = listOf(
-        9, 18, 27, 36, 37, 38, 29, 20, 11, 12, 13, 22,
-        31, 40, 41, 42, 33, 24, 15, 16, 17, 26, 35, 44
+        11, 12, 13, 14, 15, 16,
+        20, 21, 22, 23, 24, 25,
+        29, 30, 31, 32, 33, 34,
+        38, 39, 40, 41, 42, 43
     )
 
     override fun open() {
@@ -196,7 +201,7 @@ class GuildProgressionMenu(
         val usedXp = usage.awardedXp
         val percent = if (cap != null && cap > 0) (usedXp.toDouble() / cap.toDouble() * 100).toInt().coerceAtMost(100) else 0
 
-        val nexoId = sourceToIconId(source)
+        val nexoId = sourceToPresentationIconId(source, usage.pool)
         val material = sourceToMaterial(source)
         val name = sourcePoolDisplayName(usage.pool)
 
@@ -231,7 +236,9 @@ class GuildProgressionMenu(
     }
 
     private fun addRankInfo(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.GOLD_INGOT).also { it.editMeta { meta ->
+        val item = NexoItemProvider.getItemStackOrFallback("lg_nav_ranks") {
+            ItemStack.of(Material.GOLD_INGOT)
+        }.also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.rank.name"))
             meta.lore(listOf(lang.gui("menu.guild_progression.rank.description"), lang.gui("menu.guild_progression.rank.scope")))
         }}
@@ -333,19 +340,110 @@ class GuildProgressionMenu(
     }
 
     private fun addPrestigeInfo(pane: StaticPane, x: Int, y: Int) {
+        val overview = prestigeService.overview(guild.id)
         val item = NexoItemProvider.getItemStackOrFallback("lg_prestige") {
             ItemStack.of(Material.NETHER_STAR)
         }.also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.prestige.name"))
-            meta.lore(listOf(
+            val lore = mutableListOf<Component>(
                 lang.gui("menu.guild_progression.prestige.description"),
                 lang.gui("menu.guild_progression.prestige.rewards"),
                 lang.gui("menu.guild_progression.prestige.requirement"),
                 Component.empty(),
-                lang.gui("menu.guild_progression.prestige.coming_soon")
-            ))
+            )
+            when {
+                overview == null -> lore += lang.gui("menu.guild_progression.prestige.state.unavailable")
+                !overview.enabled -> lore += lang.gui("menu.guild_progression.prestige.state.disabled")
+                overview.prestigeCount >= overview.maxPrestigeCount ->
+                    lore += lang.gui(
+                        "menu.guild_progression.prestige.state.maximum",
+                        "count" to overview.prestigeCount,
+                        "max" to overview.maxPrestigeCount,
+                    )
+                overview.currentLevel < 100 -> lore += lang.gui(
+                    "menu.guild_progression.prestige.state.level",
+                    "level" to overview.currentLevel,
+                )
+                overview.choices.isEmpty() ->
+                    lore += lang.gui("menu.guild_progression.prestige.state.no_choices")
+                else -> {
+                    lore += lang.gui(
+                        "menu.guild_progression.prestige.state.ready",
+                        "count" to overview.prestigeCount,
+                        "max" to overview.maxPrestigeCount,
+                        "fee" to (overview.nextFee ?: 0L),
+                        "choices" to overview.choices.size,
+                    )
+                    lore += lang.gui("menu.guild_progression.prestige.action")
+                }
+            }
+            meta.lore(lore)
         }}
-        pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
+        pane.addItem(GuiItem(item) { event ->
+            event.isCancelled = true
+            val fresh = prestigeService.overview(guild.id) ?: return@GuiItem
+            if (fresh.enabled && fresh.currentLevel == 100 &&
+                fresh.prestigeCount < fresh.maxPrestigeCount && fresh.choices.isNotEmpty()
+            ) {
+                openPrestigeSelection()
+            }
+        }, x, y)
+    }
+
+    private fun openPrestigeSelection() {
+        val overview = prestigeService.overview(guild.id)
+        if (overview == null || !overview.enabled || overview.currentLevel != 100 ||
+            overview.prestigeCount >= overview.maxPrestigeCount || overview.choices.isEmpty()
+        ) {
+            open()
+            return
+        }
+
+        val gui = ChestGui(3, lang.guiTitle("menu.guild_progression.prestige.selection.title"))
+        val pane = StaticPane(0, 0, 9, 3)
+        gui.setOnGlobalClick { it.isCancelled = true }
+
+        overview.choices.take(18).forEachIndexed { index, reward ->
+            val item = NexoItemProvider.getItemStackOrFallback("lg_reward") {
+                ItemStack.of(Material.DIAMOND)
+            }.also { stack -> stack.editMeta { meta ->
+                meta.displayName(lang.gui(
+                    "menu.guild_progression.prestige.selection.reward.name",
+                    "reward" to reward.name,
+                ))
+                meta.lore(listOf(
+                    lang.gui("menu.guild_progression.prestige.selection.reward.level", "level" to reward.level),
+                    lang.gui("menu.guild_progression.prestige.selection.reward.retain"),
+                    lang.gui(
+                        "menu.guild_progression.prestige.selection.reward.fee",
+                        "fee" to (overview.nextFee ?: 0L),
+                    ),
+                    Component.empty(),
+                    lang.gui("menu.guild_progression.prestige.selection.reward.action"),
+                ))
+            } }
+            pane.addItem(GuiItem(item) { event ->
+                event.isCancelled = true
+                val quote = prestigeService.quote(player.uniqueId, guild.id, reward.id)
+                if (quote == null) {
+                    player.sendMessage(lang.msg("menu.guild_progression.prestige.feedback.quote_failed"))
+                    open()
+                } else {
+                    GuildPrestigeConfirmationMenu(player, quote, reward.name, ::openPrestigeSelection, ::open).open()
+                }
+            }, index % 9, index / 9)
+        }
+
+        val back = NexoItemProvider.getItemStackOrFallback("lg_back") {
+            ItemStack.of(Material.ARROW)
+        }.name(lang.gui("menu.guild_progression.prestige.selection.back"))
+        pane.addItem(GuiItem(back) { event ->
+            event.isCancelled = true
+            open()
+        }, 8, 2)
+
+        gui.addPane(pane)
+        gui.show(player)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
@@ -376,46 +474,87 @@ class GuildProgressionMenu(
         pane.addItem(GuiItem(item) { currentPage++; open() }, x, y)
     }
 
+    private fun sourceToPresentationIconId(source: ExperienceSource, pool: String): String = when (pool) {
+        "ORE" -> "lg_ore"
+        "CRAFTING" -> "lg_crafting"
+        else -> sourceToIconId(source)
+    }
+
     private fun sourceToIconId(source: ExperienceSource): String = when (source) {
         ExperienceSource.BANK_DEPOSIT -> "lg_deposit"
-        ExperienceSource.MEMBER_JOINED -> "lg_invite"
-        ExperienceSource.WAR_WON -> "lg_war_stats"
-        ExperienceSource.WAR_LOST -> "lg_war_stats"
-        ExperienceSource.PLAYER_KILL -> "lg_combat"
-        ExperienceSource.MOB_KILL -> "lg_combat"
+        ExperienceSource.MEMBER_JOINED, ExperienceSource.QUALIFIED_RECRUIT -> "lg_qualified_recruit"
+        ExperienceSource.WAR_WON, ExperienceSource.PRE_CAP_WAR_WIN -> "lg_war_victory"
+        ExperienceSource.WAR_LOST -> "lg_war_defeat"
+        ExperienceSource.PLAYER_KILL, ExperienceSource.MOB_KILL -> "lg_combat"
         ExperienceSource.CROP_BREAK -> "lg_farming"
         ExperienceSource.BLOCK_BREAK -> "lg_mining"
-        ExperienceSource.BLOCK_PLACE -> "lg_mining"
+        ExperienceSource.BLOCK_PLACE -> "lg_block_place"
         ExperienceSource.CRAFTING -> "lg_crafting"
-        ExperienceSource.SMELTING -> "lg_crafting"
-        ExperienceSource.FISHING -> "lg_farming"
+        ExperienceSource.SMELTING -> "lg_smelting"
+        ExperienceSource.FISHING -> "lg_fishing"
         ExperienceSource.ENCHANTING -> "lg_enchanting"
+        ExperienceSource.BREWING -> "lg_brewing"
+        ExperienceSource.EXPLORATION_MILESTONE -> "lg_exploration"
+        ExperienceSource.COAL_ORE,
+        ExperienceSource.COPPER_ORE,
+        ExperienceSource.IRON_ORE,
+        ExperienceSource.LAPIS_ORE,
+        ExperienceSource.REDSTONE_ORE,
+        ExperienceSource.GOLD_ORE,
+        ExperienceSource.NETHER_QUARTZ_ORE,
+        ExperienceSource.DIAMOND_ORE,
+        ExperienceSource.EMERALD_ORE,
+        ExperienceSource.ANCIENT_DEBRIS -> "lg_ore"
+        ExperienceSource.CRAFT_COMMON -> "lg_craft_common"
+        ExperienceSource.CRAFT_UTILITY -> "lg_craft_utility"
+        ExperienceSource.CRAFT_EQUIPMENT -> "lg_craft_equipment"
+        ExperienceSource.CRAFT_RARE -> "lg_craft_rare"
+        ExperienceSource.ENDER_DRAGON_KILL -> "lg_ender_dragon"
+        ExperienceSource.WITHER_KILL -> "lg_wither"
+        ExperienceSource.ELDER_GUARDIAN_KILL -> "lg_elder_guardian"
+        ExperienceSource.WARDEN_KILL -> "lg_warden"
         ExperienceSource.CLAIM_CREATED -> "lg_claiming"
-        ExperienceSource.CLAIM_DESTROYED -> "lg_claiming"
-        ExperienceSource.WEEKLY_ACTIVITY -> "lg_reward"
-        ExperienceSource.ADMIN_BONUS -> "lg_reward"
-        else -> "lg_reward"
+        ExperienceSource.CLAIM_DESTROYED -> "lg_claim_removed"
+        ExperienceSource.WEEKLY_ACTIVITY -> "lg_weekly_activity"
+        ExperienceSource.ADMIN_BONUS -> "lg_admin_bonus"
     }
 
     private fun sourceToMaterial(source: ExperienceSource): Material = when (source) {
         ExperienceSource.BANK_DEPOSIT -> Material.GOLD_NUGGET
-        ExperienceSource.MEMBER_JOINED -> Material.PLAYER_HEAD
-        ExperienceSource.WAR_WON -> Material.DIAMOND_SWORD
+        ExperienceSource.MEMBER_JOINED, ExperienceSource.QUALIFIED_RECRUIT -> Material.PLAYER_HEAD
+        ExperienceSource.WAR_WON, ExperienceSource.PRE_CAP_WAR_WIN -> Material.DIAMOND_SWORD
         ExperienceSource.WAR_LOST -> Material.STONE_SWORD
         ExperienceSource.PLAYER_KILL -> Material.IRON_SWORD
         ExperienceSource.MOB_KILL -> Material.ROTTEN_FLESH
         ExperienceSource.CROP_BREAK -> Material.WHEAT
         ExperienceSource.BLOCK_BREAK -> Material.STONE_PICKAXE
         ExperienceSource.BLOCK_PLACE -> Material.STONE
-        ExperienceSource.CRAFTING -> Material.CRAFTING_TABLE
+        ExperienceSource.CRAFTING,
+        ExperienceSource.CRAFT_COMMON,
+        ExperienceSource.CRAFT_UTILITY,
+        ExperienceSource.CRAFT_EQUIPMENT,
+        ExperienceSource.CRAFT_RARE -> Material.CRAFTING_TABLE
         ExperienceSource.SMELTING -> Material.FURNACE
         ExperienceSource.FISHING -> Material.FISHING_ROD
         ExperienceSource.ENCHANTING -> Material.ENCHANTING_TABLE
-        ExperienceSource.CLAIM_CREATED -> Material.GOLDEN_SHOVEL
-        ExperienceSource.CLAIM_DESTROYED -> Material.GOLDEN_SHOVEL
-        ExperienceSource.WEEKLY_ACTIVITY -> Material.NETHER_STAR
-        ExperienceSource.ADMIN_BONUS -> Material.NETHER_STAR
-        else -> Material.PAPER
+        ExperienceSource.BREWING -> Material.BREWING_STAND
+        ExperienceSource.EXPLORATION_MILESTONE -> Material.COMPASS
+        ExperienceSource.COAL_ORE -> Material.COAL_ORE
+        ExperienceSource.COPPER_ORE -> Material.COPPER_ORE
+        ExperienceSource.IRON_ORE -> Material.IRON_ORE
+        ExperienceSource.LAPIS_ORE -> Material.LAPIS_ORE
+        ExperienceSource.REDSTONE_ORE -> Material.REDSTONE_ORE
+        ExperienceSource.GOLD_ORE -> Material.GOLD_ORE
+        ExperienceSource.NETHER_QUARTZ_ORE -> Material.NETHER_QUARTZ_ORE
+        ExperienceSource.DIAMOND_ORE -> Material.DIAMOND_ORE
+        ExperienceSource.EMERALD_ORE -> Material.EMERALD_ORE
+        ExperienceSource.ANCIENT_DEBRIS -> Material.ANCIENT_DEBRIS
+        ExperienceSource.ENDER_DRAGON_KILL -> Material.DRAGON_HEAD
+        ExperienceSource.WITHER_KILL -> Material.NETHER_STAR
+        ExperienceSource.ELDER_GUARDIAN_KILL -> Material.PRISMARINE_SHARD
+        ExperienceSource.WARDEN_KILL -> Material.ECHO_SHARD
+        ExperienceSource.CLAIM_CREATED, ExperienceSource.CLAIM_DESTROYED -> Material.GOLDEN_SHOVEL
+        ExperienceSource.WEEKLY_ACTIVITY, ExperienceSource.ADMIN_BONUS -> Material.NETHER_STAR
     }
 
     private fun sourceToDisplayName(source: ExperienceSource): Component = when (source) {

@@ -359,10 +359,10 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Event-driven.** WHEN qualifying guild-member activity occurs THEN THE SYSTEM SHALL emit the provider-owned target identity plus relevant event context and increment every matching active quest for that member's guild. Progress matching SHALL support explicit X/Z corridor conditions and other compatible conditions, retain progress beyond the milestone for leaderboard ranking, reject cancelled/creative/spectator activity, distinguish custom provider targets from vanilla backing types, and prevent player-placed blocks from satisfying `NATURAL_ONLY` break quests while allowing player-grown crops under an `ANY` provenance policy.
 
 ### REQ-077
-**Event-driven.** WHEN a guild reaches a milestone THEN THE SYSTEM SHALL allow that guild to claim its configured Guild EXP and item rewards once during the active week; WHEN all milestone quests are claimed before reset THEN THE SYSTEM SHALL award the configured full-set Guild EXP bonus once; WHEN reset occurs THEN THE SYSTEM SHALL pay configured leaderboard Guild EXP positions before clearing progress. All reward paths SHALL be idempotent.
+**Event-driven.** WHEN a guild first reaches a weekly quest milestone THEN THE SYSTEM SHALL automatically settle that quest's configured Guild EXP and item rewards exactly once, mark the milestone complete without requiring a manual claim, notify online guild members with a localized toast using the quest action's custom icon when available, and continue recording all qualifying progress beyond the milestone. WHEN all milestone quests complete before reset THEN THE SYSTEM SHALL award the configured full-set Guild EXP bonus once. WHEN reset occurs THEN THE SYSTEM SHALL pay the configured first-place leaderboard Guild EXP reward for each quest before activating the next weekly set, with stable transaction identity and durable payout markers preventing duplicate rewards. Final weekly scores SHALL remain persisted for history/audit. All reward paths SHALL be idempotent.
 
 ### REQ-078
-**Event-driven.** WHEN a guild member opens the main guild menu THEN THE SYSTEM SHALL provide access to a localized six-row weekly quest menu showing dynamically rendered procedural quest text, the shared quests, that guild's progress, claim status, rewards, leaderboard rank where enabled, full-set bonus state, pagination, and time remaining until reset.
+**Event-driven.** WHEN a guild member opens the main guild menu THEN THE SYSTEM SHALL provide access to a localized six-row weekly quest menu showing dynamically rendered procedural quest text, action-specific custom icons with tier/vanilla fallback, the shared quests, that guild's uncapped score, completion state, rewards, current leaderboard rank, full-set bonus state, pagination, and time remaining until reset. WHEN the member activates a quest entry THEN THE SYSTEM SHALL open a paginated quest leaderboard showing guild names, scores, ranks, completion target, the viewer guild's standing, weekly winner reward, and reset time; Java and Bedrock SHALL expose equivalent leaderboard information.
 
 ### REQ-079
 **Optional feature.** WHERE PlaceholderAPI is installed THE SYSTEM SHALL expose read-only timer, dynamically rendered procedural quest-definition, guild-progress, completion, reward, and weekly-bonus placeholders with documented safe fallbacks for missing players, guilds, quests, and active weeks; placeholder evaluation SHALL NOT discover/generate a new set, reset, claim, reward, or otherwise mutate quest state.
@@ -390,4 +390,90 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Durable war clarification (2026-09-14; REQ-039/092).** Declarations, war identity/status, statistics, wager amounts and settlement intent SHALL survive restart. Financial intent SHALL be recorded before a charge or refund. A completed leg SHALL not be repeated after a crash or failed state-marker write; an uncertain leg SHALL prevent speculative compensation and require reconciliation. Acceptance SHALL not publish an active paid war until funding is confirmed. A chosen settlement outcome SHALL be immutable once settlement begins. Corrupt or unavailable persistence SHALL fail closed rather than expose an empty war registry. Stale writers SHALL not overwrite a newer persisted state.
 
 ### REQ-093
-**Conditional.** WHILE prestige is enabled, GIVEN a guild is current-run level 100, is below the configured lifetime maximum (default 3), has selected a purchased prestige-eligible non-permanent perk, has no active/accepted/unresolved war or outgoing declaration, and can pay the configured tier fee (defaults 10,000/20,000/30,000 raw-gold units) while leaving a balance no greater than its calculated post-prestige capacity, WHEN an authorized leader explicitly confirms prestige THEN THE SYSTEM SHALL atomically deduct the fee, increment prestige count, grant one permanent home-capacity unit, mark the selected perk permanent, reset current-run level to 1 and XP to 0, and deactivate every other non-permanent purchased progression perk. Prestige SHALL preserve seasonal Elo and pair history, source-cap consumption, weekly quest progress/reward flags, guild identity, membership, ranks, relations, canonical guild gold remainder, vault contents, activated homes, permanent home capacity, and prior permanent perks. Failure or retry SHALL grant neither duplicate rewards nor duplicate charges. The shipped default SHALL be `prestige.enabled: false` until the operator enables the community-approved feature.
+**Conditional.** WHILE prestige is enabled, GIVEN a guild is current-run level 100, is below the configured lifetime maximum (default 6), has selected a purchased prestige-eligible non-permanent perk, has no active/accepted/unresolved war or outgoing declaration, and can pay the configured tier fee (defaults 10,000/20,000/30,000/30,000/30,000/30,000 raw-gold units) while leaving a balance no greater than its calculated post-prestige capacity, WHEN an authorized leader explicitly confirms prestige THEN THE SYSTEM SHALL atomically deduct the fee, increment prestige count, grant one permanent home-capacity unit, mark the selected perk permanent, reset current-run level to 1 and XP to 0, and deactivate every other non-permanent purchased progression perk. Prestige SHALL preserve seasonal Elo and pair history, source-cap consumption, weekly quest progress/reward flags, guild identity, membership, ranks, relations, canonical guild gold remainder, vault contents, activated homes, permanent home capacity, and prior permanent perks. Failure or retry SHALL grant neither duplicate rewards nor duplicate charges. The shipped default SHALL be `prestige.enabled: false` until the operator enables the community-approved feature.
+
+## Season 2 presentation contract
+
+### REQ-094
+**Ubiquitous.** THE SYSTEM SHALL render paginated progression sources in unique row-major content slots that never overlap header, sidebar, back, close, or pagination controls. Layout changes SHALL preserve source accounting, permissions and reward actions.
+
+### REQ-095
+**Ubiquitous.** THE staging Season 2 resource pack SHALL resolve all LumaGuilds item IDs, including the nine missing navigation/source IDs and 37 emoji-choice IDs, to existing resources. Icons SHALL use readable silhouettes, consistent gold/slate pixel-art navigation, correctly directed pagination arrows and shape-distinct status indicators. Existing IDs, approved guild backgrounds and recognizable emoji identities SHALL be preserved. Pack generation SHALL retain SELFHOST. Java and Bedrock client validation SHALL be reported independently from static validation.
+
+
+### REQ-096
+**Event-driven.** WHEN an authorized guild member opens Settings → GUI Theme THEN THE SYSTEM SHALL render a one-row six-choice theme selector using `guild_bg_<theme>_1_row`, place theme choices in slots 0–5 and Back in slot 8, use a distinct supplied symbol for every `GuiTheme`, identify the active theme with localized text plus a secondary visual cue, use the localized heading `GUI Theme`, keep the player inventory visible, and reject unauthorized selections without reporting success.
+
+### REQ-097
+**Ubiquitous.** THE progression menu SHALL map every `ExperienceSource` to intentional Season 2 artwork without a catch-all reward/gift fallback. Shared pool presentation SHALL use the pool's meaning (`ORE` → ore, shared `CRAFTING` → workbench) rather than an arbitrary representative source, while source-specific mappings remain exhaustive for future non-pooled views. Gift/reward artwork SHALL be reserved for actual rewards.
+
+### REQ-098
+**Ubiquitous.** THE Guild Bank Java menu SHALL resolve every literal and computed localization lookup to a string leaf in shipped and active language trees. Quick-action dynamic keys and transaction-type labels SHALL be covered by executable localization tests, and amount/balance/fee/actor placeholders SHALL render without leaking raw keys.
+
+### REQ-099
+**Ubiquitous.** THE local Season 2 Nexo pack SHALL ship the approved dark-slate/metallic 1/3/4/5/6-row backgrounds, six theme-choice symbols, and all new progression source icons under unique item/glyph identifiers with no duplicate glyph chars or custom-model-data collisions. Menu titles on these dark backgrounds SHALL use light/ivory foreground text. Pack generation SHALL remain SELFHOST and production hosting/configuration SHALL NOT be changed.
+
+### REQ-100
+**Ubiquitous.** THE Season 2 Java GUI redesign SHALL preserve every existing action, authorization rule, data-bearing item, failure path, sorting/paging behavior, and economic safeguard while reorganizing presentation: Dashboard retains all ten sections with Statistics directly below Economy; Progression retains its proven 24-slot content grid and isolated sidebar/navigation; Bank uses a compact four-row shell when all controls/overlays fit; Settings groups identity, appearance, and access/location without dropping conditional controls; Diplomacy/Warfare separate status/requests/consequential actions; Members/Ranks retain player heads and rank state.
+
+## Season 2 Java visual-audit follow-up — 2026-09-24
+
+### REQ-101
+**Ubiquitous.** THE Guild Dashboard summary SHALL derive member count, guild rank/level, canonical guild balance, banner and other displayed guild facts from the same authoritative services used by their destination menus. The balance shown on the dashboard SHALL equal the balance shown by Economy/Bank for the same guild and SHALL NOT display a stale or independently calculated zero. The summary SHOULD use the available space for useful at-a-glance guild information without duplicating confusing or low-value fields.
+
+### REQ-102
+**Event-driven.** WHEN a player opens Guild Information THEN THE SYSTEM SHALL open the information view whenever that player is authorized to view it, independent of whether they are the owner. Disbanded guilds SHALL NOT remain joinable or resolve to orphaned/unknown owners after a completed disband. Chapter 2 migration/readiness tooling SHALL detect and report stale guild rows, orphaned ownership, and other disband remnants before production cut-over rather than silently carrying them forward.
+
+### REQ-103
+**Ubiquitous.** THE Ranks UI SHALL resolve every perk/title/lore localization key and SHALL replace legacy verbose perk descriptions with concise, scannable hover text that communicates the same permission/effect without extending beyond practical inventory-tooltip height. Existing rank authorization and behavior SHALL remain unchanged.
+
+### REQ-104
+**Ubiquitous.** Weekly quest presentation SHALL use human-readable action phrases and target nouns rather than generator-style fragments: examples include "Catch any fish", "Enchant 90 Stone Spears", and "Deposit 30,000 Gold Ore to the Guild Bank" rather than "Fish Any", "90 stone spear", or generic "coins". Generated condition text SHALL be limited to conditions that make gameplay sense for the selected action; X/Z highway-corridor conditions SHALL NOT be attached to actions such as enchanting where location is incidental. The shipped Chapter 2 weekly set SHALL contain six guild quests, with menu layout adjusted to present all six cleanly.
+
+### REQ-105
+**Ubiquitous.** THE Guild Bank SHALL retain its intended transaction history, automation, member-contribution, interest, alert, recurring-payment, budget and statistics information, but SHALL present it through a coherent navigation hierarchy with purpose-specific Season 2 icons, complete localization and no misleading dead controls. Every visible control SHALL either perform its described operation or clearly represent read-only status; placeholder "coming soon" actions SHALL NOT ship as interactive controls. Interest/next-accrual countdowns SHALL update from real persisted schedule state, and member-contribution/statistics views SHALL use real guild data.
+
+### REQ-106
+**Ubiquitous.** Lunar tracking SHALL be disabled by default for new guilds and newly initialized settings while preserving explicit persisted opt-in choices for existing guilds unless migration policy says otherwise.
+
+### REQ-107
+**State-driven.** Prestige SHALL require current-run level 100, matching REQ-093, and the release UI SHALL NOT describe level 25 or present Prestige as a future-update placeholder. For Chapter 2 release, the implemented prestige path, eligibility checks, confirmation, rewards, reset semantics and persistence SHALL be production-ready. Whether the feature is enabled by default remains governed by the operator-controlled `prestige.enabled` contract in REQ-093 unless that release policy is separately changed.
+
+### REQ-108
+**Event-driven.** BEFORE Chapter 2 production cut-over, operators SHALL have an explicit administrative cleanup operation that can end and remove all residual active wars, incoming/outgoing declarations and peace-agreement state so Chapter 2 starts from a clean diplomatic-war state. The operation SHALL be auditable and safe to run against the reviewed live database. War-menu quick statistics (total wars, wins/losses or ratio, active wars and related counters) SHALL be calculated from authoritative persisted war data and validated against live data before release rather than assumed correct from the imported staging snapshot.
+
+### REQ-109
+**Ubiquitous.** THE Guild Statistics UI SHALL receive a Season 2 presentation pass with intentional custom icons, complete localization and verified persisted-data backing. The obsolete statistics CSV export control SHALL be removed in accordance with REQ-023. Kill trends, periodic statistics, rivalry statistics, guild achievements, top killers, top contributors, K/D analysis and every other retained statistics surface SHALL either return real supported data or be removed/hidden until implemented; empty guild data SHALL be distinguishable from an unwired data path. Statistics SHALL be validated against representative live-database data before Chapter 2 release.
+
+### REQ-110
+**Ubiquitous.** THE dedicated Bedrock guild UI SHALL provide Chapter 2 behavioral parity for every supported primary Guild Dashboard domain while remaining a platform-specific Cumulus presentation adapter. Supported Bedrock flows SHALL use the same authoritative services, authorization rules, mutation semantics and persisted data as Java, SHALL NOT directly construct Java inventory menus as their normal success/back path, and SHALL NOT replace unavailable data with believable fabricated defaults. Form navigation/back/timeout state SHALL remain within the Bedrock flow.
+
+### REQ-111
+**Event-driven.** WHEN a Bedrock guild member opens Weekly Guild Quests THEN THE SYSTEM SHALL present the same active shared six-quest set, human-readable generated objectives, guild progress, claim/reward state, full-set bonus state, supported leaderboard state and reset timing available to Java; claiming SHALL use the existing idempotent quest service and SHALL NOT duplicate generation/reward logic in the form layer.
+
+### REQ-112
+**State-driven.** WHILE Chapter 2 progression is available to a Bedrock guild member THEN THE SYSTEM SHALL present current-run progression, source-cap state and the approved reward catalog from the same read models as Java. WHILE Prestige is enabled, eligible Bedrock leaders SHALL see the same level-100 eligibility, lifetime maximum (default 6), next fee, eligible retained-perk choices, immutable quote, explicit confirmation and retry-safe result semantics as Java; disabled/unavailable/max states SHALL be explicit and legacy contradictory prestige/perk presentation SHALL NOT be shown.
+
+### REQ-113
+**Event-driven.** WHEN an authorized Bedrock player opens Guild Settings THEN THE SYSTEM SHALL expose the persisted current state and mutation controls for open/closed guild access, Lunar tracking and GUI theme in addition to the existing supported identity/appearance/mode controls. Every mutation SHALL enforce the same Java permission requirement before presentation and again before persistence/service execution; toggle labels SHALL describe current persisted state rather than imply an unperformed action.
+
+### REQ-114
+**Ubiquitous.** THE Bedrock Guild Statistics surface SHALL render only authoritative supported statistics and SHALL distinguish real zero/empty data from unavailable or unwired data. Hardcoded XP, activity, territory, kill, war or other plausible-looking placeholder values SHALL NOT ship. Retained Bedrock statistics SHALL consume the same kill/war/member/bank/invitation/leaderboard sources as Java or SHALL be hidden/marked unavailable until supported, and the obsolete CSV/export path SHALL remain absent.
+
+### REQ-115
+**Ubiquitous.** THE Bedrock Guild Bank SHALL expose a coherent navigation hierarchy for canonical balance/actions, transaction history, statistics, member contributions, automation, budget and security where authorized. Deposit/withdraw and every mutable bank-management setting SHALL use the same Java authority and canonical BankService/persistence semantics, including unresolved payout review states. Management settings SHALL be authorization-checked before rendering mutable controls and again at mutation time; history/analytics SHALL be bounded and use real persisted data.
+
+### REQ-116
+**Event-driven.** WHEN a Bedrock player manages guild homes THEN THE SYSTEM SHALL retain the current paid activation/use behavior and SHALL provide functional per-home rank access and inbound ally-home access controls backed by the same services as Java. Bedrock SHALL NOT replace these supported controls with an unavailable placeholder.
+
+### REQ-117
+**Ubiquitous.** THE Bedrock member/rank management surface SHALL expose the same currently supported authorized member actions and rank permission/prefix semantics as Java through a coherent selected-member/rank flow. Rank editing SHALL preserve stable rank identity and existing priority unless an explicit reorder action is performed; alternate Bedrock editors SHALL NOT silently expose conflicting permission subsets or change ordering as a side effect of editing.
+
+### REQ-118
+**Event-driven.** WHEN a Bedrock player uses guild recruitment or party management THEN THE SYSTEM SHALL keep the supported LFG browse -> join requirements -> admission/result -> return flow within Bedrock forms and SHALL expose current service-backed party settings/permissions rather than a hardcoded platform-unavailable action. Paid admission SHALL continue to use the existing journaled LfgService path.
+
+### REQ-119
+**Ubiquitous.** THE Bedrock diplomacy/warfare UI SHALL preserve the current service-backed relation, declaration, wager, acceptance/rejection/cancellation, kill-progress, history/statistics and peace behavior and SHALL expose every currently supported war objective/configuration required by the Chapter 2 Java flow. Bedrock and Java MAY use different layouts, but both SHALL resolve authoritative persisted war/relation state and SHALL NOT fork lifecycle or settlement logic.
+
+### REQ-120
+**Event-driven.** BEFORE Chapter 2 Bedrock release sign-off, automated parity contracts SHALL cover primary routing, authorization denials, data truthfulness and the new Quests/Prestige/Settings/Bank/Statistics flows; all visible Bedrock text in those flows SHALL be localized. A compatible staging environment with Geyser/Floodgate/Cumulus SHALL then complete a real Bedrock-client walkthrough of dashboard navigation, quests/claim, reward purchase/prestige, settings, bank, homes/access, members/ranks, party/LFG, diplomacy/warfare, statistics and close/back/timeout/reconnect behavior. Java or static-source validation SHALL NOT be reported as Bedrock runtime validation.

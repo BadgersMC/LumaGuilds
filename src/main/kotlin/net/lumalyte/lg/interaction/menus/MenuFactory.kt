@@ -497,11 +497,7 @@ class MenuFactory(
         }
     }
 
-    /**
-     * Creates a home access menu for configuring per-rank access to a guild home.
-     * Bedrock has no equivalent UI (light-touch parity per project precedent); affected
-     * Bedrock callers get a chat-message fallback directing them to the Java client.
-     */
+    /** Creates the platform-native per-rank access editor for a guild home. */
     fun createHomeAccessMenu(
         menuNavigator: MenuNavigator,
         player: Player,
@@ -509,38 +505,26 @@ class MenuFactory(
         homeName: String
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            BedrockAccessUnavailableMenu(player, "home access (per-rank whitelist)", lang)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockHomeAccessMenu(
+                menuNavigator, player, guild, homeName, logger
+            )
         } else {
             net.lumalyte.lg.interaction.menus.guild.HomeAccessMenu(menuNavigator, player, guild, homeName)
         }
     }
 
-    /**
-     * Creates an ally-home access menu for configuring which allied guilds are on this
-     * guild's inbound ally-home whitelist. Java players get the toggle ChestGui; Bedrock
-     * players get a chat-message fallback directing them to the Java client (no Bedrock
-     * equivalent UI is provided — light-touch parity per project precedent).
-     */
+    /** Creates the platform-native inbound ally-home whitelist editor. */
     fun createAllyHomeAccessMenu(
         menuNavigator: MenuNavigator,
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            BedrockAccessUnavailableMenu(player, "ally-home access (inbound whitelist)", lang)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockAllyHomeAccessMenu(
+                menuNavigator, player, guild, logger
+            )
         } else {
             net.lumalyte.lg.interaction.menus.guild.AllyHomeAccessMenu(menuNavigator, player, guild)
-        }
-    }
-
-    private class BedrockAccessUnavailableMenu(
-        private val player: Player,
-        private val featureLabel: String,
-        private val lang: LangService,
-    ) : Menu {
-        override fun open() {
-            player.sendMessage(lang.msg("bedrock.common.java_required", "feature" to featureLabel))
-            player.sendMessage(lang.msg("bedrock.common.support_roadmap"))
         }
     }
 
@@ -815,13 +799,16 @@ class MenuFactory(
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
         if (shouldUseBedrockMenus(player)) {
-            return BedrockAccessUnavailableMenu(player, "weekly guild quests", lang)
+            return net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildQuestsMenu(
+                menuNavigator, player, guild, logger
+            )
         }
         val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
+        val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
         val questService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.QuestService>()
         val lang = org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>()
         return net.lumalyte.lg.interaction.menus.guild.GuildQuestsMenu(
-            menuNavigator, player, guild, memberService, questService, lang
+            menuNavigator, player, guild, memberService, guildService, questService, lang
         )
     }
 
@@ -1163,7 +1150,15 @@ class MenuFactory(
         menuNavigator: MenuNavigator,
         player: Player
     ): Menu {
-        return LfgBrowserMenu(menuNavigator, player)
+        return if (shouldUseBedrockMenus(player)) {
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockLfgBrowserMenu(
+                menuNavigator,
+                player,
+                logger
+            )
+        } else {
+            LfgBrowserMenu(menuNavigator, player)
+        }
     }
 
     /**

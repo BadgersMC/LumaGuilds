@@ -42,6 +42,14 @@ class LocaleContractTest {
         "menu.bank.security.risk.high",
         "menu.bank.security.risk.low",
         "menu.bank.security.risk.medium",
+        "menu.bank.quick.deposit.100",
+        "menu.bank.quick.deposit.1000",
+        "menu.bank.quick.deposit.10000",
+        "menu.bank.quick.deposit.all",
+        "menu.bank.quick.withdraw.100",
+        "menu.bank.quick.withdraw.1000",
+        "menu.bank.quick.withdraw.10000",
+        "menu.bank.quick.withdraw.all",
         "menu.bank.stats.activity.high",
         "menu.bank.stats.activity.low",
         "menu.bank.stats.activity.moderate",
@@ -101,6 +109,13 @@ class LocaleContractTest {
         "menu.tag_editor.validation.too_long",
         "menu.tag_editor.validation.unclosed",
         "menu.tag_editor.validation.unknown_tag",
+        "menu.bank.close",
+        "menu.bank.history.filter.type",
+        "menu.bank.history.filter.member",
+        "menu.bank.history.filter.date",
+        "menu.bank.history.filter.search",
+        "menu.bank.history.filter.clear",
+        "menu.bank.stats.budget.status",
     )
     private val declaredDynamicKeys =
         claimPermissionDynamicKeys + flagDynamicKeys + rankPermissionDynamicKeys + finiteMenuStateKeys +
@@ -132,6 +147,11 @@ class LocaleContractTest {
             legacyCalls,
             legacyCalls.joinToString { "${it.file}:${it.line} lang.${it.renderer}(\"${it.key}\")" },
         )
+    }
+
+    @Test
+    fun `every rank permission dynamic key is localized`() {
+        assertEquals(emptySet<String>(), rankPermissionDynamicKeys - localeKeys())
     }
 
     @Test
@@ -205,6 +225,14 @@ class LocaleContractTest {
             "menu.bank.security.risk.high",
             "menu.bank.security.risk.low",
             "menu.bank.security.risk.medium",
+        "menu.bank.quick.deposit.100",
+        "menu.bank.quick.deposit.1000",
+        "menu.bank.quick.deposit.10000",
+        "menu.bank.quick.deposit.all",
+        "menu.bank.quick.withdraw.100",
+        "menu.bank.quick.withdraw.1000",
+        "menu.bank.quick.withdraw.10000",
+        "menu.bank.quick.withdraw.all",
             "menu.bank.stats.activity.high",
             "menu.bank.stats.activity.low",
             "menu.bank.stats.activity.moderate",

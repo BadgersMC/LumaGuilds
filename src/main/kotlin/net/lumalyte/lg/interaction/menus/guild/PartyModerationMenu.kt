@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -8,7 +11,7 @@ import net.kyori.adventure.text.Component
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.lumalyte.lg.application.services.GuildService
@@ -217,7 +220,7 @@ class PartyModerationMenu(
 
         // Previous page button
         if (currentPage > 0) {
-            val prevItem = ItemStack.of(Material.ARROW)
+            val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.party.moderation.previous.name"))
                 .lore(lang.gui("menu.party.moderation.previous.lore"))
             pane.addItem(GuiItem(prevItem) {
@@ -228,7 +231,7 @@ class PartyModerationMenu(
 
         // Next page button
         if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack.of(Material.ARROW)
+            val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.party.moderation.next.name"))
                 .lore(lang.gui("menu.party.moderation.next.lore"))
             pane.addItem(GuiItem(nextItem) {
@@ -243,7 +246,7 @@ class PartyModerationMenu(
         pane.addItem(GuiItem(pageItem), 2, 5)
 
         // Back button
-        val backItem = ItemStack.of(Material.BARRIER)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.party.moderation.back.name"))
             .lore(lang.gui("menu.party.moderation.back.lore"))
         pane.addItem(GuiItem(backItem) {

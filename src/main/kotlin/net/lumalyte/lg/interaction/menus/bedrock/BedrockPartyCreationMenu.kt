@@ -36,6 +36,15 @@ class BedrockPartyCreationMenu(
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
+        if (!partyService.canManageParties(player.uniqueId, guild.id)) {
+            return CustomForm.builder()
+                .title(lang.bedrock("bedrock.party.creation.title"))
+                .label(lang.bedrock("bedrock.party.creation.no_permission"))
+                .validResultHandler { _ -> bedrockNavigator.goBack() }
+                .closedOrInvalidResultHandler { _, _ -> bedrockNavigator.goBack() }
+                .build()
+        }
+
         val config = getBedrockConfig()
         val partyIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
 
@@ -96,6 +105,12 @@ class BedrockPartyCreationMenu(
     }
 
     private fun handlePartyCreation(partyName: String, isPrivate: Boolean, invitedGuild: Guild?) {
+        if (!partyService.canManageParties(player.uniqueId, guild.id)) {
+            player.sendMessage(lang.msg("bedrock.party.creation.no_permission"))
+            bedrockNavigator.goBack()
+            return
+        }
+
         // Validate party name
         if (partyName.length > 32) {
             player.sendMessage(lang.msg("bedrock.party.creation.feedback.name_too_long"))

@@ -10,10 +10,7 @@ import net.lumalyte.lg.application.services.LfgService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
-import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.lumalyte.lg.interaction.menus.guild.JoinRequirementsMenu
-import net.lumalyte.lg.interaction.menus.guild.returnToLfgBrowser
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
@@ -63,12 +60,13 @@ class BedrockJoinRequirementsMenu(
                     processJoin()
                 } else {
                     player.sendMessage(lang.msg("bedrock.join_requirements.feedback.cancelled"))
-                    returnToLfgBrowser(menuNavigator)
+                    openLfgBrowser()
                 }
             }
-            .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
+            .closedOrInvalidResultHandler { _, _ ->
                 player.sendMessage(lang.msg("bedrock.join_requirements.feedback.cancelled"))
-            })
+                openLfgBrowser()
+            }
             .build()
     }
 
@@ -150,26 +148,34 @@ class BedrockJoinRequirementsMenu(
             is LfgJoinResult.Success -> {
                 player.sendMessage(lang.msg("bedrock.join_requirements.feedback.success", "guild" to guild.name))
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
+                bedrockNavigator.openMenu(
+                    menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild)
+                )
             }
             is LfgJoinResult.InsufficientFunds -> {
                 player.sendMessage(lang.msg("bedrock.join_requirements.feedback.insufficient", "required" to result.required, "currency" to result.currencyType, "current" to result.current))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                openLfgBrowser()
             }
             is LfgJoinResult.GuildFull -> {
                 player.sendMessage(lang.msg("bedrock.join_requirements.feedback.full"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                openLfgBrowser()
             }
             is LfgJoinResult.AlreadyInGuild -> {
                 player.sendMessage(lang.msg("bedrock.join_requirements.feedback.already_member"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                openLfgBrowser()
             }
             is LfgJoinResult.VaultUnavailable -> {
                 player.sendMessage(lang.msg("bedrock.join_requirements.feedback.vault_unavailable"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                openLfgBrowser()
             }
             is LfgJoinResult.Error -> {
                 player.sendMessage(lang.msg("bedrock.join_requirements.feedback.error", "error" to result.message))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                openLfgBrowser()
             }
         }
     }
@@ -178,11 +184,11 @@ class BedrockJoinRequirementsMenu(
         return name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
     }
 
-    override fun handleResponse(player: Player, response: Any?) {
-        // Response handling is done in the form builder's validResultHandler
+    private fun openLfgBrowser() {
+        bedrockNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
     }
 
-    override fun createFallbackJavaMenu(): Menu {
-        return JoinRequirementsMenu(menuNavigator, player, guild)
+    override fun handleResponse(player: Player, response: Any?) {
+        // Response handling is done in the form builder's validResultHandler
     }
 }

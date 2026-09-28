@@ -52,6 +52,9 @@ class BedrockGuildControlPanelMenu(
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.ranks"), config.editIconUrl, config.editIconPath) {
             bedrockNavigator.openMenu(BedrockGuildRankManagementMenu(menuNavigator, player, guild, null, logger))
         })
+        buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.quests"), config.editIconUrl, config.editIconPath) {
+            bedrockNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
+        })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.tag"), config.editIconUrl, config.editIconPath) {
             bedrockNavigator.openMenu(BedrockTagEditorMenu(menuNavigator, player, guild, logger))
         })

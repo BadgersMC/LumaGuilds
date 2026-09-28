@@ -405,8 +405,10 @@ quests:
   enabled: true
   reset_day: MONDAY
   reset_hour_utc: 0
-  quest_count: 3
+  quest_count: 6
   full_set_bonus_xp: 5000
+  # Awarded to the highest-scoring guild for each quest when the week rolls over.
+  leaderboard_winner_xp: 5000
   reward_xp:
     common: 500
     challenging: 1500

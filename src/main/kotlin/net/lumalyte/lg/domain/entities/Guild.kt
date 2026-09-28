@@ -49,7 +49,7 @@ data class Guild(
     val isOpen: Boolean = false,
     val joinFeeEnabled: Boolean = false,
     val joinFeeAmount: Int = 0,
-    val trackingEnabled: Boolean = true,
+    val trackingEnabled: Boolean = false,
     val bankFrozen: Boolean = false,
     val bannermanEnabled: Boolean = false,
     val allyHome: GuildHome? = null,

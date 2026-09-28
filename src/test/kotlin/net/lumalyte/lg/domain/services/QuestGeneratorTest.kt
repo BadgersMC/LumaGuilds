@@ -31,6 +31,7 @@ class QuestGeneratorTest {
 
         assertEquals(first, second)
         assertEquals(3, first.map(QuestDefinition::fingerprint).toSet().size)
+        assertTrue(first.all { it.leaderboard })
     }
 
     @Test

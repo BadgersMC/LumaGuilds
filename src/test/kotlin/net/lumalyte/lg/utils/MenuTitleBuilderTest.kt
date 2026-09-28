@@ -26,26 +26,32 @@ class MenuTitleBuilderTest {
 
     @ParameterizedTest
     @CsvSource(
+        "NEUTRAL,   1, guild_bg_neutral_1_row",
         "NEUTRAL,   3, guild_bg_neutral_3_row",
         "NEUTRAL,   4, guild_bg_neutral_4_row",
         "NEUTRAL,   5, guild_bg_neutral_5_row",
         "NEUTRAL,   6, guild_bg_neutral_6_row",
+        "EMBERSTONE,   1, guild_bg_emberstone_1_row",
         "EMBERSTONE,   3, guild_bg_emberstone_3_row",
         "EMBERSTONE,   4, guild_bg_emberstone_4_row",
         "EMBERSTONE,   5, guild_bg_emberstone_5_row",
         "EMBERSTONE,   6, guild_bg_emberstone_6_row",
+        "CARVED_SLATE,   1, guild_bg_carved_slate_1_row",
         "CARVED_SLATE,   3, guild_bg_carved_slate_3_row",
         "CARVED_SLATE,   4, guild_bg_carved_slate_4_row",
         "CARVED_SLATE,   5, guild_bg_carved_slate_5_row",
         "CARVED_SLATE,   6, guild_bg_carved_slate_6_row",
+        "MOSSBOUND,   1, guild_bg_mossbound_1_row",
         "MOSSBOUND,   3, guild_bg_mossbound_3_row",
         "MOSSBOUND,   4, guild_bg_mossbound_4_row",
         "MOSSBOUND,   5, guild_bg_mossbound_5_row",
         "MOSSBOUND,   6, guild_bg_mossbound_6_row",
+        "LAVENDER_HALL,   1, guild_bg_lavender_hall_1_row",
         "LAVENDER_HALL,   3, guild_bg_lavender_hall_3_row",
         "LAVENDER_HALL,   4, guild_bg_lavender_hall_4_row",
         "LAVENDER_HALL,   5, guild_bg_lavender_hall_5_row",
         "LAVENDER_HALL,   6, guild_bg_lavender_hall_6_row",
+        "IRON_ROSE,   1, guild_bg_iron_rose_1_row",
         "IRON_ROSE,   3, guild_bg_iron_rose_3_row",
         "IRON_ROSE,   4, guild_bg_iron_rose_4_row",
         "IRON_ROSE,   5, guild_bg_iron_rose_5_row",
@@ -80,7 +86,7 @@ class MenuTitleBuilderTest {
     @Test
     fun `prefix is identical across themes and row counts`() {
         val titles = GuiTheme.entries.flatMap { theme ->
-            (3..6).map { rows ->
+            listOf(1, 3, 4, 5, 6).map { rows ->
                 MenuTitleBuilder.build(theme, rows)
                     .substringBefore("<glyph:")
             }
@@ -97,7 +103,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `glyph name contains the correct row count`() {
-        for (rows in 3..6) {
+        for (rows in listOf(1, 3, 4, 5, 6)) {
             val title = MenuTitleBuilder.build(rows = rows)
             assertTrue(
                 title.contains("_${rows}_row"),

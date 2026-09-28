@@ -5,6 +5,7 @@ import net.lumalyte.lg.domain.entities.GuildQuestProgress
 import net.lumalyte.lg.domain.entities.QuestCondition
 import net.lumalyte.lg.domain.entities.QuestConditionType
 import net.lumalyte.lg.domain.entities.QuestItemReward
+import net.lumalyte.lg.domain.entities.QuestDefinition
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import net.lumalyte.lg.domain.values.QuestAction
 import java.time.Duration
@@ -34,7 +35,9 @@ data class QuestProgressContext(
 class QuestService(
     private val repository: QuestRepository,
     private val rewards: QuestRewardSink,
-    val fullSetBonusExperience: Int
+    val fullSetBonusExperience: Int,
+    private val leaderboardWinnerExperience: Int = 0,
+    private val completionNotifier: QuestCompletionNotifier = QuestCompletionNotifier.NOOP,
 ) {
     fun activeQuestSet(): WeeklyQuestSet? = repository.getActiveQuestSet()
     fun recentQuestSets(limit: Int): List<WeeklyQuestSet> = repository.getRecentQuestSets(limit)
@@ -55,9 +58,18 @@ class QuestService(
         }
     }
 
+    fun leaderboardFor(questId: String, limit: Int = Int.MAX_VALUE): List<GuildQuestProgress> {
+        val active = repository.getActiveQuestSet() ?: return emptyList()
+        if (active.quests.none { it.id == questId }) return emptyList()
+        return repository.getQuestLeaderboard(active.weekId, questId, limit.coerceAtLeast(1))
+    }
+
+    fun leaderboardWinnerReward(quest: QuestDefinition): Int =
+        quest.leaderboardPayouts[1] ?: leaderboardWinnerExperience
+
     fun rankFor(guildId: UUID, questId: String): Int? {
         val active = repository.getActiveQuestSet() ?: return null
-        val quest = active.quests.firstOrNull { it.id == questId && it.leaderboard } ?: return null
+        val quest = active.quests.firstOrNull { it.id == questId } ?: return null
         val rank = repository.getQuestLeaderboard(active.weekId, quest.id, Int.MAX_VALUE)
             .indexOfFirst { it.guildId == guildId }
         return rank.takeIf { it >= 0 }?.plus(1)
@@ -78,7 +90,8 @@ class QuestService(
         action: QuestAction,
         targetId: String,
         amount: Long = 1,
-        context: QuestProgressContext = QuestProgressContext()
+        context: QuestProgressContext = QuestProgressContext(),
+        actorId: UUID? = null,
     ) {
         if (amount <= 0) return
         val active = repository.getActiveQuestSet() ?: return
@@ -92,21 +105,19 @@ class QuestService(
             .forEach { quest ->
                 val current = repository.getProgress(active.weekId, quest.id, guildId)
                     ?: GuildQuestProgress(active.weekId, quest.id, guildId)
-                repository.saveProgress(current.withIncrementedCount(amount, quest.targetCount))
+                val updated = current.withIncrementedCount(amount, quest.targetCount)
+                repository.saveProgress(updated)
+
+                if (!current.claimed && updated.completedAt != null) {
+                    claimCompletedQuest(active, quest, guildId, actorId)
+                }
             }
     }
 
     fun claimQuest(actorId: UUID, guildId: UUID, questId: String): Boolean {
         val active = repository.getActiveQuestSet() ?: return false
         val quest = active.quests.firstOrNull { it.id == questId } ?: return false
-        val progress = repository.getProgress(active.weekId, questId, guildId) ?: return false
-        if (!progress.isCompletable(quest.targetCount)) return false
-        if (!repository.tryMarkClaimed(active.weekId, questId, guildId, actorId)) return false
-
-        val claimed = progress.withClaimed(actorId)
-        deliverClaimReward(active, quest, claimed)
-        awardFullSetBonusIfComplete(active, guildId)
-        return true
+        return claimCompletedQuest(active, quest, guildId, actorId)
     }
 
     /**
@@ -115,10 +126,26 @@ class QuestService(
      */
     fun reconcilePendingRewards(): Int {
         var delivered = 0
+
+        repository.getActiveQuestSet()?.let { active ->
+            repository.getUnclaimedCompletedProgress(active.weekId).forEach { progress ->
+                val quest = active.quests.firstOrNull { it.id == progress.questId }
+                    ?: return@forEach
+                claimCompletedQuest(
+                    active = active,
+                    quest = quest,
+                    guildId = progress.guildId,
+                    actorId = progress.claimActorId,
+                )
+            }
+        }
+
         repository.getPendingClaimRewards().forEach { progress ->
             val questSet = repository.getQuestSet(progress.weekId) ?: return@forEach
             val quest = questSet.quests.firstOrNull { it.id == progress.questId } ?: return@forEach
-            if (deliverClaimReward(questSet, quest, progress)) delivered++
+            if (deliverClaimReward(questSet, quest, progress)) {
+                delivered++
+            }
         }
 
         repository.getActiveQuestSet()?.let { active ->
@@ -135,12 +162,13 @@ class QuestService(
             check(reconcileFullSetBonuses(current)) {
                 "Unable to durably settle weekly quest completion bonuses"
             }
-            current.quests.filter { it.leaderboard }.forEach { quest ->
-                val maxRank = quest.leaderboardPayouts.keys.maxOrNull() ?: 0
+            current.quests.forEach { quest ->
+                val payouts = effectiveLeaderboardPayouts(quest)
+                val maxRank = payouts.keys.maxOrNull() ?: 0
                 if (maxRank > 0) {
                     repository.getQuestLeaderboard(current.weekId, quest.id, maxRank)
                         .forEachIndexed { index, progress ->
-                            quest.leaderboardPayouts[index + 1]?.takeIf { it > 0 }?.let { amount ->
+                            payouts[index + 1]?.takeIf { it > 0 }?.let { amount ->
                                 if (!repository.isLeaderboardRecipientPaid(current.weekId, quest.id, progress.guildId)) {
                                     val transactionId = rewardTransactionId(
                                         "leaderboard",
@@ -163,10 +191,36 @@ class QuestService(
                         }
                 }
             }
-            repository.deleteWeekProgress(current.weekId)
+            // Preserve final quest scores so last-week winners and historical standings
+            // can be displayed without reconstructing them from transient activity.
         }
         repository.saveActiveQuestSet(nextQuestSet)
     }
+
+    private fun claimCompletedQuest(
+        active: WeeklyQuestSet,
+        quest: QuestDefinition,
+        guildId: UUID,
+        actorId: UUID?,
+    ): Boolean {
+        val progress = repository.getProgress(active.weekId, quest.id, guildId) ?: return false
+        if (!progress.isCompletable(quest.targetCount)) return false
+        if (!repository.tryMarkClaimed(active.weekId, quest.id, guildId, actorId)) return false
+
+        val claimed = progress.withClaimed(actorId)
+        deliverClaimReward(active, quest, claimed)
+        awardFullSetBonusIfComplete(active, guildId)
+        return true
+    }
+
+    private fun effectiveLeaderboardPayouts(quest: QuestDefinition): Map<Int, Int> =
+        if (quest.leaderboardPayouts.isNotEmpty()) {
+            quest.leaderboardPayouts
+        } else if (leaderboardWinnerExperience > 0) {
+            mapOf(1 to leaderboardWinnerExperience)
+        } else {
+            emptyMap()
+        }
 
     private fun deliverClaimReward(
         questSet: WeeklyQuestSet,
@@ -189,6 +243,11 @@ class QuestService(
             if (!rewards.awardItems(actorId, quest.itemRewards, transactionId)) return false
             actorId
         } else null
+
+        val notificationQueued = runCatching {
+            completionNotifier.onCompleted(progress.guildId, quest, progress)
+        }.getOrDefault(false)
+        if (!notificationQueued) return false
 
         val delivered = repository.markClaimRewardDelivered(
             questSet.weekId,

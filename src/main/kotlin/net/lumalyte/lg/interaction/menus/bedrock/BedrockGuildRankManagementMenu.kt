@@ -4,14 +4,18 @@ import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
+import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
@@ -29,10 +33,30 @@ class BedrockGuildRankManagementMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val rankService: RankService by inject()
+    private val guildService: GuildService by inject()
+    private val authorization by lazy { BedrockGuildAuthorization(guildService) }
     private val configService: ConfigService by inject()
     private val lang: LangService by inject()
+    private val plugin: Plugin by inject()
 
     override fun getForm(): Form {
+        if (!authorization.canManageRanks(player.uniqueId, guild.id)) {
+            return SimpleForm.builder()
+                .title(lang.bedrock("bedrock.rank_management.title", "guild" to guild.name))
+                .content(lang.bedrock("bedrock.rank_management.error.no_permission"))
+                .button(lang.bedrock("bedrock.rank_management.back"))
+                .validResultHandler {
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        if (player.isOnline) bedrockNavigator.goBack()
+                    })
+                }
+                .closedOrInvalidResultHandler { _, _ ->
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        if (player.isOnline) bedrockNavigator.goBack()
+                    })
+                }
+                .build()
+        }
         val config = getBedrockConfig()
         val editIcon = BedrockFormUtils.createFormImage(config, config.editIconUrl, config.editIconPath)
 
@@ -87,14 +111,14 @@ class BedrockGuildRankManagementMenu(
         )
 
         val availablePermissions = if (!claimsEnabled) {
-            RankPermission.values().filterNot { it in claimsPermissions }
+            RankPermission.entries.filterNot { it in claimsPermissions }
         } else {
-            RankPermission.values().toList()
+            RankPermission.entries.toList()
         }
 
         availablePermissions.forEach { permission ->
             formBuilder.toggle(
-                getPermissionDisplayName(permission),
+                permissionDisplayName(lang, permission),
                 selectedRank?.permissions?.contains(permission) ?: false
             )
         }
@@ -105,11 +129,15 @@ class BedrockGuildRankManagementMenu(
         formBuilder.label(createValidationSection())
 
         formBuilder.validResultHandler { response ->
-            handleFormResponse(response)
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (player.isOnline) handleFormResponse(response)
+            })
         }
 
         formBuilder.closedOrInvalidResultHandler { _, _ ->
-            navigateBack()
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (player.isOnline) navigateBack()
+            })
         }
 
         return formBuilder.build()
@@ -129,9 +157,11 @@ class BedrockGuildRankManagementMenu(
         }
     }
 
-    private fun getPermissionDisplayName(permission: RankPermission): String {
-        val key = "permission.${permission.name.lowercase().replace("_", ".")}"
-        return lang.bedrock(key)
+    companion object {
+        fun permissionDisplayName(lang: LangService, permission: RankPermission): String {
+            val key = "permission.${permission.name.lowercase().replace("_", ".")}"
+            return lang.bedrock(key)
+        }
     }
 
     private fun createValidationSection(): String {
@@ -158,9 +188,9 @@ class BedrockGuildRankManagementMenu(
             )
 
             val availablePermissions = if (!claimsEnabled) {
-                RankPermission.values().filterNot { it in claimsPermissions }
+                RankPermission.entries.filterNot { it in claimsPermissions }
             } else {
-                RankPermission.values().toList()
+                RankPermission.entries.toList()
             }
 
             val permissions = mutableSetOf<RankPermission>()
@@ -172,7 +202,7 @@ class BedrockGuildRankManagementMenu(
             }
 
             // Validate permissions
-            if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) {
+            if (!authorization.canManageRanks(player.uniqueId, guild.id)) {
                 player.sendMessage(lang.msg("bedrock.rank_management.error.no_permission"))
                 navigateBack()
                 return
@@ -185,17 +215,21 @@ class BedrockGuildRankManagementMenu(
                 return
             }
 
-            // Check for duplicate names
+            val rankToEdit = if (modeIndex == 1) {
+                selectedRank ?: rankService.listRanks(guild.id)
+                    .sortedBy { it.priority }
+                    .getOrNull(selectedRankIndex)
+            } else {
+                null
+            }
+
+            // Check for duplicate names without rejecting the rank currently being edited.
             val existingRank = rankService.getRankByName(guild.id, rankName)
-            if (existingRank != null && existingRank != selectedRank) {
+            if (existingRank != null && existingRank.id != rankToEdit?.id) {
                 player.sendMessage(lang.msg("bedrock.rank_management.error.duplicate", "rank" to rankName))
                 reopen()
                 return
             }
-
-            // Auto-assign priority (no longer checking for conflicts)
-            val existingRanks = rankService.listRanks(guild.id)
-            val newPriority = existingRanks.maxOfOrNull { it.priority }?.plus(1) ?: 1
 
             // Process based on mode
             if (modeIndex == 0) {
@@ -208,28 +242,22 @@ class BedrockGuildRankManagementMenu(
                 )
 
                 if (createdRank != null) {
-                    // Update priority if needed
-                    if (createdRank.priority != newPriority) {
-                        val updatedRank = createdRank.copy(priority = newPriority)
-                        rankService.updateRank(updatedRank, player.uniqueId)
-                    }
-
+                    // RankService owns creation-order priority; the Bedrock adapter does not reorder it.
                     player.sendMessage(lang.msg("bedrock.rank_management.success.created", "rank" to rankName))
                 } else {
                     player.sendMessage(lang.msg("bedrock.rank_management.error.create_failed"))
                 }
             } else {
-                // Edit existing rank
-                val rankToEdit = if (selectedRank != null) selectedRank else {
-                    val ranks = rankService.listRanks(guild.id).toList()
-                    if (selectedRankIndex < ranks.size) ranks[selectedRankIndex] else null
-                }
-
+                // Ordinary edits preserve immutable identity and existing priority.
                 if (rankToEdit != null) {
+                    val effectivePermissions = permissions.toMutableSet()
+                    if (!claimsEnabled) {
+                        effectivePermissions += rankToEdit.permissions.filter { it in claimsPermissions }
+                    }
                     val updatedRank = rankToEdit.copy(
                         name = rankName,
-                        priority = newPriority,
-                        permissions = permissions
+                        priority = rankToEdit.priority,
+                        permissions = effectivePermissions
                     )
 
                     val success = rankService.updateRank(updatedRank, player.uniqueId)

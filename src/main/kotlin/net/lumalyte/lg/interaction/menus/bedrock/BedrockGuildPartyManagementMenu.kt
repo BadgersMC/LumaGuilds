@@ -312,58 +312,33 @@ class BedrockGuildPartyManagementMenu(
 
     private fun openPartySettingsMenu() {
         val config = getBedrockConfig()
-        val canManageParties = memberService.hasPermission(player.uniqueId, guild.id,
-            net.lumalyte.lg.domain.entities.RankPermission.MANAGE_PARTIES)
-
         val form = SimpleForm.builder()
             .title(lang.bedrock("bedrock.party.management.settings"))
-            .content(lang.bedrock("bedrock.party.management.settings_description"))
-
-        if (canManageParties) {
-            form.addButtonWithImage(
+            .content(lang.bedrock("bedrock.party.management.settings_read_only"))
+            .addButtonWithImage(
                 config,
-                lang.bedrock("bedrock.party.management.settings_permissions"),
-                config.guildSettingsIconUrl,
-                config.guildSettingsIconPath
+                lang.bedrock("bedrock.party.management.settings_info"),
+                config.editIconUrl,
+                config.editIconPath
             )
-        } else {
-            form.addButtonWithImage(
+            .addButtonWithImage(
                 config,
-                lang.bedrock("bedrock.party.management.settings_permissions_disabled"),
-                config.guildSettingsIconUrl,
-                config.guildSettingsIconPath
+                lang.bedrock("bedrock.party.management.back"),
+                config.closeIconUrl,
+                config.closeIconPath
             )
-        }
-
-        form.addButtonWithImage(
-            config,
-            lang.bedrock("bedrock.party.management.settings_info"),
-            config.editIconUrl,
-            config.editIconPath
-        )
-        form.addButtonWithImage(
-            config,
-            lang.bedrock("bedrock.party.management.back"),
-            config.closeIconUrl,
-            config.closeIconPath
-        )
             .validResultHandler { response ->
-                val clickedButton = response.clickedButtonId()
-                when (clickedButton) {
-                    0 -> if (canManageParties) openPartyPermissionsMenu() else getForm()
-                    1 -> openPartyInfoMenu()
-                    2 -> getForm() // Back to main menu
+                if (response.clickedButtonId() == 0) {
+                    openPartyInfoMenu()
+                } else {
+                    open()
                 }
             }
-            .closedOrInvalidResultHandler { _, _ ->
-                getForm() // Back to main menu
-            }
+            .closedOrInvalidResultHandler { _, _ -> open() }
 
         bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
             override fun getForm(): Form = form.build()
             override fun handleResponse(player: Player, response: Any?) {
-                // Response handling is done in the form builder's validResultHandler
-                // This method is kept for interface compatibility
                 onFormResponseReceived()
             }
         })
@@ -371,7 +346,48 @@ class BedrockGuildPartyManagementMenu(
 
     // Helper methods for handling responses and opening sub-menus
     private fun openPartyDetailsMenu(party: Party) {
-        player.sendMessage("<yellow>Party details are not available in Bedrock.")
+        val config = getBedrockConfig()
+        val guildNames = party.guildIds
+            .mapNotNull { guildService.getGuild(it)?.name }
+            .sorted()
+            .joinToString(", ")
+            .ifBlank { lang.bedrock("bedrock.party.management.details.unknown_guilds") }
+        val restrictions = party.restrictedRoles?.size ?: 0
+        val content = lang.bedrock(
+            "bedrock.party.management.details.content",
+            "guilds" to guildNames,
+            "count" to party.guildIds.size,
+            "status" to party.status.name,
+            "created" to party.createdAt,
+            "expires" to (party.expiresAt ?: lang.bedrock("bedrock.party.management.details.no_expiry")),
+            "restrictions" to restrictions,
+            "muted" to party.getActiveMutes().size,
+            "banned" to party.bannedPlayers.size
+        )
+
+        val form = SimpleForm.builder()
+            .title(
+                lang.bedrock(
+                    "bedrock.party.management.details.title",
+                    "party" to (party.name ?: lang.bedrock("bedrock.party.management.unnamed"))
+                )
+            )
+            .content(content)
+            .addButtonWithImage(
+                config,
+                lang.bedrock("bedrock.party.management.back"),
+                config.closeIconUrl,
+                config.closeIconPath
+            )
+            .validResultHandler { _ -> openCurrentPartiesMenu() }
+            .closedOrInvalidResultHandler { _, _ -> openCurrentPartiesMenu() }
+
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+            override fun getForm(): Form = form.build()
+            override fun handleResponse(player: Player, response: Any?) {
+                onFormResponseReceived()
+            }
+        })
     }
 
     private fun openIncomingRequestsMenu() {
@@ -388,7 +404,7 @@ class BedrockGuildPartyManagementMenu(
 
         incomingRequests.forEach { request ->
             val fromGuild = guildService.getGuild(request.fromGuildId)
-            val fromGuildName = fromGuild?.name ?: "Unknown Guild"
+            val fromGuildName = fromGuild?.name ?: lang.bedrock("bedrock.party.management.unknown_guild")
             form.addButtonWithImage(
                 config,
                 "${lang.bedrock("bedrock.party.management.from")}: $fromGuildName\n${lang.bedrock("bedrock.party.management.message")}: ${request.message ?: lang.bedrock("bedrock.party.management.no_message")}",
@@ -439,7 +455,7 @@ class BedrockGuildPartyManagementMenu(
 
         outgoingRequests.forEach { request ->
             val toGuild = guildService.getGuild(request.toGuildId)
-            val toGuildName = toGuild?.name ?: "Unknown Guild"
+            val toGuildName = toGuild?.name ?: lang.bedrock("bedrock.party.management.unknown_guild")
             form.addButtonWithImage(
                 config,
                 "${lang.bedrock("bedrock.party.management.to")}: $toGuildName\n${lang.bedrock("bedrock.party.management.message")}: ${request.message ?: lang.bedrock("bedrock.party.management.no_message")}",
@@ -614,10 +630,6 @@ class BedrockGuildPartyManagementMenu(
         }
 
         getForm() // Refresh main menu
-    }
-
-    private fun openPartyPermissionsMenu() {
-        player.sendMessage("<yellow>Party permissions configuration is not available in Bedrock.")
     }
 
     private fun openPartyInfoMenu() {

@@ -7,6 +7,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.services.GuildRewardPurchaseService
+import net.lumalyte.lg.application.services.GuildPrestigeService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.rewards.GuildRewardRead
@@ -39,6 +40,7 @@ class BedrockGuildProgressionInfoMenu(
     private val progressionRepository: ProgressionRepository by inject()
     private val lang: LangService by inject()
     private val purchases: GuildRewardPurchaseService by inject()
+    private val prestige: GuildPrestigeService by inject()
     private val members: MemberService by inject()
     private val serverPlugin: Plugin by inject()
 
@@ -98,6 +100,7 @@ class BedrockGuildProgressionInfoMenu(
                 lang.rewardStatusText(offer.status)) +
                 if (offer.status == RewardOfferStatus.AVAILABLE) listOf(lang.bedrock("chapter_two_rewards.purchase.select"))
                 else emptyList()).joinToString("\n")) } }
+            .button(prestigeButtonLabel())
             .button(lang.bedrock("chapter_two_rewards.back"))
             .validResultHandler { response ->
                 val index = response.clickedButtonId()
@@ -105,12 +108,29 @@ class BedrockGuildProgressionInfoMenu(
                     onFormResponseReceived()
                     if (!player.isOnline) return@Runnable
                     val offer = offers.getOrNull(index)
-                    if (offer == null) { bedrockNavigator.goBack(); return@Runnable }
-                    if (offer.status != RewardOfferStatus.AVAILABLE) return@Runnable
-                    val quote = purchases.quote(player.uniqueId, guild.id, offer.reward.id)
-                    if (quote == null) {
-                        player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote")); open()
-                    } else BedrockRewardPurchaseMenu(menuNavigator, player, quote, offer.reward.name, ::open, logger).open()
+                    if (offer != null) {
+                        if (offer.status != RewardOfferStatus.AVAILABLE) {
+                            open()
+                            return@Runnable
+                        }
+                        val quote = purchases.quote(player.uniqueId, guild.id, offer.reward.id)
+                        if (quote == null) {
+                            player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote"))
+                            open()
+                        } else {
+                            BedrockRewardPurchaseMenu(
+                                menuNavigator, player, quote, offer.reward.name, ::open, logger
+                            ).open()
+                        }
+                        return@Runnable
+                    }
+                    if (index == offers.size) {
+                        bedrockNavigator.openMenu(
+                            BedrockPrestigeSelectionMenu(menuNavigator, player, guild, logger)
+                        )
+                    } else {
+                        bedrockNavigator.goBack()
+                    }
                 })
             }
             .closedOrInvalidResultHandler { _, _ ->
@@ -121,6 +141,35 @@ class BedrockGuildProgressionInfoMenu(
             }.build()
     }
 
+    private fun prestigeButtonLabel(): String {
+        val overview = prestige.overview(guild.id)
+        val state = when {
+            overview == null -> lang.bedrock("menu.guild_progression.prestige.state.unavailable")
+            !overview.enabled -> lang.bedrock("menu.guild_progression.prestige.state.disabled")
+            overview.prestigeCount >= overview.maxPrestigeCount -> lang.bedrock(
+                "menu.guild_progression.prestige.state.maximum",
+                "count" to overview.prestigeCount, "max" to overview.maxPrestigeCount
+            )
+            overview.currentLevel < 100 -> lang.bedrock(
+                "menu.guild_progression.prestige.state.level", "level" to overview.currentLevel
+            )
+            overview.choices.isEmpty() -> lang.bedrock("menu.guild_progression.prestige.state.no_choices")
+            else -> lang.bedrock(
+                "menu.guild_progression.prestige.state.ready",
+                "count" to overview.prestigeCount, "max" to overview.maxPrestigeCount,
+                "fee" to (overview.nextFee ?: 0L), "choices" to overview.choices.size
+            )
+        }
+        val lines = mutableListOf(
+            lang.bedrock("menu.guild_progression.prestige.name"),
+            lang.bedrock("menu.guild_progression.prestige.rewards"),
+            state
+        )
+        if (overview != null && overview.enabled && overview.currentLevel == 100 &&
+            overview.prestigeCount < overview.maxPrestigeCount && overview.choices.isNotEmpty()
+        ) lines += lang.bedrock("menu.guild_progression.prestige.action")
+        return lines.joinToString("\n")
+    }
     private fun createSectionHeader(title: String): String {
         return lang.bedrock("bedrock.progression.header.format", "title" to title)
     }

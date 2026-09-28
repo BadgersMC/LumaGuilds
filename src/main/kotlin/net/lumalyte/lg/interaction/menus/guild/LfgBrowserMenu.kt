@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.GuiTheme
 import net.badgersmc.nexus.i18n.LangService
@@ -8,8 +11,8 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.PaginatedPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.LfgService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ConfigService
@@ -137,7 +140,7 @@ class LfgBrowserMenu(
 
     private fun addNavigationButtons(pane: StaticPane, paginatedPane: PaginatedPane) {
         // Previous page button
-        val prevItem = ItemStack.of(Material.ARROW)
+        val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.lfg_browser.navigation.previous.name"))
             .lore(lang.gui("menu.lfg_browser.navigation.previous.description"))
 
@@ -162,7 +165,7 @@ class LfgBrowserMenu(
         pane.addItem(closeGuiItem, 4, 0)
 
         // Next page button
-        val nextItem = ItemStack.of(Material.ARROW)
+        val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.lfg_browser.navigation.next.name"))
             .lore(lang.gui("menu.lfg_browser.navigation.next.description"))
 

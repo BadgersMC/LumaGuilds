@@ -5,6 +5,7 @@ import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.BankService
+import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.Guild
@@ -35,12 +36,24 @@ class BedrockGuildWarDeclarationMenu(
     private val warService: WarService by inject()
     private val guildRepository: GuildRepository by inject()
     private val memberService: MemberService by inject()
+    private val configService: ConfigService by inject()
     private val bankService: BankService by inject()
     private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
+        if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DECLARE_WAR)) {
+            return CustomForm.builder()
+                .title(lang.bedrock("bedrock.war_declaration.title", "guild" to guild.name))
+                .label(lang.bedrock("bedrock.war_declaration.feedback.no_permission"))
+                .validResultHandler { _ -> bedrockNavigator.goBack() }
+                .closedOrInvalidResultHandler { _, _ -> bedrockNavigator.goBack() }
+                .build()
+        }
+
         val config = getBedrockConfig()
+        val mainConfig = configService.loadConfig()
+        val claimsEnabled = mainConfig.claimsEnabled
         val warIcon = BedrockFormUtils.createFormImage(config, config.guildWarsIconUrl, config.guildWarsIconPath)
 
         // Get list of guilds that can be targeted
@@ -59,6 +72,13 @@ class BedrockGuildWarDeclarationMenu(
             lang.bedrock("bedrock.war_declaration.duration.thirty_days")
         )
         val guildBalance = bankService.getBalance(guild.id)
+        val killCap = warService.getWarKillWinTarget().coerceAtLeast(1)
+        val killTargets = (listOf(5, 10, 25, 50).filter { it <= killCap } + killCap)
+            .filter { it > 0 }
+            .distinct()
+            .sorted()
+        val survivalTargets = listOf(12, 24, 48, 72)
+        val claimTargets = listOf(1, 3, 5, 10)
 
         return CustomForm.builder()
             .title(lang.bedrock("bedrock.war_declaration.title", "guild" to guild.name))
@@ -82,13 +102,36 @@ class BedrockGuildWarDeclarationMenu(
                 lang.bedrock("bedrock.war_declaration.terms.placeholder"),
                 ""
             )
-            .toggle(
-                lang.bedrock("bedrock.war_declaration.objective.territory"),
-                false
-            )
+            .apply {
+                if (claimsEnabled) {
+                    toggle(
+                        lang.bedrock("bedrock.war_declaration.objective.territory"),
+                        false
+                    )
+                    dropdown(
+                        lang.bedrock("bedrock.war_declaration.objective.territory_target"),
+                        claimTargets.map { lang.bedrock("bedrock.war_declaration.objective.claim_target", "count" to it) },
+                        2
+                    )
+                }
+            }
             .toggle(
                 lang.bedrock("bedrock.war_declaration.objective.kills"),
-                true // Default enabled
+                true
+            )
+            .dropdown(
+                lang.bedrock("bedrock.war_declaration.objective.kills_target"),
+                killTargets.map { lang.bedrock("bedrock.war_declaration.objective.kill_target", "count" to it) },
+                killTargets.indexOf(killCap).coerceAtLeast(0)
+            )
+            .toggle(
+                lang.bedrock("bedrock.war_declaration.objective.survival"),
+                false
+            )
+            .dropdown(
+                lang.bedrock("bedrock.war_declaration.objective.survival_target"),
+                survivalTargets.map { lang.bedrock("bedrock.war_declaration.objective.survival_hours", "count" to it) },
+                1
             )
             .label(
                 lang.bedrock("bedrock.war_declaration.wager.info", "balance" to guildBalance)
@@ -112,15 +155,28 @@ class BedrockGuildWarDeclarationMenu(
                     return@validResultHandler
                 }
 
-                val targetIndex = response.asDropdown(1)
-                val durationIndex = response.asDropdown(2)
-                val rated = response.asToggle(3)
-                val terms = response.asInput(4) ?: ""
-                val territoryObjective = response.asToggle(5)
-                val killsObjective = response.asToggle(6)
-                // Skip label at index 7
-                val wagerSlider = response.asSlider(8)
-                val wagerInput = response.asInput(9) ?: ""
+                val targetIndex = response.next() as? Int ?: 0
+                val durationIndex = response.next() as? Int ?: 2
+                val rated = response.next() as? Boolean ?: false
+                val terms = response.next() as? String ?: ""
+
+                val territoryObjective = if (claimsEnabled) {
+                    response.next() as? Boolean ?: false
+                } else {
+                    false
+                }
+                val territoryTarget = if (claimsEnabled) {
+                    claimTargets.getOrElse(response.next() as? Int ?: 2) { 5 }
+                } else {
+                    0
+                }
+
+                val killsObjective = response.next() as? Boolean ?: true
+                val killTarget = killTargets.getOrElse(response.next() as? Int ?: 0) { killCap }
+                val survivalObjective = response.next() as? Boolean ?: false
+                val survivalTarget = survivalTargets.getOrElse(response.next() as? Int ?: 1) { 24 }
+                val wagerSlider = response.next() as? Float ?: 0f
+                val wagerInput = response.next() as? String ?: ""
 
                 val targetGuild = allGuilds.getOrNull(targetIndex)
                 if (targetGuild == null) {
@@ -140,21 +196,36 @@ class BedrockGuildWarDeclarationMenu(
 
                 val objectives = mutableSetOf<WarObjective>()
                 if (territoryObjective) {
-                    objectives.add(WarObjective(
+                    objectives += WarObjective(
                         type = ObjectiveType.CLAIMS_CAPTURED,
-                        targetValue = 5,
-                        description = lang.bedrock("bedrock.war_declaration.objective.territory_description")
-                    ))
+                        targetValue = territoryTarget,
+                        description = lang.bedrock(
+                            "bedrock.war_declaration.objective.territory_description",
+                            "count" to territoryTarget
+                        )
+                    )
                 }
                 if (killsObjective) {
-                    objectives.add(WarObjective(
+                    objectives += WarObjective(
                         type = ObjectiveType.KILLS,
-                        targetValue = warService.getWarKillWinTarget(),
-                        description = lang.bedrock("bedrock.war_declaration.objective.kills_description")
-                    ))
+                        targetValue = killTarget,
+                        description = lang.bedrock(
+                            "bedrock.war_declaration.objective.kills_description",
+                            "count" to killTarget
+                        )
+                    )
+                }
+                if (survivalObjective) {
+                    objectives += WarObjective(
+                        type = ObjectiveType.TIME_SURVIVAL,
+                        targetValue = survivalTarget,
+                        description = lang.bedrock(
+                            "bedrock.war_declaration.objective.survival_description",
+                            "count" to survivalTarget
+                        )
+                    )
                 }
 
-                // Parse wager amount (prefer custom input over slider)
                 val wagerAmount = if (wagerInput.isNotBlank()) {
                     wagerInput.toIntOrNull() ?: 0
                 } else {
@@ -177,6 +248,12 @@ class BedrockGuildWarDeclarationMenu(
         wagerAmount: Int,
         rated: Boolean,
     ) {
+        if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DECLARE_WAR)) {
+            player.sendMessage(lang.msg("bedrock.war_declaration.feedback.no_permission"))
+            bedrockNavigator.goBack()
+            return
+        }
+
         // Validate guild can declare war
         if (guild.mode != GuildMode.HOSTILE) {
             player.sendMessage(lang.msg("bedrock.war_declaration.feedback.peaceful"))

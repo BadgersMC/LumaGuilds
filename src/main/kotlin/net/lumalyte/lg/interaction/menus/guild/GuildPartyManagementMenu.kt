@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -7,7 +10,7 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import net.badgersmc.nexus.i18n.LangService
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.application.services.MemberService
@@ -244,7 +247,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.party.management.back.name"))
             .lore(lang.gui("menu.party.management.back.lore"))
 
@@ -338,7 +341,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         }
 
         // Back button
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.party.management.request_back.name"))
             .lore(lang.gui("menu.party.management.request_back.lore"))
 
@@ -409,7 +412,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         }
 
         // Back button
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.party.management.request_back.name"))
             .lore(lang.gui("menu.party.management.request_back.lore"))
 

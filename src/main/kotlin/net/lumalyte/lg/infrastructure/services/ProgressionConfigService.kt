@@ -54,8 +54,9 @@ class ProgressionConfigService(private val plugin: Plugin) {
             enabled = yamlConfig.getBoolean("$base.enabled", true),
             resetDay = loadDayOfWeek(yamlConfig.getString("$base.reset_day") ?: "MONDAY"),
             resetHourUtc = yamlConfig.getInt("$base.reset_hour_utc", 0).coerceIn(0, 23),
-            questCount = yamlConfig.getInt("$base.quest_count", 3).coerceAtLeast(1),
+            questCount = yamlConfig.getInt("$base.quest_count", 6).coerceAtLeast(1),
             fullSetBonusXp = yamlConfig.getInt("$base.full_set_bonus_xp", 5_000).coerceAtLeast(0),
+            leaderboardWinnerXp = yamlConfig.getInt("$base.leaderboard_winner_xp", 5_000).coerceAtLeast(0),
             rewardXp = QuestRewardXpConfig(
                 common = yamlConfig.getInt("$base.reward_xp.common", 500).coerceAtLeast(0),
                 challenging = yamlConfig.getInt("$base.reward_xp.challenging", 1_500).coerceAtLeast(0),
