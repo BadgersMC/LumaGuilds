@@ -1,0 +1,13 @@
+// Build-only dependency substitution for official RoseChat.
+// SimpleClans' canonical Maven endpoint can fail TLS negotiation; use the
+// same 2.19.2 artifact from Modrinth without modifying RoseChat source.
+allprojects {
+    repositories {
+        maven { url = uri('https://api.modrinth.com/maven') }
+    }
+    configurations.configureEach {
+        resolutionStrategy.dependencySubstitution {
+            substitute module('net.sacredlabyrinth.phaed.simpleclans:SimpleClans') using module('maven.modrinth:quLDfyDl:xlIV342T')
+        }
+    }
+}
