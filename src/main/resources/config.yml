@@ -560,6 +560,11 @@ progression:
     ends_at: '2026-09-21T00:00:00Z'
     # sources: [MOB_KILL, PLAYER_KILL, COAL_ORE]
   max_level: 100                      # Permanent progression cap
+  # Prestige is deliberately gated off until migration/readiness and live validation are complete.
+  prestige:
+    enabled: false
+    max_count: 6
+    fees: [10000, 20000, 30000, 30000, 30000, 30000]
 
   # Experience values for different activities
   bank_deposit_xp_per_100: 1         # XP per 100 coins deposited

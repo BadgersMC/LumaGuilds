@@ -49,7 +49,7 @@ open class RewardSqlTestFixture {
     }
 
     protected fun rejectInserts(storage: Storage<Database>, table: String) {
-        require(table in setOf("guild_reward_ownership", "guild_reward_purchases", "guild_reward_accounts"))
+        require(table in setOf("guild_reward_ownership", "guild_reward_purchases", "guild_reward_accounts", "guild_prestige_transactions"))
         val body = if (storage.dialect == SqlDialect.MARIADB)
             "FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected write failure'"
         else "BEGIN SELECT RAISE(ABORT, 'injected write failure'); END"

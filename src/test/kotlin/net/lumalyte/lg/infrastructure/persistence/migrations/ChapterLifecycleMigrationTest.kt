@@ -72,7 +72,8 @@ class ChapterLifecycleMigrationTest {
         assertTrue(tableExists("player_notification_preferences"))
         assertTrue(tableExists("guild_discord_roles"))
         assertTrue(tableExists("rank_claim_permission_profiles"))
-        assertEquals(40, databaseVersion())
+        assertTrue(tableExists("quest_completion_notifications"))
+        assertEquals(41, databaseVersion())
     }
 
     @Test
@@ -81,12 +82,12 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE war_banners") }
         assertFalse(tableExists("war_banners"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("war_banners"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
     }
 
     @Test
@@ -95,12 +96,12 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE war_notifications") }
         assertFalse(tableExists("war_notifications"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("war_notifications"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
     }
 
     @Test
@@ -109,12 +110,12 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE player_notification_preferences") }
         assertFalse(tableExists("player_notification_preferences"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("player_notification_preferences"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
     }
 
     @Test
@@ -123,12 +124,26 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE rank_claim_permission_profiles") }
         assertFalse(tableExists("rank_claim_permission_profiles"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("rank_claim_permission_profiles"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
+    }
+
+    @Test
+    fun `version 41 repairs missing quest completion notifications without version rollback`() {
+        val migrations = SQLiteMigrations(plugin, connection, claimsEnabled = false)
+        migrations.migrate()
+        connection.createStatement().use { it.execute("DROP TABLE quest_completion_notifications") }
+        assertFalse(tableExists("quest_completion_notifications"))
+        assertEquals(41, databaseVersion())
+
+        migrations.migrate()
+
+        assertTrue(tableExists("quest_completion_notifications"))
+        assertEquals(41, databaseVersion())
     }
 
     @Test
@@ -137,12 +152,12 @@ class ChapterLifecycleMigrationTest {
         migrations.migrate()
         connection.createStatement().use { it.execute("DROP TABLE guild_discord_roles") }
         assertFalse(tableExists("guild_discord_roles"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
 
         migrations.migrate()
 
         assertTrue(tableExists("guild_discord_roles"))
-        assertEquals(40, databaseVersion())
+        assertEquals(41, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

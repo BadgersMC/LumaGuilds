@@ -199,4 +199,47 @@ class WarPaymentServiceTest {
         assertEquals(900, gold.balance(first))
         assertEquals(900, gold.balance(second))
     }
+
+    @Test fun `cutover cancellation returns escrow to both guilds without creating a winner`() {
+        seed(second, 1_000)
+        val id = pending()
+        val service = WarPaymentService(wars, gold)
+        assertTrue(service.fund(id))
+        assertEquals(900, gold.balance(first))
+        assertEquals(900, gold.balance(second))
+
+        assertTrue(service.cancelForCutover(id))
+
+        assertEquals(1_000, gold.balance(first))
+        assertEquals(1_000, gold.balance(second))
+        assertEquals(WarPaymentPhase.SETTLED, wars.get(id)!!.paymentPhase)
+        assertNull(wars.get(id)!!.settlementWinner)
+    }
+
+    @Test fun `cutover cancellation refunds only confirmed partial funding and never takes the missing stake`() {
+        seed(second, 1_000)
+        val id = pending()
+        val failSecondMarker = object : WarRepository by wars {
+            override fun save(record: DurableWarRecord): Boolean =
+                if (record.paymentAttempts.containsKey("defending-debit")) false else wars.save(record)
+        }
+        assertFalse(WarPaymentService(failSecondMarker, gold).fund(id))
+        assertEquals(900, gold.balance(first))
+        assertEquals(1_000, gold.balance(second))
+
+        assertTrue(WarPaymentService(WarRepositorySQL(storage), gold).cancelForCutover(id))
+
+        assertEquals(1_000, gold.balance(first))
+        assertEquals(1_000, gold.balance(second))
+        assertEquals(WagerStatus.CANCELLED, wars.get(id)!!.wager!!.status)
+    }
+
+    @Test fun `cutover cancellation fails closed for review state`() {
+        seed(second, 1_000)
+        val id = pending()
+        val record = wars.get(id)!!
+        assertTrue(wars.save(record.copy(paymentPhase = WarPaymentPhase.REVIEW)))
+        assertFalse(WarPaymentService(wars, gold).cancelForCutover(id))
+        assertEquals(WarPaymentPhase.REVIEW, wars.get(id)!!.paymentPhase)
+    }
 }

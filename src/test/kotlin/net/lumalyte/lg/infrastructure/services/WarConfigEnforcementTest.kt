@@ -17,7 +17,10 @@ import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.entities.ObjectiveType
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.entities.War
+import net.lumalyte.lg.domain.entities.WarDeclaration
 import net.lumalyte.lg.domain.entities.WarObjective
+import net.lumalyte.lg.domain.entities.WarPaymentPhase
+import net.lumalyte.lg.domain.entities.WarWager
 import net.lumalyte.lg.domain.entities.WarStats
 import net.lumalyte.lg.domain.entities.WarStatus
 import net.lumalyte.lg.domain.values.ExperienceSource
@@ -1211,6 +1214,85 @@ class WarConfigEnforcementTest {
         )
 
         assertNull(service.acceptWarDeclaration(pending!!.id, UUID.randomUUID()))
+    }
+
+    @Test
+    fun `chapter cutover cancels active wars rejects pending declarations and preserves ended history`() {
+        val activeId = UUID.randomUUID()
+        val pendingId = UUID.randomUUID()
+        val endedId = UUID.randomUUID()
+        val firstGuild = UUID.randomUUID()
+        val secondGuild = UUID.randomUUID()
+
+        records[activeId] = DurableWarRecord(
+            activeId,
+            war = War(
+                id = activeId,
+                declaringGuildId = firstGuild,
+                defendingGuildId = secondGuild,
+                status = WarStatus.ACTIVE,
+                startedAt = Instant.now(),
+            ),
+        )
+        records[pendingId] = DurableWarRecord(
+            pendingId,
+            declaration = WarDeclaration(
+                id = pendingId,
+                declaringGuildId = firstGuild,
+                defendingGuildId = secondGuild,
+            ),
+        )
+        records[endedId] = DurableWarRecord(
+            endedId,
+            war = War(
+                id = endedId,
+                declaringGuildId = firstGuild,
+                defendingGuildId = secondGuild,
+                status = WarStatus.ENDED,
+                endedAt = Instant.now(),
+            ),
+        )
+
+        val report = newService(mockk(relaxed = true)).resetChapterCutoverState("test-operator")
+
+        assertTrue(report.successful)
+        assertEquals(1, report.canceledWars)
+        assertEquals(1, report.rejectedDeclarations)
+        assertEquals(WarStatus.CANCELLED, records.getValue(activeId).war!!.status)
+        assertTrue(records.getValue(pendingId).declaration!!.rejected)
+        assertEquals(WarStatus.ENDED, records.getValue(endedId).war!!.status)
+    }
+
+    @Test
+    fun `chapter cutover leaves wager record active when safe refund cannot be proven`() {
+        val id = UUID.randomUUID()
+        val firstGuild = UUID.randomUUID()
+        val secondGuild = UUID.randomUUID()
+        records[id] = DurableWarRecord(
+            id,
+            war = War(
+                id = id,
+                declaringGuildId = firstGuild,
+                defendingGuildId = secondGuild,
+                status = WarStatus.ACTIVE,
+                startedAt = Instant.now(),
+            ),
+            wager = WarWager(
+                warId = id,
+                declaringGuildId = firstGuild,
+                defendingGuildId = secondGuild,
+                declaringGuildWager = 100,
+                defendingGuildWager = 100,
+            ),
+            paymentPhase = WarPaymentPhase.REVIEW,
+        )
+        every { payments.cancelForCutover(id) } returns false
+
+        val report = newService(mockk(relaxed = true)).resetChapterCutoverState("test-operator")
+
+        assertFalse(report.successful)
+        assertEquals(listOf(id), report.failedRecordIds)
+        assertEquals(WarStatus.ACTIVE, records.getValue(id).war!!.status)
     }
 
     private fun levelReward(warSlots: Int = 0, bankLimit: Int = 0) =

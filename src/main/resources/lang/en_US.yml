@@ -24,6 +24,7 @@ bedrock:
       title: Party Creation
       guild_title: 'Party Creation - <guild>'
       disabled: Parties are disabled on this server.
+      no_permission: You do not have permission to manage guild parties.
       description: Create a private party or invite another guild to a shared party.
       name:
         label: Party Name
@@ -65,6 +66,7 @@ bedrock:
       to: 'To'
       message: 'Message'
       no_message: 'No message provided'
+      unknown_guild: 'Unknown Guild'
       party_name: 'Party Name'
       party_name_placeholder: 'Enter party name...'
       party_description: 'Description (Optional)'
@@ -98,9 +100,7 @@ bedrock:
       send_request_self: 'Cannot send request to your own guild.'
       send_request_success: 'Party request sent to <guild>!'
       send_request_failed: 'Failed to send party request.'
-      settings_description: 'Configure party access and permissions.'
-      settings_permissions: 'Permissions Info'
-      settings_permissions_disabled: 'Permissions Info (Requires Admin+)'
+      settings_read_only: 'Party access rules are driven by guild rank permissions and per-party role restrictions. No separate mutable permission table exists here.'
       settings_info: 'Party Information'
       settings_info_description: 'Learn about the party system.'
       settings_info_permissions: 'Permission Levels:'
@@ -111,6 +111,19 @@ bedrock:
       settings_info_all_members: 'All members'
       settings_info_admin_only: 'Admin+ only'
       settings_info_invite_only: 'All parties are invite-only with rank restrictions available.'
+      details:
+        title: 'Party Details - <party>'
+        content: |-
+          Guilds: <guilds>
+          Guild Count: <count>
+          Status: <status>
+          Created: <created>
+          Expires: <expires>
+          Role Restrictions: <restrictions>
+          Active Mutes: <muted>
+          Banned Players: <banned>
+        no_expiry: No expiration
+        unknown_guilds: Unknown guilds
       back: '« Back'
 
     guild_selection:
@@ -368,6 +381,7 @@ bedrock:
       settings: Settings
       bank: Guild Bank
       ranks: Rank Management
+      quests: Weekly Quests
       tag: Guild Tag
       statistics: Statistics
       information: Guild Information
@@ -383,6 +397,9 @@ bedrock:
       relations: Relations
       close: Close
     closed: '<gray>Guild control panel closed.'
+  quests:
+    page: '<gray>Page <page>/<pages>'
+    item_rewards: '<gray>Item rewards: <white><items>'
   war_declaration:
     title: 'Declare War - <guild>'
     description: Configure a declaration against another hostile guild.
@@ -402,9 +419,17 @@ bedrock:
       placeholder: Enter optional terms
     objective:
       territory: Capture Territory
+      territory_target: Territory Target
+      claim_target: 'Capture <count> claims'
       kills: Player Kills
-      territory_description: Capture 5 enemy claims
-      kills_description: Kill 100 enemy players
+      kills_target: Kill Target
+      kill_target: '<count> kills'
+      survival: Time Survival
+      survival_target: Survival Target
+      survival_hours: 'Survive <count> hours'
+      territory_description: Capture <count> enemy claims
+      kills_description: Kill <count> enemy players
+      survival_description: Survive for <count> hours
     wager:
       info: |-
         War Wager
@@ -414,6 +439,7 @@ bedrock:
       custom_label: Custom Wager
       custom_placeholder: Enter an exact wager amount
     feedback:
+      no_permission: '<red>You do not have permission to declare war for this guild.'
       no_targets: '<yellow>No hostile guilds are currently eligible for war.'
       invalid_target: '<red>The selected target guild is no longer valid.'
       peaceful: '<red>Your guild must be in Hostile mode to declare war.'
@@ -451,8 +477,6 @@ bedrock:
       success: '<green>[SUCCESS] <text>'
       info: '<aqua>[i] <text>'
   common:
-    java_required: '<yellow>Use the Java client to configure <feature>.'
-    support_roadmap: '<gray>Bedrock support is on the roadmap.'
     error:
       invalid_data: '<red>Unable to open the menu because its data is invalid. Please contact an administrator.'
       load_failed: '<red>Failed to load the menu. Please try again.'
@@ -522,36 +546,25 @@ bedrock:
       chat_preview: '<gray>[<player>] <tag> Hello!'
   statistics:
     title: 'Guild Statistics - <guild>'
-    description: View guild membership, activity, economy, and territory statistics.
+    description: View authoritative guild membership, combat, war, invitation, progression, and economy statistics.
     header:
       format: '<gold><bold>━━━ <title> ━━━'
       overview: Overview
-      activity: Activity
       economy: Economy
-      territory: Territory
       invitations: Invitations
     date_format:
       overview: MMM dd, yyyy
       activity: MMM dd, HH:mm
-    value:
-      active: Active
     overview: |-
       <aqua>Total Members<gray>: <white><total_members>
       <green>Online Members<gray>: <white><online_members>
       <yellow>Created<gray>: <white><created>
       <light_purple>Level<gray>: <white><level>
       <dark_aqua>Experience<gray>: <white><experience>
-    activity: |-
-      <green>Recent Activity<gray>: <white><status>
-      <yellow>Last Seen<gray>: <white><last_seen>
     economy: |-
       <gold>Guild Balance<gray>: <yellow><balance> <gray>coins
       <aqua>Total Transactions<gray>: <white><transactions>
       <dark_aqua>Average Transaction<gray>: <white><average> <gray>coins
-    territory: |-
-      <light_purple>Total Claims<gray>: <white><claims>
-      <dark_purple>Controlled Area<gray>: <white><area> <gray>blocks
-      <red>Power Level<gray>: <white><power>
     invitations:
       content: |-
         <gold>Total Invitations Sent<gray>: <white><total>
@@ -660,6 +673,9 @@ bedrock:
     no_members: No guild members found
     member_row: '<status> <white><player> <gray>(<rank>)'
     more: '<gray>... and <count> more'
+    select_title: 'Select Member - <guild>'
+    select_description: '<gray>Select a guild member to view supported management actions.'
+    select_member: '<white><player> <gray>(<rank>)'
     unknown: Unknown
     status:
       online: '<green>[ONLINE]'
@@ -672,6 +688,18 @@ bedrock:
     error:
       processing: '<red>[ERROR] Unable to process the member list response.'
       permission_denied: '<red>[ERROR] You do not have permission to invite members.'
+  member_detail:
+    title: 'Member - <player>'
+    content: |-
+      <aqua>Player<gray>: <white><player>
+      <yellow>Rank<gray>: <white><rank>
+      <gray>Joined: <white><joined>
+    button:
+      rank: Change Rank
+      kick: Kick Member
+      back: Back
+    feedback:
+      no_permission: '<red>You do not have permission to manage this member.'
   home:
     title: 'Guild Homes - <guild>'
     content:
@@ -692,6 +720,12 @@ bedrock:
       no_homes: No homes have been set
       set_new: Set New Home
       remove: Remove Home
+      access: Home Rank Access
+      ally_access: Ally Home Access
+    access:
+      title: 'Home Access - <guild>'
+      description: '<gray>Select a home to configure its rank whitelist.'
+      button: '<home> (Configure Access)'
     remove:
       title: 'Remove Guild Home - <guild>'
       description: Select a guild home to remove.
@@ -708,6 +742,11 @@ bedrock:
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       removed: '<green>✅ Guild home ''<home>'' has been removed.'
       remove_failed: '<red>❌ Failed to remove the guild home.'
+  home_access:
+    description: '<gray>Toggle which guild ranks may use this home. The owner rank is always allowed.'
+  ally_home_access:
+    missing_guild: '<red>The guild could not be reloaded.'
+    no_allies: '<gray>Your guild has no active allies to configure.'
   member_rank_confirmation:
     title: '⚡ Confirm Rank Change'
     unknown_rank: Unknown
@@ -970,6 +1009,25 @@ bedrock:
       validation: '<red><error>'
       updated: '<green>✅ Guild description updated.'
       failed: '<red>❌ Failed to update the guild description.'
+  lfg_browser:
+    title: 'Guild Browser - <page>/<pages>'
+    content: '<gray>Open guilds available to join: <white><total>'
+    empty: '<gray>No open guilds are currently available.'
+    guild: |-
+      <gold><guild>
+      <gray>Level <white><level> <gray>• Members <white><members>/<maximum>
+      <gray>Mode: <white><mode>
+      <gray><fee>
+    mode:
+      peaceful: Peaceful
+      hostile: Hostile
+    fee:
+      none: No join fee
+      required: 'Join fee: <amount> <currency>'
+    button:
+      previous: Previous Page
+      next: Next Page
+      close: Close
   join_requirements:
     title: 'Join <guild>'
     button:
@@ -1142,15 +1200,7 @@ bedrock:
       label: Rank Name
       placeholder: Enter a rank name
     permissions:
-      header: Basic Permissions
-      invite: Invite Members
-      kick: Kick Members
-      promote: Change Member Ranks
-      manage_ranks: Manage Ranks
-      manage_settings: Manage Guild Settings
-      declare_war: Declare War
-      manage_bank: Manage Bank Settings
-      access_vault: Access Guild Vault
+      header: Permissions
     feedback:
       empty_name: '<red>Enter a rank name.'
       name_too_long: '<red>Rank names cannot exceed 20 characters.'
@@ -1354,6 +1404,7 @@ bedrock:
     success:
       created: '<green>[SUCCESS] Created rank <rank>.'
       updated: '<green>[SUCCESS] Updated rank <rank>.'
+    back: Back
   settings:
     title: 'Guild Settings - <guild>'
     name:
@@ -1449,13 +1500,27 @@ bedrock:
       empty: |-
         <gold><bold>Guild Bank Transaction History
 
-        <gray>No transactions have been recorded.
-      content: |-
-        <gold><bold>Guild Bank Transaction History
-
-        <gray>=== Recent Transactions ===
-
-        <transactions>
+        <gray>No transactions match the current filters.
+      page_header: '<gold>Page <page>/<pages> <gray>• <white><count> matching transactions'
+      filter:
+        summary: '<gray>Showing <white><shown><gray> of <white><matching><gray> matches from the latest <white><loaded><gray>/<white><limit><gray> loaded transactions.'
+        type: Transaction type
+        type_all: All transaction types
+        type_deposit: Deposit
+        type_withdrawal: Withdrawal
+        type_fee: Fee
+        type_deduction: Deduction
+        member: Member
+        member_all: All members
+        date: Date range
+        date_all: All time
+        date_24h: Last 24 hours
+        date_7d: Last 7 days
+        date_30d: Last 30 days
+        search: Search member or description
+        search_placeholder: Leave blank for all transactions
+        page: Results page
+        page_option: 'Page <page>'
       row:
         deposit: |-
           <gray>[<timestamp>] <white><player>
@@ -1466,9 +1531,6 @@ bedrock:
         neutral: |-
           <gray>[<timestamp>] <white><player>
             <gray><amount> - <description>
-      button:
-        refresh: Refresh
-        back: Back
     contributions:
       title: 'Member Contributions - <guild>'
       unknown_player: Unknown
@@ -1476,12 +1538,7 @@ bedrock:
         <gold><bold>Guild Member Contributions
 
         <gray>No member contributions have been recorded.
-      content: |-
-        <gold><bold>Guild Member Contributions
-
-        <gray>=== Top 10 Contributors ===
-
-        <contributors>
+      page_header: '<gold>Page <page>/<pages> <gray>• <white><count> contributors'
       row:
         positive: |-
           <gray><position>. <white><player>: <green><net>
@@ -1493,6 +1550,8 @@ bedrock:
           <gray><position>. <white><player>: <gray><net>
           <gray>   Deposits: <green>+<deposits> <gray>Withdrawals: <red>-<withdrawals>
       button:
+        previous: Previous Page
+        next: Next Page
         refresh: Refresh
         back: Back
     balance_section: |-
@@ -1518,6 +1577,21 @@ bedrock:
       custom_label: Custom Withdrawal Amount
       custom_placeholder: Enter an exact amount
     auto_deposit: Enable automatic deposits
+    navigation:
+      label: Bank section
+      transactions: Deposit / Withdraw
+      history: Transaction History
+      statistics: Bank Statistics
+      contributions: Member Contributions
+      management: '<gold>Bank Management'
+      automation: Automation
+      budget: Budget
+      security: Security
+    management:
+      no_permission: '<red>You do not have permission to manage guild bank settings.'
+      auto_deposit_read_only: '<gray>Automatic deposits: <state> <dark_gray>(read-only)'
+      enabled: '<green>Enabled'
+      disabled: '<red>Disabled'
     error:
       no_deposit_permission: '<red>[ERROR] You do not have permission to deposit.'
       no_withdraw_permission: '<red>[ERROR] You do not have permission to withdraw.'
@@ -1567,6 +1641,14 @@ bedrock:
     auto_rewards: Automatic rewards
     recurring_payments: Recurring payments
     interest_percent: Interest rate (%)
+    interest_placeholder: Enter a percentage from 0 to 100
+    read_only: '<gray><setting>: <state> <dark_gray>(read-only; retained setting, no server-side executor)'
+    status:
+      active: '<green>Interest automation active <gray>• <white><rate>% every <hours>h'
+      inactive: '<gray>Interest automation is disabled.'
+      next_run: '<gray>Next interest run in <white><time>'
+      next_run_pending: '<gray>Next interest run: <white>pending first accrual'
+      executing_note: '<dark_gray>Interest is the only bank automation currently executed server-side.'
     invalid: '<red>Enter an interest percentage between 0 and 100.'
   bank_security:
     title: 'Bank Security - <guild>'
@@ -2356,15 +2438,14 @@ item:
     name: "Move Claim '<claim>'"
 menu:
   quests:
-    title: "<guild>'s Weekly Quests"
+    title: "<white><guild>'s Weekly Quests"
     feedback:
       not_member: '<red>❌ You must belong to this guild to view its weekly quests.'
       no_quests: '<yellow>No weekly quests are active right now.'
-      claimed: '<green>✓ Quest claimed for <xp> Guild EXP!'
     item:
       header:
         name: '<gold><bold>Active Weekly Quests'
-        claimed: '<gray>Claimed: <white><claimed>/<total>'
+        claimed: '<gray>Completed: <white><claimed>/<total>'
         reset: '<gray>Resets in: <yellow><time>'
         bonus: '<gray>Full-set bonus: <gold><xp> EXP <status>'
       back:
@@ -2374,14 +2455,36 @@ menu:
       next_page:
         name: '<yellow>Next Page →'
       quest:
-        name: '<gold><action> <target>'
-        description: '<gray><amount> <target><condition>'
+        name: '<gold><objective>'
+        description: '<gray><objective>'
         progress: '<gray>Progress: <white><count>/<target> <dark_gray>(<percent>%)'
         reward: '<gray>Reward: <gold><xp> Guild EXP'
         rank: '<gray>Current rank: <aqua><rank>'
-        completed: '<green>✅ Click to claim!'
-        claimed: '<dark_gray>✅ Claimed'
+        completed: '<green>✅ Complete — reward processing'
+        claimed: '<green>✅ Complete — score keeps counting'
         in_progress: '<yellow>⏳ In progress'
+        view_leaderboard: '<aqua>Click to view quest leaderboard'
+    leaderboard:
+      title: '<white>Quest Leaderboard'
+      header:
+        name: '<gold><objective>'
+        target: '<gray>Completion target: <white><target>'
+        your_score: '<gray>Your score: <white><points> <dark_gray>• <gray>Rank: <aqua><rank>'
+        winner_reward: '<gray>Weekly winner: <gold><xp> Guild EXP'
+        reset: '<gray>Finalizes in: <yellow><time>'
+      guild:
+        name: '<white><rank> <guild>'
+        you: '<aqua><rank> <guild> <yellow>(Your Guild)'
+        score: '<gray>Score: <white><points>'
+        target: '<gray>Target: <white><target>'
+        completed: '<green>✅ Base reward completed'
+        in_progress: '<yellow>⏳ Base reward in progress'
+      page: '<gray>Page <white><page>/<pages>'
+      back: '<red>← Back to Quests'
+      bedrock:
+        objective: '<gold><objective>'
+        row: '<rank> <guild> — <points>'
+        you: '<rank> <guild> — <points> (Your Guild)'
     tier:
       common: '<gray>Common Quest'
       challenging: '<white>Challenging Quest'
@@ -2389,7 +2492,7 @@ menu:
       conditioned: '<aqua>Conditioned Quest'
   party:
     creation:
-      title: '<gold>Create New Party - <guild>'
+      title: '<white>Create New Party - <guild>'
       unnamed: Unnamed
       type:
         private_name: '<red>🔒 Party Type'
@@ -2526,7 +2629,7 @@ menu:
         name_set: '<green>✅ Party name set to: ''<party>'''
         input_cancelled: '<gray>Input cancelled.'
     management:
-      title: '<gold>Party Management - <guild>'
+      title: '<white>Party Management - <guild>'
       unnamed: Unnamed
       never: Never
       this_channel: this channel
@@ -2607,10 +2710,17 @@ menu:
         send_permission: '<red>❌ You need Admin+ permission to send party requests!'
         create_permission: '<red>❌ You need Admin+ permission to create parties!'
         access_permission: '<red>❌ You need Admin+ permission to manage party access!'
-        details_coming_soon: '<yellow>Party details menu coming soon!'
-        details_description: '<gray>This would show detailed party information and management options.'
-        list_coming_soon: '<yellow>Party list menu coming soon!'
-        list_description: '<gray>This would show all parties your guild is part of.'
+        details_coming_soon: '<yellow>Party details use the current party status and moderation data.'
+        details_description: '<gray>Use the available party and moderation controls for member status and restrictions.'
+        list_coming_soon: '<yellow>The active-party list is shown in the party management view.'
+        list_description: '<gray>Current active parties are loaded from the persisted party service.'
+        send_coming_soon: '<yellow>Party invitations are handled through the existing request and creation flows.'
+        send_description: '<gray>Use the party request or creation controls to invite another guild.'
+        create_coming_soon: '<yellow>Party creation is available through the dedicated creation menu.'
+        create_description: '<gray>Create a private party or invite guilds using the current party service.'
+        access_coming_soon: '<yellow>Party access is controlled by guild rank permissions and per-party role restrictions.'
+        access_description: '<gray>There is no separate mutable party-permission table.'
+        access_example: '<gray>Adjust guild rank permissions or party role restrictions instead.'
         no_incoming: '<yellow>No incoming party requests!'
         no_incoming_description: '<gray>Your guild hasn''t received any party invitations.'
         accepted: '<green>✅ Party invitation accepted!'
@@ -2622,15 +2732,8 @@ menu:
         no_outgoing_description: '<gray>Your guild hasn''t sent any party invitations.'
         cancelled: '<red>❌ Party invitation cancelled'
         cancel_failed: '<red>❌ Failed to cancel party invitation'
-        send_coming_soon: '<yellow>Send party request menu coming soon!'
-        send_description: '<gray>This would allow you to invite other guilds to parties.'
-        create_coming_soon: '<yellow>Create party menu coming soon!'
-        create_description: '<gray>This would allow you to create a new party and invite guilds.'
-        access_coming_soon: '<yellow>Party access settings menu coming soon!'
-        access_description: '<gray>This would allow you to restrict party access by rank.'
-        access_example: '<gray>For example: Only Officers and above can join parties.'
     moderation:
-      title: '<gold>Moderate: <channel>'
+      title: '<white>Moderate: <channel>'
       channel: Channel
       unnamed: Unnamed
       unknown: Unknown
@@ -2684,7 +2787,7 @@ menu:
         name: '<green>Refresh'
         lore: '<gray>Reload player list and status'
     guild_selection:
-      title: '<gold>Select Guilds to Invite'
+      title: '<white>Select Guilds to Invite'
       guild:
         selected_name: '<green>✅ <guild>'
         available_name: '<gray>❌ <guild>'
@@ -2867,7 +2970,7 @@ menu:
       hostile: Hostile
       not_set: '<red>Not set'
       peaceful: Peaceful
-    title: '<gold>Guild Control Panel - <guild>'
+    title: '<white>Guild Control Panel - <guild>'
   dashboard:
     feedback:
       guild_missing: '<red>❌ Guild no longer exists.'
@@ -2931,7 +3034,7 @@ menu:
           line_1: '<gray>Declare war, manage'
           line_2: '<gray>parties, and conflicts'
         name: '<dark_red>War & Party'
-    title: '<black><dark_gray>⚔ <gray><guild>'
+    title: '<white><dark_gray>⚔ <gray><guild>'
   guild_confirmation:
     common:
       cancel:
@@ -2954,7 +3057,7 @@ menu:
             level: '<gray>Level: <white><level>'
             vault_loss: '<gray>All vault items will be lost.'
           name: '<red>⚠ Disband Guild'
-      title: '<red><bold>Disband <guild>?'
+      title: '<white><bold>Disband <guild>?'
     leave:
       feedback:
         failure: '<red>Failed to leave guild. You may be the owner — transfer ownership first.'
@@ -2972,7 +3075,7 @@ menu:
             permissions: '<gray>- All rank permissions'
             warning: '<yellow>You will lose access to:'
           name: '<yellow>🚪 Leave Guild'
-      title: '<yellow><bold>Leave <guild>?'
+      title: '<white><bold>Leave <guild>?'
     invite:
       feedback:
         accept: '<gray>To accept: <green>/guild join <guild>'
@@ -3008,7 +3111,7 @@ menu:
             result: '<yellow>Will receive invitation'
             status: '<gray>Status: <green>Online'
           name: '<green>👤 <player>'
-      title: '<gold>Confirm Invite - <guild>'
+      title: '<white>Confirm Invite - <guild>'
     kick:
       feedback:
         failure: '<red>❌ Failed to kick <player>. Check permissions.'
@@ -3041,7 +3144,7 @@ menu:
             removed_line_1: '<gray>The player will be immediately'
             removed_line_2: '<gray>removed from the guild.'
           name: '<red>⚠ KICK CONFIRMATION'
-      title: '<gold>Confirm Kick - <guild>'
+      title: '<white>Confirm Kick - <guild>'
     rank_change:
       direction:
         demotion: '<red>⬇ DEMOTION'
@@ -3087,7 +3190,7 @@ menu:
             priority_change: '<gray>Priority change: <white><change>'
             to: '<gray>To: <white><rank>'
           name: '<gold>📋 Rank Change Summary'
-      title: '<gold>Confirm Rank Change'
+      title: '<white>Confirm Rank Change'
   all_players:
     item:
       search:
@@ -3095,7 +3198,9 @@ menu:
         name: Search
     title: All Players
   bank:
-    title: 'Guild Bank - <guild>'
+    title: '<white>Guild Bank - <guild>'
+    close: '<red>Close'
+    back_to_control_panel: Back to Control Panel
     unavailable:
       title: '<red>⚠ Guild Bank Unavailable'
       economy: '<red>Vault economy system not found!'
@@ -3109,6 +3214,7 @@ menu:
       numbers_only: '<gray>Use numbers only (e.g., 5000, 10000)'
     balance:
       title: Current Balance
+      current: 'Guild Balance: <balance>'
       animated: '<balance> coins <arrow>'
       player: 'Your Balance: <balance>'
       player_description: 'Available for deposit'
@@ -3117,6 +3223,8 @@ menu:
         decreasing: '↘ Decreasing'
         stable: '→ Stable'
     custom:
+      deposit: Custom Deposit
+      withdraw: Custom Withdraw
       deposit_description: Enter custom deposit amount
       withdraw_description: Enter custom withdrawal amount
     feedback:
@@ -3142,13 +3250,19 @@ menu:
       deposit_overlay: 'Deposit successful!'
       withdraw_overlay: 'Withdrawal successful!'
     history:
-      title: 'Bank Transaction History - <guild>'
+      title: '<white>Bank Transaction History - <guild>'
+      no_transactions: No transactions yet
       recent: '<count> recent transactions'
       open_action: 'Click to view full history'
       date_format: MM/dd/yyyy HH:mm
       navigation:
         back_description: Return to guild bank
       filter:
+        type: Transaction Type
+        member: Member
+        date: Date Range
+        search: Search
+        clear: Clear Filters
         clear_description: Remove all filters
         current: 'Current: <value>'
         cycle: Click to cycle
@@ -3193,7 +3307,7 @@ menu:
         time: 'Time: <time>'
         fee: 'Fee: $<amount>'
     contributions:
-      title: '<gold><guild> - Member Contributions'
+      title: '<white><guild> - Member Contributions'
       date_format: yyyy-MM-dd HH:mm
       navigation:
         back_name: Back to Transaction History
@@ -3263,6 +3377,16 @@ menu:
         name: '✓ Success!'
         amount: '<amount> coins'
     quick:
+      deposit:
+        '100': Deposit 100
+        '1000': 'Deposit 1,000'
+        '10000': 'Deposit 10,000'
+        all: Deposit All
+      withdraw:
+        '100': Withdraw 100
+        '1000': 'Withdraw 1,000'
+        '10000': 'Withdraw 10,000'
+        all: Withdraw All
       description:
         deposit_all: Click to deposit all available
         withdraw_all: Click to withdraw all available
@@ -3275,7 +3399,7 @@ menu:
         low: Low Risk
         medium: Medium Risk
     stats:
-      title: Bank Statistics
+      title: '<white>Bank Statistics'
       activity:
         deposited: deposited <amount>
         withdrew: withdrew <amount>
@@ -3289,6 +3413,7 @@ menu:
         recent: Recent Activity
         very_high: Very High Activity
       budget:
+        status: Budget Status
         manage: Manage spending limits and alerts
         periods: Set monthly, weekly, and daily budgets
         tracking: Track budget usage and get alerts
@@ -3513,7 +3638,7 @@ menu:
       summary:
         lore: '<gray>Guild: <white><guild>'
         name: '<gold>Total Members: <white><member_count>'
-    title: '<gold><guild> - Members'
+    title: '<white><guild> - Members'
   member_management:
     feedback:
       no_invite_permission: '<red>❌ You don''t have permission to invite players!'
@@ -3554,7 +3679,7 @@ menu:
           description: '<gray>Change member ranks'
           requirement: '<gray>Requires MANAGE_MEMBERS permission'
         name: '<gold>⬆ PROMOTE/DEMOTE'
-    title: '<gold>Member Management - <guild>'
+    title: '<white>Member Management - <guild>'
   rank_list:
     feedback:
       empty: '<red>This guild has no ranks configured.'
@@ -3606,15 +3731,13 @@ menu:
       rank:
         lore:
           action: '<yellow>Click to edit this rank'
-          category: '<gray>▶ <white><category>:'
           members: '<gray>Members: <white><count> players'
           none: '<red>❌ No permissions assigned'
           none_description: '<gray>This rank cannot perform any actions'
           permission: '<gray>  • <green><permission>'
-          permissions: '<yellow>⚙ Permissions:'
           priority: '<gray>Priority: <white><priority>'
         name: '<gold><rank>'
-    title: '<gold>Rank Management - <guild>'
+    title: '<white>Rank Management - <guild>'
   naming:
     title: Naming Claim
   player_permissions:
@@ -3676,7 +3799,8 @@ menu:
       no_access_permission: '<red>❌ You don''t have permission to change guild access settings'
       no_settings_permission: '<red>❌ You don''t have permission to change guild settings'
       settings_requirement: '<gray>You need the MANAGE_GUILD_SETTINGS permission'
-      theme_changed: '<green>✅ GUI theme changed to <theme>'
+      theme_changed: '<green>GUI theme changed to <theme>'
+      theme_change_failed: '<red>Could not change the GUI theme.'
       tracking_disabled: '<green>✅ Lunar tracking is now <red>DISABLED'
       tracking_enabled: '<green>✅ Lunar tracking is now <green>ENABLED'
       tracking_failure: '<red>❌ Failed to update tracking settings'
@@ -3775,10 +3899,11 @@ menu:
       theme_option:
         lore:
           apply: '<yellow>Click to apply'
-          current: '<gray>Current theme'
+          current: '<green>Current theme'
+          locked: '<red>Requires Manage Guild Settings'
         name:
           available: '<gray><theme>'
-          current: '<green>▶ <theme>'
+          current: '<white><theme>'
       tracking:
         lore:
           action: '<yellow>Click to toggle Lunar tracking'
@@ -3789,9 +3914,11 @@ menu:
           enabled: '<gray>Enabled: Guild members visible'
           hud: '<gray>on Lunar Client minimap & HUD'
         name: '<white>🗺 LUNAR TRACKING'
-    title: '<gold>Guild Settings - <guild>'
+    title: '<white>Guild Settings - <guild>'
+    theme_selector:
+      title: '<white>GUI Theme'
   war_acceptance:
-    title: '<dark_red>⚔ War Declaration - <guild>'
+    title: '<white>⚔ War Declaration - <guild>'
     guild:
       declaring: '<red>⚔ DECLARING WAR'
       yours: '<green>🛡 YOUR GUILD'
@@ -4037,7 +4164,7 @@ menu:
         kills: Kills
         other: Objective
         time: Time Survival
-    title: '<dark_red>⚔ Declare War - <guild>'
+    title: '<white>⚔ Declare War - <guild>'
   statistics:
     common:
       active_wars: '<gray>Active Wars: <white><count>'
@@ -4061,6 +4188,10 @@ menu:
       offline: '<gray>Offline: <gray><count>'
       no_contribution_data: '<gray>No contribution data'
       no_kill_data: '<gray>No kill data available'
+      no_period_data: '<gray>No recorded data for this period'
+      no_rivalry_data: '<gray>No completed war history is recorded for this guild'
+      balance_unavailable: '<red>Guild balance unavailable'
+      unavailable: '<red>Data unavailable — check server logs'
       no_invitation_data: '<gray>No invitation data available'
       total_invitations: '<gray>Total Invitations Sent: <white><count>'
       ranked_invitations:
@@ -4172,27 +4303,36 @@ menu:
         enemy: '<red><guild>'
       achievements:
         '${achievement.key}':
-          locked: '<gray>✗ '
-          unlocked: '<green>✔ '
+          locked: '<gray>? '
+          unlocked: '<green>? '
+        first_blood:
+          locked: '<gray>? First Blood'
+          unlocked: '<green>? First Blood'
+        centurion:
+          locked: '<gray>? Centurion'
+          unlocked: '<green>? Centurion'
+        warlord:
+          locked: '<gray>? Warlord'
+          unlocked: '<green>? Warlord'
+        survivor:
+          locked: '<gray>? Survivor'
+          unlocked: '<green>? Survivor'
+        champion:
+          locked: '<gray>? Champion'
+          unlocked: '<green>? Champion'
+        veteran:
+          locked: '<gray>? Veteran'
+          unlocked: '<green>? Veteran'
+        net_positive:
+          locked: '<gray>? Net Positive'
+          unlocked: '<green>? Net Positive'
+        well_rounded:
+          locked: '<gray>? Well Rounded'
+          unlocked: '<green>? Well Rounded'
       comparison:
         guild: '<yellow><guild>'
-      trend:
-        '${trend.label}':
-          name: '<gold>'
-        arrow: '<gray>Trend: <arrow>'
-        current: '<gray>Current: <value>'
     period:
       '$key': '<green>📅 $key'
-    export:
-      header: '<gold>=== <guild> Statistics ==='
-      footer: '<gray>=== End of Report ==='
-      level: '<gray>Level: <white><level>'
-      kills: '<gray>Kills: <white><kills> | Deaths: <red><deaths>'
-      kdr: '<gray>K/D Ratio: <yellow><ratio>'
-      balance: '<gray>Balance: <gold><amount>'
-      wars: '<gray>Wars: <green><wins>W <red><losses>L</red>'
-      members: '<gray>Members: <white><count>'
-      top_killers: '<gray>Top Killers: <white><killers>'
     item:
       back:
         lore: '<gray>Return to guild statistics'
@@ -4206,11 +4346,6 @@ menu:
           net_kills: '<gray>Net Kills: <white><milestone>'
           total_kills: '<gray>Total Kills: <white><milestone>'
         name: '<yellow>Guild Achievements'
-      export:
-        lore:
-          description: '<gray>Download detailed stats'
-          format: '<gray>CSV format for analysis'
-        name: '<white>Export Statistics'
       kd:
         name: '<light_purple>K/D Analysis'
       kills:
@@ -4257,10 +4392,6 @@ menu:
         lore:
           unavailable: '<red>War system not available'
         name: '<dark_red>War Statistics'
-      kill_trends:
-        name: '<gold>📈 Kill Trends'
-        lore:
-          description: '<gray>Analyze kill patterns over time'
       comparison:
         name: '<gold>📊 Guild Comparison'
         lore:
@@ -4269,7 +4400,7 @@ menu:
         name: '<green>Next Page →'
       previous_page:
         name: '<green>← Previous Page'
-    title: '<gold><guild> - Statistics'
+    title: '<white><guild> - Statistics'
     feedback:
       load_failed:
         kd: '<red>❌ Failed to load K/D analysis. Please try again later.'
@@ -4285,9 +4416,7 @@ menu:
         comparison: '<red>❌ Failed to load comparison data.'
         period: '<red>❌ Failed to load period statistics.'
         rivalry: '<red>❌ Failed to load rivalry data.'
-        trends: '<red>❌ Failed to load trend data.'
       refreshing: '<green>🔄 Refreshing statistics...'
-      export_failed: '<red>❌ Failed to export statistics.'
     rating:
       activity:
         active: Active
@@ -4326,7 +4455,7 @@ menu:
         skilled: Skilled
         veteran: Veteran
   incoming_requests:
-    title: "<gold>Incoming Relation Requests"
+    title: "<white>Incoming Relation Requests"
     fallback:
       unknown_guild: "Unknown Guild"
     empty:
@@ -4396,7 +4525,7 @@ menu:
       weeks: "<count>w ago"
 
   home_access:
-    title: "<gold>Access: <home>"
+    title: "<white>Access: <home>"
     permission_denied: "<red>❌ You need MANAGE_HOME to configure home access."
     missing: "<red>Home '<home>' no longer exists."
     rank:
@@ -4409,7 +4538,7 @@ menu:
     back: "<gray>← Back to Homes"
 
   ally_home_access:
-    title: "<gold>Ally-home Access"
+    title: "<white>Ally-home Access"
     permission_denied: "<red>❌ You need MANAGE_HOME to configure ally-home access."
     ally:
       allowed: "<green>✓ <guild>"
@@ -4422,7 +4551,7 @@ menu:
     back: "<gray>← Back to Homes"
 
   bank_security:
-    title: "Security & Audit - <guild>"
+    title: "<white>Security & Audit - <guild>"
     navigation:
       bank: "Return to guild bank"
       audit:
@@ -4489,7 +4618,7 @@ menu:
       cancelled: "<yellow>Dual-authorization threshold input cancelled."
 
   bank_budget:
-    title: "Budget Management - <guild>"
+    title: "<white>Budget Management - <guild>"
     navigation:
       bank: "Return to guild bank"
       statistics: "Return to statistics"
@@ -4545,7 +4674,7 @@ menu:
       cancelled: "<yellow>Budget input cancelled."
 
   guild_kick:
-    title: "<gold>Kick Member - <guild>"
+    title: "<white>Kick Member - <guild>"
     fallback:
       unknown_player: "Unknown Player"
     member:
@@ -4568,18 +4697,13 @@ menu:
         description: "<gray>Return to guild control panel"
 
   bank_automation:
-    title: "Automation & Rewards - <guild>"
+    title: "<white>Automation & Rewards - <guild>"
     common:
-      toggle: "Click to toggle"
+      read_only: '<dark_gray>Read-only until an execution rule is configured'
       status:
         enabled: "Status: Enabled"
         disabled: "Status: Disabled"
-      enabled_word: "ON"
-      disabled_word: "OFF"
     active:
-      scheduled_deposits: "Scheduled Deposits"
-      auto_rewards: "Auto-Rewards Distribution"
-      recurring_payments: "Recurring Payments"
       interest: "Interest Calculation (<rate>%)"
     navigation:
       bank:
@@ -4639,6 +4763,7 @@ menu:
     status:
       pending_first_accrual: "Pending first accrual"
       next:
+        countdown: '<gray>Next accrual in <white><time>'
         name: "Next Interest Accrual"
         period: "Interest accrues every <hours> hours"
         description: "Per guild balance at the configured rate"
@@ -4646,7 +4771,6 @@ menu:
         name: "Automation Status"
         configured: "Status: <count> automation(s) configured"
         interest: "Interest rate: <rate>% per <hours>h"
-        toggles: "Scheduled deposits: <scheduled> | Auto-rewards: <rewards>"
         empty: "Status: No automations configured"
         hint: "Toggle settings above to enable"
       configuration:
@@ -4655,17 +4779,7 @@ menu:
         audit: "Audit retention: <days> days"
         scheduler: "Scheduler: periodic (5 min checks)"
     feedback:
-      scheduled_enabled: "<green>Scheduled Deposits enabled."
-      scheduled_disabled: "<red>Scheduled Deposits disabled."
-      rewards_enabled: "<green>Auto-Rewards Distribution enabled."
-      rewards_disabled: "<red>Auto-Rewards Distribution disabled."
-      recurring_enabled: "<green>Recurring Payments enabled."
-      recurring_disabled: "<red>Recurring Payments disabled."
       interest_prompt: "<yellow>Type the interest rate as a decimal (e.g. 0.02 = 2% per compound period). Type 'cancel' to abort."
-      rewards_coming_soon: "<yellow>Reward distribution setup coming soon!"
-      alerts_coming_soon: "<yellow>Alert configuration coming soon!"
-      recurring_coming_soon: "<yellow>Recurring payment setup coming soon!"
-      active: "<yellow>Active automations: <automations>"
       saved: "<green>Automation settings saved!"
       save_failed: "<red>Failed to save automation settings."
       invalid_interest: "<red>Invalid interest rate. Enter a decimal between 0 and 1 (e.g. 0.02 = 2%)."
@@ -4673,7 +4787,7 @@ menu:
       interest_cancelled: "<yellow>Interest rate input cancelled."
 
   guild_promotion:
-    title: "<gold>Members — <guild>"
+    title: "<white>Members — <guild>"
     fallback:
       unknown_rank: "Unknown"
     permission:
@@ -4707,7 +4821,7 @@ menu:
         description: "<gray>Return to guild settings"
 
   war_guild_selection:
-    title: "<dark_red>⚔ Select War Target (<page>/<pages>)"
+    title: "<white>⚔ Select War Target (<page>/<pages>)"
     guild:
       name: "<gold><guild>"
       mode:
@@ -4741,7 +4855,7 @@ menu:
         description: "<gray>Return to war declaration"
 
   lfg_browser:
-    title: "Guild Browser - Looking For Guild"
+    title: "<white>Guild Browser - Looking For Guild"
     guild:
       name: "<yellow><guild>"
       level: "<gray>Level: <white><level>"
@@ -4773,7 +4887,7 @@ menu:
       closed: "<gray>Closed guild browser"
 
   guild_list:
-    title: "<gold><bold>Guild Directory"
+    title: "<white><bold>Guild Directory"
     guild:
       name: "<gold><guild>"
       level: "<gray>Level: <white><level>"
@@ -4805,7 +4919,7 @@ menu:
         name: "<red>Close"
 
   guild_strike_penalty_confirm:
-    title: "<dark_red><bold>Confirm - <type>"
+    title: "<white><bold>Confirm - <type>"
     type:
       level_reduction: "LEVEL REDUCTION"
       exp_reduction: "EXP REDUCTION"
@@ -4840,7 +4954,7 @@ menu:
       disbanded: '<red><guild> <gray>has been disbanded.'
 
   guild_strike_penalty:
-    title: "<dark_red><bold>Penalties - <guild>"
+    title: "<white><bold>Penalties - <guild>"
     fallback:
       no_reason: "—"
       unknown_executor: "?"
@@ -4883,7 +4997,7 @@ menu:
       description: "<gray>Close this menu"
 
   guild_member_rank:
-    title: "<gold>Rank Management"
+    title: "<white>Rank Management"
     fallback:
       unknown_player: "Unknown Player"
     member:
@@ -4928,7 +5042,7 @@ menu:
         description: "<gray>Return to guild control panel"
 
   guild_invite:
-    title: "<gold>Invite Player - <guild>"
+    title: "<white>Invite Player - <guild>"
     info:
       name: "<white>📋 INVITE PLAYERS"
       description: "<gray>Invite players to join your guild"
@@ -4968,7 +5082,7 @@ menu:
       self_invite: "<red>❌ You cannot invite yourself!"
 
   alliance_request:
-    title: "<gold>Request Alliance"
+    title: "<white>Request Alliance"
     permission_denied: "<red>You don't have permission to manage relations."
     empty:
       name: "<gray>No Guilds Available"
@@ -5003,7 +5117,7 @@ menu:
         description: "<gray>Return to relations menu"
 
   enemy_declaration:
-    title: "<red>Declare Enemy"
+    title: "<white>Declare Enemy"
     permission_denied: "<red>You don't have permission to declare enemy status."
     empty:
       name: "<gray>No Guilds Available"
@@ -5046,7 +5160,7 @@ menu:
         description: "<gray>Return to relations menu"
 
   outgoing_requests:
-    title: "<gold>Outgoing Relation Requests"
+    title: "<white>Outgoing Relation Requests"
     fallback:
       unknown_guild: "Unknown Guild"
     empty:
@@ -5075,7 +5189,7 @@ menu:
       awaiting: "<yellow>⏱ Awaiting response..."
       cancel: "<red>Click to cancel request"
     cancel:
-      title: "<gold>Cancel Request?"
+      title: "<white>Cancel Request?"
       confirm:
         name: "<red>✗ Cancel Request"
         description: "<gray>Cancel your request to"
@@ -5109,7 +5223,7 @@ menu:
       weeks: "<count>w ago"
 
   join_requirements:
-    title: "Join <guild>"
+    title: "<white>Join <guild>"
     guild:
       name: "<gold><guild>"
       description: "<gray>Guild you are joining"
@@ -5156,7 +5270,9 @@ menu:
       error: "<red>❌ <message>"
 
   guild_info:
-    title: "<gold>Guild Info - <guild>"
+    title: "<white>Guild Info - <guild>"
+    feedback:
+      guild_missing: "<red>This guild no longer exists."
     fallback:
       unknown_player: "Unknown Player"
       member: "Member"
@@ -5245,7 +5361,7 @@ menu:
       description: "<gray>Return to previous menu"
 
   truce_request:
-    title: "<yellow>Request Truce"
+    title: "<white>Request Truce"
     feedback:
       no_permission: "<red>You don't have permission to manage relations."
       custom_intro: "<yellow>To request a custom truce duration, use:"
@@ -5268,7 +5384,7 @@ menu:
       status: "<gray>Status: <red>Enemy"
       select: "<yellow>Click to select duration"
     duration:
-      title: "<yellow>Select Truce Duration"
+      title: "<white>Select Truce Duration"
       guild: "<gray>with <white><guild>"
       seven:
         name: "<yellow>7 Days"
@@ -5300,8 +5416,8 @@ menu:
         description: "<gray>Return to relations menu"
 
   allies_list:
-    title: "<green>Allied Guilds"
-    actions_title: "<green><guild>"
+    title: "<white>Allied Guilds"
+    actions_title: "<white><guild>"
     fallback:
       unknown_guild: "Unknown Guild"
     empty:
@@ -5338,7 +5454,7 @@ menu:
         name: "<yellow>Back"
         description: "<gray>Return to allies list"
     confirm:
-      title: "<red>Break Alliance?"
+      title: "<white>Break Alliance?"
       name: "<red>✗ Confirm Break Alliance"
       description: "<gray>Break your alliance with"
       guild: "<white><guild>"
@@ -5376,7 +5492,7 @@ menu:
       years: "<count> years"
 
   description_editor:
-    title: "<gold>Edit Guild Description"
+    title: "<white>Edit Guild Description"
     current:
       name: "<yellow>Current Description"
       value: "<gray><description>"
@@ -5434,7 +5550,7 @@ menu:
       cancel: "<gray>Type 'cancel' to cancel editing"
 
   war_objectives:
-    title: "<gold>⚔ War Objectives"
+    title: "<white>⚔ War Objectives"
     info:
       name: "<yellow>📖 Objective Info"
       description: "<gray>Select at least one objective for the war."
@@ -5496,7 +5612,7 @@ menu:
       discarded: "<gray>Changes discarded."
 
   guild_mode:
-    title: "<gold>Change Guild Mode"
+    title: "<white>Change Guild Mode"
     mode:
       peaceful: "PEACEFUL"
       hostile: "HOSTILE"
@@ -5549,7 +5665,7 @@ menu:
       description: "<gray>Return to settings"
 
   guild_war_management:
-    title: "<dark_red>War Management - <guild>"
+    title: "<white>War Management - <guild>"
     fallback:
       unknown: "Unknown"
     current:
@@ -5602,7 +5718,7 @@ menu:
       name: "<yellow>Back to Control Panel"
       description: "<gray>Return to guild management"
     war_details:
-      title: "<red>War Details - vs <enemy>"
+      title: "<white>War Details - vs <enemy>"
       info:
         enemy: "<red>⚔ vs <enemy>"
         duration: "<gray>Duration: <white><days> days"
@@ -5635,7 +5751,7 @@ menu:
           name: "<yellow>Back to War Management"
           lore: "<gray>Return to war management"
     war_list:
-      title: "<red>Active Wars"
+      title: "<white>Active Wars"
       item:
         name: "<red>⚔ vs <enemy>"
         lore:
@@ -5658,7 +5774,7 @@ menu:
           name: "<yellow>Back"
           description: "<gray>Return to war management"
     incoming_declarations:
-      title: "<green>Incoming Declarations"
+      title: "<white>Incoming Declarations"
       item:
         name: "<red>⚔ <enemy>"
         lore:
@@ -5685,7 +5801,7 @@ menu:
           name: "<yellow>Back"
           description: "<gray>Return to war management"
     outgoing_declarations:
-      title: "<yellow>Outgoing Declarations"
+      title: "<white>Outgoing Declarations"
       item:
         name: "<red>⚔ vs <enemy>"
         lore:
@@ -5710,7 +5826,7 @@ menu:
           name: "<yellow>Back"
           description: "<gray>Return to war management"
     war_stats:
-      title: "<gold>War Statistics"
+      title: "<white>War Statistics"
       total: "<gray>Total Wars: <white><count>"
       wins: "<gray>Wins: <green><count>"
       losses: "<gray>Losses: <red><count>"
@@ -5734,7 +5850,7 @@ menu:
         name: "<yellow>Back to War Management"
         lore: "<gray>Return to war management"
     war_history:
-      title: "<yellow>War History"
+      title: "<white>War History"
       item:
         won: "<green>⚔ vs <enemy> — VICTORY"
         lost: "<red>⚔ vs <enemy> — DEFEAT"
@@ -5761,7 +5877,7 @@ menu:
       action_failed: "<red>❌ Action failed. Please try again."
 
   enemies_list:
-    title: "<red>Enemy Guilds"
+    title: "<white>Enemy Guilds"
     fallback:
       unknown_guild: "Unknown Guild"
     empty:
@@ -5844,7 +5960,7 @@ menu:
       years: "<count> years"
 
   player_moderation:
-    title: "<gold>Moderate: <player>"
+    title: "<white>Moderate: <player>"
     fallback:
       unknown_player: "Unknown Player"
       unknown: "Unknown"
@@ -5920,7 +6036,7 @@ menu:
       description: "<gray>Return to channel moderation"
 
   guild_progression:
-    title: "<black><dark_gray>⭐ <gray>Guild Progression <dark_gray>• Page <page>/<pages>"
+    title: "<white>Progression • <page>/<pages>"
     feedback:
       no_access: "<red>❌ You cannot access this menu!"
       load_failed: "<red>❌ Could not load progression data."
@@ -6002,10 +6118,55 @@ menu:
         ally_home_access: "Ally Home Access"
     prestige:
       name: "<light_purple>Prestige"
-      description: "<gray>Reset your guild's level"
-      rewards: "<gray>for exclusive rewards."
-      requirement: "<gray>Requires Level <light_purple>25"
-      coming_soon: "<dark_gray>Coming in a future update"
+      description: "<gray>Reset your guild to Level 1"
+      rewards: "<gray>and permanently retain one eligible purchased reward."
+      requirement: "<gray>Requires Level <light_purple>100"
+      action: "<green>Click to choose the reward you will retain"
+      state:
+        unavailable: "<red>Prestige data is unavailable. Try again shortly."
+        disabled: "<yellow>Prestige is currently disabled by the server operator."
+        maximum: "<gold>Prestige complete: <count>/<max>"
+        level: "<gray>Current level: <white><level><dark_gray>/100"
+        no_choices: "<yellow>No eligible purchased reward is available to retain."
+        ready: "<green>Ready — Prestige <count>/<max> | Fee: <gold><fee> Gold Ore <gray>| <choices> choices"
+      selection:
+        title: "<white>Select Prestige Reward"
+        back: "<yellow>Back to Progression"
+        reward:
+          name: "<light_purple><reward>"
+          level: "<gray>Purchased at Level <white><level>"
+          retain: "<gray>This reward becomes permanent after prestige."
+          fee: "<gray>Prestige fee: <gold><fee> Gold Ore"
+          action: "<green>Click to review and confirm"
+      confirmation:
+        title: "<white>Confirm Guild Prestige"
+        summary:
+          name: "<light_purple>Prestige Summary"
+          reward: "<gray>Retain permanently: <white><reward>"
+          fee: "<gray>Fee: <gold><fee> Gold Ore"
+          reset: "<yellow>Your guild progression resets to Level 1."
+          permanent: "<green>Existing permanent rewards and home-capacity purchases remain."
+        confirm: "<green>Confirm Prestige"
+        cancel: "<red>Cancel"
+      feedback:
+        quote_failed: "<red>Prestige conditions changed. Review the current progression state and try again."
+        applied: "<green>Guild prestige complete. <reward> is now permanent. Fee: <fee> Gold Ore. Prestige count: <count>."
+        failed: "<red>The prestige result could not be confirmed. Retry this same confirmation; you will not be charged twice."
+        rejected:
+          unavailable: "<red>Prestige is currently unavailable."
+          unauthorized: "<red>You are not authorized to prestige this guild."
+          uninitialized: "<red>Chapter 2 reward state is not initialized for this guild."
+          not_level_100: "<red>Your guild must be Level 100 to prestige."
+          max_prestige: "<red>This guild has reached the lifetime prestige maximum."
+          invalid_selection: "<red>That reward cannot be retained through prestige."
+          stale_state: "<yellow>Guild reward state changed. Reopen Prestige and choose again."
+          fee_changed: "<yellow>The prestige fee changed. Reopen Prestige to review the current fee."
+          active_war: "<red>Finish or clear active wars and declarations before prestiging."
+          insufficient_funds: "<red>The guild bank does not contain enough Gold Ore for this prestige."
+          post_prestige_capacity: "<red>The post-prestige bank capacity would be below the current guild balance. Reduce the balance first."
+          pending_gold: "<red>Finish pending bank operations before prestiging."
+          frozen: "<red>The guild bank is frozen. Prestige cannot charge the fee."
+          id_conflict: "<red>This prestige transaction ID conflicts with an existing transaction. Reopen Prestige and try again."
     navigation:
       back_fallback: "<gray>Back"
       back: "<green>← Back"
@@ -6016,7 +6177,7 @@ menu:
       next: "<yellow>Next Page →"
 
   guild_banner:
-    title: "<gold>Guild Banner - <guild>"
+    title: "<white>Guild Banner - <guild>"
     current:
       name: "<white>🏴 CURRENT BANNER"
       description: "<gray>This banner represents your guild"
@@ -6080,7 +6241,7 @@ menu:
       added: "<gray>💡 The banner has been added to your inventory"
 
   guild_relations:
-    title: '<aqua>Diplomatic Relations - <guild>'
+    title: '<white>Diplomatic Relations - <guild>'
     count: '<gray>Count: <white><count>'
     overview:
       allies:
@@ -6155,7 +6316,7 @@ menu:
       no_enemy_permission: '<red>You don''t have permission to declare enemy status.'
       history_placeholder: '<yellow>Diplomatic history coming soon!'
   guild_emoji:
-    title: '<gold>Guild Emoji - <guild>'
+    title: '<white>Guild Emoji - <guild>'
     current:
       name: '<yellow>🎨 CURRENT EMOJI'
       value: '<gray><emoji>'
@@ -6217,7 +6378,7 @@ menu:
         name: '<yellow>⬅ BACK'
         description: '<gray>Return to guild settings'
     selection:
-      title: '<gold>Select Emoji - Page <page>/<total>'
+      title: '<white>Select Emoji - Page <page>/<total>'
       emoji: '<yellow><emoji>'
       select: '<gray>Click to select this emoji'
       description: '<gray>This will become your guild emoji'
@@ -6252,7 +6413,7 @@ menu:
       input_cancelled: '<gray>Emoji input cancelled.'
       selected: '<green>Selected emoji: <emoji>'
   guild_home:
-    title: '<gold>Guild Homes - <guild>'
+    title: '<white>Guild Homes - <guild>'
     world: '<gray>World: <white><world>'
     slots:
       name: '<yellow>🏠 Guild Home Slots'
@@ -6273,7 +6434,7 @@ menu:
         command: '<gray>Allows <gold>/guild home \<name> <gray>teleportation'
         available: '<gray>Available slots: <white><count>'
     remove:
-      title: '<red>Remove Guild Homes'
+      title: '<white>Remove Guild Homes'
       name: '<red>Remove Homes'
       description: '<gray>Remove guild home locations'
       home: '<red>Remove ''<home>'''
@@ -6344,7 +6505,7 @@ menu:
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       world_missing: '<red>❌ Could not find the world for guild home.'
   tag_editor:
-    title: '<gold>Tag Editor - <guild>'
+    title: '<white>Tag Editor - <guild>'
     current:
       name: '<white>🎯 CURRENT TAG'
       guild: '<gray>Guild: <white><guild>'
@@ -6435,7 +6596,7 @@ menu:
       set: '<green>✅ Tag set to: <tag>'
       save_hint: '<gray>Click save to apply the changes.'
   peace_agreement:
-    title: '<gold>Peace Agreements - <guild>'
+    title: '<white>Peace Agreements - <guild>'
     war:
       none:
         name: '<gray>No Active Wars'
@@ -6493,8 +6654,8 @@ menu:
     history:
       none: '<gray>No war history found for this guild.'
       header: '<gold><bold>=== War History ==='
-      active: Active
       ended: Ended
+      active: Active
       row: '<gray>- <white><guild> <gray>(<status>)'
     notification:
       proposed: '<gold>☮ <guild> has proposed peace!'
@@ -6530,7 +6691,7 @@ menu:
       war_load_failed: '<red>Could not load war data for peace proposals.'
       history_load_failed: '<red>Could not load peace history.'
   permission_category:
-    title: '<gold><category> - <rank>'
+    title: '<white><category> - <rank>'
     info:
       rank: '<gray>Managing permissions for: <white><rank>'
       category: '<gray>Category: <white><category>'
@@ -6627,7 +6788,7 @@ menu:
       view_audit_logs: '<gray>View guild activity logs'
       manage_integrations: '<gray>Manage external integrations'
   rank_creation:
-    title: '<gold>Create New Rank - <guild>'
+    title: '<white>Create New Rank - <guild>'
     name:
       name: '<gold>📝 Rank Name'
       current: '<gray>Current: <white><rank>'
@@ -6713,7 +6874,7 @@ menu:
       name_set: '<green>✅ Rank name set to: ''<rank>'''
       icon_set: '<green>✅ Rank icon set to: <material>'
   rank_edit:
-    title: '<gold>Edit Rank: <rank>'
+    title: '<white>Edit Rank: <rank>'
     priority:
       up: '<green>▲ Move Up'
       up_locked: '<gray>▲ Move Up (locked)'
@@ -6889,11 +7050,23 @@ permission:
   access:
     admin:
       commands: Access Admin Commands
+    shop:
+      chests: Access Shop Chests
+    vault: Access Guild Vault
   build:
     lore: Grants permission to build
     name: Build
   bypass:
     restrictions: Bypass Restrictions
+  break:
+    vault: Break Guild Vault
+  deposit:
+    to:
+      bank: Deposit to Guild Bank
+      vault: Deposit to Guild Vault
+  edit:
+    shop:
+      stock: Edit Shop Stock
   container:
     lore: 'Grants permission to open inventories (Chest, Furnace, Anvil)'
     name: Container
@@ -6902,6 +7075,7 @@ permission:
   declare:
     war: Declare War
   place:
+    vault: Place Guild Vault
     war:
       banner: Place War Banner
   delete:
@@ -6925,6 +7099,7 @@ permission:
     lore: Grants permission to interact with passive animals
     name: Husbandry
   manage:
+    vault: Manage Guild Vault
     bank:
       settings: Manage Bank Settings
     banner: Manage Banner
@@ -6944,6 +7119,9 @@ permission:
     relations: Manage Relations
   moderate:
     chat: Moderate Chat
+  modify:
+    shop:
+      prices: Modify Shop Prices
   redstone:
     lore: 'Grants permission to use redstone interactions (Buttons, Levers, Pressure Plates)'
     name: Redstone
@@ -6961,6 +7139,13 @@ permission:
   trade:
     lore: Grants permission to trade with villagers
     name: Trade
+  use:
+    ally:
+      homes: Use Ally Homes
+  withdraw:
+    from:
+      bank: Withdraw from Guild Bank
+      vault: Withdraw from Guild Vault
   vehicle:
     lore: 'Grants permission to break and place vehicles (Boats, Minecarts)'
     name: Vehicle
@@ -7089,6 +7274,12 @@ admin:
         progression_configuration_reloaded_successfully: '<green>✅ Progression configuration reloaded successfully!'
         reloading_progression_yml_configuration: '<yellow>🔄 Reloading progression.yml configuration...'
         you_don_t_have_permission_to_reload: '<red>❌ You don''t have permission to reload progression config!'
+      handlewarcutover:
+        no_permission: '<red>You do not have permission to run the Chapter war cut-over.'
+        warning: '<yellow>This will cancel all active/declared wars, reject pending declarations, clear peace proposals, and safely refund unsettled wagers.'
+        confirm: '<yellow>Run <white>/lumaguilds warcutover CONFIRM <yellow>to execute.'
+        completed: '<green>War cut-over complete: <wars> wars cancelled, <declarations> declarations rejected, <peace> peace proposals cleared.'
+        failed_records: '<red><count> war record(s) require manual review and were left active: <ids>'
       handlereload:
         failed_to_reload_plugin: '<red>❌ Failed to reload plugin: <reason>'
         lumaguilds_configuration_reloaded_successfully: '<green>✅ LumaGuilds configuration reloaded successfully!'
@@ -7104,6 +7295,7 @@ admin:
         chapter_admin_controls: '<yellow>/lumaguilds chapter ... <gray>- Chapter status, verified backup, postpone, retry, and force-due controls (OP/Admin)'
         bellclaims_override_toggle_admin_override_mode_admin: '<yellow>/bellclaims override <gray>- Toggle admin override mode (Admin only)'
         bellclaims_progressionreload_reload_progression_yml_op_only: '<yellow>/bellclaims progressionreload <gray>- Reload progression.yml (OP only)'
+        warcutover: '<yellow>/lumaguilds warcutover CONFIRM <gray>- Safely clear residual war state for Chapter cut-over (Admin)'
         bellclaims_reload_reload_plugin_configuration_op_only: '<yellow>/bellclaims reload <gray>- Reload plugin configuration (OP only)'
         disband_is_for_emergency_use_only_removes: '<gray>⚠️ Disband is for emergency use only - removes all members!'
         lumaguilds_admin_commands: '<gold>=== LumaGuilds Admin Commands ==='
@@ -7231,6 +7423,12 @@ notification:
       title: '<green><bold><player> is online</bold>'
       description: '<gray>A guild member has joined the server'
       fallback: '<green><player> <gray>is now online'
+  quest:
+    complete:
+      toast:
+        title: '<green><bold>QUEST COMPLETE!</bold>'
+        description: '<gold><objective> <gray>— <gold><xp> Guild EXP awarded'
+        fallback: '<green>Quest complete: <gold><objective> <gray>(<gold><xp> Guild EXP<gray>)'
   progression:
     level_up:
       title: '<gold>⭐ <bold>GUILD LEVEL UP!</bold> ⭐'

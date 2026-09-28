@@ -1,43 +1,56 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
-import net.lumalyte.lg.infrastructure.i18n.bedrock
-
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuiTheme
 import net.lumalyte.lg.utils.GuildDescriptionContent
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.Duration
 import java.util.logging.Logger
 
 /**
- * Bedrock Edition guild settings menu using Cumulus CustomForm
- * Provides comprehensive guild configuration options with validation
+ * Bedrock Edition guild settings menu using Cumulus CustomForm.
+ *
+ * Season 2 settings use the same persisted GuildService mutations as Java. Controls
+ * guarded by MANAGE_GUILD_SETTINGS are read-only when the viewer lacks permission,
+ * and authorization is checked again when a submitted response is executed.
  */
 class BedrockGuildSettingsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
-    private val guild: Guild,
+    private var guild: Guild,
     logger: Logger
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildService: GuildService by inject()
+    private val authorization by lazy { BedrockGuildAuthorization(guildService) }
     private val configService: ConfigService by inject()
     private val lang: LangService by inject()
+    private val plugin: Plugin by inject()
 
     override fun getForm(): Form {
-        val config = getBedrockConfig()
-        val settingsIcon = BedrockFormUtils.createFormImage(config, config.guildSettingsIconUrl, config.guildSettingsIconPath)
+        guild = guildService.getGuild(guild.id) ?: guild
 
-        return CustomForm.builder()
+        val config = getBedrockConfig()
+        val settingsIcon = BedrockFormUtils.createFormImage(
+            config,
+            config.guildSettingsIconUrl,
+            config.guildSettingsIconPath
+        )
+        val canManageSettings = authorization.canManageGuildSettings(player.uniqueId, guild.id)
+
+        val builder = CustomForm.builder()
             .title(lang.bedrock("bedrock.settings.title", "guild" to guild.name))
             .apply { settingsIcon?.let { icon(it) } }
             .label(createInfoSection())
@@ -59,13 +72,33 @@ class BedrockGuildSettingsMenu(
                 ),
                 if (guild.mode == GuildMode.PEACEFUL) 0 else 1
             )
+
+        if (canManageSettings) {
+            builder
+                .toggle(lang.bedrock("menu.guild_settings.item.access.name"), guild.isOpen)
+                .toggle(lang.bedrock("menu.guild_settings.item.tracking.name"), guild.trackingEnabled)
+                .dropdown(
+                    lang.bedrock("menu.guild_settings.item.theme.name"),
+                    GuiTheme.entries.map(GuiTheme::displayName),
+                    GuiTheme.entries.indexOf(guild.guiTheme).coerceAtLeast(0)
+                )
+        } else {
+            builder.label(createSeasonTwoReadOnlySection())
+        }
+
+        return builder
             .label(createValidationSection())
             .validResultHandler { response ->
-                handleFormResponse(response)
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (player.isOnline) {
+                        handleFormResponse(response, canManageSettings)
+                    }
+                })
             }
             .closedOrInvalidResultHandler { _, _ ->
-                // Handle form closed without submission
-                navigateBack()
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (player.isOnline) navigateBack()
+                })
             }
             .build()
     }
@@ -76,64 +109,134 @@ class BedrockGuildSettingsMenu(
             GuildMode.HOSTILE -> lang.bedrock("bedrock.settings.mode.hostile")
         }
         return if (guild.mode == GuildMode.PEACEFUL) {
-            lang.bedrock("bedrock.settings.info.peaceful", "created" to guild.createdAt.toString(), "mode" to mode)
+            lang.bedrock(
+                "bedrock.settings.info.peaceful",
+                "created" to guild.createdAt.toString(),
+                "mode" to mode
+            )
         } else {
-            lang.bedrock("bedrock.settings.info.hostile", "created" to guild.createdAt.toString(), "mode" to mode)
+            lang.bedrock(
+                "bedrock.settings.info.hostile",
+                "created" to guild.createdAt.toString(),
+                "mode" to mode
+            )
         }
     }
 
-    private fun createValidationSection(): String {
-        return lang.bedrock("bedrock.settings.validation.section")
+    private fun createSeasonTwoReadOnlySection(): String {
+        val access = if (guild.isOpen) {
+            lang.bedrock("menu.guild_settings.item.access.lore.current.open")
+        } else {
+            lang.bedrock("menu.guild_settings.item.access.lore.current.closed")
+        }
+        val tracking = if (guild.trackingEnabled) {
+            lang.bedrock("menu.guild_settings.item.tracking.lore.current.enabled")
+        } else {
+            lang.bedrock("menu.guild_settings.item.tracking.lore.current.disabled")
+        }
+        val theme = lang.bedrock(
+            "menu.guild_settings.item.theme.lore.current",
+            "theme" to guild.guiTheme.displayName
+        )
+        return listOf(
+            lang.bedrock("bedrock.settings.error.no_settings_permission"),
+            access,
+            tracking,
+            theme
+        ).joinToString("\n")
     }
 
-    private fun handleFormResponse(response: org.geysermc.cumulus.response.CustomFormResponse) {
+    private fun createValidationSection(): String =
+        lang.bedrock("bedrock.settings.validation.section")
+
+    private fun handleFormResponse(
+        response: org.geysermc.cumulus.response.CustomFormResponse,
+        renderedManagementControls: Boolean
+    ) {
         try {
             onFormResponseReceived()
 
             val newName = response.next() as? String ?: guild.name
             val newDescription = (response.next() as? String ?: guild.description ?: "").trim()
-            val modeIndex = response.next() as? Int ?: 0
+            val modeIndex = response.next() as? Int ?: if (guild.mode == GuildMode.PEACEFUL) 0 else 1
 
-            // Validate permissions
-            val hasGuildSettingsPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)
-            val hasDescriptionPermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_DESCRIPTION)
-            val hasModePermission = guildService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_MODE)
+            val submittedOpen = if (renderedManagementControls) {
+                response.next() as? Boolean ?: guild.isOpen
+            } else {
+                guild.isOpen
+            }
+            val submittedTracking = if (renderedManagementControls) {
+                response.next() as? Boolean ?: guild.trackingEnabled
+            } else {
+                guild.trackingEnabled
+            }
+            val submittedTheme = if (renderedManagementControls) {
+                val themeIndex = response.next() as? Int
+                    ?: GuiTheme.entries.indexOf(guild.guiTheme).coerceAtLeast(0)
+                GuiTheme.entries.getOrElse(themeIndex) { guild.guiTheme }
+            } else {
+                guild.guiTheme
+            }
+
+            val hasGuildSettingsPermission =
+                authorization.canManageGuildSettings(player.uniqueId, guild.id)
+            val hasDescriptionPermission = guildService.hasPermission(
+                player.uniqueId,
+                guild.id,
+                RankPermission.MANAGE_DESCRIPTION
+            )
+            val hasModePermission = guildService.hasPermission(
+                player.uniqueId,
+                guild.id,
+                RankPermission.MANAGE_MODE
+            )
 
             val validationErrors = mutableListOf<String>()
 
-            // Validate name if changed and user has permission
             if (newName != guild.name && hasGuildSettingsPermission) {
-                validateGuildName(newName)?.let { validationErrors.add(it) }
-            } else if (newName != guild.name && !hasGuildSettingsPermission) {
+                validateGuildName(newName)?.let(validationErrors::add)
+            } else if (newName != guild.name) {
                 validationErrors.add(lang.bedrock("bedrock.settings.error.no_settings_permission"))
             }
 
-            // Validate description if changed and user has permission
             if (newDescription != (guild.description ?: "") && hasDescriptionPermission) {
-                validateGuildDescription(newDescription)?.let { validationErrors.add(it) }
-            } else if (newDescription != (guild.description ?: "") && !hasDescriptionPermission) {
+                validateGuildDescription(newDescription)?.let(validationErrors::add)
+            } else if (newDescription != (guild.description ?: "")) {
                 validationErrors.add(lang.bedrock("bedrock.settings.error.no_description_permission"))
             }
 
-            // Check mode change permissions and cooldowns
             val newMode = if (modeIndex == 0) GuildMode.PEACEFUL else GuildMode.HOSTILE
             if (newMode != guild.mode && hasModePermission) {
-                validateModeChange(newMode)?.let { validationErrors.add(it) }
-            } else if (newMode != guild.mode && !hasModePermission) {
+                validateModeChange(newMode)?.let(validationErrors::add)
+            } else if (newMode != guild.mode) {
                 validationErrors.add(lang.bedrock("bedrock.settings.error.no_mode_permission"))
             }
 
-            // If there are validation errors, show them and reopen form
+            val managementChanged =
+                submittedOpen != guild.isOpen ||
+                    submittedTracking != guild.trackingEnabled ||
+                    submittedTheme != guild.guiTheme
+            if (managementChanged && !hasGuildSettingsPermission) {
+                validationErrors.add(lang.bedrock("bedrock.settings.error.no_settings_permission"))
+            }
+
             if (validationErrors.isNotEmpty()) {
                 showValidationErrors(validationErrors)
                 return
             }
 
-            // Apply changes
-            applySettings(newName, newDescription, newMode, hasGuildSettingsPermission, hasDescriptionPermission, hasModePermission)
-
+            applySettings(
+                newName = newName,
+                newDescription = newDescription,
+                newMode = newMode,
+                newOpen = submittedOpen,
+                newTracking = submittedTracking,
+                newTheme = submittedTheme,
+                hasGuildSettingsPermission = hasGuildSettingsPermission,
+                hasDescriptionPermission = hasDescriptionPermission,
+                hasModePermission = hasModePermission
+            )
         } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Error processing guild settings form response: ${e.message}")
             player.sendMessage(lang.msg("bedrock.settings.error.processing"))
             navigateBack()
@@ -172,7 +275,6 @@ class BedrockGuildSettingsMenu(
 
     private fun validateModeChange(newMode: GuildMode): String? {
         val config = configService.loadConfig()
-
         if (!config.guild.peacefulModeEnabled) {
             return lang.bedrock("bedrock.settings.error.mode_disabled")
         }
@@ -184,28 +286,26 @@ class BedrockGuildSettingsMenu(
             } else {
                 modeChangedAt.plus(Duration.ofDays(config.guild.hostileModeMinimumDays.toLong()))
             }
-
             if (java.time.Instant.now().isBefore(cooldownEnd)) {
                 val remaining = java.time.Duration.between(java.time.Instant.now(), cooldownEnd)
-                val days = remaining.toDays()
-                val hours = remaining.toHours() % 24
-                return lang.bedrock("bedrock.settings.error.mode_cooldown", "days" to days, "hours" to hours)
+                return lang.bedrock(
+                    "bedrock.settings.error.mode_cooldown",
+                    "days" to remaining.toDays(),
+                    "hours" to remaining.toHours() % 24
+                )
             }
         }
-
         return null
     }
 
     private fun showValidationErrors(errors: List<String>) {
-        val errorMessage = errors.joinToString("\n") { lang.bedrock("bedrock.settings.validation.row", "error" to it) }
-
-        // Send error message and reopen form
+        val errorMessage = errors.joinToString("\n") {
+            lang.bedrock("bedrock.settings.validation.row", "error" to it)
+        }
         player.sendMessage(lang.msg("bedrock.settings.validation.title"))
         player.sendMessage(lang.msg("bedrock.settings.validation.errors", "errors" to errorMessage))
         player.sendMessage(lang.msg("bedrock.settings.validation.retry"))
         player.sendMessage(lang.msg("bedrock.settings.validation.cancel"))
-
-        // Reopen the form for retry
         reopen()
     }
 
@@ -213,6 +313,9 @@ class BedrockGuildSettingsMenu(
         newName: String,
         newDescription: String,
         newMode: GuildMode,
+        newOpen: Boolean,
+        newTracking: Boolean,
+        newTheme: GuiTheme,
         hasGuildSettingsPermission: Boolean,
         hasDescriptionPermission: Boolean,
         hasModePermission: Boolean
@@ -220,10 +323,9 @@ class BedrockGuildSettingsMenu(
         val changes = mutableListOf<String>()
         var allSuccessful = true
 
-        // Apply name change
         if (newName != guild.name && hasGuildSettingsPermission) {
-            val success = guildService.renameGuild(guild.id, newName, player.uniqueId)
-            if (success) {
+            if (guildService.renameGuild(guild.id, newName, player.uniqueId)) {
+                guild = guild.copy(name = newName)
                 changes.add(lang.bedrock("bedrock.settings.change.name", "name" to newName))
             } else {
                 allSuccessful = false
@@ -231,11 +333,10 @@ class BedrockGuildSettingsMenu(
             }
         }
 
-        // Apply description change, including clearing the current description.
         val normalizedDescription = newDescription.ifEmpty { null }
         if (normalizedDescription != guild.description && hasDescriptionPermission) {
-            val success = guildService.setDescription(guild.id, normalizedDescription, player.uniqueId)
-            if (success) {
+            if (guildService.setDescription(guild.id, normalizedDescription, player.uniqueId)) {
+                guild = guild.copy(description = normalizedDescription)
                 changes.add(lang.bedrock("bedrock.settings.change.description"))
             } else {
                 allSuccessful = false
@@ -243,10 +344,9 @@ class BedrockGuildSettingsMenu(
             }
         }
 
-        // Apply mode change
         if (newMode != guild.mode && hasModePermission) {
-            val success = guildService.setMode(guild.id, newMode, player.uniqueId)
-            if (success) {
+            if (guildService.setMode(guild.id, newMode, player.uniqueId)) {
+                guild = guild.copy(mode = newMode)
                 val mode = if (newMode == GuildMode.PEACEFUL) {
                     lang.bedrock("bedrock.settings.mode.peaceful")
                 } else {
@@ -259,11 +359,59 @@ class BedrockGuildSettingsMenu(
             }
         }
 
-        // Show results
+        if (hasGuildSettingsPermission && newOpen != guild.isOpen) {
+            if (guildService.setOpen(guild.id, newOpen, player.uniqueId)) {
+                guild = guild.copy(isOpen = newOpen)
+                changes.add(
+                    if (newOpen) {
+                        lang.bedrock("menu.guild_settings.feedback.access_open")
+                    } else {
+                        lang.bedrock("menu.guild_settings.feedback.access_closed")
+                    }
+                )
+            } else {
+                allSuccessful = false
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.access_failure"))
+            }
+        }
+
+        if (hasGuildSettingsPermission && newTracking != guild.trackingEnabled) {
+            if (guildService.setTrackingEnabled(guild.id, newTracking, player.uniqueId)) {
+                guild = guild.copy(trackingEnabled = newTracking)
+                changes.add(
+                    if (newTracking) {
+                        lang.bedrock("menu.guild_settings.feedback.tracking_enabled")
+                    } else {
+                        lang.bedrock("menu.guild_settings.feedback.tracking_disabled")
+                    }
+                )
+            } else {
+                allSuccessful = false
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.tracking_failure"))
+            }
+        }
+
+        if (hasGuildSettingsPermission && newTheme != guild.guiTheme) {
+            if (guildService.setGuiTheme(guild.id, newTheme, player.uniqueId)) {
+                guild = guild.copy(guiTheme = newTheme)
+                changes.add(
+                    lang.bedrock(
+                        "menu.guild_settings.feedback.theme_changed",
+                        "theme" to newTheme.displayName
+                    )
+                )
+            } else {
+                allSuccessful = false
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.theme_change_failed"))
+            }
+        }
+
         if (changes.isNotEmpty()) {
             if (allSuccessful) {
                 player.sendMessage(lang.msg("bedrock.settings.success.title"))
-                changes.forEach { player.sendMessage(lang.msg("bedrock.settings.success.row", "change" to it)) }
+                changes.forEach {
+                    player.sendMessage(lang.msg("bedrock.settings.success.row", "change" to it))
+                }
             } else {
                 player.sendMessage(lang.msg("bedrock.settings.success.partial"))
             }
@@ -274,15 +422,12 @@ class BedrockGuildSettingsMenu(
         navigateBack()
     }
 
-    override fun shouldCacheForm(): Boolean = true
+    override fun shouldCacheForm(): Boolean = false
 
-    override fun createCacheKey(): String {
-        return "${this::class.simpleName}:${player.uniqueId}:${guild.id}"
-    }
+    override fun createCacheKey(): String =
+        "${this::class.simpleName}:${player.uniqueId}:${guild.id}"
 
     override fun handleResponse(player: Player, response: Any?) {
-        // Response handling is done in the form builder's validResultHandler
-        // This method is kept for interface compatibility
         onFormResponseReceived()
     }
 }

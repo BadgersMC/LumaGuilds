@@ -8,6 +8,7 @@ import net.badgersmc.nexus.i18n.Locale
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
@@ -241,7 +242,7 @@ class CommandLocalizationTest {
         val message = requireNotNull(player.nextComponentMessage())
         assertEquals(
             "/g help",
-            message.findRunCommandClick("/g help")?.clickEvent()?.value(),
+            message.findRunCommandClick("/g help")?.clickEvent()?.textValue(),
         )
     }
 
@@ -256,7 +257,7 @@ class CommandLocalizationTest {
         assertEquals(null, message.findRunCommandClick("/op Ada"))
         assertEquals(
             "/g help",
-            message.findRunCommandClick("/g help")?.clickEvent()?.value(),
+            message.findRunCommandClick("/g help")?.clickEvent()?.textValue(),
         )
     }
 
@@ -476,5 +477,8 @@ private fun Component.allComponents(): List<Component> =
 private fun Component.findRunCommandClick(command: String): Component? =
     allComponents().firstOrNull {
         it.clickEvent()?.action() == net.kyori.adventure.text.event.ClickEvent.Action.RUN_COMMAND &&
-            it.clickEvent()?.value() == command
+            it.clickEvent()?.textValue() == command
     }
+
+private fun ClickEvent<*>.textValue(): String =
+    (payload() as ClickEvent.Payload.Text).value()

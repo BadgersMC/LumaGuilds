@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.GuiTheme
 import net.badgersmc.nexus.i18n.LangService
@@ -8,7 +11,7 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
@@ -131,7 +134,7 @@ class WarGuildSelectionMenu(
     }
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {
-        val prevItem = ItemStack.of(Material.ARROW)
+        val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.war_guild_selection.navigation.previous.name"))
             .lore(lang.gui("menu.war_guild_selection.navigation.page", "page" to currentPage))
 
@@ -143,7 +146,7 @@ class WarGuildSelectionMenu(
     }
 
     private fun addNextPageButton(pane: StaticPane, x: Int, y: Int) {
-        val nextItem = ItemStack.of(Material.ARROW)
+        val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.war_guild_selection.navigation.next.name"))
             .lore(lang.gui("menu.war_guild_selection.navigation.page", "page" to currentPage + 2))
 
@@ -155,7 +158,7 @@ class WarGuildSelectionMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.BARRIER)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.war_guild_selection.navigation.back.name"))
             .lore(lang.gui("menu.war_guild_selection.navigation.back.description"))
 

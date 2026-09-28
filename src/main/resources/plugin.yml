@@ -1,6 +1,6 @@
 name: LumaGuilds
 version: ${version}
-api-version: '1.21.11'
+api-version: '26.2'
 load: STARTUP
 main: net.lumalyte.lg.LumaGuilds
 softdepend: [Vault, PlaceholderAPI, AxKoth, LiteBans, EnthusiaPlaytime, Nexo, packetevents, DiscordSRV]

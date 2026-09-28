@@ -8,8 +8,6 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.lumalyte.lg.interaction.menus.guild.GuildKickMenu
-import net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
@@ -71,10 +69,10 @@ class BedrockGuildKickConfirmationMenu(
             }
 
             // Return to member management menu
-            bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
         } else {
             player.sendMessage(lang.msg("bedrock.kick_confirmation.feedback.failed"))
-            bedrockNavigator.openMenu(GuildKickMenu(menuNavigator, player, guild))
+            bedrockNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
         }
     }
 

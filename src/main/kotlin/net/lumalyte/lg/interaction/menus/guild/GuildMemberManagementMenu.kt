@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -7,7 +10,7 @@ import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.lumalyte.lg.application.services.GuildService
@@ -136,7 +139,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         val totalPages = (allMembers.size + itemsPerPage - 1) / itemsPerPage
 
         // Previous page button
-        val prevItem = ItemStack.of(Material.ARROW)
+        val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.member_management.item.previous.name"))
             .lore(lang.gui("menu.member_management.item.previous.lore"))
 
@@ -149,7 +152,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         pane.addItem(prevGuiItem, 0, 5)
 
         // Next page button
-        val nextItem = ItemStack.of(Material.ARROW)
+        val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.member_management.item.next.name"))
             .lore(lang.gui("menu.member_management.item.next.lore"))
 
@@ -174,7 +177,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addInviteButton(pane: StaticPane, x: Int, y: Int) {
-        val inviteItem = ItemStack.of(Material.GREEN_WOOL)
+        val inviteItem = NexoItemProvider.getItemStackOrFallback("lg_invite") { ItemStack.of(Material.GREEN_WOOL) }
             .name(lang.gui("menu.member_management.item.invite.name"))
             .lore(lang.gui("menu.member_management.item.invite.lore.description"))
             .lore(lang.gui("menu.member_management.item.invite.lore.requirement"))
@@ -190,7 +193,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addPromoteDemoteButton(pane: StaticPane, x: Int, y: Int) {
-        val promoteItem = ItemStack.of(Material.GOLDEN_APPLE)
+        val promoteItem = NexoItemProvider.getItemStackOrFallback("lg_promote") { ItemStack.of(Material.GOLDEN_APPLE) }
             .name(lang.gui("menu.member_management.item.rank_change.name"))
             .lore(lang.gui("menu.member_management.item.rank_change.lore.description"))
             .lore(lang.gui("menu.member_management.item.rank_change.lore.requirement"))
@@ -217,7 +220,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addKickButton(pane: StaticPane, x: Int, y: Int) {
-        val kickItem = ItemStack.of(Material.RED_WOOL)
+        val kickItem = NexoItemProvider.getItemStackOrFallback("lg_kick") { ItemStack.of(Material.RED_WOOL) }
             .name(lang.gui("menu.member_management.item.kick.name"))
             .lore(lang.gui("menu.member_management.item.kick.lore.description"))
             .lore(lang.gui("menu.member_management.item.kick.lore.requirement"))
@@ -233,7 +236,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.BARRIER)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.member_management.item.back.name"))
             .lore(lang.gui("menu.member_management.item.back.lore"))
 

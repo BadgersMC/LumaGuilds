@@ -110,11 +110,14 @@ private fun Component.allComponents(): List<Component> =
 private fun Component.findRunCommandClick(command: String): Component? =
     allComponents().firstOrNull {
         val ce = it.clickEvent()
-        ce?.action() == ClickEvent.Action.RUN_COMMAND && ce.value() == command
+        ce?.action() == ClickEvent.Action.RUN_COMMAND && ce?.textValue() == command
     }
 
 private fun Component.findSuggestCommandClick(value: String): Component? =
     allComponents().firstOrNull {
         val ce = it.clickEvent()
-        ce?.action() == ClickEvent.Action.SUGGEST_COMMAND && ce.value() == value
+        ce?.action() == ClickEvent.Action.SUGGEST_COMMAND && ce?.textValue() == value
     }
+
+private fun ClickEvent<*>.textValue(): String =
+    (payload() as ClickEvent.Payload.Text).value()

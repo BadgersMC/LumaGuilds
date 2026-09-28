@@ -49,8 +49,9 @@ data class QuestSystemConfig(
     val enabled: Boolean = true,
     val resetDay: DayOfWeek = DayOfWeek.MONDAY,
     val resetHourUtc: Int = 0,
-    val questCount: Int = 3,
+    val questCount: Int = 6,
     val fullSetBonusXp: Int = 5_000,
+    val leaderboardWinnerXp: Int = 5_000,
     val rewardXp: QuestRewardXpConfig = QuestRewardXpConfig(),
     val generation: QuestGenerationConfig = QuestGenerationConfig()
 )

@@ -39,8 +39,8 @@ and permanent-asset rules in REQ-056/093.
 - Levels 101–200 are seasonal Elo presentation, not XP reward tiers.
 - Purchased home capacity and activated locations are permanent. Capacity
   and paid home activation are distinct (REQ-054).
-- Prestige ships disabled. Defaults: maximum three lifetime prestiges,
-  fees 10,000 / 20,000 / 30,000 gold, one purchased eligible non-permanent
+- Prestige ships disabled. Defaults: maximum six lifetime prestiges,
+  fees 10,000 / 20,000 / 30,000 / 30,000 / 30,000 / 30,000 gold, one purchased eligible non-permanent
   perk retained and one extra permanent home-capacity unit per prestige.
 - Prestige resets run level/XP and other non-permanent perks, not gold
   remainder, items, homes, membership, Elo, source caps or weekly quest state.

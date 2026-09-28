@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -7,8 +10,8 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.PaginatedPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
@@ -133,7 +136,7 @@ class GuildPromotionMenu(
         // Navigation row (y=5)
         if (paginatedPane.pages > 1) {
             // Previous page
-            val prevItem = ItemStack.of(Material.ARROW)
+            val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.guild_promotion.navigation.previous"))
                 .lore(lang.gui("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
             staticPane.addItem(GuiItem(prevItem) {
@@ -144,7 +147,7 @@ class GuildPromotionMenu(
             }, 0, 0)
 
             // Next page
-            val nextItem = ItemStack.of(Material.ARROW)
+            val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.guild_promotion.navigation.next"))
                 .lore(lang.gui("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
             staticPane.addItem(GuiItem(nextItem) {
@@ -162,7 +165,7 @@ class GuildPromotionMenu(
         staticPane.addItem(GuiItem(infoItem) { it.isCancelled = true }, 4, 0)
 
         // Back button
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.guild_promotion.navigation.back.name"))
             .lore(lang.gui("menu.guild_promotion.navigation.back.description"))
         staticPane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 7, 0)
