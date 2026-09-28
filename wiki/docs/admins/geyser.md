@@ -2,121 +2,91 @@
 title: Geyser/Floodgate behavior
 audience: admin
 topic: geyser
-summary: How LumaGuilds renders menus and dispatches teleports for Bedrock players via Geyser/Floodgate.
+summary: How LumaGuilds detects Bedrock players and routes them through native Floodgate/Cumulus forms.
 keywords: [geyser, floodgate, bedrock, forms, cross-play]
-related: [installation, troubleshooting]
-updated: 2026-05-14
+related: [installation, troubleshooting, upgrade-3.0]
+updated: 2026-09-28
 ---
 
 # Geyser/Floodgate behavior
 
-LumaGuilds detects Bedrock players and automatically adapts the menu experience from inventory GUIs to text-based Floodgate forms.
+LumaGuilds detects Bedrock players through Floodgate and routes them to native Bedrock forms. Java players continue to use inventory GUIs.
 
-## How it works
+The business logic is shared: menu type changes by platform, but guild state, permissions, progression, quests, banking, and war rules are the same.
 
-Geyser translates Bedrock protocol to Java; Floodgate extends that with player detection and the form API. LumaGuilds uses the `FloodgateApi.isFloodgatePlayer(uuid)` method to detect Bedrock players and routes them through Bedrock-flavored menus (chat-based Floodgate forms) instead of inventory GUIs. All commands work identically for Bedrock and Java players—the difference is only the visual menu layer.
+## Requirements
 
-**The detection flow:**
+For Bedrock support, install and configure:
 
-1. Player joins the server via Geyser.
-2. Floodgate assigns a prefixed UUID (typically `.<username>`).
-3. When the player opens a guild menu (e.g., `/guild menu`), LumaGuilds checks `isBedrockPlayer()`.
-4. If Bedrock, a Floodgate form is rendered; if Java, an inventory GUI.
-5. Form responses are captured by the Cumulus form handler and routed to the same business logic as Java menus.
+1. **Geyser** — protocol translation for Bedrock clients.
+2. **Floodgate** — Bedrock identity detection and form delivery.
 
-## What renders differently on Bedrock
+LumaGuilds uses the Cumulus form API exposed by the Geyser/Floodgate ecosystem. Admins do not normally install a separate "Cumulus plugin" for LumaGuilds.
 
-The following guild/claims menus have Bedrock-optimized form variants:
+Restart the server after adding or changing Geyser/Floodgate. Do not hot-reload these plugins.
 
-| Bedrock Form | What the player sees |
-|---|---|
-| `BedrockGuildSelectionMenu` | Text form listing available guilds to join |
-| `BedrockGuildHomeMenu` | Text form to select and teleport to guild homes |
-| `BedrockGuildMemberListMenu` | Text form listing guild members with ranks |
-| `BedrockGuildBankMenu` | Text form for virtual/physical bank access |
-| `BedrockGuildModeMenu` | Text form to switch between peaceful/hostile modes |
-| `BedrockGuildWarManagementMenu` | Text form to view and manage active wars |
-| `BedrockClaimManagementMenu` | Text form for land claim creation and editing |
-| `BedrockConfirmationMenu` | Text form for yes/no confirmations |
-| `BedrockRankCreationMenu` | Text form for custom rank creation |
-| `BedrockGuildPartyManagementMenu` | Text form to create and manage parties |
-| `BedrockDescriptionEditorMenu` | Text input form for editing guild descriptions |
+## Menu routing
 
-Additionally, there are 40+ other Bedrock menu variants (for tags, emojis, permissions, etc.). All provide equivalent functionality to their Java counterparts but as form dialogs instead of inventory slots.
+For each menu request, LumaGuilds checks:
 
-## Setup
+1. `bedrock.bedrock_menus_enabled` is enabled.
+2. The player is detected as a Bedrock/Floodgate player.
+3. The Cumulus form API is available.
 
-1. **Install Geyser-Bukkit** from [Modrinth](https://modrinth.com/plugin/geyser). Drop the JAR into `plugins/`.
+If all three are true, the Bedrock form is used. If not, LumaGuilds falls back to the Java menu path.
 
-2. **Install Floodgate**. Geyser includes Floodgate by default in modern versions; verify:
+Current configuration:
 
-   ```bash
-   /version Floodgate
-   ```
+```yaml
+bedrock:
+  bedrock_menus_enabled: true
+  force_bedrock_menus: false
+  fallback_to_java_menus: true
+  fallback_on_floodgate_unavailable: true
+  fallback_on_cumulus_unavailable: true
+```
 
-   You should see Floodgate loaded.
+`force_bedrock_menus` is primarily a testing/debugging option. Leave it false in normal production use.
 
-3. **Optional: Install Cumulus** for enhanced form stability. Drop the JAR into `plugins/`. LumaGuilds works without it but falls back gracefully.
+## Current Bedrock coverage
 
-4. **Restart the server.** Geyser and Floodgate will auto-generate configs.
+LumaGuilds 3.0 has dedicated Bedrock flows across the main guild system, including:
 
-5. **Configure Geyser's `config.yml`** (in `plugins/Geyser-Bukkit/`):
-   - Ensure the remote address (MCPE server IP) and port are correct.
-   - Set `send-floodgate-data: true` to enable Floodgate integration.
-   - LumaGuilds requires no Geyser-specific config. Defaults work fine.
+- guild dashboard and settings;
+- members, ranks, invites, kicks, promotion, and permissions;
+- homes and ally-home access;
+- bank, security, budgets, automation, statistics, and transaction history;
+- relations, diplomacy, war declarations, and war management;
+- weekly guild quests and per-quest leaderboards;
+- Chapter progression and prestige;
+- LFG, parties, tags, emojis, descriptions, statistics, and confirmations;
+- built-in claim management flows.
 
-6. **No LumaGuilds config changes needed.** Bedrock detection and menu routing are built-in and enabled by default via `config.yml`:
-
-   ```yaml
-   bedrock:
-     bedrock_menus_enabled: true
-     fallback_to_java_menus: true
-   ```
+This is a parity target, not a pixel-for-pixel UI match. Bedrock uses buttons, toggles, dropdowns, and text fields where Java uses inventory items and slots.
 
 ## Verifying the integration
 
-1. **Join with a Bedrock client.** Use Geyser (on the same server port) or any Bedrock Edition client connecting to a Java server running Geyser.
+1. Join with a real Bedrock client through Geyser.
+2. Open `/g menu`.
+3. Confirm a Floodgate form opens instead of a Java inventory GUI.
+4. Open **Weekly Quests** and **Progression**.
+5. Verify quest leaderboard navigation and the progression/prestige information render.
+6. Test a home teleport and one write action such as a settings or rank change on a staging guild.
 
-2. **Check the console.** On player join, you should see:
+## Troubleshooting
 
-   ```text
-   [GeyserMC] <player> has connected to the server via Geyser
-   ```
+If Bedrock players receive Java menus, check these in order:
 
-3. **Open the guild menu.** Type `/guild menu` (or `/g menu`).
-   - **Java players:** See a multi-slot inventory GUI with clickable items.
-   - **Bedrock players:** See a text form with button options (no inventory).
+- Floodgate is loaded and the player is actually recognized by Floodgate.
+- `bedrock_menus_enabled` is true.
+- the Cumulus classes are available at runtime;
+- the server log does not show a platform-detection exception;
+- the menu is not being forced down a fallback path after an earlier form error.
 
-4. **Confirm Floodgate prefix.** In the player list, Bedrock players appear with a `.` prefix (e.g., `.Steve` instead of `Steve`). This is normal and indicates Floodgate is working.
-
-5. **Test a command.** Use `/guild home` to teleport. Bedrock players should see a confirmation form; Java players see the standard system message.
-
-## Cross-dimensional teleports
-
-As of commit `5b8bf3a` (PR #39), all teleport callbacks are dispatched on the main thread—even when called from Bedrock's Netty thread. This ensures:
-
-- Bedrock home teleports work reliably across dimensions.
-- The plugin does NOT spawn threads directly for Bukkit API calls.
-- Exception handling is thread-safe and logs detailed coordinates if a teleport fails.
-
-**If you see `Asynchronous teleport!` errors or stack traces containing "Bukkit API called on wrong thread" after a teleport:**
-
-1. Upgrade LumaGuilds to the latest version (commit `5b8bf3a` or later).
-2. Check the server logs for the exact error; contact support with the full stack trace.
-
-## Gotchas
-
-- **Floodgate must be installed even on Bedrock-only servers** — LumaGuilds uses Floodgate to detect the Bedrock client, not just for forms.
-
-- **Some advanced menu features fall back to simpler input on Bedrock.** For example, drag-and-drop banner color editing on Java menus becomes text-based hex input on Bedrock. This is intentional and maintains functional parity.
-
-- **Java Edition players joining via Geyser-Reborn or GeyserMC's Java port are NOT detected as Bedrock.** They get Java GUIs. This is correct behavior—only actual Bedrock Edition clients (Mobile, Console, Windows 10/11 Edition) are routed through Bedrock menus.
-
-- **Form button limits.** Bedrock forms have a practical limit of ~8 buttons. Menus with more options (e.g., member lists, leaderboards) paginate or truncate gracefully. If a menu seems cut off, use back/next buttons to navigate.
-
-- **Cumulus is optional but recommended.** Without it, form timeouts fall back to the old behavior. With Cumulus, forms are more stable and have better error recovery. Both work; Cumulus is just more robust.
+If one specific form fails while others work, capture the exact menu/action and the server stack trace. That is usually a menu-specific issue rather than a Geyser installation problem.
 
 ## Related
 
-- [Installation & config.yml](installation.md) — configure bedrock menus in config
-- [Troubleshooting](troubleshooting.md) — debug Bedrock/Geyser issues
+- [Installation & config.yml](installation.md)
+- [Upgrading to LumaGuilds 3.0](upgrade-3-0.md)
+- [Troubleshooting](troubleshooting.md)

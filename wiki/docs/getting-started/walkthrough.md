@@ -5,7 +5,7 @@ topic: walkthrough
 summary: A guided tour for new players — spawn to working guild in seven steps.
 keywords: [walkthrough, tutorial, onboarding, first time, getting started]
 related: [welcome, guilds, homes, chat]
-updated: 2026-05-13
+updated: 2026-09-28
 ---
 
 # Your first 30 minutes
@@ -24,7 +24,7 @@ When you first join, you'll spawn at the world spawn. Look around. Note:
 
 You have three options:
 
-**Join an existing guild** — ask in chat, or browse leaderboards with `/g list`. If a guild is open, you can join directly. If it's invite-only, ask a member to `/g invite` you.
+**Join an existing guild** — ask in chat, browse guilds with `/g list`, or use `/g lfg` for the recruitment flow. If a guild is open, you can join directly. If it's invite-only, ask a member to `/g invite` you.
 
 **Create your own** — pick a name (plain text, max 32 chars, letters/numbers and the punctuation `'`, `&`, `-`) and run:
 
@@ -81,21 +81,19 @@ Two toggles you should know:
 
 Tags and colors only appear in chat if the chat plugin renders them — they do on this server. See [Players → Chat](../players/chat.md) for the details.
 
-## 6. What XP and levels do
+## 6. Progression and weekly quests
 
-Your guild earns XP from what its members do: mining, killing mobs, exploring. XP turns into levels. Levels unlock:
+Your guild earns Chapter XP from configured member activity and from the shared weekly quest set. Progression unlocks rewards and perks, while quests give your guild focused objectives to work on together.
 
-- Bigger member caps.
-- More named home slots.
-- Access to advanced features (alliances, war declarations).
-- Bragging rights on the leaderboard.
+Open the guild dashboard and check **Weekly Quests**. Each quest has a normal completion target and a per-quest guild leaderboard. When the target is reached, the reward is automatic — you can keep progressing afterward to compete for the weekly top score.
 
-You don't have to micromanage it — just play. See [Players → Progression & Levels](../players/progression.md).
+See [Weekly Guild Quests](../players/quests.md) and [Progression, Rewards & Prestige](../players/progression.md).
 
 ## 7. Where to go next
 
 If you got this far you're functional. Pick one:
 
+- **Work on the weekly quests** — open the guild dashboard → Weekly Quests and pick an objective to push.
 - **Decorate your guild** — set a description (`/g desc`), pick a banner (`/g menu` → Banner).
 - **Make a friend or enemy** — `/g info <other guild>`, then `/g ally <them>` or `/g enemy <them>`. See [Players → Alliances & Diplomacy](../players/alliances.md).
 - **Read the [How do I…? index](../players/how-do-i.md)** — every common task with a deep link to the right page.

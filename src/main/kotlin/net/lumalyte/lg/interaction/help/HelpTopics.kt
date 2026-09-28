@@ -12,6 +12,7 @@ object HelpTopics {
         topic("chat", "chat", "guild-chat", "allychat", "ally-chat", "modchat", "mod-chat", "announce"),
         topic("alliances", "ally", "enemy", "truce", "neutral"),
         topic("war", "war"),
+        topic("quests", "menu"),
         topic("progression", "info"),
         topic("vault", "vault", "getvault"),
         topic("identity", "tag", "description", "rename", "emoji"),
