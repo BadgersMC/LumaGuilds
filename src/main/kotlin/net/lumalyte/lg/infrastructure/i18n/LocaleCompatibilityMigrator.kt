@@ -29,13 +29,14 @@ object LocaleCompatibilityMigrator {
         if (!localeFile.isFile) return false
 
         val original = localeFile.readText(StandardCharsets.UTF_8)
-        val needsQuestMigration = listOf(
-            LEGACY_QUEST_NAME,
-            LEGACY_QUEST_DESCRIPTION,
-            LEGACY_QUEST_HEADER,
-            LEGACY_QUEST_COMPLETED,
-            LEGACY_QUEST_CLAIMED,
-        ).any(original::contains)
+        val needsQuestMigration =
+            listOf(
+                LEGACY_QUEST_NAME,
+                LEGACY_QUEST_DESCRIPTION,
+                LEGACY_QUEST_HEADER,
+                LEGACY_QUEST_COMPLETED,
+                LEGACY_QUEST_CLAIMED,
+            ).any(original::contains)
         val needsPrestigeMigration = original.contains(LEGACY_PRESTIGE_REQUIREMENT)
 
         val migrated = original
