@@ -77,13 +77,13 @@ class RewardOwnershipRepositorySQL(
             val missing = mutableListOf<Pair<UUID, Int>>()
             connection.prepareStatement(
                 """
-                SELECT g.id,
-                       (SELECT COUNT(*) FROM guild_homes h WHERE h.guild_id = g.id) AS home_count
-                FROM guilds g
-                LEFT JOIN guild_reward_accounts a ON a.guild_id = g.id
-                WHERE a.guild_id IS NULL
-                ORDER BY g.id
-                """.trimIndent(),
+                    SELECT g.id,
+                           (SELECT COUNT(*) FROM guild_homes h WHERE h.guild_id = g.id) AS home_count
+                    FROM guilds g
+                    LEFT JOIN guild_reward_accounts a ON a.guild_id = g.id
+                    WHERE a.guild_id IS NULL
+                    ORDER BY g.id
+                    """.trimIndent(),
             ).use { statement ->
                 statement.executeQuery().use { rows ->
                     while (rows.next()) {

@@ -14,29 +14,33 @@ object ConfigCompatibilityMigrator {
     private const val CRLF = "\r\n"
     private const val LF = "\n"
 
-    private val legacyRewardsBlock = listOf(
-        "  # Keep false until Chapter 2 migration and player interfaces are ready.",
-        "  # This switch never migrates guilds; missing reward accounts block benefit reads.",
-        "  chapter_two_rewards_enabled: false",
-    ).joinToString(LF)
+    private val LEGACY_REWARDS_BLOCK =
+        listOf(
+            "  # Keep false until Chapter 2 migration and player interfaces are ready.",
+            "  # This switch never migrates guilds; missing reward accounts block benefit reads.",
+            "  chapter_two_rewards_enabled: false",
+        ).joinToString(LF)
 
-    private val currentRewardsBlock = listOf(
-        "  # Chapter 2 reward reads and purchases are production-ready. Set false to disable explicitly.",
-        "  # Missing legacy reward accounts are reconciled safely during startup.",
-        "  chapter_two_rewards_enabled: true",
-    ).joinToString(LF)
+    private val CURRENT_REWARDS_BLOCK =
+        listOf(
+            "  # Chapter 2 reward reads and purchases are production-ready. Set false to disable explicitly.",
+            "  # Missing legacy reward accounts are reconciled safely during startup.",
+            "  chapter_two_rewards_enabled: true",
+        ).joinToString(LF)
 
-    private val legacyPrestigeBlock = listOf(
-        "  # Prestige is deliberately gated off until migration/readiness and live validation are complete.",
-        "  prestige:",
-        "    enabled: false",
-    ).joinToString(LF)
+    private val LEGACY_PRESTIGE_BLOCK =
+        listOf(
+            "  # Prestige is deliberately gated off until migration/readiness and live validation are complete.",
+            "  prestige:",
+            "    enabled: false",
+        ).joinToString(LF)
 
-    private val currentPrestigeBlock = listOf(
-        "  # Prestige is production-ready. Set false to disable it explicitly.",
-        "  prestige:",
-        "    enabled: true",
-    ).joinToString(LF)
+    private val CURRENT_PRESTIGE_BLOCK =
+        listOf(
+            "  # Prestige is production-ready. Set false to disable it explicitly.",
+            "  prestige:",
+            "    enabled: true",
+        ).joinToString(LF)
 
     /**
      * Migrates a persisted config file when it still contains the exact shipped
@@ -57,9 +61,10 @@ object ConfigCompatibilityMigrator {
     internal fun migrateStagingDefaults(text: String): String {
         val lineEnding = if (text.contains(CRLF)) CRLF else LF
         val normalized = text.replace(CRLF, LF)
-        val migrated = normalized
-            .replace(legacyRewardsBlock, currentRewardsBlock)
-            .replace(legacyPrestigeBlock, currentPrestigeBlock)
+        val migrated =
+            normalized
+                .replace(LEGACY_REWARDS_BLOCK, CURRENT_REWARDS_BLOCK)
+                .replace(LEGACY_PRESTIGE_BLOCK, CURRENT_PRESTIGE_BLOCK)
         return if (lineEnding == CRLF) migrated.replace(LF, CRLF) else migrated
     }
 

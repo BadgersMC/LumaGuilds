@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 
 internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
     @Test
-    fun failedSetupCleanupSkipsCooldown() {
+    fun setupCleanupSkipsCooldown() {
         val storage = openStorage()
         val repository = repository(storage)
         val creator = UUID.randomUUID()
@@ -61,23 +61,12 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         val guild = Guild(UUID.randomUUID(), "Keep", createdAt = at)
 
         assertTrue(repository.addCreated(guild, creator))
-        val body = if (storage.dialect == SqlDialect.MARIADB) {
-            "FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected'"
-        } else {
-            "BEGIN SELECT RAISE(ABORT, 'injected'); END"
-        }
-        storage.connection.executeUpdate("CREATE TRIGGER reject_creator_update BEFORE UPDATE ON guild_creators $body")
+        installRejectCreatorUpdate(storage)
 
         assertFalse(repository.removeWithCreationCooldown(guild.id, GuildCreationCooldown(), at.plusSeconds(1)))
         assertEquals(guild, repository.getById(guild.id))
         assertNull(repository.creationCooldownUntil(creator))
-        assertEquals(
-            1,
-            storage.connection.getFirstRow(
-                "SELECT COUNT(*) AS n FROM guilds WHERE id = ?",
-                guild.id.toString(),
-            )!!.getInt("n"),
-        )
+        assertGuildPresent(storage, guild)
     }
 
     @Test
@@ -85,11 +74,7 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         val storage = openStorage()
         val repository = repository(storage)
         GuildCreationHistorySQL(storage)
-        val body = if (storage.dialect == SqlDialect.MARIADB) {
-            "FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected'"
-        } else {
-            "BEGIN SELECT RAISE(ABORT, 'injected'); END"
-        }
+        val body = failureTriggerBody(storage)
         storage.connection.executeUpdate("CREATE TRIGGER reject_creator_insert BEFORE INSERT ON guild_creators $body")
         val guild = Guild(UUID.randomUUID(), "Rollback", createdAt = Instant.now())
 
@@ -127,6 +112,32 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         assertFalse(repository.addCreated(guild, UUID.randomUUID()))
 
         assertNull(repository.getById(guild.id))
+        assertCreationRowsMissing(storage, guild)
+    }
+
+    private fun installRejectCreatorUpdate(storage: Storage<Database>) {
+        val body = failureTriggerBody(storage)
+        storage.connection.executeUpdate("CREATE TRIGGER reject_creator_update BEFORE UPDATE ON guild_creators $body")
+    }
+
+    private fun failureTriggerBody(storage: Storage<Database>): String =
+        if (storage.dialect == SqlDialect.MARIADB) {
+            "FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected'"
+        } else {
+            "BEGIN SELECT RAISE(ABORT, 'injected'); END"
+        }
+
+    private fun assertGuildPresent(storage: Storage<Database>, guild: Guild) {
+        assertEquals(
+            1,
+            storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM guilds WHERE id = ?",
+                guild.id.toString(),
+            )!!.getInt("n"),
+        )
+    }
+
+    private fun assertCreationRowsMissing(storage: Storage<Database>, guild: Guild) {
         assertEquals(
             0,
             storage.connection.getFirstRow(
