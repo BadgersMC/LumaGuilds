@@ -6,6 +6,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.services.NexoEmojiService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -42,6 +43,7 @@ class GuildDashboard(
 ) : Menu, KoinComponent {
     private val lang: LangService by inject()
     private val bankService: BankService by inject()
+    private val nexoEmojiService: NexoEmojiService by inject()
 
     override fun open() {
         val playerId = player.uniqueId
@@ -187,7 +189,7 @@ class GuildDashboard(
         val rankCount = rankService.listRanks(guild.id).size
         val canonicalBalance = bankService.getBalance(guild.id)
 
-        val displayName = if (emoji != null) "$emoji ${guild.name}" else guild.name
+        val displayName = nexoEmojiService.formatGuildDisplayName(guild.name, emoji)
 
         val item = (
             guild.banner?.deserializeToItemStack()?.clone()

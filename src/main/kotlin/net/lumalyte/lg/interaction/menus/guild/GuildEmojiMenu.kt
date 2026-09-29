@@ -110,7 +110,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     }
 
     private fun addCurrentEmojiDisplay(pane: StaticPane, x: Int, y: Int) {
-        val currentEmojiText = currentEmoji ?: lang.raw("menu.guild_emoji.current.not_set")
+        val currentEmojiText = currentEmoji?.let(nexoEmojiService::emojiToFontTag) ?: lang.raw("menu.guild_emoji.current.not_set")
         val displayItem = ItemStack.of(Material.NAME_TAG)
             .name(lang.gui("menu.guild_emoji.current.name"))
             .lore(lang.gui("menu.guild_emoji.current.value", "emoji" to currentEmojiText))
@@ -204,6 +204,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addPreviewSection(pane: StaticPane, x: Int, y: Int) {
         val previewEmoji = inputEmoji ?: ":cat:" // Default preview
+        val renderedPreviewEmoji = nexoEmojiService.emojiToFontTag(previewEmoji)
         val previewItem = NexoItemProvider.getItemStackOrFallback("lg_emoji") { ItemStack.of(Material.PAPER) }
             .name(lang.gui("menu.guild_emoji.preview.name"))
             .lore(lang.gui("menu.guild_emoji.preview.description"))
@@ -212,7 +213,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             previewItem.lore(lang.gui("menu.guild_emoji.preview.invalid_message", "player" to player.name, "emoji" to previewEmoji))
                 .lore(lang.gui("menu.guild_emoji.preview.invalid"))
         } else {
-            previewItem.lore(lang.gui("menu.guild_emoji.preview.message", "player" to player.name, "emoji" to previewEmoji))
+            previewItem.lore(lang.gui("menu.guild_emoji.preview.message", "player" to player.name, "emoji" to renderedPreviewEmoji))
                 .lore(lang.gui("menu.guild_emoji.preview.valid"))
         }
 
@@ -527,7 +528,7 @@ class EmojiSelectionMenu(
         val emojiItem = NexoItemProvider.getItemStackOrFallback("lg_emoji_choice_$emojiName") {
             ItemStack.of(Material.PAPER)
         }
-            .name(lang.gui("menu.guild_emoji.selection.emoji", "emoji" to emojiPlaceholder))
+            .name(lang.gui("menu.guild_emoji.selection.emoji", "emoji" to nexoEmojiService.emojiToFontTag(emojiPlaceholder)))
             .lore(lang.gui("menu.guild_emoji.selection.select"))
             .lore(lang.gui("menu.guild_emoji.selection.description"))
 
