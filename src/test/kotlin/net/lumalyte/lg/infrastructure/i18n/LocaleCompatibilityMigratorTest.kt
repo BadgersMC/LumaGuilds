@@ -25,6 +25,9 @@ class LocaleCompatibilityMigratorTest {
                     description: '<gray><amount> <target><condition>'
                     completed: '<green>✅ Click to claim!'
                     claimed: '<dark_gray>✅ Claimed'
+              guild_progression:
+                prestige:
+                  requirement: "<gray>Requires Level <light_purple>25"
         """.trimIndent()
         val locale = localeFile(original)
 
@@ -39,10 +42,15 @@ class LocaleCompatibilityMigratorTest {
         assertFalse(migrated.contains("<action>"))
         assertFalse(migrated.contains("<condition>"))
         assertFalse(migrated.contains("Click to claim"))
+        assertTrue(migrated.contains("requirement: \"<gray>Requires Level <light_purple>100\""))
+        assertFalse(migrated.contains("Requires Level <light_purple>25"))
 
-        val backup = File(locale.parentFile, "en_US.yml.pre-season2-quests.bak")
-        assertTrue(backup.isFile)
-        assertEquals(original, backup.readText())
+        val questBackup = File(locale.parentFile, "en_US.yml.pre-season2-quests.bak")
+        assertTrue(questBackup.isFile)
+        assertEquals(original, questBackup.readText())
+        val prestigeBackup = File(locale.parentFile, "en_US.yml.pre-prestige-100.bak")
+        assertTrue(prestigeBackup.isFile)
+        assertEquals(original, prestigeBackup.readText())
     }
 
     @Test
@@ -60,6 +68,26 @@ class LocaleCompatibilityMigratorTest {
         assertFalse(LocaleCompatibilityMigrator.migrate(tempDir.toFile()))
         assertEquals(current, locale.readText())
         assertFalse(File(locale.parentFile, "en_US.yml.pre-season2-quests.bak").exists())
+        assertFalse(File(locale.parentFile, "en_US.yml.pre-prestige-100.bak").exists())
+    }
+
+    @Test
+    fun `migrates only legacy prestige requirement and keeps a dedicated backup`() {
+        val original = """
+            menu:
+              guild_progression:
+                prestige:
+                  requirement: "<gray>Requires Level <light_purple>25"
+        """.trimIndent()
+        val locale = localeFile(original)
+
+        assertTrue(LocaleCompatibilityMigrator.migrate(tempDir.toFile()))
+
+        assertTrue(locale.readText().contains("Requires Level <light_purple>100"))
+        assertFalse(File(locale.parentFile, "en_US.yml.pre-season2-quests.bak").exists())
+        val backup = File(locale.parentFile, "en_US.yml.pre-prestige-100.bak")
+        assertTrue(backup.isFile)
+        assertEquals(original, backup.readText())
     }
 
     private fun localeFile(content: String): File {

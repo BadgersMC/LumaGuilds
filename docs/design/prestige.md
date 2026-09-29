@@ -7,4 +7,4 @@ The approved Chapter 2 contract is maintained in:
 - `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`
 - REQ-049, REQ-050, REQ-051, REQ-054, REQ-056, REQ-092, and REQ-093
 
-The replacement design uses a level-100 current-run reset, a lifetime maximum of six prestiges, raw-gold costs of 10,000/20,000/30,000/30,000/30,000/30,000, one permanent perk plus one permanent home per prestige, strict war/capacity eligibility, and no Elo reset. It ships disabled until enabled by the operator.
+The replacement design uses a level-100 current-run reset, a lifetime maximum of six prestiges, raw-gold costs of 10,000/20,000/30,000/30,000/30,000/30,000, one permanent perk plus one permanent home per prestige, strict war/capacity eligibility, and no Elo reset. It ships enabled for the production Chapter 2 cutover and remains explicitly operator-disableable.

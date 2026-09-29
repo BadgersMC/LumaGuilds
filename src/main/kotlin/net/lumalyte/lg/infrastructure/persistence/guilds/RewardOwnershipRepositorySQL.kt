@@ -52,12 +52,10 @@ class RewardOwnershipRepositorySQL(
     override fun initialize(guildId: UUID, initialHomeCapacity: Int): RewardOwnershipWrite = try {
         val ownership = RewardOwnership(initialHomeCapacity = initialHomeCapacity)
         storage.connection.connection.use { connection -> transaction(connection) {
-            connection.prepareStatement("INSERT INTO guild_reward_accounts (guild_id, version, initial_home_capacity, prestige_count) VALUES (?, 0, ?, 0)").use {
-                it.setString(1, guildId.toString())
-                it.setInt(2, initialHomeCapacity)
-                it.executeUpdate()
+            insertAccount(connection, guildId, initialHomeCapacity)
+            require(!hasOrphanedRewardState(connection, guildId)) {
+                "Orphaned reward/prestige state needs recovery"
             }
-            require(!hasOwnedRewards(connection, guildId)) { "Orphaned reward ownership needs recovery" }
             RewardOwnershipWrite.Saved(RewardOwnershipSnapshot(0, ownership))
         } }
     } catch (error: SQLException) {
@@ -66,6 +64,41 @@ class RewardOwnershipRepositorySQL(
     } catch (error: Exception) {
         RewardOwnershipWrite.Failed(error.message ?: error.javaClass.simpleName)
     }
+
+    /**
+     * Repairs the production invariant that every live guild has exactly one reward account.
+     *
+     * The operation is idempotent and transactional. Existing accounts are never modified.
+     * If orphaned reward rows exist for a missing account, the entire reconciliation aborts
+     * instead of guessing ownership state.
+     */
+    fun reconcileMissingGuildAccounts(): Int =
+        storage.connection.connection.use { connection -> transaction(connection) {
+            val missing = mutableListOf<Pair<UUID, Int>>()
+            connection.prepareStatement(
+                """SELECT g.id,
+                          (SELECT COUNT(*) FROM guild_homes h WHERE h.guild_id = g.id) AS home_count
+                   FROM guilds g
+                   LEFT JOIN guild_reward_accounts a ON a.guild_id = g.id
+                   WHERE a.guild_id IS NULL
+                   ORDER BY g.id"""
+            ).use { statement ->
+                statement.executeQuery().use { rows ->
+                    while (rows.next()) {
+                        missing += UUID.fromString(rows.getString("id")) to
+                            maxOf(1, rows.getInt("home_count"))
+                    }
+                }
+            }
+
+            missing.forEach { (guildId, initialHomeCapacity) ->
+                require(!hasOrphanedRewardState(connection, guildId)) {
+                    "Guild $guildId has orphaned reward/prestige history and cannot be auto-repaired"
+                }
+                insertAccount(connection, guildId, initialHomeCapacity)
+            }
+            missing.size
+        } }
 
     override fun save(guildId: UUID, expectedVersion: Long, ownership: RewardOwnership): RewardOwnershipWrite = try {
         storage.connection.connection.use { connection -> transaction(connection) {
@@ -119,7 +152,9 @@ class RewardOwnershipRepositorySQL(
             it.setString(1, guildId.toString())
             it.executeQuery().use { rows ->
                 if (!rows.next()) {
-                    require(!hasOwnedRewards(connection, guildId)) { "Orphaned reward ownership needs recovery" }
+                    require(!hasOrphanedRewardState(connection, guildId)) {
+                        "Orphaned reward/prestige state needs recovery"
+                    }
                     return null
                 }
                 Triple(rows.getLong("version"), rows.getInt("initial_home_capacity"), rows.getInt("prestige_count"))
@@ -143,11 +178,41 @@ class RewardOwnershipRepositorySQL(
         return RewardOwnershipSnapshot(account.first, ownership)
     }
 
+    private fun insertAccount(connection: Connection, guildId: UUID, initialHomeCapacity: Int) {
+        require(initialHomeCapacity >= 1)
+        connection.prepareStatement(
+            "INSERT INTO guild_reward_accounts (guild_id, version, initial_home_capacity, prestige_count) VALUES (?, 0, ?, 0)"
+        ).use {
+            it.setString(1, guildId.toString())
+            it.setInt(2, initialHomeCapacity)
+            check(it.executeUpdate() == 1) { "Failed to initialize reward account for guild $guildId" }
+        }
+    }
+
     private fun hasOwnedRewards(connection: Connection, guildId: UUID): Boolean =
         connection.prepareStatement("SELECT 1 FROM guild_reward_ownership WHERE guild_id = ? LIMIT 1").use {
             it.setString(1, guildId.toString())
             it.executeQuery().use { rows -> rows.next() }
         }
+
+    private fun hasOrphanedRewardState(connection: Connection, guildId: UUID): Boolean =
+        hasOwnedRewards(connection, guildId) ||
+            hasAppliedReceiptIfTableExists(connection, "guild_reward_purchases", guildId) ||
+            hasAppliedReceiptIfTableExists(connection, "guild_prestige_transactions", guildId)
+
+    private fun hasAppliedReceiptIfTableExists(connection: Connection, table: String, guildId: UUID): Boolean {
+        val exists = connection.metaData.getTables(connection.catalog, null, "%", arrayOf("TABLE")).use { tables ->
+            generateSequence { if (tables.next()) tables.getString("TABLE_NAME") else null }
+                .any { it.equals(table, ignoreCase = true) }
+        }
+        if (!exists) return false
+        return connection.prepareStatement(
+            "SELECT 1 FROM $table WHERE guild_id = ? AND outcome = 'APPLIED' LIMIT 1"
+        ).use {
+            it.setString(1, guildId.toString())
+            it.executeQuery().use { rows -> rows.next() }
+        }
+    }
 
     private fun <T> transaction(connection: Connection, block: () -> T): T {
         val autoCommit = connection.autoCommit
