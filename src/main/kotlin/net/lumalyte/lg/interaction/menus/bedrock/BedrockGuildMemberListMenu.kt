@@ -264,11 +264,7 @@ class BedrockGuildMemberListMenu(
         }
     }
 
-    override fun shouldCacheForm(): Boolean = true
-
-    override fun createCacheKey(): String {
-        return "${this::class.simpleName}:${player.uniqueId}:${guild.id}:rankSort=$sortByRank:${System.currentTimeMillis() / 60000}" // Cache for 1 minute
-    }
+    override fun shouldCacheForm(): Boolean = false
 
     override fun handleResponse(player: Player, response: Any?) {
         // Response handling is done in the form builder's validResultHandler
