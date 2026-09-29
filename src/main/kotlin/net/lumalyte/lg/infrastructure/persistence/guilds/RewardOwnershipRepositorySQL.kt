@@ -75,16 +75,14 @@ class RewardOwnershipRepositorySQL(
     fun reconcileMissingGuildAccounts(): Int =
         storage.connection.connection.use { connection -> transaction(connection) {
             val missing = mutableListOf<Pair<UUID, Int>>()
-            connection.prepareStatement(
-                """
-                    SELECT g.id,
-                           (SELECT COUNT(*) FROM guild_homes h WHERE h.guild_id = g.id) AS home_count
-                    FROM guilds g
-                    LEFT JOIN guild_reward_accounts a ON a.guild_id = g.id
-                    WHERE a.guild_id IS NULL
-                    ORDER BY g.id
-                    """.trimIndent(),
-            ).use { statement ->
+            val missingAccountsSql =
+                "SELECT g.id, " +
+                    "(SELECT COUNT(*) FROM guild_homes h WHERE h.guild_id = g.id) AS home_count " +
+                    "FROM guilds g " +
+                    "LEFT JOIN guild_reward_accounts a ON a.guild_id = g.id " +
+                    "WHERE a.guild_id IS NULL " +
+                    "ORDER BY g.id"
+            connection.prepareStatement(missingAccountsSql).use { statement ->
                 statement.executeQuery().use { rows ->
                     while (rows.next()) {
                         missing += UUID.fromString(rows.getString("id")) to
