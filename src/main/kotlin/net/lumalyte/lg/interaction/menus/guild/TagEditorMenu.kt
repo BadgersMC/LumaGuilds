@@ -268,7 +268,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
                 player.sendMessage(lang.msg("menu.tag_editor.feedback.updated"))
                 if (tagToSave != null) {
-                    val displayTag = ColorCodeUtils.renderTagForDisplay(tagToSave)
+                    val displayTag = ColorCodeUtils.toMiniMessage(tagToSave)
                     player.sendMessage(lang.msg("menu.tag_editor.feedback.new_tag", "tag" to displayTag))
                 } else {
                     player.sendMessage(lang.msg("menu.tag_editor.feedback.cleared_tag"))
@@ -466,7 +466,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         })
 
         // Show formatted tag in message
-        val displayTag = ColorCodeUtils.renderTagForDisplay(input)
+        val displayTag = ColorCodeUtils.toMiniMessage(input)
         player.sendMessage(lang.msg("menu.tag_editor.feedback.set", "tag" to displayTag))
         player.sendMessage(lang.msg("menu.tag_editor.feedback.save_hint"))
     }

@@ -15,11 +15,13 @@ import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.interaction.menus.sortMembersByRank
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -37,11 +39,13 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val rankService: RankService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
 
     private lateinit var memberPane: StaticPane
     private var currentPage = 0
+    private var sortByRank = false
     private val itemsPerPage = 45 // 9x5 grid
 
     override fun open() {
@@ -68,6 +72,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Add action buttons
         addInviteButton(pane, 1, 5)
+        addSortButton(pane, 2, 5)
         addPromoteDemoteButton(pane, 3, 5)
         addKickButton(pane, 5, 5)
         addBackButton(pane, 7, 5)
@@ -78,7 +83,12 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun updateMemberDisplay() {
-        val allMembers = memberService.getGuildMembers(guild.id).sortedBy { it.playerId }
+        val members = memberService.getGuildMembers(guild.id)
+        val allMembers = if (sortByRank) {
+            sortMembersByRank(members, rankService.listRanks(guild.id), ::resolvePlayerName)
+        } else {
+            members.sortedBy { it.playerId }
+        }
 
         // Calculate pagination
         val totalPages = (allMembers.size + itemsPerPage - 1) / itemsPerPage
@@ -121,14 +131,15 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         val meta = head.itemMeta as SkullMeta
 
         // Try to get player name from online players or cache
-        val playerName = Bukkit.getOfflinePlayer(member.playerId).name
-            ?: lang.raw("menu.guild_confirmation.common.unknown_player")
-
+        val playerName = resolvePlayerName(member)
+        val rankName = rankService.getRank(member.rankId)?.name
+            ?: lang.raw("menu.member_list.default_rank")
 
         head.itemMeta = meta
 
         return head.name(lang.gui("menu.member_management.item.member.name", "player" to playerName))
             .lore(lang.gui("menu.member_management.item.member.lore.player", "player" to playerName))
+            .lore(lang.gui("menu.member_management.item.member.lore.rank", "rank" to rankName))
             .lore(lang.gui("menu.member_management.item.member.lore.joined", "joined" to member.joinedAt))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.member_management.item.member.lore.action"))
@@ -175,6 +186,31 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         pane.addItem(GuiItem(pageItem), 4, 5)
     }
+
+    private fun addSortButton(pane: StaticPane, x: Int, y: Int) {
+        val baseItem = NexoItemProvider.getItemStackOrFallback("lg_nav_ranks") {
+            ItemStack.of(Material.COMPARATOR)
+        }
+        val sortItem = if (sortByRank) {
+            baseItem
+                .name(lang.gui("menu.member_management.item.sort.name.rank"))
+                .lore(lang.gui("menu.member_management.item.sort.lore.rank"))
+        } else {
+            baseItem
+                .name(lang.gui("menu.member_management.item.sort.name.default"))
+                .lore(lang.gui("menu.member_management.item.sort.lore.default"))
+        }
+
+        pane.addItem(GuiItem(sortItem) {
+            sortByRank = !sortByRank
+            currentPage = 0
+            open()
+        }, x, y)
+    }
+
+    private fun resolvePlayerName(member: Member): String =
+        Bukkit.getOfflinePlayer(member.playerId).name
+            ?: lang.raw("menu.guild_confirmation.common.unknown_player")
 
     private fun addInviteButton(pane: StaticPane, x: Int, y: Int) {
         val inviteItem = NexoItemProvider.getItemStackOrFallback("lg_invite") { ItemStack.of(Material.GREEN_WOOL) }

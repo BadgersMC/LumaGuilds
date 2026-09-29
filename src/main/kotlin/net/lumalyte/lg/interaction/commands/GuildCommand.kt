@@ -1927,7 +1927,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val success = guildService.setTag(guild.id, tag, playerId)
 
         if (success) {
-            val rendered = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(tag)
+            val rendered = net.lumalyte.lg.utils.ColorCodeUtils.toMiniMessage(tag)
             player.sendMessage(lang.msg("command.migrated.guild.tag.guild_tag_set_to", "rendered" to rendered))
             player.sendMessage(lang.msg("command.migrated.guild.tag.this_will_be_displayed_next_to_guild"))
         } else {

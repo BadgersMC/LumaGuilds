@@ -101,11 +101,12 @@ class NexoEmojiService(
      * @return The formatted display name with emoji prefix.
      */
     fun formatGuildDisplayName(guildName: String, emoji: String?): String {
-        return if (emoji != null && isValidEmojiFormat(emoji)) {
-            "$emoji $guildName"
+        val renderedEmoji = if (emoji != null && isValidEmojiFormat(emoji)) {
+            emojiToFontTag(emoji)
         } else {
-            guildName
+            ""
         }
+        return if (renderedEmoji.isNotEmpty()) "$renderedEmoji $guildName" else guildName
     }
     
     /**
