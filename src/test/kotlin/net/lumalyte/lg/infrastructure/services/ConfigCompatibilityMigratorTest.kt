@@ -80,9 +80,8 @@ internal class ConfigCompatibilityMigratorTest {
         assertEquals(original, backup.readText())
     }
 
-    private fun configFile(tempDir: Path, content: String): File {
-        return tempDir.resolve("config.yml").toFile().apply { writeText(content) }
-    }
+    private fun configFile(tempDir: Path, content: String): File =
+        tempDir.resolve("config.yml").toFile().apply { writeText(content) }
 
     private companion object {
         const val PROGRESSION_LINE = "progression:"
