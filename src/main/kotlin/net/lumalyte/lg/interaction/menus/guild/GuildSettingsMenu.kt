@@ -7,6 +7,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.services.NexoEmojiService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -50,6 +51,7 @@ class GuildSettingsMenu(
 ): Menu, KoinComponent {
 
     private val lang: LangService by inject()
+    private val nexoEmojiService: NexoEmojiService by inject()
 
     override fun open() {
         // Refresh guild data from database to ensure we have latest changes
@@ -265,7 +267,7 @@ class GuildSettingsMenu(
         // Guild Emoji
         val emojiItem = NexoItemProvider.getItemStackOrFallback("lg_emoji") { ItemStack.of(Material.FIREWORK_STAR) }
             .name(lang.gui("menu.guild_settings.item.emoji.name"))
-            .lore(lang.gui("menu.guild_settings.item.emoji.lore.current", "emoji" to (guild.emoji ?: lang.raw("menu.control_panel.state.not_set"))))
+            .lore(lang.gui("menu.guild_settings.item.emoji.lore.current", "emoji" to (guild.emoji?.let(nexoEmojiService::emojiToFontTag) ?: lang.raw("menu.control_panel.state.not_set"))))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.guild_settings.item.emoji.lore.action"))
 

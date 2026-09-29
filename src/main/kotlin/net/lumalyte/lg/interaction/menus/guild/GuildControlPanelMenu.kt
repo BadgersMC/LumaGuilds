@@ -4,6 +4,7 @@ import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.services.NexoEmojiService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -41,6 +42,7 @@ class GuildControlPanelMenu(
 ): Menu, KoinComponent {
 
     private val lang: LangService by inject()
+    private val nexoEmojiService: NexoEmojiService by inject()
 
     override fun open() {
         val playerId = player.uniqueId
@@ -117,7 +119,7 @@ class GuildControlPanelMenu(
             .name(lang.gui("menu.control_panel.item.emoji.name"))
             .lore(lang.gui(
                 "menu.control_panel.item.emoji.lore.current",
-                "emoji" to (emoji ?: lang.gui("menu.control_panel.state.not_set")),
+                "emoji" to (emoji?.let(nexoEmojiService::emojiToFontTag) ?: lang.raw("menu.control_panel.state.not_set")),
             ))
             .lore(lang.gui("menu.control_panel.item.emoji.lore.description"))
         val guiItem = GuiItem(emojiItem) {
