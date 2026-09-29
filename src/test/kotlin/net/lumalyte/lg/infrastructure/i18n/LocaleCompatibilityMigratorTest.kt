@@ -11,43 +11,16 @@ import kotlin.test.assertTrue
 internal class LocaleCompatibilityMigratorTest {
     @Test
     fun migratesQuestAndPrestige(@TempDir tempDir: Path) {
-        val original = """
-            menu:
-              quests:
-                item:
-                  header:
-                    claimed: '<gray>Claimed: <white><claimed>/<total>'
-                  quest:
-                    name: '<gold><action> <target>'
-                    description: '<gray><amount> <target><condition>'
-                    completed: '<green>✅ Click to claim!'
-                    claimed: '<dark_gray>✅ Claimed'
-              guild_progression:
-                prestige:
-                  $LEGACY_REQUIREMENT
-        """.trimIndent()
+        val original = legacyQuestAndPrestigeLocale()
         val locale = localeFile(tempDir, original)
 
         assertTrue(LocaleCompatibilityMigrator.migrate(tempDir.toFile()))
 
         val migrated = locale.readText()
-        assertTrue(migrated.contains("name: '<gold><objective>'"))
-        assertTrue(migrated.contains("description: '<gray><objective>'"))
-        assertTrue(migrated.contains("claimed: '<gray>Completed: <white><claimed>/<total>'"))
-        assertTrue(migrated.contains("completed: '<green>✅ Complete — reward processing'"))
-        assertTrue(migrated.contains("claimed: '<green>✅ Complete — score keeps counting'"))
-        assertFalse(migrated.contains("<action>"))
-        assertFalse(migrated.contains("<condition>"))
-        assertFalse(migrated.contains("Click to claim"))
+        assertQuestMigration(migrated)
         assertTrue(migrated.contains(CURRENT_REQUIREMENT))
         assertFalse(migrated.contains(LEGACY_REQUIREMENT))
-
-        val questBackup = File(locale.parentFile, QUEST_BACKUP)
-        assertTrue(questBackup.isFile)
-        assertEquals(original, questBackup.readText())
-        val prestigeBackup = File(locale.parentFile, PRESTIGE_BACKUP)
-        assertTrue(prestigeBackup.isFile)
-        assertEquals(original, prestigeBackup.readText())
+        assertQuestAndPrestigeBackups(locale, original)
     }
 
     @Test
@@ -85,6 +58,43 @@ internal class LocaleCompatibilityMigratorTest {
         val backup = File(locale.parentFile, PRESTIGE_BACKUP)
         assertTrue(backup.isFile)
         assertEquals(original, backup.readText())
+    }
+
+    private fun legacyQuestAndPrestigeLocale(): String =
+        """
+        menu:
+          quests:
+            item:
+              header:
+                claimed: '<gray>Claimed: <white><claimed>/<total>'
+              quest:
+                name: '<gold><action> <target>'
+                description: '<gray><amount> <target><condition>'
+                completed: '<green>✅ Click to claim!'
+                claimed: '<dark_gray>✅ Claimed'
+          guild_progression:
+            prestige:
+              $LEGACY_REQUIREMENT
+        """.trimIndent()
+
+    private fun assertQuestMigration(migrated: String) {
+        assertTrue(migrated.contains("name: '<gold><objective>'"))
+        assertTrue(migrated.contains("description: '<gray><objective>'"))
+        assertTrue(migrated.contains("claimed: '<gray>Completed: <white><claimed>/<total>'"))
+        assertTrue(migrated.contains("completed: '<green>✅ Complete — reward processing'"))
+        assertTrue(migrated.contains("claimed: '<green>✅ Complete — score keeps counting'"))
+        assertFalse(migrated.contains("<action>"))
+        assertFalse(migrated.contains("<condition>"))
+        assertFalse(migrated.contains("Click to claim"))
+    }
+
+    private fun assertQuestAndPrestigeBackups(locale: File, original: String) {
+        val questBackup = File(locale.parentFile, QUEST_BACKUP)
+        assertTrue(questBackup.isFile)
+        assertEquals(original, questBackup.readText())
+        val prestigeBackup = File(locale.parentFile, PRESTIGE_BACKUP)
+        assertTrue(prestigeBackup.isFile)
+        assertEquals(original, prestigeBackup.readText())
     }
 
     private fun localeFile(tempDir: Path, content: String): File {
