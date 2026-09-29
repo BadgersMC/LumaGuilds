@@ -43,6 +43,15 @@ class QuestService(
     fun recentQuestSets(limit: Int): List<WeeklyQuestSet> = repository.getRecentQuestSets(limit)
     fun deactivate() = repository.deactivateActiveQuestSet()
 
+    /** Rewrites active quest definitions without changing the week or deleting guild progress. */
+    fun updateActiveQuestDefinitions(quests: List<QuestDefinition>): Boolean {
+        val active = repository.getActiveQuestSet() ?: return false
+        if (active.quests == quests) return false
+        require(quests.map { it.id }.distinct().size == quests.size) { "Active quest ids must remain unique" }
+        repository.saveActiveQuestSet(active.copy(quests = quests))
+        return true
+    }
+
     fun progressFor(guildId: UUID, questId: String): GuildQuestProgress {
         val active = requireNotNull(repository.getActiveQuestSet()) { "No active weekly quest set" }
         require(active.quests.any { it.id == questId }) { "Unknown active quest: $questId" }

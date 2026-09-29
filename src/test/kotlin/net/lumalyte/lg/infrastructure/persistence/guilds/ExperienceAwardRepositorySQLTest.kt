@@ -59,6 +59,30 @@ class ExperienceAwardRepositorySQLTest {
     }
 
     @Test
+    fun `read model reports source and today totals from transaction ledger`() {
+        repository.awardAtomically(request(), policy, 2, policy.windowContaining(instant))
+        val later = instant.plusSeconds(60)
+        repository.awardAtomically(
+            request().copy(transactionId = UUID.randomUUID(), occurredAt = later),
+            policy,
+            4,
+            policy.windowContaining(later),
+        )
+        storage.connection.executeUpdate(
+            "INSERT INTO experience_transactions (id, guild_id, amount, source, description, actor_id, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            UUID.randomUUID().toString(), guildId.toString(), -100, ExperienceSource.MOB_KILL.name,
+            "penalty", actorId.toString(), later.toEpochMilli(),
+        )
+
+        assertEquals(
+            mapOf(ExperienceSource.MOB_KILL to 6),
+            repository.getAwardedXpBySource(guildId, instant.minusSeconds(1), later.plusSeconds(1)),
+        )
+        assertEquals(6, repository.getAwardedXp(guildId, instant.minusSeconds(1), later.plusSeconds(1)))
+        assertEquals(0, repository.getAwardedXp(guildId, later.plusSeconds(1), later.plusSeconds(120)))
+    }
+
+    @Test
     fun `final award is clipped to remaining source allowance`() {
         seedUsage(5_999)
 

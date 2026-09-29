@@ -23,7 +23,15 @@ import java.util.UUID
 class ProgressionReadModelTest {
     private val guildId = UUID.randomUUID()
     private val instant = Instant.parse("2026-08-29T12:00:00Z")
-    private val usage = RecordingUsageRepository(mapOf("ORE" to 50))
+    private val usage = RecordingUsageRepository(
+        usageByPool = mapOf("ORE" to 50, "QUALIFIED_RECRUIT" to 1_000),
+        xpBySource = mapOf(
+            ExperienceSource.COAL_ORE to 25,
+            ExperienceSource.DIAMOND_ORE to 20,
+            ExperienceSource.QUALIFIED_RECRUIT to 1_000,
+        ),
+        awardedToday = 11_000,
+    )
     private val service = ProgressionServiceBukkit(
         progressionRepository = mockk<ProgressionRepository>(relaxed = true),
         guildRepository = mockk<GuildRepository>(relaxed = true),
@@ -48,6 +56,31 @@ class ProgressionReadModelTest {
     }
 
     @Test
+    fun `fixed rate source exposes exact actions and maximum`() {
+        val view = service.getSourceUsage(guildId, instant)
+            .single { it.source == ExperienceSource.QUALIFIED_RECRUIT }
+
+        assertEquals(1, view.awardedActions)
+        assertEquals(5, view.maxActions)
+        assertEquals(false, view.maxActionsIsUpperBound)
+    }
+
+    @Test
+    fun `shared mixed rate pool exposes credited actions and upper-bound maximum`() {
+        val view = service.getSourceUsage(guildId, instant)
+            .single { it.pool == "ORE" }
+
+        assertEquals(6, view.awardedActions)
+        assertEquals(3_600, view.maxActions)
+        assertEquals(true, view.maxActionsIsUpperBound)
+    }
+
+    @Test
+    fun `today includes awards regardless of source cap period`() {
+        assertEquals(11_000, service.getXpEarnedToday(guildId, instant))
+    }
+
+    @Test
     fun `weekly activity is shown as unlimited`() {
         val view = service.getSourceUsage(guildId, instant)
             .single { it.source == ExperienceSource.WEEKLY_ACTIVITY }
@@ -59,6 +92,8 @@ class ProgressionReadModelTest {
 
     private class RecordingUsageRepository(
         private val usageByPool: Map<String, Int>,
+        private val xpBySource: Map<ExperienceSource, Int> = emptyMap(),
+        private val awardedToday: Int = 0,
     ) : ExperienceAwardRepository {
         override fun awardAtomically(
             request: ExperienceAwardRequest,
@@ -68,5 +103,17 @@ class ProgressionReadModelTest {
         ): ExperienceAwardResult = ExperienceAwardResult.Awarded(requestedXp, requestedXp, policy.isCapped)
 
         override fun getAwardedXpByPool(guildId: UUID, at: Instant): Map<String, Int> = usageByPool
+
+        override fun getAwardedXpBySource(
+            guildId: UUID,
+            startInclusive: Instant,
+            endExclusive: Instant,
+        ): Map<ExperienceSource, Int> = xpBySource
+
+        override fun getAwardedXp(
+            guildId: UUID,
+            startInclusive: Instant,
+            endExclusive: Instant,
+        ): Int = awardedToday
     }
 }

@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.persistence.ExperienceAwardRepository
 import net.lumalyte.lg.domain.entities.ExperienceAwardRequest
 import net.lumalyte.lg.domain.entities.ExperienceAwardResult
 import net.lumalyte.lg.domain.values.ExperiencePolicy
+import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PeriodWindow
 import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
@@ -161,6 +162,33 @@ class ExperienceAwardRepositorySQL(
             at.toEpochMilli(),
             at.toEpochMilli(),
         ).associate { it.getString("source_pool") to it.getInt("awarded_xp") }
+
+    override fun getAwardedXpBySource(
+        guildId: UUID,
+        startInclusive: java.time.Instant,
+        endExclusive: java.time.Instant,
+    ): Map<ExperienceSource, Int> =
+        storage.connection.getResults(
+            "SELECT source, SUM(amount) AS awarded_xp FROM experience_transactions WHERE guild_id = ? AND timestamp >= ? AND timestamp < ? AND amount > 0 GROUP BY source",
+            guildId.toString(),
+            startInclusive.toEpochMilli(),
+            endExclusive.toEpochMilli(),
+        ).mapNotNull { row ->
+            runCatching { ExperienceSource.valueOf(row.getString("source")) }.getOrNull()
+                ?.let { source -> source to row.getInt("awarded_xp") }
+        }.toMap()
+
+    override fun getAwardedXp(
+        guildId: UUID,
+        startInclusive: java.time.Instant,
+        endExclusive: java.time.Instant,
+    ): Int =
+        storage.connection.getResults(
+            "SELECT COALESCE(SUM(amount), 0) AS awarded_xp FROM experience_transactions WHERE guild_id = ? AND timestamp >= ? AND timestamp < ? AND amount > 0",
+            guildId.toString(),
+            startInclusive.toEpochMilli(),
+            endExclusive.toEpochMilli(),
+        ).firstOrNull()?.getInt("awarded_xp") ?: 0
 
     private fun execute(connection: Connection, sql: String, vararg parameters: Any?): Int =
         connection.prepareStatement(sql).use { statement ->
