@@ -40,17 +40,25 @@ class WeeklyQuestCoordinator(
     }
 
     fun refreshIfRequired(now: Instant) {
-        questService.reconcilePendingRewards()
         val config = configService.getProgressionConfig().quests
         if (!config.enabled) {
+            questService.reconcilePendingRewards()
             questService.deactivate()
             return
         }
 
         val active = questService.activeQuestSet()
         val period = periodBounds(now, config)
-        if (active?.weekId == period.weekId && active.endsAt.isAfter(now)) return
+        if (active?.weekId == period.weekId && active.endsAt.isAfter(now)) {
+            val rebalanced = active.quests.map { applyConfiguredRewards(it, config) }
+            if (questService.updateActiveQuestDefinitions(rebalanced)) {
+                logger.info("Updated active weekly quest rewards without resetting guild progress")
+            }
+            questService.reconcilePendingRewards()
+            return
+        }
 
+        questService.reconcilePendingRewards()
         val targets = targetCatalog.discoverTargets()
         if (targets.isEmpty()) {
             logger.warn("Weekly quests are enabled but no quest targets were discovered; leaving quests inactive")
@@ -85,21 +93,30 @@ class WeeklyQuestCoordinator(
                 QuestRewardTier.HEADLINE -> config.rewardXp.headline
                 QuestRewardTier.CONDITIONED -> config.rewardXp.conditioned
             }
-        }.map { quest ->
-            quest.copy(
-                leaderboard = true,
-                leaderboardPayouts = if (config.leaderboardWinnerXp > 0) {
-                    mapOf(1 to config.leaderboardWinnerXp)
-                } else {
-                    emptyMap()
-                }
-            )
-        }
+        }.map { quest -> applyConfiguredRewards(quest, config) }
 
         questService.resetWeeklyQuests(
             WeeklyQuestSet(period.weekId, period.startsAt, period.endsAt, quests)
         )
     }
+
+    private fun applyConfiguredRewards(
+        quest: net.lumalyte.lg.domain.entities.QuestDefinition,
+        config: QuestSystemConfig,
+    ) = quest.copy(
+        experienceReward = when (quest.tier) {
+            QuestRewardTier.COMMON -> config.rewardXp.common
+            QuestRewardTier.CHALLENGING -> config.rewardXp.challenging
+            QuestRewardTier.HEADLINE -> config.rewardXp.headline
+            QuestRewardTier.CONDITIONED -> config.rewardXp.conditioned
+        },
+        leaderboard = true,
+        leaderboardPayouts = if (config.leaderboardWinnerXp > 0) {
+            mapOf(1 to config.leaderboardWinnerXp)
+        } else {
+            emptyMap()
+        },
+    )
 
     private fun periodBounds(now: Instant, config: QuestSystemConfig): PeriodBounds {
         val utcNow = now.atZone(ZoneOffset.UTC)

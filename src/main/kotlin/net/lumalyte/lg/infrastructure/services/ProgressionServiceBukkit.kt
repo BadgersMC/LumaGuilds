@@ -511,6 +511,7 @@ class ProgressionServiceBukkit(
             logger.error("Failed to read source usage for guild $guildId", e)
             emptyMap()
         }
+        val xpBySourceForWindow = mutableMapOf<net.lumalyte.lg.domain.values.PeriodWindow, Map<ExperienceSource, Int>>()
         val policies = configService.loadConfig().progression.sourcePolicies.values
             .filter { it.enabled }
             .groupBy { it.pool }
@@ -522,6 +523,29 @@ class ProgressionServiceBukkit(
             } else {
                 awardedByPool[policy.pool] ?: 0
             }
+            val actionXp = if (window == null) {
+                emptyMap()
+            } else {
+                xpBySourceForWindow.getOrPut(window) {
+                    try {
+                        experienceAwardRepository.getAwardedXpBySource(guildId, window.startInclusive, window.endExclusive)
+                    } catch (e: Exception) {
+                        logger.error("Failed to read source action usage for guild $guildId", e)
+                        emptyMap()
+                    }
+                }
+            }
+            val awardedActions = if (window == null) null else sharedPolicies.sumOf { member ->
+                val xp = actionXp[member.source] ?: 0
+                if (xp <= 0) 0 else (xp + member.awardXp - 1) / member.awardXp
+            }
+            val rates = sharedPolicies.map { it.awardXp }.distinct()
+            val minRate = rates.minOrNull()
+            val maxActions = if (policy.isCapped && minRate != null && minRate > 0) {
+                (policy.capXp + minRate - 1) / minRate
+            } else {
+                null
+            }
             SourceUsageView(
                 source = policy.source,
                 pool = policy.pool,
@@ -530,7 +554,21 @@ class ProgressionServiceBukkit(
                 capXp = policy.capXp.takeIf { policy.isCapped },
                 remainingXp = policy.capXp.minus(awarded).coerceAtLeast(0).takeIf { policy.isCapped },
                 resetsAt = window?.endExclusive,
+                awardedActions = awardedActions,
+                maxActions = maxActions,
+                maxActionsIsUpperBound = rates.size > 1,
             )
+        }
+    }
+
+    override fun getXpEarnedToday(guildId: UUID, at: Instant): Int {
+        val start = at.truncatedTo(ChronoUnit.DAYS)
+        val end = start.plus(1, ChronoUnit.DAYS)
+        return try {
+            experienceAwardRepository.getAwardedXp(guildId, start, end)
+        } catch (e: Exception) {
+            logger.error("Failed to calculate today's XP for guild $guildId", e)
+            0
         }
     }
 
