@@ -76,12 +76,14 @@ class RewardOwnershipRepositorySQL(
         storage.connection.connection.use { connection -> transaction(connection) {
             val missing = mutableListOf<Pair<UUID, Int>>()
             connection.prepareStatement(
-                """SELECT g.id,
-                          (SELECT COUNT(*) FROM guild_homes h WHERE h.guild_id = g.id) AS home_count
-                   FROM guilds g
-                   LEFT JOIN guild_reward_accounts a ON a.guild_id = g.id
-                   WHERE a.guild_id IS NULL
-                   ORDER BY g.id"""
+                """
+                SELECT g.id,
+                       (SELECT COUNT(*) FROM guild_homes h WHERE h.guild_id = g.id) AS home_count
+                FROM guilds g
+                LEFT JOIN guild_reward_accounts a ON a.guild_id = g.id
+                WHERE a.guild_id IS NULL
+                ORDER BY g.id
+                """.trimIndent(),
             ).use { statement ->
                 statement.executeQuery().use { rows ->
                     while (rows.next()) {
@@ -197,22 +199,32 @@ class RewardOwnershipRepositorySQL(
 
     private fun hasOrphanedRewardState(connection: Connection, guildId: UUID): Boolean =
         hasOwnedRewards(connection, guildId) ||
-            hasAppliedReceiptIfTableExists(connection, "guild_reward_purchases", guildId) ||
-            hasAppliedReceiptIfTableExists(connection, "guild_prestige_transactions", guildId)
+            hasAppliedRewardPurchase(connection, guildId) ||
+            hasAppliedPrestige(connection, guildId)
 
-    private fun hasAppliedReceiptIfTableExists(connection: Connection, table: String, guildId: UUID): Boolean {
-        val exists = connection.metaData.getTables(connection.catalog, null, "%", arrayOf("TABLE")).use { tables ->
+    private fun hasAppliedRewardPurchase(connection: Connection, guildId: UUID): Boolean =
+        tableExists(connection, "guild_reward_purchases") &&
+            connection.prepareStatement(
+                "SELECT 1 FROM guild_reward_purchases WHERE guild_id = ? AND outcome = 'APPLIED' LIMIT 1",
+            ).use {
+                it.setString(1, guildId.toString())
+                it.executeQuery().use { rows -> rows.next() }
+            }
+
+    private fun hasAppliedPrestige(connection: Connection, guildId: UUID): Boolean =
+        tableExists(connection, "guild_prestige_transactions") &&
+            connection.prepareStatement(
+                "SELECT 1 FROM guild_prestige_transactions WHERE guild_id = ? AND outcome = 'APPLIED' LIMIT 1",
+            ).use {
+                it.setString(1, guildId.toString())
+                it.executeQuery().use { rows -> rows.next() }
+            }
+
+    private fun tableExists(connection: Connection, table: String): Boolean =
+        connection.metaData.getTables(connection.catalog, null, "%", arrayOf("TABLE")).use { tables ->
             generateSequence { if (tables.next()) tables.getString("TABLE_NAME") else null }
                 .any { it.equals(table, ignoreCase = true) }
         }
-        if (!exists) return false
-        return connection.prepareStatement(
-            "SELECT 1 FROM $table WHERE guild_id = ? AND outcome = 'APPLIED' LIMIT 1"
-        ).use {
-            it.setString(1, guildId.toString())
-            it.executeQuery().use { rows -> rows.next() }
-        }
-    }
 
     private fun <T> transaction(connection: Connection, block: () -> T): T {
         val autoCommit = connection.autoCommit
