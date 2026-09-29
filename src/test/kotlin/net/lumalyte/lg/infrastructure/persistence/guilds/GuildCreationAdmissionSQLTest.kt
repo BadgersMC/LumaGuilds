@@ -120,13 +120,6 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         storage.connection.executeUpdate("CREATE TRIGGER reject_creator_update BEFORE UPDATE ON guild_creators $body")
     }
 
-    private fun failureTriggerBody(storage: Storage<Database>): String =
-        if (storage.dialect == SqlDialect.MARIADB) {
-            "FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected'"
-        } else {
-            "BEGIN SELECT RAISE(ABORT, 'injected'); END"
-        }
-
     private fun assertGuildPresent(storage: Storage<Database>, guild: Guild) {
         assertEquals(
             1,
@@ -157,5 +150,13 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
     private fun repository(storage: Storage<Database>): GuildRepositorySQLite {
         migrateProductionSchema(storage)
         return GuildRepositorySQLite(storage)
+    }
+}
+
+private fun failureTriggerBody(storage: Storage<Database>): String {
+    return if (storage.dialect == SqlDialect.MARIADB) {
+        "FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected'"
+    } else {
+        "BEGIN SELECT RAISE(ABORT, 'injected'); END"
     }
 }

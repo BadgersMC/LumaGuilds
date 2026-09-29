@@ -52,8 +52,8 @@ internal class ConfigCompatibilityMigratorTest {
         assertEquals(original, config.readText())
     }
 
-    private fun legacyDefaults(): String =
-        listOf(
+    private fun legacyDefaults(): String {
+        return listOf(
             PROGRESSION_LINE,
             LEGACY_REWARDS_COMMENT,
             LEGACY_REWARDS_DETAIL,
@@ -65,6 +65,7 @@ internal class ConfigCompatibilityMigratorTest {
             "    max_count: 6",
             "",
         ).joinToString("\n")
+    }
 
     private fun assertPromoted(migrated: String) {
         assertTrue(migrated.contains("chapter_two_rewards_enabled: true"))
@@ -79,8 +80,9 @@ internal class ConfigCompatibilityMigratorTest {
         assertEquals(original, backup.readText())
     }
 
-    private fun configFile(tempDir: Path, content: String): File =
-        tempDir.resolve("config.yml").toFile().apply { writeText(content) }
+    private fun configFile(tempDir: Path, content: String): File {
+        return tempDir.resolve("config.yml").toFile().apply { writeText(content) }
+    }
 
     private companion object {
         const val PROGRESSION_LINE = "progression:"

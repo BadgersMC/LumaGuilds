@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 internal class LocaleCompatibilityMigratorTest {
     @Test
     fun migratesQuestAndPrestige(@TempDir tempDir: Path) {
-        val original = legacyQuestAndPrestigeLocale()
+        val original = LEGACY_QUEST_AND_PRESTIGE
         val locale = localeFile(tempDir, original)
 
         assertTrue(LocaleCompatibilityMigrator.migrate(tempDir.toFile()))
@@ -60,23 +60,6 @@ internal class LocaleCompatibilityMigratorTest {
         assertEquals(original, backup.readText())
     }
 
-    private fun legacyQuestAndPrestigeLocale(): String =
-        """
-        menu:
-          quests:
-            item:
-              header:
-                claimed: '<gray>Claimed: <white><claimed>/<total>'
-              quest:
-                name: '<gold><action> <target>'
-                description: '<gray><amount> <target><condition>'
-                completed: '<green>✅ Click to claim!'
-                claimed: '<dark_gray>✅ Claimed'
-          guild_progression:
-            prestige:
-              $LEGACY_REQUIREMENT
-        """.trimIndent()
-
     private fun assertQuestMigration(migrated: String) {
         assertTrue(migrated.contains("name: '<gold><objective>'"))
         assertTrue(migrated.contains("description: '<gray><objective>'"))
@@ -109,5 +92,22 @@ internal class LocaleCompatibilityMigratorTest {
         const val CURRENT_REQUIREMENT = "requirement: \"<gray>Requires Level <light_purple>100\""
         const val QUEST_BACKUP = "en_US.yml.pre-season2-quests.bak"
         const val PRESTIGE_BACKUP = "en_US.yml.pre-prestige-100.bak"
+
+        val LEGACY_QUEST_AND_PRESTIGE =
+            listOf(
+                "menu:",
+                "  quests:",
+                "    item:",
+                "      header:",
+                "        claimed: '<gray>Claimed: <white><claimed>/<total>'",
+                "      quest:",
+                "        name: '<gold><action> <target>'",
+                "        description: '<gray><amount> <target><condition>'",
+                "        completed: '<green>✅ Click to claim!'",
+                "        claimed: '<dark_gray>✅ Claimed'",
+                "  guild_progression:",
+                "    prestige:",
+                "      $LEGACY_REQUIREMENT",
+            ).joinToString("\n")
     }
 }
