@@ -50,17 +50,17 @@ data class QuestSystemConfig(
     val resetDay: DayOfWeek = DayOfWeek.MONDAY,
     val resetHourUtc: Int = 0,
     val questCount: Int = 6,
-    val fullSetBonusXp: Int = 5_000,
-    val leaderboardWinnerXp: Int = 5_000,
+    val fullSetBonusXp: Int = 25_000,
+    val leaderboardWinnerXp: Int = 25_000,
     val rewardXp: QuestRewardXpConfig = QuestRewardXpConfig(),
     val generation: QuestGenerationConfig = QuestGenerationConfig()
 )
 
 data class QuestRewardXpConfig(
-    val common: Int = 500,
-    val challenging: Int = 1_500,
-    val headline: Int = 3_000,
-    val conditioned: Int = 5_000
+    val common: Int = 5_000,
+    val challenging: Int = 15_000,
+    val headline: Int = 30_000,
+    val conditioned: Int = 50_000
 )
 
 

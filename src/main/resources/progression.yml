@@ -406,14 +406,14 @@ quests:
   reset_day: MONDAY
   reset_hour_utc: 0
   quest_count: 6
-  full_set_bonus_xp: 5000
+  full_set_bonus_xp: 25000
   # Awarded to the highest-scoring guild for each quest when the week rolls over.
-  leaderboard_winner_xp: 5000
+  leaderboard_winner_xp: 25000
   reward_xp:
-    common: 500
-    challenging: 1500
-    headline: 3000
-    conditioned: 5000
+    common: 5000
+    challenging: 15000
+    headline: 30000
+    conditioned: 50000
   generation:
     condition_chance_percent: 45
     second_condition_chance_percent: 15
