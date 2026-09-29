@@ -103,7 +103,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         guild.tag?.let { tag ->
-            val parsedTag = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(tag)
+            val parsedTag = net.lumalyte.lg.utils.ColorCodeUtils.toMiniMessage(tag)
             overviewItem.lore(lang.gui("menu.guild_info.overview.tag", "tag" to parsedTag))
         }
 
