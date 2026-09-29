@@ -682,6 +682,8 @@ bedrock:
       offline: '<gray>[OFFLINE]'
     button:
       invite: Invite Player
+      sort_rank: Sort by Rank
+      sort_default: Restore Default Order
       refresh: Refresh
       back: Back
     empty: '<gray>No guild members were found.'
@@ -3668,7 +3670,15 @@ menu:
           action: '<yellow>Click to view options'
           joined: '<gray>Joined: <white><joined>'
           player: '<gray>Player: <white><player>'
+          rank: '<gray>Rank: <white><rank>'
         name: '<white>👤 <player>'
+      sort:
+        name:
+          default: '<aqua>⇅ SORT BY RANK'
+          rank: '<green>✓ SORTED BY RANK'
+        lore:
+          default: '<gray>Highest guild rank first'
+          rank: '<gray>Click to restore the default order'
       next:
         lore: '<gray>Go to next page'
         name: '<white>NEXT PAGE ➡'
