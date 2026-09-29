@@ -55,13 +55,13 @@ class ProgressionConfigService(private val plugin: Plugin) {
             resetDay = loadDayOfWeek(yamlConfig.getString("$base.reset_day") ?: "MONDAY"),
             resetHourUtc = yamlConfig.getInt("$base.reset_hour_utc", 0).coerceIn(0, 23),
             questCount = yamlConfig.getInt("$base.quest_count", 6).coerceAtLeast(1),
-            fullSetBonusXp = yamlConfig.getInt("$base.full_set_bonus_xp", 5_000).coerceAtLeast(0),
-            leaderboardWinnerXp = yamlConfig.getInt("$base.leaderboard_winner_xp", 5_000).coerceAtLeast(0),
+            fullSetBonusXp = yamlConfig.getInt("$base.full_set_bonus_xp", 25_000).coerceAtLeast(0),
+            leaderboardWinnerXp = yamlConfig.getInt("$base.leaderboard_winner_xp", 25_000).coerceAtLeast(0),
             rewardXp = QuestRewardXpConfig(
-                common = yamlConfig.getInt("$base.reward_xp.common", 500).coerceAtLeast(0),
-                challenging = yamlConfig.getInt("$base.reward_xp.challenging", 1_500).coerceAtLeast(0),
-                headline = yamlConfig.getInt("$base.reward_xp.headline", 3_000).coerceAtLeast(0),
-                conditioned = yamlConfig.getInt("$base.reward_xp.conditioned", 5_000).coerceAtLeast(0)
+                common = yamlConfig.getInt("$base.reward_xp.common", 5_000).coerceAtLeast(0),
+                challenging = yamlConfig.getInt("$base.reward_xp.challenging", 15_000).coerceAtLeast(0),
+                headline = yamlConfig.getInt("$base.reward_xp.headline", 30_000).coerceAtLeast(0),
+                conditioned = yamlConfig.getInt("$base.reward_xp.conditioned", 50_000).coerceAtLeast(0)
             ),
             generation = QuestGenerationConfig(
                 conditionChancePercent = yamlConfig.getInt("$base.generation.condition_chance_percent", 45).coerceIn(0, 100),

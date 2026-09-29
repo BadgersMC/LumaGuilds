@@ -6063,8 +6063,14 @@ menu:
         near_cap: "<yellow><bar> <gray><percent>%"
         moderate: "<gold><bar> <gray><percent>%"
         available: "<green><bar> <gray><percent>%"
-      today: "<gray>Today: <yellow><today> <gray>/ <yellow><cap> <gray>max"
-      tracked: "<gray>Tracked: <yellow><xp> XP"
+      actions: "<gray>Actions: <white><used> <gray>/ <white><max>"
+      actions_upper_bound: "<gray>Actions: <white><used> <gray>/ <white>up to <max> <dark_gray>(mixed rates)"
+      xp: "<gray>XP Earned: <yellow><earned> <gray>/ <yellow><cap>"
+      period:
+        daily: "<dark_gray>Daily earning cap"
+        weekly: "<dark_gray>Weekly earning cap"
+      qualified_recruit: "<dark_gray>Recruit qualifies after 7 days in the guild"
+      tracked: "<gray>XP Earned: <yellow><xp> <gray>(uncapped)"
       names:
         bank_deposit: "Bank Deposits"
         member_joined: "Member Invites"

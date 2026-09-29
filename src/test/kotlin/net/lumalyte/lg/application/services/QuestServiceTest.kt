@@ -55,6 +55,21 @@ class QuestServiceTest {
     }
 
     @Test
+    fun `active reward rebalance preserves current quest progress`() {
+        val repository = FakeQuestRepository(week)
+        val service = QuestService(repository, RecordingRewardSink(), fullSetBonusExperience = 0)
+        val guild = UUID.randomUUID()
+        repository.saveProgress(GuildQuestProgress(week.weekId, "zombies", guild, 1))
+
+        val rebalanced = week.quests.map { it.copy(experienceReward = it.experienceReward * 10) }
+
+        assertTrue(service.updateActiveQuestDefinitions(rebalanced))
+        assertEquals(1, repository.getProgress(week.weekId, "zombies", guild)!!.currentCount)
+        assertEquals(5_000, service.activeQuestSet()!!.quests.first { it.id == "zombies" }.experienceReward)
+        assertFalse(service.updateActiveQuestDefinitions(rebalanced))
+    }
+
+    @Test
     fun `milestones auto claim notify and full set bonus are awarded once`() {
         val repository = FakeQuestRepository(week)
         val rewards = RecordingRewardSink()

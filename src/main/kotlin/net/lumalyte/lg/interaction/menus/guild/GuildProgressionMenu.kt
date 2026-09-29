@@ -110,7 +110,7 @@ class GuildProgressionMenu(
         gui.addPane(pane)
 
         // ---- Row 0: Guild level header ----
-        addGuildLevelHeader(pane, progression, sourceUsage)
+        addGuildLevelHeader(pane, progression)
 
         // ---- Left sidebar (cols 0, rows 1-4) ----
         addRankInfo(pane, 0, 1)
@@ -153,10 +153,10 @@ class GuildProgressionMenu(
         return GuildProgressionDisplay(level, prog.totalExperience, currentXp, neededXp, purchasedCount)
     }
 
-    private fun addGuildLevelHeader(pane: StaticPane, prog: GuildProgressionDisplay, sourceUsage: List<SourceUsageView>) {
+    private fun addGuildLevelHeader(pane: StaticPane, prog: GuildProgressionDisplay) {
         val (_, totalXp, currentXp, neededXp, perksCount) = prog
         val percent = if (neededXp > 0) (currentXp.toDouble() / neededXp.toDouble() * 100).toInt() else 0
-        val totalToday = sourceUsage.filter { it.period == CapPeriod.DAILY }.sumOf { it.awardedXp }
+        val totalToday = progressionService.getXpEarnedToday(guild.id)
 
         val bars = buildProgressBar(percent, 20)
         val item = NexoItemProvider.getItemStackOrFallback("lg_level") {
@@ -226,11 +226,32 @@ class GuildProgressionMenu(
                     else -> lang.gui("menu.guild_progression.source.progress.available", "bar" to bars, "percent" to percent)
                 }
                 lore.add(progress)
-                lore.add(lang.gui("menu.guild_progression.source.today", "today" to usedXp, "cap" to cap))
+                val actions = usage.awardedActions
+                val maxActions = usage.maxActions
+                if (actions != null && maxActions != null) {
+                    lore.add(
+                        if (usage.maxActionsIsUpperBound) {
+                            lang.gui("menu.guild_progression.source.actions_upper_bound", "used" to actions, "max" to maxActions)
+                        } else {
+                            lang.gui("menu.guild_progression.source.actions", "used" to actions, "max" to maxActions)
+                        }
+                    )
+                }
+                lore.add(lang.gui("menu.guild_progression.source.xp", "earned" to usedXp, "cap" to cap))
+                lore.add(
+                    when (usage.period) {
+                        CapPeriod.DAILY -> lang.gui("menu.guild_progression.source.period.daily")
+                        CapPeriod.WEEKLY -> lang.gui("menu.guild_progression.source.period.weekly")
+                        CapPeriod.UNLIMITED -> Component.empty()
+                    }
+                )
+                if (source == ExperienceSource.QUALIFIED_RECRUIT) {
+                    lore.add(lang.gui("menu.guild_progression.source.qualified_recruit"))
+                }
             } else {
                 lore.add(lang.gui("menu.guild_progression.source.tracked", "xp" to usedXp))
             }
-            meta.lore(lore)
+            meta.lore(lore.filterNot { it == Component.empty() })
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
     }

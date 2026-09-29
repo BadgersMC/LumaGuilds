@@ -12,4 +12,7 @@ data class SourceUsageView(
     val capXp: Int?,
     val remainingXp: Int?,
     val resetsAt: Instant?,
+    val awardedActions: Int? = null,
+    val maxActions: Int? = null,
+    val maxActionsIsUpperBound: Boolean = false,
 )

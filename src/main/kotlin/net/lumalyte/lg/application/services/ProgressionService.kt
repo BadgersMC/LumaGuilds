@@ -256,6 +256,9 @@ interface ProgressionService {
     /** Returns one authoritative allowance view per configured source pool. */
     fun getSourceUsage(guildId: UUID, at: Instant = Instant.now()): List<SourceUsageView>
 
+    /** Returns XP actually awarded during the current UTC day, across all source periods. */
+    fun getXpEarnedToday(guildId: UUID, at: Instant = Instant.now()): Int
+
     /**
      * Returns the amount of XP earned per source for a guild today.
      * Used by the progression menu to display daily caps and progress.
