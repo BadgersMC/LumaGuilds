@@ -8,12 +8,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class LocaleCompatibilityMigratorTest {
-    @TempDir
-    lateinit var tempDir: Path
-
+internal class LocaleCompatibilityMigratorTest {
     @Test
-    fun `migrates persisted pre-season2 weekly quest templates and creates a backup`() {
+    fun migratesQuestAndPrestige(@TempDir tempDir: Path) {
         val original = """
             menu:
               quests:
@@ -27,9 +24,9 @@ class LocaleCompatibilityMigratorTest {
                     claimed: '<dark_gray>✅ Claimed'
               guild_progression:
                 prestige:
-                  requirement: "<gray>Requires Level <light_purple>25"
+                  $LEGACY_REQUIREMENT
         """.trimIndent()
-        val locale = localeFile(original)
+        val locale = localeFile(tempDir, original)
 
         assertTrue(LocaleCompatibilityMigrator.migrate(tempDir.toFile()))
 
@@ -42,19 +39,19 @@ class LocaleCompatibilityMigratorTest {
         assertFalse(migrated.contains("<action>"))
         assertFalse(migrated.contains("<condition>"))
         assertFalse(migrated.contains("Click to claim"))
-        assertTrue(migrated.contains("requirement: \"<gray>Requires Level <light_purple>100\""))
-        assertFalse(migrated.contains("Requires Level <light_purple>25"))
+        assertTrue(migrated.contains(CURRENT_REQUIREMENT))
+        assertFalse(migrated.contains(LEGACY_REQUIREMENT))
 
-        val questBackup = File(locale.parentFile, "en_US.yml.pre-season2-quests.bak")
+        val questBackup = File(locale.parentFile, QUEST_BACKUP)
         assertTrue(questBackup.isFile)
         assertEquals(original, questBackup.readText())
-        val prestigeBackup = File(locale.parentFile, "en_US.yml.pre-prestige-100.bak")
+        val prestigeBackup = File(locale.parentFile, PRESTIGE_BACKUP)
         assertTrue(prestigeBackup.isFile)
         assertEquals(original, prestigeBackup.readText())
     }
 
     @Test
-    fun `current weekly quest locale is left untouched`() {
+    fun leavesCurrentLocaleUntouched(@TempDir tempDir: Path) {
         val current = """
             menu:
               quests:
@@ -63,37 +60,44 @@ class LocaleCompatibilityMigratorTest {
                     name: '<gold><objective>'
                     description: '<gray><objective>'
         """.trimIndent()
-        val locale = localeFile(current)
+        val locale = localeFile(tempDir, current)
 
         assertFalse(LocaleCompatibilityMigrator.migrate(tempDir.toFile()))
         assertEquals(current, locale.readText())
-        assertFalse(File(locale.parentFile, "en_US.yml.pre-season2-quests.bak").exists())
-        assertFalse(File(locale.parentFile, "en_US.yml.pre-prestige-100.bak").exists())
+        assertFalse(File(locale.parentFile, QUEST_BACKUP).exists())
+        assertFalse(File(locale.parentFile, PRESTIGE_BACKUP).exists())
     }
 
     @Test
-    fun `migrates only legacy prestige requirement and keeps a dedicated backup`() {
+    fun migratesPrestigeRequirement(@TempDir tempDir: Path) {
         val original = """
             menu:
               guild_progression:
                 prestige:
-                  requirement: "<gray>Requires Level <light_purple>25"
+                  $LEGACY_REQUIREMENT
         """.trimIndent()
-        val locale = localeFile(original)
+        val locale = localeFile(tempDir, original)
 
         assertTrue(LocaleCompatibilityMigrator.migrate(tempDir.toFile()))
 
-        assertTrue(locale.readText().contains("Requires Level <light_purple>100"))
-        assertFalse(File(locale.parentFile, "en_US.yml.pre-season2-quests.bak").exists())
-        val backup = File(locale.parentFile, "en_US.yml.pre-prestige-100.bak")
+        assertTrue(locale.readText().contains(CURRENT_REQUIREMENT))
+        assertFalse(File(locale.parentFile, QUEST_BACKUP).exists())
+        val backup = File(locale.parentFile, PRESTIGE_BACKUP)
         assertTrue(backup.isFile)
         assertEquals(original, backup.readText())
     }
 
-    private fun localeFile(content: String): File {
+    private fun localeFile(tempDir: Path, content: String): File {
         val locale = tempDir.resolve("lang/en_US.yml").toFile()
         locale.parentFile.mkdirs()
         locale.writeText(content)
         return locale
+    }
+
+    private companion object {
+        const val LEGACY_REQUIREMENT = "requirement: \"<gray>Requires Level <light_purple>25\""
+        const val CURRENT_REQUIREMENT = "requirement: \"<gray>Requires Level <light_purple>100\""
+        const val QUEST_BACKUP = "en_US.yml.pre-season2-quests.bak"
+        const val PRESTIGE_BACKUP = "en_US.yml.pre-prestige-100.bak"
     }
 }

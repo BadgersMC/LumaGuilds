@@ -8,24 +8,22 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class ConfigCompatibilityMigratorTest {
-    @TempDir
-    lateinit var tempDir: Path
-
+internal class ConfigCompatibilityMigratorTest {
     @Test
-    fun `legacy chapter two staging defaults are promoted and backed up`() {
-        val original = """
-            progression:
-              # Keep false until Chapter 2 migration and player interfaces are ready.
-              # This switch never migrates guilds; missing reward accounts block benefit reads.
-              chapter_two_rewards_enabled: false
-              max_level: 100
-              # Prestige is deliberately gated off until migration/readiness and live validation are complete.
-              prestige:
-                enabled: false
-                max_count: 6
-        """.trimIndent() + "\n"
-        val config = configFile(original)
+    fun legacyDefaultsPromote(@TempDir tempDir: Path) {
+        val original = listOf(
+            "progression:",
+            "  # Keep false until Chapter 2 migration and player interfaces are ready.",
+            "  # This switch never migrates guilds; missing reward accounts block benefit reads.",
+            "  chapter_two_rewards_enabled: false",
+            "  max_level: 100",
+            "  # Prestige is deliberately gated off until migration/readiness and live validation are complete.",
+            "  prestige:",
+            "    enabled: false",
+            "    max_count: 6",
+            "",
+        ).joinToString("\n")
+        val config = configFile(tempDir, original)
 
         assertTrue(ConfigCompatibilityMigrator.migrate(tempDir.toFile()))
 
@@ -40,14 +38,14 @@ class ConfigCompatibilityMigratorTest {
     }
 
     @Test
-    fun `custom explicit false values without staging markers are preserved`() {
-        val original = """
-            progression:
-              chapter_two_rewards_enabled: false
-              prestige:
-                enabled: false
-        """.trimIndent()
-        val config = configFile(original)
+    fun customFalseValuesStay(@TempDir tempDir: Path) {
+        val original = listOf(
+            "progression:",
+            "  chapter_two_rewards_enabled: false",
+            "  prestige:",
+            "    enabled: false",
+        ).joinToString("\n")
+        val config = configFile(tempDir, original)
 
         assertFalse(ConfigCompatibilityMigrator.migrate(tempDir.toFile()))
 
@@ -56,19 +54,19 @@ class ConfigCompatibilityMigratorTest {
     }
 
     @Test
-    fun `legacy marker does not override already customized true prestige value`() {
-        val original = """
-            progression:
-              # Prestige is deliberately gated off until migration/readiness and live validation are complete.
-              prestige:
-                enabled: true
-        """.trimIndent()
-        val config = configFile(original)
+    fun customPrestigeTrueStays(@TempDir tempDir: Path) {
+        val original = listOf(
+            "progression:",
+            "  # Prestige is deliberately gated off until migration/readiness and live validation are complete.",
+            "  prestige:",
+            "    enabled: true",
+        ).joinToString("\n")
+        val config = configFile(tempDir, original)
 
         assertFalse(ConfigCompatibilityMigrator.migrate(tempDir.toFile()))
         assertEquals(original, config.readText())
     }
 
-    private fun configFile(content: String): File =
-        tempDir.resolve("config.yml").toFile().also { it.writeText(content) }
+    private fun configFile(tempDir: Path, content: String): File =
+        tempDir.resolve("config.yml").toFile().apply { writeText(content) }
 }
