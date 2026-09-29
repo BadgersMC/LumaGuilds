@@ -54,6 +54,20 @@ class NexoEmojiServiceFontTagTest {
     }
 
     @Test
+    fun `formats guild display name with resolved glyph instead of persisted placeholder`() {
+        val resolvedService = NexoEmojiService(
+            mockk<ConfigService>(),
+            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji") }
+        )
+
+        assertEquals(
+            "<font:nexo:emoji>\uE001</font> Enthusiast",
+            resolvedService.formatGuildDisplayName("Enthusiast", ":enthusia_logo:")
+        )
+        assertEquals("Enthusiast", resolvedService.formatGuildDisplayName("Enthusiast", null))
+    }
+
+    @Test
     fun `renders a resolved public API glyph as a font tag`() {
         val resolvedService = NexoEmojiService(
             mockk<ConfigService>(),
