@@ -6,6 +6,7 @@ import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.services.NexoEmojiService
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -46,6 +47,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     private val warService: net.lumalyte.lg.application.services.WarService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
+    private val nexoEmojiService: NexoEmojiService by inject()
 
     override fun open() {
         // Public guild info is intentionally viewable by non-members. Re-resolve the
@@ -97,11 +99,11 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             .lore(lang.gui("menu.guild_info.overview.mode", "mode" to modeDisplayName()))
 
         if (guild.emoji != null) {
-            overviewItem.lore(lang.gui("menu.guild_info.overview.emoji", "emoji" to guild.emoji!!))
+            overviewItem.lore(lang.gui("menu.guild_info.overview.emoji", "emoji" to nexoEmojiService.emojiToFontTag(guild.emoji)))
         }
 
         guild.tag?.let { tag ->
-            val parsedTag = net.lumalyte.lg.utils.ColorCodeUtils.renderTagForDisplay(tag)
+            val parsedTag = net.lumalyte.lg.utils.ColorCodeUtils.toMiniMessage(tag)
             overviewItem.lore(lang.gui("menu.guild_info.overview.tag", "tag" to parsedTag))
         }
 
