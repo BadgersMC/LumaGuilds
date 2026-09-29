@@ -10,6 +10,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.interaction.menus.sortMembersByRank
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
@@ -38,10 +39,16 @@ class BedrockGuildMemberListMenu(
     private val rankService: RankService by inject()
     private val lang: LangService by inject()
     private val plugin: Plugin by inject()
+    private var sortByRank = false
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
-        val members = memberService.getGuildMembers(guild.id).toList()
+        val rawMembers = memberService.getGuildMembers(guild.id)
+        val members = if (sortByRank) {
+            sortMembersByRank(rawMembers, rankService.listRanks(guild.id), ::getPlayerName)
+        } else {
+            rawMembers.toList()
+        }
 
         return SimpleForm.builder()
             .title(lang.bedrock("bedrock.member_list.title", "guild" to guild.name))
@@ -55,6 +62,16 @@ class BedrockGuildMemberListMenu(
             .addButtonWithImage(
                 config,
                 lang.bedrock("bedrock.member_list.button.invite"),
+                config.editIconUrl,
+                config.editIconPath
+            )
+            .addButtonWithImage(
+                config,
+                if (sortByRank) {
+                    lang.bedrock("bedrock.member_list.button.sort_default")
+                } else {
+                    lang.bedrock("bedrock.member_list.button.sort_rank")
+                },
                 config.editIconUrl,
                 config.editIconPath
             )
@@ -142,8 +159,9 @@ class BedrockGuildMemberListMenu(
             when (response.clickedButtonId()) {
                 0 -> handleMemberSelection(members) // Member list button
                 1 -> handleInvitePlayer() // Invite button
-                2 -> handleRefresh() // Refresh button
-                3 -> navigateBack() // Back button
+                2 -> toggleRankSort() // Sort mode button
+                3 -> handleRefresh() // Refresh button
+                4 -> navigateBack() // Back button
             }
 
         } catch (e: Exception) {
@@ -166,7 +184,13 @@ class BedrockGuildMemberListMenu(
             .title(lang.bedrock("bedrock.member_list.select_title", "guild" to guild.name))
             .content(lang.bedrock("bedrock.member_list.select_description"))
 
-        members.sortedBy { getPlayerName(it).lowercase() }.forEach { member ->
+        val orderedMembers = if (sortByRank) {
+            members
+        } else {
+            members.sortedBy { getPlayerName(it).lowercase() }
+        }
+
+        orderedMembers.forEach { member ->
             val name = getPlayerName(member)
             val rank = rankService.getRank(member.rankId)?.name
                 ?: lang.bedrock("bedrock.member_list.unknown")
@@ -212,6 +236,11 @@ class BedrockGuildMemberListMenu(
         openMenu(inviteMenu)
     }
 
+    private fun toggleRankSort() {
+        sortByRank = !sortByRank
+        reopen()
+    }
+
     private fun handleRefresh() {
         // Refresh the form by reopening it
         reopen()
@@ -238,7 +267,7 @@ class BedrockGuildMemberListMenu(
     override fun shouldCacheForm(): Boolean = true
 
     override fun createCacheKey(): String {
-        return "${this::class.simpleName}:${player.uniqueId}:${guild.id}:${System.currentTimeMillis() / 60000}" // Cache for 1 minute
+        return "${this::class.simpleName}:${player.uniqueId}:${guild.id}:rankSort=$sortByRank:${System.currentTimeMillis() / 60000}" // Cache for 1 minute
     }
 
     override fun handleResponse(player: Player, response: Any?) {
