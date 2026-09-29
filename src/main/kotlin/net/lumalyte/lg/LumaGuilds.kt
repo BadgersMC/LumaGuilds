@@ -89,6 +89,22 @@ class LumaGuilds : JavaPlugin() {
         // Start Koin with modular architecture
         startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
 
+        // Repair the production invariant that every live guild has reward/prestige state.
+        // This is idempotent and only inserts accounts that are completely missing.
+        try {
+            val reconciled = get().get<net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL>()
+                .reconcileMissingGuildAccounts()
+            if (reconciled > 0) {
+                logColored("✓ Initialized Chapter 2 reward/prestige state for $reconciled existing guild(s)")
+            }
+        } catch (error: Exception) {
+            logger.log(
+                java.util.logging.Level.SEVERE,
+                "Failed to reconcile missing guild reward/prestige accounts; affected guilds will remain unavailable until repaired",
+                error,
+            )
+        }
+
         // Register GuildLookup in Bukkit's ServicesManager so EnthusiaMarket
         // (and other plugins) can query guild membership, permissions, and
         // bank balances via the public API.
@@ -216,6 +232,7 @@ class LumaGuilds : JavaPlugin() {
     fun initConfig() {
         // Save default config if it doesn't exist
         saveDefaultConfig()
+        net.lumalyte.lg.infrastructure.services.ConfigCompatibilityMigrator.migrate(dataFolder, logger)
         reloadConfig()
     }
 

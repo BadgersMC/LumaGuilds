@@ -8,6 +8,7 @@ class PrestigeConfigSeason2Test {
     @Test
     fun `season two default allows six lifetime prestiges`() {
         val config = PrestigeConfig()
+        assertEquals(true, config.enabled)
         assertEquals(6, config.maxCount)
         assertEquals(
             listOf(10_000L, 20_000L, 30_000L, 30_000L, 30_000L, 30_000L),

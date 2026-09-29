@@ -43,8 +43,8 @@ data class MainConfig(
     var warBanner: WarBannerConfig = WarBannerConfig(),
     var discordGuildRoles: DiscordGuildRolesConfig = DiscordGuildRolesConfig(),
     var guildList: GuildListConfig = GuildListConfig(),
-    // Independent rollout gates; none performs migration or state initialization.
-    var chapterTwoRewardsEnabled: Boolean = false,
+    // Runtime feature gates. Legacy staging defaults are upgraded by ConfigCompatibilityMigrator.
+    var chapterTwoRewardsEnabled: Boolean = true,
     var chapterTwoGoldCostsEnabled: Boolean = false
 )
 
@@ -434,7 +434,7 @@ data class PartyConfig(
 )
 
 data class PrestigeConfig(
-    var enabled: Boolean = false,
+    var enabled: Boolean = true,
     var maxCount: Int = 6,
     var fees: List<Long> = listOf(10_000L, 20_000L, 30_000L, 30_000L, 30_000L, 30_000L),
 ) {

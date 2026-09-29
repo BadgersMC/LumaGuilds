@@ -118,4 +118,139 @@ class RewardOwnershipRepositorySQLTest : RewardSqlTestFixture() {
         assertIs<RewardOwnershipWrite.Failed>(repository.initialize(guildId, 1))
         assertIs<RewardOwnershipRead.Failed>(repository.read(guildId))
     }
+
+    @Test
+    fun `startup reconciliation initializes only missing guild accounts and is idempotent`() {
+        val storage = openStorage()
+        migrateProductionSchema(storage)
+        val guilds = GuildRepositorySQLite(storage)
+        val first = net.lumalyte.lg.domain.entities.Guild(
+            UUID.randomUUID(),
+            "Legacy One",
+            createdAt = java.time.Instant.now(),
+        )
+        val second = net.lumalyte.lg.domain.entities.Guild(
+            UUID.randomUUID(),
+            "Legacy Two",
+            createdAt = java.time.Instant.now(),
+        )
+        assertTrue(guilds.addCreated(first, UUID.randomUUID()))
+        assertTrue(guilds.addCreated(second, UUID.randomUUID()))
+
+        storage.connection.executeUpdate(
+            "DELETE FROM guild_reward_accounts WHERE guild_id IN (?, ?)",
+            first.id.toString(),
+            second.id.toString(),
+        )
+        storage.connection.executeUpdate(
+            "INSERT INTO guild_homes (guild_id, name, world_id, x, y, z) VALUES (?, 'main', ?, 0, 64, 0)",
+            second.id.toString(),
+            UUID.randomUUID().toString(),
+        )
+        storage.connection.executeUpdate(
+            "INSERT INTO guild_homes (guild_id, name, world_id, x, y, z) VALUES (?, 'second', ?, 10, 64, 10)",
+            second.id.toString(),
+            UUID.randomUUID().toString(),
+        )
+
+        val repository = RewardOwnershipRepositorySQL(storage, catalog)
+        assertEquals(2, repository.reconcileMissingGuildAccounts())
+        assertEquals(0, repository.reconcileMissingGuildAccounts())
+
+        val firstSnapshot = assertIs<RewardOwnershipRead.Found>(repository.read(first.id)).snapshot
+        val secondSnapshot = assertIs<RewardOwnershipRead.Found>(repository.read(second.id)).snapshot
+        assertEquals(1, firstSnapshot.ownership.initialHomeCapacity)
+        assertEquals(2, secondSnapshot.ownership.initialHomeCapacity)
+        assertEquals(0, firstSnapshot.ownership.prestigeCount)
+        assertEquals(0, secondSnapshot.ownership.prestigeCount)
+    }
+
+    @Test
+    fun `startup reconciliation refuses orphaned receipt history and rolls back every repair`() {
+        val storage = openStorage()
+        migrateProductionSchema(storage)
+        val guilds = GuildRepositorySQLite(storage)
+        val safe = net.lumalyte.lg.domain.entities.Guild(
+            UUID.fromString("00000000-0000-0000-0000-000000000011"),
+            "Safe History",
+            createdAt = java.time.Instant.now(),
+        )
+        val corrupt = net.lumalyte.lg.domain.entities.Guild(
+            UUID.fromString("00000000-0000-0000-0000-000000000012"),
+            "Corrupt History",
+            createdAt = java.time.Instant.now(),
+        )
+        assertTrue(guilds.addCreated(safe, UUID.randomUUID()))
+        assertTrue(guilds.addCreated(corrupt, UUID.randomUUID()))
+        storage.connection.executeUpdate(
+            "DELETE FROM guild_reward_accounts WHERE guild_id IN (?, ?)",
+            safe.id.toString(),
+            corrupt.id.toString(),
+        )
+        storage.connection.executeUpdate(
+            """CREATE TABLE IF NOT EXISTS guild_prestige_transactions (
+                transaction_id TEXT PRIMARY KEY,
+                guild_id TEXT NOT NULL,
+                outcome TEXT NOT NULL
+            )""".trimIndent(),
+        )
+        storage.connection.executeUpdate(
+            "INSERT INTO guild_prestige_transactions (transaction_id, guild_id, outcome) VALUES (?, ?, 'APPLIED')",
+            UUID.randomUUID().toString(),
+            corrupt.id.toString(),
+        )
+
+        val repository = RewardOwnershipRepositorySQL(storage, catalog)
+        assertFailsWith<IllegalArgumentException> {
+            repository.reconcileMissingGuildAccounts()
+        }
+        assertEquals(
+            0,
+            storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM guild_reward_accounts WHERE guild_id = ?",
+                safe.id.toString(),
+            )!!.getInt("n"),
+        )
+    }
+
+    @Test
+    fun `startup reconciliation refuses orphaned ownership and rolls back every repair`() {
+        val storage = openStorage()
+        migrateProductionSchema(storage)
+        val guilds = GuildRepositorySQLite(storage)
+        val safe = net.lumalyte.lg.domain.entities.Guild(
+            UUID.fromString("00000000-0000-0000-0000-000000000001"),
+            "Safe",
+            createdAt = java.time.Instant.now(),
+        )
+        val corrupt = net.lumalyte.lg.domain.entities.Guild(
+            UUID.fromString("00000000-0000-0000-0000-000000000002"),
+            "Corrupt",
+            createdAt = java.time.Instant.now(),
+        )
+        assertTrue(guilds.addCreated(safe, UUID.randomUUID()))
+        assertTrue(guilds.addCreated(corrupt, UUID.randomUUID()))
+        storage.connection.executeUpdate(
+            "DELETE FROM guild_reward_accounts WHERE guild_id IN (?, ?)",
+            safe.id.toString(),
+            corrupt.id.toString(),
+        )
+        storage.connection.executeUpdate(
+            "INSERT INTO guild_reward_ownership (guild_id, reward_id, permanent) VALUES (?, 'home-1', ?)",
+            corrupt.id.toString(),
+            true,
+        )
+
+        val repository = RewardOwnershipRepositorySQL(storage, catalog)
+        assertFailsWith<IllegalArgumentException> {
+            repository.reconcileMissingGuildAccounts()
+        }
+        assertEquals(
+            0,
+            storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM guild_reward_accounts WHERE guild_id = ?",
+                safe.id.toString(),
+            )!!.getInt("n"),
+        )
+    }
 }

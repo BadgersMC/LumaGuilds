@@ -17,6 +17,13 @@ class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         assertTrue(repository.addCreated(guild, creator))
         assertTrue(repository.remove(guild.id))
         assertNull(repository.creationCooldownUntil(creator))
+        assertEquals(
+            0,
+            storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM guild_reward_accounts WHERE guild_id = ?",
+                guild.id.toString(),
+            )!!.getInt("n"),
+        )
         assertTrue(repository.addCreated(Guild(UUID.randomUUID(), "Retry", createdAt = Instant.now()), creator))
     }
 
@@ -68,5 +75,47 @@ class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         assertFalse(repository.addCreated(guild, UUID.randomUUID()))
         assertNull(repository.getById(guild.id))
         assertEquals(0, storage.connection.getFirstRow("SELECT COUNT(*) AS n FROM guilds")!!.getInt("n"))
+    }
+
+    @Test fun `new guild creation atomically initializes prestige reward state`() {
+        val storage = openStorage()
+        val repository = repository(storage)
+        val guild = Guild(UUID.randomUUID(), "Prestige Ready", createdAt = Instant.now())
+
+        assertTrue(repository.addCreated(guild, UUID.randomUUID()))
+
+        val row = storage.connection.getFirstRow(
+            "SELECT version, initial_home_capacity, prestige_count FROM guild_reward_accounts WHERE guild_id = ?",
+            guild.id.toString(),
+        )
+        assertNotNull(row)
+        assertEquals(0, row.getInt("version"))
+        assertEquals(1, row.getInt("initial_home_capacity"))
+        assertEquals(0, row.getInt("prestige_count"))
+    }
+
+    @Test fun `reward account initialization failure rolls back guild creation atomically`() {
+        val storage = openStorage()
+        val repository = repository(storage)
+        rejectInserts(storage, "guild_reward_accounts")
+        val guild = Guild(UUID.randomUUID(), "No Partial Guild", createdAt = Instant.now())
+
+        assertFalse(repository.addCreated(guild, UUID.randomUUID()))
+
+        assertNull(repository.getById(guild.id))
+        assertEquals(
+            0,
+            storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM guilds WHERE id = ?",
+                guild.id.toString(),
+            )!!.getInt("n"),
+        )
+        assertEquals(
+            0,
+            storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM guild_creators WHERE guild_id = ?",
+                guild.id.toString(),
+            )!!.getInt("n"),
+        )
     }
 }

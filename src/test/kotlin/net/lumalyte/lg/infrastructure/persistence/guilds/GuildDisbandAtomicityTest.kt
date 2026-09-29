@@ -72,6 +72,13 @@ class GuildDisbandAtomicityTest : RewardSqlTestFixture() {
             assertEquals(fail, ranks.getById(rank.id) != null)
             assertEquals(fail, relations.getAll().contains(relation))
             assertEquals(fail, guilds.getById(guild.id) != null)
+            assertEquals(
+                if (fail) 1 else 0,
+                storage.connection.getFirstRow(
+                    "SELECT COUNT(*) AS n FROM guild_reward_accounts WHERE guild_id = ?",
+                    guild.id.toString(),
+                )!!.getInt("n"),
+            )
             assertEquals(fail, history.getByPlayer(creator).single().departedAt == null)
             if (fail) {
                 assertNull(guilds.creationCooldownUntil(creator))
