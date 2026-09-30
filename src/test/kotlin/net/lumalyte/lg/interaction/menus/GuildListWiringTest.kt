@@ -44,6 +44,27 @@ class GuildListWiringTest {
     }
 
     @Test
+    fun `async guild list results are discarded after navigation changes`() {
+        val java = File(
+            "src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildListMenu.kt"
+        ).readText()
+        val bedrockBase = File(
+            "src/main/kotlin/net/lumalyte/lg/interaction/menus/bedrock/BaseBedrockMenu.kt"
+        ).readText()
+
+        assertTrue(java.contains("menuNavigator.currentNavigationToken()"))
+        assertTrue(java.contains("menuNavigator.isNavigationCurrent(navigationToken)"))
+        assertTrue(java.contains("gui.setOnClose"))
+        assertTrue(java.contains("menuNavigator.invalidateCurrentNavigation()"))
+
+        assertTrue(bedrockBase.contains("openGeneration.incrementAndGet()"))
+        assertTrue(bedrockBase.contains("menuNavigator.currentNavigationToken()"))
+        assertTrue(bedrockBase.contains("openGeneration.get() != generation"))
+        assertTrue(bedrockBase.contains("isNavigationCurrent(navigationToken)"))
+        assertTrue(bedrockBase.contains("private val navigationToken: Long"))
+    }
+
+    @Test
     fun `all four product sort modes and navigation are wired`() {
         val java = File(
             "src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildListMenu.kt"

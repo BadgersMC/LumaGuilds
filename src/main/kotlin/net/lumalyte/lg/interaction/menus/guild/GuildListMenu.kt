@@ -46,6 +46,7 @@ class GuildListMenu(
 
     override fun open() {
         val generation = loadGeneration.incrementAndGet()
+        val navigationToken = menuNavigator.currentNavigationToken()
         val requestedPage = currentPage
         val requestedSort = sortKey
         val pageSize = guildListService.configuredPageSize()
@@ -57,17 +58,21 @@ class GuildListMenu(
             ascending = requestedSort.defaultAscending,
         ).whenComplete { page, error ->
             Bukkit.getScheduler().runTask(plugin, Runnable {
-                if (!player.isOnline || loadGeneration.get() != generation) return@Runnable
+                if (
+                    !player.isOnline ||
+                    loadGeneration.get() != generation ||
+                    !menuNavigator.isNavigationCurrent(navigationToken)
+                ) return@Runnable
                 if (error != null) {
                     plugin.logger.warning("Failed to load /g list for ${player.name}: ${error.message}")
                     return@Runnable
                 }
-                render(page)
+                render(page, navigationToken)
             })
         }
     }
 
-    private fun render(page: GuildListPage) {
+    private fun render(page: GuildListPage, navigationToken: Long) {
         currentPage = page.page
 
         val gui = ChestGui(
@@ -82,6 +87,12 @@ class GuildListMenu(
         gui.setOnBottomClick { event ->
             if (event.click == ClickType.SHIFT_LEFT || event.click == ClickType.SHIFT_RIGHT) {
                 event.isCancelled = true
+            }
+        }
+        gui.setOnClose {
+            if (menuNavigator.isNavigationCurrent(navigationToken)) {
+                loadGeneration.incrementAndGet()
+                menuNavigator.invalidateCurrentNavigation()
             }
         }
 

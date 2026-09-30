@@ -16,6 +16,7 @@ import org.geysermc.floodgate.api.FloodgateApi
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Logger
 
 /**
@@ -34,12 +35,17 @@ abstract class BaseBedrockMenu(
         /**
          * Registers a form timeout for tracking
          */
-        fun registerFormTimeout(playerId: String, menu: BaseBedrockMenu, timeoutSeconds: Int) {
+        fun registerFormTimeout(
+            playerId: String,
+            menu: BaseBedrockMenu,
+            timeoutSeconds: Int,
+            navigationToken: Long,
+        ) {
             // Cancel any existing timeout for this player
             activeForms[playerId]?.cancel()
 
             // Create new timeout task
-            val timeoutTask = FormTimeoutTask(playerId, menu, timeoutSeconds)
+            val timeoutTask = FormTimeoutTask(playerId, menu, timeoutSeconds, navigationToken)
             activeForms[playerId] = timeoutTask
 
             // Schedule the timeout
@@ -55,6 +61,8 @@ abstract class BaseBedrockMenu(
 
 
     }
+
+    private val openGeneration = AtomicLong()
 
     protected val menuFactory: MenuFactory by inject()
     protected val bedrockLocalization: BedrockLocalizationService by inject()
@@ -113,8 +121,8 @@ abstract class BaseBedrockMenu(
     /**
      * Registers a form timeout for this menu instance
      */
-    private fun registerFormTimeout(playerId: String, timeoutSeconds: Int) {
-        BaseBedrockMenu.registerFormTimeout(playerId, this, timeoutSeconds)
+    private fun registerFormTimeout(playerId: String, timeoutSeconds: Int, navigationToken: Long) {
+        BaseBedrockMenu.registerFormTimeout(playerId, this, timeoutSeconds, navigationToken)
     }
 
     /**
@@ -343,6 +351,9 @@ abstract class BaseBedrockMenu(
      * Opens the menu asynchronously if enabled, otherwise synchronously
      */
     private fun openMenu() {
+        val generation = openGeneration.incrementAndGet()
+        val navigationToken = menuNavigator.currentNavigationToken()
+
         try {
             // Check if Bedrock services are still available before opening
             if (!isBedrockServicesAvailable()) {
@@ -351,9 +362,9 @@ abstract class BaseBedrockMenu(
             }
 
             if (shouldBuildAsync()) {
-                openAsync()
+                openAsync(generation, navigationToken)
             } else {
-                openSync()
+                openSync(navigationToken)
             }
 
         } catch (e: IllegalStateException) {
@@ -380,7 +391,7 @@ abstract class BaseBedrockMenu(
     /**
      * Opens the menu synchronously
      */
-    private fun openSync() {
+    private fun openSync(navigationToken: Long) {
         val form = getFormCached()
 
         // Send the form using Floodgate API
@@ -390,7 +401,7 @@ abstract class BaseBedrockMenu(
 
         // Register timeout for this form
         val config = getBedrockConfig()
-        registerFormTimeout(player.uniqueId.toString(), config.formTimeoutSeconds)
+        registerFormTimeout(player.uniqueId.toString(), config.formTimeoutSeconds, navigationToken)
 
         // Log successful form opening for debugging
         logger.fine("Opened Bedrock form ${this::class.simpleName} for player ${player.name} (Timeout: ${config.formTimeoutSeconds}s)")
@@ -399,7 +410,7 @@ abstract class BaseBedrockMenu(
     /**
      * Opens the menu asynchronously
      */
-    private fun openAsync() {
+    private fun openAsync(generation: Long, navigationToken: Long) {
         // Show loading message
         player.sendMessage(lang.msg("bedrock.common.loading.started"))
 
@@ -422,12 +433,22 @@ abstract class BaseBedrockMenu(
         // Bukkit/player state belongs back on the server thread.
         formFuture.thenAccept { form ->
             Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (
+                    !player.isOnline ||
+                    openGeneration.get() != generation ||
+                    !menuNavigator.isNavigationCurrent(navigationToken)
+                ) return@Runnable
+
                 try {
                     val floodgateApi = FloodgateApi.getInstance()
                     floodgateApi.sendForm(player.uniqueId, form)
 
                     val config = getBedrockConfig()
-                    registerFormTimeout(player.uniqueId.toString(), config.formTimeoutSeconds)
+                    registerFormTimeout(
+                        player.uniqueId.toString(),
+                        config.formTimeoutSeconds,
+                        navigationToken,
+                    )
 
                     player.sendMessage(lang.msg("bedrock.common.loading.complete"))
                     logger.fine("Opened Bedrock form asynchronously ${this::class.simpleName} for player ${player.name}")
@@ -438,6 +459,12 @@ abstract class BaseBedrockMenu(
             })
         }.exceptionally { throwable ->
             Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (
+                    !player.isOnline ||
+                    openGeneration.get() != generation ||
+                    !menuNavigator.isNavigationCurrent(navigationToken)
+                ) return@Runnable
+
                 logger.warning("Async form building failed for ${this::class.simpleName}: ${throwable.message}")
                 player.sendMessage(lang.msg("bedrock.common.error.load_failed"))
             })
@@ -542,14 +569,18 @@ abstract class BaseBedrockMenu(
 class FormTimeoutTask(
     private val playerId: String,
     private val menu: BaseBedrockMenu,
-    private val timeoutSeconds: Int
+    private val timeoutSeconds: Int,
+    private val navigationToken: Long,
 ) : BukkitRunnable() {
 
     override fun run() {
         try {
             // Check if player is still online
             val player = menu.getPlayerInstance()
-            if (!player.isOnline) {
+            if (
+                !player.isOnline ||
+                !menu.getMenuNavigatorInstance().isNavigationCurrent(navigationToken)
+            ) {
                 BaseBedrockMenu.cancelFormTimeout(playerId)
                 return
             }
