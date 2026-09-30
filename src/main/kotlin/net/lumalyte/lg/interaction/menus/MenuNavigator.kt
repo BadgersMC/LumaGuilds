@@ -1,9 +1,11 @@
 package net.lumalyte.lg.interaction.menus
 
 import org.bukkit.entity.Player
+import java.util.concurrent.atomic.AtomicLong
 
 class MenuNavigator(private val player: Player) {
     private val menuStack = ArrayDeque<Menu>()
+    private val navigationGeneration = AtomicLong()
 
     /**
      * Opens the provided menu for the target player.
@@ -14,6 +16,7 @@ class MenuNavigator(private val player: Player) {
      * @param menu The menu to open.
      */
     fun openMenu(menu: Menu) {
+        navigationGeneration.incrementAndGet()
         menuStack.addFirst(menu)
         menu.open()
     }
@@ -25,6 +28,7 @@ class MenuNavigator(private val player: Player) {
      * a step in the stack when prompted for it.
      */
     fun goBack() {
+        navigationGeneration.incrementAndGet()
         navigateBack()
     }
 
@@ -39,6 +43,7 @@ class MenuNavigator(private val player: Player) {
      * @param data Data type of any to pass to the previous menu.
      */
     fun goBackWithData(data: Any?) {
+        navigationGeneration.incrementAndGet()
         navigateBack(data)
     }
 
@@ -49,7 +54,27 @@ class MenuNavigator(private val player: Player) {
      * menu.
      */
     fun clearMenuStack() {
+        navigationGeneration.incrementAndGet()
         menuStack.clear()
+    }
+
+    /**
+     * Returns the current navigation generation for guarding asynchronous menu work.
+     */
+    fun currentNavigationToken(): Long = navigationGeneration.get()
+
+    /**
+     * Returns true while [token] still belongs to the player's current navigation state.
+     */
+    fun isNavigationCurrent(token: Long): Boolean = navigationGeneration.get() == token
+
+    /**
+     * Invalidates asynchronous work without changing the menu stack.
+     *
+     * Used when a player closes a menu directly instead of navigating through this class.
+     */
+    fun invalidateCurrentNavigation() {
+        navigationGeneration.incrementAndGet()
     }
 
     private fun navigateBack(data: Any? = null) {

@@ -30,14 +30,38 @@ class GuildListWiringTest {
             "src/main/kotlin/net/lumalyte/lg/interaction/menus/bedrock/BedrockGuildListMenu.kt"
         ).readText()
 
-        assertTrue(java.contains("guildListService.getPage("))
+        assertTrue(java.contains("guildListService.getPageAsync("))
         assertTrue(bedrock.contains("guildListService.getPage("))
+        assertTrue(bedrock.contains("override fun shouldBuildAsync(): Boolean = true"))
         assertTrue(java.contains("guildListService.configuredPageSize()"))
         assertTrue(bedrock.contains("guildListService.configuredPageSize()"))
         assertFalse(java.contains("getAllGuilds"))
         assertFalse(bedrock.contains("getAllGuilds"))
         assertFalse(java.contains(".subList("))
         assertFalse(bedrock.contains(".subList("))
+        assertFalse(java.contains("memberService.getMemberCount("))
+        assertFalse(bedrock.contains("memberService.getMemberCount("))
+    }
+
+    @Test
+    fun `async guild list results are discarded after navigation changes`() {
+        val java = File(
+            "src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildListMenu.kt"
+        ).readText()
+        val bedrockBase = File(
+            "src/main/kotlin/net/lumalyte/lg/interaction/menus/bedrock/BaseBedrockMenu.kt"
+        ).readText()
+
+        assertTrue(java.contains("menuNavigator.currentNavigationToken()"))
+        assertTrue(java.contains("menuNavigator.isNavigationCurrent(navigationToken)"))
+        assertTrue(java.contains("gui.setOnClose"))
+        assertTrue(java.contains("menuNavigator.invalidateCurrentNavigation()"))
+
+        assertTrue(bedrockBase.contains("openGeneration.incrementAndGet()"))
+        assertTrue(bedrockBase.contains("menuNavigator.currentNavigationToken()"))
+        assertTrue(bedrockBase.contains("openGeneration.get() != generation"))
+        assertTrue(bedrockBase.contains("isNavigationCurrent(navigationToken)"))
+        assertTrue(bedrockBase.contains("private val navigationToken: Long"))
     }
 
     @Test

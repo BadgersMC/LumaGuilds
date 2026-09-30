@@ -55,8 +55,17 @@ class GuildListRepositorySQL(
 
             GuildListSortKey.GUILD_LEVEL -> {
                 val sql = """
-                    SELECT g.id, CAST(g.level AS BIGINT) AS sort_value, 0 AS unique_pvp_kills
+                    SELECT
+                        g.id,
+                        CAST(g.level AS BIGINT) AS sort_value,
+                        0 AS unique_pvp_kills,
+                        COALESCE(m.member_count, 0) AS member_count
                     FROM guilds g
+                    LEFT JOIN (
+                        SELECT guild_id, COUNT(*) AS member_count
+                        FROM members
+                        GROUP BY guild_id
+                    ) m ON m.guild_id = g.id
                     ORDER BY g.level $direction, LOWER(g.name) ASC, g.created_at ASC, g.id ASC
                     LIMIT ? OFFSET ?
                 """.trimIndent()
@@ -65,8 +74,17 @@ class GuildListRepositorySQL(
 
             GuildListSortKey.CREATED_AT -> {
                 val sql = """
-                    SELECT g.id, 0 AS sort_value, 0 AS unique_pvp_kills
+                    SELECT
+                        g.id,
+                        0 AS sort_value,
+                        0 AS unique_pvp_kills,
+                        COALESCE(m.member_count, 0) AS member_count
                     FROM guilds g
+                    LEFT JOIN (
+                        SELECT guild_id, COUNT(*) AS member_count
+                        FROM members
+                        GROUP BY guild_id
+                    ) m ON m.guild_id = g.id
                     ORDER BY g.created_at $direction, LOWER(g.name) ASC, g.created_at ASC, g.id ASC
                     LIMIT ? OFFSET ?
                 """.trimIndent()
@@ -111,8 +129,14 @@ class GuildListRepositorySQL(
             SELECT
                 g.id,
                 $scoreExpression AS sort_value,
-                COALESCE(k.unique_kills, 0) AS unique_pvp_kills
+                COALESCE(k.unique_kills, 0) AS unique_pvp_kills,
+                COALESCE(m.member_count, 0) AS member_count
             FROM guilds g
+            LEFT JOIN (
+                SELECT guild_id, COUNT(*) AS member_count
+                FROM members
+                GROUP BY guild_id
+            ) m ON m.guild_id = g.id
             LEFT JOIN (
                 SELECT guild_id,
                     SUM(
@@ -157,6 +181,7 @@ class GuildListRepositorySQL(
                                     guildId = UUID.fromString(rows.getString("id")),
                                     sortValue = rows.getLong("sort_value"),
                                     uniquePvpKills = rows.getInt("unique_pvp_kills"),
+                                    memberCount = rows.getInt("member_count"),
                                 )
                             )
                         }

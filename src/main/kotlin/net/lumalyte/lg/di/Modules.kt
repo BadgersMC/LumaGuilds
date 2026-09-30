@@ -730,7 +730,13 @@ fun progressionModule() = module {
         )
     }
     single {
-        net.lumalyte.lg.application.services.GuildListService(get(), get(), get(), get())
+        net.lumalyte.lg.application.services.GuildListService(
+            get(),
+            get(),
+            get(),
+            get(),
+            get<java.util.concurrent.ExecutorService>(named("VirtualThreadExecutor")),
+        )
     }
     single {
         net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit(
