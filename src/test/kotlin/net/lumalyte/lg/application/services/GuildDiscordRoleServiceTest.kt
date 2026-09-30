@@ -124,18 +124,22 @@ class GuildDiscordRoleServiceTest {
         val start = CountDownLatch(1)
 
         try {
-            fun submit(playerId: UUID): CompletableFuture<CompletableFuture<DiscordGuildRoleSyncSummary>> =
-                CompletableFuture.supplyAsync(
-                    {
-                        ready.countDown()
-                        assertTrue(start.await(5, TimeUnit.SECONDS))
-                        fixture.service.memberJoined(guildId, playerId)
-                    },
-                    executor,
-                )
-
-            val firstCall = submit(playerOne)
-            val secondCall = submit(playerTwo)
+            val firstCall = CompletableFuture.supplyAsync(
+                {
+                    ready.countDown()
+                    assertTrue(start.await(5, TimeUnit.SECONDS))
+                    fixture.service.memberJoined(guildId, playerOne)
+                },
+                executor,
+            )
+            val secondCall = CompletableFuture.supplyAsync(
+                {
+                    ready.countDown()
+                    assertTrue(start.await(5, TimeUnit.SECONDS))
+                    fixture.service.memberJoined(guildId, playerTwo)
+                },
+                executor,
+            )
             assertTrue(ready.await(5, TimeUnit.SECONDS))
             start.countDown()
 
